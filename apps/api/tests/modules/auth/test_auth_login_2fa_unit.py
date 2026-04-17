@@ -5,10 +5,12 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from fastapi_mail.errors import ConnectionErrors
 from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
 from src.core.exceptions import BadRequest, ServiceUnavailable, Unauthorized
+from src.core.i18n import t
 from src.models.organization.user import UserStatus
 from src.modules.auth.login.service import AuthLoginService
 from src.modules.auth.service import AuthService
@@ -300,13 +302,13 @@ async def test_request_login_email_code_stores_code_and_returns_metadata(monkeyp
     service, valkey, user = _build_login_service(monkeypatch, two_factor_enabled=False)
     sent: list[dict[str, object]] = []
 
-    async def _fake_is_enabled() -> bool:
+    async def _fake_enabled() -> bool:
         return True
 
     async def _fake_send_login_code(*, recipient: str, code: str, expires_in: int, **kwargs) -> None:
         sent.append({"recipient": recipient, "code": code, "expires_in": expires_in})
 
-    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_is_enabled)
+    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_enabled)
     monkeypatch.setattr(service.auth_service.email_service, "send_login_code", _fake_send_login_code)
 
     metadata = await service.request_login_email_code(email="demo@example.com")
@@ -367,6 +369,34 @@ async def test_request_login_email_code_reissues_after_resend_cooldown(monkeypat
             "expires_in": second.expires_in,
         },
     ]
+
+
+async def test_request_login_email_code_maps_mail_delivery_failures_to_api_error(monkeypatch) -> None:
+    service, valkey, _ = _build_login_service(monkeypatch, two_factor_enabled=False)
+
+    class _FailingMail:
+        async def send_message(self, *args, **kwargs) -> None:
+            _ = args, kwargs
+            raise ConnectionErrors(
+                "Exception raised Error connecting to localhost on port 1025: [Errno 111] Connection refused"
+            )
+
+    async def _fake_is_enabled() -> bool:
+        return True
+
+    async def _fake_get_fast_mail() -> _FailingMail:
+        return _FailingMail()
+
+    monkeypatch.setattr(service.auth_service.email_service, "_enabled", _fake_is_enabled)
+    monkeypatch.setattr(service.auth_service.email_service, "_get_fast_mail", _fake_get_fast_mail)
+
+    with pytest.raises(ServiceUnavailable) as exc:
+        await service.request_login_email_code(email="demo@example.com")
+
+    assert exc.value.error == "MAIL_DELIVERY_FAILED"
+    assert exc.value.message == t("auth", "MAIL_DELIVERY_FAILED")
+    assert "Connection refused" not in exc.value.message
+    assert "auth:login_code:email:demo@example.com" not in valkey._store
 
 
 async def test_verify_login_email_code_issues_tokens(monkeypatch) -> None:

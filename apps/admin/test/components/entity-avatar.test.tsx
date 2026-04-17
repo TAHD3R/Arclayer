@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
 vi.mock("@/lib/assets/asset-urls", () => ({
@@ -26,6 +26,20 @@ describe("entity-avatar", () => {
 
     expect(avatar).toHaveClass("rounded-md");
     expect(avatar).toHaveTextContent("CL");
+  });
+
+  test("falls back to initials when the avatar image cannot load", () => {
+    render(
+      <WorkspaceAvatar name="Philip Cole's Workspace 2" assetRef="/assets/broken.png" size={40} />,
+    );
+
+    const image = screen.getByRole("img", { name: "Philip Cole's Workspace 2" });
+    fireEvent.error(image);
+
+    const avatar = screen.getByLabelText("Philip Cole's Workspace 2");
+
+    expect(screen.queryByRole("img", { name: "Philip Cole's Workspace 2" })).toBeNull();
+    expect(avatar).toHaveTextContent("P2");
   });
 
   test("renders workspace glyph icon with custom background", () => {

@@ -5,10 +5,12 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
+from fastapi_mail.errors import ConnectionErrors
 from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
-from src.core.exceptions import Conflict, Unauthorized
+from src.core.exceptions import Conflict, ServiceUnavailable, Unauthorized
+from src.core.i18n import t
 from src.models.organization.user import UserStatus
 from src.modules.auth.contracts.schema import UserLike
 from src.modules.auth.service import AuthService
@@ -272,6 +274,37 @@ async def test_request_remove_password_issues_login_code(monkeypatch) -> None:
 
     assert expires_in > 0
     assert retry_after > 0
+
+
+async def test_request_remove_password_maps_mail_delivery_failures_to_api_error(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch)
+
+    class _FailingMail:
+        async def send_message(self, *args, **kwargs) -> None:
+            _ = args, kwargs
+            raise ConnectionErrors(
+                "Exception raised Error connecting to localhost on port 1025: [Errno 111] Connection refused"
+            )
+
+    async def _enabled() -> bool:
+        return True
+
+    async def _get_fast_mail() -> _FailingMail:
+        return _FailingMail()
+
+    monkeypatch.setattr(service.email_service, "_enabled", _enabled)
+    monkeypatch.setattr(service.email_service, "_get_fast_mail", _get_fast_mail)
+
+    with pytest.raises(ServiceUnavailable) as exc:
+        await service.request_remove_password(
+            user_id=user.id,
+            current_password="oldpass1",
+            locale="en-US",
+        )
+
+    assert exc.value.error == "MAIL_DELIVERY_FAILED"
+    assert exc.value.message == t("auth", "MAIL_DELIVERY_FAILED")
+    assert "Connection refused" not in exc.value.message
 
 
 async def test_confirm_remove_password_deletes_local_credential(monkeypatch) -> None:

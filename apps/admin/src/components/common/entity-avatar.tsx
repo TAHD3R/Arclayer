@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { cn } from "@arclayer/lib/utils";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { initialsFromName } from "@/lib/auth/user-profile";
+import { useImageFallback } from "./use-image-fallback";
 import { getWorkspaceGlyphIcon } from "./workspace-icon-glyphs";
 
 type EntityAvatarShape = "circle" | "square";
@@ -70,6 +71,7 @@ function EntityAvatar(props: EntityAvatarProps) {
   const src = resolveAssetRefToPublicUrlPath(props.assetRef) ?? undefined;
   const size = props.size ?? 32;
   const shapeClassName = props.shape === "circle" ? "rounded-full" : "rounded-md";
+  const { canRenderImage, markImageFailed } = useImageFallback(src);
 
   return (
     <div
@@ -81,8 +83,8 @@ function EntityAvatar(props: EntityAvatarProps) {
       style={{ width: size, height: size, ...props.style }}
       aria-label={label}
     >
-      {src ? (
-        <img src={src} alt={label} className="size-full object-cover" />
+      {canRenderImage ? (
+        <img src={src} alt={label} className="size-full object-cover" onError={markImageFailed} />
       ) : (
         <span>{initialsFromName(label)}</span>
       )}
@@ -123,6 +125,7 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
   const GlyphIcon = kind === "glyph" ? getWorkspaceGlyphIcon(props.iconGlyph) : null;
   const emoji = kind === "emoji" ? props.iconEmoji?.trim() : "";
   const hasCustomSurface = kind !== "image" && backgroundColor;
+  const { canRenderImage, markImageFailed } = useImageFallback(src);
 
   return (
     <div
@@ -144,8 +147,8 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
       }}
       aria-label={label}
     >
-      {kind === "image" && src ? (
-        <img src={src} alt={label} className="size-full object-cover" />
+      {kind === "image" && canRenderImage ? (
+        <img src={src} alt={label} className="size-full object-cover" onError={markImageFailed} />
       ) : kind === "emoji" && emoji ? (
         <span className="leading-none">{emoji}</span>
       ) : kind === "glyph" && GlyphIcon ? (

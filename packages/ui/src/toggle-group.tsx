@@ -56,18 +56,22 @@ function ToggleGroupItem({
   ...props
 }: React.ComponentProps<typeof ToggleGroupPrimitive.Item> & VariantProps<typeof toggleVariants>) {
   const context = React.useContext(ToggleGroupContext);
+  const resolvedVariant = context.variant || variant;
+  const resolvedSize = context.size || size;
 
   return (
     <ToggleGroupPrimitive.Item
       data-slot="toggle-group-item"
-      data-variant={context.variant || variant}
-      data-size={context.size || size}
+      data-variant={resolvedVariant}
+      data-size={resolvedSize}
       data-spacing={context.spacing}
       className={cn(
         toggleVariants({
-          variant: context.variant || variant,
-          size: context.size || size,
+          variant: resolvedVariant,
+          size: resolvedSize,
         }),
+        resolvedVariant === "outline" &&
+          "data-[state=on]:border-border/80 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground",
         "w-auto min-w-0 shrink-0 px-3 focus:z-10 focus-visible:z-10",
         "data-[spacing=0]:rounded-none data-[spacing=0]: data-[spacing=0]:first:rounded-l-md data-[spacing=0]:last:rounded-r-md data-[spacing=0]:data-[variant=outline]:border-l-0 data-[spacing=0]:data-[variant=outline]:first:border-l",
         className,

@@ -7,6 +7,7 @@ from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from fastapi_mail.schemas import MultipartSubtypeEnum
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
+from src.common.email.errors import raise_mail_delivery_error
 from src.common.email.helpers import (
     default_template_dir,
     pick_bool,
@@ -485,7 +486,13 @@ class EmailService:
                 error=str(exc),
                 user_id=user_id,
             )
-            raise
+            raise_mail_delivery_error(
+                exc,
+                namespace="auth",
+                failure_key="MAIL_DELIVERY_FAILED",
+                failure_error="MAIL_DELIVERY_FAILED",
+                expose_configuration_details=False,
+            )
 
     async def send_invitation(
         self,

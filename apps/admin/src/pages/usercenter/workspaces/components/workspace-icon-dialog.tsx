@@ -11,6 +11,7 @@ import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { WorkspaceAvatar } from "@/components/common/entity-avatar";
+import { useImageFallback } from "@/components/common/use-image-fallback";
 import { WORKSPACE_ICON_GLYPH_IDS } from "@/components/common/workspace-icon-glyphs";
 import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -167,6 +168,9 @@ export function WorkspaceIconDialog(props: WorkspaceIconDialogProps) {
     dialog.values.iconMode === "image" && dialog.values.iconUrl
       ? "image"
       : resolveNonImagePreviewMode(dialog.values);
+  const previewImageSrc = previewMode === "image" ? dialog.values.iconUrl : undefined;
+  const { canRenderImage: canRenderPreviewImage, markImageFailed: markPreviewImageFailed } =
+    useImageFallback(previewImageSrc);
 
   const openFilePicker = () => {
     fileInputRef.current?.click();
@@ -339,14 +343,15 @@ export function WorkspaceIconDialog(props: WorkspaceIconDialogProps) {
                         dialog.pending || isUploading ? "pointer-events-none opacity-70" : "",
                       ].join(" ")}
                     >
-                      {previewMode === "image" && dialog.values.iconUrl ? (
+                      {previewMode === "image" && previewImageSrc && canRenderPreviewImage ? (
                         <>
                           <img
-                            src={dialog.values.iconUrl}
+                            src={previewImageSrc}
                             alt={
                               dialog.workspace?.name || t("common:ORG_WORKSPACES_ICON_UPLOAD_TITLE")
                             }
                             className="size-full object-cover"
+                            onError={markPreviewImageFailed}
                           />
                           <span className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover/image-slot:bg-black/10" />
                         </>

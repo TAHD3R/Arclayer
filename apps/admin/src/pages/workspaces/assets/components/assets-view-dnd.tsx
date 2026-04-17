@@ -4,6 +4,7 @@ import { Badge } from "@arclayer/ui/badge";
 import { motion } from "motion/react";
 import { useAnimationControls } from "motion/react";
 
+import { useImageFallback } from "@/components/common/use-image-fallback";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 export const DND_FOLDER_PREFIX = "folder:";
@@ -246,6 +247,7 @@ export function AssetsDragOverlayCard(props: {
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   const mimeLabel = props.asset.ext || props.asset.mimeType || props.t("assets:ASSET_FILE_GENERIC");
+  const { canRenderImage, markImageFailed } = useImageFallback(props.asset.previewUrl);
   return (
     <motion.div
       className="pointer-events-none select-none"
@@ -257,12 +259,13 @@ export function AssetsDragOverlayCard(props: {
     >
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card ">
         <div className="relative overflow-hidden bg-muted/20" style={{ aspectRatio: 4 / 3 }}>
-          {props.asset.previewUrl ? (
+          {props.asset.previewUrl && canRenderImage ? (
             <img
               src={props.asset.previewUrl}
               alt={props.asset.name}
               className="h-full w-full object-cover"
               draggable={false}
+              onError={markImageFailed}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-caption font-medium text-label-secondary">
