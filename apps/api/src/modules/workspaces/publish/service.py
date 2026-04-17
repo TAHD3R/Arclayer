@@ -162,12 +162,18 @@ class WorkspacePublishService:
                 )
         return impact
 
-    async def build_artifacts(self, *, workspace_id: UUID, site_id: UUID) -> PublishArtifactsOut:
+    async def publish_release(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        actor_user_id: UUID | None,
+    ) -> tuple[ContentReleaseRecord, PublishArtifactsOut]:
         impact = await self.preview_impact(workspace_id=workspace_id, site_id=site_id)
         if _has_blockers(impact):
             raise Conflict(
                 "Publish blocked by unresolved impact",
-                error="PUBLISH_IMPACT_BLOCKING",
+                error="PUBLISH_VALIDATION_FAILED",
                 meta=impact.model_dump(mode="json"),
             )
 
@@ -187,6 +193,7 @@ class WorkspacePublishService:
                 site_id=site_id,
                 release_number=await _next_release_number(site_id=site_id, conn=conn),
                 is_active=True,
+                created_by_user_id=actor_user_id,
             )
             rows: list[PublishedGraphRecord] = []
             artifact_rows: list[PublishArtifactRecord] = []
@@ -314,4 +321,4 @@ class WorkspacePublishService:
                 await PublishedGraphRecord.bulk_create(rows, using_db=conn)
             if artifact_rows:
                 await PublishArtifactRecord.bulk_create(artifact_rows, using_db=conn)
-        return PublishArtifactsOut(graph_nodes=len(rows), impact=impact)
+        return release, PublishArtifactsOut(graph_nodes=len(rows), impact=impact)

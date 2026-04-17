@@ -37,7 +37,7 @@ async def _prepare_published_site(client, workspace_id: str) -> None:
     )
     assert child_node_res.status_code == 200, child_node_res.text
 
-    publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/publish/artifacts", json={})
+    publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
     assert publish_res.status_code == 200, publish_res.text
 
 

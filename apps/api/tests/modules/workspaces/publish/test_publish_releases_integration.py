@@ -95,8 +95,9 @@ async def test_publish_artifacts_create_active_release_and_link_rows(
         await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
         await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
 
-        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/publish/artifacts", json={})
+        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
         assert publish_res.status_code == 200, publish_res.text
+        assert publish_res.json()["data"]["release"]["releaseNumber"] == 1
 
         releases = await ContentReleaseRecord.all().order_by("release_number")
         assert len(releases) == 1
@@ -124,11 +125,11 @@ async def test_publish_artifacts_rotate_active_release_forward(
         await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
         await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
 
-        first_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/publish/artifacts", json={})
+        first_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
         assert first_publish.status_code == 200, first_publish.text
 
         await _publish_version(client, workspace_id, root_item_id, version=2, title="Home v2", path="/")
-        second_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/publish/artifacts", json={})
+        second_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
         assert second_publish.status_code == 200, second_publish.text
 
         releases = await ContentReleaseRecord.all().order_by("release_number")
@@ -142,3 +143,45 @@ async def test_publish_artifacts_rotate_active_release_forward(
             artifact_kind="route_manifest",
         )
         assert latest_route_artifact.release_id == active_release.id
+
+
+@pytest.mark.asyncio
+async def test_release_management_list_detail_and_rollback(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        root_item_id, child_item_id = await _prepare_publishable_tree(client, workspace_id)
+        await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
+        await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
+
+        first_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        assert first_publish.status_code == 200, first_publish.text
+
+        await _publish_version(client, workspace_id, root_item_id, version=2, title="Home v2", path="/")
+        second_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        assert second_publish.status_code == 200, second_publish.text
+
+        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/releases")
+        assert list_res.status_code == 200, list_res.text
+        items = list_res.json()["data"]["items"]
+        assert [item["releaseNumber"] for item in items] == [2, 1]
+
+        first_release = next(item for item in items if item["releaseNumber"] == 1)
+        second_release = next(item for item in items if item["releaseNumber"] == 2)
+
+        detail_res = await client.get(f"/api/v1/workspaces/{workspace_id}/releases/{first_release['id']}")
+        assert detail_res.status_code == 200, detail_res.text
+        assert detail_res.json()["data"]["releaseNumber"] == 1
+        assert detail_res.json()["data"]["isActive"] is False
+
+        rollback_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/{first_release['id']}/rollback")
+        assert rollback_res.status_code == 200, rollback_res.text
+        rollback_data = rollback_res.json()["data"]
+        assert rollback_data["release"]["id"] == first_release["id"]
+        assert rollback_data["release"]["isActive"] is True
+        assert rollback_data["previousActiveReleaseId"] == second_release["id"]
+
+        releases = await ContentReleaseRecord.all().order_by("release_number")
+        assert [release.release_number for release in releases] == [1, 2]
+        assert [release.is_active for release in releases] == [True, False]

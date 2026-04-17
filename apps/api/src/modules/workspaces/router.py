@@ -14,6 +14,10 @@ from src.modules.organization.http.service import get_current_org_membership
 from src.modules.organization.workspaces.schema import OrganizationWorkspaceSlugAvailabilityOut
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.system.admin.router import router as workspace_admin_router
+from src.modules.workspaces.api_keys.router import (
+    me_api_keys_router,
+    workspace_api_keys_router,
+)
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.authz.router import router as workspace_authz_router
 from src.modules.workspaces.content.bindings.router import (
@@ -41,6 +45,7 @@ from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
 from src.modules.workspaces.publish.router import router as workspace_publish_router
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
+from src.modules.workspaces.releases.router import router as workspace_releases_router
 from src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
     LeaveWorkspaceResult,
@@ -59,6 +64,7 @@ from src.modules.workspaces.team.router import router as workspace_team_router
 from src.modules.workspaces.themes.router import router as workspace_themes_router
 
 router = APIRouter(tags=["domain.workspaces"])
+router.include_router(me_api_keys_router)
 router.include_router(workspace_team_router)
 router.include_router(workspace_settings_router)
 router.include_router(workspace_authz_router)
@@ -73,6 +79,8 @@ router.include_router(workspace_content_seo_router)
 router.include_router(workspace_content_library_views_router)
 router.include_router(workspace_content_bindings_router)
 router.include_router(workspace_content_routing_router)
+router.include_router(workspace_api_keys_router)
+router.include_router(workspace_releases_router)
 router.include_router(workspace_publish_router)
 router.include_router(workspace_site_router)
 router.include_router(workspace_activity_router)

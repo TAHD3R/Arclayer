@@ -13,9 +13,11 @@ from src.modules.assets.admin.usages.router import router as usages_router
 from src.modules.sites.domains.router import router as domains_router
 from src.modules.system.admin.notifications.router import router as notifications_router
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
+from src.modules.workspaces.api_keys.router import workspace_api_keys_router
 from src.modules.workspaces.content.items.router import canonical_items_router
 from src.modules.workspaces.content.models.router import canonical_models_router
 from src.modules.workspaces.content.routing.router import canonical_routing_router
+from src.modules.workspaces.releases.router import router as releases_router
 from src.modules.workspaces.site.router import router as site_router
 from src.modules.workspaces.themes.router import router as themes_router
 
@@ -79,6 +81,8 @@ def test_workspace_catalog_includes_content_site_theme_permissions_with_defaults
         "system:content:read": {"owner", "admin", "editor", "designer", "viewer"},
         "system:content:manage": {"owner", "admin", "editor", "designer"},
         "system:content:publish": {"owner", "admin", "editor"},
+        "system:keys:read": {"owner", "admin"},
+        "system:keys:manage": {"owner", "admin"},
         "system:themes:read": {"owner", "admin", "editor", "designer", "viewer"},
         "system:themes:manage": {"owner", "admin", "designer"},
         "system:assets:read": {"owner", "admin", "editor", "designer", "viewer"},
@@ -167,6 +171,52 @@ def test_site_and_theme_routers_use_granular_permissions() -> None:
     assert import_theme == {"system:themes:read", "system:themes:manage"}
     assert delete_theme == {"system:themes:read", "system:themes:manage"}
     assert "admin:access" not in site_read | site_preview | import_theme | delete_theme
+
+
+def test_workspace_api_key_router_uses_granular_permissions() -> None:
+    list_keys = _route_permissions(
+        workspace_api_keys_router,
+        path="/workspaces/{workspace_id}/api-keys",
+        method="GET",
+    )
+    create_key = _route_permissions(
+        workspace_api_keys_router,
+        path="/workspaces/{workspace_id}/api-keys",
+        method="POST",
+    )
+    rotate_key = _route_permissions(
+        workspace_api_keys_router,
+        path="/workspaces/{workspace_id}/api-keys/{key_id}/rotate",
+        method="POST",
+    )
+
+    assert list_keys == {"system:keys:read"}
+    assert create_key == {"system:keys:manage"}
+    assert rotate_key == {"system:keys:manage"}
+    assert "admin:access" not in list_keys | create_key | rotate_key
+
+
+def test_workspace_releases_router_uses_granular_permissions() -> None:
+    list_releases = _route_permissions(
+        releases_router,
+        path="/workspaces/{workspace_id}/releases",
+        method="GET",
+    )
+    publish_release = _route_permissions(
+        releases_router,
+        path="/workspaces/{workspace_id}/releases/publish",
+        method="POST",
+    )
+    rollback_release = _route_permissions(
+        releases_router,
+        path="/workspaces/{workspace_id}/releases/{release_id}/rollback",
+        method="POST",
+    )
+
+    assert list_releases == {"system:content:read"}
+    assert publish_release == {"system:content:read", "system:content:publish"}
+    assert rollback_release == {"system:content:read", "system:content:publish"}
+    assert "admin:access" not in list_releases | publish_release | rollback_release
 
 
 def test_assets_domains_notifications_and_extensions_use_granular_permissions() -> None:

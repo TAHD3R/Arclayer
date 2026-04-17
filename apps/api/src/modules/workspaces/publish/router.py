@@ -12,7 +12,6 @@ from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
 from src.modules.workspaces.publish.preview_service import WorkspacePublishPreviewService
 from src.modules.workspaces.publish.schema import (
-    PublishArtifactsOut,
     PublishExportContractOut,
     PublishImpactOut,
 )
@@ -46,23 +45,6 @@ async def get_workspace_publish_impact(
 ) -> ResponseModel[PublishImpactOut]:
     """Preview publish impact (workspace RBAC protected)."""
     data = await service.preview_impact(workspace_id=ctx.workspace_id, site_id=site_id)
-    return ApiResponse.success(data=data)
-
-
-@router.post(
-    "/artifacts",
-    response_model=ResponseModel[PublishArtifactsOut],
-    response_model_exclude_none=True,
-    summary="Build published graph artifacts (workspace RBAC protected)",
-    dependencies=[require_workspace_permission("system:content:publish")],
-)
-async def post_workspace_publish_artifacts(
-    site_id: Annotated[UUID, Depends(_resolve_site_id)],
-    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
-    service: Annotated[WorkspacePublishService, Depends(get_workspace_publish_service)],
-) -> ResponseModel[PublishArtifactsOut]:
-    """Build published graph artifacts (workspace RBAC protected)."""
-    data = await service.build_artifacts(workspace_id=ctx.workspace_id, site_id=site_id)
     return ApiResponse.success(data=data)
 
 

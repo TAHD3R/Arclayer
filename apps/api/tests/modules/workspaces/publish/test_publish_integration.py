@@ -155,7 +155,7 @@ async def test_publish_builds_published_graph_from_routes_and_hierarchy(
         assert impact_res.json()["data"]["missingRoutes"] == []
         assert impact_res.json()["data"]["unpublishedDependencies"] == []
 
-        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/publish/artifacts", json={})
+        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
         assert publish_res.status_code == 200, publish_res.text
         assert publish_res.json()["data"]["graphNodes"] == 2
 
@@ -189,6 +189,6 @@ async def test_publish_returns_blocking_impact_when_route_missing(
         assert impact_res.status_code == 200, impact_res.text
         assert impact_res.json()["data"]["missingRoutes"] == [root_item_id]
 
-        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/publish/artifacts", json={})
+        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
         assert publish_res.status_code == 409, publish_res.text
-        assert publish_res.json()["error"] == "PUBLISH_IMPACT_BLOCKING"
+        assert publish_res.json()["error"] == "PUBLISH_VALIDATION_FAILED"

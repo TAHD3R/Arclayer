@@ -907,6 +907,109 @@ export type AdminAssetUsageUpsertRequest = {
 };
 
 /**
+ * ApiKeyCreateOut
+ */
+export type ApiKeyCreateOut = {
+    key: ApiKeyOut;
+    /**
+     * Secrettoken
+     */
+    secretToken: string;
+};
+
+/**
+ * ApiKeyFamily
+ *
+ * API key family.
+ */
+export type ApiKeyFamily = 'personal_management' | 'workspace_service' | 'delivery';
+
+/**
+ * ApiKeyListOut
+ */
+export type ApiKeyListOut = {
+    /**
+     * Items
+     */
+    items?: Array<ApiKeyOut>;
+};
+
+/**
+ * ApiKeyOut
+ */
+export type ApiKeyOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId?: string | null;
+    deliveryPerspective?: DeliveryKeyPerspective | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Expiresat
+     */
+    expiresAt?: string | null;
+    family: ApiKeyFamily;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Lastusedat
+     */
+    lastUsedAt?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Owneruserid
+     */
+    ownerUserId?: string | null;
+    /**
+     * Revokedat
+     */
+    revokedAt?: string | null;
+    /**
+     * Scopes
+     */
+    scopes?: Array<ApiKeyScope>;
+    /**
+     * Siteid
+     */
+    siteId?: string | null;
+    /**
+     * Tokenmask
+     */
+    tokenMask: string;
+    /**
+     * Tokenpublicid
+     */
+    tokenPublicId: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId?: string | null;
+};
+
+/**
+ * ApiKeyScope
+ */
+export type ApiKeyScope = 'content.read' | 'content.write' | 'models.read' | 'models.write' | 'delivery.read' | 'graphql.read' | 'keys.read' | 'keys.write' | 'settings.read' | 'settings.write';
+
+/**
  * AppKind
  */
 export type AppKind = 'extension' | 'integration';
@@ -2958,6 +3061,13 @@ export type DeleteOrganizationResult = {
      */
     organizationId: string;
 };
+
+/**
+ * DeliveryKeyPerspective
+ *
+ * Delivery key perspective boundary.
+ */
+export type DeliveryKeyPerspective = 'published' | 'preview';
 
 /**
  * DeliveryMenuOut
@@ -9198,19 +9308,25 @@ export type PermissionRoleSetRequest = {
 };
 
 /**
- * PublishArtifactsOut
+ * PersonalApiKeyCreateIn
  */
-export type PublishArtifactsOut = {
+export type PersonalApiKeyCreateIn = {
     /**
-     * Graphnodes
-     *
-     * Number of generated graph nodes.
+     * Description
      */
-    graphNodes?: number;
+    description?: string | null;
     /**
-     * Publish impact summary.
+     * Expiresat
      */
-    impact: PublishImpactOut;
+    expiresAt?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Scopes
+     */
+    scopes?: Array<ApiKeyScope>;
 };
 
 /**
@@ -9411,6 +9527,114 @@ export type RegisterRequest = {
      * Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.
      */
     username: string;
+};
+
+/**
+ * ReleaseListOut
+ */
+export type ReleaseListOut = {
+    /**
+     * Items
+     *
+     * Workspace releases.
+     */
+    items?: Array<ReleaseOut>;
+};
+
+/**
+ * ReleaseOut
+ */
+export type ReleaseOut = {
+    /**
+     * Activatedat
+     *
+     * Current activation timestamp for the release.
+     */
+    activatedAt: string;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     *
+     * Actor user id that created the release.
+     */
+    createdByUserId?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isactive
+     *
+     * Whether this release is currently active.
+     */
+    isActive: boolean;
+    /**
+     * Releasenumber
+     *
+     * Monotonic release number within the site.
+     */
+    releaseNumber: number;
+    /**
+     * Siteid
+     *
+     * Site id.
+     */
+    siteId: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * ReleasePublishOut
+ */
+export type ReleasePublishOut = {
+    /**
+     * Graphnodes
+     *
+     * Number of generated graph nodes.
+     */
+    graphNodes: number;
+    /**
+     * Resolved publish impact snapshot used by the release.
+     */
+    impact: PublishImpactOut;
+    /**
+     * Created release metadata.
+     */
+    release: ReleaseOut;
+};
+
+/**
+ * ReleaseRollbackOut
+ */
+export type ReleaseRollbackOut = {
+    /**
+     * Previousactivereleaseid
+     *
+     * Release that was active immediately before the rollback.
+     */
+    previousActiveReleaseId?: string | null;
+    /**
+     * Activated release metadata.
+     */
+    release: ReleaseOut;
 };
 
 /**
@@ -9821,6 +10045,81 @@ export type ResponseModelAdminAssetUsageDeleteOut = {
  */
 export type ResponseModelAdminAssetUsageOut = {
     data?: AdminAssetUsageOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ApiKeyCreateOut]
+ */
+export type ResponseModelApiKeyCreateOut = {
+    data?: ApiKeyCreateOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ApiKeyListOut]
+ */
+export type ResponseModelApiKeyListOut = {
+    data?: ApiKeyListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ApiKeyOut]
+ */
+export type ResponseModelApiKeyOut = {
+    data?: ApiKeyOut | null;
     /**
      * Error
      */
@@ -11995,31 +12294,6 @@ export type ResponseModelPageDataWorkspaceTeamUserOptionOut = {
 };
 
 /**
- * ResponseModel[PublishArtifactsOut]
- */
-export type ResponseModelPublishArtifactsOut = {
-    data?: PublishArtifactsOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PublishExportContractOut]
  */
 export type ResponseModelPublishExportContractOut = {
@@ -12049,6 +12323,106 @@ export type ResponseModelPublishExportContractOut = {
  */
 export type ResponseModelPublishImpactOut = {
     data?: PublishImpactOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ReleaseListOut]
+ */
+export type ResponseModelReleaseListOut = {
+    data?: ReleaseListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ReleaseOut]
+ */
+export type ResponseModelReleaseOut = {
+    data?: ReleaseOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ReleasePublishOut]
+ */
+export type ResponseModelReleasePublishOut = {
+    data?: ReleasePublishOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ReleaseRollbackOut]
+ */
+export type ResponseModelReleaseRollbackOut = {
+    data?: ReleaseRollbackOut | null;
     /**
      * Error
      */
@@ -15657,6 +16031,30 @@ export type WebhookSubscriptionOut = {
 };
 
 /**
+ * WorkspaceApiKeyCreateIn
+ */
+export type WorkspaceApiKeyCreateIn = {
+    deliveryPerspective?: DeliveryKeyPerspective | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Expiresat
+     */
+    expiresAt?: string | null;
+    family: ApiKeyFamily;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Scopes
+     */
+    scopes?: Array<ApiKeyScope>;
+};
+
+/**
  * WorkspaceAssignRoleToMembersRequest
  */
 export type WorkspaceAssignRoleToMembersRequest = {
@@ -18533,6 +18931,137 @@ export type GlobalAuthUsernameCheckResponses = {
 };
 
 export type GlobalAuthUsernameCheckResponse = GlobalAuthUsernameCheckResponses[keyof GlobalAuthUsernameCheckResponses];
+
+export type DomainWorkspacesListPersonalApiKeysData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/api-keys';
+};
+
+export type DomainWorkspacesListPersonalApiKeysResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyListOut;
+};
+
+export type DomainWorkspacesListPersonalApiKeysResponse = DomainWorkspacesListPersonalApiKeysResponses[keyof DomainWorkspacesListPersonalApiKeysResponses];
+
+export type DomainWorkspacesCreatePersonalApiKeyData = {
+    body: PersonalApiKeyCreateIn;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/api-keys';
+};
+
+export type DomainWorkspacesCreatePersonalApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreatePersonalApiKeyError = DomainWorkspacesCreatePersonalApiKeyErrors[keyof DomainWorkspacesCreatePersonalApiKeyErrors];
+
+export type DomainWorkspacesCreatePersonalApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyCreateOut;
+};
+
+export type DomainWorkspacesCreatePersonalApiKeyResponse = DomainWorkspacesCreatePersonalApiKeyResponses[keyof DomainWorkspacesCreatePersonalApiKeyResponses];
+
+export type DomainWorkspacesGetPersonalApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/api-keys/{key_id}';
+};
+
+export type DomainWorkspacesGetPersonalApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetPersonalApiKeyError = DomainWorkspacesGetPersonalApiKeyErrors[keyof DomainWorkspacesGetPersonalApiKeyErrors];
+
+export type DomainWorkspacesGetPersonalApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyOut;
+};
+
+export type DomainWorkspacesGetPersonalApiKeyResponse = DomainWorkspacesGetPersonalApiKeyResponses[keyof DomainWorkspacesGetPersonalApiKeyResponses];
+
+export type DomainWorkspacesRevokePersonalApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/api-keys/{key_id}/revoke';
+};
+
+export type DomainWorkspacesRevokePersonalApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRevokePersonalApiKeyError = DomainWorkspacesRevokePersonalApiKeyErrors[keyof DomainWorkspacesRevokePersonalApiKeyErrors];
+
+export type DomainWorkspacesRevokePersonalApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyOut;
+};
+
+export type DomainWorkspacesRevokePersonalApiKeyResponse = DomainWorkspacesRevokePersonalApiKeyResponses[keyof DomainWorkspacesRevokePersonalApiKeyResponses];
+
+export type DomainWorkspacesRotatePersonalApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/api-keys/{key_id}/rotate';
+};
+
+export type DomainWorkspacesRotatePersonalApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRotatePersonalApiKeyError = DomainWorkspacesRotatePersonalApiKeyErrors[keyof DomainWorkspacesRotatePersonalApiKeyErrors];
+
+export type DomainWorkspacesRotatePersonalApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyCreateOut;
+};
+
+export type DomainWorkspacesRotatePersonalApiKeyResponse = DomainWorkspacesRotatePersonalApiKeyResponses[keyof DomainWorkspacesRotatePersonalApiKeyResponses];
 
 export type DomainWorkspacesListMyNotificationsData = {
     body?: never;
@@ -22264,6 +22793,178 @@ export type DomainWorkspacesListWorkspaceActivityResponses = {
 
 export type DomainWorkspacesListWorkspaceActivityResponse = DomainWorkspacesListWorkspaceActivityResponses[keyof DomainWorkspacesListWorkspaceActivityResponses];
 
+export type DomainWorkspacesListWorkspaceApiKeysData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/api-keys';
+};
+
+export type DomainWorkspacesListWorkspaceApiKeysErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceApiKeysError = DomainWorkspacesListWorkspaceApiKeysErrors[keyof DomainWorkspacesListWorkspaceApiKeysErrors];
+
+export type DomainWorkspacesListWorkspaceApiKeysResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyListOut;
+};
+
+export type DomainWorkspacesListWorkspaceApiKeysResponse = DomainWorkspacesListWorkspaceApiKeysResponses[keyof DomainWorkspacesListWorkspaceApiKeysResponses];
+
+export type DomainWorkspacesCreateWorkspaceApiKeyData = {
+    body: WorkspaceApiKeyCreateIn;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/api-keys';
+};
+
+export type DomainWorkspacesCreateWorkspaceApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceApiKeyError = DomainWorkspacesCreateWorkspaceApiKeyErrors[keyof DomainWorkspacesCreateWorkspaceApiKeyErrors];
+
+export type DomainWorkspacesCreateWorkspaceApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyCreateOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceApiKeyResponse = DomainWorkspacesCreateWorkspaceApiKeyResponses[keyof DomainWorkspacesCreateWorkspaceApiKeyResponses];
+
+export type DomainWorkspacesGetWorkspaceApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/api-keys/{key_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceApiKeyError = DomainWorkspacesGetWorkspaceApiKeyErrors[keyof DomainWorkspacesGetWorkspaceApiKeyErrors];
+
+export type DomainWorkspacesGetWorkspaceApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyOut;
+};
+
+export type DomainWorkspacesGetWorkspaceApiKeyResponse = DomainWorkspacesGetWorkspaceApiKeyResponses[keyof DomainWorkspacesGetWorkspaceApiKeyResponses];
+
+export type DomainWorkspacesRevokeWorkspaceApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/api-keys/{key_id}/revoke';
+};
+
+export type DomainWorkspacesRevokeWorkspaceApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRevokeWorkspaceApiKeyError = DomainWorkspacesRevokeWorkspaceApiKeyErrors[keyof DomainWorkspacesRevokeWorkspaceApiKeyErrors];
+
+export type DomainWorkspacesRevokeWorkspaceApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyOut;
+};
+
+export type DomainWorkspacesRevokeWorkspaceApiKeyResponse = DomainWorkspacesRevokeWorkspaceApiKeyResponses[keyof DomainWorkspacesRevokeWorkspaceApiKeyResponses];
+
+export type DomainWorkspacesRotateWorkspaceApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/api-keys/{key_id}/rotate';
+};
+
+export type DomainWorkspacesRotateWorkspaceApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRotateWorkspaceApiKeyError = DomainWorkspacesRotateWorkspaceApiKeyErrors[keyof DomainWorkspacesRotateWorkspaceApiKeyErrors];
+
+export type DomainWorkspacesRotateWorkspaceApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyCreateOut;
+};
+
+export type DomainWorkspacesRotateWorkspaceApiKeyResponse = DomainWorkspacesRotateWorkspaceApiKeyResponses[keyof DomainWorkspacesRotateWorkspaceApiKeyResponses];
+
 export type DomainWorkspacesListAssetFoldersData = {
     body?: never;
     path: {
@@ -24483,38 +25184,6 @@ export type DomainWorkspacesSeedDemoNotificationsResponses = {
 
 export type DomainWorkspacesSeedDemoNotificationsResponse = DomainWorkspacesSeedDemoNotificationsResponses[keyof DomainWorkspacesSeedDemoNotificationsResponses];
 
-export type DomainWorkspacesPostWorkspacePublishArtifactsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/publish/artifacts';
-};
-
-export type DomainWorkspacesPostWorkspacePublishArtifactsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPostWorkspacePublishArtifactsError = DomainWorkspacesPostWorkspacePublishArtifactsErrors[keyof DomainWorkspacesPostWorkspacePublishArtifactsErrors];
-
-export type DomainWorkspacesPostWorkspacePublishArtifactsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPublishArtifactsOut;
-};
-
-export type DomainWorkspacesPostWorkspacePublishArtifactsResponse = DomainWorkspacesPostWorkspacePublishArtifactsResponses[keyof DomainWorkspacesPostWorkspacePublishArtifactsResponses];
-
 export type DomainWorkspacesGetWorkspacePublishImpactData = {
     body?: never;
     path: {
@@ -24876,6 +25545,142 @@ export type DomainWorkspacesSetRolePermissionsResponses = {
 };
 
 export type DomainWorkspacesSetRolePermissionsResponse = DomainWorkspacesSetRolePermissionsResponses[keyof DomainWorkspacesSetRolePermissionsResponses];
+
+export type DomainWorkspacesListWorkspaceReleasesData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/releases';
+};
+
+export type DomainWorkspacesListWorkspaceReleasesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceReleasesError = DomainWorkspacesListWorkspaceReleasesErrors[keyof DomainWorkspacesListWorkspaceReleasesErrors];
+
+export type DomainWorkspacesListWorkspaceReleasesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseListOut;
+};
+
+export type DomainWorkspacesListWorkspaceReleasesResponse = DomainWorkspacesListWorkspaceReleasesResponses[keyof DomainWorkspacesListWorkspaceReleasesResponses];
+
+export type DomainWorkspacesPublishWorkspaceReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/releases/publish';
+};
+
+export type DomainWorkspacesPublishWorkspaceReleaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesPublishWorkspaceReleaseError = DomainWorkspacesPublishWorkspaceReleaseErrors[keyof DomainWorkspacesPublishWorkspaceReleaseErrors];
+
+export type DomainWorkspacesPublishWorkspaceReleaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleasePublishOut;
+};
+
+export type DomainWorkspacesPublishWorkspaceReleaseResponse = DomainWorkspacesPublishWorkspaceReleaseResponses[keyof DomainWorkspacesPublishWorkspaceReleaseResponses];
+
+export type DomainWorkspacesGetWorkspaceReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * Release Id
+         */
+        release_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/releases/{release_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceReleaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceReleaseError = DomainWorkspacesGetWorkspaceReleaseErrors[keyof DomainWorkspacesGetWorkspaceReleaseErrors];
+
+export type DomainWorkspacesGetWorkspaceReleaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseOut;
+};
+
+export type DomainWorkspacesGetWorkspaceReleaseResponse = DomainWorkspacesGetWorkspaceReleaseResponses[keyof DomainWorkspacesGetWorkspaceReleaseResponses];
+
+export type DomainWorkspacesRollbackWorkspaceReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * Release Id
+         */
+        release_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/releases/{release_id}/rollback';
+};
+
+export type DomainWorkspacesRollbackWorkspaceReleaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesRollbackWorkspaceReleaseError = DomainWorkspacesRollbackWorkspaceReleaseErrors[keyof DomainWorkspacesRollbackWorkspaceReleaseErrors];
+
+export type DomainWorkspacesRollbackWorkspaceReleaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseRollbackOut;
+};
+
+export type DomainWorkspacesRollbackWorkspaceReleaseResponse = DomainWorkspacesRollbackWorkspaceReleaseResponses[keyof DomainWorkspacesRollbackWorkspaceReleaseResponses];
 
 export type DomainWorkspacesGetWorkspaceCoreSettingsData = {
     body?: never;

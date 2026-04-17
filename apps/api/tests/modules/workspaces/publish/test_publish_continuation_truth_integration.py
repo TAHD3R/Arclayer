@@ -61,9 +61,9 @@ async def test_publish_impact_blocks_unshaped_items_from_resolved_truth(
             }
         ]
 
-        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/publish/artifacts", json={})
+        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
         assert publish_res.status_code == 409, publish_res.text
-        assert publish_res.json()["error"] == "PUBLISH_IMPACT_BLOCKING"
+        assert publish_res.json()["error"] == "PUBLISH_VALIDATION_FAILED"
 
 
 @pytest.mark.asyncio
@@ -74,7 +74,7 @@ async def test_publish_artifacts_emit_resolved_continuation_truth_instead_of_boo
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
         root_item_id = await _prepare_published_root_item(client, workspace_id)
 
-        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/publish/artifacts", json={})
+        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
         assert publish_res.status_code == 200, publish_res.text
 
         artifact = await PublishArtifactRecord.get(

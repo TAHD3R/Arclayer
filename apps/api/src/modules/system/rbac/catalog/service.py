@@ -89,6 +89,25 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description_i18n="rbac:RBAC_PERM_CONTENT_PUBLISH_DESC",
         default_roles=["owner", "admin", "editor"],
     ),
+    # API keys.
+    PermissionTemplate(
+        code="system:keys:read",
+        scope="workspace",
+        name="Read API keys",
+        description="Allow listing and reading workspace service keys and delivery keys.",
+        name_i18n="rbac:RBAC_PERM_KEYS_READ_NAME",
+        description_i18n="rbac:RBAC_PERM_KEYS_READ_DESC",
+        default_roles=["owner", "admin"],
+    ),
+    PermissionTemplate(
+        code="system:keys:manage",
+        scope="workspace",
+        name="Manage API keys",
+        description="Allow creating, revoking, and rotating workspace service keys and delivery keys.",
+        name_i18n="rbac:RBAC_PERM_KEYS_MANAGE_NAME",
+        description_i18n="rbac:RBAC_PERM_KEYS_MANAGE_DESC",
+        default_roles=["owner", "admin"],
+    ),
     # Themes.
     PermissionTemplate(
         code="system:themes:read",
