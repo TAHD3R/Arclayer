@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Literal
 from uuid import UUID
 
@@ -21,6 +22,13 @@ from src.modules.sites.schema import (
     SiteRouteResolveOut,
 )
 from src.modules.workspaces.content.routing.service import match_route_binding, route_sort_key
+
+
+@dataclass(frozen=True, slots=True)
+class _RouteBindingCandidate:
+    path: str
+    route_contract: dict[str, Any] | None
+    item: Any
 
 
 def _resolve_json_path(value: Any, path: list[str]) -> Any:
@@ -219,9 +227,11 @@ def _flatten_sections(
     raw_slot_mapping: dict[str, Any] | None,
     primary: dict[str, Any] | None,
     route_params: dict[str, str],
+    strict_bindings: bool = False,
 ) -> tuple[dict[str, Any] | None, list[SiteFlattenedSectionOut]]:
     layout, section_specs = _extract_sections(raw_page_blueprint)
     sections: list[SiteFlattenedSectionOut] = []
+    missing_bindings: list[dict[str, Any]] = []
     structured_sections = raw_slot_mapping.get("sections") if isinstance(raw_slot_mapping, dict) else None
     for spec in section_specs:
         section_id = str(spec["id"])
@@ -242,12 +252,26 @@ def _flatten_sections(
                 resolved = _resolve_mapping_value(mapping, primary=primary, route_params=route_params)
                 if resolved is not None:
                     props[str(prop_key)] = _normalize_json_value(resolved)
+                    continue
+                if strict_bindings and str(prop_key) not in props:
+                    missing_bindings.append({
+                        "sectionId": section_id,
+                        "componentKey": component_key,
+                        "propKey": str(prop_key),
+                        "mapping": _normalize_json_value(mapping),
+                    })
         sections.append(
             SiteFlattenedSectionOut(
                 id=section_id,
                 componentKey=component_key,
                 props={str(key): _normalize_json_value(value) for key, value in props.items()},
             )
+        )
+    if missing_bindings:
+        raise Conflict(
+            "Page binding resolution failed",
+            error="PAGE_BINDING_RESOLUTION_FAILED",
+            details=missing_bindings,
         )
     return _normalize_json_value(layout), sections
 
@@ -290,6 +314,23 @@ class ContentPageRouteResolver(BaseService):
             "published" if mode == "public" else ("draft" if draft_rev else "published")
         )
         return use_rev, state, snapshot
+
+    async def _load_snapshot_from_version(
+        self,
+        *,
+        item,
+        version,
+        state: Literal["draft", "published"],
+    ) -> tuple[int, Literal["draft", "published"], CanonicalContentSnapshot]:
+        presentations = await self._repo.list_content_presentations(version_id=version.id)
+        seo_profile = await self._repo.get_content_seo_profile(version_id=version.id)
+        snapshot = build_canonical_content_snapshot(
+            item=item,
+            version=version,
+            presentations=presentations,
+            seo_profile=seo_profile,
+        )
+        return int(version.version), state, snapshot
 
     async def _load_snapshot_for_state(
         self,
@@ -338,6 +379,7 @@ class ContentPageRouteResolver(BaseService):
         site_id: UUID,
         raw_page_blueprint: dict[str, Any] | None,
         mode: Literal["public", "preview"],
+        release_id: UUID | None = None,
     ) -> list[ResolveWarningV1]:
         if not isinstance(raw_page_blueprint, dict):
             return []
@@ -350,6 +392,7 @@ class ContentPageRouteResolver(BaseService):
             document=document,
             site_id=site_id,
             mode=mode,
+            release_id=release_id,
         )
         blocking = [
             {
@@ -384,6 +427,7 @@ class ContentPageRouteResolver(BaseService):
         route_contract: dict[str, Any],
         route_params: dict[str, str],
         mode: Literal["public", "preview"],
+        release_id: UUID | None = None,
     ) -> SitePrimaryContextOut | None:
         source = route_contract.get("primarySource") if isinstance(route_contract, dict) else None
         if not isinstance(source, dict):
@@ -404,6 +448,34 @@ class ContentPageRouteResolver(BaseService):
         param_value = route_params.get(param_name)
         if not model_key or not field_key or not param_name or param_value is None:
             return None
+
+        if mode == "public" and release_id is not None:
+            release_candidates = await self._repo.list_active_release_nodes_by_model_key(
+                site_id=site_id, model_key=model_key
+            )
+            for graph_node in release_candidates:
+                candidate = graph_node.item
+                _, _, published_snapshot = await self._load_snapshot_from_version(
+                    item=candidate,
+                    version=graph_node.version,
+                    state="published",
+                )
+                published_fields = published_snapshot.fields if published_snapshot is not None else None
+                if not self._candidate_matches_route(
+                    candidate=candidate,
+                    snapshot_fields=published_fields,
+                    field_key=field_key,
+                    param_value=param_value,
+                ):
+                    continue
+                snapshot_fields = published_fields or {}
+                return SitePrimaryContextOut(
+                    id=UUID(str(candidate.id)),
+                    modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
+                    slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
+                    title=str(snapshot_fields.get("title") or candidate.title or ""),
+                    data=_summarize_depth_one(snapshot_fields) or {},
+                )
 
         candidates = await self._repo.list_content_entries_by_model_key(site_id=site_id, model_key=model_key)
         saw_matching_record = False
@@ -487,6 +559,89 @@ class ContentPageRouteResolver(BaseService):
             )
         raise NotFound("Primary record not found", error="PAGE_PRIMARY_RECORD_NOT_FOUND")
 
+    async def _build_resolve_output(
+        self,
+        *,
+        site_id: UUID,
+        pathname: str,
+        page_item,
+        route_contract: dict[str, Any],
+        route_params: dict[str, str],
+        draft_rev: int,
+        published_rev: int | None,
+        use_rev: int | None,
+        state: Literal["draft", "published"] | None,
+        page_snapshot: CanonicalContentSnapshot | None,
+        mode: Literal["public", "preview"],
+        strict_binding_errors: bool,
+        release_id: UUID | None = None,
+    ) -> SiteRouteResolveOut:
+        if use_rev is None:
+            return SiteRouteResolveOut(
+                match=SiteRouteMatchOut(
+                    kind="page",
+                    params=route_params,
+                    page_id=UUID(str(page_item.id)),
+                    variant_id=None,
+                    revision=None,
+                    revision_state=None,
+                    draft_revision=draft_rev,
+                    published_revision=published_rev,
+                ),
+                pageMeta=None,
+                document=SiteFlattenedPageOut(path=pathname, layout=None, sections=[]),
+                context=SiteRouteContextOut(primary=None, routeParams=route_params),
+            )
+
+        page_meta = (
+            SiteResolvedPageMetaOut(
+                title=page_snapshot.meta_title,
+                description=page_snapshot.meta_description,
+            )
+            if page_snapshot is not None
+            and (page_snapshot.meta_title is not None or page_snapshot.meta_description is not None)
+            else None
+        )
+        primary = await self._resolve_primary_context(
+            site_id=site_id,
+            page_item=page_item,
+            page_snapshot=page_snapshot,
+            route_contract=route_contract,
+            route_params=route_params,
+            mode=mode,
+            release_id=release_id,
+        )
+        warnings = await self._resolve_page_dependencies(
+            site_id=site_id,
+            raw_page_blueprint=page_snapshot.raw_page_blueprint if page_snapshot is not None else None,
+            mode=mode,
+            release_id=release_id,
+        )
+        primary_data = primary.data if primary is not None else None
+        layout, sections = _flatten_sections(
+            raw_page_blueprint=page_snapshot.raw_page_blueprint if page_snapshot is not None else None,
+            raw_slot_mapping=page_snapshot.raw_slot_mapping if page_snapshot is not None else None,
+            primary=primary_data,
+            route_params=route_params,
+            strict_bindings=strict_binding_errors,
+        )
+        return SiteRouteResolveOut(
+            match=SiteRouteMatchOut(
+                kind="page",
+                params=route_params,
+                page_id=UUID(str(page_item.id)),
+                variant_id=None,
+                revision=int(use_rev),
+                revision_state=state,
+                draft_revision=draft_rev,
+                published_revision=published_rev,
+            ),
+            pageMeta=page_meta,
+            document=SiteFlattenedPageOut(path=pathname, layout=layout, sections=sections),
+            context=SiteRouteContextOut(primary=primary, routeParams=route_params),
+            warnings=warnings or None,
+        )
+
     async def resolve(
         self,
         *,
@@ -512,65 +667,174 @@ class ContentPageRouteResolver(BaseService):
         if use_rev is None:
             if mode == "public":
                 return None
-            return SiteRouteResolveOut(
-                match=SiteRouteMatchOut(
-                    kind="page",
-                    params=route_params,
-                    page_id=UUID(str(page_item.id)),
-                    variant_id=None,
-                    revision=None,
-                    revision_state=None,
-                    draft_revision=draft_rev,
-                    published_revision=published_rev or None,
-                ),
-                pageMeta=None,
-                document=SiteFlattenedPageOut(path=pathname, layout=None, sections=[]),
-                context=SiteRouteContextOut(primary=None, routeParams=route_params),
-            )
-
-        page_meta = (
-            SiteResolvedPageMetaOut(
-                title=page_snapshot.meta_title,
-                description=page_snapshot.meta_description,
-            )
-            if page_snapshot is not None
-            and (page_snapshot.meta_title is not None or page_snapshot.meta_description is not None)
-            else None
-        )
         route_contract = binding.route_contract if isinstance(binding.route_contract, dict) else {}
-        primary = await self._resolve_primary_context(
+        return await self._build_resolve_output(
             site_id=site_id,
+            pathname=pathname,
             page_item=page_item,
-            page_snapshot=page_snapshot,
             route_contract=route_contract,
             route_params=route_params,
+            draft_rev=draft_rev,
+            published_rev=published_rev or None,
+            use_rev=use_rev,
+            state=state,
+            page_snapshot=page_snapshot,
             mode=mode,
+            strict_binding_errors=False,
+            release_id=None,
         )
-        warnings = await self._resolve_page_dependencies(
+
+    async def resolve_delivery_path(
+        self,
+        *,
+        site_id: UUID,
+        pathname: str,
+        perspective: Literal["published", "preview"],
+    ) -> SiteRouteResolveOut | None:
+        if perspective == "preview":
+            bindings = await self._repo.list_content_route_bindings(site_id=site_id)
+            matches = []
+            for binding in bindings:
+                params = match_route_binding(binding, pathname)
+                if params is None:
+                    continue
+                matches.append((binding, params))
+            if not matches:
+                return None
+            binding, route_params = sorted(matches, key=lambda item: route_sort_key(item[0]))[0]
+            page_item = binding.item
+            use_rev, state, page_snapshot = await self._load_snapshot_for_item(item=page_item, mode="preview")
+            return await self._build_resolve_output(
+                site_id=site_id,
+                pathname=pathname,
+                page_item=page_item,
+                route_contract=binding.route_contract if isinstance(binding.route_contract, dict) else {},
+                route_params=route_params,
+                draft_rev=int(page_item.draft_version or 0),
+                published_rev=int(page_item.published_version or 0) or None,
+                use_rev=use_rev,
+                state=state,
+                page_snapshot=page_snapshot,
+                mode="preview",
+                strict_binding_errors=True,
+            )
+
+        release = await self._repo.get_active_release(site_id=site_id)
+        if release is None:
+            return None
+        graph_nodes = await self._repo.list_active_release_route_nodes(site_id=site_id)
+        matches: list[tuple[_RouteBindingCandidate, Any, dict[str, str]]] = []
+        for graph_node in graph_nodes:
+            candidate = _RouteBindingCandidate(
+                path=graph_node.route_path,
+                route_contract=graph_node.route_contract if isinstance(graph_node.route_contract, dict) else None,
+                item=graph_node.item,
+            )
+            params = match_route_binding(candidate, pathname)
+            if params is None:
+                continue
+            matches.append((candidate, graph_node, params))
+        if not matches:
+            return None
+        binding_candidate, graph_node, route_params = sorted(matches, key=lambda item: route_sort_key(item[0]))[0]
+        page_item = graph_node.item
+        use_rev, state, page_snapshot = await self._load_snapshot_from_version(
+            item=page_item,
+            version=graph_node.version,
+            state="published",
+        )
+        return await self._build_resolve_output(
             site_id=site_id,
-            raw_page_blueprint=page_snapshot.raw_page_blueprint if page_snapshot is not None else None,
-            mode=mode,
-        )
-        primary_data = primary.data if primary is not None else None
-        layout, sections = _flatten_sections(
-            raw_page_blueprint=page_snapshot.raw_page_blueprint if page_snapshot is not None else None,
-            raw_slot_mapping=page_snapshot.raw_slot_mapping if page_snapshot is not None else None,
-            primary=primary_data,
-            route_params=route_params,
-        )
-        return SiteRouteResolveOut(
-            match=SiteRouteMatchOut(
-                kind="page",
-                params=route_params,
-                page_id=UUID(str(page_item.id)),
-                variant_id=None,
-                revision=int(use_rev),
-                revision_state=state,
-                draft_revision=draft_rev,
-                published_revision=published_rev or None,
+            pathname=pathname,
+            page_item=page_item,
+            route_contract=(
+                binding_candidate.route_contract if isinstance(binding_candidate.route_contract, dict) else {}
             ),
-            pageMeta=page_meta,
-            document=SiteFlattenedPageOut(path=pathname, layout=layout, sections=sections),
-            context=SiteRouteContextOut(primary=primary, routeParams=route_params),
-            warnings=warnings or None,
+            route_params=route_params,
+            draft_rev=int(page_item.draft_version or 0),
+            published_rev=int(graph_node.version.version),
+            use_rev=use_rev,
+            state=state,
+            page_snapshot=page_snapshot,
+            mode="public",
+            strict_binding_errors=True,
+            release_id=release.id,
+        )
+
+    async def resolve_delivery_page_by_id(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        perspective: Literal["published", "preview"],
+    ) -> SiteRouteResolveOut | None:
+        if perspective == "preview":
+            page_item = await self._repo.get_content_entry_by_id(site_id=site_id, entry_id=page_id)
+            if page_item is None:
+                return None
+            route_binding = await self._repo.get_content_route_binding_by_item_id(site_id=site_id, item_id=page_id)
+            if route_binding is None:
+                return None
+            route_contract = (
+                route_binding.route_contract if route_binding and isinstance(route_binding.route_contract, dict) else {}
+            )
+            pathname = route_binding.path
+            use_rev, state, page_snapshot = await self._load_snapshot_for_item(item=page_item, mode="preview")
+            if use_rev is None:
+                return await self._build_resolve_output(
+                    site_id=site_id,
+                    pathname=pathname,
+                    page_item=page_item,
+                    route_contract=route_contract,
+                    route_params={},
+                    draft_rev=int(page_item.draft_version or 0),
+                    published_rev=int(page_item.published_version or 0) or None,
+                    use_rev=None,
+                    state=None,
+                    page_snapshot=None,
+                    mode="preview",
+                    strict_binding_errors=False,
+                )
+            return await self._build_resolve_output(
+                site_id=site_id,
+                pathname=pathname,
+                page_item=page_item,
+                route_contract=route_contract,
+                route_params={},
+                draft_rev=int(page_item.draft_version or 0),
+                published_rev=int(page_item.published_version or 0) or None,
+                use_rev=use_rev,
+                state=state,
+                page_snapshot=page_snapshot,
+                mode="preview",
+                strict_binding_errors=False,
+            )
+
+        release = await self._repo.get_active_release(site_id=site_id)
+        if release is None:
+            return None
+        graph_node = await self._repo.get_active_release_node_by_item_id(site_id=site_id, item_id=page_id)
+        if graph_node is None:
+            return None
+        page_item = graph_node.item
+        use_rev, state, page_snapshot = await self._load_snapshot_from_version(
+            item=page_item,
+            version=graph_node.version,
+            state="published",
+        )
+        route_contract = graph_node.route_contract if isinstance(graph_node.route_contract, dict) else {}
+        return await self._build_resolve_output(
+            site_id=site_id,
+            pathname=graph_node.route_path,
+            page_item=page_item,
+            route_contract=route_contract,
+            route_params={},
+            draft_rev=int(page_item.draft_version or 0),
+            published_rev=int(graph_node.version.version),
+            use_rev=use_rev,
+            state=state,
+            page_snapshot=page_snapshot,
+            mode="public",
+            strict_binding_errors=False,
+            release_id=release.id,
         )

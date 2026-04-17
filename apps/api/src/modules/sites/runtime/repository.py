@@ -12,6 +12,8 @@ from src.core.exceptions import NotFound
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
 from src.models.content.presentation_document import PresentationDocumentRecord
+from src.models.content.published_graph import PublishedGraphRecord
+from src.models.content.release import ContentReleaseRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.models.content.seo_profile import SEOProfileRecord
 from src.models.sites.site import SiteRecord
@@ -92,6 +94,19 @@ class RuntimeRepositoryMixin:
             .first()
         )
 
+    async def get_content_route_binding_by_item_id(
+        self,
+        *,
+        site_id: UUID,
+        item_id: UUID,
+    ) -> RouteBindingRecord | None:
+        return (
+            await RouteBindingRecord
+            .filter(site_id=site_id, item_id=item_id, is_active=True)
+            .order_by("created_at", "id")
+            .first()
+        )
+
     async def list_content_route_bindings(self, *, site_id: UUID) -> list[RouteBindingRecord]:
         return list(
             await RouteBindingRecord
@@ -105,6 +120,80 @@ class RuntimeRepositoryMixin:
             await ContentItemRecord
             .filter(site_id=site_id, model_definition__key=model_key)
             .prefetch_related("model_definition")
+            .all()
+        )
+
+    async def get_active_release(self, *, site_id: UUID) -> ContentReleaseRecord | None:
+        return (
+            await ContentReleaseRecord
+            .filter(site_id=site_id, is_active=True)
+            .order_by("-activated_at", "-release_number", "-id")
+            .first()
+        )
+
+    async def list_active_release_route_nodes(self, *, site_id: UUID) -> list[PublishedGraphRecord]:
+        active_release = await self.get_active_release(site_id=site_id)
+        if active_release is None:
+            return []
+        return list(
+            await PublishedGraphRecord
+            .filter(release_id=active_release.id, site_id=site_id, route_contract__not_isnull=True)
+            .prefetch_related("item__model_definition", "version")
+            .all()
+        )
+
+    async def get_active_release_node_by_item_id(
+        self,
+        *,
+        site_id: UUID,
+        item_id: UUID,
+    ) -> PublishedGraphRecord | None:
+        active_release = await self.get_active_release(site_id=site_id)
+        if active_release is None:
+            return None
+        return (
+            await PublishedGraphRecord
+            .filter(
+                release_id=active_release.id,
+                site_id=site_id,
+                item_id=item_id,
+                route_contract__not_isnull=True,
+            )
+            .prefetch_related("item__model_definition", "version")
+            .first()
+        )
+
+    async def get_release_node_by_item_id(
+        self,
+        *,
+        site_id: UUID,
+        release_id: UUID,
+        item_id: UUID,
+    ) -> PublishedGraphRecord | None:
+        return (
+            await PublishedGraphRecord
+            .filter(release_id=release_id, site_id=site_id, item_id=item_id)
+            .prefetch_related("item__model_definition", "version")
+            .first()
+        )
+
+    async def list_active_release_nodes_by_model_key(
+        self,
+        *,
+        site_id: UUID,
+        model_key: str,
+    ) -> list[PublishedGraphRecord]:
+        active_release = await self.get_active_release(site_id=site_id)
+        if active_release is None:
+            return []
+        return list(
+            await PublishedGraphRecord
+            .filter(
+                release_id=active_release.id,
+                site_id=site_id,
+                item__model_definition__key=model_key,
+            )
+            .prefetch_related("item__model_definition", "version")
             .all()
         )
 

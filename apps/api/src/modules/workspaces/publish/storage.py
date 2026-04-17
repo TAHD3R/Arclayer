@@ -179,7 +179,8 @@ def _group_bundles(rows: list[PublishArtifactRecord]) -> list[_PublishArtifactBu
             bundle = _new_bundle(row)
             bundles[key] = bundle
         _assign_bundle_payload(bundle, row)
-    return sorted(bundles.values(), key=lambda bundle: (_route_path(bundle), bundle.locale))
+    routed_bundles = [bundle for bundle in bundles.values() if bundle.route is not None]
+    return sorted(routed_bundles, key=lambda bundle: (_route_path(bundle), bundle.locale))
 
 
 class WorkspacePublishArtifactStorage:

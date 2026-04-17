@@ -56,7 +56,14 @@ def _design_doc(title: str) -> dict:
 
 
 def _get_seo_title_from_resolved_document(payload: dict) -> str | None:
-    doc = payload.get("data", {}).get("pageBlueprint")
+    data = payload.get("data", {})
+    page_meta = data.get("pageMeta")
+    if isinstance(page_meta, dict):
+        title = page_meta.get("title")
+        if isinstance(title, str):
+            return title
+
+    doc = data.get("pageBlueprint")
     if not isinstance(doc, dict):
         return None
     root_id = doc.get("rootId")
@@ -76,35 +83,42 @@ def _get_seo_title_from_resolved_document(payload: dict) -> str | None:
     return value if isinstance(value, str) else None
 
 
+def _get_primary_data_title(payload: dict) -> str | None:
+    primary = payload.get("data", {}).get("context", {}).get("primary")
+    if not isinstance(primary, dict):
+        return None
+    data = primary.get("data")
+    if not isinstance(data, dict):
+        title = primary.get("title")
+        return title if isinstance(title, str) else None
+    title = data.get("title")
+    if isinstance(title, str):
+        return title
+    title = primary.get("title")
+    return title if isinstance(title, str) else None
+
+
 def _page_model_payload() -> dict:
     return {
         "key": "page",
         "name": "Page",
-        "fields": [{"key": "title", "label": "Title", "scalar": "text", "required": True}],
-        "relations": [],
-        "capabilities": ["versioned", "publishable", "routable", "visual_editable"],
-        "routing": {"mode": "single", "slugField": "title"},
-        "workflow": {"states": ["draft", "published"], "initialState": "draft"},
-        "views": [],
+        "fields": [{"key": "hero_variant", "label": "Hero Variant", "scalar": "text", "required": False}],
     }
 
 
-def _item_payload(slug: str, title: str) -> dict:
+def _item_payload(title: str) -> dict:
     return {
         "modelKey": "page",
-        "slug": slug,
         "title": title,
         "locale": "en-US",
-        "visibility": "public",
-        "status": "draft",
     }
 
 
-def _draft_payload(*, expected_version: int, title: str, seo_description: str) -> dict:
+def _draft_payload(*, expected_version: int, title: str, path: str, seo_description: str) -> dict:
     return {
         "expectedVersion": expected_version,
         "changeSummary": f"{title} draft",
-        "fieldsSnapshot": {"title": title},
+        "fieldsSnapshot": {"title": title, "path": path},
         "presentations": [
             {"kind": "form_data", "payload": {"title": title}},
             {"kind": "visual_blueprint", "payload": _design_doc(title)},
@@ -119,13 +133,23 @@ def _draft_payload(*, expected_version: int, title: str, seo_description: str) -
     }
 
 
-async def _create_item(client, workspace_id: str, *, slug: str, title: str) -> str:
+async def _create_item(client, workspace_id: str, *, title: str) -> str:
     response = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items",
-        json=_item_payload(slug, title),
+        json=_item_payload(title),
     )
     assert response.status_code == 201, response.text
-    return response.json()["data"]["id"]
+    item_id = response.json()["data"]["id"]
+    shape_res = await client.patch(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+        json={
+            "presetKey": "page",
+            "presetState": "selected",
+            "capabilityPackIds": ["publishable", "routable", "treeable"],
+        },
+    )
+    assert shape_res.status_code == 200, shape_res.text
+    return item_id
 
 
 async def _save_draft(
@@ -135,6 +159,7 @@ async def _save_draft(
     item_id: str,
     expected_version: int,
     title: str,
+    path: str,
     seo_description: str,
 ) -> None:
     response = await client.post(
@@ -142,6 +167,7 @@ async def _save_draft(
         json=_draft_payload(
             expected_version=expected_version,
             title=title,
+            path=path,
             seo_description=seo_description,
         ),
     )
@@ -198,9 +224,9 @@ async def test_sites_public_preview_draft_publish_flow(
         )
         assert model_res.status_code == 201, model_res.text
 
-        about_item_id = await _create_item(client, workspace_id, slug="about", title="About")
-        world_item_id = await _create_item(client, workspace_id, slug="world", title="World")
-        new_item_id = await _create_item(client, workspace_id, slug="new", title="New")
+        about_item_id = await _create_item(client, workspace_id, title="About")
+        world_item_id = await _create_item(client, workspace_id, title="World")
+        new_item_id = await _create_item(client, workspace_id, title="New")
 
         await _save_draft(
             client,
@@ -208,6 +234,7 @@ async def test_sites_public_preview_draft_publish_flow(
             item_id=about_item_id,
             expected_version=0,
             title="About v1",
+            path="/about",
             seo_description="About description",
         )
         await _publish_version(client, workspace_id, item_id=about_item_id, version_number=1)
@@ -219,6 +246,7 @@ async def test_sites_public_preview_draft_publish_flow(
             item_id=world_item_id,
             expected_version=0,
             title="Entry world v1",
+            path="/blog/world",
             seo_description="World v1 description",
         )
         await _publish_version(client, workspace_id, item_id=world_item_id, version_number=1)
@@ -246,6 +274,7 @@ async def test_sites_public_preview_draft_publish_flow(
             item_id=world_item_id,
             expected_version=1,
             title="Entry world v2 (draft)",
+            path="/blog/world",
             seo_description="World v2 description",
         )
 
@@ -254,18 +283,16 @@ async def test_sites_public_preview_draft_publish_flow(
             params={"path": "/blog/world", "mode": "public"},
         )
         assert resp.status_code == 200
-        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v1"
-        ds = resp.json()["data"].get("dataSources") or {}
-        assert ds.get("primaryEntry", {}).get("data", {}).get("fields", {}).get("title") == "Entry world v1"
+        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v1 | Arclayer"
+        assert _get_primary_data_title(resp.json()) == "Entry world v1"
 
         resp = await client.get(
             f"/api/v1/sites/{site_id}/routes/resolve",
             params={"path": "/blog/world", "mode": "preview", "token": token},
         )
         assert resp.status_code == 200
-        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft)"
-        ds = resp.json()["data"].get("dataSources") or {}
-        assert ds.get("primaryEntry", {}).get("data", {}).get("fields", {}).get("title") == "Entry world v2 (draft)"
+        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft) | Arclayer"
+        assert _get_primary_data_title(resp.json()) == "Entry world v2 (draft)"
 
         await _save_draft(
             client,
@@ -273,6 +300,7 @@ async def test_sites_public_preview_draft_publish_flow(
             item_id=new_item_id,
             expected_version=0,
             title="Entry new v1 (draft)",
+            path="/blog/new",
             seo_description="New v1 description",
         )
         await _bind_route(client, workspace_id, item_id=new_item_id, path="/blog/new")
@@ -289,7 +317,7 @@ async def test_sites_public_preview_draft_publish_flow(
             params={"path": "/blog/new", "mode": "preview", "token": token},
         )
         assert resp.status_code == 200
-        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry new v1 (draft)"
+        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry new v1 (draft) | Arclayer"
 
         await _publish_version(client, workspace_id, item_id=new_item_id, version_number=1)
         await _publish_version(client, workspace_id, item_id=world_item_id, version_number=2)
@@ -299,7 +327,7 @@ async def test_sites_public_preview_draft_publish_flow(
             params={"path": "/blog/world", "mode": "public"},
         )
         assert resp.status_code == 200
-        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft)"
+        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft) | Arclayer"
 
         resp = await client.get(f"/api/v1/sites/{site_id}/sitemap.xml")
         assert resp.status_code == 200

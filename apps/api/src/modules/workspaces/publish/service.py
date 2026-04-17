@@ -65,6 +65,10 @@ async def _load_publishable_items(*, workspace_id: UUID, site_id: UUID) -> list[
     return [row for row in rows if item_has_capability(row, "publishable")]
 
 
+def _requires_route(item: ContentItemRecord) -> bool:
+    return item_has_capability(item, "routable")
+
+
 async def _load_active_route_map(*, site_id: UUID) -> dict[tuple[UUID, str], RouteBindingRecord]:
     rows = await RouteBindingRecord.filter(site_id=site_id, is_active=True).all()
     return {(row.item_id, row.locale): row for row in rows}
@@ -142,7 +146,7 @@ class WorkspacePublishService:
                 )
                 continue
             route_key = (item.id, item.locale)
-            if route_map.get(route_key) is None:
+            if _requires_route(item) and route_map.get(route_key) is None:
                 impact.missing_routes.append(item.id)
                 _append_blocked_item(
                     impact,
@@ -198,7 +202,13 @@ class WorkspacePublishService:
             rows: list[PublishedGraphRecord] = []
             artifact_rows: list[PublishArtifactRecord] = []
             for item in items:
-                route = route_map[(item.id, item.locale)]
+                route = route_map.get((item.id, item.locale))
+                if _requires_route(item) and route is None:
+                    raise Conflict(
+                        "Publish route missing for routable item",
+                        error="PUBLISH_ROUTE_MISSING",
+                        meta={"itemId": str(item.id), "locale": item.locale},
+                    )
                 version = version_map.get((item.id, int(item.published_version or 0)))
                 if version is None:
                     continue
@@ -210,28 +220,30 @@ class WorkspacePublishService:
                         site_id=site_id,
                         item_id=item.id,
                         version_id=version.id,
-                        locale=route.locale,
-                        route_path=route.path,
+                        locale=route.locale if route is not None else item.locale,
+                        route_path=route.path if route is not None else f"/__release/{item.id}",
+                        route_contract=route.route_contract if route is not None else None,
                         hierarchy_parent_item_id=node.parent_item_id if node is not None else None,
                         hierarchy_sort_order=node.sort_order if node is not None else 0,
                     )
                 )
-                artifact_rows.append(
-                    PublishArtifactRecord(
-                        release_id=release.id,
-                        workspace_id=workspace_id,
-                        site_id=site_id,
-                        item_id=item.id,
-                        version_id=version.id,
-                        artifact_kind=PublishArtifactKind.ROUTE_MANIFEST,
-                        locale=route.locale,
-                        payload={
-                            "path": route.path,
-                            "parentItemId": str(node.parent_item_id) if node and node.parent_item_id else None,
-                            "sortOrder": node.sort_order if node is not None else 0,
-                        },
+                if route is not None:
+                    artifact_rows.append(
+                        PublishArtifactRecord(
+                            release_id=release.id,
+                            workspace_id=workspace_id,
+                            site_id=site_id,
+                            item_id=item.id,
+                            version_id=version.id,
+                            artifact_kind=PublishArtifactKind.ROUTE_MANIFEST,
+                            locale=route.locale,
+                            payload={
+                                "path": route.path,
+                                "parentItemId": str(node.parent_item_id) if node and node.parent_item_id else None,
+                                "sortOrder": node.sort_order if node is not None else 0,
+                            },
+                        )
                     )
-                )
                 artifact_rows.append(
                     PublishArtifactRecord(
                         release_id=release.id,
@@ -240,7 +252,7 @@ class WorkspacePublishService:
                         item_id=item.id,
                         version_id=version.id,
                         artifact_kind=PublishArtifactKind.RENDER_HINTS,
-                        locale=route.locale,
+                        locale=route.locale if route is not None else item.locale,
                         payload={
                             "role": str(item.resolved_role) if item.resolved_role is not None else None,
                             "posture": str(item.resolved_posture) if item.resolved_posture is not None else None,
@@ -262,7 +274,7 @@ class WorkspacePublishService:
                             item_id=item.id,
                             version_id=version.id,
                             artifact_kind=PublishArtifactKind.COMPONENT_MANIFEST,
-                            locale=route.locale,
+                            locale=route.locale if route is not None else item.locale,
                             payload=component_manifest,
                         )
                     )
@@ -277,7 +289,7 @@ class WorkspacePublishService:
                             item_id=item.id,
                             version_id=version.id,
                             artifact_kind=PublishArtifactKind.SEO_METADATA,
-                            locale=route.locale,
+                            locale=route.locale if route is not None else item.locale,
                             payload=seo_profile.payload,
                         )
                     )
@@ -292,7 +304,7 @@ class WorkspacePublishService:
                             item_id=item.id,
                             version_id=version.id,
                             artifact_kind=PublishArtifactKind.BINDING_MANIFEST,
-                            locale=route.locale,
+                            locale=route.locale if route is not None else item.locale,
                             payload={
                                 "bindings": [
                                     {

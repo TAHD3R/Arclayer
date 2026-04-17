@@ -64,6 +64,7 @@ class PublishingIncludesService(BaseService):
         site_id: UUID,
         entry_id_public: str,
         state: Literal["draft", "published"],
+        release_id: UUID | None = None,
     ) -> tuple[
         PageBlueprint | None,
         dict | None,
@@ -80,22 +81,47 @@ class PublishingIncludesService(BaseService):
             return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Entry not found")
 
         if state == "published":
-            revision_number = item.published_version
-            if revision_number is None:
+            if release_id is not None:
+                graph_node = await self._repo.get_release_node_by_item_id(
+                    site_id=site_id,
+                    release_id=release_id,
+                    item_id=entry_id,
+                )
+                if graph_node is None:
+                    return (
+                        None,
+                        None,
+                        None,
+                        ContentRefIncludeErrorV1(code="NOT_FOUND", message="Published release snapshot not found"),
+                    )
+                item = graph_node.item
+                version = graph_node.version
+            else:
+                revision_number = item.published_version
+                if revision_number is None:
+                    return (
+                        None,
+                        None,
+                        None,
+                        ContentRefIncludeErrorV1(code="NOT_FOUND", message="Published revision not found"),
+                    )
+                version = await self._repo.get_content_revision_by_number(
+                    entry_id=item.id, revision=int(revision_number)
+                )
+                if version is None:
+                    return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Revision not found")
+        else:
+            revision_number = int(item.draft_version or 0)
+            if revision_number < 1:
                 return (
                     None,
                     None,
                     None,
-                    ContentRefIncludeErrorV1(code="NOT_FOUND", message="Published revision not found"),
+                    ContentRefIncludeErrorV1(code="NOT_FOUND", message="Draft revision not found"),
                 )
-        else:
-            revision_number = int(item.draft_version or 0)
-            if revision_number < 1:
-                return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Draft revision not found")
-
-        version = await self._repo.get_content_revision_by_number(entry_id=item.id, revision=int(revision_number))
-        if version is None:
-            return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Revision not found")
+            version = await self._repo.get_content_revision_by_number(entry_id=item.id, revision=int(revision_number))
+            if version is None:
+                return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Revision not found")
 
         presentations = await self._repo.list_content_presentations(version_id=version.id)
         seo_profile = await self._repo.get_content_seo_profile(version_id=version.id)
@@ -138,6 +164,7 @@ class PublishingIncludesService(BaseService):
         document: PageBlueprint,
         site_id: UUID,
         mode: Literal["public", "preview"],
+        release_id: UUID | None = None,
         depth: int = 0,
         stack: frozenset[str] | None = None,
         collector: dict[str, ContentRefIncludeV1] | None = None,
@@ -260,6 +287,7 @@ class PublishingIncludesService(BaseService):
                 site_id=site_id,
                 entry_id_public=entry_id_str,
                 state=preferred_state,
+                release_id=release_id if preferred_state == "published" else None,
             )
             resolved_state = preferred_state
 
@@ -268,6 +296,7 @@ class PublishingIncludesService(BaseService):
                     site_id=site_id,
                     entry_id_public=entry_id_str,
                     state="published",
+                    release_id=release_id,
                 )
                 if fallback_error is None:
                     entry_doc = fallback_doc
@@ -317,6 +346,7 @@ class PublishingIncludesService(BaseService):
                     document=entry_doc,
                     site_id=site_id,
                     mode=mode,
+                    release_id=release_id,
                     depth=depth + 1,
                     stack=stack | {entry_id_str},
                     collector=collector,

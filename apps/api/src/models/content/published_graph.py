@@ -39,6 +39,7 @@ class PublishedGraphRecord(BaseModel):
 
     locale = fields.CharField(max_length=16, default="zh-CN", db_index=True)
     route_path = fields.CharField(max_length=512, db_index=True)
+    route_contract = fields.JSONField(null=True)
     hierarchy_parent_item = fields.ForeignKeyField(
         "models.ContentItemRecord",
         related_name="published_graph_children",

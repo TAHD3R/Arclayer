@@ -42,3 +42,43 @@ class SiteContentPublishingFacadeMixin:
 
     async def delivery_get_style(self, *, site_id: UUID):
         return await self._content.delivery_get_style(site_id=site_id)
+
+    async def delivery_resolve_page(
+        self,
+        *,
+        site_id: UUID,
+        path: str,
+        perspective: Literal["published", "preview"],
+    ):
+        return await self._content.delivery_resolve_page(site_id=site_id, path=path, perspective=perspective)
+
+    async def delivery_get_page_by_id(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+        perspective: Literal["published", "preview"],
+    ):
+        return await self._content.delivery_get_page_by_id(site_id=site_id, page_id=page_id, perspective=perspective)
+
+    async def delivery_get_section_by_alias(
+        self,
+        *,
+        site_id: UUID,
+        alias: str,
+        perspective: Literal["published", "preview"],
+    ):
+        return await self._content.delivery_get_section_by_alias(
+            site_id=site_id,
+            alias=alias,
+            perspective=perspective,
+        )
+
+    async def delivery_get_global_set(
+        self,
+        *,
+        site_id: UUID,
+        key: str,
+        perspective: Literal["published", "preview"],
+    ):
+        return await self._content.delivery_get_global_set(site_id=site_id, key=key, perspective=perspective)

@@ -41,6 +41,28 @@ class SitePublishingService(BaseService):
     ) -> SiteRouteResolveOut:
         return await self._routes_resolve.resolve_route(site_id=site_id, path=path, mode=mode)
 
+    async def resolve_delivery_page(
+        self,
+        *,
+        site_id: UUID,
+        path: str,
+        perspective: Literal["published", "preview"],
+    ) -> SiteRouteResolveOut:
+        return await self._routes_resolve.resolve_delivery_page(site_id=site_id, path=path, perspective=perspective)
+
+    async def get_delivery_page_by_id(
+        self,
+        *,
+        site_id: UUID,
+        page_id,
+        perspective: Literal["published", "preview"],
+    ) -> SiteRouteResolveOut:
+        return await self._routes_resolve.get_delivery_page_by_id(
+            site_id=site_id,
+            page_id=page_id,
+            perspective=perspective,
+        )
+
     async def heartbeat_presence(self, *, site_id: UUID, payload: SitePresenceHeartbeatIn) -> SitePresenceHeartbeatOut:
         return await self._presence.heartbeat_presence(site_id=site_id, payload=payload)
 
