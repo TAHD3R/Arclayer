@@ -297,10 +297,13 @@ export function NodeExpandedGroupSub({
     NAV_ITEM_RADIUS_CLASSNAME,
     INTERACTIVE_TRANSITION_CLASSNAME,
     NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-    "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent",
-    "[&:not([data-highlight])]:hover:bg-transparent",
     "text-callout",
-    item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
+    item.disabled
+      ? cn(
+          DISABLED_ITEM_CLASSNAME,
+          "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent",
+        )
+      : "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent hover:cursor-pointer",
   );
 
   return (
@@ -317,17 +320,19 @@ export function NodeExpandedGroupSub({
               type="button"
               tapScale={1}
               onClick={onToggle}
-              className="relative flex w-full items-center justify-start text-left"
+              className="flex w-full items-center justify-start text-left"
             >
-              <ChevronRight
-                size={16}
-                className={cn(
-                  "pointer-events-none absolute -left-4 top-1/2 -translate-y-1/2 text-label-secondary transition-transform duration-150",
-                  isOpen && "rotate-90",
-                )}
-                aria-hidden="true"
-              />
               <span className="min-w-0 flex-1 truncate">{label}</span>
+              <span className={cn(NAV_TRAILING_RAIL_CLASSNAME, NAV_TRAILING_ICON_SLOT_CLASSNAME)}>
+                <ChevronRight
+                  size={16}
+                  className={cn(
+                    "shrink-0 text-label-secondary transition-transform duration-200",
+                    isOpen && "rotate-90",
+                  )}
+                  aria-hidden="true"
+                />
+              </span>
             </ButtonPrimitive>
           </SidebarMenuSubButton>
         </WithBlockedTooltip>

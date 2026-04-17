@@ -3,28 +3,57 @@ import { describe, expect, test } from "vitest";
 import { GLOBAL_NAV_ITEMS, resolveGlobalNavItems } from "@/constants/menu/global";
 
 describe("global nav regression", () => {
-  test("registers system settings as a real global destination", () => {
-    const maintenanceItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.maintenance");
-    const settingsItem = maintenanceItem?.children?.find((item) => item.key === "global.system");
+  test("registers billing and platform global groups", () => {
+    const billingItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.billing");
+    const platformItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.platform");
+    const billingChildren = billingItem?.children?.map((item) => item.key);
+    const platformChildren = platformItem?.children?.map((item) => item.key);
+    const configurationItem = platformItem?.children?.find(
+      (item) => item.key === "global.platform.configuration",
+    );
 
-    expect(maintenanceItem).toMatchObject({
-      key: "global.maintenance",
-      label: "Maintenance",
+    expect(billingItem).toMatchObject({
+      key: "global.billing",
+      label: "Billing & Subscription",
     });
-    expect(settingsItem).toMatchObject({
-      key: "global.system",
-      label: "System Settings",
+    expect(platformItem).toMatchObject({
+      key: "global.platform",
+      label: "Platform",
+    });
+    expect(billingChildren).toEqual(["global.billing.subscriptions", "global.billing.history"]);
+    expect(platformChildren).toEqual([
+      "global.platform.tenants",
+      "global.platform.plans",
+      "global.platform.access",
+      "global.platform.audit",
+      "global.platform.overview",
+      "global.platform.jobs",
+      "global.platform.configuration",
+      "global.platform.revenue",
+      "global.platform.support",
+    ]);
+    expect(configurationItem).toMatchObject({
+      key: "global.platform.configuration",
       to: "/system",
     });
+    expect(configurationItem?.disabled).toBeUndefined();
   });
 
-  test("only exposes system settings to super admins", () => {
+  test("only exposes platform to super admins while keeping billing visible", () => {
     const regularKeys = resolveGlobalNavItems({ isSuperAdmin: false }).map((item) => item.key);
     const superAdminItems = resolveGlobalNavItems({ isSuperAdmin: true });
-    const maintenanceItem = superAdminItems.find((item) => item.key === "global.maintenance");
+    const superAdminKeys = superAdminItems.map((item) => item.key);
+    const platformItem = superAdminItems.find((item) => item.key === "global.platform");
+    const billingItem = superAdminItems.find((item) => item.key === "global.billing");
 
-    expect(regularKeys).not.toContain("global.maintenance");
-    expect(maintenanceItem?.children?.map((item) => item.key)).toContain("global.system");
+    expect(regularKeys).toContain("global.billing");
+    expect(regularKeys).not.toContain("global.platform");
+    expect(superAdminKeys).toContain("global.billing");
+    expect(superAdminKeys).toContain("global.platform");
+    expect(billingItem?.children?.map((item) => item.key)).toContain(
+      "global.billing.subscriptions",
+    );
+    expect(platformItem?.children?.map((item) => item.key)).toContain("global.platform.overview");
   });
 
   test("marks workspaces as a navigate-self-and-expand group", () => {

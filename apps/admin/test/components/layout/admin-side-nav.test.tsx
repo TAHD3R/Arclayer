@@ -587,6 +587,81 @@ describe("AdminSiderNav collapsed groups", () => {
     });
   });
 
+  it("renders nested group chevrons in the trailing icon slot", async () => {
+    const nestedItems: AdminNavItem[] = [
+      {
+        key: "platform",
+        label: "Platform",
+        icon: LayoutGrid,
+        children: [
+          {
+            key: "platform.operations",
+            label: "Operations",
+            icon: Settings,
+            children: [
+              {
+                key: "platform.operations.jobs",
+                label: "Jobs",
+                icon: Activity,
+                to: "/w/ws-1/platform/jobs",
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const user = userEvent.setup();
+
+    renderTreeNav({
+      items: nestedItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+      pathnameOverride: "/w/ws-1/platform/jobs",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Platform" }));
+
+    const subgroupButton = screen.getByRole("button", { name: "Operations" });
+    const trailingIconSlot = subgroupButton.querySelector(".ml-auto.inline-flex.size-6");
+
+    expect(trailingIconSlot).not.toBeNull();
+    expect(trailingIconSlot?.querySelector("svg")).not.toBeNull();
+  });
+
+  it("keeps disabled nested placeholder items visually interactive", async () => {
+    const disabledNestedItems: AdminNavItem[] = [
+      {
+        key: "platform",
+        label: "Platform",
+        icon: LayoutGrid,
+        children: [
+          {
+            key: "platform.configuration",
+            label: "Configuration",
+            icon: Settings,
+            to: "/system",
+            disabled: true,
+          },
+        ],
+      },
+    ];
+
+    const user = userEvent.setup();
+
+    renderTreeNav({
+      items: disabledNestedItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Platform" }));
+
+    const placeholderButton = screen.getByRole("button", { name: "Configuration" });
+
+    expect(placeholderButton.className).toContain("cursor-pointer");
+    expect(placeholderButton.className).toContain("hover:bg-transparent");
+    expect(placeholderButton.className).not.toContain("cursor-not-allowed");
+  });
+
   it("shows favorites as a top-level group even when there are no favorites yet", () => {
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
 

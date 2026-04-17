@@ -6,7 +6,7 @@ function listWorkspaceNavTargets(items = ADMIN_NAV_ITEMS): string[] {
   const out: string[] = [];
   const walk = (navItems: typeof ADMIN_NAV_ITEMS) => {
     for (const item of navItems) {
-      if (item.to) out.push(item.to);
+      if (item.to && !item.disabled) out.push(item.to);
       if (item.children?.length) walk(item.children);
     }
   };
@@ -18,6 +18,7 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav aligned with live workspace routes", () => {
     expect(listWorkspaceNavTargets()).toEqual([
       "/",
+      "/notifications",
       "/assets",
       "/content/models",
       "/content/library",
@@ -38,24 +39,48 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav tree aligned with the approved IA", () => {
     expect(ADMIN_NAV_ITEMS.map((item) => item.key)).toEqual([
       "dashboard",
-      "assets",
-      "content.models",
-      "content.library",
-      "settings.site",
+      "inbox",
+      "website",
+      "marketing",
+      "analytics",
+      "customers.leads",
       "team",
-      "workspace",
+      "apps",
+      "automations",
+      "activity",
+      "settings.workspace",
     ]);
 
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "assets")).toMatchObject({
-      groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website")).toMatchObject({
+      labelKey: "nav:NAV_GROUP_WEBSITE",
+      dividerBefore: true,
     });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "team")).toMatchObject({
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "activity")).toMatchObject({
       dividerBefore: true,
     });
 
     expect(
-      ADMIN_NAV_ITEMS.find((item) => item.key === "workspace")?.children?.map((item) => item.key),
-    ).toEqual(["activity", "settings.workspace"]);
+      ADMIN_NAV_ITEMS.find((item) => item.key === "website")?.children?.map((item) => item.key),
+    ).toEqual(["assets", "content.models", "content.library", "settings.site"]);
+    expect(
+      ADMIN_NAV_ITEMS.find((item) => item.key === "marketing")?.children?.every(
+        (item) => item.disabled,
+      ),
+    ).toBe(true);
+    expect(
+      ADMIN_NAV_ITEMS.find((item) => item.key === "analytics")?.children?.every(
+        (item) => item.disabled,
+      ),
+    ).toBe(true);
+    expect(
+      ADMIN_NAV_ITEMS.find((item) => item.key === "customers.leads")?.children?.every(
+        (item) => item.disabled,
+      ),
+    ).toBe(true);
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "automations")).toMatchObject({
+      disabled: true,
+      labelKey: "nav:NAV_AUTOMATIONS",
+    });
   });
 
   test("returns the single team-first workspace nav tree", () => {
@@ -63,12 +88,16 @@ describe("workspace nav regression", () => {
 
     expect(workspaceNav.map((item) => item.key)).toEqual([
       "dashboard",
-      "assets",
-      "content.models",
-      "content.library",
-      "settings.site",
+      "inbox",
+      "website",
+      "marketing",
+      "analytics",
+      "customers.leads",
       "team",
-      "workspace",
+      "apps",
+      "automations",
+      "activity",
+      "settings.workspace",
     ]);
     expect(listWorkspaceNavTargets(workspaceNav)).toContain("/team/members");
     expect(listWorkspaceNavTargets(workspaceNav)).toContain("/team/invitations");

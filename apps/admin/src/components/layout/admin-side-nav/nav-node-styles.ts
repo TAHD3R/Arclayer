@@ -28,7 +28,7 @@ export const NAV_ITEM_COLLAPSE_HIDE_CLASSNAME = cn(
 
 export const DISABLED_ITEM_CLASSNAME = cn(
   "opacity-60",
-  "hover:text-label-secondary!",
-  "cursor-not-allowed",
+  "hover:text-label-primary!",
+  "cursor-pointer",
   "aria-disabled:pointer-events-auto",
 );

@@ -176,19 +176,20 @@ describe("GlobalLayout", () => {
     );
   });
 
-  it("hides system settings from non-super-admin global navigation", () => {
+  it("keeps billing visible while hiding platform from non-super-admin global navigation", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     const navKeys = topbarSpy.mock.calls[0]?.[0]?.navItems?.map(
       (item: { key: string }) => item.key,
     );
-    expect(navKeys).not.toContain("global.system");
+    expect(navKeys).toContain("global.billing");
+    expect(navKeys).not.toContain("global.platform");
     expect(
       sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.map((item: { key: string }) => item.key),
-    ).not.toContain("global.system");
+    ).toContain("global.billing");
   });
 
-  it("shows system settings when the current user is a super admin", () => {
+  it("shows platform alongside billing when the current user is a super admin", () => {
     vi.mocked(useCurrentUserProfile).mockReturnValue({
       isSuperAdmin: true,
       isLoading: false,
@@ -200,7 +201,10 @@ describe("GlobalLayout", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     const navKeys = collectNavKeys(topbarSpy.mock.calls[0]?.[0]?.navItems ?? []);
-    expect(navKeys).toContain("global.system");
+    expect(navKeys).toContain("global.billing");
+    expect(navKeys).toContain("global.billing.subscriptions");
+    expect(navKeys).toContain("global.platform");
+    expect(navKeys).toContain("global.platform.overview");
   });
 
   it("includes the resources placeholder before workspaces in global navigation", () => {

@@ -76,10 +76,13 @@ function NodeLeafSub({
             NAV_ITEM_RADIUS_CLASSNAME,
             INTERACTIVE_TRANSITION_CLASSNAME,
             NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-            "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent",
-            "[&:not([data-highlight])]:hover:bg-transparent",
             "text-callout",
-            item.disabled ? DISABLED_ITEM_CLASSNAME : null,
+            item.disabled
+              ? cn(
+                  DISABLED_ITEM_CLASSNAME,
+                  "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent",
+                )
+              : "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent",
           )}
         >
           <ButtonPrimitive

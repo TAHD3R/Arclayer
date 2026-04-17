@@ -1,4 +1,16 @@
-import { Rainbow, House, Settings2, Users, Wrench } from "lucide-react";
+import {
+  CreditCard,
+  House,
+  LayoutDashboard,
+  LifeBuoy,
+  ReceiptText,
+  Rainbow,
+  Settings2,
+  Shield,
+  Users,
+  Wallet,
+  Wrench,
+} from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
@@ -30,18 +42,105 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     dividerBefore: true,
   },
   {
-    key: "global.maintenance",
-    label: "Maintenance",
-    labelKey: "nav:NAV_SECTION_MAINTENANCE",
+    key: "global.billing",
+    label: "Billing & Subscription",
+    labelKey: "nav:NAV_SECTION_BILLING_SUBSCRIPTION",
+    icon: CreditCard,
+    children: [
+      {
+        key: "global.billing.subscriptions",
+        label: "Subscriptions",
+        labelKey: "nav:NAV_GLOBAL_BILLING_SUBSCRIPTIONS",
+        to: "/billing/subscriptions",
+        icon: Wallet,
+        disabled: true,
+      },
+      {
+        key: "global.billing.history",
+        label: "Billing History",
+        labelKey: "nav:NAV_GLOBAL_BILLING_HISTORY",
+        to: "/billing/history",
+        icon: ReceiptText,
+        disabled: true,
+      },
+    ],
+  },
+  {
+    key: "global.platform",
+    label: "Platform",
+    labelKey: "nav:NAV_SECTION_PLATFORM",
     icon: Wrench,
     children: [
       {
-        key: "global.system",
-        label: "System Settings",
-        labelKey: "nav:NAV_SYSTEM_SETTINGS",
+        key: "global.platform.tenants",
+        label: "Tenants",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_TENANTS",
+        to: "/system/tenants",
+        icon: Users,
+        disabled: true,
+      },
+      {
+        key: "global.platform.plans",
+        label: "Plans & Limits",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_PLANS_LIMITS",
+        to: "/system/plans",
+        icon: CreditCard,
+        disabled: true,
+      },
+      {
+        key: "global.platform.access",
+        label: "Access Control",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_ACCESS_CONTROL",
+        to: "/system/access-control",
+        icon: Shield,
+        disabled: true,
+      },
+      {
+        key: "global.platform.audit",
+        label: "Audit Log",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_AUDIT_LOG",
+        to: "/system/audit-log",
+        icon: ReceiptText,
+        disabled: true,
+      },
+      {
+        key: "global.platform.overview",
+        label: "Platform Overview",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_OVERVIEW",
+        to: "/system/overview",
+        icon: LayoutDashboard,
+        disabled: true,
+      },
+      {
+        key: "global.platform.jobs",
+        label: "Jobs",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_JOBS",
+        to: "/system/jobs",
+        icon: Wrench,
+        disabled: true,
+      },
+      {
+        key: "global.platform.configuration",
+        label: "Configuration",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_CONFIGURATION",
         to: "/system",
-        activeMatchPaths: ["/system"],
         icon: Settings2,
+      },
+      {
+        key: "global.platform.revenue",
+        label: "Revenue",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_REVENUE",
+        to: "/system/revenue",
+        icon: Wallet,
+        disabled: true,
+      },
+      {
+        key: "global.platform.support",
+        label: "Support Center",
+        labelKey: "nav:NAV_GLOBAL_PLATFORM_SUPPORT_CENTER",
+        to: "/system/support-center",
+        icon: LifeBuoy,
+        disabled: true,
       },
     ],
   },
@@ -58,7 +157,9 @@ export function resolveGlobalNavItems(params: {
           ? { ...item, children: params.workspaceChildren }
           : item;
 
-      if (nextItem.key === "global.system" && !params.isSuperAdmin) return [];
+      if (nextItem.key === "global.platform" && !params.isSuperAdmin) {
+        return [];
+      }
 
       if (!nextItem.children?.length) return [nextItem];
 
