@@ -52,6 +52,18 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
 - Pair it with `karpathy-guidelines` by default. Pair it with generic frontend skills such as `shadcn`, `tailwind-design-system`, `vercel-composition-patterns`, or `vercel-react-best-practices` only for implementation mechanics.
 - The repo-local skill sets direction and copy guardrails. Generic frontend skills must not override it on visual hierarchy or product-writing decisions.
 
+## Repo-Local General Skills
+
+- This repo also carries repo-local copies of general engineering skills under `.agents/skills/`.
+- Treat these repo-local copies as the preferred project baseline when they overlap with globally installed skills.
+- The current repo-local general skill set covers:
+  - backend and API design: `api-and-interface-design`, `api-design-principles`, `fastapi-python`, `pydantic`
+  - testing and verification: `python-testing-patterns`, `test-driven-development`, `verification-before-completion`
+  - debugging and review: `systematic-debugging`, `code-review-and-quality`, `security-and-hardening`
+  - frontend engineering and design-system mechanics: `frontend-ui-engineering`, `tailwind-design-system`
+  - platform and repo operations: `ci-cd-and-automation`, `monorepo-management`, `turborepo`
+- Use the repo-local frontend skill for visual direction and product-writing rules. Use the repo-local general skills for implementation mechanics, testing, debugging, and delivery discipline.
+
 ## Agent Priorities
 
 - Correctness first: minimal scope, targeted edits, keep diffs reviewable.
@@ -63,20 +75,33 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
 
 ## Repo MCP Workflow
 
-- This repository has `code-review-graph` and `serena` MCPs installed. For medium-or-larger tasks, code review, root-cause analysis across multiple files, architecture questions, or cross-file refactors, use them before broad manual exploration.
-- Use `code-review-graph` first for repository topology, impact radius, review context, affected flows, and change-risk analysis.
-- Use `serena` for symbol-level navigation, reference tracing, and precise cross-file semantic lookup once the relevant area is known.
+- This repository uses a three-layer code-intelligence workflow:
+  - `GitNexus` for repo-wide exploration, graph search, architecture discovery, cross-boundary process tracing, and multi-repo reference work
+  - `code-review-graph` for change review, impact analysis, risk scoring, and review-focused context
+  - `serena` for symbol-level navigation, reference tracing, and precise semantic lookup
+- For medium-or-larger tasks, architecture work, root-cause analysis across multiple files, reference-repo comparison, or cross-file refactors, use this workflow before broad manual exploration.
+- Default tool order:
+  - start with `GitNexus` when the task is about understanding the codebase, discovering execution flows, comparing patterns, or exploring unfamiliar areas
+  - use `code-review-graph` when the task is about reviewing changed files, estimating blast radius, validating a phase, or building review context
+  - use `serena` when the relevant area is known and you need symbol-level precision for references, implementations, or targeted edits
 - Default triggers for this workflow:
   - any request containing `review`
   - tasks touching 3 or more files
+  - architecture and module-boundary questions
+  - reference-repo comparison work under `references/**`
   - dependency / call-chain / blast-radius / flow questions
   - regressions that are not obviously isolated to one file
-- Do not force these MCPs for trivial single-file edits where a direct file read is faster.
+- Do not force these tools for trivial single-file edits where a direct file read is faster.
+- `GitNexus` local workflow for this repo:
+  - run `gitnexus analyze . --skip-agents-md` from repo root when the repo is not indexed or the index is stale
+  - run `gitnexus status` to verify freshness before relying on it
+  - keep `.gitnexus/` local and uncommitted
+- `GitNexus` is the preferred tool when working with local reference repositories such as `references/*`, or when comparing Arclayer against other codebases.
 - If `code-review-graph` is empty or stale, refresh it before relying on results:
   - `code-review-graph status --repo /home/philip/Arclayer`
   - `code-review-graph update --repo /home/philip/Arclayer`
   - use full `code-review-graph build --repo /home/philip/Arclayer --skip-flows` when needed
-- If either MCP is unavailable or returns incomplete data, state that explicitly and continue from live repo truth rather than treating the MCP output as authoritative.
+- If any of these tools are unavailable, stale, or return incomplete data, state that explicitly and continue from live repo truth rather than treating tool output as authoritative.
 
 ## Command Discipline (Monorepo)
 
@@ -136,3 +161,9 @@ Use `pnpm format` only when formatting is required by the task.
 - Search narrowly with `rg`; open only files you need.
 - Read small sections; avoid large/vendor directories (`node_modules`, build outputs, large assets).
 - Keep edits minimal; avoid repo-wide formatting changes.
+
+## Reference Repositories
+
+- Third-party reference repositories belong under `/home/philip/Arclayer/references/`.
+- `/references` is gitignored. Keep reference repos there so they never enter Arclayer commits by accident.
+- Use reference repos for architecture comparison, implementation benchmarking, and protocol study. Do not copy code blindly across boundaries.
