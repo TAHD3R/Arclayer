@@ -633,7 +633,7 @@ describe("AdminSiderNav collapsed groups", () => {
       act(() => {
         fireEvent.pointerEnter(sidebarContainer);
         fireEvent.pointerMove(sidebarContainer);
-        vi.advanceTimersByTime(80);
+        vi.advanceTimersByTime(50);
       });
 
       expect(
@@ -641,7 +641,7 @@ describe("AdminSiderNav collapsed groups", () => {
       ).not.toBeInTheDocument();
 
       act(() => {
-        vi.advanceTimersByTime(30);
+        vi.advanceTimersByTime(20);
       });
 
       expect(

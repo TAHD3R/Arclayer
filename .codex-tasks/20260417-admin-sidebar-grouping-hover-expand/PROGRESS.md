@@ -21,14 +21,14 @@
 > If you are resuming this task after compaction, session restart, or context loss,
 > read this section FIRST to restore working state.
 
-- **Current milestone**: `#29 — Re-run focused verification for behavior-only overlay preview`
-- **Current status**: `DONE`
-- **Last completed**: `#29 — Re-run focused verification for behavior-only overlay preview`
+- **Current milestone**: `#38 — Commit the follow-up changes`
+- **Current status**: `IN_PROGRESS`
+- **Last completed**: `#37 — Evaluate menu constant consolidation outcome`
 - **Current artifact**: `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv`
 - **Key context**: 当前 shared/admin contract 已经对齐到用户最新要求：`layoutState` 持续保持 collapsed，collapsed tooltip/popover 主路径已清掉，hover preview 继续是 overlay-only 且恢复完整交互，同时 hover preview 期间不再额外添加圆角、边框、阴影，外观直接复用正常展开态。
 - **Key context**: 浏览器实测已经补齐，并确认上一版实现仍有真实布局 bug：虽然 `sidebar-container` 是 fixed，但根节点 `[data-slot="sidebar"]` 自身因为没有命中 collapsed width contract，仍保持 270px 宽度，导致 `main` 被挤压。当前修复把布局宽度 owner 明确放回 root sidebar 本身，collapsed hover preview 只放大 fixed container。
 - **Known issues**: 更大范围的 `pnpm admin:check` 仍有与本任务无关的既有失败，集中在 `usercenter-overlay-host.test.tsx`、`assets-page-view.test.tsx`、`tooltip-content-sync.test.tsx`。
-- **Next action**: 任务处于可提交状态。
+- **Next action**: 提交当前 follow-up 变更。
 
 ---
 
@@ -317,6 +317,70 @@
   - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv` — recorded steps 30-32
   - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/PROGRESS.md` — recorded Playwright root-cause evidence and fix validation
   - `apps/admin/test/components/layout/admin-side-nav-spacing.test.tsx` — updated collapsed button contract regression
+
+---
+
+## Follow-up Session: 2026-04-17 09:37
+
+- **Status**: IN_PROGRESS
+- **What was done**:
+  - 根据用户最新澄清更新 task scope：Help Center 入口挂到 `apps/admin/src/components/layout/admin-topbar.tsx` 通知按钮右侧，不再考虑 Content Models 页面 header 方案。
+  - 重新审计 live owner，确认 `apps/admin/src/constants/menu/usercenter.ts` 当前没有任何引用，`apps/admin/src/constants/menu/common.ts` 只通过 `admin-layout.tsx` / `global-layout.tsx` 传入 footerItems。
+  - 确认 collapsed 直点问题的根因仍在 `apps/admin/src/components/layout/admin-sidebar-shell.tsx`：真正 collapsed 时给 `SidebarContent` 挂了 `inert` 和 `aria-hidden`，整列菜单都失去点击能力。
+  - 记录本轮 TODO：收紧 hover-open delay、恢复 collapsed 直点、移除 footer/common 菜单链、在 topbar 加 Help Center 占位按钮，并在代码落地后重新评估 `global.ts` / `workspaces.ts` 是否值得合并。
+- **Key decisions**:
+  - Decision: 先做 shared/layout 根因修复，再决定菜单常量是否收敛。
+  - Reasoning: 当前真正影响交互的是 shared sidebar 与 layout/footer owner，先把用户明确点名的行为问题修好更稳。
+  - Decision: Help Center 当前只做无事件占位按钮，复用 topbar icon-button contract。
+  - Reasoning: 用户已经明确功能后补，当前需要的是入口位置和布局结构对齐。
+- **Validation**:
+  - `rg -n "buildCommonFooterItems|COMMON_FOOTER_NAV_ITEMS|footerItems|help-center|usercenter" apps/admin/src/layouts apps/admin/src/constants/menu apps/admin/src/components/layout` → exit 0
+  - `test -f .codex-tasks/20260417-admin-sidebar-grouping-hover-expand/SPEC.md && rg -n "topbar|help-center|collapsed 直点|hover-open 阈值|footer" .codex-tasks/20260417-admin-sidebar-grouping-hover-expand/SPEC.md .codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv` → exit 0
+- **Files changed**:
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/SPEC.md` — added the new follow-up goals and acceptance criteria
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv` — recorded steps 33-38 for this follow-up
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/PROGRESS.md` — updated recovery block and logged the new session
+
+---
+
+## Follow-up Session: 2026-04-17 09:44
+
+- **Status**: DONE
+- **What was done**:
+  - 将 `packages/ui/src/sidebar.tsx` 的 hover-open delay 从 `110ms` 收紧到 `70ms`，保留 `180ms` leave delay。
+  - 在 `apps/admin/src/components/layout/admin-sidebar-shell.tsx` 删除真正 collapsed 态下的 `SidebarContent inert/aria-hidden` 阻断，并顺手收掉已经无用的 footer menu 渲染分支。
+  - 删除 `apps/admin/src/constants/menu/common.ts` 与 `apps/admin/src/constants/menu/usercenter.ts`，同时把 `AdminSceneLayout` / `AdminSidebarShell` / `admin-layout.tsx` / `global-layout.tsx` 的 `footerItems` 合同一起移除。
+  - 在 `apps/admin/src/components/layout/admin-topbar.tsx` 给通知按钮右侧新增 Help Center 无事件占位按钮，沿用现有 topbar icon-button 和 tooltip 合同。
+  - 更新 focused tests，并用 Playwright 在真实页面验证 hover 节奏、overlay-only layout、collapsed 直点与 topbar 按钮位置。
+- **Key decisions**:
+  - Decision: collapsed 直点问题直接修在 `admin-sidebar-shell` 的 inert owner。
+  - Reasoning: 当前 tooltip/popover 分支已经退出主路径，真正挡住点击的是 shared sidebar content 被整体 inert。
+  - Decision: footer/common 菜单链做完整删除，而不是传空数组保留壳层。
+  - Reasoning: 这轮需求已经把 Help Center 入口收敛到 topbar，保留 footerItems 只会继续维持一个空 contract。
+  - Decision: `global.ts` 和 `workspaces.ts` 继续分文件管理。
+  - Reasoning: 它们对应不同导航域和不同 runtime 映射 contract，这轮 follow-up 聚焦交互与 layout owner，保持窄变更更稳。
+- **Validation**:
+  - `pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-sidebar-shell.test.tsx test/components/layout/topbar-sidebar-toggle-icon.test.tsx test/layouts/global-layout.test.tsx test/components/layout/admin-side-nav.test.tsx test/components/layout/admin-side-nav-spacing.test.tsx test/layouts/sidebar-route-state.test.tsx test/lib/i18n/common-sidebar-tooltip-i18n.test.ts test/lib/workspace-nav-regression.test.ts` → exit 0, `8 files`, `66 tests`
+  - Playwright on `http://localhost:5174/w/XTrNArxR3vwWh4QlEyh9zQ/content/models` with collapsed sidebar:
+    - hover 40ms: `data-state=collapsed`, `main.left=56`, `main.width=724`
+    - hover 90ms: `data-state=expanded`, `main.left=56`, `main.width=724`
+    - direct click on `Assets` from collapsed mode navigated to `/w/XTrNArxR3vwWh4QlEyh9zQ/assets`
+    - topbar snapshot showed `Open notification center -> Help center -> account menu`
+- **Files changed**:
+  - `packages/ui/src/sidebar.tsx` — shorter hover-open threshold
+  - `apps/admin/src/components/layout/admin-sidebar-shell.tsx` — removed collapsed inert gating and footer menu branch
+  - `apps/admin/src/components/layout/admin-topbar.tsx` — added Help Center placeholder button
+  - `apps/admin/src/layouts/admin-scene-layout.tsx` — removed footerItems contract
+  - `apps/admin/src/layouts/admin-layout.tsx` — removed common footer wiring
+  - `apps/admin/src/layouts/global-layout.tsx` — removed common footer wiring
+  - `apps/admin/src/layouts/admin-scene-utils.ts` — removed buildCommonFooterItems helper
+  - `apps/admin/src/constants/menu/common.ts` — deleted deprecated footer menu definition
+  - `apps/admin/src/constants/menu/usercenter.ts` — deleted unused menu definition
+  - `apps/admin/test/components/layout/admin-sidebar-shell.test.tsx` — updated hover timing and collapsed interaction regressions
+  - `apps/admin/test/components/layout/topbar-sidebar-toggle-icon.test.tsx` — added Help Center topbar placement regression
+  - `apps/admin/test/components/layout/admin-side-nav.test.tsx` — updated favorites hover-threshold regression
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv` — closed steps 34-37 and reopened commit step
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/PROGRESS.md` — recorded implementation and validation evidence
 
 ---
 

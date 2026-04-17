@@ -29,7 +29,6 @@ type AdminSceneLayoutProps = PropsWithChildren<{
   notificationQueryScope: string;
   renderTopbar: (props: AdminSceneTopbarRenderProps) => ReactNode;
   mainItems: readonly AdminNavItem[];
-  footerItems: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
   resolvePermissionName?: (code: string) => string | null;
   showNavSkeleton?: boolean;
@@ -47,7 +46,6 @@ export function AdminSceneLayout({
   notificationQueryScope,
   renderTopbar,
   mainItems,
-  footerItems,
   favoriteWorkspaceBase,
   resolvePermissionName,
   showNavSkeleton = false,
@@ -109,7 +107,6 @@ export function AdminSceneLayout({
             showOrgNavErrorOverlay={showOrgNavErrorOverlay}
             mainItems={mainItems}
             favoriteWorkspaceBase={favoriteWorkspaceBase}
-            footerItems={footerItems}
             resolvePermissionName={resolvePermissionName}
             pathnameOverride={sidebarPathnameOverride}
             collapsible={sidebarCollapsible}

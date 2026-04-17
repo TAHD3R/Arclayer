@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { getWorkspaceNavItems } from "@/constants/menu/workspaces";
-import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -17,11 +16,7 @@ import { RouteTransition } from "@/components/layout/route-transition";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
-import {
-  buildCommonFooterItems,
-  extractWorkspaceBaseFromPath,
-  mapWorkspaceNavItems,
-} from "@/layouts/admin-scene-utils";
+import { extractWorkspaceBaseFromPath, mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
@@ -56,8 +51,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const isWorkspaceScopeRoute = useMemo(() => {
     return Boolean(workspaceBase);
   }, [workspaceBase]);
-
-  const footerItems = useMemo(() => buildCommonFooterItems(COMMON_FOOTER_NAV_ITEMS), []);
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", effectiveWorkspaceId, sessionVersion],
@@ -172,7 +165,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
       )}
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
       favoriteWorkspaceBase={isWorkspaceScopeRoute ? workspaceBase : null}
-      footerItems={footerItems}
       resolvePermissionName={resolvePermissionName}
       showNavSkeleton={false}
       sidebarCollapsible="icon"

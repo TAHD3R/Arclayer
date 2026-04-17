@@ -17,6 +17,7 @@
 - 当前 follow-up 只复刻参考实现的 section marker / divider 展开折叠样式，不调整其他 sidebar 行为。
 - 最新 follow-up 还要修正 section marker 的同步 reveal 节奏，以及 collapsed leaf/group 顶层按钮的左锚点收拢一致性，并重新确认 overlay hover-preview contract 仍然成立。
 - 最新 follow-up 还要让 collapsed hover preview 只改变 overlay 行为，不新增任何浮层皮肤，并移除 collapsed 态下依赖 tooltip / popover 的菜单交互。
+- 最新 follow-up 还要缩短 hover-open 阈值、恢复 collapsed 直点交互、移除 sidebar footer help-center 注入，并把 help-center 占位入口收敛到 topbar 通知按钮右侧。
 
 ## Non-Goals
 
@@ -41,6 +42,7 @@
 - 最新 follow-up 允许触达 `packages/ui/src/sidebar.tsx` 和 admin side-nav motion 常量，因为左锚点与 overlay 观感问题来自 shared/admin 双层 contract。
 - 最新 follow-up 允许触达 `favorites-node.tsx`、`node-expanded-group.tsx` 与 admin shell，因为 collapsed tooltip/popover 分支分散在这些 shared/admin owner 中。
 - 最新 follow-up 继续允许触达 `packages/ui/src/sidebar.tsx` 和 focused tests，因为“overlay 行为保持、外观不变”的根因仍在 shared sidebar container/inner owner。
+- 最新 follow-up 允许触达 `admin-topbar.tsx`、`admin-scene-layout.tsx`、`admin-layout.tsx`、`global-layout.tsx` 与菜单常量，因为顶部 help-center 入口与 footer 菜单删除需要在 shared layout owner 收口。
 
 ## Environment
 
@@ -72,6 +74,10 @@
 - collapsed leaf/group 顶层按钮共享稳定的左锚点收拢路径，hover preview 期间不再出现 icon snap-back 观感。
 - collapsed hover preview 在行为上覆盖内容区而不影响布局宽度，同时继续复用正常展开态视觉外观。
 - collapsed 态下的 sidebar 菜单内容整体 inert，leaf/group/favorites 不再通过 tooltip 或 popover 承担主交互。
+- hover-open 阈值收紧到“有意停留即展开、快速划过保持安静”的节奏。
+- collapsed 态下图标菜单支持直接点击，无需等待 hover preview 展开。
+- `common.ts`、`usercenter.ts` 与 sidebar footer help-center 注入链被移除。
+- admin topbar 在通知按钮右侧渲染 Help Center 占位按钮。
 
 ## Done-When
 
@@ -88,6 +94,10 @@
 - [ ] focused suite 继续证明 hover preview 仍是 overlay-only，layout gap 继续保持 collapsed。
 - [ ] collapsed hover preview 覆盖在内容区上方，主体宽度保持稳定，同时侧边栏外观与正常展开态一致。
 - [ ] collapsed 态下不再出现菜单 tooltip、group popover、favorites popover 或 rail tooltip。
+- [ ] hover-open 延迟收紧后，快速划过仍保持 collapsed，有意停留时接近无感展开。
+- [ ] collapsed 态下可以直接点击 leaf 菜单进行跳转。
+- [ ] admin sidebar footer 不再保留 common/help-center 预留区域。
+- [ ] admin topbar 在通知按钮右侧显示 Help Center 占位按钮。
 - [ ] 定向 vitest 全绿。
 
 ## Final Validation Command
@@ -103,3 +113,5 @@ pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/lay
 3. 指针移出 sidebar，确认在短延迟后收起，group label 切换为 divider。
 4. 查看折叠态 icon button，确认图标居中。
 5. 查看 global/workspace 菜单顺序，确认占位项与分割线位置正确。
+6. 在 collapsed 态直接点击一个 leaf icon，确认可以直接进入目标路由。
+7. 查看顶栏通知按钮右侧，确认 Help Center 占位按钮存在，且 sidebar footer 没有额外保留区域。

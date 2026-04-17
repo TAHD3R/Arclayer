@@ -1,4 +1,4 @@
-import { ArrowLeft, Bell, ChevronLeft, Menu } from "lucide-react";
+import { ArrowLeft, Bell, ChevronLeft, CircleHelp, Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 
@@ -121,6 +121,7 @@ function TopbarTrailing(props: {
   showNotificationsBadge: boolean;
   unreadCount: number;
   notificationLabel: string;
+  helpCenterLabel: string;
   onNotificationToggle: () => void;
 }) {
   return (
@@ -146,6 +147,20 @@ function TopbarTrailing(props: {
         <TooltipContent>{props.notificationLabel}</TooltipContent>
       </Tooltip>
 
+      <Tooltip>
+        <TooltipTrigger asChild focusTrigger={false}>
+          <ButtonPrimitive
+            type="button"
+            tapScale={1}
+            aria-label={props.helpCenterLabel}
+            className={TOPBAR_ICON_BUTTON_CLASSNAME}
+          >
+            <CircleHelp className="size-4" aria-hidden="true" />
+          </ButtonPrimitive>
+        </TooltipTrigger>
+        <TooltipContent>{props.helpCenterLabel}</TooltipContent>
+      </Tooltip>
+
       <AdminAccountMenu variant="header" />
     </div>
   );
@@ -166,7 +181,7 @@ export function AdminTopbar(props: {
   className?: string;
 }) {
   const { toggleSidebar } = useSidebar();
-  const { t } = useTranslation(["common", "notifications"]);
+  const { t } = useTranslation(["common", "notifications", "account"]);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const commandPalette = useAdminCommandPalette({
     navItems: props.navItems,
@@ -219,6 +234,7 @@ export function AdminTopbar(props: {
             showNotificationsBadge={props.showNotificationsBadge}
             unreadCount={props.unreadCount}
             notificationLabel={t("notifications:NOTIFICATIONS_OPEN_CENTER")}
+            helpCenterLabel={t("account:ACCOUNT_HELP_CENTER")}
             onNotificationToggle={props.onNotificationToggle}
           />
         </div>
@@ -243,6 +259,7 @@ export function AdminTopbar(props: {
             showNotificationsBadge={props.showNotificationsBadge}
             unreadCount={props.unreadCount}
             notificationLabel={t("notifications:NOTIFICATIONS_OPEN_CENTER")}
+            helpCenterLabel={t("account:ACCOUNT_HELP_CENTER")}
             onNotificationToggle={props.onNotificationToggle}
           />
         </div>

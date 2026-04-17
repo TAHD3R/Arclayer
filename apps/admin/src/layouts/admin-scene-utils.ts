@@ -1,21 +1,5 @@
 import type { AdminNavItem } from "@/types/admin-nav";
 
-export function buildCommonFooterItems(items: readonly AdminNavItem[]): AdminNavItem[] {
-  return items.flatMap((item) => {
-    if (item.key === "notifications") return [];
-    if (item.key === "help-center") {
-      return [
-        Object.assign({}, item, {
-          onAction: () => {
-            window.location.assign("#");
-          },
-        }),
-      ];
-    }
-    return [item];
-  });
-}
-
 export function mapWorkspaceNavItems(
   items: readonly AdminNavItem[],
   workspaceBase: string,

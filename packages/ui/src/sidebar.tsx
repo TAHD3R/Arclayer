@@ -29,7 +29,7 @@ import { buttonVariants } from "./button-variants";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_HOVER_OPEN_DELAY_MS = 110;
+const SIDEBAR_HOVER_OPEN_DELAY_MS = 70;
 const SIDEBAR_HOVER_CLOSE_DELAY_MS = 180;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";

@@ -8,13 +8,11 @@ import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
-import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { resolveGlobalNavItems } from "@/constants/menu/global";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
 import { workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
-import { buildCommonFooterItems } from "@/layouts/admin-scene-utils";
 import { WorkspaceActionDialogs } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
 import { WorkspaceActionsDropdown } from "@/pages/usercenter/workspaces/components/workspace-actions-dropdown";
 import { WorkspaceInlineNameEditor } from "@/pages/usercenter/workspaces/components/workspace-inline-name-editor";
@@ -44,7 +42,6 @@ export function GlobalLayout() {
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const { isSuperAdmin } = useCurrentUserProfile();
-  const footerItems = useMemo(() => buildCommonFooterItems(COMMON_FOOTER_NAV_ITEMS), []);
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
 
   const handleEnterWorkspace = useCallback(
@@ -199,7 +196,6 @@ export function GlobalLayout() {
         />
       )}
       mainItems={navItems}
-      footerItems={footerItems}
       sidebarCollapsible="icon"
     >
       <Outlet />

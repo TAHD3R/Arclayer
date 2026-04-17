@@ -1,16 +1,23 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
+const { navClickSpy } = vi.hoisted(() => ({
+  navClickSpy: vi.fn(),
+}));
+
 vi.mock("@/components/layout/admin-side-nav", () => ({
-  AdminSiderNav: () => <div data-testid="admin-sider-nav" />,
+  AdminSiderNav: () => (
+    <button type="button" data-testid="admin-sider-nav" onClick={() => navClickSpy()}>
+      Nav item
+    </button>
+  ),
 }));
 
 vi.mock("@/components/layout/admin-sidebar-skeleton", () => ({
   AdminSidebarMainMenuSkeleton: () => <div data-testid="admin-sidebar-main-skeleton" />,
-  AdminSidebarFooterMenuSkeleton: () => <div data-testid="admin-sidebar-footer-skeleton" />,
 }));
 
 vi.mock("@/components/ui/gradual-blur", () => ({
@@ -65,13 +72,16 @@ describe("AdminSidebarShell", () => {
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
   });
 
+  beforeEach(() => {
+    navClickSpy.mockClear();
+  });
+
   it("does not show a tooltip when hovering the shared sidebar rail", async () => {
     renderWithSidebar(
       <AdminSidebarShell
         showNavSkeleton={false}
         showOrgNavErrorOverlay={false}
         mainItems={[]}
-        footerItems={[]}
         collapsible="icon"
       />,
     );
@@ -91,7 +101,6 @@ describe("AdminSidebarShell", () => {
         showNavSkeleton={false}
         showOrgNavErrorOverlay={false}
         mainItems={[]}
-        footerItems={[]}
         collapsible="icon"
       />,
     );
@@ -108,7 +117,6 @@ describe("AdminSidebarShell", () => {
         showNavSkeleton={false}
         showOrgNavErrorOverlay={false}
         mainItems={[]}
-        footerItems={[]}
         collapsible="none"
       />,
     );
@@ -126,7 +134,6 @@ describe("AdminSidebarShell", () => {
             showNavSkeleton={false}
             showOrgNavErrorOverlay={false}
             mainItems={[]}
-            footerItems={[]}
             collapsible="icon"
           />
         </SidebarProvider>,
@@ -153,17 +160,17 @@ describe("AdminSidebarShell", () => {
       expect(sidebar?.className).toContain(
         "data-[layout-collapsible=icon]:w-(--sidebar-width-icon)",
       );
-      expect(sidebarContent).toHaveAttribute("inert");
+      expect(sidebarContent).not.toHaveAttribute("inert");
 
       act(() => {
         fireEvent.pointerEnter(sidebarContainer!);
         fireEvent.pointerMove(sidebarContainer!);
-        vi.advanceTimersByTime(80);
+        vi.advanceTimersByTime(50);
       });
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
 
       act(() => {
-        vi.advanceTimersByTime(30);
+        vi.advanceTimersByTime(20);
       });
       expect(sidebar).toHaveAttribute("data-state", "expanded");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
@@ -173,7 +180,6 @@ describe("AdminSidebarShell", () => {
       expect(sidebar?.className).toContain(
         "data-[layout-collapsible=icon]:w-(--sidebar-width-icon)",
       );
-      expect(sidebarContent).not.toHaveAttribute("inert");
       expect(sidebarContainer?.className).toContain("group-data-[side=left]:border-r");
       expect(sidebarInner?.className).not.toContain("rounded-r-xl");
       expect(sidebarInner?.className).not.toContain("rounded-l-xl");
@@ -193,7 +199,7 @@ describe("AdminSidebarShell", () => {
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-collapsible", "icon");
-      expect(sidebarContent).toHaveAttribute("inert");
+      expect(sidebarContent).not.toHaveAttribute("inert");
     } finally {
       vi.useRealTimers();
     }
@@ -209,7 +215,6 @@ describe("AdminSidebarShell", () => {
             showNavSkeleton={false}
             showOrgNavErrorOverlay={false}
             mainItems={[]}
-            footerItems={[]}
             collapsible="icon"
           />
         </SidebarProvider>,
@@ -225,7 +230,7 @@ describe("AdminSidebarShell", () => {
 
       act(() => {
         fireEvent.pointerEnter(sidebarContainer!);
-        vi.advanceTimersByTime(80);
+        vi.advanceTimersByTime(50);
         fireEvent.pointerLeave(sidebarContainer!);
         vi.runAllTimers();
       });
@@ -234,5 +239,27 @@ describe("AdminSidebarShell", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("keeps collapsed navigation content interactive before hover preview expands", () => {
+    const view = render(
+      <SidebarProvider defaultOpen={false} className="h-screen">
+        <AdminSidebarShell
+          showNavSkeleton={false}
+          showOrgNavErrorOverlay={false}
+          mainItems={[]}
+          collapsible="icon"
+        />
+      </SidebarProvider>,
+    );
+
+    const sidebarContent = view.container.querySelector<HTMLElement>(
+      '[data-slot="sidebar-content"]',
+    );
+    const navButton = screen.getByTestId("admin-sider-nav");
+
+    expect(sidebarContent).not.toHaveAttribute("inert");
+    fireEvent.click(navButton);
+    expect(navClickSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,12 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import {
-  AdminSidebarFooterMenuSkeleton,
-  AdminSidebarMainMenuSkeleton,
-} from "@/components/layout/admin-sidebar-skeleton";
+import { AdminSidebarMainMenuSkeleton } from "@/components/layout/admin-sidebar-skeleton";
 import GradualBlur from "@/components/ui/gradual-blur";
-import { Sidebar, SidebarContent, SidebarRail, useSidebar } from "@arclayer/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarRail } from "@arclayer/ui/sidebar";
 import { cn } from "@arclayer/lib/utils";
 
 export type AdminSidebarShellProps = {
@@ -17,7 +14,6 @@ export type AdminSidebarShellProps = {
   showOrgNavErrorOverlay: boolean;
   mainItems: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
-  footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
   collapsible?: "icon" | "none";
@@ -42,11 +38,7 @@ function resolveSidebarContentPaddingPx(el: HTMLElement): { left: number; right:
   return { left, right };
 }
 
-function useSidebarBottomBlurState(args: {
-  showMenuSkeleton: boolean;
-  mainItemCount: number;
-  footerItemCount: number;
-}) {
+function useSidebarBottomBlurState(args: { showMenuSkeleton: boolean; mainItemCount: number }) {
   const navScrollRef = useRef<HTMLDivElement>(null);
   const [showNavBottomBlur, setShowNavBottomBlur] = useState(false);
   const [sidebarContentPadding, setSidebarContentPadding] = useState(() => ({ left: 0, right: 0 }));
@@ -80,7 +72,7 @@ function useSidebarBottomBlurState(args: {
       el.removeEventListener("scroll", updateScroll);
       resizeObserver.disconnect();
     };
-  }, [args.showMenuSkeleton, args.mainItemCount, args.footerItemCount]);
+  }, [args.showMenuSkeleton, args.mainItemCount]);
 
   return {
     navScrollRef,
@@ -93,44 +85,16 @@ function useSidebarBottomBlurState(args: {
   };
 }
 
-function AdminSidebarFooterMenuArea(props: {
-  showFailureSkeleton: boolean;
-  footerItems: readonly AdminNavItem[];
-  resolvePermissionName?: (code: string) => string | null;
-}) {
-  if (props.footerItems.length === 0) return null;
-
-  return (
-    <div className="shrink-0 flex flex-col pb-2">
-      {props.showFailureSkeleton ? (
-        <AdminSidebarFooterMenuSkeleton />
-      ) : (
-        <AdminSiderNav
-          items={props.footerItems}
-          showFavorites={false}
-          resolvePermissionName={props.resolvePermissionName}
-          className="mt-0 mb-0"
-        />
-      )}
-    </div>
-  );
-}
-
 function AdminSidebarContentArea(props: {
   showMenuSkeleton: boolean;
-  showFailureSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
-  footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
 }) {
-  const { state: sidebarState, isMobile } = useSidebar();
-  const collapsedMenuMode = sidebarState === "collapsed" && !isMobile;
   const bottomBlur = useSidebarBottomBlurState({
     showMenuSkeleton: props.showMenuSkeleton,
     mainItemCount: props.mainItems.length,
-    footerItemCount: props.footerItems.length,
   });
 
   const mainMenu = props.showMenuSkeleton ? (
@@ -146,11 +110,7 @@ function AdminSidebarContentArea(props: {
   );
 
   return (
-    <SidebarContent
-      inert={collapsedMenuMode ? true : undefined}
-      aria-hidden={collapsedMenuMode ? "true" : undefined}
-      className="relative z-10 px-2 overflow-hidden scrollbar-none"
-    >
+    <SidebarContent className="relative z-10 px-2 overflow-hidden scrollbar-none">
       <div className="relative flex min-h-0 flex-1">
         <div
           ref={bottomBlur.navScrollRef}
@@ -174,11 +134,6 @@ function AdminSidebarContentArea(props: {
           />
         ) : null}
       </div>
-      <AdminSidebarFooterMenuArea
-        showFailureSkeleton={props.showFailureSkeleton}
-        footerItems={props.footerItems}
-        resolvePermissionName={props.resolvePermissionName}
-      />
     </SidebarContent>
   );
 }
@@ -188,7 +143,6 @@ export function AdminSidebarShell({
   showOrgNavErrorOverlay,
   mainItems,
   favoriteWorkspaceBase,
-  footerItems,
   resolvePermissionName,
   pathnameOverride,
   collapsible = "icon",
@@ -206,10 +160,8 @@ export function AdminSidebarShell({
     >
       <AdminSidebarContentArea
         showMenuSkeleton={showMenuSkeleton}
-        showFailureSkeleton={showFailureSkeleton}
         mainItems={mainItems}
         favoriteWorkspaceBase={favoriteWorkspaceBase}
-        footerItems={footerItems}
         resolvePermissionName={resolvePermissionName}
         pathnameOverride={pathnameOverride}
       />

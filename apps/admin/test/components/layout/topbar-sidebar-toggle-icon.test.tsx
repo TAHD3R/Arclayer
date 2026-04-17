@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UserCenterTopbar } from "@/components/layout/usercenter-topbar";
@@ -360,5 +360,33 @@ describe("topbar sidebar toggle icon", () => {
         "notifications:NOTIFICATIONS_OPEN_CENTER",
       );
     });
+  });
+
+  it("AdminTopbar 在通知按钮右侧渲染 Help Center 占位按钮", () => {
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "none",
+          pathname: "/workspaces",
+          workspaceId: null,
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    const trailing = screen.getByTestId("account-menu").parentElement;
+    expect(trailing).not.toBeNull();
+    if (!trailing) throw new Error("Missing topbar trailing container");
+
+    const actionButtons = within(trailing).getAllByRole("button");
+    expect(actionButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "notifications:NOTIFICATIONS_OPEN_CENTER",
+      "account:ACCOUNT_HELP_CENTER",
+    ]);
   });
 });
