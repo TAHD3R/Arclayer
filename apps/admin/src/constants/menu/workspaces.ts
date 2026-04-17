@@ -172,7 +172,7 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
         disabled: true,
       },
       {
-        key: "customers.leads",
+        key: "customers.leads.list",
         label: "Leads",
         labelKey: "nav:NAV_CUSTOMERS_LEADS",
         to: "/customers/leads",

@@ -14,6 +14,18 @@ function listWorkspaceNavTargets(items = ADMIN_NAV_ITEMS): string[] {
   return out;
 }
 
+function listWorkspaceNavKeys(items = ADMIN_NAV_ITEMS): string[] {
+  const out: string[] = [];
+  const walk = (navItems: typeof ADMIN_NAV_ITEMS) => {
+    for (const item of navItems) {
+      out.push(item.key);
+      if (item.children?.length) walk(item.children);
+    }
+  };
+  walk(items);
+  return out;
+}
+
 describe("workspace nav regression", () => {
   test("keeps workspace nav aligned with live workspace routes", () => {
     expect(listWorkspaceNavTargets()).toEqual([
@@ -34,6 +46,11 @@ describe("workspace nav regression", () => {
   test("keeps hidden content routes out of the workspace sidebar", () => {
     expect(listWorkspaceNavTargets()).not.toContain("/content/site-builder");
     expect(listWorkspaceNavTargets()).not.toContain("/settings/seo");
+  });
+
+  test("keeps workspace nav keys unique across the full tree", () => {
+    const keys = listWorkspaceNavKeys();
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   test("keeps workspace nav tree aligned with the approved IA", () => {
@@ -77,6 +94,11 @@ describe("workspace nav regression", () => {
         (item) => item.disabled,
       ),
     ).toBe(true);
+    expect(
+      ADMIN_NAV_ITEMS.find((item) => item.key === "customers.leads")?.children?.map(
+        (item) => item.key,
+      ),
+    ).toEqual(["customers.contacts", "customers.leads.list", "customers.forms-submissions"]);
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "automations")).toMatchObject({
       disabled: true,
       labelKey: "nav:NAV_AUTOMATIONS",
