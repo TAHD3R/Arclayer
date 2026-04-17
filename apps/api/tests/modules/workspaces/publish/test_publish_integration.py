@@ -22,13 +22,13 @@ def _item_payload(slug: str, title: str) -> dict:
     }
 
 
-def _draft_payload(title: str) -> dict:
+def _draft_payload(title: str, *, path: str) -> dict:
     return {
         "expectedVersion": 0,
         "changeSummary": "initial draft",
-        "fieldsSnapshot": {"title": title},
+        "fieldsSnapshot": {"title": title, "path": path},
         "presentations": [
-            {"kind": "form_data", "payload": {"title": title}},
+            {"kind": "form_data", "payload": {"title": title, "path": path}},
             {
                 "kind": "visual_blueprint",
                 "payload": {
@@ -102,10 +102,10 @@ async def _setup_publishable_items(client, workspace_id: str) -> tuple[str, str]
     return root_item_id, child_item_id
 
 
-async def _publish_item(client, workspace_id: str, item_id: str, title: str) -> None:
+async def _publish_item(client, workspace_id: str, item_id: str, title: str, *, path: str) -> None:
     draft_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
-        json=_draft_payload(title),
+        json=_draft_payload(title, path=path),
     )
     assert draft_res.status_code == 201, draft_res.text
 
@@ -123,8 +123,8 @@ async def test_publish_builds_published_graph_from_routes_and_hierarchy(
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
         root_item_id, child_item_id = await _setup_publishable_items(client, workspace_id)
-        await _publish_item(client, workspace_id, root_item_id, "Home")
-        await _publish_item(client, workspace_id, child_item_id, "About")
+        await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
+        await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
 
         root_route_res = await client.put(
             f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{root_item_id}",
@@ -183,7 +183,7 @@ async def test_publish_returns_blocking_impact_when_route_missing(
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
         root_item_id, _ = await _setup_publishable_items(client, workspace_id)
-        await _publish_item(client, workspace_id, root_item_id, "Home")
+        await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
 
         impact_res = await client.get(f"/api/v1/workspaces/{workspace_id}/publish/impact")
         assert impact_res.status_code == 200, impact_res.text

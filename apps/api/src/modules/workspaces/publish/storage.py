@@ -7,6 +7,7 @@ from uuid import UUID
 from src.core.exceptions import Conflict, NotFound
 from src.models.content._enums import PublishArtifactKind
 from src.models.content.publish_artifact import PublishArtifactRecord
+from src.models.content.release import ContentReleaseRecord
 from src.modules.workspaces.publish.schema import (
     PublishExportArtifactOut,
     PublishExportContractOut,
@@ -182,10 +183,26 @@ def _group_bundles(rows: list[PublishArtifactRecord]) -> list[_PublishArtifactBu
 
 
 class WorkspacePublishArtifactStorage:
+    async def _load_active_release_id(self, *, workspace_id: UUID, site_id: UUID) -> UUID:
+        release = (
+            await ContentReleaseRecord
+            .filter(workspace_id=workspace_id, site_id=site_id, is_active=True)
+            .order_by("-release_number")
+            .first()
+        )
+        if release is not None:
+            return release.id
+        raise NotFound(
+            "Published release is required before reading publish contract",
+            error="PUBLISH_RELEASE_MISSING",
+            meta={"workspaceId": str(workspace_id), "siteId": str(site_id)},
+        )
+
     async def _load_artifact_rows(self, *, workspace_id: UUID, site_id: UUID) -> list[PublishArtifactRecord]:
+        active_release_id = await self._load_active_release_id(workspace_id=workspace_id, site_id=site_id)
         rows = (
             await PublishArtifactRecord
-            .filter(workspace_id=workspace_id, site_id=site_id)
+            .filter(workspace_id=workspace_id, site_id=site_id, release_id=active_release_id)
             .order_by("item_id", "version_id", "locale", "artifact_kind")
             .all()
         )
@@ -194,7 +211,7 @@ class WorkspacePublishArtifactStorage:
         raise NotFound(
             "Publish artifacts are required before reading publish contract",
             error="PUBLISH_ARTIFACTS_MISSING",
-            meta={"workspaceId": str(workspace_id), "siteId": str(site_id)},
+            meta={"workspaceId": str(workspace_id), "siteId": str(site_id), "releaseId": str(active_release_id)},
         )
 
     async def build_publish_contract(self, *, workspace_id: UUID, site_id: UUID) -> PublishExportContractOut:

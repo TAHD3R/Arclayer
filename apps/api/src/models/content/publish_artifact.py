@@ -12,6 +12,11 @@ from src.models.content._enums import PublishArtifactKind
 class PublishArtifactRecord(BaseModel):
     """Domain model for publish artifact records."""
 
+    release = fields.ForeignKeyField(
+        "models.ContentReleaseRecord",
+        related_name="artifacts",
+        on_delete=fields.CASCADE,
+    )
     workspace = fields.ForeignKeyField(
         "models.Workspace",
         related_name="content_publish_artifacts",
@@ -38,6 +43,7 @@ class PublishArtifactRecord(BaseModel):
     html = fields.TextField(null=True)
 
     if TYPE_CHECKING:
+        release_id: UUID
         workspace_id: UUID
         site_id: UUID
         item_id: UUID
@@ -46,4 +52,4 @@ class PublishArtifactRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "domain_content_publish_artifacts"
         abstract = False
-        unique_together = (("site_id", "item_id", "version_id", "artifact_kind", "locale"),)
+        unique_together = (("release_id", "site_id", "item_id", "version_id", "artifact_kind", "locale"),)

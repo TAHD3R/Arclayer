@@ -10,8 +10,8 @@ pytestmark = pytest.mark.integration
 
 async def _prepare_published_site(client, workspace_id: str) -> None:
     root_item_id, child_item_id = await _setup_publishable_items(client, workspace_id)
-    await _publish_item(client, workspace_id, root_item_id, "Home")
-    await _publish_item(client, workspace_id, child_item_id, "About")
+    await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
+    await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
 
     root_route_res = await client.put(
         f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{root_item_id}",
@@ -66,7 +66,7 @@ async def test_preview_contract_reads_publish_artifacts_as_runtime_truth(
         assert about_artifact["payload"]["route"]["path"] == "/about"
         assert about_artifact["payload"]["renderHints"]["role"] == "page"
         assert about_artifact["payload"]["renderHints"]["posture"] == "page"
-        assert about_artifact["payload"]["renderHints"]["surface"] == "structured"
+        assert about_artifact["payload"]["renderHints"]["surface"] == "canvas"
         assert "modelKey" not in about_artifact["payload"]["renderHints"]
         assert about_artifact["payload"]["seo"]["metaTitle"] == "About | Arclayer"
         assert about_artifact["payload"]["bindings"]["bindings"][0]["componentKey"] == "hero_banner"

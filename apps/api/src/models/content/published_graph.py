@@ -11,6 +11,11 @@ from src.common.models import BaseModel
 class PublishedGraphRecord(BaseModel):
     """Domain model for published graph records."""
 
+    release = fields.ForeignKeyField(
+        "models.ContentReleaseRecord",
+        related_name="graph_nodes",
+        on_delete=fields.CASCADE,
+    )
     workspace = fields.ForeignKeyField(
         "models.Workspace",
         related_name="content_published_graphs",
@@ -43,6 +48,7 @@ class PublishedGraphRecord(BaseModel):
     hierarchy_sort_order = fields.IntField(default=0)
 
     if TYPE_CHECKING:
+        release_id: UUID
         workspace_id: UUID
         site_id: UUID
         item_id: UUID
@@ -52,4 +58,4 @@ class PublishedGraphRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "domain_content_published_graph"
         abstract = False
-        unique_together = (("site_id", "locale", "route_path"), ("item_id", "locale"))
+        unique_together = (("release_id", "site_id", "locale", "route_path"), ("release_id", "item_id", "locale"))

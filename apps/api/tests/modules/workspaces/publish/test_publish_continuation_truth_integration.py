@@ -16,7 +16,7 @@ pytestmark = pytest.mark.integration
 
 async def _prepare_published_root_item(client, workspace_id: str) -> str:
     root_item_id, _ = await _setup_publishable_items(client, workspace_id)
-    await _publish_item(client, workspace_id, root_item_id, "Home")
+    await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
 
     root_route_res = await client.put(
         f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{root_item_id}",
@@ -85,7 +85,7 @@ async def test_publish_artifacts_emit_resolved_continuation_truth_instead_of_boo
         assert isinstance(payload, dict)
         assert payload["role"] == "page"
         assert payload["posture"] == "page"
-        assert payload["surface"] == "structured"
+        assert payload["surface"] == "canvas"
         assert payload["shapeState"] == "ready"
         assert "modelKey" not in payload
         assert "capabilities" not in payload

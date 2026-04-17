@@ -70,6 +70,7 @@ def _build_service(monkeypatch, *, user_id: UUID, used_counter_for_code) -> Auth
         "src.modules.auth.two_factor.service.ensure_master_key",
         lambda _path: (b"x" * 32, "fingerprint"),
     )
+    monkeypatch.setattr("src.modules.auth.two_factor.service.master_key_exists", lambda _path: True)
     monkeypatch.setattr(
         "src.modules.auth.two_factor.service.decrypt_secret",
         lambda _value, *, key, aad: "secret",

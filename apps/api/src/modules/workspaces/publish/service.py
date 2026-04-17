@@ -13,6 +13,7 @@ from src.models.content.hierarchy_node import HierarchyNodeRecord
 from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.publish_artifact import PublishArtifactRecord
 from src.models.content.published_graph import PublishedGraphRecord
+from src.models.content.release import ContentReleaseRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.models.content.seo_profile import SEOProfileRecord
 from src.modules.workspaces.content.continuation import CONTINUATION_TRUTH_MISSING_REASON_CODE
@@ -111,6 +112,11 @@ async def _load_component_manifest_map(*, version_ids: list[UUID]) -> dict[UUID,
     return {version_id: {"presentations": presentations} for version_id, presentations in out.items() if presentations}
 
 
+async def _next_release_number(*, site_id: UUID, conn) -> int:
+    latest = await ContentReleaseRecord.filter(site_id=site_id).using_db(conn).order_by("-release_number").first()
+    return (int(latest.release_number) if latest is not None else 0) + 1
+
+
 class WorkspacePublishService:
     async def preview_impact(self, *, workspace_id: UUID, site_id: UUID) -> PublishImpactOut:
         items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id)
@@ -174,114 +180,136 @@ class WorkspacePublishService:
         seo_profile_map = await _load_seo_profile_map(version_ids=version_ids)
         component_binding_map = await _load_component_binding_map(version_ids=version_ids)
         component_manifest_map = await _load_component_manifest_map(version_ids=version_ids)
-        rows: list[PublishedGraphRecord] = []
-        artifact_rows: list[PublishArtifactRecord] = []
-        for item in items:
-            route = route_map[(item.id, item.locale)]
-            version = version_map.get((item.id, int(item.published_version or 0)))
-            if version is None:
-                continue
-            node = hierarchy_map.get(item.id)
-            rows.append(
-                PublishedGraphRecord(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    item_id=item.id,
-                    version_id=version.id,
-                    locale=route.locale,
-                    route_path=route.path,
-                    hierarchy_parent_item_id=node.parent_item_id if node is not None else None,
-                    hierarchy_sort_order=node.sort_order if node is not None else 0,
-                )
+        async with in_transaction() as conn:
+            release = await ContentReleaseRecord.create(
+                using_db=conn,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                release_number=await _next_release_number(site_id=site_id, conn=conn),
+                is_active=True,
             )
-            artifact_rows.append(
-                PublishArtifactRecord(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    item_id=item.id,
-                    version_id=version.id,
-                    artifact_kind=PublishArtifactKind.ROUTE_MANIFEST,
-                    locale=route.locale,
-                    payload={
-                        "path": route.path,
-                        "parentItemId": str(node.parent_item_id) if node and node.parent_item_id else None,
-                        "sortOrder": node.sort_order if node is not None else 0,
-                    },
-                )
-            )
-            artifact_rows.append(
-                PublishArtifactRecord(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    item_id=item.id,
-                    version_id=version.id,
-                    artifact_kind=PublishArtifactKind.RENDER_HINTS,
-                    locale=route.locale,
-                    payload={
-                        "role": str(item.resolved_role) if item.resolved_role is not None else None,
-                        "posture": str(item.resolved_posture) if item.resolved_posture is not None else None,
-                        "surface": str(item.resolved_surface) if item.resolved_surface is not None else None,
-                        "shapeState": str(item.shape_state),
-                        "reasonCode": item.shape_reason_code,
-                        "reasonMeta": item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None,
-                    },
-                )
-            )
-
-            component_manifest = component_manifest_map.get(version.id)
-            if component_manifest is not None:
-                artifact_rows.append(
-                    PublishArtifactRecord(
+            rows: list[PublishedGraphRecord] = []
+            artifact_rows: list[PublishArtifactRecord] = []
+            for item in items:
+                route = route_map[(item.id, item.locale)]
+                version = version_map.get((item.id, int(item.published_version or 0)))
+                if version is None:
+                    continue
+                node = hierarchy_map.get(item.id)
+                rows.append(
+                    PublishedGraphRecord(
+                        release_id=release.id,
                         workspace_id=workspace_id,
                         site_id=site_id,
                         item_id=item.id,
                         version_id=version.id,
-                        artifact_kind=PublishArtifactKind.COMPONENT_MANIFEST,
                         locale=route.locale,
-                        payload=component_manifest,
+                        route_path=route.path,
+                        hierarchy_parent_item_id=node.parent_item_id if node is not None else None,
+                        hierarchy_sort_order=node.sort_order if node is not None else 0,
                     )
                 )
-
-            seo_profile = seo_profile_map.get(version.id)
-            if seo_profile is not None:
                 artifact_rows.append(
                     PublishArtifactRecord(
+                        release_id=release.id,
                         workspace_id=workspace_id,
                         site_id=site_id,
                         item_id=item.id,
                         version_id=version.id,
-                        artifact_kind=PublishArtifactKind.SEO_METADATA,
-                        locale=route.locale,
-                        payload=seo_profile.payload,
-                    )
-                )
-
-            bindings = component_binding_map.get(version.id, [])
-            if bindings:
-                artifact_rows.append(
-                    PublishArtifactRecord(
-                        workspace_id=workspace_id,
-                        site_id=site_id,
-                        item_id=item.id,
-                        version_id=version.id,
-                        artifact_kind=PublishArtifactKind.BINDING_MANIFEST,
+                        artifact_kind=PublishArtifactKind.ROUTE_MANIFEST,
                         locale=route.locale,
                         payload={
-                            "bindings": [
-                                {
-                                    "componentKey": binding.component_key,
-                                    "bindingKey": binding.binding_key,
-                                    "payload": binding.binding_payload,
-                                }
-                                for binding in bindings
-                            ]
+                            "path": route.path,
+                            "parentItemId": str(node.parent_item_id) if node and node.parent_item_id else None,
+                            "sortOrder": node.sort_order if node is not None else 0,
+                        },
+                    )
+                )
+                artifact_rows.append(
+                    PublishArtifactRecord(
+                        release_id=release.id,
+                        workspace_id=workspace_id,
+                        site_id=site_id,
+                        item_id=item.id,
+                        version_id=version.id,
+                        artifact_kind=PublishArtifactKind.RENDER_HINTS,
+                        locale=route.locale,
+                        payload={
+                            "role": str(item.resolved_role) if item.resolved_role is not None else None,
+                            "posture": str(item.resolved_posture) if item.resolved_posture is not None else None,
+                            "surface": str(item.resolved_surface) if item.resolved_surface is not None else None,
+                            "shapeState": str(item.shape_state),
+                            "reasonCode": item.shape_reason_code,
+                            "reasonMeta": item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None,
                         },
                     )
                 )
 
-        async with in_transaction() as conn:
-            await PublishedGraphRecord.filter(workspace_id=workspace_id, site_id=site_id).using_db(conn).delete()
-            await PublishArtifactRecord.filter(workspace_id=workspace_id, site_id=site_id).using_db(conn).delete()
+                component_manifest = component_manifest_map.get(version.id)
+                if component_manifest is not None:
+                    artifact_rows.append(
+                        PublishArtifactRecord(
+                            release_id=release.id,
+                            workspace_id=workspace_id,
+                            site_id=site_id,
+                            item_id=item.id,
+                            version_id=version.id,
+                            artifact_kind=PublishArtifactKind.COMPONENT_MANIFEST,
+                            locale=route.locale,
+                            payload=component_manifest,
+                        )
+                    )
+
+                seo_profile = seo_profile_map.get(version.id)
+                if seo_profile is not None:
+                    artifact_rows.append(
+                        PublishArtifactRecord(
+                            release_id=release.id,
+                            workspace_id=workspace_id,
+                            site_id=site_id,
+                            item_id=item.id,
+                            version_id=version.id,
+                            artifact_kind=PublishArtifactKind.SEO_METADATA,
+                            locale=route.locale,
+                            payload=seo_profile.payload,
+                        )
+                    )
+
+                bindings = component_binding_map.get(version.id, [])
+                if bindings:
+                    artifact_rows.append(
+                        PublishArtifactRecord(
+                            release_id=release.id,
+                            workspace_id=workspace_id,
+                            site_id=site_id,
+                            item_id=item.id,
+                            version_id=version.id,
+                            artifact_kind=PublishArtifactKind.BINDING_MANIFEST,
+                            locale=route.locale,
+                            payload={
+                                "bindings": [
+                                    {
+                                        "componentKey": binding.component_key,
+                                        "bindingKey": binding.binding_key,
+                                        "payload": binding.binding_payload,
+                                    }
+                                    for binding in bindings
+                                ]
+                            },
+                        )
+                    )
+
+            await (
+                ContentReleaseRecord
+                .filter(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    is_active=True,
+                )
+                .exclude(id=release.id)
+                .using_db(conn)
+                .update(is_active=False)
+            )
             if rows:
                 await PublishedGraphRecord.bulk_create(rows, using_db=conn)
             if artifact_rows:
