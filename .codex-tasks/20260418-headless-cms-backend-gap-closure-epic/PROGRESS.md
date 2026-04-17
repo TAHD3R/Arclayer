@@ -26,8 +26,8 @@
   - Phase 1 and Phase 2 are complete with validation evidence and repo-truth artifacts.
   - Frontend and Admin issues remain out of scope for this epic.
 - **Known issues**:
-  - Release-readiness closeout still lacks final docs, examples, and broad validation.
-- **Next action**: Execute Child 4 to close release readiness.
+  - No open issues inside this backend-only epic. Frontend and Admin follow-up remain outside this scope.
+- **Next action**: Epic closed. Preserve this artifact set as the backend-only release record.
 
 ---
 
@@ -114,3 +114,27 @@
   - GraphQL public p95: `20.63 ms`
   - auth overhead p95: `3.15 ms`
 - **Next step**: Child 4 — release readiness closeout
+
+---
+
+## Milestone 4: Release Readiness Closeout
+
+- **Status**: DONE
+- **Started**: 2026-04-18
+- **Completed**: 2026-04-18
+- **What was done**:
+  - Audited the external backend error surfaces across delivery REST, delivery GraphQL, and management APIs.
+  - Extended the delivery SDK GraphQL error object so application consumers receive top-level `code`, `details`, and `meta`.
+  - Added backend-facing SDK examples for GraphQL list plus error handling and for management release plus preview-token flow.
+  - Recorded the release-readiness closeout document and validated the final backend gate.
+- **Validation**:
+  - `pnpm --filter @arclayer/delivery-sdk typecheck`
+  - `pnpm --filter @arclayer/delivery-sdk test`
+  - `pnpm --filter @arclayer/management-sdk typecheck`
+  - `pnpm --filter @arclayer/management-sdk test`
+  - `pnpm api:check`
+- **Measured result**:
+  - `pnpm api:check`: exit `0`
+  - pytest summary inside `api:check`: `343 passed, 118 skipped, 32 warnings`
+- **Closeout result**:
+  - Backend-only Headless CMS backend and SDK gap-closure epic is complete.

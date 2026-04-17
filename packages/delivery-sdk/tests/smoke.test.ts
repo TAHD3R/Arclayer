@@ -296,8 +296,62 @@ describe("delivery-sdk", () => {
         slug: "hello-world",
       }),
     ).rejects.toMatchObject({
+      code: "GRAPHQL_SCOPE_REQUIRED",
+      details: undefined,
       requestId: "trace_graphql_error",
       status: 200,
+    });
+  });
+
+  it("surfaces graphql extensions details and meta", async () => {
+    const sdk = createDeliverySdk({
+      baseUrl: "https://api.arclayer.test",
+      fetch: vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              errors: [
+                {
+                  extensions: {
+                    code: "PAGE_PRIMARY_RECORD_UNAVAILABLE",
+                    details: {
+                      route: "/blog/hello-world",
+                    },
+                    meta: {
+                      perspective: "published",
+                    },
+                  },
+                  message: "Primary record unavailable",
+                },
+              ],
+            }),
+            {
+              status: 409,
+              headers: {
+                "Content-Type": "application/json",
+                "X-Trace-Id": "trace_graphql_conflict",
+              },
+            },
+          ),
+      ) as typeof fetch,
+    });
+
+    await expect(
+      sdk.content.articleBySlug({
+        perspective: "published",
+        siteId: "site_123",
+        slug: "hello-world",
+      }),
+    ).rejects.toMatchObject({
+      code: "PAGE_PRIMARY_RECORD_UNAVAILABLE",
+      details: {
+        route: "/blog/hello-world",
+      },
+      meta: {
+        perspective: "published",
+      },
+      requestId: "trace_graphql_conflict",
+      status: 409,
     });
   });
 
