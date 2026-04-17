@@ -121,13 +121,11 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
             assert article_model["systemManaged"] is True
             assert article_model["category"] == "content_library"
             assert article_model["defaultEditor"] == "rich_text"
-            assert article_model["routingSchema"]["slug_field"] == "slug"
+            assert article_model["routingSchema"]["mode"] == "none"
             assert article_model["workflowPolicy"]["initial_state"] == "draft"
             assert article_model["fieldSchema"]["summary"]["scalar"] == "long_text"
             assert article_model["fieldSchema"]["reading_time_minutes"]["scalar"] == "number"
-            assert {"versioned", "routable", "rich_text_editable", "publishable"}.issubset(
-                set(article_model["capabilities"])
-            )
+            assert {"versioned", "rich_text_editable", "publishable"}.issubset(set(article_model["capabilities"]))
 
 
 @pytest.mark.asyncio

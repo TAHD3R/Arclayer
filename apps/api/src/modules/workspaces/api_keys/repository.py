@@ -8,6 +8,9 @@ from src.models.workspaces.api_key import ApiKeyFamily, ApiKeyRecord
 
 
 class WorkspaceApiKeysRepository:
+    async def get_key_by_public_id(self, *, token_public_id: str) -> ApiKeyRecord | None:
+        return await ApiKeyRecord.filter(token_public_id=token_public_id).first()
+
     async def list_personal_keys(self, *, owner_user_id: UUID) -> list[ApiKeyRecord]:
         return (
             await ApiKeyRecord

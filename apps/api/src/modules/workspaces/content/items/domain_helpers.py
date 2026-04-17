@@ -126,9 +126,24 @@ def normalize_bootstrap_shape(
     return normalized_preset, preset_state, normalized_packs
 
 
+def _item_capabilities(item: ContentItemRecord) -> set[str]:
+    item_capabilities = {
+        str(value).strip() for value in item.capability_pack_ids or [] if isinstance(value, str) and value.strip()
+    }
+    model_capabilities = {
+        str(value).strip()
+        for value in (
+            item.model_definition.capabilities
+            if item.model_definition is not None and isinstance(item.model_definition.capabilities, list)
+            else []
+        )
+        if isinstance(value, str) and value.strip()
+    }
+    return item_capabilities | model_capabilities
+
+
 def item_has_capability(item: ContentItemRecord, capability: str) -> bool:
-    raw = item.capability_pack_ids if isinstance(item.capability_pack_ids, list) else []
-    return capability in {str(value).strip() for value in raw if isinstance(value, str)}
+    return capability.strip() in _item_capabilities(item)
 
 
 def read_summary_field(fields_snapshot: dict[str, Any] | None) -> str | None:

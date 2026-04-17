@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from tortoise.fields.data import CharEnumFieldInstance
@@ -27,6 +28,11 @@ from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.modules.workspaces.content.contracts import schema as contracts_schema
+from src.modules.workspaces.content.items.domain_helpers import (
+    item_has_capability,
+    read_summary_field,
+    read_title_field,
+)
 from src.modules.workspaces.content.models.protocol_registry import list_official_model_protocols
 
 REPO_ROOT = Path(__file__).resolve().parents[6]
@@ -134,7 +140,36 @@ def test_official_model_registry_defines_v1_protocol_surface() -> None:
     ]
     assert protocols["page"].default_surface == "canvas"
     assert protocols["reusable-section"].system_managed is True
+    assert protocols["article"].routing_policy == {"mode": "none"}
     assert protocols["category"].routing_policy == {"mode": "single", "slug_field": "slug"}
+
+
+def test_item_has_capability_merges_item_and_model_capabilities() -> None:
+    item_only = SimpleNamespace(
+        capability_pack_ids=["publishable"],
+        model_definition=SimpleNamespace(capabilities=["rich_text_editable"]),
+    )
+    model_only = SimpleNamespace(
+        capability_pack_ids=[],
+        model_definition=SimpleNamespace(capabilities=["routable"]),
+    )
+
+    assert item_has_capability(item_only, "publishable") is True
+    assert item_has_capability(item_only, "rich_text_editable") is True
+    assert item_has_capability(model_only, "routable") is True
+    assert item_has_capability(model_only, "treeable") is False
+
+
+def test_read_summary_field_reads_only_summary() -> None:
+    assert read_summary_field({"summary": "Summary", "description": "Description"}) == "Summary"
+    assert read_summary_field({"description": "Description"}) is None
+    assert read_summary_field({"summary": "   "}) is None
+
+
+def test_read_title_field_reads_only_title() -> None:
+    assert read_title_field({"title": "Article Title", "name": "Fallback Name"}) == "Article Title"
+    assert read_title_field({"name": "Fallback Name"}) is None
+    assert read_title_field({"title": "   "}) is None
 
 
 def test_content_model_relation_persists_target_model_key_and_optional_target_model_definition() -> None:

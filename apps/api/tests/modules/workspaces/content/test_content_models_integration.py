@@ -185,13 +185,12 @@ async def test_content_models_create_blank_first_payload_returns_201(
         assert saved.published_contract_revision == 1
         assert saved.capabilities == [
             "versioned",
-            "routable",
             "rich_text_editable",
             "has_relations",
             "publishable",
             "seo_managed",
         ]
-        assert saved.routing_policy == {"mode": "single", "slug_field": "slug"}
+        assert saved.routing_policy == {"mode": "none"}
         assert saved.presentation_policy == {"allowedKinds": ["form_data", "rich_text_document", "seo"]}
         assert saved.seo_policy == {"titleField": "title", "descriptionField": "summary"}
         assert saved.workflow_policy == {"states": ["draft", "published"], "initial_state": "draft"}
@@ -245,13 +244,12 @@ async def test_content_models_patch_updates_explicit_contract_sections(
         assert saved.default_editor == "rich_text"
         assert saved.capabilities == [
             "versioned",
-            "routable",
             "rich_text_editable",
             "has_relations",
             "publishable",
             "seo_managed",
         ]
-        assert saved.routing_policy == {"mode": "single", "slug_field": "slug"}
+        assert saved.routing_policy == {"mode": "none"}
         assert saved.presentation_policy == {"allowedKinds": ["form_data", "rich_text_document", "seo"]}
         assert saved.seo_policy == {"titleField": "title", "descriptionField": "summary"}
         assert saved.workflow_policy == {"states": ["draft", "published"], "initial_state": "draft"}
