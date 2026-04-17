@@ -1,7 +1,7 @@
 import { cn } from "@arclayer/lib/utils";
 
 export const INTERACTIVE_TRANSITION_CLASSNAME = cn(
-  "transition-[color,background-color,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+  "transition-[color,background-color,box-shadow,border-color,padding,gap] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)]",
   "motion-reduce:transition-none",
 );
 
@@ -18,11 +18,10 @@ export const NAV_ITEM_INTERACTIVE_BG_CLASSNAME = cn(
 
 export const NAV_ITEM_COLLAPSE_HIDE_CLASSNAME = cn(
   "max-w-full overflow-hidden whitespace-nowrap",
-  "origin-left transform-gpu will-change-[opacity,transform]",
-  "transition-[max-width,opacity,transform] duration-220 ease-[cubic-bezier(0.4,0,0.2,1)]",
+  "origin-left transform-gpu will-change-[max-width,opacity,transform]",
+  "transition-[max-width,opacity,transform] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)]",
   "group-data-[collapsible=icon]:flex-none",
   "group-data-[collapsible=icon]:max-w-0",
-  "group-data-[collapsible=icon]:translate-x-1",
   "group-data-[collapsible=icon]:opacity-0",
   "group-data-[collapsible=icon]:pointer-events-none",
 );

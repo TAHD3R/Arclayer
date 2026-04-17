@@ -533,7 +533,9 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(screen.getByRole("button", { name: "Team" })).toBeVisible();
     expect(screen.getByText("Website")).toBeVisible();
     expect(document.querySelector('[data-slot="admin-side-nav-group-marker"]')).not.toBeNull();
-    expect(document.querySelector('[data-slot="admin-side-nav-group-divider"]')).not.toBeNull();
+    expect(
+      document.querySelector('[data-slot="admin-side-nav-group-marker-divider"]'),
+    ).not.toBeNull();
   });
 
   it("keeps all top-level groups collapsed by default", () => {

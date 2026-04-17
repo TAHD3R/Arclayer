@@ -54,6 +54,22 @@ const treeItems: AdminNavItem[] = [
   },
 ];
 
+const dividerItems: AdminNavItem[] = [
+  {
+    key: "home",
+    label: "Home",
+    icon: Home,
+    to: "/w/ws-1/",
+  },
+  {
+    key: "team",
+    label: "Team",
+    icon: Users,
+    to: "/w/ws-1/team",
+    dividerBefore: true,
+  },
+];
+
 describe("AdminSiderNav spacing", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
@@ -103,7 +119,7 @@ describe("AdminSiderNav spacing", () => {
     expect(menu).toHaveClass("group-data-[collapsible=icon]:gap-2.5");
   });
 
-  it("widens collapsed dividers so they read as dividers instead of dots", () => {
+  it("keeps collapsed section markers on the same divider row contract while revealing text in expanded state", () => {
     render(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
@@ -112,11 +128,44 @@ describe("AdminSiderNav spacing", () => {
       </SidebarProvider>,
     );
 
-    const groupDivider = document.querySelector('[data-slot="admin-side-nav-group-divider"]');
+    const groupMarker = document.querySelector('[data-slot="admin-side-nav-group-marker"]');
+    const groupMarkerDivider = document.querySelector(
+      '[data-slot="admin-side-nav-group-marker-divider"]',
+    );
+    const groupLabel = document.querySelector('[data-slot="admin-side-nav-group-label"]');
+    expect(groupMarker).not.toBeNull();
+    expect(groupMarkerDivider).not.toBeNull();
+    expect(groupLabel).not.toBeNull();
+    expect(groupMarker).toHaveClass("py-3");
+    expect(groupMarker?.className).toContain("group-data-[state=expanded]:px-3");
+    expect(groupMarker?.className).toContain("group-data-[state=expanded]:pt-4");
+    expect(groupMarker?.className).toContain("group-data-[state=expanded]:pb-2");
+    expect(groupMarkerDivider).toHaveClass("border-b", "border-sidebar-border");
+    expect(groupMarkerDivider?.className).toContain("group-data-[state=expanded]:opacity-0");
+    expect(groupLabel).toHaveClass("text-xs", "font-semibold");
+    expect(groupLabel).toHaveClass("inset-x-3", "top-1.5");
+    expect(groupLabel?.className).toContain("-translate-y-1");
+    expect(groupLabel?.className).toContain("group-data-[state=expanded]:translate-y-0");
+    expect(groupLabel?.className).toContain("group-data-[state=expanded]:opacity-100");
+  });
 
-    expect(groupDivider).not.toBeNull();
-    expect(groupDivider).toHaveClass("group-data-[collapsible=icon]:inset-x-1.5");
-    expect(groupDivider?.className).toContain("origin-left");
+  it("uses the reference-style divider row spacing", () => {
+    render(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={dividerItems} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    const dividerRow = document.querySelector('[data-slot="admin-side-nav-divider"]');
+
+    expect(dividerRow).not.toBeNull();
+    expect(dividerRow).toHaveClass("py-3");
+    expect(dividerRow?.className).toContain("group-data-[state=expanded]:px-3");
+    expect(dividerRow?.className).toContain("group-data-[state=expanded]:pt-4");
+    expect(dividerRow?.className).toContain("group-data-[state=expanded]:pb-2");
+    expect(dividerRow?.firstElementChild).toHaveClass("border-b", "border-sidebar-border");
   });
 
   it("keeps the sidebar inner column stretched so group markers and dividers use the full width", () => {
@@ -134,7 +183,7 @@ describe("AdminSiderNav spacing", () => {
     expect(sidebarInner).not.toBeNull();
     expect(sidebarInner?.className).not.toContain("items-start");
     expect(sidebarInner?.className).not.toContain("items-end");
-    expect(groupMarker).toHaveClass("w-full");
+    expect(groupMarker).toHaveClass("py-3");
   });
 
   it("uses the updated nav item padding, height, and active styling", () => {
@@ -168,9 +217,21 @@ describe("AdminSiderNav spacing", () => {
       "text-callout",
     );
     expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:size-9!");
-    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!p-1.5");
-    expect(teamButton.className).toContain("group-data-[collapsible=icon]:justify-center");
+    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!pl-3");
+    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!pr-3");
+    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!py-1.5");
+    expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:justify-center");
     expect(teamButton.className).toContain("data-[active=true]:bg-transparent");
+
+    const dashboardLabel = dashboardButton.querySelector("span.min-w-0.flex-1");
+    const teamLabel = teamButton.querySelector("span.min-w-0.flex-1");
+
+    expect(dashboardLabel).not.toBeNull();
+    expect(teamLabel).not.toBeNull();
+    expect(dashboardLabel?.className).toContain("duration-250");
+    expect(teamLabel?.className).toContain("duration-250");
+    expect(dashboardLabel?.className).not.toContain("translate-x-1");
+    expect(teamLabel?.className).not.toContain("translate-x-1");
   });
 
   it("uses the top-level group trigger spacing with the new group marker row", () => {

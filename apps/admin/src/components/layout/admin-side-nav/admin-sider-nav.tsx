@@ -12,7 +12,6 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarSeparator,
   useSidebar,
 } from "@arclayer/ui/sidebar";
 import {
@@ -27,7 +26,7 @@ import {
 import { resolveFavoriteNavItems } from "./favorite-nav-items";
 import { NavNode } from "./nav-node";
 import { useCollapsedDropdownController } from "./collapsed-dropdown";
-import { NAV_DIVIDER_CLASSNAME, NAV_ROOT_MENU_GAP_CLASSNAME } from "./nav-utils";
+import { NAV_ROOT_MENU_GAP_CLASSNAME } from "./nav-utils";
 import {
   buildFavoriteAdminChildren,
   flattenFavoriteNavItems,
@@ -66,28 +65,55 @@ function resolveLeadingLabel(item: AdminNavItem, t: (key: string) => string): st
 
 function NavGroupMarker(props: { label: string }) {
   return (
-    <div
+    <li
       data-slot="admin-side-nav-group-marker"
-      className="relative w-full py-1.5"
+      className={cn(
+        "relative overflow-hidden py-3",
+        "transition-[padding] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none",
+        "group-data-[state=expanded]:px-3",
+        "group-data-[state=expanded]:pt-4",
+        "group-data-[state=expanded]:pb-2",
+      )}
       aria-hidden="true"
     >
+      <div
+        data-slot="admin-side-nav-group-marker-divider"
+        className={cn(
+          "border-b border-sidebar-border origin-left transform-gpu",
+          "transition-[opacity,transform] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none",
+          "group-data-[state=expanded]:scale-x-95 group-data-[state=expanded]:opacity-0",
+        )}
+      />
       <SidebarGroupLabel
         data-slot="admin-side-nav-group-label"
         className={cn(
-          "h-auto origin-left px-3 py-0 text-xs font-semibold text-label-tertiary transition-[opacity,transform] duration-420 ease-[cubic-bezier(0.18,0.9,0.32,1)] motion-reduce:transition-none",
-          "group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:translate-y-1 group-data-[collapsible=icon]:opacity-0",
+          "pointer-events-none absolute inset-x-3 top-1.5 h-auto px-0 py-0 text-xs font-semibold text-label-tertiary truncate",
+          "origin-left transform-gpu transition-[opacity,transform] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none",
+          "-translate-y-1 opacity-0",
+          "group-data-[state=expanded]:translate-y-0 group-data-[state=expanded]:opacity-100",
         )}
       >
         {props.label}
       </SidebarGroupLabel>
-      <div
-        data-slot="admin-side-nav-group-divider"
-        className={cn(
-          "bg-sidebar-border pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 origin-left scale-x-75 opacity-0 transition-[opacity,transform] duration-420 ease-[cubic-bezier(0.18,0.9,0.32,1)] motion-reduce:transition-none group-data-[collapsible=icon]:inset-x-1.5",
-          "group-data-[collapsible=icon]:scale-x-100 group-data-[collapsible=icon]:opacity-100",
-        )}
-      />
-    </div>
+    </li>
+  );
+}
+
+function NavDivider() {
+  return (
+    <li
+      data-slot="admin-side-nav-divider"
+      className={cn(
+        "py-3",
+        "transition-[padding] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none",
+        "group-data-[state=expanded]:px-3",
+        "group-data-[state=expanded]:pt-4",
+        "group-data-[state=expanded]:pb-2",
+      )}
+      aria-hidden="true"
+    >
+      <div className="border-b border-sidebar-border" />
+    </li>
   );
 }
 
@@ -323,7 +349,7 @@ function NavItemsTree(props: {
               {resolveLeadingLabel(item, t) ? (
                 <NavGroupMarker label={resolveLeadingLabel(item, t) as string} />
               ) : null}
-              {item.dividerBefore ? <SidebarSeparator className={NAV_DIVIDER_CLASSNAME} /> : null}
+              {item.dividerBefore ? <NavDivider /> : null}
               <NavNode
                 item={item}
                 commandNavItems={props.commandNavItems}
@@ -342,7 +368,7 @@ function NavItemsTree(props: {
                 isCollapsed={props.isCollapsed}
                 hoverDropdown={props.isCollapsed && !props.hoverIntent ? hoverDropdown : null}
               />
-              {item.dividerAfter ? <SidebarSeparator className={NAV_DIVIDER_CLASSNAME} /> : null}
+              {item.dividerAfter ? <NavDivider /> : null}
             </Fragment>
           ))}
         </SidebarMenu>

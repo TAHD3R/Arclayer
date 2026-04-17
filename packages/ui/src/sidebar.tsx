@@ -35,7 +35,7 @@ const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
-const SIDEBAR_EXPAND_TRANSITION_CLASSNAME = "duration-280 ease-[cubic-bezier(0.4,0,0.2,1)]";
+const SIDEBAR_EXPAND_TRANSITION_CLASSNAME = "duration-250 ease-[cubic-bezier(0.77,0,0.175,1)]";
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";

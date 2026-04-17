@@ -5,7 +5,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 export const NAV_ITEM_HEIGHT_CLASSNAME = "h-9";
 export const NAV_ITEM_RADIUS_CLASSNAME = "rounded-md";
 export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
-  "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-1.5";
+  "group-data-[collapsible=icon]:!pl-3 group-data-[collapsible=icon]:!pr-3 group-data-[collapsible=icon]:!py-1.5";
 export const NAV_ITEM_BUTTON_PADDING_CLASSNAME = "!pl-3 !pr-2.5 !py-1.5";
 export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1.5 group-data-[collapsible=icon]:gap-2.5";
 export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-0 gap-1 pl-7 border-l-0";

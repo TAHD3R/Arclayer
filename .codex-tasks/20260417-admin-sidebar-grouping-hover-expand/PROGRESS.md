@@ -21,11 +21,11 @@
 > If you are resuming this task after compaction, session restart, or context loss,
 > read this section FIRST to restore working state.
 
-- **Current milestone**: `#16 — Run focused verification for overlay hover preview and spacing regressions`
+- **Current milestone**: `#23 — Re-run focused verification for synced marker and overlay regressions`
 - **Current status**: `DONE`
-- **Last completed**: `#16 — Run focused verification for overlay hover preview and spacing regressions`
+- **Last completed**: `#23 — Re-run focused verification for synced marker and overlay regressions`
 - **Current artifact**: `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv`
-- **Key context**: hover preview follow-up 已完成。`packages/ui/src/sidebar.tsx` 现在把 `layoutState` 与视觉 `state` 分开：desktop `sidebar-gap` 继续跟持久布局态走，hover preview 只放大 `sidebar-container`，因此主内容宽度保持稳定。`apps/admin/src/pages/workspaces/content/library/page.tsx` 现在读取 `layoutState`，collapsed icon button 也改成对称 padding + centered geometry。focused suite 继续全绿。
+- **Key context**: 最新 follow-up 已完成。`NavGroupMarker` 现在在 collapsed 态与 `NavDivider` 共享同构 row owner，内部 divider line 与 label reveal 使用同一条 250ms 曲线；`NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME` 去掉了导致 icon snap 的 `justify-center` 跳变，collapsed leaf/group 顶层按钮改为同一套左锚点 padding contract；`NAV_ITEM_COLLAPSE_HIDE_CLASSNAME`、icon motion 和 shared sidebar width timing 也统一到同一节奏。overlay hover-preview 的 `layoutState` / `visualState` focused suite 继续全绿。
 - **Known issues**: 更大范围的 `pnpm admin:check` 仍有与本任务无关的既有失败，集中在 `usercenter-overlay-host.test.tsx`、`assets-page-view.test.tsx`、`tooltip-content-sync.test.tsx`。
 - **Next action**: 任务处于可提交状态。
 
