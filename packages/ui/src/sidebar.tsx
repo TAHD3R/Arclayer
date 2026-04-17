@@ -332,9 +332,18 @@ function Sidebar({
 
   return (
     <div
-      className="group peer text-sidebar-foreground hidden md:block"
+      className={cn(
+        "group peer text-sidebar-foreground relative hidden shrink-0 md:block",
+        "w-(--sidebar-width) origin-left transition-[width] motion-reduce:transition-none",
+        SIDEBAR_EXPAND_TRANSITION_CLASSNAME,
+        "data-[layout-collapsible=offcanvas]:w-0",
+        variant === "floating" || variant === "inset"
+          ? "data-[layout-collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
+          : "data-[layout-collapsible=icon]:w-(--sidebar-width-icon)",
+      )}
       data-state={state}
       data-layout-state={layoutState}
+      data-hover-preview={isHoverPreviewExpanded ? "true" : ""}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-layout-collapsible={layoutState === "collapsed" ? collapsible : ""}
       data-variant={variant}
@@ -359,6 +368,7 @@ function Sidebar({
         className={cn(
           "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] motion-reduce:transition-none md:flex",
           SIDEBAR_EXPAND_TRANSITION_CLASSNAME,
+          isHoverPreviewExpanded && "z-30",
           side === "left"
             ? "left-0 group-data-[layout-collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[layout-collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -449,7 +459,7 @@ function SidebarRail({
 }: SidebarRailProps) {
   const { toggleSidebar } = useSidebar();
   const label = ariaLabel ?? "Toggle Sidebar";
-  const tooltipContent = tooltip ?? label;
+  const tooltipContent = tooltip ?? null;
   const frameRef = React.useRef<number | null>(null);
   const pointerRef = React.useRef<{ x: number; y: number } | null>(null);
   const [tooltipOpen, setTooltipOpen] = React.useState(false);
@@ -490,11 +500,13 @@ function SidebarRail({
         }}
         onMouseEnter={(event) => {
           onMouseEnter?.(event);
+          if (!tooltipContent) return;
           schedulePointerPosition(event.clientX, event.clientY);
           setTooltipOpen(true);
         }}
         onMouseMove={(event) => {
           onMouseMove?.(event);
+          if (!tooltipContent) return;
           schedulePointerPosition(event.clientX, event.clientY);
         }}
         onMouseLeave={(event) => {
@@ -755,7 +767,7 @@ const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonP
       </HighlightItem>
     );
 
-    if (!tooltip) {
+    if (!tooltip || (!isMobile && state === "collapsed")) {
       return button;
     }
 

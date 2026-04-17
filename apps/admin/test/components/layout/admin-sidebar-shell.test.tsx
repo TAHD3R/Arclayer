@@ -17,22 +17,10 @@ vi.mock("@/components/ui/gradual-blur", () => ({
   default: () => null,
 }));
 
-const { platformState } = vi.hoisted(() => ({
-  platformState: { current: "windows" as "windows" | "mac" | "other" },
-}));
-
-vi.mock("@arclayer/hooks/use-client-platform", () => ({
-  useClientPlatform: () => platformState.current,
-}));
-
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, options?: { shortcut?: string }) => {
+    t: (key: string) => {
       if (key === "common:SIDEBAR_TOGGLE") return "Toggle sidebar";
-      if (key === "common:SIDEBAR_RAIL_TOOLTIP") return "Collapse or expand the sidebar";
-      if (key === "common:SIDEBAR_RAIL_TOOLTIP_SHORTCUT") {
-        return `Click or ${options?.shortcut ?? ""}`;
-      }
       return key;
     },
   }),
@@ -77,9 +65,7 @@ describe("AdminSidebarShell", () => {
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
   });
 
-  it("shows a tooltip when hovering the shared sidebar rail on windows", async () => {
-    platformState.current = "windows";
-
+  it("does not show a tooltip when hovering the shared sidebar rail", async () => {
     renderWithSidebar(
       <AdminSidebarShell
         showNavSkeleton={false}
@@ -95,14 +81,7 @@ describe("AdminSidebarShell", () => {
     fireEvent.mouseMove(rail, { clientX: 96, clientY: 144 });
 
     await waitFor(() => {
-      const tooltip = document.body.querySelector<HTMLElement>(
-        '[data-slot="sidebar-rail-tooltip"]',
-      );
-      expect(tooltip).toHaveTextContent("Collapse or expand the sidebar");
-      expect(tooltip).toHaveTextContent("Click or Ctrl+B");
-      expect(tooltip?.querySelector(".text-label-secondary")).toHaveTextContent("Click or Ctrl+B");
-      expect(tooltip?.style.left).toBe("110px");
-      expect(tooltip?.style.top).toBe("144px");
+      expect(document.body.querySelector('[data-slot="sidebar-rail-tooltip"]')).toBeNull();
     });
   });
 
@@ -137,34 +116,6 @@ describe("AdminSidebarShell", () => {
     expect(screen.queryByRole("button", { name: "Toggle sidebar" })).toBeNull();
   });
 
-  it("shows a tooltip when hovering the shared sidebar rail on mac", async () => {
-    platformState.current = "mac";
-
-    renderWithSidebar(
-      <AdminSidebarShell
-        showNavSkeleton={false}
-        showOrgNavErrorOverlay={false}
-        mainItems={[]}
-        footerItems={[]}
-        collapsible="icon"
-      />,
-    );
-
-    const rail = screen.getByRole("button", { name: "Toggle sidebar" });
-    fireEvent.mouseEnter(rail, { clientX: 80, clientY: 120 });
-    fireEvent.mouseMove(rail, { clientX: 96, clientY: 144 });
-
-    await waitFor(() => {
-      const tooltip = document.body.querySelector<HTMLElement>(
-        '[data-slot="sidebar-rail-tooltip"]',
-      );
-      expect(tooltip).toHaveTextContent("Collapse or expand the sidebar");
-      expect(tooltip).toHaveTextContent("Click or ⌘B");
-      expect(tooltip?.style.left).toBe("110px");
-      expect(tooltip?.style.top).toBe("144px");
-    });
-  });
-
   it("temporarily expands a collapsed desktop sidebar after the hover threshold and collapses after the leave delay", () => {
     vi.useFakeTimers();
 
@@ -185,13 +136,24 @@ describe("AdminSidebarShell", () => {
       const sidebarContainer = view.container.querySelector<HTMLElement>(
         '[data-slot="sidebar-container"]',
       );
+      const sidebarContent = view.container.querySelector<HTMLElement>(
+        '[data-slot="sidebar-content"]',
+      );
+      const sidebarInner = view.container.querySelector<HTMLElement>('[data-slot="sidebar-inner"]');
 
       expect(sidebar).not.toBeNull();
       expect(sidebarContainer).not.toBeNull();
+      expect(sidebarContent).not.toBeNull();
+      expect(sidebarInner).not.toBeNull();
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-collapsible", "icon");
       expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
+      expect(sidebar?.className).toContain("w-(--sidebar-width)");
+      expect(sidebar?.className).toContain(
+        "data-[layout-collapsible=icon]:w-(--sidebar-width-icon)",
+      );
+      expect(sidebarContent).toHaveAttribute("inert");
 
       act(() => {
         fireEvent.pointerEnter(sidebarContainer!);
@@ -205,8 +167,17 @@ describe("AdminSidebarShell", () => {
       });
       expect(sidebar).toHaveAttribute("data-state", "expanded");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "true");
       expect(sidebar).toHaveAttribute("data-collapsible", "");
       expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
+      expect(sidebar?.className).toContain(
+        "data-[layout-collapsible=icon]:w-(--sidebar-width-icon)",
+      );
+      expect(sidebarContent).not.toHaveAttribute("inert");
+      expect(sidebarContainer?.className).toContain("group-data-[side=left]:border-r");
+      expect(sidebarInner?.className).not.toContain("rounded-r-xl");
+      expect(sidebarInner?.className).not.toContain("rounded-l-xl");
+      expect(sidebarInner?.className).not.toContain("shadow-2xl");
 
       act(() => {
         fireEvent.pointerLeave(sidebarContainer!);
@@ -222,6 +193,7 @@ describe("AdminSidebarShell", () => {
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-collapsible", "icon");
+      expect(sidebarContent).toHaveAttribute("inert");
     } finally {
       vi.useRealTimers();
     }

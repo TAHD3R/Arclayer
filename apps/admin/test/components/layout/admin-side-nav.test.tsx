@@ -67,6 +67,15 @@ async function waitForCollapsedRender() {
   });
 }
 
+function expectNoVisibleSidebarTooltip() {
+  const tooltip = document.body.querySelector<HTMLElement>('[data-slot="tooltip-content"]');
+  if (!tooltip) {
+    expect(tooltip).toBeNull();
+    return;
+  }
+  expect(tooltip).toHaveAttribute("hidden");
+}
+
 function renderTreeNav(args: {
   items: readonly AdminNavItem[];
   favoriteWorkspaceBase: string;
@@ -351,21 +360,17 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(buttonRef.current).toHaveTextContent("Ref check");
   });
 
-  it("shows tooltip for collapsed leaf items on hover", async () => {
+  it("keeps collapsed leaf items free of tooltip overlays", async () => {
     const user = userEvent.setup();
     renderCollapsedNav(items);
 
     await waitForCollapsedRender();
     await user.hover(screen.getByRole("button", { name: "Overview" }));
 
-    await waitFor(() => {
-      const tooltip = document.body.querySelector('[data-slot="tooltip-content"]');
-      expect(tooltip).not.toBeNull();
-      expect(tooltip).toHaveTextContent("Overview");
-    });
+    expectNoVisibleSidebarTooltip();
   });
 
-  it("updates favorite tooltip text when language changes", async () => {
+  it("keeps collapsed favorites free of tooltip overlays across language changes", async () => {
     const user = userEvent.setup();
     useFavoritesStore.setState({ paths: ["/w/ws-1/"], sectionExpanded: false });
 
@@ -384,10 +389,7 @@ describe("AdminSiderNav collapsed groups", () => {
     await waitForCollapsedRender();
     await user.hover(screen.getAllByRole("button", { name: "en-US:nav:NAV_DASHBOARD" })[0]);
 
-    await waitFor(() => {
-      const tooltip = document.body.querySelector('[data-slot="tooltip-content"]');
-      expect(tooltip).toHaveTextContent("en-US:nav:NAV_DASHBOARD");
-    });
+    expectNoVisibleSidebarTooltip();
 
     mockLanguage = "zh-CN";
     view.rerender(
@@ -405,10 +407,7 @@ describe("AdminSiderNav collapsed groups", () => {
     await user.unhover(updatedFavoriteButton);
     await user.hover(updatedFavoriteButton);
 
-    await waitFor(() => {
-      const tooltip = document.body.querySelector('[data-slot="tooltip-content"]');
-      expect(tooltip).toHaveTextContent("zh-CN:nav:NAV_DASHBOARD");
-    });
+    expectNoVisibleSidebarTooltip();
   });
 
   it("shows the full label tooltip for expanded favorites items when the name truncates", async () => {
@@ -486,14 +485,14 @@ describe("AdminSiderNav collapsed groups", () => {
     }
   });
 
-  it("forwards dropdown trigger props onto collapsed group button", async () => {
+  it("keeps collapsed group buttons on the plain sidebar button contract", async () => {
     renderCollapsedNav(items);
 
     await waitForCollapsedRender();
 
     expect(screen.getByRole("button", { name: "Team" })).toHaveAttribute(
       "data-slot",
-      "dropdown-menu-trigger",
+      "sidebar-menu-button",
     );
   });
 

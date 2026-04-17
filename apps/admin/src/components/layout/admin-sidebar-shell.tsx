@@ -9,8 +9,7 @@ import {
   AdminSidebarMainMenuSkeleton,
 } from "@/components/layout/admin-sidebar-skeleton";
 import GradualBlur from "@/components/ui/gradual-blur";
-import { useClientPlatform } from "@arclayer/hooks/use-client-platform";
-import { Sidebar, SidebarContent, SidebarRail } from "@arclayer/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarRail, useSidebar } from "@arclayer/ui/sidebar";
 import { cn } from "@arclayer/lib/utils";
 
 export type AdminSidebarShellProps = {
@@ -126,6 +125,8 @@ function AdminSidebarContentArea(props: {
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
 }) {
+  const { state: sidebarState, isMobile } = useSidebar();
+  const collapsedMenuMode = sidebarState === "collapsed" && !isMobile;
   const bottomBlur = useSidebarBottomBlurState({
     showMenuSkeleton: props.showMenuSkeleton,
     mainItemCount: props.mainItems.length,
@@ -145,7 +146,11 @@ function AdminSidebarContentArea(props: {
   );
 
   return (
-    <SidebarContent className="relative z-10 px-2 overflow-hidden scrollbar-none">
+    <SidebarContent
+      inert={collapsedMenuMode ? true : undefined}
+      aria-hidden={collapsedMenuMode ? "true" : undefined}
+      className="relative z-10 px-2 overflow-hidden scrollbar-none"
+    >
       <div className="relative flex min-h-0 flex-1">
         <div
           ref={bottomBlur.navScrollRef}
@@ -190,18 +195,8 @@ export function AdminSidebarShell({
   className,
 }: AdminSidebarShellProps) {
   const { t } = useTranslation("common");
-  const platform = useClientPlatform();
   const showFailureSkeleton = showOrgNavErrorOverlay;
   const showMenuSkeleton = showNavSkeleton || showFailureSkeleton;
-  const sidebarShortcut = platform === "mac" ? "⌘B" : "Ctrl+B";
-  const sidebarRailTooltip = (
-    <div className="flex items-center gap-2 whitespace-nowrap">
-      <span>{t("common:SIDEBAR_RAIL_TOOLTIP")}</span>
-      <span className="text-label-secondary">
-        {t("common:SIDEBAR_RAIL_TOOLTIP_SHORTCUT", { shortcut: sidebarShortcut })}
-      </span>
-    </div>
-  );
 
   return (
     <Sidebar
@@ -218,9 +213,7 @@ export function AdminSidebarShell({
         resolvePermissionName={resolvePermissionName}
         pathnameOverride={pathnameOverride}
       />
-      {collapsible !== "none" ? (
-        <SidebarRail aria-label={t("common:SIDEBAR_TOGGLE")} tooltip={sidebarRailTooltip} />
-      ) : null}
+      {collapsible !== "none" ? <SidebarRail aria-label={t("common:SIDEBAR_TOGGLE")} /> : null}
     </Sidebar>
   );
 }

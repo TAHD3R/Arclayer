@@ -21,11 +21,12 @@
 > If you are resuming this task after compaction, session restart, or context loss,
 > read this section FIRST to restore working state.
 
-- **Current milestone**: `#23 — Re-run focused verification for synced marker and overlay regressions`
+- **Current milestone**: `#29 — Re-run focused verification for behavior-only overlay preview`
 - **Current status**: `DONE`
-- **Last completed**: `#23 — Re-run focused verification for synced marker and overlay regressions`
+- **Last completed**: `#29 — Re-run focused verification for behavior-only overlay preview`
 - **Current artifact**: `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv`
-- **Key context**: 最新 follow-up 已完成。`NavGroupMarker` 现在在 collapsed 态与 `NavDivider` 共享同构 row owner，内部 divider line 与 label reveal 使用同一条 250ms 曲线；`NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME` 去掉了导致 icon snap 的 `justify-center` 跳变，collapsed leaf/group 顶层按钮改为同一套左锚点 padding contract；`NAV_ITEM_COLLAPSE_HIDE_CLASSNAME`、icon motion 和 shared sidebar width timing 也统一到同一节奏。overlay hover-preview 的 `layoutState` / `visualState` focused suite 继续全绿。
+- **Key context**: 当前 shared/admin contract 已经对齐到用户最新要求：`layoutState` 持续保持 collapsed，collapsed tooltip/popover 主路径已清掉，hover preview 继续是 overlay-only 且恢复完整交互，同时 hover preview 期间不再额外添加圆角、边框、阴影，外观直接复用正常展开态。
+- **Key context**: 浏览器实测已经补齐，并确认上一版实现仍有真实布局 bug：虽然 `sidebar-container` 是 fixed，但根节点 `[data-slot="sidebar"]` 自身因为没有命中 collapsed width contract，仍保持 270px 宽度，导致 `main` 被挤压。当前修复把布局宽度 owner 明确放回 root sidebar 本身，collapsed hover preview 只放大 fixed container。
 - **Known issues**: 更大范围的 `pnpm admin:check` 仍有与本任务无关的既有失败，集中在 `usercenter-overlay-host.test.tsx`、`assets-page-view.test.tsx`、`tooltip-content-sync.test.tsx`。
 - **Next action**: 任务处于可提交状态。
 
@@ -258,6 +259,63 @@
   - `apps/admin/src/components/layout/admin-side-nav/nav-icon-slot.tsx` — icon motion aligned to design-system curve
   - `apps/admin/test/components/layout/admin-sidebar-shell.test.tsx` — updated hover timing regression
   - `apps/admin/test/components/layout/admin-side-nav.test.tsx` — updated favorites threshold regression
+
+---
+
+## Follow-up Session: 2026-04-17 09:07
+
+- **Status**: DONE
+- **What was done**:
+  - 按最新设计合同回收 hover preview 的专属浮层皮肤，删除 `packages/ui/src/sidebar.tsx` 里只在 preview 阶段添加的圆角、边框和阴影。
+  - 保留 shared sidebar 的 overlay-only 行为合同：`layoutState` 继续保持 collapsed，`data-hover-preview` 继续标记临时展开态，preview 展开后菜单继续恢复正常交互。
+  - 更新 `admin-sidebar-shell` focused regression，把断言从“有 rounded/shadow”改成“外观与正常展开态一致，同时布局仍保持 collapsed”。
+- **Key decisions**:
+  - Decision: 只改 shared sidebar owner，不在 admin shell 或页面层追加外观补丁。
+  - Reasoning: 用户要求的是布局行为修正，shared `sidebar-inner` 才是 hover preview 皮肤的根因位点。
+  - Decision: 保留 overlay preview 的 `z` 层级和交互恢复合同，仅移除额外装饰类。
+  - Reasoning: 这样可以继续满足“覆盖内容区、不影响主体宽度、hover 展开后可点击”的完整行为，同时让视觉完全回到正常展开态。
+- **Validation**:
+  - `test -f .codex-tasks/20260417-admin-sidebar-grouping-hover-expand/SPEC.md && rg -n "overlay behavior|normal expanded sidebar appearance|外观与正常展开态一致" .codex-tasks/20260417-admin-sidebar-grouping-hover-expand/SPEC.md` → exit 0
+  - `rg -n "data-hover-preview|rounded-r-xl|shadow-2xl|inert=|state === \"collapsed\"" packages/ui/src/sidebar.tsx apps/admin/src/components/layout/admin-sidebar-shell.tsx` → exit 0
+  - `pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-side-nav.test.tsx test/components/layout/admin-side-nav-spacing.test.tsx test/components/layout/admin-sidebar-shell.test.tsx test/layouts/sidebar-route-state.test.tsx test/lib/i18n/common-sidebar-tooltip-i18n.test.ts test/lib/workspace-nav-regression.test.ts` → exit 0, `6 files`, `47 tests`
+- **Files changed**:
+  - `packages/ui/src/sidebar.tsx` — removed hover-preview-only visual chrome while keeping overlay behavior
+  - `apps/admin/test/components/layout/admin-sidebar-shell.test.tsx` — locked the behavior-only overlay contract
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/SPEC.md` — clarified the no-extra-chrome contract
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv` — recorded steps 27-29
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/PROGRESS.md` — recovery block and follow-up log updated
+
+---
+
+## Follow-up Session: 2026-04-17 09:18
+
+- **Status**: DONE
+- **What was done**:
+  - 用 Playwright 直接登录并打开 `http://localhost:5174/w/XTrNArxR3vwWh4QlEyh9zQ`，真实复现了用户反馈的 layout shift。
+  - 在浏览器里读取 `[data-slot="sidebar"]`、`[data-slot="sidebar-gap"]`、`[data-slot="sidebar-container"]`、`[data-slot="sidebar-inset"]` 的运行态矩形，确认 bug 根因在 root sidebar 宽度 owner。
+  - 修复 `packages/ui/src/sidebar.tsx`：让 root sidebar 自己使用 `data-[layout-collapsible=...]` 宽度 contract，而不是错误地在 root 自身上写 `group-data-[layout-collapsible=...]`。
+  - 复跑 focused Vitest，并再次用 Playwright 量测前后尺寸和截图验证 overlay-only 行为。
+- **Key decisions**:
+  - Decision: 根因修在 shared sidebar root，而不是继续调整 fixed container 或页面布局壳层。
+  - Reasoning: Playwright 证据显示容器是对的，真正挤占布局的是 root flex item 仍保持 expanded width。
+  - Decision: 用 root 自匹配 `data-[layout-collapsible=...]` 选择器替换 `group-data-[layout-collapsible=...]`。
+  - Reasoning: `group-data-*` 在 root 自身上不会命中，所以类名存在但 contract 从未生效。
+- **Validation**:
+  - `pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-sidebar-shell.test.tsx test/layouts/sidebar-route-state.test.tsx test/components/layout/admin-side-nav.test.tsx test/components/layout/admin-side-nav-spacing.test.tsx test/lib/i18n/common-sidebar-tooltip-i18n.test.ts test/lib/workspace-nav-regression.test.ts` → exit 0, `6 files`, `47 tests`
+  - Playwright pre-fix evidence:
+    - collapsed: `sidebar.width=270`, `main.left=270`, `main.width=510`
+    - hover preview: `container.width=270`, `main.left=270`
+  - Playwright post-fix evidence:
+    - collapsed: `sidebar.width=56`, `main.left=56`, `main.width=724`
+    - hover preview: `sidebar.width=56`, `container.width=270`, `main.left=56`, `main.width=724`
+  - Browser artifacts:
+    - `admin-sidebar-hover-preview-runtime.png` — pre-fix squeezed layout
+    - `admin-sidebar-hover-preview-fixed.png` — post-fix overlay-only hover preview
+- **Files changed**:
+  - `packages/ui/src/sidebar.tsx` — root sidebar width owner fixed with self data selectors
+  - `apps/admin/test/components/layout/admin-sidebar-shell.test.tsx` — updated width-contract assertions
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/TODO.csv` — recorded steps 30-32
+  - `.codex-tasks/20260417-admin-sidebar-grouping-hover-expand/PROGRESS.md` — recorded Playwright root-cause evidence and fix validation
   - `apps/admin/test/components/layout/admin-side-nav-spacing.test.tsx` — updated collapsed button contract regression
 
 ---

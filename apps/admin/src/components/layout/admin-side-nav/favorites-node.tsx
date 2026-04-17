@@ -38,7 +38,6 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
-import { Popover, PopoverAnchor, PopoverContent } from "@arclayer/ui/popover";
 import { SidebarMenuButton, SidebarMenuItem } from "@arclayer/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import {
@@ -1126,7 +1125,6 @@ export function FavoritesNode(props: FavoritesNodeProps) {
   const deleteFolder = useFavoritesStore((state) => state.deleteFolder);
   const setFolderExpanded = useFavoritesStore((state) => state.setFolderExpanded);
 
-  const [collapsedOpen, setCollapsedOpen] = useState(false);
   const [overlayEntry, setOverlayEntry] = useState<FavoriteOverlayEntry | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -1203,7 +1201,6 @@ export function FavoritesNode(props: FavoritesNodeProps) {
     if (!row.path) return;
     if (!props.allowSamePathNavigate && row.path === props.pathname) return;
     void navigate({ to: row.path as never });
-    setCollapsedOpen(false);
   };
 
   const headerButtonClassName = cn(
@@ -1225,10 +1222,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
       tooltip={props.label}
       className={headerButtonClassName}
       onClick={() => {
-        if (props.isCollapsed) {
-          setCollapsedOpen((open) => !open);
-          return;
-        }
+        if (props.isCollapsed) return;
         setSectionExpanded(!sectionExpanded);
       }}
     >
@@ -1248,23 +1242,6 @@ export function FavoritesNode(props: FavoritesNodeProps) {
       )}
       aria-hidden="true"
     />
-  );
-
-  const collapsedChevronButton = (
-    <ButtonPrimitive
-      type="button"
-      tapScale={1}
-      aria-label={
-        effectiveExpanded ? t("NAV_FAVORITES_ACTION_COLLAPSE") : t("NAV_FAVORITES_ACTION_EXPAND")
-      }
-      className={FAVORITES_ACTION_BUTTON_CLASSNAME}
-      onClick={() => setSectionExpanded(!effectiveExpanded)}
-    >
-      <ChevronRight
-        className={cn("size-4 transition-transform duration-200", effectiveExpanded && "rotate-90")}
-        aria-hidden="true"
-      />
-    </ButtonPrimitive>
   );
 
   const panelContent = (
@@ -1296,32 +1273,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
     <>
       <SidebarMenuItem className="group/nav-item">
         {props.isCollapsed ? (
-          <Popover open={collapsedOpen} onOpenChange={setCollapsedOpen}>
-            <PopoverAnchor className="block w-full">{headerButton}</PopoverAnchor>
-            <PopoverContent
-              side="right"
-              align="start"
-              sideOffset={8}
-              className="w-88 p-2"
-              onOpenAutoFocus={(event) => event.preventDefault()}
-              onCloseAutoFocus={(event) => event.preventDefault()}
-              onMouseDownCapture={(event) => event.stopPropagation()}
-              onPointerDownCapture={(event) => event.stopPropagation()}
-            >
-              <div className="flex items-center gap-1 px-1 pb-2">
-                <div className="min-w-0 flex-1 text-callout font-semibold text-label-primary">
-                  {props.label}
-                </div>
-                <div className="flex shrink-0 items-center gap-0.5">
-                  {effectiveExpanded ? (
-                    <FavoritesHeaderMenu onCreateFolder={handleCreateFolder} />
-                  ) : null}
-                  {collapsedChevronButton}
-                </div>
-              </div>
-              {panelContent}
-            </PopoverContent>
-          </Popover>
+          headerButton
         ) : (
           <div className="flex flex-col gap-1">
             <div

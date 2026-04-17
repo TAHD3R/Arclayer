@@ -16,6 +16,7 @@
 - 修复 collapsed icon mode 的按钮 padding 几何，让图标在折叠态保持居中。
 - 当前 follow-up 只复刻参考实现的 section marker / divider 展开折叠样式，不调整其他 sidebar 行为。
 - 最新 follow-up 还要修正 section marker 的同步 reveal 节奏，以及 collapsed leaf/group 顶层按钮的左锚点收拢一致性，并重新确认 overlay hover-preview contract 仍然成立。
+- 最新 follow-up 还要让 collapsed hover preview 只改变 overlay 行为，不新增任何浮层皮肤，并移除 collapsed 态下依赖 tooltip / popover 的菜单交互。
 
 ## Non-Goals
 
@@ -26,6 +27,8 @@
 - 不修改字体样式。
 - 不修改 sidebar 宽度动画、menu padding、按钮动效或其他非 marker 部分。
 - 不重做菜单信息架构；当前 follow-up 只收敛样式 owner、动效节奏和 shared/admin motion contract。
+- 不新增第二套 collapsed 菜单交互；hover preview 展开后的 expanded tree 是唯一交互路径。
+- 不为 hover preview 额外添加圆角、边框、阴影或其他视觉装饰；外观与正常展开态保持一致。
 
 ## Constraints
 
@@ -36,6 +39,8 @@
 - `useSidebar()` 需要区分持久布局态与视觉展开态，避免 hover preview 被布局逻辑误读。
 - 本轮窄改动只允许触达 `apps/admin/src/components/layout/admin-side-nav/admin-sider-nav.tsx` 中的 section marker owner，以及对应的 focused spacing regression。
 - 最新 follow-up 允许触达 `packages/ui/src/sidebar.tsx` 和 admin side-nav motion 常量，因为左锚点与 overlay 观感问题来自 shared/admin 双层 contract。
+- 最新 follow-up 允许触达 `favorites-node.tsx`、`node-expanded-group.tsx` 与 admin shell，因为 collapsed tooltip/popover 分支分散在这些 shared/admin owner 中。
+- 最新 follow-up 继续允许触达 `packages/ui/src/sidebar.tsx` 和 focused tests，因为“overlay 行为保持、外观不变”的根因仍在 shared sidebar container/inner owner。
 
 ## Environment
 
@@ -65,6 +70,8 @@
 - 相关 i18n 与测试更新。
 - section marker 在 collapsed 态与 divider 共享同构 owner，line/text 以同一节奏切换。
 - collapsed leaf/group 顶层按钮共享稳定的左锚点收拢路径，hover preview 期间不再出现 icon snap-back 观感。
+- collapsed hover preview 在行为上覆盖内容区而不影响布局宽度，同时继续复用正常展开态视觉外观。
+- collapsed 态下的 sidebar 菜单内容整体 inert，leaf/group/favorites 不再通过 tooltip 或 popover 承担主交互。
 
 ## Done-When
 
@@ -79,6 +86,8 @@
 - [ ] section marker 在 collapsed 态与 divider 完全同构，并在 expanded 态同步 reveal label。
 - [ ] collapsed leaf/group 顶层按钮的 icon、label、chevron 收拢路径稳定锚定左侧。
 - [ ] focused suite 继续证明 hover preview 仍是 overlay-only，layout gap 继续保持 collapsed。
+- [ ] collapsed hover preview 覆盖在内容区上方，主体宽度保持稳定，同时侧边栏外观与正常展开态一致。
+- [ ] collapsed 态下不再出现菜单 tooltip、group popover、favorites popover 或 rail tooltip。
 - [ ] 定向 vitest 全绿。
 
 ## Final Validation Command

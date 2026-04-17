@@ -207,8 +207,6 @@ function GroupRootDropdown({
   onNavigate,
   onToggle,
 }: GroupRootDropdownProps) {
-  const triggerTooltip = dropdownEnabled ? undefined : label;
-
   const handleClick: MouseEventHandler<HTMLButtonElement> = () => {
     if (item.disabled) return;
     if (!dropdownEnabled) {
@@ -219,6 +217,21 @@ function GroupRootDropdown({
     if (!collapsedNavigateTarget) return;
     onNavigate(collapsedNavigateTarget);
   };
+
+  if (!dropdownEnabled) {
+    return (
+      <WithBlockedTooltip tooltip={blockedTooltip}>
+        <GroupRootButton
+          item={item}
+          label={label}
+          isOpen={isOpen}
+          isTrailActive={isTrailActive}
+          tooltip={undefined}
+          onClick={handleClick}
+        />
+      </WithBlockedTooltip>
+    );
+  }
 
   return (
     <WithBlockedTooltip tooltip={blockedTooltip}>
@@ -241,7 +254,7 @@ function GroupRootDropdown({
             label={label}
             isOpen={isOpen || dropdownOpen}
             isTrailActive={isTrailActive}
-            tooltip={triggerTooltip}
+            tooltip={undefined}
             onClick={handleClick}
           />
         </DropdownMenuTrigger>

@@ -25,7 +25,6 @@ import {
 } from "./nav-utils";
 import { resolveFavoriteNavItems } from "./favorite-nav-items";
 import { NavNode } from "./nav-node";
-import { useCollapsedDropdownController } from "./collapsed-dropdown";
 import { NAV_ROOT_MENU_GAP_CLASSNAME } from "./nav-utils";
 import {
   buildFavoriteAdminChildren,
@@ -55,7 +54,6 @@ type AdminSiderNavState = {
   openChainForKey: (key: string) => void;
   selectActiveSource: (source: "base" | "starred", targetPath?: string) => void;
   collapsedMode: boolean;
-  hoverIntent: boolean;
 };
 
 function resolveLeadingLabel(item: AdminNavItem, t: (key: string) => string): string | null {
@@ -247,7 +245,7 @@ function useDisplayItems(
 }
 
 function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
-  const { state: sidebarState, isMobile, hoverIntent } = useSidebar();
+  const { state: sidebarState, isMobile } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const activePathname = props.pathnameOverride ?? pathname;
   const { baseItems, favoriteItems, starredItem, displayItems } = useDisplayItems(
@@ -311,7 +309,6 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
     openChainForKey,
     selectActiveSource,
     collapsedMode: isCollapsed,
-    hoverIntent,
   };
 }
 
@@ -329,10 +326,8 @@ function NavItemsTree(props: {
   selectActiveSource: (source: ActiveSource, targetPath?: string) => void;
   resolvePermissionName?: (code: string) => string | null;
   isCollapsed: boolean;
-  hoverIntent: boolean;
 }) {
   const { t } = useTranslation();
-  const hoverDropdown = useCollapsedDropdownController();
 
   return (
     <SidebarGroup className="p-0">
@@ -366,7 +361,7 @@ function NavItemsTree(props: {
                 selectActiveSource={props.selectActiveSource}
                 resolvePermissionName={props.resolvePermissionName}
                 isCollapsed={props.isCollapsed}
-                hoverDropdown={props.isCollapsed && !props.hoverIntent ? hoverDropdown : null}
+                hoverDropdown={null}
               />
               {item.dividerAfter ? <NavDivider /> : null}
             </Fragment>
@@ -396,7 +391,6 @@ export function AdminSiderNav(props: AdminSiderNavProps) {
         selectActiveSource={state.selectActiveSource}
         resolvePermissionName={props.resolvePermissionName}
         isCollapsed={state.collapsedMode}
-        hoverIntent={state.hoverIntent}
       />
     </nav>
   );
