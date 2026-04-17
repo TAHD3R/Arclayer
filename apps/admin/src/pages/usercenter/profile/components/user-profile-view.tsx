@@ -11,6 +11,7 @@ import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/userce
 import { UserProfileBasicsSection } from "@/pages/usercenter/profile/components/profile-basics-section";
 import { UserDangerSection } from "@/pages/usercenter/profile/components/profile-danger-section";
 import { UserLinkedAccountsSection } from "@/pages/usercenter/profile/components/profile-linked-accounts-section";
+import { UserSessionsSection } from "@/pages/usercenter/security/components/security-sessions-section";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { SpinnerOverlay } from "@arclayer/ui/spinner";
 
@@ -57,6 +58,14 @@ function UserProfileViewContent(props: Required<UserProfileViewProps>) {
           variant={panelVariant}
         >
           <UserProfileAccountSecuritySection email={profile.email} redirect={redirect} />
+        </UserCenterSettingPanel>
+
+        <UserCenterSettingPanel
+          title={t("ME_PROFILE_DEVICES_PANEL_TITLE")}
+          showDivider
+          variant={panelVariant}
+        >
+          <UserSessionsSection />
         </UserCenterSettingPanel>
 
         <UserCenterSettingPanel

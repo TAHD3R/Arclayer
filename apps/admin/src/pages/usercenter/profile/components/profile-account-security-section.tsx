@@ -10,7 +10,6 @@ import {
   resolveHasLinkedOauthIdentities,
   resolveHasPassword,
 } from "@/pages/usercenter/profile/components/security-capabilities";
-import { UserSessionsSection } from "@/pages/usercenter/security/components/security-sessions-section";
 import { UserTwoFactorSection } from "@/pages/usercenter/security/components/security-two-factor-section";
 import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { Button } from "@arclayer/ui/button";
@@ -75,7 +74,6 @@ export function UserProfileAccountSecuritySection(props: UserProfileAccountSecur
 
         <UserPasswordSection redirect={props.redirect} />
         <UserTwoFactorSection redirect={props.redirect} />
-        <UserSessionsSection />
       </div>
 
       <UserChangeEmailDialog

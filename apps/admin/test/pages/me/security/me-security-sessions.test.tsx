@@ -113,11 +113,7 @@ describe("UserSessionsSection", () => {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_LOCATION"),
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"),
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole("columnheader").at(3)).toHaveTextContent("");
 
     expect(screen.getByText(i18n.t("account:ME_SECURITY_SESSIONS_CURRENT"))).toBeInTheDocument();
     expect(screen.getByText("formatted:2026-03-07T00:10:00Z")).toBeInTheDocument();

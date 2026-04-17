@@ -78,6 +78,7 @@
   "ME_PROFILE_ACCOUNT_PANEL_TITLE": "Account",
   "ME_PROFILE_USER_ID_PANEL_TITLE": "User ID",
   "ME_PROFILE_ACCOUNT_SECURITY_PANEL_TITLE": "Account security",
+  "ME_PROFILE_DEVICES_PANEL_TITLE": "Devices",
   "ME_PROFILE_DISPLAY_NAME_TITLE": "Display name",
   "ME_PROFILE_DISPLAY_NAME_PLACEHOLDER": "Display name",
   "ME_PROFILE_DISPLAY_NAME_INVALID": "Use only letters, numbers, underscores, spaces, dots, or hyphens.",

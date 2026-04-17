@@ -119,9 +119,7 @@ export function SecuritySessionsTableContent(props: SecuritySessionsTableContent
                 "w-[16%] py-2 pl-4 text-footnote font-medium text-label-secondary",
                 actionsColumnMeta.headerAlign === "center" ? "text-center" : "text-right",
               )}
-            >
-              {props.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS")}
-            </th>
+            />
           </tr>
         </thead>
         <tbody>

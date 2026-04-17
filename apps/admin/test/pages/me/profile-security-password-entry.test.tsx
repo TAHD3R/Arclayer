@@ -116,7 +116,7 @@ beforeEach(() => {
 });
 
 describe("Profile password entry migration", () => {
-  it("profile account security section renders 2fa and sessions inside profile", () => {
+  it("profile account security section renders email, password, and 2fa without sessions", () => {
     renderWithQuery(
       <UserProfileAccountSecuritySection
         email="tester@example.com"
@@ -128,7 +128,7 @@ describe("Profile password entry migration", () => {
       screen.getByRole("button", { name: i18n.t("account:ME_PROFILE_EMAIL_CHANGE") }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("security-2fa")).toBeInTheDocument();
-    expect(screen.getByTestId("security-sessions")).toBeInTheDocument();
+    expect(screen.queryByTestId("security-sessions")).toBeNull();
   });
 
   it("profile password card shows change-password action for password accounts", async () => {
