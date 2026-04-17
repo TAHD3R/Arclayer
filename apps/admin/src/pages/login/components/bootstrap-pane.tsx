@@ -21,6 +21,7 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
+  AUTH_PANE_META_CLASS,
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
   AuthInlineNotice,
@@ -306,7 +307,7 @@ export function BootstrapPane(props: BootstrapPaneProps) {
           </Button>
         </div>
       </form>
-      <AuthPaneLegal i18nKey="auth:LEGAL_CONTINUE" variants={{}} />
+      <AuthPaneLegal i18nKey="auth:LEGAL_CONTINUE" variants={{}} className={AUTH_PANE_META_CLASS} />
     </div>
   );
 }

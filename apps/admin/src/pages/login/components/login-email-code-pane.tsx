@@ -22,6 +22,7 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
+  AUTH_PANE_META_CLASS,
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
   AuthInlineNotice,
@@ -289,8 +290,12 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
             }
           />
         </motion.div>
-        <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={variants} />
       </form>
+      <AuthPaneLegal
+        i18nKey="auth:LEGAL_LOGIN"
+        variants={variants}
+        className={AUTH_PANE_META_CLASS}
+      />
     </div>
   );
 }

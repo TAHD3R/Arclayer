@@ -18,7 +18,6 @@ import {
   AUTH_PLAIN_INPUT_CLASS,
   AuthOtpInput,
   AuthPaneHeader,
-  AuthPaneLegal,
   AuthPaneTitleRow,
 } from "./auth-pane-primitives";
 
@@ -176,7 +175,6 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
               </span>
             </Button>
           </div>
-          <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={variants} />
         </motion.div>
       </form>
     </div>

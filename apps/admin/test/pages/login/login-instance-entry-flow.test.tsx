@@ -183,6 +183,7 @@ describe("LoginPage instance entry flow", () => {
       expect(screen.getByText("auth:INSTANCE_BOOTSTRAP_TITLE")).toBeInTheDocument();
     });
     expect(screen.queryByText("auth:LOGIN_PAGE_TITLE")).not.toBeInTheDocument();
+    expect(screen.getByText("auth:LEGAL_CONTINUE")).toBeInTheDocument();
   });
 
   it("submits bootstrap form and continues with the issued session", async () => {
@@ -238,5 +239,6 @@ describe("LoginPage instance entry flow", () => {
     });
     expect(screen.getByText("missing_super_admin")).toBeInTheDocument();
     expect(screen.queryByText("auth:LOGIN_PAGE_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
   });
 });

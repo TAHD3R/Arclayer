@@ -151,4 +151,41 @@ describe("Login auth otp layouts", () => {
     const otpSlots = otpGrid?.querySelectorAll(".flex-1");
     expect(otpSlots?.[0]).toHaveClass("h-10", "rounded-md", "bg-card");
   });
+
+  it("keeps legal copy on email-code and omits it on two-factor", async () => {
+    const { rerender } = render(
+      <LoginEmailCodePane
+        seed={{ email: "demo@example.com", autoRequest: false, keepSession: true }}
+        requestLoading={false}
+        verifyLoading={false}
+        onRequestCode={async () => ({ expiresIn: 600, retryAfter: 0 })}
+        onSubmit={async () => undefined}
+        onBackToPassword={() => undefined}
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    expect(screen.getByText("auth:LEGAL_LOGIN")).toBeInTheDocument();
+    expect(screen.queryByText("auth:FOOTER_COPYRIGHT")).not.toBeInTheDocument();
+
+    rerender(
+      <LoginTwoFactorPane
+        challenge={{
+          twoFactorToken: "challenge-token",
+          expiresAt: Date.now() + 60_000,
+          keepSession: true,
+          redirect: null,
+          source: "email-code",
+        }}
+        loading={false}
+        onSubmit={() => undefined}
+        onBackToLogin={() => undefined}
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    expect(screen.queryByText("auth:LEGAL_LOGIN")).not.toBeInTheDocument();
+  });
 });

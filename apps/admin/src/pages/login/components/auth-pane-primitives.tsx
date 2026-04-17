@@ -1,11 +1,10 @@
 import { CircleHelp } from "lucide-react";
 import { motion, type Variants } from "motion/react";
-import { createPortal } from "react-dom";
 import { type ReactNode, useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AdminFullLogo } from "@/components/layout/admin-logo";
-import { LegalFooter, LegalFooterCopyright } from "@/components/layout/legal-footer";
+import { LegalFooter } from "@/components/layout/legal-footer";
 import { cn } from "@arclayer/lib/utils";
 import { FieldTitle } from "@arclayer/ui/field";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
@@ -32,6 +31,8 @@ export const AUTH_OTP_SLOT_CLASS = cn(
   "text-callout font-semibold text-label-primary transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
+export const AUTH_PANE_META_CLASS =
+  "grid gap-2.5 pt-2 text-center text-footnote text-label-secondary";
 
 export function AuthPaneHeader(props: {
   titleKey: string;
@@ -139,20 +140,15 @@ export function AuthOtpInput(props: {
   );
 }
 
-export function AuthPaneLegal(props: { i18nKey: string; variants: Variants | {} }) {
-  if (typeof document === "undefined") {
-    return null;
-  }
-
-  return createPortal(
-    <motion.div
-      variants={props.variants}
-      className="fixed inset-x-0 bottom-0 z-20 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center space-y-1"
-    >
+export function AuthPaneLegal(props: {
+  i18nKey: string;
+  variants: Variants | {};
+  className?: string;
+}) {
+  return (
+    <motion.div variants={props.variants} className={cn("grid gap-1 text-center", props.className)}>
       <LegalFooter i18nKey={props.i18nKey} />
-      <LegalFooterCopyright />
-    </motion.div>,
-    document.body,
+    </motion.div>
   );
 }
 

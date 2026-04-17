@@ -18,6 +18,7 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
+  AUTH_PANE_META_CLASS,
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
   AuthInlineNotice,
@@ -221,15 +222,17 @@ export function LoginPane(props: LoginPaneProps) {
           </motion.div>
         ) : null}
 
-        <motion.div variants={variants} className="my-2">
-          <label className="flex cursor-pointer items-center gap-2">
-            <Checkbox
-              checked={keepSession}
-              onCheckedChange={(value) => form.setValue("keepSession", Boolean(value))}
-            />
-            <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
-          </label>
-        </motion.div>
+        {step === "password" ? (
+          <motion.div variants={variants} className="my-2">
+            <label className="flex cursor-pointer items-center gap-2">
+              <Checkbox
+                checked={keepSession}
+                onCheckedChange={(value) => form.setValue("keepSession", Boolean(value))}
+              />
+              <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
+            </label>
+          </motion.div>
+        ) : null}
 
         <motion.div variants={variants} className="grid gap-3 pt-1">
           <Button
@@ -262,10 +265,7 @@ export function LoginPane(props: LoginPaneProps) {
           }
         />
       </motion.div>
-      <motion.div
-        variants={variants}
-        className="grid gap-2.5 pt-2 text-center text-footnote text-label-secondary"
-      >
+      <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
         {props.publicRegisterEnabled ? (
           <div>
             <span>{t("auth:NO_ACCOUNT")} </span>

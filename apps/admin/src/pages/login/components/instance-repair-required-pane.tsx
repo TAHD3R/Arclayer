@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 
 import type { InstanceRepairRequiredPaneProps } from "../types";
-import { AUTH_PANE_STACK_CLASS, AuthPaneHeader, AuthPaneLegal } from "./auth-pane-primitives";
+import { AUTH_PANE_STACK_CLASS, AuthPaneHeader } from "./auth-pane-primitives";
 
 export function InstanceRepairRequiredPane(props: InstanceRepairRequiredPaneProps) {
   const { t } = useTranslation();
@@ -30,7 +30,6 @@ export function InstanceRepairRequiredPane(props: InstanceRepairRequiredPaneProp
           {t("auth:INSTANCE_REPAIR_REQUIRED_REFRESH")}
         </Button>
       </div>
-      <AuthPaneLegal i18nKey="auth:LEGAL_CONTINUE" variants={{}} />
     </div>
   );
 }

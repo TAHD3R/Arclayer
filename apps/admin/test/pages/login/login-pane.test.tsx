@@ -117,6 +117,46 @@ describe("LoginPane oauth section", () => {
     expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
   });
 
+  it("shows keep-session only on the password step", () => {
+    const { rerender } = render(
+      <LoginPane
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
+        onSubmit={async () => undefined}
+        emailCheckLoading={false}
+        loading={false}
+        initialKeepSession={false}
+        loginSeed={null}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={() => undefined}
+        onSwitchToRegister={() => undefined}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    expect(screen.queryByText("auth:KEEP_SESSION")).not.toBeInTheDocument();
+
+    rerender(
+      <LoginPane
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
+        onSubmit={async () => undefined}
+        emailCheckLoading={false}
+        loading={false}
+        initialKeepSession={false}
+        loginSeed={{ email: "demo@example.com", step: "password" }}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={() => undefined}
+        onSwitchToRegister={() => undefined}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    expect(screen.getByText("auth:KEEP_SESSION")).toBeInTheDocument();
+  });
+
   it("renders the primary action without a trailing icon", () => {
     render(
       <LoginPane

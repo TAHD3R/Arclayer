@@ -23,6 +23,7 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
+  AUTH_PANE_META_CLASS,
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
   AuthInlineNotice,
@@ -369,10 +370,7 @@ export function RegisterPane(props: RegisterPaneProps) {
           redirect={props.redirect}
         />
       </motion.div>
-      <motion.div
-        variants={variants}
-        className="grid gap-2.5 pt-2 text-center text-footnote text-label-secondary"
-      >
+      <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
         <div>
           <span>{t("auth:HAVE_ACCOUNT")} </span>
           <AuthLinkButton
