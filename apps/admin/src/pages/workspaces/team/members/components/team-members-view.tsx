@@ -239,7 +239,7 @@ export function TeamMembersView(props: {
                 className="min-w-0 flex-1"
               />
 
-              <div className="ml-auto pl-2">
+              <div className="ml-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon-sm" aria-label={t("team:TEAM_USER_ACTIONS")}>
