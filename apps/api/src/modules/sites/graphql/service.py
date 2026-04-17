@@ -60,6 +60,9 @@ class AuthenticatedDeliveryKey:
     graphql_read: bool
 
 
+GraphQLSortDirection = Literal["asc", "desc"]
+
+
 def _normalize_json_value(value: Any) -> Any:
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
@@ -92,6 +95,64 @@ def _build_custom_fields(*, model_key: str, fields: dict[str, Any]) -> dict[str,
 
     system_keys = {alias for field in protocol.system_fields for alias in _field_aliases(model_key, field.key)}
     return {str(key): _normalize_json_value(value) for key, value in fields.items() if str(key) not in system_keys}
+
+
+def _normalized_string(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        normalized = value.strip()
+        return normalized or None
+    return str(value).strip() or None
+
+
+def _normalized_contains(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    return normalized or None
+
+
+def _record_text_field(record: StructuredContentRecord, field_key: str) -> str | None:
+    if field_key == "title":
+        return _normalized_string(record.title)
+    if field_key == "slug":
+        return _normalized_string(record.slug)
+    if field_key == "revision_state":
+        return _normalized_string(record.revision_state)
+    if field_key == "path":
+        return _normalized_string(record.route_path or record.fields.get("path"))
+    if field_key == "section_key":
+        return _normalized_string(record.fields.get("section_key"))
+    if field_key == "name":
+        return _normalized_string(record.fields.get("name"))
+    return _normalized_string(record.fields.get(field_key))
+
+
+def _record_sort_value(record: StructuredContentRecord, field_key: str) -> tuple[int, Any, str]:
+    if field_key == "revision":
+        return (0, int(record.revision), str(record.item_id))
+    value = _record_text_field(record, field_key)
+    if value is None:
+        return (1, "", str(record.item_id))
+    return (0, value.lower(), str(record.item_id))
+
+
+def _record_matches_all(
+    record: StructuredContentRecord,
+    *,
+    exact_filters: dict[str, str],
+    contains_filters: dict[str, str],
+) -> bool:
+    for field_key, expected in exact_filters.items():
+        value = _record_text_field(record, field_key)
+        if value is None or value.lower() != expected.lower():
+            return False
+    for field_key, expected in contains_filters.items():
+        value = _record_text_field(record, field_key)
+        if value is None or expected not in value.lower():
+            return False
+    return True
 
 
 class SiteGraphQLService:
@@ -210,10 +271,40 @@ class SiteGraphQLService:
         site_id: UUID,
         model_key: str,
         perspective: GraphQLPerspective,
+        exact_filters: dict[str, str] | None = None,
+        contains_filters: dict[str, str] | None = None,
+        sort_field: str | None = None,
+        sort_direction: GraphQLSortDirection = "asc",
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[StructuredContentRecord]:
         if perspective == "published":
-            return await self._list_published_records(site_id=site_id, model_key=model_key)
-        return await self._list_preview_records(site_id=site_id, model_key=model_key)
+            records = await self._list_published_records(site_id=site_id, model_key=model_key)
+        else:
+            records = await self._list_preview_records(site_id=site_id, model_key=model_key)
+
+        filtered = [
+            record
+            for record in records
+            if _record_matches_all(
+                record,
+                exact_filters=exact_filters or {},
+                contains_filters=contains_filters or {},
+            )
+        ]
+
+        if sort_field:
+            filtered = sorted(
+                filtered,
+                key=lambda record: _record_sort_value(record, sort_field),
+                reverse=sort_direction == "desc",
+            )
+
+        bounded_offset = max(offset, 0)
+        if limit is None:
+            return filtered[bounded_offset:]
+        bounded_limit = max(limit, 0)
+        return filtered[bounded_offset : bounded_offset + bounded_limit]
 
     async def get_record_by_slug(
         self,

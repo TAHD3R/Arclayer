@@ -3,6 +3,8 @@ import type {
   ArticleBySlugQueryVariables,
   ArticleEntriesQueryData,
   ArticleEntriesQueryVariables,
+  CategoryEntriesQueryData,
+  CategoryEntriesQueryVariables,
   CategoryBySlugQueryData,
   CategoryBySlugQueryVariables,
   DeliveryPerspective,
@@ -10,10 +12,14 @@ import type {
   GraphQLExecutionResult,
   GraphQLResponse,
   GraphQLVariables,
+  PageEntriesQueryData,
+  PageEntriesQueryVariables,
   PageEntryByPathQueryData,
   PageEntryByPathQueryVariables,
   ResolvePageQueryData,
   ResolvePageQueryVariables,
+  ReusableSectionEntriesQueryData,
+  ReusableSectionEntriesQueryVariables,
   ReusableSectionByAliasQueryData,
   ReusableSectionByAliasQueryVariables,
   TypedDocumentString,
@@ -111,20 +117,47 @@ export class DeliveryGraphQLClient {
   }
 
   articleEntries(input: {
+    filter?: ArticleEntriesQueryVariables["filter"];
     limit?: number;
     offset?: number;
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
     siteId: string;
+    sort?: ArticleEntriesQueryVariables["sort"];
   }) {
     return this.execute<ArticleEntriesQueryData, ArticleEntriesQueryVariables>({
       document: articleEntriesDocument,
       siteId: input.siteId,
       variables: {
+        filter: input.filter ?? null,
         limit: input.limit ?? 20,
         offset: input.offset ?? 0,
         perspective: toGraphqlPerspective(input.perspective ?? "published"),
         previewToken: input.previewToken ?? null,
+        sort: input.sort ?? null,
+      },
+    });
+  }
+
+  pageEntries(input: {
+    filter?: PageEntriesQueryVariables["filter"];
+    limit?: number;
+    offset?: number;
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+    sort?: PageEntriesQueryVariables["sort"];
+  }) {
+    return this.execute<PageEntriesQueryData, PageEntriesQueryVariables>({
+      document: pageEntriesDocument,
+      siteId: input.siteId,
+      variables: {
+        filter: input.filter ?? null,
+        limit: input.limit ?? 20,
+        offset: input.offset ?? 0,
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+        sort: input.sort ?? null,
       },
     });
   }
@@ -163,6 +196,29 @@ export class DeliveryGraphQLClient {
     });
   }
 
+  reusableSectionEntries(input: {
+    filter?: ReusableSectionEntriesQueryVariables["filter"];
+    limit?: number;
+    offset?: number;
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+    sort?: ReusableSectionEntriesQueryVariables["sort"];
+  }) {
+    return this.execute<ReusableSectionEntriesQueryData, ReusableSectionEntriesQueryVariables>({
+      document: reusableSectionEntriesDocument,
+      siteId: input.siteId,
+      variables: {
+        filter: input.filter ?? null,
+        limit: input.limit ?? 20,
+        offset: input.offset ?? 0,
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+        sort: input.sort ?? null,
+      },
+    });
+  }
+
   categoryBySlug(input: {
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
@@ -176,6 +232,29 @@ export class DeliveryGraphQLClient {
         perspective: toGraphqlPerspective(input.perspective ?? "published"),
         previewToken: input.previewToken ?? null,
         slug: input.slug,
+      },
+    });
+  }
+
+  categoryEntries(input: {
+    filter?: CategoryEntriesQueryVariables["filter"];
+    limit?: number;
+    offset?: number;
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+    sort?: CategoryEntriesQueryVariables["sort"];
+  }) {
+    return this.execute<CategoryEntriesQueryData, CategoryEntriesQueryVariables>({
+      document: categoryEntriesDocument,
+      siteId: input.siteId,
+      variables: {
+        filter: input.filter ?? null,
+        limit: input.limit ?? 20,
+        offset: input.offset ?? 0,
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+        sort: input.sort ?? null,
       },
     });
   }
@@ -247,8 +326,22 @@ query ArticleBySlug($slug: String!, $perspective: DeliveryPerspective!, $preview
 ` as TypedDocumentString<ArticleBySlugQueryData, ArticleBySlugQueryVariables>;
 
 export const articleEntriesDocument = `
-query ArticleEntries($perspective: DeliveryPerspective!, $previewToken: String, $limit: Int!, $offset: Int!) {
-  articleEntries(perspective: $perspective, previewToken: $previewToken, limit: $limit, offset: $offset) {
+query ArticleEntries(
+  $perspective: DeliveryPerspective!,
+  $previewToken: String,
+  $filter: ArticleFilterInput,
+  $sort: ArticleSortInput,
+  $limit: Int!,
+  $offset: Int!
+) {
+  articleEntries: articles(
+    perspective: $perspective,
+    previewToken: $previewToken,
+    filter: $filter,
+    sort: $sort,
+    limit: $limit,
+    offset: $offset
+  ) {
     id
     locale
     revision
@@ -264,6 +357,37 @@ query ArticleEntries($perspective: DeliveryPerspective!, $previewToken: String, 
   }
 }
 ` as TypedDocumentString<ArticleEntriesQueryData, ArticleEntriesQueryVariables>;
+
+export const pageEntriesDocument = `
+query PageEntries(
+  $perspective: DeliveryPerspective!,
+  $previewToken: String,
+  $filter: PageFilterInput,
+  $sort: PageSortInput,
+  $limit: Int!,
+  $offset: Int!
+) {
+  pages(
+    perspective: $perspective,
+    previewToken: $previewToken,
+    filter: $filter,
+    sort: $sort,
+    limit: $limit,
+    offset: $offset
+  ) {
+    id
+    locale
+    revision
+    revisionState
+    draftRevision
+    publishedRevision
+    title
+    path
+    routePattern
+    customFields
+  }
+}
+` as TypedDocumentString<PageEntriesQueryData, PageEntriesQueryVariables>;
 
 export const pageEntryByPathDocument = `
 query PageEntryByPath($path: String!, $perspective: DeliveryPerspective!, $previewToken: String) {
@@ -299,6 +423,37 @@ query ReusableSectionByAlias($alias: String!, $perspective: DeliveryPerspective!
 }
 ` as TypedDocumentString<ReusableSectionByAliasQueryData, ReusableSectionByAliasQueryVariables>;
 
+export const reusableSectionEntriesDocument = `
+query ReusableSectionEntries(
+  $perspective: DeliveryPerspective!,
+  $previewToken: String,
+  $filter: ReusableSectionFilterInput,
+  $sort: ReusableSectionSortInput,
+  $limit: Int!,
+  $offset: Int!
+) {
+  reusableSections(
+    perspective: $perspective,
+    previewToken: $previewToken,
+    filter: $filter,
+    sort: $sort,
+    limit: $limit,
+    offset: $offset
+  ) {
+    id
+    locale
+    revision
+    revisionState
+    draftRevision
+    publishedRevision
+    title
+    sectionKey
+    propsDefaults
+    customFields
+  }
+}
+` as TypedDocumentString<ReusableSectionEntriesQueryData, ReusableSectionEntriesQueryVariables>;
+
 export const categoryBySlugDocument = `
 query CategoryBySlug($slug: String!, $perspective: DeliveryPerspective!, $previewToken: String) {
   categoryBySlug(slug: $slug, perspective: $perspective, previewToken: $previewToken) {
@@ -315,3 +470,34 @@ query CategoryBySlug($slug: String!, $perspective: DeliveryPerspective!, $previe
   }
 }
 ` as TypedDocumentString<CategoryBySlugQueryData, CategoryBySlugQueryVariables>;
+
+export const categoryEntriesDocument = `
+query CategoryEntries(
+  $perspective: DeliveryPerspective!,
+  $previewToken: String,
+  $filter: CategoryFilterInput,
+  $sort: CategorySortInput,
+  $limit: Int!,
+  $offset: Int!
+) {
+  categories(
+    perspective: $perspective,
+    previewToken: $previewToken,
+    filter: $filter,
+    sort: $sort,
+    limit: $limit,
+    offset: $offset
+  ) {
+    id
+    locale
+    revision
+    revisionState
+    draftRevision
+    publishedRevision
+    name
+    slug
+    description
+    customFields
+  }
+}
+` as TypedDocumentString<CategoryEntriesQueryData, CategoryEntriesQueryVariables>;

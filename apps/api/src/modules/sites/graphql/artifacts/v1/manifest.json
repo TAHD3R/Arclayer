@@ -1,0 +1,11 @@
+{
+  "artifactVersion": "1.0.0",
+  "perspectives": [
+    "published",
+    "preview"
+  ],
+  "queryMode": "read-only",
+  "schemaFamily": "delivery-graphql",
+  "schemaFile": "schema.graphql",
+  "sha256": "6e4becff8939ec98423431fbb9b3ee77218dd49fdab0185f235dc15cac9694ce"
+}

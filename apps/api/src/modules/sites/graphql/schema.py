@@ -184,6 +184,100 @@ class CategoryEntry:
     custom_fields: JSON
 
 
+@strawberry.enum
+class GraphQLSortDirection(enum.Enum):
+    ASC = "asc"
+    DESC = "desc"
+
+
+@strawberry.enum
+class ArticleSortField(enum.Enum):
+    TITLE = "title"
+    SLUG = "slug"
+    REVISION = "revision"
+
+
+@strawberry.enum
+class PageSortField(enum.Enum):
+    TITLE = "title"
+    PATH = "path"
+    REVISION = "revision"
+
+
+@strawberry.enum
+class ReusableSectionSortField(enum.Enum):
+    TITLE = "title"
+    SECTION_KEY = "section_key"
+    REVISION = "revision"
+
+
+@strawberry.enum
+class CategorySortField(enum.Enum):
+    NAME = "name"
+    SLUG = "slug"
+    REVISION = "revision"
+
+
+@strawberry.input
+class ArticleFilterInput:
+    slug: str | None = None
+    title_contains: str | None = None
+    revision_state: str | None = None
+
+
+@strawberry.input
+class PageFilterInput:
+    path: str | None = None
+    title_contains: str | None = None
+    revision_state: str | None = None
+
+
+@strawberry.input
+class ReusableSectionFilterInput:
+    section_key: str | None = None
+    title_contains: str | None = None
+    revision_state: str | None = None
+
+
+@strawberry.input
+class CategoryFilterInput:
+    slug: str | None = None
+    name_contains: str | None = None
+    revision_state: str | None = None
+
+
+@strawberry.input
+class ArticleSortInput:
+    field: ArticleSortField
+    direction: GraphQLSortDirection = GraphQLSortDirection.ASC
+
+
+@strawberry.input
+class PageSortInput:
+    field: PageSortField
+    direction: GraphQLSortDirection = GraphQLSortDirection.ASC
+
+
+@strawberry.input
+class ReusableSectionSortInput:
+    field: ReusableSectionSortField
+    direction: GraphQLSortDirection = GraphQLSortDirection.ASC
+
+
+@strawberry.input
+class CategorySortInput:
+    field: CategorySortField
+    direction: GraphQLSortDirection = GraphQLSortDirection.ASC
+
+
+def _exact_filters(payload: dict[str, str | None]) -> dict[str, str]:
+    return {key: value.strip() for key, value in payload.items() if isinstance(value, str) and value.strip()}
+
+
+def _contains_filters(payload: dict[str, str | None]) -> dict[str, str]:
+    return {key: value.strip().lower() for key, value in payload.items() if isinstance(value, str) and value.strip()}
+
+
 def _raise_graphql_error(exc: APIError) -> None:
     raise GraphQLError(exc.message, extensions=graphql_error_extensions(exc)) from exc
 
@@ -495,6 +589,8 @@ class Query:
         info: strawberry.Info[SiteGraphQLContext, None],
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
+        filter: ArticleFilterInput | None = None,
+        sort: ArticleSortInput | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[ArticleEntry]:
@@ -504,10 +600,21 @@ class Query:
                 site_id=info.context.site_id,
                 model_key="article",
                 perspective=resolved,
+                exact_filters=_exact_filters({
+                    "slug": filter.slug if filter is not None else None,
+                    "revision_state": filter.revision_state if filter is not None else None,
+                }),
+                contains_filters=_contains_filters({
+                    "title": filter.title_contains if filter is not None else None,
+                }),
+                sort_field=sort.field.value if sort is not None else None,
+                sort_direction=sort.direction.value if sort is not None else "asc",
+                limit=limit,
+                offset=offset,
             )
         except APIError as exc:
             _raise_graphql_error(exc)
-        return [_to_article_entry(record) for record in records[offset : offset + limit]]
+        return [_to_article_entry(record) for record in records]
 
     @strawberry.field
     async def page_entry_by_path(
@@ -534,6 +641,8 @@ class Query:
         info: strawberry.Info[SiteGraphQLContext, None],
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
+        filter: PageFilterInput | None = None,
+        sort: PageSortInput | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[PageEntry]:
@@ -543,10 +652,21 @@ class Query:
                 site_id=info.context.site_id,
                 model_key="page",
                 perspective=resolved,
+                exact_filters=_exact_filters({
+                    "path": filter.path if filter is not None else None,
+                    "revision_state": filter.revision_state if filter is not None else None,
+                }),
+                contains_filters=_contains_filters({
+                    "title": filter.title_contains if filter is not None else None,
+                }),
+                sort_field=sort.field.value if sort is not None else None,
+                sort_direction=sort.direction.value if sort is not None else "asc",
+                limit=limit,
+                offset=offset,
             )
         except APIError as exc:
             _raise_graphql_error(exc)
-        return [_to_page_entry(record) for record in records[offset : offset + limit]]
+        return [_to_page_entry(record) for record in records]
 
     @strawberry.field
     async def reusable_section_by_alias(
@@ -573,6 +693,8 @@ class Query:
         info: strawberry.Info[SiteGraphQLContext, None],
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
+        filter: ReusableSectionFilterInput | None = None,
+        sort: ReusableSectionSortInput | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[ReusableSectionEntry]:
@@ -582,10 +704,21 @@ class Query:
                 site_id=info.context.site_id,
                 model_key="reusable-section",
                 perspective=resolved,
+                exact_filters=_exact_filters({
+                    "section_key": filter.section_key if filter is not None else None,
+                    "revision_state": filter.revision_state if filter is not None else None,
+                }),
+                contains_filters=_contains_filters({
+                    "title": filter.title_contains if filter is not None else None,
+                }),
+                sort_field=sort.field.value if sort is not None else None,
+                sort_direction=sort.direction.value if sort is not None else "asc",
+                limit=limit,
+                offset=offset,
             )
         except APIError as exc:
             _raise_graphql_error(exc)
-        return [_to_reusable_section_entry(record) for record in records[offset : offset + limit]]
+        return [_to_reusable_section_entry(record) for record in records]
 
     @strawberry.field
     async def category_by_slug(
@@ -613,6 +746,8 @@ class Query:
         info: strawberry.Info[SiteGraphQLContext, None],
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
+        filter: CategoryFilterInput | None = None,
+        sort: CategorySortInput | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[CategoryEntry]:
@@ -622,10 +757,21 @@ class Query:
                 site_id=info.context.site_id,
                 model_key="category",
                 perspective=resolved,
+                exact_filters=_exact_filters({
+                    "slug": filter.slug if filter is not None else None,
+                    "revision_state": filter.revision_state if filter is not None else None,
+                }),
+                contains_filters=_contains_filters({
+                    "name": filter.name_contains if filter is not None else None,
+                }),
+                sort_field=sort.field.value if sort is not None else None,
+                sort_direction=sort.direction.value if sort is not None else "asc",
+                limit=limit,
+                offset=offset,
             )
         except APIError as exc:
             _raise_graphql_error(exc)
-        return [_to_category_entry(record) for record in records[offset : offset + limit]]
+        return [_to_category_entry(record) for record in records]
 
 
 schema = strawberry.Schema(query=Query)

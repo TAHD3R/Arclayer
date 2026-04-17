@@ -1,0 +1,238 @@
+type ArticleEntry {
+  id: String!
+  locale: String!
+  revision: Int!
+  revisionState: String!
+  draftRevision: Int!
+  publishedRevision: Int
+  title: String
+  slug: String
+  summary: String
+  content: String
+  publishedAt: String
+  customFields: JSON!
+}
+
+input ArticleFilterInput {
+  slug: String = null
+  titleContains: String = null
+  revisionState: String = null
+}
+
+enum ArticleSortField {
+  TITLE
+  SLUG
+  REVISION
+}
+
+input ArticleSortInput {
+  field: ArticleSortField!
+  direction: GraphQLSortDirection! = ASC
+}
+
+type CategoryEntry {
+  id: String!
+  locale: String!
+  revision: Int!
+  revisionState: String!
+  draftRevision: Int!
+  publishedRevision: Int
+  name: String
+  slug: String
+  description: String
+  customFields: JSON!
+}
+
+input CategoryFilterInput {
+  slug: String = null
+  nameContains: String = null
+  revisionState: String = null
+}
+
+enum CategorySortField {
+  NAME
+  SLUG
+  REVISION
+}
+
+input CategorySortInput {
+  field: CategorySortField!
+  direction: GraphQLSortDirection! = ASC
+}
+
+enum DeliveryPerspective {
+  PUBLISHED
+  PREVIEW
+}
+
+type GraphQLDeliveryPage {
+  match: GraphQLRouteMatch!
+  pageMeta: GraphQLPageMeta
+  document: GraphQLFlattenedPage
+  context: GraphQLRouteContext
+  warnings: [GraphQLResolveWarning!]
+}
+
+type GraphQLDeliverySection {
+  id: String!
+  alias: String!
+  title: String
+  revision: Int!
+  revisionState: String!
+  draftRevision: Int!
+  publishedRevision: Int
+  document: GraphQLDeliverySectionDocument!
+  warnings: [GraphQLResolveWarning!]
+}
+
+type GraphQLDeliverySectionDocument {
+  layout: JSON
+  sections: [GraphQLFlattenedSection!]!
+}
+
+type GraphQLFlattenedPage {
+  path: String!
+  layout: JSON
+  sections: [GraphQLFlattenedSection!]!
+}
+
+type GraphQLFlattenedSection {
+  id: String!
+  componentKey: String!
+  props: JSON!
+}
+
+type GraphQLGlobalSet {
+  key: String!
+  items: [GraphQLGlobalSetItem!]!
+}
+
+type GraphQLGlobalSetItem {
+  id: String!
+  name: String!
+  key: String!
+  payload: JSON
+  sectionAlias: String
+  section: GraphQLDeliverySection
+}
+
+type GraphQLPageMeta {
+  title: String
+  description: String
+}
+
+type GraphQLPrimaryContext {
+  id: String!
+  modelKey: String
+  slug: String
+  title: String
+  data: JSON!
+}
+
+type GraphQLResolveWarning {
+  code: String!
+  message: String!
+  refEntryId: String
+  refNodeId: String
+}
+
+type GraphQLRouteContext {
+  primary: GraphQLPrimaryContext
+  routeParams: JSON!
+}
+
+type GraphQLRouteMatch {
+  kind: String!
+  params: JSON!
+  pageId: String
+  variantId: String
+  revision: Int
+  revisionState: String
+  draftRevision: Int
+  publishedRevision: Int
+}
+
+enum GraphQLSortDirection {
+  ASC
+  DESC
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+"""
+scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf")
+
+type PageEntry {
+  id: String!
+  locale: String!
+  revision: Int!
+  revisionState: String!
+  draftRevision: Int!
+  publishedRevision: Int
+  title: String
+  path: String
+  routePattern: String
+  customFields: JSON!
+}
+
+input PageFilterInput {
+  path: String = null
+  titleContains: String = null
+  revisionState: String = null
+}
+
+enum PageSortField {
+  TITLE
+  PATH
+  REVISION
+}
+
+input PageSortInput {
+  field: PageSortField!
+  direction: GraphQLSortDirection! = ASC
+}
+
+type Query {
+  resolvePage(path: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): GraphQLDeliveryPage
+  deliveryPageById(pageId: ID!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): GraphQLDeliveryPage
+  deliverySectionByAlias(alias: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): GraphQLDeliverySection!
+  deliveryGlobalSet(key: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): GraphQLGlobalSet!
+  articleBySlug(slug: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): ArticleEntry
+  articles(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: ArticleFilterInput = null, sort: ArticleSortInput = null, limit: Int! = 20, offset: Int! = 0): [ArticleEntry!]!
+  pageEntryByPath(path: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): PageEntry
+  pages(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: PageFilterInput = null, sort: PageSortInput = null, limit: Int! = 20, offset: Int! = 0): [PageEntry!]!
+  reusableSectionByAlias(alias: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): ReusableSectionEntry
+  reusableSections(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: ReusableSectionFilterInput = null, sort: ReusableSectionSortInput = null, limit: Int! = 20, offset: Int! = 0): [ReusableSectionEntry!]!
+  categoryBySlug(slug: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): CategoryEntry
+  categories(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: CategoryFilterInput = null, sort: CategorySortInput = null, limit: Int! = 20, offset: Int! = 0): [CategoryEntry!]!
+}
+
+type ReusableSectionEntry {
+  id: String!
+  locale: String!
+  revision: Int!
+  revisionState: String!
+  draftRevision: Int!
+  publishedRevision: Int
+  title: String
+  sectionKey: String
+  propsDefaults: JSON
+  customFields: JSON!
+}
+
+input ReusableSectionFilterInput {
+  sectionKey: String = null
+  titleContains: String = null
+  revisionState: String = null
+}
+
+enum ReusableSectionSortField {
+  TITLE
+  SECTION_KEY
+  REVISION
+}
+
+input ReusableSectionSortInput {
+  field: ReusableSectionSortField!
+  direction: GraphQLSortDirection! = ASC
+}

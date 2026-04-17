@@ -204,6 +204,18 @@ export interface ArticleEntriesQueryData {
   articleEntries: ArticleEntry[];
 }
 
+export interface PageEntriesQueryData {
+  pages: PageEntry[];
+}
+
+export interface ReusableSectionEntriesQueryData {
+  reusableSections: ReusableSectionEntry[];
+}
+
+export interface CategoryEntriesQueryData {
+  categories: CategoryEntry[];
+}
+
 export interface GraphQLQueryVariables {
   perspective: GraphQLPerspective;
   previewToken?: string | null;
@@ -230,8 +242,59 @@ export interface CategoryBySlugQueryVariables extends GraphQLQueryVariables {
 }
 
 export interface ArticleEntriesQueryVariables extends GraphQLQueryVariables {
+  filter?: {
+    revisionState?: string | null;
+    slug?: string | null;
+    titleContains?: string | null;
+  } | null;
   limit: number;
   offset: number;
+  sort?: {
+    direction?: "ASC" | "DESC";
+    field: "TITLE" | "SLUG" | "REVISION";
+  } | null;
+}
+
+export interface PageEntriesQueryVariables extends GraphQLQueryVariables {
+  filter?: {
+    path?: string | null;
+    revisionState?: string | null;
+    titleContains?: string | null;
+  } | null;
+  limit: number;
+  offset: number;
+  sort?: {
+    direction?: "ASC" | "DESC";
+    field: "TITLE" | "PATH" | "REVISION";
+  } | null;
+}
+
+export interface ReusableSectionEntriesQueryVariables extends GraphQLQueryVariables {
+  filter?: {
+    revisionState?: string | null;
+    sectionKey?: string | null;
+    titleContains?: string | null;
+  } | null;
+  limit: number;
+  offset: number;
+  sort?: {
+    direction?: "ASC" | "DESC";
+    field: "TITLE" | "SECTION_KEY" | "REVISION";
+  } | null;
+}
+
+export interface CategoryEntriesQueryVariables extends GraphQLQueryVariables {
+  filter?: {
+    nameContains?: string | null;
+    revisionState?: string | null;
+    slug?: string | null;
+  } | null;
+  limit: number;
+  offset: number;
+  sort?: {
+    direction?: "ASC" | "DESC";
+    field: "NAME" | "SLUG" | "REVISION";
+  } | null;
 }
 
 export type DeliveryPageResolveOut = SiteRouteResolveOut;

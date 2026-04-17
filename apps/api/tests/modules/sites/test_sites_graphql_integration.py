@@ -107,6 +107,29 @@ async def _create_article_item(client, workspace_id: str, *, title: str) -> str:
     return item_res.json()["data"]["id"]
 
 
+async def _create_generic_item(client, workspace_id: str, *, model_key: str, title: str) -> str:
+    item_res = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items",
+        json={"modelKey": model_key, "title": title, "locale": "en-US"},
+    )
+    assert item_res.status_code == 201, item_res.text
+    return item_res.json()["data"]["id"]
+
+
+def _simple_form_draft_payload(*, expected_version: int, fields_snapshot: dict) -> dict:
+    return {
+        "expectedVersion": expected_version,
+        "changeSummary": "simple draft",
+        "fieldsSnapshot": fields_snapshot,
+        "presentations": [
+            {
+                "kind": "form_data",
+                "payload": fields_snapshot,
+            }
+        ],
+    }
+
+
 async def _publish_page_template(client, workspace_id: str, *, item_id: str, title: str, path: str) -> None:
     draft_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
@@ -333,5 +356,232 @@ async def test_sites_graphql_rejects_delivery_keys_without_graphql_scope(
         payload = response.json()
         assert payload["data"]["resolvePage"] is None
         assert payload["errors"][0]["extensions"]["code"] == "GRAPHQL_SCOPE_REQUIRED"
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
+    monkeypatch,
+    tmp_path,
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    monkeypatch.setenv("SECURITY__MASTER_KEY_PATH", str(tmp_path / "master.key"))
+    get_settings.cache_clear()
+    ensure_master_key(get_settings().security.master_key_path)
+
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_page_model(client, workspace_id)
+        await _create_content_model(
+            client,
+            workspace_id,
+            key="article",
+            name="Article",
+            category="content_library",
+            fields=[{"key": "rating", "label": "Rating", "scalar": "number", "required": False}],
+            capabilities=["publishable", "rich_text_editable"],
+            defaultRole="article",
+            defaultPosture="structured",
+            defaultSurface="writing",
+        )
+        await _create_content_model(
+            client,
+            workspace_id,
+            key="reusable-section",
+            name="Reusable Section",
+            category="site_builder",
+            capabilities=["publishable"],
+            defaultRole="reusable-section",
+            defaultPosture="composition",
+            defaultSurface="structured",
+        )
+        await _create_content_model(
+            client,
+            workspace_id,
+            key="category",
+            name="Category",
+            category="content_library",
+            capabilities=["publishable"],
+            defaultRole="taxonomy",
+            defaultPosture="structured",
+            defaultSurface="structured",
+        )
+
+        article_v1 = await _create_article_item(client, workspace_id, title="Hello world")
+        article_v2 = await _create_article_item(client, workspace_id, title="Hello world v2")
+        page_1 = await _create_generic_item(client, workspace_id, model_key="page", title="Alpha Page")
+        page_2 = await _create_generic_item(client, workspace_id, model_key="page", title="Beta Page")
+        section_1 = await _create_generic_item(client, workspace_id, model_key="reusable-section", title="Header Alpha")
+        section_2 = await _create_generic_item(client, workspace_id, model_key="reusable-section", title="Header Beta")
+        category_1 = await _create_generic_item(client, workspace_id, model_key="category", title="News Category")
+        category_2 = await _create_generic_item(client, workspace_id, model_key="category", title="Docs Category")
+
+        article_v1_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{article_v1}/versions/draft",
+            json=_article_draft_payload(expected_version=0, title="Hello world", slug="hello-world", rating=5),
+        )
+        assert article_v1_res.status_code == 201, article_v1_res.text
+        article_v2_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{article_v2}/versions/draft",
+            json=_article_draft_payload(expected_version=0, title="Hello world v2", slug="hello-world", rating=9),
+        )
+        assert article_v2_res.status_code == 201, article_v2_res.text
+        article_v2_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{article_v2}/versions/draft",
+            json=_article_draft_payload(
+                expected_version=1,
+                title="Hello world v2",
+                slug="hello-world",
+                rating=10,
+            ),
+        )
+        assert article_v2_res.status_code == 201, article_v2_res.text
+
+        page_1_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{page_1}/versions/draft",
+            json=_simple_form_draft_payload(
+                expected_version=0,
+                fields_snapshot={"title": "Alpha Page", "path": "/alpha"},
+            ),
+        )
+        assert page_1_res.status_code == 201, page_1_res.text
+        page_2_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{page_2}/versions/draft",
+            json=_simple_form_draft_payload(
+                expected_version=0,
+                fields_snapshot={"title": "Beta Page", "path": "/beta"},
+            ),
+        )
+        assert page_2_res.status_code == 201, page_2_res.text
+
+        section_1_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{section_1}/versions/draft",
+            json=_simple_form_draft_payload(
+                expected_version=0,
+                fields_snapshot={
+                    "title": "Header Alpha",
+                    "section_key": "site-header",
+                    "props_defaults": {"tone": "primary"},
+                },
+            ),
+        )
+        assert section_1_res.status_code == 201, section_1_res.text
+        section_2_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{section_2}/versions/draft",
+            json=_simple_form_draft_payload(
+                expected_version=0,
+                fields_snapshot={
+                    "title": "Header Beta",
+                    "section_key": "site-footer",
+                    "props_defaults": {"tone": "secondary"},
+                },
+            ),
+        )
+        assert section_2_res.status_code == 201, section_2_res.text
+
+        category_1_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{category_1}/versions/draft",
+            json=_simple_form_draft_payload(
+                expected_version=0,
+                fields_snapshot={"name": "News Category", "slug": "news", "description": "News"},
+            ),
+        )
+        assert category_1_res.status_code == 201, category_1_res.text
+        category_2_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{category_2}/versions/draft",
+            json=_simple_form_draft_payload(
+                expected_version=0,
+                fields_snapshot={"name": "Docs Category", "slug": "docs", "description": "Docs"},
+            ),
+        )
+        assert category_2_res.status_code == 201, category_2_res.text
+
+        site_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
+        query = """
+        query ListContent(
+          $perspective: DeliveryPerspective!,
+          $previewToken: String,
+          $articleFilter: ArticleFilterInput,
+          $articleSort: ArticleSortInput,
+          $pageFilter: PageFilterInput,
+          $pageSort: PageSortInput,
+          $sectionFilter: ReusableSectionFilterInput,
+          $sectionSort: ReusableSectionSortInput,
+          $categoryFilter: CategoryFilterInput,
+          $categorySort: CategorySortInput
+        ) {
+          articleEntries: articles(
+            perspective: $perspective,
+            previewToken: $previewToken,
+            filter: $articleFilter,
+            sort: $articleSort,
+            limit: 1,
+            offset: 0
+          ) {
+            title
+            slug
+            revision
+          }
+          pages(
+            perspective: $perspective,
+            previewToken: $previewToken,
+            filter: $pageFilter,
+            sort: $pageSort,
+            limit: 5,
+            offset: 0
+          ) {
+            title
+            path
+          }
+          reusableSections(
+            perspective: $perspective,
+            previewToken: $previewToken,
+            filter: $sectionFilter,
+            sort: $sectionSort,
+            limit: 5,
+            offset: 0
+          ) {
+            title
+            sectionKey
+          }
+          categories(
+            perspective: $perspective,
+            previewToken: $previewToken,
+            filter: $categoryFilter,
+            sort: $categorySort,
+            limit: 5,
+            offset: 0
+          ) {
+            name
+            slug
+          }
+        }
+        """
+
+        response = await _graphql(
+            client,
+            site_id,
+            query=query,
+            variables={
+                "perspective": "PREVIEW",
+                "previewToken": preview_token,
+                "articleFilter": {"slug": "hello-world"},
+                "articleSort": {"field": "REVISION", "direction": "DESC"},
+                "pageFilter": {"path": "/beta"},
+                "pageSort": {"field": "TITLE", "direction": "ASC"},
+                "sectionFilter": {"sectionKey": "site-header"},
+                "sectionSort": {"field": "SECTION_KEY", "direction": "ASC"},
+                "categoryFilter": {"slug": "news"},
+                "categorySort": {"field": "NAME", "direction": "ASC"},
+            },
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert "errors" not in payload, payload
+        assert payload["data"]["articleEntries"] == [{"title": "Hello world v2", "slug": "hello-world", "revision": 2}]
+        assert payload["data"]["pages"] == [{"title": "Beta Page", "path": "/beta"}]
+        assert payload["data"]["reusableSections"] == [{"title": "Header Alpha", "sectionKey": "site-header"}]
+        assert payload["data"]["categories"] == [{"name": "News Category", "slug": "news"}]
 
     get_settings.cache_clear()

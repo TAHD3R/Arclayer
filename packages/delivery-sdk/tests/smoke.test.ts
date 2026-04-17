@@ -193,6 +193,72 @@ describe("delivery-sdk", () => {
     expect(result.requestId).toBe("trace_delivery_graphql");
   });
 
+  it("executes typed graphql list documents with filter sort and pagination", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      expect(body.variables.filter.slug).toBe("hello-world");
+      expect(body.variables.sort.field).toBe("REVISION");
+      expect(body.variables.sort.direction).toBe("DESC");
+      expect(body.variables.limit).toBe(1);
+      expect(body.variables.offset).toBe(0);
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            articleEntries: [
+              {
+                id: "item_2",
+                locale: "en-US",
+                revision: 2,
+                revisionState: "draft",
+                draftRevision: 2,
+                publishedRevision: 1,
+                title: "Hello world v2",
+                slug: "hello-world",
+                summary: null,
+                content: "hello v2",
+                publishedAt: null,
+                customFields: {
+                  rating: 9,
+                },
+              },
+            ],
+          },
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Trace-Id": "trace_delivery_graphql_list",
+          },
+        },
+      );
+    });
+
+    const sdk = createDeliverySdk({
+      baseUrl: "https://api.arclayer.test",
+      fetch: fetchMock as typeof fetch,
+    });
+
+    const result = await sdk.content.articleEntries({
+      filter: {
+        slug: "hello-world",
+      },
+      limit: 1,
+      offset: 0,
+      perspective: "preview",
+      siteId: "site_123",
+      sort: {
+        direction: "DESC",
+        field: "REVISION",
+      },
+    });
+
+    expect(result.data.articleEntries).toHaveLength(1);
+    expect(result.data.articleEntries[0]?.revision).toBe(2);
+    expect(result.requestId).toBe("trace_delivery_graphql_list");
+  });
+
   it("raises DeliveryGraphQLError on graphql errors", async () => {
     const sdk = createDeliverySdk({
       baseUrl: "https://api.arclayer.test",
