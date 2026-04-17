@@ -6,7 +6,10 @@ from src.common.utils.public_ids import decode_public_id
 from src.models.content.publish_artifact import PublishArtifactRecord
 from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.release import ContentReleaseRecord
-from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from tests.modules.workspaces.content.test_content_items_integration import (
+    _wait_latest_workspace_audit_event,
+    _workspace_client,
+)
 from tests.modules.workspaces.publish.test_publish_integration import _publish_item, _setup_publishable_items
 
 pytestmark = pytest.mark.integration
@@ -151,12 +154,20 @@ async def test_release_management_list_detail_and_rollback(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        workspace_uuid = decode_public_id(workspace_id)
         root_item_id, child_item_id = await _prepare_publishable_tree(client, workspace_id)
         await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
         await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
 
         first_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
         assert first_publish.status_code == 200, first_publish.text
+        first_release_id = first_publish.json()["data"]["release"]["id"]
+        published_event = await _wait_latest_workspace_audit_event(
+            event_name="workspace.release.published",
+            workspace_id=workspace_uuid,
+            entity_id=decode_public_id(first_release_id),
+        )
+        assert published_event.properties["release_number"] == 1
 
         await _publish_version(client, workspace_id, root_item_id, version=2, title="Home v2", path="/")
         second_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
@@ -181,6 +192,12 @@ async def test_release_management_list_detail_and_rollback(
         assert rollback_data["release"]["id"] == first_release["id"]
         assert rollback_data["release"]["isActive"] is True
         assert rollback_data["previousActiveReleaseId"] == second_release["id"]
+        rollback_event = await _wait_latest_workspace_audit_event(
+            event_name="workspace.release.rolled_back",
+            workspace_id=workspace_uuid,
+            entity_id=decode_public_id(first_release["id"]),
+        )
+        assert rollback_event.properties["previous_active_release_id"] == str(decode_public_id(second_release["id"]))
 
         releases = await ContentReleaseRecord.all().order_by("release_number")
         assert [release.release_number for release in releases] == [1, 2]

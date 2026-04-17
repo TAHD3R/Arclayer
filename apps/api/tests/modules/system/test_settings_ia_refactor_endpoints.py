@@ -21,6 +21,7 @@ pytestmark = pytest.mark.integration
 async def test_system_runtime_public_endpoint(monkeypatch) -> None:
     monkeypatch.setenv("TEST_DATABASE__ENABLED", "0")
     monkeypatch.setenv("TEST_VALKEY__ENABLED", "0")
+    monkeypatch.setenv("AUTH__ALLOW_PUBLIC_REGISTER", "0")
     get_settings.cache_clear()
 
     app = FastAPI()

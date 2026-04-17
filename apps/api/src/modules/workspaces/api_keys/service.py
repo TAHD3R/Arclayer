@@ -55,6 +55,13 @@ class WorkspaceApiKeysService(BaseService):
             created_by_user_id=owner_user_id,
             expires_at=self._normalize_expires_at(payload.expires_at),
         )
+        self.logger.info(
+            "Personal API key created",
+            actor_user_id=str(owner_user_id),
+            key_family=ApiKeyFamily.PERSONAL_MANAGEMENT.value,
+            key_id=str(record.id),
+            scopes=[scope.value for scope in scopes],
+        )
         return ApiKeyCreateOut(key=self._to_out(record), secret_token=generated.token)
 
     async def get_personal_key_out(self, *, owner_user_id: UUID, key_id: UUID) -> ApiKeyOut:
@@ -66,6 +73,12 @@ class WorkspaceApiKeysService(BaseService):
         row = self._require_record(record, error="API_KEY_NOT_FOUND")
         self._ensure_not_revoked(row)
         updated = await self.repo.update_key(row, fields={"revoked_at": datetime.now(tz=UTC)})
+        self.logger.info(
+            "Personal API key revoked",
+            actor_user_id=str(owner_user_id),
+            key_family=str(updated.key_family),
+            key_id=str(updated.id),
+        )
         return self._to_out(updated)
 
     async def rotate_personal_key_out(self, *, owner_user_id: UUID, key_id: UUID) -> ApiKeyCreateOut:
@@ -81,6 +94,13 @@ class WorkspaceApiKeysService(BaseService):
                 "token_mask": generated.token_mask,
                 "last_used_at": None,
             },
+        )
+        self.logger.info(
+            "Personal API key rotated",
+            actor_user_id=str(owner_user_id),
+            key_family=str(updated.key_family),
+            key_id=str(updated.id),
+            new_token_public_id=updated.token_public_id,
         )
         return ApiKeyCreateOut(key=self._to_out(updated), secret_token=generated.token)
 
@@ -126,6 +146,16 @@ class WorkspaceApiKeysService(BaseService):
             created_by_user_id=actor_user_id,
             expires_at=self._normalize_expires_at(payload.expires_at),
         )
+        self.logger.info(
+            "Workspace API key created",
+            actor_user_id=str(actor_user_id),
+            delivery_perspective=delivery_perspective.value if delivery_perspective is not None else None,
+            key_family=family.value,
+            key_id=str(record.id),
+            scopes=[scope.value for scope in scopes],
+            site_id=str(site_id),
+            workspace_id=str(workspace_id),
+        )
         return ApiKeyCreateOut(key=self._to_out(record), secret_token=generated.token)
 
     async def get_workspace_key_out(self, *, workspace_id: UUID, key_id: UUID) -> ApiKeyOut:
@@ -137,6 +167,12 @@ class WorkspaceApiKeysService(BaseService):
         row = self._require_record(record, error="API_KEY_NOT_FOUND")
         self._ensure_not_revoked(row)
         updated = await self.repo.update_key(row, fields={"revoked_at": datetime.now(tz=UTC)})
+        self.logger.info(
+            "Workspace API key revoked",
+            key_family=str(updated.key_family),
+            key_id=str(updated.id),
+            workspace_id=str(workspace_id),
+        )
         return self._to_out(updated)
 
     async def rotate_workspace_key_out(self, *, workspace_id: UUID, key_id: UUID) -> ApiKeyCreateOut:
@@ -153,6 +189,13 @@ class WorkspaceApiKeysService(BaseService):
                 "last_used_at": None,
             },
         )
+        self.logger.info(
+            "Workspace API key rotated",
+            key_family=str(updated.key_family),
+            key_id=str(updated.id),
+            new_token_public_id=updated.token_public_id,
+            workspace_id=str(workspace_id),
+        )
         return ApiKeyCreateOut(key=self._to_out(updated), secret_token=generated.token)
 
     def _mint_key(self, family: ApiKeyFamily) -> GeneratedApiKey:
@@ -168,12 +211,12 @@ class WorkspaceApiKeysService(BaseService):
             return key
         except ValueError as exc:
             raise ServiceUnavailable(
-                message=t("auth", "MASTER_KEY_INVALID", default="当前安全密钥暂不可用，请联系管理员完成修复后重试。"),
+                message=t("auth", "MASTER_KEY_INVALID"),
                 error="MASTER_KEY_INVALID",
             ) from exc
         except OSError as exc:
             raise ServiceUnavailable(
-                message=t("auth", "TWO_FACTOR_SETUP_UNAVAILABLE", default="系统安全密钥暂不可用，请稍后再试。"),
+                message=t("auth", "TWO_FACTOR_SETUP_UNAVAILABLE"),
                 error="API_KEY_HASHING_UNAVAILABLE",
             ) from exc
 

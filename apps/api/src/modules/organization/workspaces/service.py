@@ -245,15 +245,15 @@ class OrganizationWorkspaceService(BaseService):
         if requested_slug:
             normalized_slug, err = parse_explicit_workspace_slug(requested_slug)
             if err == "invalid" or normalized_slug is None:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_SLUG_INVALID")
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_INVALID")
             if err == "reserved":
                 raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    message=t("errors", "BAD_REQUEST"),
                     error="WORKSPACE_SLUG_RESERVED",
                 )
             if await self.repo.slug_exists(slug=normalized_slug):
                 raise Conflict(
-                    message=t("errors", "CONFLICT", default="资源冲突"),
+                    message=t("errors", "CONFLICT"),
                     error="WORKSPACE_SLUG_EXISTS",
                 )
             slug = normalized_slug

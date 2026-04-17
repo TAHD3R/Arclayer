@@ -34,12 +34,12 @@ async def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
-                response = await client.get("/boom")
+                response = await client.get("/boom", headers={"X-Locale": "en-US"})
 
     assert response.status_code == 400
     payload = response.json()
 
-    assert payload["message"] == "Failed"
+    assert payload["message"] == "Bad request"
     assert payload["error"] == "BAD_REQUEST"
     assert not any("ORJSONResponse is deprecated" in str(item.message) for item in caught)
 
@@ -55,11 +55,11 @@ async def test_http_exception_handler(monkeypatch, tmp_path: Path) -> None:
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with app.router.lifespan_context(app):
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/missing")
+            response = await client.get("/missing", headers={"X-Locale": "en-US"})
 
     assert response.status_code == 404
     payload = response.json()
-    assert payload["message"] == "Not found"
+    assert payload["message"] == "Resource not found"
     assert payload["error"] == "NOT_FOUND"
 
 
@@ -74,7 +74,7 @@ async def test_request_validation_handler(monkeypatch, tmp_path: Path) -> None:
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with app.router.lifespan_context(app):
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/query", params={"q": "abc"})
+            response = await client.get("/query", params={"q": "abc"}, headers={"X-Locale": "en-US"})
 
     assert response.status_code == 422
     payload = response.json()
@@ -95,7 +95,7 @@ async def test_unhandled_error_handler(monkeypatch, tmp_path: Path) -> None:
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with app.router.lifespan_context(app):
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/unhandled")
+            response = await client.get("/unhandled", headers={"X-Locale": "en-US"})
 
     assert response.status_code == 500
     payload = response.json()

@@ -390,6 +390,7 @@ class AnalyticsAuditLogSettings(BaseSettings):
     event_allowlist: list[str] = Field(
         default_factory=lambda: [
             "auth.*",
+            "me.api_key.*",
             "workspace.*",
             "rbac.*",
             "system.*",

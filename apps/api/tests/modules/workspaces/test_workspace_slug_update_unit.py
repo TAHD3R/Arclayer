@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -18,12 +19,15 @@ class _FakeWorkspace:
         self.slug = slug
         self.kind = "team"
         self.name = "demo"
+        self.description = None
         self.icon_mode = "initials"
         self.icon_color = "#337ea9"
         self.icon_glyph = None
         self.icon_emoji = None
         self.icon_url = None
         self.is_active = True
+        self.created_at = datetime.now(UTC)
+        self.updated_at = datetime.now(UTC)
         self.saved_update_fields: list[str] | None = None
 
     async def save(self, *, update_fields: list[str]) -> None:

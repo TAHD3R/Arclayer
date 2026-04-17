@@ -15,13 +15,13 @@
 
 ## Context Recovery Block
 
-- **Current milestone**: Phase 5 — Official SDKs
+- **Current milestone**: Backend+SDK v1 epic closed
 - **Current status**: DONE
-- **Last completed**: Phase 5 — Official SDKs
-- **Current artifact**: `.codex-tasks/20260417-headless-cms-backend-sdk-v1-epic/tasks/20260417-phase5-official-sdks/`
-- **Key context**: Management REST, delivery REST, and the query-only GraphQL slice now have official TypeScript SDK wrappers with aligned auth, request-id exposure, and typed error mapping.
-- **Known issues**: Phase 6 operational readiness has not started yet.
-- **Next action**: Open the operational readiness child task and wire logs, audit, and performance validation to the new API and SDK surfaces.
+- **Last completed**: Phase 6 — Operational readiness
+- **Current artifact**: `.codex-tasks/20260417-headless-cms-backend-sdk-v1-epic/tasks/20260417-phase6-operational-readiness/`
+- **Key context**: The backend and SDK feature surfaces are in place with request-id aware logs, audit visibility, benchmark baselines, and green release-readiness validation.
+- **Known issues**: `pnpm api:check` is green with existing typecheck warnings.
+- **Next action**: Commit the closed epic state.
 
 ---
 
@@ -243,3 +243,41 @@
   - `packages/openapi/src/generated/{index.ts,sdk.gen.ts,types.gen.ts}`
   - `pnpm-lock.yaml`
 - **Next step**: Start Phase 6 — Operational readiness
+
+---
+
+## Milestone 7: Operational Readiness
+
+- **Status**: DONE
+- **Started**: 2026-04-17
+- **Completed**: 2026-04-18
+- **What was done**:
+  - Added structured lifecycle logs for personal and workspace API key create, revoke, and rotate paths.
+  - Added audit events for personal/workspace API key lifecycle actions and release publish/rollback actions.
+  - Added delivery REST logs for page resolve and page-by-id success/failure paths.
+  - Added GraphQL access logs with request-state dedupe and delivery-key perspective/scope metadata.
+  - Added a repeatable benchmark harness for published `pages.resolve`, GraphQL public read, and GraphQL delivery-key read.
+  - Recorded benchmark baselines in `docs/plans/2026-04-17-headless-cms-backend-sdk-v1/benchmark-baselines.md`.
+  - Recovered API full-gate baseline drift in touched tests and locale/config seams so the release-readiness gate is green.
+- **Validation**:
+  - Passed: `pnpm api:check`
+  - Passed: `pnpm -C packages/openapi generate`
+  - Passed: `pnpm --filter @arclayer/management-sdk test`
+  - Passed: `pnpm --filter @arclayer/delivery-sdk test`
+  - Passed earlier focused gates for API key lifecycle, release publish/rollback, delivery, GraphQL, and benchmark baselines.
+- **Review**:
+  - `code-review-graph` reported high breadth risk (`0.80`) and highlighted config/workspace/delivery/GraphQL/setup review priorities.
+  - `serena` symbol review checked API key event publication, release event publication, GraphQL access, delivery handlers, setup DB-disabled behavior, workspace creation, and database settings.
+  - No blocker was found in the reviewed Phase 6 paths.
+- **Files changed**:
+  - `apps/api/src/modules/workspaces/api_keys/{router.py,service.py}`
+  - `apps/api/src/modules/workspaces/releases/{router.py,service.py}`
+  - `apps/api/src/modules/sites/delivery/router.py`
+  - `apps/api/src/modules/sites/graphql/{schema.py,service.py}`
+  - `apps/api/src/config.py`
+  - `apps/api/src/modules/system/setup/service.py`
+  - `apps/api/src/modules/organization/workspaces/service.py`
+  - `apps/api/tests/modules/sites/test_sites_benchmark_baselines_integration.py`
+  - `docs/plans/2026-04-17-headless-cms-backend-sdk-v1/benchmark-baselines.md`
+  - API baseline tests and locale fixtures touched by the final gate recovery.
+- **Next step**: Commit closed backend+SDK v1 epic state

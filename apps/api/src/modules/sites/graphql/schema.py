@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import enum
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import strawberry
 from graphql import GraphQLError
 from strawberry.scalars import JSON
 
+from src.common.types.json_types import JsonValue
 from src.core.exceptions import APIError
 from src.modules.sites.delivery.schema import DeliveryGlobalSetOut, DeliveryPageOut, DeliverySectionOut
 from src.modules.sites.graphql.service import (
+    GraphQLPerspective,
     SiteGraphQLContext,
     StructuredContentRecord,
     graphql_error_extensions,
@@ -186,12 +188,20 @@ def _raise_graphql_error(exc: APIError) -> None:
     raise GraphQLError(exc.message, extensions=graphql_error_extensions(exc)) from exc
 
 
+def _as_json(value: dict[str, JsonValue] | dict[str, Any]) -> JSON:
+    return cast(JSON, value)
+
+
+def _as_optional_json(value: dict[str, JsonValue] | dict[str, Any] | None) -> JSON | None:
+    return cast(JSON | None, value)
+
+
 async def _require_access(
     info: strawberry.Info[SiteGraphQLContext, None],
     *,
     perspective: Perspective,
     preview_token: str | None,
-) -> str:
+) -> GraphQLPerspective:
     try:
         await info.context.graphql.resolve_query_access(
             site_id=info.context.site_id,
@@ -224,7 +234,7 @@ def _to_delivery_page(payload: DeliveryPageOut | None) -> GraphQLDeliveryPage | 
     return GraphQLDeliveryPage(
         match=GraphQLRouteMatch(
             kind=str(payload.match.kind),
-            params=payload.match.params,
+            params=_as_json(payload.match.params),
             page_id=str(payload.match.page_id) if payload.match.page_id is not None else None,
             variant_id=payload.match.variant_id,
             revision=payload.match.revision,
@@ -240,12 +250,12 @@ def _to_delivery_page(payload: DeliveryPageOut | None) -> GraphQLDeliveryPage | 
         document=(
             GraphQLFlattenedPage(
                 path=payload.document.path,
-                layout=payload.document.layout,
+                layout=_as_optional_json(payload.document.layout),
                 sections=[
                     GraphQLFlattenedSection(
                         id=section.id,
                         component_key=section.component_key,
-                        props=section.props,
+                        props=_as_json(section.props),
                     )
                     for section in payload.document.sections
                 ],
@@ -261,12 +271,12 @@ def _to_delivery_page(payload: DeliveryPageOut | None) -> GraphQLDeliveryPage | 
                         model_key=payload.context.primary.model_key,
                         slug=payload.context.primary.slug,
                         title=payload.context.primary.title,
-                        data=payload.context.primary.data,
+                        data=_as_json(payload.context.primary.data),
                     )
                     if payload.context.primary is not None
                     else None
                 ),
-                route_params=payload.context.route_params,
+                route_params=_as_json(payload.context.route_params),
             )
             if payload.context is not None
             else None
@@ -285,12 +295,12 @@ def _to_delivery_section(payload: DeliverySectionOut) -> GraphQLDeliverySection:
         draft_revision=payload.draft_revision,
         published_revision=payload.published_revision,
         document=GraphQLDeliverySectionDocument(
-            layout=payload.document.layout,
+            layout=_as_optional_json(payload.document.layout),
             sections=[
                 GraphQLFlattenedSection(
                     id=section.id,
                     component_key=section.component_key,
-                    props=section.props,
+                    props=_as_json(section.props),
                 )
                 for section in payload.document.sections
             ],
@@ -307,7 +317,7 @@ def _to_global_set(payload: DeliveryGlobalSetOut) -> GraphQLGlobalSet:
                 id=item.id,
                 name=item.name,
                 key=item.key,
-                payload=item.payload,
+                payload=_as_optional_json(item.payload),
                 section_alias=item.section_alias,
                 section=_to_delivery_section(item.section) if item.section is not None else None,
             )
@@ -329,7 +339,7 @@ def _to_article_entry(record: StructuredContentRecord) -> ArticleEntry:
         summary=record.fields.get("summary"),
         content=record.fields.get("content"),
         published_at=record.fields.get("published_at"),
-        custom_fields=record.custom_fields,
+        custom_fields=_as_json(record.custom_fields),
     )
 
 
@@ -347,7 +357,7 @@ def _to_page_entry(record: StructuredContentRecord) -> PageEntry:
         title=record.title,
         path=record.route_path or record.fields.get("path"),
         route_pattern=route_pattern or record.fields.get("route_pattern"),
-        custom_fields=record.custom_fields,
+        custom_fields=_as_json(record.custom_fields),
     )
 
 
@@ -361,8 +371,8 @@ def _to_reusable_section_entry(record: StructuredContentRecord) -> ReusableSecti
         published_revision=record.published_revision,
         title=record.title,
         section_key=record.fields.get("section_key"),
-        props_defaults=record.fields.get("props_defaults"),
-        custom_fields=record.custom_fields,
+        props_defaults=_as_optional_json(cast(dict[str, Any] | None, record.fields.get("props_defaults"))),
+        custom_fields=_as_json(record.custom_fields),
     )
 
 
@@ -377,7 +387,7 @@ def _to_category_entry(record: StructuredContentRecord) -> CategoryEntry:
         name=record.fields.get("name"),
         slug=record.slug,
         description=record.fields.get("description"),
-        custom_fields=record.custom_fields,
+        custom_fields=_as_json(record.custom_fields),
     )
 
 

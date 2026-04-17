@@ -5,10 +5,13 @@ from uuid import UUID
 
 from src.core.exceptions import NotFound
 from src.core.i18n import t
+from src.core.logging import get_logger
 from src.models.content.release import ContentReleaseRecord
 from src.modules.workspaces.publish.service import WorkspacePublishService
 from src.modules.workspaces.releases.repository import WorkspaceReleasesRepository
 from src.modules.workspaces.releases.schema import ReleaseListOut, ReleaseOut, ReleasePublishOut, ReleaseRollbackOut
+
+logger = get_logger(__name__)
 
 
 class WorkspaceReleasesService:
@@ -36,6 +39,15 @@ class WorkspaceReleasesService:
             site_id=site_id,
             actor_user_id=actor_user_id,
         )
+        logger.info(
+            "Workspace release published",
+            actor_user_id=str(actor_user_id),
+            graph_nodes=artifacts.graph_nodes,
+            release_id=str(release.id),
+            release_number=release.release_number,
+            site_id=str(site_id),
+            workspace_id=str(workspace_id),
+        )
         return ReleasePublishOut(
             release=self._to_out(release),
             graph_nodes=artifacts.graph_nodes,
@@ -56,6 +68,16 @@ class WorkspaceReleasesService:
             site_id=site_id,
             release=release,
             activated_at=datetime.now(tz=UTC),
+        )
+        logger.info(
+            "Workspace release rolled back",
+            previous_active_release_id=str(previous_active_release_id)
+            if previous_active_release_id is not None
+            else None,
+            release_id=str(activated.id),
+            release_number=activated.release_number,
+            site_id=str(site_id),
+            workspace_id=str(workspace_id),
         )
         return ReleaseRollbackOut(
             release=self._to_out(activated),

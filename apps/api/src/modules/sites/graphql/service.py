@@ -10,6 +10,7 @@ from strawberry.fastapi import BaseContext
 
 from src.config import Settings
 from src.core.exceptions import APIError, Forbidden, ServiceUnavailable
+from src.core.logging import get_logger
 from src.models.workspaces.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
 from src.modules.sites.content.service import SiteContentService
 from src.modules.sites.delivery.schema import (
@@ -29,6 +30,7 @@ from src.platform.cache.valkey import ValkeyClientLike
 from src.settings.crypto import ensure_master_key, master_key_exists
 
 GraphQLPerspective = Literal["published", "preview"]
+logger = get_logger(__name__)
 
 _ARTICLE_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "content": ("content", "body"),
@@ -111,11 +113,13 @@ class SiteGraphQLService:
         api_key = await self._authenticate_delivery_key(request=request, site_id=site_id)
         if perspective == "published":
             if api_key is None:
+                self._log_query_access(request=request, site_id=site_id, perspective=perspective, api_key=None)
                 return
             if not api_key.graphql_read:
                 raise Forbidden("GraphQL scope required", error="GRAPHQL_SCOPE_REQUIRED")
             if api_key.record.delivery_perspective != DeliveryKeyPerspective.PUBLISHED:
                 raise Forbidden("Delivery key perspective forbidden", error="DELIVERY_KEY_PERSPECTIVE_FORBIDDEN")
+            self._log_query_access(request=request, site_id=site_id, perspective=perspective, api_key=api_key)
             return
 
         if api_key is not None:
@@ -123,8 +127,38 @@ class SiteGraphQLService:
                 raise Forbidden("GraphQL scope required", error="GRAPHQL_SCOPE_REQUIRED")
             if api_key.record.delivery_perspective != DeliveryKeyPerspective.PREVIEW:
                 raise Forbidden("Delivery key perspective forbidden", error="DELIVERY_KEY_PERSPECTIVE_FORBIDDEN")
+            self._log_query_access(request=request, site_id=site_id, perspective=perspective, api_key=api_key)
             return
         await self._site_service.assert_preview_access_async(site_id=site_id, mode="preview", token=preview_token)
+        self._log_query_access(
+            request=request, site_id=site_id, perspective=perspective, api_key=None, preview_token=preview_token
+        )
+
+    @staticmethod
+    def _log_query_access(
+        *,
+        request: Request,
+        site_id: UUID,
+        perspective: GraphQLPerspective,
+        api_key: AuthenticatedDeliveryKey | None,
+        preview_token: str | None = None,
+    ) -> None:
+        if getattr(request.state, "graphql_access_logged", False):
+            return
+        request.state.graphql_access_logged = True
+        logger.info(
+            "GraphQL query access granted",
+            access_mode="api_key" if api_key is not None else ("preview_token" if preview_token else "public"),
+            delivery_key_id=str(api_key.record.id) if api_key is not None else None,
+            delivery_key_perspective=(
+                str(api_key.record.delivery_perspective)
+                if api_key is not None and api_key.record.delivery_perspective is not None
+                else None
+            ),
+            graphql_read=api_key.graphql_read if api_key is not None else None,
+            perspective=perspective,
+            site_id=str(site_id),
+        )
 
     async def delivery_resolve_page(
         self,
@@ -411,6 +445,10 @@ class SiteGraphQLService:
 
 
 class SiteGraphQLContext(BaseContext):
+    site_id: UUID
+    request: Request
+    graphql: SiteGraphQLService
+
     def __init__(
         self,
         *,

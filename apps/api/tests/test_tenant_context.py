@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
@@ -19,7 +20,7 @@ async def test_get_workspace_context_returns_guest_context(monkeypatch: pytest.M
     organization_uuid = uuid4()
     membership_uuid = uuid4()
 
-    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4())
+    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4(), kind="team")
 
     async def require_active_workspace(*, workspace_id: UUID):
         assert workspace_id == workspace_uuid
@@ -71,7 +72,7 @@ async def test_get_workspace_context_returns_member_context(monkeypatch: pytest.
     membership_uuid = uuid4()
     org_membership_id = uuid4()
 
-    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4())
+    workspace_obj = SimpleNamespace(id=workspace_uuid, created_by_user_id=uuid4(), kind="team")
     orgm = SimpleNamespace(id=org_membership_id, role=OrgRole.MEMBER)
 
     async def require_active_workspace(*, workspace_id: UUID):
@@ -178,9 +179,15 @@ def test_build_guest_workspace_list_uses_workspace_org_id() -> None:
         slug="ws",
         name="Workspace",
         kind="team",
+        description=None,
         owner_user_id=None,
+        icon_mode="initials",
+        icon_color="#337ea9",
+        icon_glyph=None,
+        icon_emoji=None,
         icon_url=None,
         created_by_user_id=uuid4(),
+        created_at=datetime.now(UTC),
     )
 
     out = ws_service._build_guest_workspace_list(workspaces=[ws])  # type: ignore[arg-type]

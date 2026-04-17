@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi import Response as FastAPIResponse
@@ -10,6 +10,7 @@ from fastapi import Response as FastAPIResponse
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.logging import get_logger
 from src.modules.sites.delivery.schema import (
     DeliveryGlobalSetOut,
     DeliveryMenuOut,
@@ -22,6 +23,7 @@ from src.modules.sites.service import SiteService
 from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(prefix="/sites/{site_id}/delivery", tags=["external.sites.delivery"])
+logger = get_logger(__name__)
 
 
 def _get_site_service(
@@ -43,7 +45,7 @@ def _cache_for_perspective(perspective: DeliveryPerspective) -> str:
     return _CACHE_PREVIEW if perspective == "preview" else _CACHE_PUBLIC
 
 
-def _mode_for_perspective(perspective: DeliveryPerspective) -> str:
+def _mode_for_perspective(perspective: DeliveryPerspective) -> Literal["public", "preview"]:
     return "preview" if perspective == "preview" else "public"
 
 
@@ -101,9 +103,24 @@ async def resolve_delivery_page(
     raw_response.headers["cache-control"] = _cache_for_perspective(perspective)
     data = await service.delivery_resolve_page(site_id=site_id, path=path, perspective=perspective)
     if data is None:
+        logger.warning(
+            "Delivery page route not found",
+            path=path,
+            perspective=perspective,
+            site_id=str(site_id),
+        )
         from src.core.exceptions import NotFound
 
         raise NotFound("Route not found", error="PAGE_ROUTE_NOT_FOUND")
+    logger.info(
+        "Delivery page resolved",
+        page_id=str(data.match.page_id) if data.match.page_id is not None else None,
+        path=path,
+        perspective=perspective,
+        revision=data.match.revision,
+        revision_state=data.match.revision_state,
+        site_id=str(site_id),
+    )
     return ApiResponse.success(data=data)
 
 
@@ -126,9 +143,23 @@ async def get_delivery_page_by_id(
     raw_response.headers["cache-control"] = _cache_for_perspective(perspective)
     data = await service.delivery_get_page_by_id(site_id=site_id, page_id=page_id, perspective=perspective)
     if data is None:
+        logger.warning(
+            "Delivery page lookup failed",
+            page_id=str(page_id),
+            perspective=perspective,
+            site_id=str(site_id),
+        )
         from src.core.exceptions import NotFound
 
         raise NotFound("Page not found", error="PAGE_NOT_FOUND")
+    logger.info(
+        "Delivery page fetched by id",
+        page_id=str(page_id),
+        perspective=perspective,
+        revision=data.match.revision,
+        revision_state=data.match.revision_state,
+        site_id=str(site_id),
+    )
     return ApiResponse.success(data=data)
 
 

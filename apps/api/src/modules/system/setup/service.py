@@ -7,8 +7,10 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
+from tortoise import Tortoise
 
 from src.common.services import BaseService
+from src.config import Settings
 from src.models.organization.user import User
 
 
@@ -38,6 +40,10 @@ class InstanceSetupState(BaseModel):
 
 class InstanceSetupService(BaseService):
     """Classify instance setup readiness from install.lock and super-admin truth."""
+
+    def __init__(self, settings: Settings) -> None:
+        super().__init__(settings)
+        self._database_available = bool(settings.database.enabled)
 
     @property
     def install_lock_path(self) -> Path:
@@ -74,6 +80,8 @@ class InstanceSetupService(BaseService):
         )
 
     async def count_super_admins(self) -> int:
+        if not self._database_available or not Tortoise._inited:
+            return 0
         return int(await User.filter(is_super_admin=True).count())
 
     def read_install_lock(self) -> InstallLockMetadata:
