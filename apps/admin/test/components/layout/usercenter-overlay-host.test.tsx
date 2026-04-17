@@ -3,12 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UsercenterOverlayHost } from "@/components/layout/usercenter-overlay-host";
-import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const historyBackMock = vi.fn();
 
-const overlaySearch: { usercenter?: string } = { usercenter: "profile" };
+const overlaySearch: { personalSettings?: string } = { personalSettings: "profile" };
 const routerState = {
   pathname: "/w/ws-1/assets",
   hash: "#gallery",
@@ -46,75 +45,78 @@ vi.mock("@/pages/usercenter/notifications/components/user-notification-settings-
 }));
 
 function renderOverlayHost() {
-  return render(
-    <ChromeTabsProvider
-      labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
-    >
-      <UsercenterOverlayHost />
-    </ChromeTabsProvider>,
-  );
+  return render(<UsercenterOverlayHost />);
 }
 
 describe("UsercenterOverlayHost", () => {
   beforeEach(() => {
     navigateMock.mockClear();
     historyBackMock.mockClear();
-    overlaySearch.usercenter = "profile";
+    overlaySearch.personalSettings = "profile";
     routerState.pathname = "/w/ws-1/assets";
     routerState.hash = "#gallery";
     window.history.replaceState({ __TSR_index: 1 }, "");
   });
 
-  it("renders the active overlay tab content inside expandable screen chrome", () => {
+  it("renders the shared settings frame inside the overlay chrome", () => {
     renderOverlayHost();
 
-    const header = screen.getByRole("tablist").closest("div.flex.items-center.gap-4.border-b");
     const closeButton = screen.getByRole("button", { name: "Close" });
+    const overlayContent = screen.getByTestId("settings-shell-frame");
+    const nav = screen.getByRole("navigation", { name: "account:SETTINGS_SHELL_TITLE" });
 
-    expect(header).not.toBeNull();
-    expect(header).toHaveClass(
-      "flex",
-      "items-center",
-      "gap-4",
-      "border-b",
-      "border-border/70",
-      "px-10",
+    expect(overlayContent).not.toBeNull();
+    expect(overlayContent).toHaveClass(
+      "h-full",
+      "w-full",
+      "max-w-none",
+      "rounded-none",
+      "border-0",
+      "shadow-none",
     );
-    expect(header).toContainElement(closeButton);
+    expect(nav).toBeVisible();
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");
     expect(closeButton).toHaveClass("shrink-0");
-    expect(screen.getByRole("tab", { name: "account:ACCOUNT_NAV_PROFILE" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_PROFILE" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_APPEARANCE" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_NOTIFICATIONS" })).toBeVisible();
+    expect(screen.getByText("account:SETTINGS_NAV_SECTION_PERSONAL")).toBeVisible();
+    expect(screen.getByText("account:SETTINGS_NAV_SECTION_WORKSPACE")).toBeVisible();
+    expect(screen.getByText("account:SETTINGS_NAV_WORKSPACE_GENERAL")).toBeVisible();
     expect(screen.getByText("account:ME_TAB_PROFILE")).toBeVisible();
     expect(screen.getByText("account:ME_TAB_PROFILE_DESC")).toBeVisible();
     expect(screen.getByTestId("overlay-profile-view")).toBeVisible();
-    expect(screen.queryByRole("tab", { name: "account:ACCOUNT_NAV_SECURITY" })).toBeNull();
-    expect(screen.queryByRole("tab", { name: "account:ACCOUNT_NAV_BILLING" })).toBeNull();
-    expect(screen.queryByRole("tab", { name: "account:ACCOUNT_NAV_USAGE" })).toBeNull();
-    expect(screen.queryByRole("tab", { name: "account:ACCOUNT_NAV_DANGER" })).toBeNull();
+    expect(screen.queryByText("个人设置")).toBeNull();
+    expect(screen.queryByText("设置管理个人偏好与工作空间访问项。")).toBeNull();
+    expect(screen.queryByText(/To pick up a draggable item/i)).toBeNull();
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("bg-background/80");
+    expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_PROFILE" })).toHaveClass(
+      "text-sm",
+    );
   });
 
-  it("switches tabs by masked navigation while keeping the current background route", async () => {
+  it("switches sections by masked navigation while keeping the current background route", async () => {
     const user = userEvent.setup();
     renderOverlayHost();
 
-    await user.click(screen.getByRole("tab", { name: "account:ACCOUNT_NAV_NOTIFICATIONS" }));
+    await user.click(screen.getByRole("button", { name: "account:ACCOUNT_NAV_NOTIFICATIONS" }));
 
     const navigation = navigateMock.mock.calls.at(-1)?.[0];
     expect(navigation.to).toBe("/w/ws-1/assets");
     expect(navigation.hash).toBe("#gallery");
     expect(navigation.replace).toBe(true);
-    expect(navigation.mask).toEqual({ to: "/usercenter/notifications" });
+    expect(navigation.mask).toEqual({ to: "/settings/personal/notifications" });
     expect(navigation.search({ assetId: "asset-1" })).toEqual({
       assetId: "asset-1",
-      usercenter: "notifications",
+      personalSettings: "notifications",
     });
   });
 
   it("mounts a dedicated internal scroll region for overlay content", () => {
     renderOverlayHost();
 
-    expect(screen.getByTestId("usercenter-overlay-scroll-region")).toHaveClass(
+    expect(screen.getByTestId("settings-shell-scroll-region")).toHaveClass(
       "min-h-0",
       "flex-1",
       "overflow-y-auto",

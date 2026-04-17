@@ -51,7 +51,7 @@ function renderWithQuery(node: ReactElement) {
 }
 
 function renderSection() {
-  return renderWithQuery(<UserLinkedAccountsSection redirect="/usercenter/profile" />);
+  return renderWithQuery(<UserLinkedAccountsSection redirect="/settings/personal/profile" />);
 }
 
 beforeAll(async () => {

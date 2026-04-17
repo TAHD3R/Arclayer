@@ -17,7 +17,7 @@ export type UsercenterOverlayItem = {
 export const USERCENTER_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] = [
   {
     tab: "profile",
-    to: "/usercenter/profile",
+    to: "/settings/personal/profile",
     labelKey: "account:ACCOUNT_NAV_PROFILE",
     titleKey: "account:ME_TAB_PROFILE",
     descriptionKey: "account:ME_TAB_PROFILE_DESC",
@@ -25,7 +25,7 @@ export const USERCENTER_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] = [
   },
   {
     tab: "preferences",
-    to: "/usercenter/preferences",
+    to: "/settings/personal/preferences",
     labelKey: "account:ACCOUNT_NAV_APPEARANCE",
     titleKey: "account:ME_TAB_PREFERENCES",
     descriptionKey: "account:ME_TAB_PREFERENCES_DESC",
@@ -33,7 +33,7 @@ export const USERCENTER_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] = [
   },
   {
     tab: "notifications",
-    to: "/usercenter/notifications",
+    to: "/settings/personal/notifications",
     labelKey: "account:ACCOUNT_NAV_NOTIFICATIONS",
     titleKey: "account:ME_TAB_NOTIFICATIONS",
     descriptionKey: "account:ME_TAB_NOTIFICATIONS_DESC",

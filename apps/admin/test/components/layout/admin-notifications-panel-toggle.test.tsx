@@ -33,7 +33,7 @@ vi.mock("@tanstack/react-router", () => ({
     select,
   }: {
     select: (state: { location: { pathname: string } }) => unknown;
-  }) => select({ location: { pathname: "/usercenter/profile" } }),
+  }) => select({ location: { pathname: "/settings/personal/profile" } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -206,7 +206,7 @@ describe("AdminNotificationsPanel toggle", () => {
       to: "/notifications",
       search: {
         sourceKind: "account",
-        sourcePath: "/usercenter/profile",
+        sourcePath: "/settings/personal/profile",
       },
     });
   });

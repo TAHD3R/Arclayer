@@ -84,7 +84,9 @@ describe("account deletion danger flow", () => {
       hasLinkedOauthIdentities: true,
     });
 
-    renderWithQuery(<UserDangerSection email="demo@example.com" redirect="/usercenter/profile" />);
+    renderWithQuery(
+      <UserDangerSection email="demo@example.com" redirect="/settings/personal/profile" />,
+    );
 
     const action = await screen.findByRole("button", {
       name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION"),
@@ -120,7 +122,9 @@ describe("account deletion danger flow", () => {
     });
     deleteMyAccountMock.mockResolvedValue(null);
 
-    renderWithQuery(<UserDangerSection email="demo@example.com" redirect="/usercenter/profile" />);
+    renderWithQuery(
+      <UserDangerSection email="demo@example.com" redirect="/settings/personal/profile" />,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION") }),
@@ -162,7 +166,9 @@ describe("account deletion danger flow", () => {
       hasLinkedOauthIdentities: true,
     });
 
-    renderWithQuery(<UserDangerSection email="demo@example.com" redirect="/usercenter/profile" />);
+    renderWithQuery(
+      <UserDangerSection email="demo@example.com" redirect="/settings/personal/profile" />,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION") }),
@@ -183,7 +189,7 @@ describe("account deletion danger flow", () => {
     );
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/login",
-      search: { redirect: "/usercenter/profile" },
+      search: { redirect: "/settings/personal/profile" },
       replace: true,
     });
   });
@@ -201,7 +207,9 @@ describe("account deletion danger flow", () => {
     });
     deleteMyAccountMock.mockResolvedValue(null);
 
-    renderWithQuery(<UserDangerSection email="demo@example.com" redirect="/usercenter/profile" />);
+    renderWithQuery(
+      <UserDangerSection email="demo@example.com" redirect="/settings/personal/profile" />,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION") }),

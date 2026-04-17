@@ -34,20 +34,20 @@ function resolveWorkspaceId(params: unknown): string | null {
 export function RouteDocumentTitleManager(): null {
   const { t } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const { usercenter } = useSearch({ from: "__root__" });
+  const { personalSettings } = useSearch({ from: "__root__" });
 
   const matches = useRouterState({
     select: (s) => s.matches,
   });
 
   const titleKey = useMemo(() => {
-    if (usercenter) return getUsercenterOverlayTitleKey(usercenter);
+    if (personalSettings) return getUsercenterOverlayTitleKey(personalSettings);
     for (let i = matches.length - 1; i >= 0; i -= 1) {
       const key = resolveTitleKey(matches[i]?.staticData);
       if (key) return key;
     }
     return null;
-  }, [matches, usercenter]);
+  }, [matches, personalSettings]);
 
   const workspaceId = useMemo(() => {
     for (let i = matches.length - 1; i >= 0; i -= 1) {

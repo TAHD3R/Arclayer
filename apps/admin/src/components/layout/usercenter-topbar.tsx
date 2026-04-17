@@ -6,7 +6,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 
 const ACCOUNT_COMMAND_SCOPE = {
   kind: "none",
-  pathname: "/usercenter",
+  pathname: "/settings/personal",
   workspaceId: null,
   organizationId: null,
 } as const;

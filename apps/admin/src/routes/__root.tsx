@@ -80,10 +80,6 @@ export const Route = createRootRoute({
     }
 
     if (token && !isPublic && location.pathname !== "/") {
-      if (location.pathname === "/usercenter" || location.pathname.startsWith("/usercenter/")) {
-        throw redirect({ to: "/workspaces", replace: true });
-      }
-
       const decision = await resolvePostAuthRoute({
         lastWorkspaceId: workspaceState.lastWorkspaceId,
       });

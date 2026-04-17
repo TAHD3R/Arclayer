@@ -170,7 +170,7 @@ export function ExpandableScreenContent({
     <AnimatePresence initial={false}>
       {isExpanded && (
         <motion.div
-          className={`fixed inset-0 ${overlayZIndexClassName} px-6 pt-6 pb-0 sm:px-8 sm:pt-8 sm:pb-0`}
+          className={`fixed inset-0 ${overlayZIndexClassName} flex items-center justify-center p-5 sm:p-8`}
           exit={{ opacity: 0, transition: { duration: animationDuration } }}
         >
           <motion.button
@@ -186,9 +186,9 @@ export function ExpandableScreenContent({
           <motion.div
             layoutId={layoutId}
             transition={{ duration: animationDuration }}
-            style={{ borderRadius: `${contentRadius} ${contentRadius} 0 0` }}
+            style={{ borderRadius: contentRadius }}
             layout
-            className={`relative z-10 flex h-full w-full overflow-hidden transform-gpu will-change-transform ${className}`}
+            className={`relative z-10 flex h-[calc(100dvh-100px)] w-[90vw] max-w-[1512px] overflow-hidden transform-gpu will-change-transform ${className}`}
           >
             <motion.div
               initial={{ opacity: 0 }}
@@ -201,7 +201,7 @@ export function ExpandableScreenContent({
           </motion.div>
 
           {showCloseButton ? (
-            <div className="pointer-events-none absolute right-10 top-10 z-20 sm:right-12 sm:top-12">
+            <div className="pointer-events-none absolute top-5 z-20 w-[90vw] max-w-[1512px] sm:top-8">
               <Button
                 type="button"
                 variant="ghost"
@@ -211,7 +211,7 @@ export function ExpandableScreenContent({
                   e.stopPropagation();
                   collapse();
                 }}
-                className={`pointer-events-auto ${closeButtonClassName}`}
+                className={`pointer-events-auto absolute right-3 top-3 sm:right-4 sm:top-4 ${closeButtonClassName}`}
                 aria-label="Close"
               >
                 <X className="size-4" />

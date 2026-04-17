@@ -252,8 +252,8 @@ describe("AdminAccountMenu", () => {
     const navigation = navigateMock.mock.calls.at(-1)?.[0];
     expect(navigation.to).toBe("/w/ws-1/");
     expect(navigation.hash).toBe("");
-    expect(navigation.mask).toEqual({ to: "/usercenter/profile" });
-    expect(navigation.search({ q: "demo" })).toEqual({ q: "demo", usercenter: "profile" });
+    expect(navigation.mask).toEqual({ to: "/settings/personal/profile" });
+    expect(navigation.search({ q: "demo" })).toEqual({ q: "demo", personalSettings: "profile" });
   });
 
   it("在 /workspaces 打开个人设置时也会复用同一套 masked overlay contract", async () => {
@@ -266,7 +266,10 @@ describe("AdminAccountMenu", () => {
 
     const navigation = navigateMock.mock.calls.at(-1)?.[0];
     expect(navigation.to).toBe("/workspaces/");
-    expect(navigation.mask).toEqual({ to: "/usercenter/profile" });
-    expect(navigation.search({ create: "1" })).toEqual({ create: "1", usercenter: "profile" });
+    expect(navigation.mask).toEqual({ to: "/settings/personal/profile" });
+    expect(navigation.search({ create: "1" })).toEqual({
+      create: "1",
+      personalSettings: "profile",
+    });
   });
 });

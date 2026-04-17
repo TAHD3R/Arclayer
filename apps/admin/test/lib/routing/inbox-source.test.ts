@@ -20,11 +20,11 @@ describe("inbox source search", () => {
     expect(
       validateNotificationsSourceSearch({
         sourceKind: "account",
-        sourcePath: "/usercenter/profile/",
+        sourcePath: "/settings/personal/profile/",
       }),
     ).toEqual({
       sourceKind: "account",
-      sourcePath: "/usercenter/profile",
+      sourcePath: "/settings/personal/profile",
     });
 
     expect(
@@ -56,7 +56,7 @@ describe("inbox source search", () => {
     expect(
       validateNotificationsSourceSearch({
         sourceKind: "global",
-        sourcePath: "/usercenter/profile",
+        sourcePath: "/settings/personal/profile",
       }),
     ).toEqual({});
   });
@@ -66,9 +66,9 @@ describe("inbox source search", () => {
       sourceKind: "workspace",
       sourcePath: "/w/ws-1/assets",
     });
-    expect(buildNotificationsSourceSearch("/usercenter/profile/")).toEqual({
+    expect(buildNotificationsSourceSearch("/settings/personal/profile/")).toEqual({
       sourceKind: "account",
-      sourcePath: "/usercenter/profile",
+      sourcePath: "/settings/personal/profile",
     });
     expect(buildNotificationsSourceSearch("/workspaces/")).toEqual({
       sourceKind: "global",

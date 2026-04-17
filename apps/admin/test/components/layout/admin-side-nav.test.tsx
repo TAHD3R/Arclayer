@@ -1059,7 +1059,7 @@ describe("AdminSiderNav collapsed groups", () => {
 
   it("updates the active branch when pathnameOverride changes between workspace source pages", async () => {
     const user = userEvent.setup();
-    mockPathname = "/usercenter/profile";
+    mockPathname = "/settings/personal/profile";
     const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/w/ws-1");
 
     const view = renderTreeNav({

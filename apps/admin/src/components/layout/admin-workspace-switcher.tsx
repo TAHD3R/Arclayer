@@ -1,9 +1,8 @@
 import { type ReactNode, useMemo, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   Check,
   ChevronDown,
   PanelLeftIcon,
@@ -22,7 +21,7 @@ import {
   type WorkspaceAvatarIdentity,
 } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
-import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
+import { switchWorkspacePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { MyWorkspace } from "@/types/api";
@@ -639,11 +638,8 @@ export function AdminWorkspaceSwitcher({
   const { t } = useTranslation(["common"]);
   const accessToken = useAuthStore((state) => state.accessToken);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
-  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
-  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const { toggleSidebar } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const navigate = useNavigate();
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
 
   const workspaceDetailQuery = useQuery({
@@ -661,110 +657,7 @@ export function AdminWorkspaceSwitcher({
   const isHeaderVariant = variant === "header";
 
   if (!isWorkspaceScopeRoute) {
-    const backLabel = t("common:WORKSPACE_SWITCHER_BACK_TO_WORKSPACE");
-    const effectiveBackWorkspaceId = currentWorkspaceId ?? lastWorkspaceId ?? null;
-    const canGoBack = Boolean(effectiveBackWorkspaceId);
-
-    if (isHeaderVariant) {
-      return (
-        <Button
-          type="button"
-          variant="ghost"
-          aria-label={backLabel}
-          className={cn(
-            headerTriggerButtonClassName,
-            "justify-start",
-            !canGoBack && "opacity-60",
-            className,
-          )}
-          disabled={!canGoBack}
-          onClick={() => {
-            if (!effectiveBackWorkspaceId) return;
-            setCurrentWorkspaceId(effectiveBackWorkspaceId);
-            void navigate({ to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never });
-          }}
-        >
-          <ArrowLeft className="size-4 shrink-0 opacity-80" aria-hidden="true" />
-          <div className="min-w-0 flex-1 text-left">
-            <TruncatedText
-              text={backLabel}
-              className="text-callout font-semibold text-label-primary"
-            />
-          </div>
-        </Button>
-      );
-    }
-
-    return (
-      <div className={cn("w-full min-w-0", className)}>
-        <div
-          className={cn(
-            sidebarTriggerShellClassName,
-            "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
-          )}
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            aria-label={backLabel}
-            className={cn(
-              sidebarTriggerButtonClassName,
-              !canGoBack && "opacity-60",
-              "group-data-[collapsible=icon]:!justify-center",
-            )}
-            disabled={!canGoBack}
-            onClick={() => {
-              if (!effectiveBackWorkspaceId) return;
-              setCurrentWorkspaceId(effectiveBackWorkspaceId);
-              void navigate({ to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never });
-            }}
-          >
-            <ArrowLeft
-              className={cn(
-                "size-4 shrink-0 opacity-70",
-                "group-data-[collapsible=icon]:opacity-100",
-              )}
-              aria-hidden="true"
-            />
-            <div
-              className={cn(
-                "min-w-0 flex-1",
-                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
-              )}
-            >
-              <TruncatedText
-                text={backLabel}
-                className="text-callout font-semibold text-label-primary"
-              />
-            </div>
-          </Button>
-
-          {showSidebarToggle ? (
-            <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
-          ) : null}
-        </div>
-
-        {showSidebarToggle ? (
-          <div
-            className={cn(
-              "mt-0 flex justify-center overflow-hidden",
-              "h-0 opacity-0 pointer-events-none",
-              "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-              "group-data-[collapsible=icon]:mt-2",
-              "group-data-[collapsible=icon]:h-10",
-              "group-data-[collapsible=icon]:opacity-100",
-              "group-data-[collapsible=icon]:pointer-events-auto",
-            )}
-          >
-            <CollapsedCollapseButton
-              ariaLabel={t("common:SIDEBAR_TOGGLE")}
-              onClick={toggleSidebar}
-            />
-          </div>
-        ) : null}
-      </div>
-    );
+    return null;
   }
 
   const canOpenPanel = Boolean(accessToken);

@@ -15,7 +15,7 @@ function isValidRelativePath(value: string): boolean {
 function isAllowedSourcePath(kind: NotificationsSourceKind, path: string): boolean {
   if (kind === "workspace") return path.startsWith("/w/");
   if (kind === "global") return isGlobalPath(path);
-  return path.startsWith("/usercenter/") || path === "/usercenter";
+  return path.startsWith("/settings/personal/") || path === "/settings";
 }
 
 export function validateNotificationsSourceSearch(
@@ -61,7 +61,7 @@ export function buildNotificationsSourceSearch(pathname: string): NotificationsS
     };
   }
 
-  if (normalized.startsWith("/usercenter")) {
+  if (normalized.startsWith("/settings/personal") || normalized === "/settings") {
     return {
       sourceKind: "account",
       sourcePath: normalized,

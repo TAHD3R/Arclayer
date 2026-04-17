@@ -120,7 +120,7 @@ describe("Profile password entry migration", () => {
     renderWithQuery(
       <UserProfileAccountSecuritySection
         email="tester@example.com"
-        redirect="/usercenter/profile"
+        redirect="/settings/personal/profile"
       />,
     );
 
@@ -132,7 +132,7 @@ describe("Profile password entry migration", () => {
   });
 
   it("profile password card shows change-password action for password accounts", async () => {
-    renderWithQuery(<UserPasswordSection redirect="/usercenter/profile" />);
+    renderWithQuery(<UserPasswordSection redirect="/settings/personal/profile" />);
     expect(
       await screen.findByText(i18n.t("account:ME_PROFILE_PASSWORD_DESC_CHANGE")),
     ).toBeInTheDocument();
@@ -158,7 +158,7 @@ describe("Profile password entry migration", () => {
     renderWithQuery(
       <UserProfileAccountSecuritySection
         email="tester@example.com"
-        redirect="/usercenter/profile"
+        redirect="/settings/personal/profile"
       />,
     );
 
@@ -189,7 +189,7 @@ describe("Profile password entry migration", () => {
       emailChangeRequiredReauthMethods: ["2fa"],
     });
 
-    renderWithQuery(<UserPasswordSection redirect="/usercenter/profile" />);
+    renderWithQuery(<UserPasswordSection redirect="/settings/personal/profile" />);
     expect(
       await screen.findByText(i18n.t("account:ME_PROFILE_PASSWORD_DESC_SET_2FA")),
     ).toBeInTheDocument();
@@ -217,7 +217,7 @@ describe("Profile password entry migration", () => {
       expect(clearWorkspaceMock).toHaveBeenCalled();
       expect(navigateMock).toHaveBeenCalledWith({
         to: "/login",
-        search: { redirect: "/usercenter/profile" },
+        search: { redirect: "/settings/personal/profile" },
         replace: true,
       });
     });
@@ -225,7 +225,7 @@ describe("Profile password entry migration", () => {
 
   it("password accounts can switch to remove-password verification flow", async () => {
     const user = userEvent.setup();
-    renderWithQuery(<UserPasswordSection redirect="/usercenter/profile" />);
+    renderWithQuery(<UserPasswordSection redirect="/settings/personal/profile" />);
 
     await user.click(
       await screen.findByRole("button", {
@@ -260,7 +260,7 @@ describe("Profile password entry migration", () => {
       expect(clearWorkspaceMock).toHaveBeenCalled();
       expect(navigateMock).toHaveBeenCalledWith({
         to: "/login",
-        search: { redirect: "/usercenter/profile" },
+        search: { redirect: "/settings/personal/profile" },
         replace: true,
       });
     });
