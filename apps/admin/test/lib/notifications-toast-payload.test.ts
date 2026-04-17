@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { ApiError } from "@/lib/http";
 
 const messageErrorMock = vi.fn();
 const messageInfoMock = vi.fn();
@@ -32,6 +34,10 @@ vi.mock("@/lib/i18n", async (importOriginal) => {
 });
 
 describe("notifications toast payloads", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("uses a structured success toast with generic title and message description", async () => {
     const { notifySuccessText } = await import("@/lib/notifications");
 
@@ -51,6 +57,24 @@ describe("notifications toast payloads", () => {
     expect(messageErrorMock).toHaveBeenCalledWith({
       title: "Oops! Something went wrong.",
       description: "You do not have permission to do that.",
+    });
+  });
+
+  it("includes the trace id from ApiError metadata in error toasts", async () => {
+    const { notifyError } = await import("@/lib/notifications");
+
+    notifyError(
+      new ApiError({
+        status: 500,
+        message: "Something broke.",
+        meta: { trace_id: "req_456" },
+      }),
+    );
+
+    expect(messageErrorMock).toHaveBeenCalledWith({
+      title: "Oops! Something went wrong.",
+      description: "Something broke.",
+      requestId: "req_456",
     });
   });
 

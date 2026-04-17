@@ -7,6 +7,25 @@ export function setMessageApi(api: unknown) {
   void api;
 }
 
+function resolveRequestId(err: unknown): string | undefined {
+  if (!(err instanceof ApiError) || !err.meta || typeof err.meta !== "object") {
+    return undefined;
+  }
+
+  const meta = err.meta as Record<string, unknown>;
+  const traceId = meta.traceId;
+  if (typeof traceId === "string" && traceId.trim()) {
+    return traceId;
+  }
+
+  const traceIdSnake = meta.trace_id;
+  if (typeof traceIdSnake === "string" && traceIdSnake.trim()) {
+    return traceIdSnake;
+  }
+
+  return undefined;
+}
+
 function translateErrorCode(errorCode: string): string | null {
   // i18next returns the key itself when missing; treat that as "not translated".
   const translated = i18n.t(errorCode, { ns: "errors" });
@@ -30,6 +49,7 @@ export function notifyError(err: unknown) {
   message.error({
     title: i18n.t("TOAST_TITLE_ERROR", { ns: "common" }),
     description: text,
+    requestId: resolveRequestId(err),
   });
   console.error(text, err);
 }

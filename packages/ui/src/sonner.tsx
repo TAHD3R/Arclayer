@@ -10,20 +10,28 @@ import {
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
+import { cn } from "@arclayer/lib/utils";
+
+import { buttonVariants } from "./button";
+
+const TOAST_WIDTH = "min(28rem, calc(100vw - 2rem))";
+
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
-  const { position, toastOptions, ...restProps } = props;
+  const { closeButton, position, toastOptions, ...restProps } = props;
   const mergedToastOptions: ToasterProps["toastOptions"] = {
     ...toastOptions,
     classNames: {
       toast:
-        "rounded-md border border-border/70 bg-popover text-popover-foreground !w-[min(22rem,calc(100vw-2rem))] !items-start !gap-3 !px-4 !py-3 !shadow-none",
+        "rounded-md border border-border/70 bg-popover text-popover-foreground !items-start !gap-3 !px-4 !py-3 !shadow-none [&_[data-content]]:pr-7",
       content: "grid flex-1 gap-0.5",
       title: "!text-headline !font-semibold !leading-5 !text-label-primary",
       description: "!text-callout !leading-5 !text-label-secondary",
       icon: "mt-0.5 shrink-0 self-start text-current [&_svg]:size-4",
-      closeButton:
-        "border-border/60 bg-background text-label-secondary hover:bg-accent hover:text-label-primary",
+      closeButton: cn(
+        buttonVariants({ variant: "ghost", size: "icon-xs" }),
+        "!left-auto !right-2.5 !top-2.5 !translate-x-0 !translate-y-0 !border-0 !bg-transparent !p-0 !text-label-secondary !shadow-none",
+      ),
       success: "border-positive/25 [&_[data-icon]]:text-positive",
       error: "border-negative/25 [&_[data-icon]]:text-negative",
       warning: "border-warning/35 [&_[data-icon]]:text-warning",
@@ -37,7 +45,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       position={position ?? "top-right"}
-      className="toaster group"
+      closeButton={closeButton ?? true}
+      className="toaster group !z-[2200]"
       toastOptions={mergedToastOptions}
       icons={{
         success: <CircleCheckIcon className="size-4" />,
@@ -48,6 +57,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
+          "--width": TOAST_WIDTH,
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
@@ -57,8 +67,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--toast-svg-margin-start": "0px",
           "--toast-svg-margin-end": "0px",
           "--toast-close-button-start": "unset",
-          "--toast-close-button-end": "0",
-          "--toast-close-button-transform": "translate(35%, -35%)",
+          "--toast-close-button-end": "0.75rem",
+          "--toast-close-button-transform": "none",
         } as React.CSSProperties
       }
       {...restProps}

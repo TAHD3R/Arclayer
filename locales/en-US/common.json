@@ -92,6 +92,8 @@
   "TOAST_TITLE_ERROR": "Oops! Something went wrong.",
   "TOAST_TITLE_INFO": "Heads up!",
   "TOAST_TITLE_WARNING": "Warning!",
+  "TOAST_REQUEST_ID_VALUE": "Request ID: {{id}}",
+  "TOAST_REQUEST_ID_TOOLTIP": "If you report this error to Customer Care, share this request ID so they can investigate.",
   "EMPTY_DESC": "There is nothing to display yet.",
   "EMPTY_TITLE": "No data",
   "EXTENSIONS": "Extensions",

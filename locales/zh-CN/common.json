@@ -92,6 +92,8 @@
   "TOAST_TITLE_ERROR": "出了点问题。",
   "TOAST_TITLE_INFO": "请留意！",
   "TOAST_TITLE_WARNING": "警告！",
+  "TOAST_REQUEST_ID_VALUE": "请求 ID：{{id}}",
+  "TOAST_REQUEST_ID_TOOLTIP": "如果你向客户关怀团队报告这个错误，请提供此请求 ID，方便他们调查。",
   "EMPTY_DESC": "当前还没有可展示的数据。",
   "EMPTY_TITLE": "暂无数据",
   "EXTENSIONS": "扩展",

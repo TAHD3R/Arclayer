@@ -50,7 +50,7 @@ function TooltipContent({
   return (
     <TooltipContentPrimitive
       className={cn(
-        "z-[2300] w-fit rounded-md border border-border/70 bg-popover text-popover-foreground shadow-lg shadow-black/5",
+        "w-fit rounded-md border border-border/70 bg-popover text-popover-foreground shadow-lg shadow-black/5",
         className,
       )}
       {...props}

@@ -23,16 +23,19 @@ describe("shared Toaster", () => {
   it("defaults to a top-right placement and shared typography classes", async () => {
     const { Toaster } = await import("@arclayer/ui/sonner");
 
-    render(<Toaster richColors closeButton />);
+    render(<Toaster richColors />);
 
     expect(capturedProps?.position).toBe("top-right");
+    expect(capturedProps?.closeButton).toBe(true);
+    expect(capturedProps?.className).toBe("toaster group !z-[2200]");
     expect(capturedProps?.toastOptions).toMatchObject({
       classNames: {
         toast:
-          "rounded-md border border-border/70 bg-popover text-popover-foreground !w-[min(22rem,calc(100vw-2rem))] !items-start !gap-3 !px-4 !py-3 !shadow-none",
+          "rounded-md border border-border/70 bg-popover text-popover-foreground !items-start !gap-3 !px-4 !py-3 !shadow-none [&_[data-content]]:pr-7",
         title: "!text-headline !font-semibold !leading-5 !text-label-primary",
         description: "!text-callout !leading-5 !text-label-secondary",
         icon: "mt-0.5 shrink-0 self-start text-current [&_svg]:size-4",
+        closeButton: expect.stringContaining("size-6"),
         success: "border-positive/25 [&_[data-icon]]:text-positive",
         error: "border-negative/25 [&_[data-icon]]:text-negative",
         warning: "border-warning/35 [&_[data-icon]]:text-warning",
@@ -40,10 +43,16 @@ describe("shared Toaster", () => {
         loading: "[&_[data-icon]]:text-primary",
       },
     });
+    expect(capturedProps?.toastOptions).toMatchObject({
+      classNames: {
+        closeButton: expect.stringContaining("!right-2.5 !top-2.5"),
+      },
+    });
     expect(capturedProps?.style).toMatchObject({
+      "--width": "min(28rem, calc(100vw - 2rem))",
       "--toast-close-button-start": "unset",
-      "--toast-close-button-end": "0",
-      "--toast-close-button-transform": "translate(35%, -35%)",
+      "--toast-close-button-end": "0.75rem",
+      "--toast-close-button-transform": "none",
       "--toast-icon-margin-start": "0px",
       "--toast-icon-margin-end": "0px",
       "--toast-svg-margin-start": "0px",
