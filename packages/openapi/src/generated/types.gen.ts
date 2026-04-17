@@ -3063,6 +3063,66 @@ export type DeleteOrganizationResult = {
 };
 
 /**
+ * DeliveryGlobalSetItemOut
+ */
+export type DeliveryGlobalSetItemOut = {
+    /**
+     * Id
+     *
+     * Global set item id.
+     */
+    id: string;
+    /**
+     * Key
+     *
+     * Global set logical key.
+     */
+    key: string;
+    /**
+     * Name
+     *
+     * Global set item display name.
+     */
+    name: string;
+    /**
+     * Payload
+     *
+     * Stored binding payload.
+     */
+    payload?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Resolved reusable section document.
+     */
+    section?: DeliverySectionOut | null;
+    /**
+     * Sectionalias
+     *
+     * Bound reusable section alias.
+     */
+    sectionAlias?: string | null;
+};
+
+/**
+ * DeliveryGlobalSetOut
+ */
+export type DeliveryGlobalSetOut = {
+    /**
+     * Items
+     *
+     * Resolved global set items.
+     */
+    items?: Array<DeliveryGlobalSetItemOut>;
+    /**
+     * Key
+     *
+     * Resolved global set key.
+     */
+    key: string;
+};
+
+/**
  * DeliveryKeyPerspective
  *
  * Delivery key perspective boundary.
@@ -3087,6 +3147,84 @@ export type DeliveryMenuOut = {
      * Menu key.
      */
     key: string;
+};
+
+/**
+ * DeliverySectionDocumentOut
+ */
+export type DeliverySectionDocumentOut = {
+    /**
+     * Layout
+     *
+     * Optional section/root layout payload.
+     */
+    layout?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Sections
+     *
+     * Flattened nested section instances in render order.
+     */
+    sections?: Array<SiteFlattenedSectionOut>;
+};
+
+/**
+ * DeliverySectionOut
+ */
+export type DeliverySectionOut = {
+    /**
+     * Alias
+     *
+     * Reusable section alias / section_key.
+     */
+    alias: string;
+    /**
+     * Flattened section delivery document.
+     */
+    document: DeliverySectionDocumentOut;
+    /**
+     * Draftrevision
+     *
+     * Current draft revision pointer.
+     */
+    draftRevision: number;
+    /**
+     * Id
+     *
+     * Section item id.
+     */
+    id: string;
+    /**
+     * Publishedrevision
+     *
+     * Current published revision pointer.
+     */
+    publishedRevision?: number | null;
+    /**
+     * Revision
+     *
+     * Resolved revision number.
+     */
+    revision: number;
+    /**
+     * Revisionstate
+     *
+     * Resolved revision state.
+     */
+    revisionState: 'draft' | 'published';
+    /**
+     * Title
+     *
+     * Section title.
+     */
+    title?: string | null;
+    /**
+     * Warnings
+     *
+     * Structured delivery warnings.
+     */
+    warnings?: Array<ResolveWarningV1> | null;
 };
 
 /**
@@ -10591,10 +10729,60 @@ export type ResponseModelDeleteOrganizationResult = {
 };
 
 /**
+ * ResponseModel[DeliveryGlobalSetOut]
+ */
+export type ResponseModelDeliveryGlobalSetOut = {
+    data?: DeliveryGlobalSetOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[DeliveryMenuOut]
  */
 export type ResponseModelDeliveryMenuOut = {
     data?: DeliveryMenuOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DeliverySectionOut]
+ */
+export type ResponseModelDeliverySectionOut = {
+    data?: DeliverySectionOut | null;
     /**
      * Error
      */
@@ -21769,6 +21957,53 @@ export type ExternalSitesGetSiteContextResponses = {
 
 export type ExternalSitesGetSiteContextResponse = ExternalSitesGetSiteContextResponses[keyof ExternalSitesGetSiteContextResponses];
 
+export type ExternalSitesDeliveryResolveDeliveryGlobalSetData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/delivery/global-sets/{key}';
+};
+
+export type ExternalSitesDeliveryResolveDeliveryGlobalSetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalSitesDeliveryResolveDeliveryGlobalSetError = ExternalSitesDeliveryResolveDeliveryGlobalSetErrors[keyof ExternalSitesDeliveryResolveDeliveryGlobalSetErrors];
+
+export type ExternalSitesDeliveryResolveDeliveryGlobalSetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliveryGlobalSetOut;
+};
+
+export type ExternalSitesDeliveryResolveDeliveryGlobalSetResponse = ExternalSitesDeliveryResolveDeliveryGlobalSetResponses[keyof ExternalSitesDeliveryResolveDeliveryGlobalSetResponses];
+
 export type ExternalSitesDeliveryGetDeliveryMenuData = {
     body?: never;
     path: {
@@ -21803,6 +22038,149 @@ export type ExternalSitesDeliveryGetDeliveryMenuResponses = {
 
 export type ExternalSitesDeliveryGetDeliveryMenuResponse = ExternalSitesDeliveryGetDeliveryMenuResponses[keyof ExternalSitesDeliveryGetDeliveryMenuResponses];
 
+export type ExternalSitesDeliveryResolveDeliveryPageData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query: {
+        /**
+         * Path
+         *
+         * Request pathname (e.g. /blog/hello).
+         */
+        path: string;
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/delivery/pages/resolve';
+};
+
+export type ExternalSitesDeliveryResolveDeliveryPageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalSitesDeliveryResolveDeliveryPageError = ExternalSitesDeliveryResolveDeliveryPageErrors[keyof ExternalSitesDeliveryResolveDeliveryPageErrors];
+
+export type ExternalSitesDeliveryResolveDeliveryPageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type ExternalSitesDeliveryResolveDeliveryPageResponse = ExternalSitesDeliveryResolveDeliveryPageResponses[keyof ExternalSitesDeliveryResolveDeliveryPageResponses];
+
+export type ExternalSitesDeliveryGetDeliveryPageByIdData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+        /**
+         * Page Id
+         */
+        page_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/delivery/pages/{page_id}';
+};
+
+export type ExternalSitesDeliveryGetDeliveryPageByIdErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalSitesDeliveryGetDeliveryPageByIdError = ExternalSitesDeliveryGetDeliveryPageByIdErrors[keyof ExternalSitesDeliveryGetDeliveryPageByIdErrors];
+
+export type ExternalSitesDeliveryGetDeliveryPageByIdResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type ExternalSitesDeliveryGetDeliveryPageByIdResponse = ExternalSitesDeliveryGetDeliveryPageByIdResponses[keyof ExternalSitesDeliveryGetDeliveryPageByIdResponses];
+
+export type ExternalSitesDeliveryGetDeliverySectionByAliasData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+        /**
+         * Alias
+         */
+        alias: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/delivery/sections/{alias}';
+};
+
+export type ExternalSitesDeliveryGetDeliverySectionByAliasErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalSitesDeliveryGetDeliverySectionByAliasError = ExternalSitesDeliveryGetDeliverySectionByAliasErrors[keyof ExternalSitesDeliveryGetDeliverySectionByAliasErrors];
+
+export type ExternalSitesDeliveryGetDeliverySectionByAliasResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliverySectionOut;
+};
+
+export type ExternalSitesDeliveryGetDeliverySectionByAliasResponse = ExternalSitesDeliveryGetDeliverySectionByAliasResponses[keyof ExternalSitesDeliveryGetDeliverySectionByAliasResponses];
+
 export type ExternalSitesDeliveryGetDeliveryStyleData = {
     body?: never;
     path: {
@@ -21832,6 +22210,41 @@ export type ExternalSitesDeliveryGetDeliveryStyleResponses = {
 };
 
 export type ExternalSitesDeliveryGetDeliveryStyleResponse = ExternalSitesDeliveryGetDeliveryStyleResponses[keyof ExternalSitesDeliveryGetDeliveryStyleResponses];
+
+export type DomainSitesHandleHttpGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/sites/{site_id}/graphql';
+};
+
+export type DomainSitesHandleHttpGetErrors = {
+    /**
+     * Not found if GraphiQL or query via GET are not enabled.
+     */
+    404: unknown;
+};
+
+export type DomainSitesHandleHttpGetResponses = {
+    /**
+     * The GraphiQL integrated development environment.
+     */
+    200: unknown;
+};
+
+export type DomainSitesHandleHttpPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/sites/{site_id}/graphql';
+};
+
+export type DomainSitesHandleHttpPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type ExternalSitesPatternsListSitePatternsData = {
     body?: never;

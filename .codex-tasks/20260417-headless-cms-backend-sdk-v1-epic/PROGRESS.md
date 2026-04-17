@@ -16,12 +16,12 @@
 ## Context Recovery Block
 
 - **Current milestone**: Phase 5 — Official SDKs
-- **Current status**: IN_PROGRESS
-- **Last completed**: Phase 4 — GraphQL query layer
+- **Current status**: DONE
+- **Last completed**: Phase 5 — Official SDKs
 - **Current artifact**: `.codex-tasks/20260417-headless-cms-backend-sdk-v1-epic/tasks/20260417-phase5-official-sdks/`
-- **Key context**: Management REST, delivery REST, and the query-only GraphQL slice now share the same published/preview release truth and delivery-key auth semantics.
-- **Known issues**: Official SDK packages still need to be materialized on top of the stabilized contracts.
-- **Next action**: Build the management and delivery SDK packages and prove their type-safe smoke path.
+- **Key context**: Management REST, delivery REST, and the query-only GraphQL slice now have official TypeScript SDK wrappers with aligned auth, request-id exposure, and typed error mapping.
+- **Known issues**: Phase 6 operational readiness has not started yet.
+- **Next action**: Open the operational readiness child task and wire logs, audit, and performance validation to the new API and SDK surfaces.
 
 ---
 
@@ -215,3 +215,31 @@
   - `apps/api/tests/modules/workspaces/content/test_content_models_integration.py`
   - `apps/api/tests/modules/workspaces/test_workspace_content_models_integration.py`
 - **Next step**: Start Phase 5 — Official SDKs
+
+---
+
+## Milestone 6: Official SDKs
+
+- **Status**: DONE
+- **Started**: 2026-04-17
+- **Completed**: 2026-04-17
+- **What was done**:
+  - Added the formal `@arclayer/management-sdk` package with typed OpenAPI wrappers for content items, model governance, route bindings, API keys, releases, and site settings.
+  - Added the formal `@arclayer/delivery-sdk` package with delivery-key auth helpers, GraphQL execution helpers, typed document helpers, and REST wrappers for page resolve, page-by-id, reusable sections, global sets, menus, and styles.
+  - Regenerated `@arclayer/openapi` so the delivery endpoints and GraphQL transport routes are exported to SDK consumers through the shared generated surface.
+  - Added smoke coverage for bearer-management auth, delivery-key auth, request-id exposure, API-envelope error mapping, GraphQL error mapping, and the new reusable-section/global-set delivery reads.
+- **Validation**:
+  - Passed: `pnpm -C packages/openapi generate`
+  - Passed: `pnpm --filter @arclayer/management-sdk typecheck`
+  - Passed: `pnpm --filter @arclayer/management-sdk test`
+  - Passed: `pnpm --filter @arclayer/delivery-sdk typecheck`
+  - Passed: `pnpm --filter @arclayer/delivery-sdk test`
+- **Review**:
+  - `code-review-graph` review on the Phase 5 SDK file set did not surface a new blocker in the changed package layer; the reported test gaps remained stale cross-repo items unrelated to the SDK changes.
+  - `serena` symbol review confirmed the key closure points: `createManagementSdk` exposes the expected management domains, `DeliveryRestClient` now routes pages, sections, and global sets through generated delivery operations, and `createDeliverySdk` exports the formal REST/GraphQL entrypoints required by the spec.
+- **Files changed**:
+  - `packages/management-sdk/{package.json,tsconfig.json,src/*,tests/smoke.test.ts,examples/basic.ts}`
+  - `packages/delivery-sdk/{package.json,tsconfig.json,src/*,tests/smoke.test.ts,examples/basic.ts}`
+  - `packages/openapi/src/generated/{index.ts,sdk.gen.ts,types.gen.ts}`
+  - `pnpm-lock.yaml`
+- **Next step**: Start Phase 6 — Operational readiness

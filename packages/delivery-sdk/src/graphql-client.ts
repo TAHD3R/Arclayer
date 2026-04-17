@@ -1,0 +1,317 @@
+import type {
+  ArticleBySlugQueryData,
+  ArticleBySlugQueryVariables,
+  ArticleEntriesQueryData,
+  ArticleEntriesQueryVariables,
+  CategoryBySlugQueryData,
+  CategoryBySlugQueryVariables,
+  DeliveryPerspective,
+  DeliverySdkOptions,
+  GraphQLExecutionResult,
+  GraphQLResponse,
+  GraphQLVariables,
+  PageEntryByPathQueryData,
+  PageEntryByPathQueryVariables,
+  ResolvePageQueryData,
+  ResolvePageQueryVariables,
+  ReusableSectionByAliasQueryData,
+  ReusableSectionByAliasQueryVariables,
+  TypedDocumentString,
+} from "./types";
+import { DeliveryGraphQLError } from "./errors";
+import {
+  createDeliveryHeaders,
+  normalizeDeliveryBaseUrl,
+  readDeliveryRequestId,
+  toGraphqlPerspective,
+} from "./auth";
+
+const buildGraphqlResult = <T>(
+  response: Response,
+  payload: GraphQLResponse<T>,
+): GraphQLExecutionResult<T> => ({
+  data: payload.data as T,
+  message: "OK",
+  meta: undefined,
+  requestId: readDeliveryRequestId(response),
+  status: response.status,
+});
+
+export class DeliveryGraphQLClient {
+  constructor(private readonly options: DeliverySdkOptions) {}
+
+  async execute<TResult, TVariables extends GraphQLVariables = GraphQLVariables>(input: {
+    document: TypedDocumentString<TResult, TVariables> | string;
+    operationName?: string;
+    siteId: string;
+    variables?: TVariables;
+  }): Promise<GraphQLExecutionResult<TResult>> {
+    const headers = await createDeliveryHeaders(this.options, {
+      "Content-Type": "application/json",
+    });
+    const response = await (this.options.fetch ?? globalThis.fetch)(
+      `${normalizeDeliveryBaseUrl(this.options.baseUrl)}/api/v1/sites/${input.siteId}/graphql`,
+      {
+        body: JSON.stringify({
+          operationName: input.operationName,
+          query: String(input.document),
+          variables: input.variables ?? {},
+        }),
+        headers,
+        method: "POST",
+      },
+    );
+    const payload = (await response.json()) as GraphQLResponse<TResult>;
+    if (!response.ok || payload.errors?.length) {
+      throw new DeliveryGraphQLError({
+        errors: payload.errors ?? [
+          {
+            message: response.statusText || "GraphQL request failed",
+          },
+        ],
+        requestId: readDeliveryRequestId(response),
+        status: response.status,
+      });
+    }
+    return buildGraphqlResult(response, payload);
+  }
+
+  resolvePage(input: {
+    path: string;
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+  }) {
+    return this.execute<ResolvePageQueryData, ResolvePageQueryVariables>({
+      document: resolvePageDocument,
+      siteId: input.siteId,
+      variables: {
+        path: input.path,
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+      },
+    });
+  }
+
+  articleBySlug(input: {
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+    slug: string;
+  }) {
+    return this.execute<ArticleBySlugQueryData, ArticleBySlugQueryVariables>({
+      document: articleBySlugDocument,
+      siteId: input.siteId,
+      variables: {
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+        slug: input.slug,
+      },
+    });
+  }
+
+  articleEntries(input: {
+    limit?: number;
+    offset?: number;
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+  }) {
+    return this.execute<ArticleEntriesQueryData, ArticleEntriesQueryVariables>({
+      document: articleEntriesDocument,
+      siteId: input.siteId,
+      variables: {
+        limit: input.limit ?? 20,
+        offset: input.offset ?? 0,
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+      },
+    });
+  }
+
+  pageEntryByPath(input: {
+    path: string;
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+  }) {
+    return this.execute<PageEntryByPathQueryData, PageEntryByPathQueryVariables>({
+      document: pageEntryByPathDocument,
+      siteId: input.siteId,
+      variables: {
+        path: input.path,
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+      },
+    });
+  }
+
+  reusableSectionByAlias(input: {
+    alias: string;
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+  }) {
+    return this.execute<ReusableSectionByAliasQueryData, ReusableSectionByAliasQueryVariables>({
+      document: reusableSectionByAliasDocument,
+      siteId: input.siteId,
+      variables: {
+        alias: input.alias,
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+      },
+    });
+  }
+
+  categoryBySlug(input: {
+    perspective?: DeliveryPerspective;
+    previewToken?: string | null;
+    siteId: string;
+    slug: string;
+  }) {
+    return this.execute<CategoryBySlugQueryData, CategoryBySlugQueryVariables>({
+      document: categoryBySlugDocument,
+      siteId: input.siteId,
+      variables: {
+        perspective: toGraphqlPerspective(input.perspective ?? "published"),
+        previewToken: input.previewToken ?? null,
+        slug: input.slug,
+      },
+    });
+  }
+}
+
+export const resolvePageDocument = `
+query ResolvePage($path: String!, $perspective: DeliveryPerspective!, $previewToken: String) {
+  resolvePage(path: $path, perspective: $perspective, previewToken: $previewToken) {
+    match {
+      kind
+      params
+      pageId
+      variantId
+      revision
+      revisionState
+      draftRevision
+      publishedRevision
+    }
+    pageMeta {
+      title
+      description
+    }
+    context {
+      routeParams
+      primary {
+        id
+        modelKey
+        slug
+        title
+        data
+      }
+    }
+    document {
+      path
+      layout
+      sections {
+        id
+        componentKey
+        props
+      }
+    }
+    warnings {
+      code
+      message
+      refEntryId
+      refNodeId
+    }
+  }
+}
+` as TypedDocumentString<ResolvePageQueryData, ResolvePageQueryVariables>;
+
+export const articleBySlugDocument = `
+query ArticleBySlug($slug: String!, $perspective: DeliveryPerspective!, $previewToken: String) {
+  articleBySlug(slug: $slug, perspective: $perspective, previewToken: $previewToken) {
+    id
+    locale
+    revision
+    revisionState
+    draftRevision
+    publishedRevision
+    title
+    slug
+    summary
+    content
+    publishedAt
+    customFields
+  }
+}
+` as TypedDocumentString<ArticleBySlugQueryData, ArticleBySlugQueryVariables>;
+
+export const articleEntriesDocument = `
+query ArticleEntries($perspective: DeliveryPerspective!, $previewToken: String, $limit: Int!, $offset: Int!) {
+  articleEntries(perspective: $perspective, previewToken: $previewToken, limit: $limit, offset: $offset) {
+    id
+    locale
+    revision
+    revisionState
+    draftRevision
+    publishedRevision
+    title
+    slug
+    summary
+    content
+    publishedAt
+    customFields
+  }
+}
+` as TypedDocumentString<ArticleEntriesQueryData, ArticleEntriesQueryVariables>;
+
+export const pageEntryByPathDocument = `
+query PageEntryByPath($path: String!, $perspective: DeliveryPerspective!, $previewToken: String) {
+  pageEntryByPath(path: $path, perspective: $perspective, previewToken: $previewToken) {
+    id
+    locale
+    revision
+    revisionState
+    draftRevision
+    publishedRevision
+    title
+    path
+    routePattern
+    customFields
+  }
+}
+` as TypedDocumentString<PageEntryByPathQueryData, PageEntryByPathQueryVariables>;
+
+export const reusableSectionByAliasDocument = `
+query ReusableSectionByAlias($alias: String!, $perspective: DeliveryPerspective!, $previewToken: String) {
+  reusableSectionByAlias(alias: $alias, perspective: $perspective, previewToken: $previewToken) {
+    id
+    locale
+    revision
+    revisionState
+    draftRevision
+    publishedRevision
+    title
+    sectionKey
+    propsDefaults
+    customFields
+  }
+}
+` as TypedDocumentString<ReusableSectionByAliasQueryData, ReusableSectionByAliasQueryVariables>;
+
+export const categoryBySlugDocument = `
+query CategoryBySlug($slug: String!, $perspective: DeliveryPerspective!, $previewToken: String) {
+  categoryBySlug(slug: $slug, perspective: $perspective, previewToken: $previewToken) {
+    id
+    locale
+    revision
+    revisionState
+    draftRevision
+    publishedRevision
+    name
+    slug
+    description
+    customFields
+  }
+}
+` as TypedDocumentString<CategoryBySlugQueryData, CategoryBySlugQueryVariables>;

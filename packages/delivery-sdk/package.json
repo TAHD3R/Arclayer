@@ -1,0 +1,21 @@
+{
+  "name": "@arclayer/delivery-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@arclayer/openapi": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
