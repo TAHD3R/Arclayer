@@ -98,7 +98,7 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
             MyWorkspaceOut(
                 id=ws.id,
                 workspace_id=ws.id,
-                project_id=ws.id,
+                project_id=None,
                 organization_id=_resolve_organization_id(ws),
                 slug=ws.slug,
                 name=ws.name,
@@ -176,7 +176,7 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                 MyWorkspaceOut(
                     id=ws.id,
                     workspace_id=ws.id,
-                    project_id=ws.id,
+                    project_id=None,
                     organization_id=org_id,
                     slug=ws.slug,
                     name=ws.name,

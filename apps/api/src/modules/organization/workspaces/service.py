@@ -153,7 +153,7 @@ class OrganizationWorkspaceService(BaseService):
                     member_count=len(member_ids),
                     members_preview=preview,
                     enterable=enterable,
-                    project_id=project_ids_by_workspace.get(ws_id, ws_id),
+                    project_id=project_ids_by_workspace.get(ws_id),
                 )
             )
 
@@ -530,7 +530,7 @@ class OrganizationWorkspaceService(BaseService):
         member_count: int,
         members_preview: list[OrganizationWorkspaceMemberPreviewOut],
         enterable: bool,
-        project_id: UUID,
+        project_id: UUID | None,
     ) -> OrganizationWorkspaceOut:
         return OrganizationWorkspaceOut(
             id=workspace.id,
@@ -552,7 +552,7 @@ class OrganizationWorkspaceService(BaseService):
             members_preview=members_preview,
             created_at=workspace.created_at,
             enterable=enterable,
-            project=WorkspacePrimaryProjectOut(project_id=project_id),
+            project=(WorkspacePrimaryProjectOut(project_id=project_id) if project_id is not None else None),
         )
 
     def _sort_workspaces_default(self, *, rows: list[Workspace], archived: bool | None) -> list[Workspace]:
