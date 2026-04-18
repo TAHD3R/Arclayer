@@ -7,8 +7,8 @@ describe("workspace-list-items", () => {
     const item = mapOrganizationWorkspaceToListItem({
       id: "ws-team",
       workspaceId: "ws-team",
-      projectId: "project-team",
-      project: { projectId: "project-team" },
+      projectId: null,
+      project: null,
       organizationId: "org-1",
       slug: "team-space",
       name: "Team Space",

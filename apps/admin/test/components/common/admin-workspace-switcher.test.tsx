@@ -204,7 +204,7 @@ beforeEach(() => {
   vi.mocked(listMyWorkspaces).mockResolvedValue(createWorkspaceListResult());
   vi.mocked(getWorkspaceDetail).mockResolvedValue({
     id: "ws-alpha",
-    project: { projectId: "project-alpha" },
+    project: null,
     organizationId: "org-1",
     slug: "alpha",
     name: "Workspace Alpha",
@@ -250,7 +250,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
   it("workspace scope: trigger avatar uses square shape and workspace icon", async () => {
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-alpha",
-      project: { projectId: "project-alpha" },
+      project: null,
       organizationId: "org-1",
       slug: "alpha",
       name: "Workspace Alpha",
@@ -279,7 +279,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
   it("workspace scope: trigger renders glyph metadata when image mode is not selected", async () => {
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-alpha",
-      project: { projectId: "project-alpha" },
+      project: null,
       organizationId: "org-1",
       slug: "alpha",
       name: "Workspace Alpha",

@@ -37,7 +37,7 @@ class OrganizationWorkspaceMemberOut(BaseSchema):
 
 class OrganizationWorkspaceOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
-    project_id: PublicUUID = Field(..., description="Primary project id.")
+    project_id: PublicUUID | None = Field(default=None, description="Primary project id when available.")
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
@@ -63,7 +63,10 @@ class OrganizationWorkspaceOut(BaseOut):
         default=False,
         description="Whether current user can enter this workspace admin scope.",
     )
-    project: WorkspacePrimaryProjectOut = Field(..., description="Primary project binding for this workspace.")
+    project: WorkspacePrimaryProjectOut | None = Field(
+        default=None,
+        description="Primary project binding for this workspace when available.",
+    )
 
 
 class OrganizationWorkspaceCreateRequest(BaseSchema):

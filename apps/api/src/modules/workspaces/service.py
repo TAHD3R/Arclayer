@@ -32,7 +32,6 @@ from src.modules.organization.workspaces.repository import OrganizationWorkspace
 from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.projects.repository import ProjectRepository
-from src.modules.projects.schema import WorkspacePrimaryProjectOut
 from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.system.setup.service import InstanceSetupService
 from src.modules.workspaces.schema import (
@@ -421,13 +420,9 @@ class WorkspaceService(BaseService):
         )
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        project = await self.project_repo.get_or_create_primary_project_for_workspace(
-            workspace_id=workspace_id,
-            actor_user_id=ws.created_by_user_id,
-        )
         return WorkspaceDetailOut(
             id=ws.id,
-            project=WorkspacePrimaryProjectOut(project_id=project.id),
+            project=None,
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             kind=ws.kind,
             slug=ws.slug,

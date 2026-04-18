@@ -105,7 +105,10 @@ class MyWorkspaceListResult(BaseSchema):
 class WorkspaceDetailOut(BaseOut):
     """Workspace metadata used by the admin workspace settings page."""
 
-    project: WorkspacePrimaryProjectOut = Field(..., description="Primary project binding for this workspace.")
+    project: WorkspacePrimaryProjectOut | None = Field(
+        default=None,
+        description="Primary project binding for this workspace when available.",
+    )
     organization_id: PublicUUID = Field(..., description="Organization id.")
     kind: WorkspaceKind = Field(..., description="Workspace kind.")
     slug: str = Field(..., description="Workspace slug.")

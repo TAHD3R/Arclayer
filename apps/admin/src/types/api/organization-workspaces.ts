@@ -21,10 +21,10 @@ export type OrganizationWorkspaceMember = {
 export type OrganizationWorkspace = {
   id: string;
   workspaceId: string;
-  projectId: string;
-  project: {
+  projectId?: string | null;
+  project?: {
     projectId: string;
-  };
+  } | null;
   organizationId: string;
   slug: string;
   name: string;

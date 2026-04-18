@@ -89,9 +89,9 @@ export type AuthzSnapshot = {
 
 export type WorkspaceDetail = {
   id: string;
-  project: {
+  project?: {
     projectId: string;
-  };
+  } | null;
   organizationId: string;
   slug: string;
   name: string;

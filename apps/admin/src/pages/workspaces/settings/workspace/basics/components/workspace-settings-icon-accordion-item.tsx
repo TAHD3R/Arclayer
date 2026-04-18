@@ -40,7 +40,7 @@ function buildWorkspaceListItem(
   return {
     id: detail.id,
     workspaceId: detail.id,
-    projectId: detail.project.projectId,
+    projectId: detail.project?.projectId ?? detail.id,
     organizationId: detail.organizationId,
     slug: detail.slug,
     name: detail.name,
