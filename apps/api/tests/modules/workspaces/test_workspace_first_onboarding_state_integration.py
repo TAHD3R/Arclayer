@@ -8,6 +8,10 @@ from httpx import ASGITransport, AsyncClient
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.organization import Organization, OrganizationKind
+from src.models.organization.user import User
+from src.models.workspaces.workspace import Workspace
 
 pytestmark = pytest.mark.integration
 
@@ -217,3 +221,88 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             )
             assert repeated_create_resp.status_code == 400, repeated_create_resp.text
             assert repeated_create_resp.json()["error"] == "WORKSPACE_ONBOARDING_COMPLETED"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_org(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    settings = get_settings()
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            suffix = uuid4().hex[:8]
+            username = f"onboarding-existing-{suffix}"
+            email = f"{username}@example.com"
+            password = "onboarding_pass_123"
+
+            register_response = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "username": username,
+                    "email": email,
+                    "display_name": "Existing Workspace User",
+                    "password": password,
+                },
+            )
+            assert register_response.status_code == 200, register_response.text
+
+            login_response = await client.post(
+                "/api/v1/auth/login",
+                json={"email": email, "password": password},
+            )
+            assert login_response.status_code == 200, login_response.text
+            access_token = login_response.json()["data"]["accessToken"]
+            headers = _auth_headers(access_token)
+
+            user = await User.get(email=email)
+
+            team_org = await Organization.create(
+                slug=f"existing-team-org-{suffix}",
+                name="Existing Team Org",
+                kind=OrganizationKind.TEAM,
+                owner_user_id=user.id,
+                is_active=True,
+            )
+            await OrgMembership.create(
+                organization_id=team_org.id,
+                user_id=user.id,
+                role=OrgRole.OWNER,
+                role_code=OrgRole.OWNER.value,
+                status="active",
+            )
+            await Workspace.create(
+                organization_id=team_org.id,
+                slug=f"preexisting-{suffix}",
+                name="Preexisting Workspace",
+                is_active=True,
+                created_by_user_id=user.id,
+            )
+
+            create_workspace_resp = await client.post(
+                "/api/v1/me/workspaces/onboarding",
+                json={
+                    "name": "Founder Team",
+                    "slug": f"founder-team-{suffix}",
+                },
+                headers=headers,
+            )
+            assert create_workspace_resp.status_code == 200, create_workspace_resp.text
+            created_workspace = create_workspace_resp.json()["data"]
+            assert created_workspace["workspaceId"]
+            assert created_workspace["projectId"]
+
+            post_create_workspaces_resp = await client.get("/api/v1/me/workspaces", headers=headers)
+            assert post_create_workspaces_resp.status_code == 200, post_create_workspaces_resp.text
+            post_create_payload = post_create_workspaces_resp.json()["data"]
+            assert post_create_payload["onboarding"]["status"] == "pending_workspace_defaults"
+            assert post_create_payload["onboarding"]["workspaceId"] == created_workspace["workspaceId"]
+            assert len(post_create_payload["items"]) == 2

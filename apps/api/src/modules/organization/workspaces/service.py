@@ -31,7 +31,6 @@ from src.modules.projects.schema import WorkspacePrimaryProjectOut
 from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.system.rbac.service import RBACService
 from src.modules.workspaces.danger_service import WorkspaceDangerService
-from src.modules.workspaces.policy.service import OrgWorkspaceCreationPolicy
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
 from src.modules.workspaces.site.service import WorkspaceSiteService
 from src.modules.workspaces.slug.service import next_available_workspace_slug, parse_explicit_workspace_slug
@@ -60,7 +59,6 @@ class OrganizationWorkspaceService(BaseService):
         self.repo = OrganizationWorkspaceRepository()
         self.project_repo = ProjectRepository()
         self.site_service = WorkspaceSiteService(settings)
-        self.creation_policy = OrgWorkspaceCreationPolicy(settings)
 
     async def list_workspaces(
         self,
@@ -245,8 +243,6 @@ class OrganizationWorkspaceService(BaseService):
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_NAME_TOO_LONG")
 
         description = str(payload.description or "").strip() or None
-
-        await self.creation_policy.assert_can_create(organization_id=organization_id)
 
         requested_slug = str(payload.slug or "").strip()
         if requested_slug:
