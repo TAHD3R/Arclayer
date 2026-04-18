@@ -42,7 +42,12 @@ import { InvitationRoleTag, InvitationStatusTag } from "@/components/ui/tags";
 import { InvitationUserLabel } from "@/pages/workspaces/team/shared/components/invitation-user-label";
 import { buildInvitationUserDetails } from "@/pages/workspaces/team/shared/components/invitation-user-details";
 
-export function TeamInvitationsView(props: { workspaceIdOverride?: string | null } = {}) {
+export function TeamInvitationsView(
+  props: {
+    workspaceIdOverride?: string | null;
+    embedded?: boolean;
+  } = {},
+) {
   const { t } = useTranslation(["team", "nav", "common"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -772,16 +777,13 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       />
     );
 
-  return (
+  const content = (
     <ChromeTabs value={tab} onValueChange={(next) => setTab(next as TabKey)}>
-      <DefaultPage
-        title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
-        description={t("team:TEAM_INVITATIONS_DESC")}
-        className="h-full"
-        contentClassName="min-h-0 flex flex-col"
-        extra={currentToolbar}
-        action={inviteAction}
-      >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">{currentToolbar}</div>
+        {inviteAction}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col">
         <ChromeTabsContent value="pending" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={pendingTable}
@@ -812,7 +814,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             wrapHeaders={linksWrapHeaders}
           />
         </ChromeTabsContent>
-      </DefaultPage>
+      </div>
       <InviteMembersDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
@@ -875,5 +877,20 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         renewOptions={renewOptions}
       />
     </ChromeTabs>
+  );
+
+  if (props.embedded) {
+    return content;
+  }
+
+  return (
+    <DefaultPage
+      title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
+      description={t("team:TEAM_INVITATIONS_DESC")}
+      className="h-full"
+      contentClassName="min-h-0 flex flex-col"
+    >
+      {content}
+    </DefaultPage>
   );
 }

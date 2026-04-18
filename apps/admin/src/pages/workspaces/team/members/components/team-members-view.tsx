@@ -59,6 +59,7 @@ export function TeamMembersView(props: {
   workspaceIdOverride?: string | null;
   initialSearchQuery?: string;
   initialInspectMemberId?: string;
+  embedded?: boolean;
 }) {
   const { t } = useTranslation(["team", "common"]);
 
@@ -469,20 +470,8 @@ export function TeamMembersView(props: {
     />
   );
 
-  return (
-    <DefaultPage
-      title={t("team:TEAM_MEMBERS_TITLE")}
-      description={t("team:TEAM_MEMBERS_DESC_LONG")}
-      className="h-full"
-      contentClassName="min-h-0 flex flex-col"
-      extra={pageToolbar}
-      action={
-        <Button onClick={() => setInviteOpen(true)}>
-          <Plus size={16} />
-          {t("team:TEAM_INVITE_MEMBER")}
-        </Button>
-      }
-    >
+  const content = (
+    <>
       <AdminDataTableSection
         table={table}
         emptyText={t("team:TEAM_EMPTY_TABLE")}
@@ -563,6 +552,39 @@ export function TeamMembersView(props: {
           })
         }
       />
+    </>
+  );
+
+  if (props.embedded) {
+    return (
+      <div className="flex min-h-0 flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">{pageToolbar}</div>
+          <Button onClick={() => setInviteOpen(true)}>
+            <Plus size={16} />
+            {t("team:TEAM_INVITE_MEMBER")}
+          </Button>
+        </div>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <DefaultPage
+      title={t("team:TEAM_MEMBERS_TITLE")}
+      description={t("team:TEAM_MEMBERS_DESC_LONG")}
+      className="h-full"
+      contentClassName="min-h-0 flex flex-col"
+      extra={pageToolbar}
+      action={
+        <Button onClick={() => setInviteOpen(true)}>
+          <Plus size={16} />
+          {t("team:TEAM_INVITE_MEMBER")}
+        </Button>
+      }
+    >
+      {content}
     </DefaultPage>
   );
 }

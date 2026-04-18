@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, SlidersHorizontal, UserRound, Workflow } from "lucide-react";
+import { Bell, UserRound, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -51,17 +51,6 @@ function buildActionEntries(params: {
       icon: UserRound,
       shortcut: ["G", "P"],
       action: { type: "navigate", to: "/settings/personal/profile" },
-    },
-    {
-      id: "action:preferences",
-      key: "action:preferences",
-      kind: "action",
-      title: t("account:ME_TAB_PREFERENCES"),
-      subtitle: t("command:COMMAND_ACTION_PREFERENCES_DESC"),
-      keywords: [t("account:ME_TAB_PREFERENCES"), t("account:ME_TITLE")],
-      icon: SlidersHorizontal,
-      shortcut: ["G", ","],
-      action: { type: "navigate", to: "/settings/personal/preferences" },
     },
     {
       id: "action:notifications",

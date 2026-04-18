@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from uuid import UUID
 
 from src.common.repositories.base import BaseRepository
+from src.common.utils.slug import slugify
 from src.core.exceptions import NotFound
 from src.models.projects.project import ProjectRecord
 from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
@@ -10,6 +12,21 @@ from src.models.workspaces.workspace import Workspace
 
 
 class ProjectRepository(BaseRepository):
+    async def list_projects_by_workspace_id(
+        self,
+        *,
+        workspace_id: UUID,
+        q: str | None = None,
+        is_active: bool | None = True,
+    ) -> Sequence[ProjectRecord]:
+        qs = ProjectRecord.filter(workspace_id=workspace_id)
+        if is_active is not None:
+            qs = qs.filter(is_active=is_active)
+        normalized_query = (q or "").strip()
+        if normalized_query:
+            qs = qs.filter(name__icontains=normalized_query)
+        return await qs.order_by("created_at", "id").all()
+
     async def get_first_project_by_workspace_id(self, *, workspace_id: UUID) -> ProjectRecord | None:
         return await ProjectRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").first()
 
@@ -18,6 +35,31 @@ class ProjectRepository(BaseRepository):
         if project is None:
             raise NotFound("Project not found", error="PROJECT_NOT_FOUND")
         return project
+
+    async def create_project(
+        self,
+        *,
+        workspace_id: UUID,
+        name: str,
+        description: str | None,
+        actor_user_id: UUID | None,
+    ) -> ProjectRecord:
+        base_slug = slugify(name)[:64] or "project"
+        slug = base_slug
+        suffix = 2
+        while await ProjectRecord.filter(workspace_id=workspace_id, slug=slug).exists():
+            suffix_text = f"-{suffix}"
+            slug = f"{base_slug[: max(1, 64 - len(suffix_text))]}{suffix_text}"
+            suffix += 1
+
+        return await ProjectRecord.create(
+            workspace_id=workspace_id,
+            slug=slug,
+            name=name[:128],
+            description=description,
+            is_active=True,
+            created_by_user_id=actor_user_id,
+        )
 
     async def get_or_create_primary_project_for_workspace(
         self,

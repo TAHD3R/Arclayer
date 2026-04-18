@@ -30,8 +30,8 @@ export function WorkspaceGeneralSettingsPage(props: { workspaceId: string }) {
 
   return (
     <ContextSettingsShell
-      title={t("SETTINGS_WORKSPACE_TITLE")}
-      description={t("SETTINGS_WORKSPACE_DESC")}
+      title={t("SETTINGS_WORKSPACE_GENERAL_TITLE")}
+      description={t("SETTINGS_WORKSPACE_GENERAL_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
     >
@@ -53,8 +53,8 @@ export function WorkspaceMembersSettingsPage(props: {
 
   return (
     <ContextSettingsShell
-      title={t("SETTINGS_WORKSPACE_TITLE")}
-      description={t("SETTINGS_WORKSPACE_DESC")}
+      title={t("SETTINGS_WORKSPACE_MEMBERS_TITLE")}
+      description={t("SETTINGS_WORKSPACE_MEMBERS_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
     >
@@ -62,6 +62,7 @@ export function WorkspaceMembersSettingsPage(props: {
         workspaceIdOverride={props.workspaceId}
         initialSearchQuery={props.initialSearchQuery}
         initialInspectMemberId={props.initialInspectMemberId}
+        embedded
       />
     </ContextSettingsShell>
   );
@@ -76,12 +77,12 @@ export function WorkspaceInvitationsSettingsPage(props: { workspaceId: string })
 
   return (
     <ContextSettingsShell
-      title={t("SETTINGS_WORKSPACE_TITLE")}
-      description={t("SETTINGS_WORKSPACE_DESC")}
+      title={t("SETTINGS_WORKSPACE_INVITATIONS_TITLE")}
+      description={t("SETTINGS_WORKSPACE_INVITATIONS_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
     >
-      <TeamInvitationsPage workspaceIdOverride={props.workspaceId} />
+      <TeamInvitationsPage workspaceIdOverride={props.workspaceId} embedded />
     </ContextSettingsShell>
   );
 }
@@ -95,12 +96,12 @@ export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
 
   return (
     <ContextSettingsShell
-      title={t("SETTINGS_WORKSPACE_TITLE")}
-      description={t("SETTINGS_WORKSPACE_DESC")}
+      title={t("SETTINGS_WORKSPACE_ROLES_TITLE")}
+      description={t("SETTINGS_WORKSPACE_ROLES_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
     >
-      <TeamRolesPage workspaceIdOverride={props.workspaceId} />
+      <TeamRolesPage workspaceIdOverride={props.workspaceId} embedded />
     </ContextSettingsShell>
   );
 }

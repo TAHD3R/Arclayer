@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
@@ -13,10 +13,11 @@ from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.projects.members_schema import ProjectMemberOut, ProjectMemberRoleUpdateRequest
 from src.modules.projects.members_service import ProjectMembersService
-from src.modules.projects.schema import ProjectDetailOut
+from src.modules.projects.schema import ProjectCreateRequest, ProjectDetailOut, ProjectListOut
 from src.modules.projects.service import ProjectService
-from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
+from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted, require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(tags=["domain.projects"])
 router.include_router(projects_facade_router)
@@ -44,6 +45,45 @@ async def require_project_team_permission(
         ),
         error_code="PERMISSION_DENIED",
     )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/projects",
+    response_model=ResponseModel[ProjectListOut],
+    summary="List projects in the current workspace",
+    dependencies=[require_workspace_permission("system:content:read")],
+)
+async def list_workspace_projects(
+    q: str | None = Query(default=None, description="Search query (project name)."),
+    params: PageParams = Depends(get_page_params),
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[ProjectListOut]:
+    service = ProjectService(settings)
+    page = await service.list_projects(workspace_id=ctx.workspace_id, params=params, q=q)
+    return ApiResponse.success(data=page)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/projects",
+    response_model=ResponseModel[ProjectDetailOut],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a project in the current workspace",
+    dependencies=[require_workspace_permission("system:content:manage")],
+)
+async def create_workspace_project(
+    payload: ProjectCreateRequest,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[ProjectDetailOut]:
+    service = ProjectService(settings)
+    detail = await service.create_project(
+        workspace_id=ctx.workspace_id,
+        payload=payload,
+        actor_user_id=user_id,
+    )
+    return ApiResponse.success(data=detail)
 
 
 @router.get(

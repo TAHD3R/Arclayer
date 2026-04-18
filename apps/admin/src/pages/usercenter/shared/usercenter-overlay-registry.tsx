@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { UserAppearanceView } from "@/pages/usercenter/appearance/components/user-appearance-view";
 import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/components/user-notification-settings-view";
 import { UserProfileView } from "@/pages/usercenter/profile/components/user-profile-view";
 import {
@@ -41,15 +40,15 @@ function WorkspaceGeneralOverlayView() {
 }
 
 function WorkspaceMembersOverlayView() {
-  return <TeamMembersView workspaceIdOverride={useEffectiveWorkspaceId()} />;
+  return <TeamMembersView workspaceIdOverride={useEffectiveWorkspaceId()} embedded />;
 }
 
 function WorkspaceInvitationsOverlayView() {
-  return <TeamInvitationsPage workspaceIdOverride={useEffectiveWorkspaceId()} />;
+  return <TeamInvitationsPage workspaceIdOverride={useEffectiveWorkspaceId()} embedded />;
 }
 
 function WorkspaceRolesOverlayView() {
-  return <TeamRolesPage workspaceIdOverride={useEffectiveWorkspaceId()} />;
+  return <TeamRolesPage workspaceIdOverride={useEffectiveWorkspaceId()} embedded />;
 }
 
 export const USERCENTER_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] = [
@@ -60,14 +59,6 @@ export const USERCENTER_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] = [
     titleKey: "account:ME_TAB_PROFILE",
     descriptionKey: "account:ME_TAB_PROFILE_DESC",
     render: () => <UserProfileView mode="dialog" />,
-  },
-  {
-    tab: "preferences",
-    to: "/settings/personal/preferences",
-    labelKey: "account:ACCOUNT_NAV_APPEARANCE",
-    titleKey: "account:ME_TAB_PREFERENCES",
-    descriptionKey: "account:ME_TAB_PREFERENCES_DESC",
-    render: () => <UserAppearanceView mode="dialog" />,
   },
   {
     tab: "notifications",
@@ -84,32 +75,32 @@ export const WORKSPACE_SETTINGS_OVERLAY_ITEMS: readonly WorkspaceSettingsOverlay
     tab: "workspace-general",
     to: "/settings/workspace/general",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_GENERAL",
-    titleKey: "settings:SETTINGS_WORKSPACE_TITLE",
-    descriptionKey: "settings:SETTINGS_WORKSPACE_DESC",
+    titleKey: "settings:SETTINGS_WORKSPACE_GENERAL_TITLE",
+    descriptionKey: "settings:SETTINGS_WORKSPACE_GENERAL_DESC",
     render: () => <WorkspaceGeneralOverlayView />,
   },
   {
     tab: "workspace-members",
     to: "/settings/workspace/members",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_MEMBERS",
-    titleKey: "settings:SETTINGS_WORKSPACE_TITLE",
-    descriptionKey: "settings:SETTINGS_WORKSPACE_DESC",
+    titleKey: "settings:SETTINGS_WORKSPACE_MEMBERS_TITLE",
+    descriptionKey: "settings:SETTINGS_WORKSPACE_MEMBERS_DESC",
     render: () => <WorkspaceMembersOverlayView />,
   },
   {
     tab: "workspace-invitations",
     to: "/settings/workspace/invitations",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_INVITATIONS",
-    titleKey: "settings:SETTINGS_WORKSPACE_TITLE",
-    descriptionKey: "settings:SETTINGS_WORKSPACE_DESC",
+    titleKey: "settings:SETTINGS_WORKSPACE_INVITATIONS_TITLE",
+    descriptionKey: "settings:SETTINGS_WORKSPACE_INVITATIONS_DESC",
     render: () => <WorkspaceInvitationsOverlayView />,
   },
   {
     tab: "workspace-roles",
     to: "/settings/workspace/roles",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_ROLES",
-    titleKey: "settings:SETTINGS_WORKSPACE_TITLE",
-    descriptionKey: "settings:SETTINGS_WORKSPACE_DESC",
+    titleKey: "settings:SETTINGS_WORKSPACE_ROLES_TITLE",
+    descriptionKey: "settings:SETTINGS_WORKSPACE_ROLES_DESC",
     render: () => <WorkspaceRolesOverlayView />,
   },
 ] as const;

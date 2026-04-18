@@ -55,7 +55,12 @@ function resolveRoleHeaderLines(roleName: string) {
   return [normalized];
 }
 
-export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {}) {
+export function TeamRolesView(
+  props: {
+    workspaceIdOverride?: string | null;
+    embedded?: boolean;
+  } = {},
+) {
   const { t } = useTranslation(["team", "common", "settings"]);
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -251,65 +256,77 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
   });
 
   if (!workspaceId) {
-    return (
+    const emptyState = (
+      <ContentGuard
+        loading={false}
+        empty
+        emptyTitle={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
+        emptyDescription={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_DESC")}
+      />
+    );
+    return props.embedded ? (
+      emptyState
+    ) : (
       <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        <ContentGuard
-          loading={false}
-          empty
-          emptyTitle={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_TITLE")}
-          emptyDescription={t("settings:SETTINGS_WORKSPACE_NOT_SELECTED_DESC")}
-        />
+        {emptyState}
       </DefaultPage>
     );
   }
 
   if (matrixQuery.isLoading && !matrixQuery.data) {
-    return (
+    const loadingState = <ContentGuard loading loadingVariant="table" />;
+    return props.embedded ? (
+      loadingState
+    ) : (
       <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        <ContentGuard loading loadingVariant="table" />
+        {loadingState}
       </DefaultPage>
     );
   }
 
   if (matrixQuery.isError) {
-    return (
+    const errorState = (
+      <ContentGuard
+        loading={false}
+        error={matrixQuery.error}
+        onRetry={() => void matrixQuery.refetch()}
+      />
+    );
+    return props.embedded ? (
+      errorState
+    ) : (
       <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
-        <ContentGuard
-          loading={false}
-          error={matrixQuery.error}
-          onRetry={() => void matrixQuery.refetch()}
-        />
+        {errorState}
       </DefaultPage>
     );
   }
 
   const hasEmptySearch = Boolean(needle) && (!filteredRoles.length || !filteredPermissions.length);
 
-  return (
-    <DefaultPage
-      title={t("team:TEAM_ROLES_TITLE")}
-      description={t("team:TEAM_ROLES_DESC")}
-      action={
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" />
-          {t("team:TEAM_ROLES_ADD_ROLE")}
-        </Button>
-      }
-      extra={
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <DataTableSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
-            clearLabel={t("common:CLEAR")}
-            className="w-full max-w-90"
-          />
-          <div className="text-headline text-label-primary">
-            {t("team:TEAM_ROLES_PERMISSION_COUNT", { count: filteredPermissions.length })}
-          </div>
-        </div>
-      }
-    >
+  const toolbar = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <DataTableSearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
+        clearLabel={t("common:CLEAR")}
+        className="w-full max-w-90"
+      />
+      <div className="text-headline text-label-primary">
+        {t("team:TEAM_ROLES_PERMISSION_COUNT", { count: filteredPermissions.length })}
+      </div>
+    </div>
+  );
+
+  const actionButton = (
+    <Button onClick={() => setCreateOpen(true)}>
+      <Plus className="h-4 w-4" />
+      {t("team:TEAM_ROLES_ADD_ROLE")}
+    </Button>
+  );
+
+  const content = (
+    <>
       <div className="flex flex-col gap-4 pb-8">
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
@@ -488,6 +505,29 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         }}
         roles={roles}
       />
+    </>
+  );
+
+  if (props.embedded) {
+    return (
+      <div className="flex min-h-0 flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">{toolbar}</div>
+          {actionButton}
+        </div>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <DefaultPage
+      title={t("team:TEAM_ROLES_TITLE")}
+      description={t("team:TEAM_ROLES_DESC")}
+      action={actionButton}
+      extra={toolbar}
+    >
+      {content}
     </DefaultPage>
   );
 }

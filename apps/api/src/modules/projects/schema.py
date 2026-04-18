@@ -6,6 +6,7 @@ from pydantic import Field
 
 from src.common.schemas.base import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
+from src.core.http.pagination import PageData
 
 
 class ProjectOut(BaseOut):
@@ -30,6 +31,19 @@ class ProjectRuntimeOut(BaseOut):
 class ProjectDetailOut(BaseSchema):
     project: ProjectOut = Field(..., description="Project detail.")
     primary_runtime: ProjectRuntimeOut | None = Field(default=None, description="Primary runtime detail.")
+
+
+class ProjectListItemOut(ProjectOut):
+    primary_runtime: ProjectRuntimeOut | None = Field(default=None, description="Primary runtime detail.")
+
+
+class ProjectCreateRequest(BaseSchema):
+    name: str = Field(..., min_length=1, max_length=128, description="Project name.")
+    description: str | None = Field(default=None, max_length=256, description="Project description.")
+
+
+class ProjectListOut(PageData[ProjectListItemOut]):
+    """Workspace-scoped project list."""
 
 
 class ProjectContext(BaseSchema):

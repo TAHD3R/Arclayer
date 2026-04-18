@@ -69,7 +69,13 @@ export type {
   MyInvitationWorkspace,
 } from "./invitations";
 export type { ProjectMember, ProjectMemberRole } from "./project-members";
-export type { Project, ProjectDetail, ProjectRuntime } from "./projects";
+export type {
+  Project,
+  ProjectCreateInput,
+  ProjectDetail,
+  ProjectListItem,
+  ProjectRuntime,
+} from "./projects";
 export type { SystemBootstrapPayload, SystemInstanceSetupStatus, SystemRuntime } from "./system";
 
 export * from "@arclayer/openapi/admin-types";

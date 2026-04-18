@@ -32,7 +32,6 @@ import { Route as SettingsWorkspaceMembersIndexRouteImport } from './routes/sett
 import { Route as SettingsWorkspaceInvitationsIndexRouteImport } from './routes/settings/workspace/invitations/index'
 import { Route as SettingsWorkspaceGeneralIndexRouteImport } from './routes/settings/workspace/general/index'
 import { Route as SettingsPersonalProfileIndexRouteImport } from './routes/settings/personal/profile/index'
-import { Route as SettingsPersonalPreferencesIndexRouteImport } from './routes/settings/personal/preferences/index'
 import { Route as SettingsPersonalNotificationsIndexRouteImport } from './routes/settings/personal/notifications/index'
 import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
 import { Route as ProjectsProjectIdExtensionsIndexRouteImport } from './routes/projects/$projectId/extensions/index'
@@ -179,12 +178,6 @@ const SettingsPersonalProfileIndexRoute =
   SettingsPersonalProfileIndexRouteImport.update({
     id: '/personal/profile/',
     path: '/personal/profile/',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsPersonalPreferencesIndexRoute =
-  SettingsPersonalPreferencesIndexRouteImport.update({
-    id: '/personal/preferences/',
-    path: '/personal/preferences/',
     getParentRoute: () => SettingsRoute,
   } as any)
 const SettingsPersonalNotificationsIndexRoute =
@@ -356,7 +349,6 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/extensions/': typeof ProjectsProjectIdExtensionsIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/settings/personal/notifications/': typeof SettingsPersonalNotificationsIndexRoute
-  '/settings/personal/preferences/': typeof SettingsPersonalPreferencesIndexRoute
   '/settings/personal/profile/': typeof SettingsPersonalProfileIndexRoute
   '/settings/workspace/general/': typeof SettingsWorkspaceGeneralIndexRoute
   '/settings/workspace/invitations/': typeof SettingsWorkspaceInvitationsIndexRoute
@@ -398,7 +390,6 @@ export interface FileRoutesByTo {
   '/projects/$projectId/extensions': typeof ProjectsProjectIdExtensionsIndexRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
   '/settings/personal/notifications': typeof SettingsPersonalNotificationsIndexRoute
-  '/settings/personal/preferences': typeof SettingsPersonalPreferencesIndexRoute
   '/settings/personal/profile': typeof SettingsPersonalProfileIndexRoute
   '/settings/workspace/general': typeof SettingsWorkspaceGeneralIndexRoute
   '/settings/workspace/invitations': typeof SettingsWorkspaceInvitationsIndexRoute
@@ -443,7 +434,6 @@ export interface FileRoutesById {
   '/projects/$projectId/extensions/': typeof ProjectsProjectIdExtensionsIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/settings/personal/notifications/': typeof SettingsPersonalNotificationsIndexRoute
-  '/settings/personal/preferences/': typeof SettingsPersonalPreferencesIndexRoute
   '/settings/personal/profile/': typeof SettingsPersonalProfileIndexRoute
   '/settings/workspace/general/': typeof SettingsWorkspaceGeneralIndexRoute
   '/settings/workspace/invitations/': typeof SettingsWorkspaceInvitationsIndexRoute
@@ -489,7 +479,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/extensions/'
     | '/projects/$projectId/settings/'
     | '/settings/personal/notifications/'
-    | '/settings/personal/preferences/'
     | '/settings/personal/profile/'
     | '/settings/workspace/general/'
     | '/settings/workspace/invitations/'
@@ -531,7 +520,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/extensions'
     | '/projects/$projectId/settings'
     | '/settings/personal/notifications'
-    | '/settings/personal/preferences'
     | '/settings/personal/profile'
     | '/settings/workspace/general'
     | '/settings/workspace/invitations'
@@ -575,7 +563,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/extensions/'
     | '/projects/$projectId/settings/'
     | '/settings/personal/notifications/'
-    | '/settings/personal/preferences/'
     | '/settings/personal/profile/'
     | '/settings/workspace/general/'
     | '/settings/workspace/invitations/'
@@ -771,13 +758,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsPersonalProfileIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/settings/personal/preferences/': {
-      id: '/settings/personal/preferences/'
-      path: '/personal/preferences'
-      fullPath: '/settings/personal/preferences/'
-      preLoaderRoute: typeof SettingsPersonalPreferencesIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
     '/settings/personal/notifications/': {
       id: '/settings/personal/notifications/'
       path: '/personal/notifications'
@@ -911,7 +891,6 @@ interface SettingsRouteChildren {
   SettingsPersonalIndexRoute: typeof SettingsPersonalIndexRoute
   SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute
   SettingsPersonalNotificationsIndexRoute: typeof SettingsPersonalNotificationsIndexRoute
-  SettingsPersonalPreferencesIndexRoute: typeof SettingsPersonalPreferencesIndexRoute
   SettingsPersonalProfileIndexRoute: typeof SettingsPersonalProfileIndexRoute
   SettingsWorkspaceGeneralIndexRoute: typeof SettingsWorkspaceGeneralIndexRoute
   SettingsWorkspaceInvitationsIndexRoute: typeof SettingsWorkspaceInvitationsIndexRoute
@@ -924,7 +903,6 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsWorkspaceIndexRoute: SettingsWorkspaceIndexRoute,
   SettingsPersonalNotificationsIndexRoute:
     SettingsPersonalNotificationsIndexRoute,
-  SettingsPersonalPreferencesIndexRoute: SettingsPersonalPreferencesIndexRoute,
   SettingsPersonalProfileIndexRoute: SettingsPersonalProfileIndexRoute,
   SettingsWorkspaceGeneralIndexRoute: SettingsWorkspaceGeneralIndexRoute,
   SettingsWorkspaceInvitationsIndexRoute:
