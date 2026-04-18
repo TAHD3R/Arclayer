@@ -34,9 +34,9 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     key: "global.workspaces",
-    label: "Workspaces",
-    labelKey: "account:ACCOUNT_NAV_WORKSPACES",
-    to: "/workspaces",
+    label: "Projects",
+    labelKey: "account:ACCOUNT_NAV_PROJECTS",
+    to: "/projects",
     groupBehavior: "navigate-self-and-expand",
     icon: Users,
     dividerBefore: true,

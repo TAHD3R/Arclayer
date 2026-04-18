@@ -34,12 +34,9 @@ describe("workspace nav regression", () => {
       "/assets",
       "/content/models",
       "/content/library",
-      "/settings/site",
-      "/team/members",
-      "/team/invitations",
-      "/team/roles",
+      "/settings/general",
       "/activity",
-      "/settings/workspace",
+      "/settings/workspace/general",
     ]);
   });
 
@@ -61,7 +58,6 @@ describe("workspace nav regression", () => {
       "marketing",
       "analytics",
       "customers.leads",
-      "team",
       "apps",
       "automations",
       "activity",
@@ -78,7 +74,7 @@ describe("workspace nav regression", () => {
 
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "website")?.children?.map((item) => item.key),
-    ).toEqual(["assets", "content.models", "content.library", "settings.site"]);
+    ).toEqual(["assets", "content.models", "content.library", "settings.project"]);
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "marketing")?.children?.every(
         (item) => item.disabled,
@@ -105,7 +101,7 @@ describe("workspace nav regression", () => {
     });
   });
 
-  test("returns the single team-first workspace nav tree", () => {
+  test("returns the project-first workspace nav tree", () => {
     const workspaceNav = getWorkspaceNavItems();
 
     expect(workspaceNav.map((item) => item.key)).toEqual([
@@ -115,14 +111,12 @@ describe("workspace nav regression", () => {
       "marketing",
       "analytics",
       "customers.leads",
-      "team",
       "apps",
       "automations",
       "activity",
       "settings.workspace",
     ]);
-    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/team/members");
-    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/team/invitations");
-    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/team/roles");
+    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/settings/general");
+    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/settings/workspace/general");
   });
 });

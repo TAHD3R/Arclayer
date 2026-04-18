@@ -1,7 +1,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Check,
   ChevronDown,
@@ -21,7 +21,7 @@ import {
   type WorkspaceAvatarIdentity,
 } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
-import { switchWorkspacePath } from "@/lib/routing/workspace-routing";
+import { projectsHomePath, switchWorkspacePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { MyWorkspace } from "@/types/api";
@@ -348,7 +348,7 @@ function WorkspacePickerSection(props: {
   title?: string | null;
   workspaces: readonly MyWorkspace[];
   activeWorkspaceId: string | null;
-  onSelect: (workspaceId: string) => void;
+  onSelect: (workspace: MyWorkspace) => void;
 }) {
   const { t } = useTranslation(["common"]);
   const shouldScroll = props.workspaces.length > WORKSPACE_PICKER_VISIBLE_ROWS;
@@ -372,7 +372,7 @@ function WorkspacePickerSection(props: {
           return (
             <PanelMenuButton
               key={workspace.workspaceId}
-              onClick={() => props.onSelect(workspace.workspaceId)}
+              onClick={() => props.onSelect(workspace)}
               className={cn(
                 "min-h-[4.5rem] items-start rounded-none px-3 py-2.5",
                 selected && "bg-accent/80 text-label-primary",
@@ -419,7 +419,7 @@ function ViewAllWorkspacesButton() {
       text={t("common:WORKSPACE_SWITCHER_VIEW_ALL_WORKSPACES")}
       onClick={() => {
         closeFloatingPanel();
-        void navigate({ to: "/workspaces" as never });
+        void navigate({ to: projectsHomePath() as never });
       }}
     />
   );
@@ -431,7 +431,9 @@ function PanelContentInner() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
 
@@ -454,7 +456,7 @@ function PanelContentInner() {
   const pickerWorkspaces = teamWorkspaces;
   const hasWorkspaceItems = pickerWorkspaces.length > 0;
 
-  const currentWorkspaceBase = currentWorkspaceId ? `/w/${currentWorkspaceId}` : null;
+  const currentProjectBase = currentProjectId ? `/projects/${currentProjectId}` : null;
   const divider = <div className="mx-3 h-px bg-border/45" />;
 
   return (
@@ -471,13 +473,14 @@ function PanelContentInner() {
                 title={null}
                 workspaces={pickerWorkspaces}
                 activeWorkspaceId={currentWorkspaceId}
-                onSelect={(nextWorkspaceId) => {
+                onSelect={(workspace) => {
                   closeFloatingPanel();
-                  setCurrentWorkspaceId(nextWorkspaceId);
+                  setCurrentWorkspaceId(workspace.workspaceId);
+                  setCurrentProjectId(workspace.projectId);
                   const nextPath = switchWorkspacePath({
                     pathname,
-                    currentWorkspaceId,
-                    nextWorkspaceId,
+                    currentProjectId,
+                    nextProjectId: workspace.projectId,
                   });
                   void navigate({ to: nextPath as never });
                 }}
@@ -493,22 +496,22 @@ function PanelContentInner() {
         <WorkspaceActionButton
           icon={<Settings2 className="h-4 w-4" aria-hidden="true" />}
           text={t("common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS")}
-          disabled={!currentWorkspaceBase}
+          disabled={!currentProjectBase}
           onClick={() => {
-            if (!currentWorkspaceBase) return;
+            if (!currentProjectBase) return;
             closeFloatingPanel();
-            void navigate({ to: `${currentWorkspaceBase}/settings/workspace/` as never });
+            void navigate({ to: `${currentProjectBase}/settings/general/` as never });
           }}
         />
-        {currentWorkspaceBase ? (
+        {currentProjectBase ? (
           <WorkspaceActionButton
             icon={<Users className="h-4 w-4" aria-hidden="true" />}
             text={t("team:TEAM_INVITE_MEMBER")}
-            disabled={!currentWorkspaceBase}
+            disabled={!currentProjectBase}
             onClick={() => {
-              if (!currentWorkspaceBase) return;
+              if (!currentProjectBase) return;
               closeFloatingPanel();
-              void navigate({ to: `${currentWorkspaceBase}/team/members/` as never });
+              void navigate({ to: "/settings/workspace/members" as never });
             }}
           />
         ) : null}
@@ -523,7 +526,7 @@ function PanelContentInner() {
           text={t("common:WORKSPACE_SWITCHER_ADD_WORKSPACE")}
           onClick={() => {
             closeFloatingPanel();
-            void navigate({ to: "/workspaces?create=1" as never });
+            void navigate({ to: "/projects?create=1" as never });
           }}
         />
       </div>
@@ -650,13 +653,13 @@ export function AdminWorkspaceSwitcher({
     retry: false,
     meta: { silent: true },
   });
-
   const workspaceName = workspaceDetailQuery.data?.name ?? "";
   const workspaceIdentity = workspaceDetailQuery.data ?? null;
-  const isWorkspaceScopeRoute = pathname.startsWith("/w/");
+  const isWorkspaceScopeRoute =
+    pathname.startsWith("/projects/") || pathname === "/projects" || pathname === "/projects/";
   const isHeaderVariant = variant === "header";
 
-  if (!isWorkspaceScopeRoute) {
+  if (!isWorkspaceScopeRoute && !isHeaderVariant) {
     return null;
   }
 

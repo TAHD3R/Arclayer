@@ -9,7 +9,7 @@ import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useSidebar } from "@arclayer/ui/sidebar";
 
-let mockPathname = "/w/ws-1/content/create";
+let mockPathname = "/projects/ws-1/content/create";
 let mockSearchObject: Record<string, unknown> = {};
 let mockSearchStr = "";
 const navigateMock = vi.fn().mockResolvedValue(undefined);
@@ -133,7 +133,7 @@ describe("sidebar route state wiring", () => {
     });
     capturedSceneProps.length = 0;
     navigateMock.mockClear();
-    mockPathname = "/w/ws-1/content/create";
+    mockPathname = "/projects/ws-1/content/create";
     mockSearchObject = {};
     mockSearchStr = "";
     useAuthStore.setState({ accessToken: null, sessionVersion: 0 });
@@ -155,15 +155,18 @@ describe("sidebar route state wiring", () => {
     const props = latestSceneProps();
 
     expect(screen.getByTestId("scene-layout")).toBeInTheDocument();
-    expect(props.favoriteWorkspaceBase).toBe("/w/ws-1");
+    expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
     expect(props.mainItems.map((item) => item.key)).toEqual([
       "dashboard",
-      "assets",
-      "content.models",
-      "content.library",
-      "settings.site",
-      "team",
-      "workspace",
+      "inbox",
+      "website",
+      "marketing",
+      "analytics",
+      "customers.leads",
+      "apps",
+      "automations",
+      "activity",
+      "settings.workspace",
     ]);
   });
 

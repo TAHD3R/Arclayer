@@ -56,6 +56,7 @@ import {
 import { TeamMembersPageToolbar } from "@/pages/workspaces/team/shared/components/team-members-page-toolbar";
 
 export function TeamMembersView(props: {
+  workspaceIdOverride?: string | null;
   initialSearchQuery?: string;
   initialInspectMemberId?: string;
 }) {
@@ -64,7 +65,8 @@ export function TeamMembersView(props: {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
 
   const [filters, setFilters] = React.useState<TeamMembersFilters>({});
 

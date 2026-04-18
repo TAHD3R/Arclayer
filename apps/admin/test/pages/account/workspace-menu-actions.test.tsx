@@ -67,6 +67,7 @@ describe("useWorkspaceMenuActions", () => {
     const workspace: UserCenterWorkspaceListItem = {
       id: "ws-1",
       workspaceId: "ws-1",
+      projectId: "project-1",
       organizationId: "org-1",
       slug: "alpha",
       name: "Workspace Alpha",
@@ -156,6 +157,7 @@ describe("useWorkspaceMenuActions", () => {
     const workspace: UserCenterWorkspaceListItem = {
       id: "ws-1",
       workspaceId: "ws-1",
+      projectId: "project-1",
       organizationId: "org-1",
       slug: "alpha",
       name: "Workspace Alpha",
@@ -233,6 +235,7 @@ describe("useWorkspaceMenuActions", () => {
     const workspace: UserCenterWorkspaceListItem = {
       id: "ws-1",
       workspaceId: "ws-1",
+      projectId: "project-1",
       organizationId: "org-1",
       slug: "alpha",
       name: "Workspace Alpha",

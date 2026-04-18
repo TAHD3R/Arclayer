@@ -103,7 +103,11 @@ describe("resolveFavoriteNavItems", () => {
   it("preserves the persisted favorites order across workspaces", () => {
     const favorites = resolveFavoriteNavItems({
       favorites: [
-        { id: "item:/w/ws-2/team/invitations", type: "item", path: "/w/ws-2/team/invitations" },
+        {
+          id: "item:/projects/ws-2/settings/general",
+          type: "item",
+          path: "/projects/ws-2/settings/general",
+        },
         { id: "item:/w/ws-1/activity", type: "item", path: "/w/ws-1/activity" },
         { id: "item:/w/ws-3/unknown", type: "item", path: "/w/ws-3/unknown" },
       ],
@@ -114,8 +118,8 @@ describe("resolveFavoriteNavItems", () => {
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/w/ws-2/team/invitations",
-        label: "nav:NAV_SETTINGS_TEAM_MEMBERS",
+        path: "/projects/ws-2/settings/general",
+        label: "nav:NAV_SETTINGS_PROJECT",
         isCurrentWorkspace: false,
       }),
       expect.objectContaining({
@@ -129,8 +133,12 @@ describe("resolveFavoriteNavItems", () => {
   it("resolves workspace favorites from the global view via workspace templates", () => {
     const favorites = resolveFavoriteNavItems({
       favorites: [
-        { id: "item:/w/ws-9/team/invitations", type: "item", path: "/w/ws-9/team/invitations" },
-        { id: "item:/w/ws-9/settings/workspace", type: "item", path: "/w/ws-9/settings/workspace" },
+        {
+          id: "item:/projects/ws-9/settings/general",
+          type: "item",
+          path: "/projects/ws-9/settings/general",
+        },
+        { id: "item:/projects/ws-9/activity", type: "item", path: "/projects/ws-9/activity" },
       ],
       items: [],
       t: ((key: string) => key) as TFunction,
@@ -138,13 +146,13 @@ describe("resolveFavoriteNavItems", () => {
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/w/ws-9/team/invitations",
-        label: "nav:NAV_SETTINGS_TEAM_MEMBERS",
+        path: "/projects/ws-9/settings/general",
+        label: "nav:NAV_SETTINGS_PROJECT",
         isCurrentWorkspace: false,
       }),
       expect.objectContaining({
-        path: "/w/ws-9/settings/workspace",
-        label: "nav:NAV_SETTINGS_WORKSPACE",
+        path: "/projects/ws-9/activity",
+        label: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
         isCurrentWorkspace: false,
       }),
     ]);

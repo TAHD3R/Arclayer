@@ -26,6 +26,8 @@ from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceOut,
     OrganizationWorkspaceSlugAvailabilityOut,
 )
+from src.modules.projects.repository import ProjectRepository
+from src.modules.projects.schema import WorkspacePrimaryProjectOut
 from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.system.rbac.service import RBACService
 from src.modules.workspaces.danger_service import WorkspaceDangerService
@@ -56,6 +58,7 @@ class OrganizationWorkspaceService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.repo = OrganizationWorkspaceRepository()
+        self.project_repo = ProjectRepository()
         self.site_service = WorkspaceSiteService(settings)
         self.creation_policy = OrgWorkspaceCreationPolicy(settings)
 
@@ -101,6 +104,9 @@ class OrganizationWorkspaceService(BaseService):
             rows = self._sort_workspaces_default(rows=rows, archived=archived)
 
         workspace_ids = [UUID(str(ws.id)) for ws in rows]
+        project_ids_by_workspace = await self.project_repo.get_primary_project_ids_by_workspace_ids(
+            workspace_ids=workspace_ids,
+        )
         memberships = await self.repo.list_active_memberships(workspace_ids=workspace_ids)
 
         members_by_workspace: dict[UUID, list[UUID]] = defaultdict(list)
@@ -149,6 +155,7 @@ class OrganizationWorkspaceService(BaseService):
                     member_count=len(member_ids),
                     members_preview=preview,
                     enterable=enterable,
+                    project_id=project_ids_by_workspace.get(ws_id, ws_id),
                 )
             )
 
@@ -278,6 +285,10 @@ class OrganizationWorkspaceService(BaseService):
             workspace_id=UUID(str(ws.id)),
             actor_user_id=user_id,
         )
+        project = await self.project_repo.get_or_create_primary_project_for_workspace(
+            workspace_id=UUID(str(ws.id)),
+            actor_user_id=user_id,
+        )
 
         # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
         settings_service = WorkspaceSettingsService(self.settings)
@@ -323,6 +334,7 @@ class OrganizationWorkspaceService(BaseService):
             member_count=1 if preview else 0,
             members_preview=preview,
             enterable=True,
+            project_id=UUID(str(project.id)),
         )
 
     async def check_slug_availability(self, *, slug: str) -> OrganizationWorkspaceSlugAvailabilityOut:
@@ -526,10 +538,12 @@ class OrganizationWorkspaceService(BaseService):
         member_count: int,
         members_preview: list[OrganizationWorkspaceMemberPreviewOut],
         enterable: bool,
+        project_id: UUID,
     ) -> OrganizationWorkspaceOut:
         return OrganizationWorkspaceOut(
             id=workspace.id,
             workspace_id=workspace.id,
+            project_id=project_id,
             organization_id=organization_id,
             slug=workspace.slug,
             name=workspace.name,
@@ -546,6 +560,7 @@ class OrganizationWorkspaceService(BaseService):
             members_preview=members_preview,
             created_at=workspace.created_at,
             enterable=enterable,
+            project=WorkspacePrimaryProjectOut(project_id=project_id),
         )
 
     def _sort_workspaces_default(self, *, rows: list[Workspace], archived: bool | None) -> list[Workspace]:

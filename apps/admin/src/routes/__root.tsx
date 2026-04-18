@@ -94,8 +94,11 @@ export const Route = createRootRoute({
       const decision = await resolvePostAuthRoute({
         lastWorkspaceId: workspaceState.lastWorkspaceId,
       });
-      if (decision.workspaceId) {
-        workspaceState.setCurrentWorkspaceId(decision.workspaceId);
+      if (decision.workspaceId || decision.projectId) {
+        workspaceState.setCurrentContext({
+          workspaceId: decision.workspaceId,
+          projectId: decision.projectId,
+        });
       }
       if (
         typeof redirectTo === "string" &&

@@ -9,9 +9,9 @@ vi.mock("@tanstack/react-router", () => ({
   redirect: (payload: Record<string, unknown>) => redirectMock(payload),
 }));
 
-import { Route } from "@/routes/w/$workspaceId/content/create/index";
+import { Route } from "@/routes/projects/$projectId/content/create/index";
 
-describe("workspace content create route", () => {
+describe("project content create route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -19,26 +19,26 @@ describe("workspace content create route", () => {
   it("redirects the legacy create route into the library create overlay", () => {
     const beforeLoad = (
       Route as unknown as {
-        beforeLoad?: (input: { params: { workspaceId: string } }) => void;
+        beforeLoad?: (input: { params: { projectId: string } }) => void;
       }
     ).beforeLoad;
 
     expect(beforeLoad).toBeTypeOf("function");
 
     try {
-      beforeLoad?.({ params: { workspaceId: "ws-1" } });
+      beforeLoad?.({ params: { projectId: "project-1" } });
       throw new Error("expected redirect");
     } catch (error) {
       expect(redirectMock).toHaveBeenCalledWith({
-        to: "/w/$workspaceId/content/library",
-        params: { workspaceId: "ws-1" },
+        to: "/projects/$projectId/content/library",
+        params: { projectId: "project-1" },
         search: { create: "1" },
         replace: true,
       });
       expect(error).toEqual({
         __redirect: {
-          to: "/w/$workspaceId/content/library",
-          params: { workspaceId: "ws-1" },
+          to: "/projects/$projectId/content/library",
+          params: { projectId: "project-1" },
           search: { create: "1" },
           replace: true,
         },

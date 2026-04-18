@@ -145,7 +145,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
       return;
     }
     setCurrentWorkspaceId(nextWorkspace.workspaceId);
-    await navigate({ to: `/w/${nextWorkspace.workspaceId}/settings/workspace`, replace: true });
+    await navigate({ to: "/settings/workspace/general", replace: true });
   }, [clearWorkspace, navigate, setCurrentWorkspaceId, workspaceId]);
 
   const submitLeaveDialog = leaveDialogForm.handleSubmit(async (values) => {

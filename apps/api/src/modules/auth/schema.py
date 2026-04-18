@@ -546,4 +546,8 @@ class AcceptExistingInvitationResult(BaseSchema):
         default=None,
         description="Workspace id that the user joined (nullable for organization-only invitations).",
     )
+    project_id: PublicUUID | None = Field(
+        default=None,
+        description="Primary project id for the joined workspace.",
+    )
     role_code: str | None = Field(default=None, description="Role code assigned by the invitation.")

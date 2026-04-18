@@ -8,7 +8,6 @@ import {
   LibraryBig,
   MailPlus,
   Settings2,
-  Shield,
   Users,
   Zap,
 } from "lucide-react";
@@ -61,10 +60,10 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
         icon: LibraryBig,
       },
       {
-        key: "settings.site",
-        label: "Site Settings",
-        labelKey: "nav:NAV_SETTINGS_SITE",
-        to: "/settings/site",
+        key: "settings.project",
+        label: "Project Settings",
+        labelKey: "nav:NAV_SETTINGS_PROJECT",
+        to: "/settings/general",
         icon: Globe,
       },
     ],
@@ -190,35 +189,6 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
     ],
   },
   {
-    key: "team",
-    label: "Team",
-    labelKey: "nav:NAV_SECTION_TEAM",
-    icon: Users,
-    children: [
-      {
-        key: "settings.team.memberList",
-        label: "Members",
-        labelKey: "nav:NAV_SETTINGS_TEAM_MEMBER_LIST",
-        to: "/team/members",
-        icon: Users,
-      },
-      {
-        key: "settings.team.members",
-        label: "Invitations",
-        labelKey: "nav:NAV_SETTINGS_TEAM_MEMBERS",
-        to: "/team/invitations",
-        icon: MailPlus,
-      },
-      {
-        key: "settings.team.roles",
-        label: "Permissions",
-        labelKey: "nav:NAV_SETTINGS_TEAM_ROLES",
-        to: "/team/roles",
-        icon: Shield,
-      },
-    ],
-  },
-  {
     key: "apps",
     label: "Apps",
     labelKey: "nav:NAV_SECTION_APPS",
@@ -262,7 +232,7 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
     key: "settings.workspace",
     label: "Workspace Settings",
     labelKey: "nav:NAV_SETTINGS_WORKSPACE",
-    to: "/settings/workspace",
+    to: "/settings/workspace/general",
     icon: Settings2,
   },
 ] as const;

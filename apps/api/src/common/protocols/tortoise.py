@@ -22,6 +22,10 @@ class HasWorkspaceId(Protocol):
     workspace_id: UUID | str
 
 
+class HasProjectId(Protocol):
+    project_id: UUID | str
+
+
 class HasUserId(Protocol):
     user_id: UUID | str
 

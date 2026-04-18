@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { STORAGE_KEYS } from "@/constants/storage";
 import { AssetsPageView } from "@/pages/workspaces/assets/components/assets-page-view";
@@ -103,6 +104,28 @@ vi.mock("@/pages/workspaces/assets/components/assets-view-overlays", () => ({
     selectedCount > 0 ? <button type="button">{t("assets:ASSET_CLEAR_SELECTION")}</button> : null,
   AssetsViewOverlays: () => null,
 }));
+
+vi.mock("@/api/workspaces", () => ({
+  getWorkspaceDetail: vi.fn().mockResolvedValue({
+    id: "ws-1",
+    name: "Workspace Alpha",
+    iconMode: "initials",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
+    iconUrl: null,
+  }),
+}));
+
+function renderWithQueryClient(component: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+
+  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+}
 
 function createMutationStub() {
   return {
@@ -246,7 +269,7 @@ describe("AssetsPageView", () => {
   it("shows the folder rail by default and persists the user's collapse choice", async () => {
     const user = userEvent.setup();
 
-    render(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView />);
 
     expect(screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_UPLOAD" })).toBeInTheDocument();
@@ -263,7 +286,7 @@ describe("AssetsPageView", () => {
   it("honors a persisted collapsed rail preference on revisit", () => {
     window.localStorage.setItem(STORAGE_KEYS.assetsFolderRailOpen, "false");
 
-    render(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView />);
 
     expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
   });
@@ -280,7 +303,7 @@ describe("AssetsPageView", () => {
       explicitFilterActive: false,
     });
 
-    render(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView />);
 
     expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
     expect(screen.queryByRole("button", { name: "common:SIDEBAR_TOGGLE" })).not.toBeInTheDocument();
@@ -297,7 +320,7 @@ describe("AssetsPageView", () => {
       },
     });
 
-    render(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView />);
 
     await user.click(screen.getByRole("button", { name: "switch-table" }));
 
@@ -311,7 +334,7 @@ describe("AssetsPageView", () => {
   });
 
   it("adds bottom breathing room to the assets content region", () => {
-    const { container } = render(<AssetsPageView />);
+    const { container } = renderWithQueryClient(<AssetsPageView />);
 
     expect(
       container.querySelector(".overflow-x-hidden.overflow-y-auto.pb-8.scrollbar-none"),

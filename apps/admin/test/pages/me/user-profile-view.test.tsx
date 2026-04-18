@@ -15,6 +15,14 @@ const meQueryState = {
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => meQueryState,
+  useMutation: () => ({
+    isPending: false,
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+  }),
+  useQueryClient: () => ({
+    invalidateQueries: vi.fn(),
+  }),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -25,7 +33,7 @@ vi.mock("@tanstack/react-router", () => ({
   }) =>
     select({
       location: {
-        pathname: "/w/ws-1/assets",
+        pathname: "/projects/ws-1/assets",
         searchStr: "?assetId=asset-1",
       },
     }),

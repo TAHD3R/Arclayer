@@ -13,7 +13,7 @@ function isValidRelativePath(value: string): boolean {
 }
 
 function isAllowedSourcePath(kind: NotificationsSourceKind, path: string): boolean {
-  if (kind === "workspace") return path.startsWith("/w/");
+  if (kind === "workspace") return path.startsWith("/projects/");
   if (kind === "global") return isGlobalPath(path);
   return path.startsWith("/settings/personal/") || path === "/settings";
 }
@@ -54,7 +54,7 @@ export function parseNotificationsSourceSearch(searchStr: string): Notifications
 export function buildNotificationsSourceSearch(pathname: string): NotificationsSourceSearch {
   const normalized = normalizePath(pathname);
 
-  if (normalized.startsWith("/w/")) {
+  if (normalized.startsWith("/projects/")) {
     return {
       sourceKind: "workspace",
       sourcePath: normalized,

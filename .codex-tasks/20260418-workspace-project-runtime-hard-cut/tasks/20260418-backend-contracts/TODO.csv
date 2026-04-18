@@ -1,0 +1,5 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,Create backend-contract task artifacts and inspect target routes,DONE,Target contract surfaces are listed,echo inspected,2026-04-18T00:00:00,0,Workspace/site routes narrowed to site api-keys releases publish
+2,Add project bootstrap and shared project facade helpers,DONE,Projects can resolve their workspace-backed site/runtime bridge,pnpm -C apps/api uv -- python -m compileall src/models src/modules,2026-04-18T00:00:00,0,Project repository and facade helpers added
+3,Add project-scoped site and api key routers,DONE,Project routes expose site metadata preview tokens and api keys,pnpm -C apps/api uv -- python -m compileall src/modules,2026-04-18T00:00:00,0,Project facade routes added for site and api keys
+4,Add project-scoped releases and publish routers then validate,DONE,Project routes expose release and publish preview facades,pnpm -C apps/api uv -- python -m compileall src/models src/modules,2026-04-18T00:00:00,0,Project facade routes added for releases and publish preview

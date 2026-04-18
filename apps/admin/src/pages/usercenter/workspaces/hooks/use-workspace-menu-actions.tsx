@@ -4,7 +4,7 @@ import { Archive, LogIn, Palette, Pencil, Settings2, Trash2, Undo2 } from "lucid
 
 import { getWorkspaceDangerCapabilities } from "@/api/workspaces";
 import { notifyError, notifyErrorText } from "@/lib/notifications";
-import type { OrganizationWorkspace, WorkspaceDangerCapabilities } from "@/types/api";
+import type { WorkspaceDangerCapabilities } from "@/types/api";
 
 import type {
   UserCenterWorkspaceListItem,
@@ -30,11 +30,13 @@ type WorkspaceDangerCapabilityState =
 type UseWorkspaceMenuActionsOptions = {
   organizationId?: string;
   t: UserCenterWorkspacesTranslateFn;
-  onEnterWorkspace: (workspaceId: string) => void;
-  onManageWorkspace: (workspaceId: string) => void;
+  onEnterWorkspace: (workspace: UserCenterWorkspaceListItem) => void;
+  onManageWorkspace: (workspace: UserCenterWorkspaceListItem) => void;
   onArchiveSuccess?: () => void;
   onDeleteSuccess?: () => void;
 };
+
+type WorkspaceDangerTarget = Pick<UserCenterWorkspaceListItem, "workspaceId" | "name">;
 
 const EDIT_NAVIGATION_SUPPRESSION_MS = 240;
 
@@ -78,8 +80,8 @@ export function useWorkspaceMenuActions({
   onDeleteSuccess,
 }: UseWorkspaceMenuActionsOptions) {
   const queryClient = useQueryClient();
-  const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState<WorkspaceDangerTarget | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<WorkspaceDangerTarget | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
   const [editingWorkspaceField, setEditingWorkspaceField] = useState<WorkspaceEditingField | null>(
@@ -190,7 +192,7 @@ export function useWorkspaceMenuActions({
   );
 
   const requestArchiveWorkspace = useCallback(
-    async (workspace: OrganizationWorkspace) => {
+    async (workspace: WorkspaceDangerTarget) => {
       const allowed = await guardWorkspaceDangerAction(workspace.workspaceId, "archive");
       if (!allowed) return;
       setConfirmArchive(workspace);
@@ -199,7 +201,7 @@ export function useWorkspaceMenuActions({
   );
 
   const requestDeleteWorkspace = useCallback(
-    async (workspace: OrganizationWorkspace) => {
+    async (workspace: WorkspaceDangerTarget) => {
       const allowed = await guardWorkspaceDangerAction(workspace.workspaceId, "delete");
       if (!allowed) return;
       setDeleteConfirmName("");
@@ -355,7 +357,7 @@ export function useWorkspaceMenuActions({
             label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
             disabled: deleteDisabled,
             onClick: () => {
-              void requestDeleteWorkspace(workspace as OrganizationWorkspace);
+              void requestDeleteWorkspace(workspace);
             },
           },
         ];
@@ -366,13 +368,13 @@ export function useWorkspaceMenuActions({
           key: "enter",
           icon: <LogIn className="size-4" />,
           label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
-          onClick: () => onEnterWorkspace(workspace.workspaceId),
+          onClick: () => onEnterWorkspace(workspace),
         },
         {
           key: "manage",
           icon: <Settings2 className="size-4" />,
           label: t("common:ORG_WORKSPACES_ACTION_MANAGE"),
-          onClick: () => onManageWorkspace(workspace.workspaceId),
+          onClick: () => onManageWorkspace(workspace),
         },
         {
           key: "edit-workspace",
@@ -415,7 +417,7 @@ export function useWorkspaceMenuActions({
               label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
               disabled: archiveDisabled,
               onClick: () => {
-                void requestArchiveWorkspace(workspace as OrganizationWorkspace);
+                void requestArchiveWorkspace(workspace);
               },
             },
             {
@@ -425,7 +427,7 @@ export function useWorkspaceMenuActions({
               label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
               disabled: deleteDisabled,
               onClick: () => {
-                void requestDeleteWorkspace(workspace as OrganizationWorkspace);
+                void requestDeleteWorkspace(workspace);
               },
             },
           ],

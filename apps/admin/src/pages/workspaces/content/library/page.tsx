@@ -2,7 +2,7 @@ import * as React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useSidebar } from "@arclayer/ui/sidebar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useDataTable } from "@arclayer/ui/data-table";
 import {
@@ -460,10 +460,23 @@ function buildViewDiffItems(
   return items.filter((item): item is ContentLibraryViewDiffItem => item !== null);
 }
 
-export function ContentLibraryPage() {
+type ContentLibraryPageProps = {
+  search?: {
+    view?: string;
+    focusItemId?: string;
+    create?: "1";
+  };
+  routeBase?:
+    | "/projects/$projectId/content/library/"
+    | "/projects/$projectId/content/library/$itemId/";
+};
+
+export function ContentLibraryPage(props: ContentLibraryPageProps) {
   const { t } = useTranslation(["content", "common", "nav", "team"]);
-  const navigate = useNavigate({ from: "/w/$workspaceId/content/library/" });
-  const search = useSearch({ from: "/w/$workspaceId/content/library/" });
+  const navigate = useNavigate({
+    from: props.routeBase ?? "/projects/$projectId/content/library/",
+  });
+  const search = props.search ?? {};
   const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const sidebar = useSidebar();
   const queryClient = useQueryClient();

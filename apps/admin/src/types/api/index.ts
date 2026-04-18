@@ -55,6 +55,21 @@ export type {
   WorkspaceSlugAvailability,
   WorkspaceSwitcher,
 } from "./workspaces";
+export type {
+  AcceptExistingInvitationResult,
+  InvitationPreviewInvitation,
+  InvitationPreviewInviter,
+  InvitationPreviewOrganization,
+  InvitationPreviewResult,
+  InvitationPreviewRole,
+  InvitationPreviewWorkspace,
+  MyInvitation,
+  MyInvitationInviter,
+  MyInvitationOrganization,
+  MyInvitationWorkspace,
+} from "./invitations";
+export type { ProjectMember, ProjectMemberRole } from "./project-members";
+export type { Project, ProjectDetail, ProjectRuntime } from "./projects";
 export type { SystemBootstrapPayload, SystemInstanceSetupStatus, SystemRuntime } from "./system";
 
 export * from "@arclayer/openapi/admin-types";

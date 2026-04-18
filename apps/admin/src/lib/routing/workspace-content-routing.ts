@@ -1,4 +1,5 @@
 import type { AdminContentItem, AdminContentOpenIntent } from "@/types/api";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 function safeReturnTo(value: string | null | undefined): string | null {
   const raw = (value || "").trim();
@@ -14,19 +15,31 @@ function getCurrentReturnTo(): string | null {
 }
 
 export function workspaceContentLibraryPath(workspaceId: string): string {
-  return `/w/${encodeURIComponent(workspaceId)}/content/library`;
+  const projectId =
+    useWorkspaceStore.getState().currentProjectId ??
+    useWorkspaceStore.getState().lastProjectId ??
+    workspaceId;
+  return `/projects/${encodeURIComponent(projectId)}/content/library`;
 }
 
 export function workspaceContentLibraryItemPath(workspaceId: string, itemId: string): string {
-  return `/w/${encodeURIComponent(workspaceId)}/content/library/${encodeURIComponent(itemId)}`;
+  return `${workspaceContentLibraryPath(workspaceId)}/${encodeURIComponent(itemId)}`;
 }
 
 export function workspaceContentModelsPath(workspaceId: string): string {
-  return `/w/${encodeURIComponent(workspaceId)}/content/models`;
+  const projectId =
+    useWorkspaceStore.getState().currentProjectId ??
+    useWorkspaceStore.getState().lastProjectId ??
+    workspaceId;
+  return `/projects/${encodeURIComponent(projectId)}/content/models`;
 }
 
 export function workspaceContentCreatePath(workspaceId: string): string {
-  return `/w/${encodeURIComponent(workspaceId)}/content/create`;
+  const projectId =
+    useWorkspaceStore.getState().currentProjectId ??
+    useWorkspaceStore.getState().lastProjectId ??
+    workspaceId;
+  return `/projects/${encodeURIComponent(projectId)}/content/create`;
 }
 
 export function buildWorkspaceContentLibraryFocusSearch(itemId: string): {

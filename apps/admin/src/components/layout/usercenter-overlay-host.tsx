@@ -5,7 +5,7 @@ import {
   buildUsercenterOverlayNavigate,
   isUsercenterOverlayTab,
 } from "@/lib/routing/usercenter-overlay";
-import { workspaceHomePath } from "@/lib/routing/workspace-routing";
+import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
 import { SettingsFrame } from "@/pages/settings/settings-shell";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -35,11 +35,11 @@ export function UsercenterOverlayHost() {
           ? (window.history.state as { __TSR_index?: number } | null)?.__TSR_index
           : undefined;
       if (historyIndex === 0) {
-        const workspaceId =
-          useWorkspaceStore.getState().currentWorkspaceId ??
-          useWorkspaceStore.getState().lastWorkspaceId;
+        const projectId =
+          useWorkspaceStore.getState().currentProjectId ??
+          useWorkspaceStore.getState().lastProjectId;
         void navigate({
-          to: (workspaceId ? `${workspaceHomePath(workspaceId)}/` : "/") as never,
+          to: (projectId ? `${projectHomePath(projectId)}/` : "/") as never,
           replace: true,
         });
         return;

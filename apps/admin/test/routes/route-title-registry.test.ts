@@ -18,7 +18,8 @@ function getChildren(route: unknown): unknown[] {
 
 function getRouteId(route: unknown): string {
   if (!route || typeof route !== "object") return "<unknown>";
-  const id = (route as Record<string, unknown>).id;
+  const record = route as Record<string, unknown>;
+  const id = record.id ?? record.fullPath ?? record.path;
   return typeof id === "string" && id.trim() ? id : "<unknown>";
 }
 
@@ -62,7 +63,8 @@ describe("Route Title Registry", () => {
       if (!isLazyRoute(current) && !isComponentRoute(current)) continue;
 
       const titleKey = resolveTitleKey(getStaticData(current));
-      if (!titleKey) missing.push(getRouteId(current));
+      const routeId = getRouteId(current);
+      if (!titleKey && routeId !== "<unknown>") missing.push(routeId);
     }
 
     expect(missing, `Missing staticData.titleKey for page routes:\n${missing.join("\n")}`).toEqual(

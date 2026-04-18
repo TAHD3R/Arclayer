@@ -19,6 +19,15 @@ export function workspacePath(workspaceId: string, path?: string): string {
   return `/workspaces/${id}${suffix}`;
 }
 
+/** Build a project-scoped API path: `/projects/{id}{path}`. */
+export function projectPath(projectId: string, path?: string): string {
+  const id = encodeURIComponent(String(projectId));
+  const raw = String(path ?? "");
+  if (!raw) return `/projects/${id}`;
+  const suffix = raw.startsWith("/") ? raw : `/${raw}`;
+  return `/projects/${id}${suffix}`;
+}
+
 /** Build an organization-scoped API path: `/organizations/{id}{path}`. */
 export function organizationPath(organizationId: string, path?: string): string {
   const id = encodeURIComponent(String(organizationId));

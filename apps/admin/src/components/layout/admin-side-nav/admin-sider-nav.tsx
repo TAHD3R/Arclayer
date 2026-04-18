@@ -159,6 +159,16 @@ function useOpenChain(items: readonly AdminNavItem[]) {
       for (const key of prev) {
         if (allGroupKeys.has(key)) next.add(key);
       }
+      if (next.size === prev.size) {
+        let changed = false;
+        for (const key of prev) {
+          if (!next.has(key)) {
+            changed = true;
+            break;
+          }
+        }
+        if (!changed) return prev;
+      }
       return next;
     });
   }, [allGroupKeys]);

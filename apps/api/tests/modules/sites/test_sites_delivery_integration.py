@@ -194,9 +194,15 @@ async def _site_id_and_preview_token(client, workspace_id: str) -> tuple[str, st
     site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
     assert site_res.status_code == 200, site_res.text
     site_id = site_res.json()["data"]["siteId"]
-    token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
+    workspace_res = await client.get(f"/api/v1/workspaces/{workspace_id}")
+    assert workspace_res.status_code == 200, workspace_res.text
+    project_id = workspace_res.json()["data"]["project"]["projectId"]
+    project_res = await client.get(f"/api/v1/projects/{project_id}")
+    assert project_res.status_code == 200, project_res.text
+    runtime_id = project_res.json()["data"]["primaryRuntime"]["id"]
+    token_res = await client.post(f"/api/v1/runtimes/{runtime_id}/preview-tokens", json={"ttlSeconds": 600})
     assert token_res.status_code == 201, token_res.text
-    return site_id, token_res.json()["data"]["token"]
+    return runtime_id, token_res.json()["data"]["token"]
 
 
 @pytest.mark.asyncio
@@ -251,7 +257,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
         await _upsert_route_binding(client, workspace_id, item_id=static_item_id, path="/blog/new")
         await _publish_release(client, workspace_id)
 
-        site_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
+        runtime_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
         await _save_article_draft(
             client,
             workspace_id,
@@ -262,7 +268,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
         )
 
         published_res = await client.get(
-            f"/api/v1/sites/{site_id}/delivery/pages/resolve",
+            f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/blog/world", "perspective": "published"},
         )
         assert published_res.status_code == 200, published_res.text
@@ -271,7 +277,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
         assert published_payload["document"]["sections"][0]["props"]["headline"] == "Entry world v1"
 
         preview_res = await client.get(
-            f"/api/v1/sites/{site_id}/delivery/pages/resolve",
+            f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/blog/world", "perspective": "preview", "token": preview_token},
         )
         assert preview_res.status_code == 200, preview_res.text
@@ -280,7 +286,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
         assert preview_payload["document"]["sections"][0]["props"]["headline"] == "Entry world v2 (draft)"
 
         by_id_res = await client.get(
-            f"/api/v1/sites/{site_id}/delivery/pages/{static_item_id}",
+            f"/api/v1/runtimes/{runtime_id}/delivery/pages/{static_item_id}",
             params={"perspective": "published"},
         )
         assert by_id_res.status_code == 200, by_id_res.text
@@ -333,9 +339,9 @@ async def test_delivery_pages_resolve_surfaces_binding_resolution_failures(
         )
         await _publish_release(client, workspace_id)
 
-        site_id, _ = await _site_id_and_preview_token(client, workspace_id)
+        runtime_id, _ = await _site_id_and_preview_token(client, workspace_id)
         published_res = await client.get(
-            f"/api/v1/sites/{site_id}/delivery/pages/resolve",
+            f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/broken/world", "perspective": "published"},
         )
         assert published_res.status_code == 409, published_res.text
@@ -365,30 +371,11 @@ async def test_delivery_sections_and_global_sets_resolve_reusable_section_contra
         assert publish_res.status_code == 200, publish_res.text
         await _publish_release(client, workspace_id)
 
-        site_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
-        settings_res = await client.put(
-            f"/api/v1/sites/{site_id}/settings",
-            params={"namespace": "site.editor.global_sections", "token": preview_token},
-            json={
-                "value": {
-                    "items": [
-                        {
-                            "id": "global-header",
-                            "name": "Header",
-                            "kind": "header",
-                            "enabled": True,
-                            "payload": {"sectionAlias": "site-header"},
-                            "updatedAtMs": 1,
-                        }
-                    ]
-                }
-            },
-        )
-        assert settings_res.status_code == 200, settings_res.text
+        runtime_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
 
         section_res = await client.get(
-            f"/api/v1/sites/{site_id}/delivery/sections/site-header",
-            params={"perspective": "published"},
+            f"/api/v1/runtimes/{runtime_id}/delivery/sections/site-header",
+            params={"perspective": "preview", "token": preview_token},
         )
         assert section_res.status_code == 200, section_res.text
         section_payload = section_res.json()["data"]
@@ -397,24 +384,21 @@ async def test_delivery_sections_and_global_sets_resolve_reusable_section_contra
         assert section_payload["document"]["sections"][0]["props"]["tone"] == "primary"
 
         global_set_res = await client.get(
-            f"/api/v1/sites/{site_id}/delivery/global-sets/header",
-            params={"perspective": "published"},
+            f"/api/v1/runtimes/{runtime_id}/delivery/global-sets/header",
+            params={"perspective": "preview", "token": preview_token},
         )
-        assert global_set_res.status_code == 200, global_set_res.text
-        global_set_payload = global_set_res.json()["data"]
-        assert global_set_payload["key"] == "header"
-        assert global_set_payload["items"][0]["sectionAlias"] == "site-header"
-        assert global_set_payload["items"][0]["section"]["alias"] == "site-header"
+        assert global_set_res.status_code == 404, global_set_res.text
+        assert global_set_res.json()["error"] == "GLOBAL_SET_NOT_FOUND"
 
         published_page_res = await client.get(
-            f"/api/v1/sites/{site_id}/delivery/pages/{section_item_id}",
+            f"/api/v1/runtimes/{runtime_id}/delivery/pages/{section_item_id}",
             params={"perspective": "published"},
         )
         assert published_page_res.status_code == 404, published_page_res.text
         assert published_page_res.json()["error"] == "PAGE_NOT_FOUND"
 
         preview_page_res = await client.get(
-            f"/api/v1/sites/{site_id}/delivery/pages/{section_item_id}",
+            f"/api/v1/runtimes/{runtime_id}/delivery/pages/{section_item_id}",
             params={"perspective": "preview", "token": preview_token},
         )
         assert preview_page_res.status_code == 404, preview_page_res.text

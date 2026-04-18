@@ -48,6 +48,7 @@ describe("useUserCenterWorkspacesMutations", () => {
     } as never);
     vi.mocked(patchWorkspaceDetail).mockResolvedValue({
       id: "ws-new",
+      project: { projectId: "project-new" },
       organizationId: "org-1",
       slug: "new-workspace",
       name: "New Workspace",

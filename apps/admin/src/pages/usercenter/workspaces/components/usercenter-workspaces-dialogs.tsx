@@ -8,7 +8,6 @@ import {
   syncWorkspaceSlugWithName,
   type WorkspaceSlugSource,
 } from "@/lib/workspace-slug";
-import type { OrganizationWorkspace } from "@/types/api";
 import { cn } from "@arclayer/lib/utils";
 import {
   AlertDialog,
@@ -39,6 +38,11 @@ export type CreateWorkspaceFormValues = {
   description?: string;
 };
 
+type WorkspaceDangerDialogTarget = {
+  workspaceId: string;
+  name: string;
+};
+
 interface UserCenterWorkspacesDialogsProps {
   t: UserCenterWorkspacesTranslateFn;
   createDialog: {
@@ -51,14 +55,14 @@ interface UserCenterWorkspacesDialogsProps {
     onSubmit: (values: CreateWorkspaceFormValues) => Promise<void>;
   };
   archiveDialog: {
-    workspace: OrganizationWorkspace | null;
-    setWorkspace: Dispatch<SetStateAction<OrganizationWorkspace | null>>;
+    workspace: WorkspaceDangerDialogTarget | null;
+    setWorkspace: Dispatch<SetStateAction<WorkspaceDangerDialogTarget | null>>;
     pending: boolean;
     onConfirm: (workspaceId: string) => Promise<void>;
   };
   deleteDialog: {
-    workspace: OrganizationWorkspace | null;
-    setWorkspace: Dispatch<SetStateAction<OrganizationWorkspace | null>>;
+    workspace: WorkspaceDangerDialogTarget | null;
+    setWorkspace: Dispatch<SetStateAction<WorkspaceDangerDialogTarget | null>>;
     confirmName: string;
     setConfirmName: Dispatch<SetStateAction<string>>;
     confirmMatches: boolean;

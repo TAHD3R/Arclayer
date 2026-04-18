@@ -96,7 +96,7 @@ vi.mock("@tanstack/react-router", () => ({
     select,
   }: {
     select: (state: { location: { pathname: string } }) => unknown;
-  }) => select({ location: { pathname: "/w/ws-alpha/assets" } }),
+  }) => select({ location: { pathname: "/projects/ws-alpha/assets" } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -214,7 +214,11 @@ beforeEach(() => {
     localePreference: null,
     localePreferenceMode: "workspace",
   });
-  useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
+  useWorkspaceStore.setState({
+    currentWorkspaceId: "ws-alpha",
+    currentProjectId: "project-alpha",
+    lastWorkspaceId: "ws-alpha",
+  });
 
   vi.mocked(authApi.me).mockResolvedValue({
     id: "user-1",
@@ -248,6 +252,8 @@ beforeEach(() => {
       {
         id: "workspace-link-1",
         workspaceId: "ws-alpha",
+        projectId: "project-alpha",
+        project: { projectId: "project-alpha" },
         organizationId: "org-1",
         slug: "alpha",
         name: "Workspace Alpha",
@@ -275,6 +281,7 @@ beforeEach(() => {
   });
   vi.mocked(getWorkspaceDetail).mockResolvedValue({
     id: "ws-alpha",
+    project: { projectId: "project-alpha" },
     organizationId: "org-1",
     slug: "alpha",
     name: "Workspace Alpha",

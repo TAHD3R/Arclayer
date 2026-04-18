@@ -47,6 +47,7 @@ from src.modules.auth.schema import (
     TokenPair,
 )
 from src.modules.auth.tokens.service import hash_password
+from src.modules.projects.repository import ProjectRepository
 from src.modules.system.admin.notifications.preferences import (
     is_notification_channel_enabled_for_event,
 )
@@ -67,6 +68,7 @@ def _raise_if_fatal(exc: BaseException) -> None:
 class AuthInvitationAcceptanceService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
+        self.project_repo = ProjectRepository()
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -870,8 +872,17 @@ class AuthInvitationAcceptanceService(BaseService):
                 error="SERVICE_UNAVAILABLE",
             )
 
+        project_id = None
+        if workspace_id is not None:
+            project = await self.project_repo.get_or_create_primary_project_for_workspace(
+                workspace_id=workspace_id,
+                actor_user_id=user.id,
+            )
+            project_id = project.id
+
         return AcceptExistingInvitationResult(
             organization_id=organization_id,
             workspace_id=workspace_id,
+            project_id=project_id,
             role_code=assigned_role_code,
         )

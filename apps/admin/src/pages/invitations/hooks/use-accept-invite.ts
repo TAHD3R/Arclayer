@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import * as authApi from "@/api/auth";
 import * as invitationApi from "@/api/invitations";
+import { listMyWorkspaces } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import {
@@ -27,6 +28,7 @@ export function useAcceptInvite(rawToken: string | null) {
   const applyLogin = useAuthStore((s) => s.applyLogin);
   const clearAuth = useAuthStore((s) => s.clear);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
 
   const [step, setStep] = useState<WizardStep>(0);
@@ -185,15 +187,26 @@ export function useAcceptInvite(rawToken: string | null) {
   const applyJoinedWorkspace = async (payload: {
     workspaceId: string | null | undefined;
     organizationId: string | null | undefined;
+    projectId?: string | null | undefined;
   }) => {
     if (!payload.workspaceId) {
       notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
-      await navigate({ to: "/workspaces", search: { create: undefined }, replace: true });
+      await navigate({ to: "/projects", search: { create: undefined }, replace: true });
       return;
     }
     setCurrentWorkspaceId(payload.workspaceId);
+    const projectId =
+      payload.projectId ??
+      (await listMyWorkspaces().then(
+        (result) =>
+          result.items.find((workspace) => workspace.workspaceId === payload.workspaceId)
+            ?.projectId ?? null,
+      ));
+    if (projectId) {
+      setCurrentProjectId(projectId);
+    }
     notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
-    await navigate({ to: `/w/${payload.workspaceId}`, replace: true });
+    await navigate({ to: projectId ? `/projects/${projectId}` : "/projects", replace: true });
   };
 
   const joinAsExistingLoggedIn = () => {
@@ -208,6 +221,7 @@ export function useAcceptInvite(rawToken: string | null) {
       await applyJoinedWorkspace({
         organizationId: accepted.organizationId || previewQuery.data?.organization.id,
         workspaceId: accepted.workspaceId,
+        projectId: accepted.projectId,
       });
     } catch (err) {
       setConfirmOpen(false);
@@ -234,6 +248,7 @@ export function useAcceptInvite(rawToken: string | null) {
       await applyJoinedWorkspace({
         organizationId: accepted.organizationId || previewQuery.data?.organization.id,
         workspaceId: accepted.workspaceId,
+        projectId: accepted.projectId,
       });
     } catch (err) {
       if (err instanceof ApiError && err.error === "INVITE_EMAIL_DOMAIN_FORBIDDEN") {

@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import React, { type ReactElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -88,6 +88,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@arclayer/ui/sidebar", () => ({
   useSidebar: () => ({
     state: mocked.sidebarState,
+    layoutState: mocked.sidebarState,
     isMobile: mocked.sidebarIsMobile,
     setOpen: mocked.setSidebarOpen,
   }),
@@ -452,7 +453,20 @@ vi.mock("@/pages/workspaces/content/library/components/content-library-new-conte
   ),
 }));
 
-function renderWithQuery(node: ReactElement) {
+function renderWithQuery(node: ReactElement, search?: Record<string, unknown>) {
+  if (React.isValidElement(node) && node.type === ContentLibraryPage) {
+    const contentLibraryNode = node as React.ReactElement<any>;
+    const existingProps = (contentLibraryNode.props ?? {}) as Record<string, unknown>;
+    node = React.cloneElement(contentLibraryNode, {
+      ...existingProps,
+      routeBase: "/projects/$projectId/content/library/",
+      search: (search ?? mocked.routeSearch.current) as {
+        view?: string;
+        focusItemId?: string;
+        create?: "1";
+      },
+    });
+  }
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -1387,7 +1401,7 @@ describe("ContentLibraryPage", () => {
     );
 
     expect(mocked.navigate).toHaveBeenCalledWith({
-      to: "/w/ws-1/content/models",
+      to: "/projects/ws-1/content/models",
     });
   });
 
@@ -1460,7 +1474,7 @@ describe("ContentLibraryPage", () => {
 
     expect(mocked.navigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: "/w/ws-1/content/library/content-2",
+        to: "/projects/ws-1/content/library/content-2",
       }),
     );
   });

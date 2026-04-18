@@ -128,6 +128,7 @@ export function useLoginPage(): LoginPageState {
   const keepSession = useAuthStore((s) => s.keepSession);
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
   const setChallenge = useAuthChallengeStore((s) => s.setChallenge);
   const clearChallenge = useAuthChallengeStore((s) => s.clear);
   const challengeTwoFactorToken = useAuthChallengeStore((s) => s.twoFactorToken);
@@ -234,9 +235,12 @@ export function useLoginPage(): LoginPageState {
       if (decision.workspaceId) {
         setCurrentWorkspaceId(decision.workspaceId);
       }
+      if (decision.projectId) {
+        setCurrentProjectId(decision.projectId);
+      }
       await navigate({ to: decision.path, replace: true });
     },
-    [lastWorkspaceId, navigate, redirectTo, setCurrentWorkspaceId],
+    [lastWorkspaceId, navigate, redirectTo, setCurrentProjectId, setCurrentWorkspaceId],
   );
 
   const startTwoFactorChallenge = useCallback(

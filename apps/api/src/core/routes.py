@@ -7,10 +7,9 @@ from src.modules.assets.router import router as public_assets_router
 from src.modules.auth.router import router as auth_router
 from src.modules.library.router import router as public_library_router
 from src.modules.organization.router import router as organization_router
-from src.modules.sites.delivery.router import router as delivery_router
+from src.modules.projects.router import router as projects_router
+from src.modules.projects.runtime.router import router as project_runtime_router
 from src.modules.sites.patterns.router import router as patterns_router
-from src.modules.sites.public.router import router as sites_public_router
-from src.modules.sites.router import router as sites_router
 from src.modules.system.router import router as system_router
 from src.modules.workspaces.router import router as workspaces_router
 
@@ -70,10 +69,9 @@ def register_routes(app: FastAPI, settings: Settings) -> None:
     app.include_router(public_library_router)
 
     include_auth_router_with_prefix(app, settings=settings)
-    include_router_with_global_prefix_prepended(app, sites_router, settings=settings)
-    include_router_with_global_prefix_prepended(app, delivery_router, settings=settings)
+    include_router_with_global_prefix_prepended(app, project_runtime_router, settings=settings)
     include_router_with_global_prefix_prepended(app, patterns_router, settings=settings)
-    include_router_with_global_prefix_prepended(app, sites_public_router, settings=settings)
     include_router_with_global_prefix_prepended(app, system_router, settings=settings, prefix="/system")
     include_router_with_global_prefix_prepended(app, organization_router, settings=settings)
     include_router_with_global_prefix_prepended(app, workspaces_router, settings=settings)
+    include_router_with_global_prefix_prepended(app, projects_router, settings=settings)

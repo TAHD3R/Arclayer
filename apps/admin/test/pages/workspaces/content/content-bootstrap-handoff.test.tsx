@@ -94,7 +94,7 @@ describe("content bootstrap continuation handoff", () => {
       updatedAt: "2026-03-19T00:00:00Z",
       continuationTarget: {
         surface: "writing",
-        route: "/w/ws-1/content/library/item-1",
+        route: "/projects/ws-1/content/library/item-1",
         blocked: false,
         reasonCode: null,
         reasonMeta: null,
@@ -135,7 +135,7 @@ describe("content bootstrap continuation handoff", () => {
         presentations: [],
       });
       expect(navigateMock).toHaveBeenCalledWith({
-        to: "/w/ws-1/content/library",
+        to: "/projects/ws-1/content/library",
         search: {
           view: "draft",
           focusItemId: "item-1",
@@ -160,7 +160,7 @@ describe("content bootstrap continuation handoff", () => {
     });
 
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/w/ws-1/content/models",
+      to: "/projects/ws-1/content/models",
     });
   });
 });

@@ -157,7 +157,7 @@ describe("useContentBootstrapController", () => {
     });
 
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/w/ws-1/content/library",
+      to: "/projects/ws-1/content/library",
       search: {
         view: "draft",
         focusItemId: "item-1",

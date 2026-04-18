@@ -31,6 +31,8 @@ from src.modules.organization.repository import OrganizationRepository
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
+from src.modules.projects.repository import ProjectRepository
+from src.modules.projects.schema import WorkspacePrimaryProjectOut
 from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.system.setup.service import InstanceSetupService
 from src.modules.workspaces.schema import (
@@ -97,6 +99,7 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
             MyWorkspaceOut(
                 id=ws.id,
                 workspace_id=ws.id,
+                project_id=ws.id,
                 organization_id=_resolve_organization_id(ws),
                 slug=ws.slug,
                 name=ws.name,
@@ -174,6 +177,7 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                 MyWorkspaceOut(
                     id=ws.id,
                     workspace_id=ws.id,
+                    project_id=ws.id,
                     organization_id=org_id,
                     slug=ws.slug,
                     name=ws.name,
@@ -239,6 +243,7 @@ class WorkspaceService(BaseService):
         super().__init__(settings)
         self.repo = OrganizationWorkspaceRepository()
         self.org_repo = OrganizationRepository()
+        self.project_repo = ProjectRepository()
         self.instance_setup_service = InstanceSetupService(settings)
         self.onboarding_service = WorkspaceFirstOnboardingService(settings)
 
@@ -279,11 +284,15 @@ class WorkspaceService(BaseService):
                 workspaces=membership_workspaces,
                 memberships=memberships,
             )
+            project_id_by_workspace = await self.project_repo.get_primary_project_ids_by_workspace_ids(
+                workspace_ids=membership_workspace_ids,
+            )
             items = _build_guest_workspace_list(workspaces=membership_workspaces)
             items = self._hydrate_workspace_meta(
                 items=items,
                 member_count_by_workspace=member_count_by_workspace,
                 preview_by_workspace=preview_by_workspace,
+                project_id_by_workspace=project_id_by_workspace,
             )
             return await self._build_workspace_list_result(
                 user_id=user_id,
@@ -317,6 +326,9 @@ class WorkspaceService(BaseService):
             workspaces=list(visible_workspaces_by_id.values()),
             memberships=active_memberships,
         )
+        project_id_by_workspace = await self.project_repo.get_primary_project_ids_by_workspace_ids(
+            workspace_ids=visible_workspace_ids,
+        )
 
         items = _build_member_workspace_list({
             "org_order": org_order,
@@ -330,6 +342,7 @@ class WorkspaceService(BaseService):
             items=items,
             member_count_by_workspace=member_count_by_workspace,
             preview_by_workspace=preview_by_workspace,
+            project_id_by_workspace=project_id_by_workspace,
         )
         return await self._build_workspace_list_result(
             user_id=user_id,
@@ -358,7 +371,14 @@ class WorkspaceService(BaseService):
             )
             if existing_workspace is None:
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-            return OnboardingWorkspaceCreateOut(workspace_id=UUID(str(existing_workspace.id)))
+            project = await self.project_repo.get_or_create_primary_project_for_workspace(
+                workspace_id=UUID(str(existing_workspace.id)),
+                actor_user_id=user_id,
+            )
+            return OnboardingWorkspaceCreateOut(
+                workspace_id=UUID(str(existing_workspace.id)),
+                project_id=UUID(str(project.id)),
+            )
 
         workspace_name = str(payload.name or "").strip()
         workspace_slug = str(payload.slug or "").strip()
@@ -393,7 +413,10 @@ class WorkspaceService(BaseService):
             user_id=user_id,
             workspace_id=UUID(str(created_workspace.workspace_id)),
         )
-        return OnboardingWorkspaceCreateOut(workspace_id=UUID(str(created_workspace.workspace_id)))
+        return OnboardingWorkspaceCreateOut(
+            workspace_id=UUID(str(created_workspace.workspace_id)),
+            project_id=UUID(str(created_workspace.project_id)),
+        )
 
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:
         ws = await Workspace.get_or_none(
@@ -404,8 +427,13 @@ class WorkspaceService(BaseService):
         )
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        project = await self.project_repo.get_or_create_primary_project_for_workspace(
+            workspace_id=workspace_id,
+            actor_user_id=ws.created_by_user_id,
+        )
         return WorkspaceDetailOut(
             id=ws.id,
+            project=WorkspacePrimaryProjectOut(project_id=project.id),
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             kind=ws.kind,
             slug=ws.slug,
@@ -425,11 +453,15 @@ class WorkspaceService(BaseService):
         items: list[MyWorkspaceOut],
         member_count_by_workspace: dict[UUID, int],
         preview_by_workspace: dict[UUID, list[MyWorkspaceMemberPreviewOut]],
+        project_id_by_workspace: dict[UUID, UUID],
     ) -> list[MyWorkspaceOut]:
         for item in items:
             workspace_id = UUID(str(item.workspace_id))
             item.member_count = member_count_by_workspace.get(workspace_id, 0)
             item.members_preview = preview_by_workspace.get(workspace_id, [])
+            project_id = project_id_by_workspace.get(workspace_id)
+            if project_id is not None:
+                item.project_id = project_id
         return items
 
     async def _build_workspace_list_result(

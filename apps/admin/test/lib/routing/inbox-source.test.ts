@@ -10,11 +10,11 @@ describe("inbox source search", () => {
     expect(
       validateNotificationsSourceSearch({
         sourceKind: "workspace",
-        sourcePath: "/w/ws-1/assets/",
+        sourcePath: "/projects/ws-1/assets/",
       }),
     ).toEqual({
       sourceKind: "workspace",
-      sourcePath: "/w/ws-1/assets",
+      sourcePath: "/projects/ws-1/assets",
     });
 
     expect(
@@ -30,11 +30,11 @@ describe("inbox source search", () => {
     expect(
       validateNotificationsSourceSearch({
         sourceKind: "global",
-        sourcePath: "/workspaces/",
+        sourcePath: "/projects/",
       }),
     ).toEqual({
       sourceKind: "global",
-      sourcePath: "/workspaces",
+      sourcePath: "/projects",
     });
   });
 
@@ -62,17 +62,17 @@ describe("inbox source search", () => {
   });
 
   it("derives source context from supported paths only", () => {
-    expect(buildNotificationsSourceSearch("/w/ws-1/assets/")).toEqual({
+    expect(buildNotificationsSourceSearch("/projects/ws-1/assets/")).toEqual({
       sourceKind: "workspace",
-      sourcePath: "/w/ws-1/assets",
+      sourcePath: "/projects/ws-1/assets",
     });
     expect(buildNotificationsSourceSearch("/settings/personal/profile/")).toEqual({
       sourceKind: "account",
       sourcePath: "/settings/personal/profile",
     });
-    expect(buildNotificationsSourceSearch("/workspaces/")).toEqual({
+    expect(buildNotificationsSourceSearch("/projects/")).toEqual({
       sourceKind: "global",
-      sourcePath: "/workspaces",
+      sourcePath: "/projects",
     });
     expect(buildNotificationsSourceSearch("/login")).toEqual({});
   });

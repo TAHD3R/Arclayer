@@ -84,14 +84,14 @@ function buildActionEntries(params: {
       id: "action:workspace-switcher",
       key: "action:workspace-switcher",
       kind: "action",
-      title: t("command:COMMAND_ACTION_SWITCH_WORKSPACE"),
-      subtitle: t("command:COMMAND_ACTION_SWITCH_WORKSPACE_DESC"),
-      keywords: [t("command:COMMAND_ACTION_SWITCH_WORKSPACE"), "workspace"],
+      title: t("command:COMMAND_ACTION_SWITCH_PROJECT"),
+      subtitle: t("command:COMMAND_ACTION_SWITCH_PROJECT_DESC"),
+      keywords: [t("command:COMMAND_ACTION_SWITCH_PROJECT"), "project"],
       icon: Workflow,
       shortcut: ["G", "W"],
       action: {
         type: "navigate",
-        to: "/workspaces",
+        to: "/projects",
       },
     });
   }
@@ -173,7 +173,7 @@ export function useAdminCommandPalette(props: {
 
   const userEntries = useMemo<CommandEntry[]>(() => {
     if (props.scope.kind === "workspace" && props.scope.workspaceId) {
-      const to = `/w/${encodeURIComponent(props.scope.workspaceId)}/team/members/`;
+      const to = "/settings/workspace/members/";
       return (usersQuery.data?.items ?? []).map((member) => {
         const primary = (
           member.displayName ||

@@ -1,9 +1,14 @@
 import { listMyWorkspaces } from "@/api/workspaces";
-import { pickDefaultWorkspaceId, workspaceHomePath } from "@/lib/routing/workspace-routing";
+import {
+  pickDefaultWorkspace,
+  projectHomePath,
+  projectsHomePath,
+} from "@/lib/routing/workspace-routing";
 
 export interface PostAuthRouteDecision {
   path: string;
   workspaceId: string | null;
+  projectId: string | null;
   onboardingRequired: boolean;
 }
 
@@ -33,6 +38,7 @@ export async function resolvePostAuthRoute(params: {
     return {
       path: "/",
       workspaceId: null,
+      projectId: null,
       onboardingRequired: true,
     };
   }
@@ -41,26 +47,29 @@ export async function resolvePostAuthRoute(params: {
     return {
       path: "/",
       workspaceId: null,
+      projectId: null,
       onboardingRequired: true,
     };
   }
 
-  const workspaceId = pickDefaultWorkspaceId({
+  const workspace = pickDefaultWorkspace({
     workspaces: workspaces.items ?? [],
     lastWorkspaceId,
   });
 
-  if (workspaceId) {
+  if (workspace) {
     return {
-      path: workspaceHomePath(workspaceId),
-      workspaceId,
+      path: projectHomePath(workspace.projectId),
+      workspaceId: workspace.workspaceId,
+      projectId: workspace.projectId,
       onboardingRequired: false,
     };
   }
 
   return {
-    path: "/",
+    path: projectsHomePath(),
     workspaceId: null,
+    projectId: null,
     onboardingRequired: false,
   };
 }

@@ -26,7 +26,7 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
-    expect(decision.path).toBe("/");
+    expect(decision.path).toBe("/projects");
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(false);
   });
@@ -34,6 +34,7 @@ describe("post-auth-routing", () => {
   test("uses the remembered workspace when it still exists", async () => {
     const workspace = {
       workspaceId: "w-a",
+      projectId: "project-a",
       organizationId: "org-a",
       slug: "a",
       name: "A",
@@ -53,14 +54,16 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: "w-a" });
-    expect(decision.path).toBe("/w/w-a");
+    expect(decision.path).toBe("/projects/project-a");
     expect(decision.workspaceId).toBe("w-a");
+    expect(decision.projectId).toBe("project-a");
     expect(decision.onboardingRequired).toBe(false);
   });
 
   test("falls back to root when multiple team workspaces are available without a remembered match", async () => {
     const firstWorkspace = {
       workspaceId: "w-a",
+      projectId: "project-a",
       organizationId: "org-a",
       slug: "alpha",
       name: "Alpha",
@@ -71,6 +74,7 @@ describe("post-auth-routing", () => {
     };
     const secondWorkspace = {
       workspaceId: "w-team",
+      projectId: "project-team",
       organizationId: "org-team",
       slug: "team-space",
       name: "Team Space",
@@ -90,7 +94,7 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
-    expect(decision.path).toBe("/");
+    expect(decision.path).toBe("/projects");
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(false);
   });
@@ -106,7 +110,7 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
-    expect(decision.path).toBe("/");
+    expect(decision.path).toBe("/projects");
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(false);
   });
@@ -114,6 +118,7 @@ describe("post-auth-routing", () => {
   test("routes first login to root and marks onboarding as required", async () => {
     const workspace = {
       workspaceId: "w-a",
+      projectId: "project-a",
       organizationId: "org-a",
       slug: "a",
       name: "A",

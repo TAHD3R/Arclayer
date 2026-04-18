@@ -1,5 +1,6 @@
 export { toQueryString } from "./query-string";
 export {
+  projectPath,
   workspacePath,
   organizationPath,
   organizationWorkspacesBasePath,

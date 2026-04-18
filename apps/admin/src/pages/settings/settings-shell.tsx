@@ -27,7 +27,7 @@ import {
   resolveUsercenterOverlayTabFromPath,
   type UsercenterOverlayTab,
 } from "@/lib/routing/usercenter-overlay";
-import { workspaceHomePath } from "@/lib/routing/workspace-routing";
+import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -212,9 +212,9 @@ export function SettingsFrame(props: SettingsFrameProps) {
 }
 
 function resolveSettingsOverlayBackgroundPath() {
-  const workspaceId =
-    useWorkspaceStore.getState().currentWorkspaceId ?? useWorkspaceStore.getState().lastWorkspaceId;
-  return workspaceId ? `${workspaceHomePath(workspaceId)}/` : "/";
+  const projectId =
+    useWorkspaceStore.getState().currentProjectId ?? useWorkspaceStore.getState().lastProjectId;
+  return projectId ? `${projectHomePath(projectId)}/` : "/";
 }
 
 export function SettingsRouteBridge() {
@@ -235,10 +235,10 @@ export function SettingsRouteBridge() {
       to: resolveSettingsOverlayBackgroundPath() as never,
       hash: location.hash,
       replace: true,
-      search: (prev: Record<string, unknown>) => ({
+      search: ((prev: Record<string, unknown>) => ({
         ...prev,
         personalSettings: activeTab,
-      }),
+      })) as never,
       mask: {
         to: buildUsercenterOverlayPath(activeTab),
         hash: location.hash,

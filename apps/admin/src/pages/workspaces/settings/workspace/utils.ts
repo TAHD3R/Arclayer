@@ -4,7 +4,7 @@ import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 import type { WorkspaceSettingsTabNavigation } from "./types";
 
 export function resolveWorkspaceSettingsTabNavigation(
-  workspaceId: string,
+  _workspaceId: string,
   tab: WorkspaceSettingsTabKey,
   currentSearchStr = "",
 ): WorkspaceSettingsTabNavigation {
@@ -12,21 +12,18 @@ export function resolveWorkspaceSettingsTabNavigation(
 
   if (tab === "content") {
     return {
-      to: "/w/$workspaceId/settings/workspace/content",
-      params: { workspaceId },
+      to: "/settings/workspace/general",
       ...(search ? { search } : {}),
     };
   }
   if (tab === "danger") {
     return {
-      to: "/w/$workspaceId/settings/workspace/danger",
-      params: { workspaceId },
+      to: "/settings/workspace/general",
       ...(search ? { search } : {}),
     };
   }
   return {
-    to: "/w/$workspaceId/settings/workspace/basics",
-    params: { workspaceId },
+    to: "/settings/workspace/general",
     ...(search ? { search } : {}),
   };
 }

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileText, Home, Users } from "lucide-react";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
@@ -103,9 +103,21 @@ const globalItems: AdminNavItem[] = [
   },
 ];
 
-async function waitForCollapsedRender() {
-  await act(async () => {
-    await new Promise((resolve) => window.setTimeout(resolve, 450));
+function advanceCollapsedRenderTimers() {
+  act(() => {
+    vi.advanceTimersByTime(450);
+  });
+}
+
+function openCollapsedSidebarPreview() {
+  const sidebarContainer = document.querySelector<HTMLElement>('[data-slot="sidebar-container"]');
+  expect(sidebarContainer).not.toBeNull();
+  if (!sidebarContainer) throw new Error("Missing sidebar container");
+
+  act(() => {
+    fireEvent.pointerEnter(sidebarContainer);
+    fireEvent.pointerMove(sidebarContainer);
+    vi.advanceTimersByTime(70);
   });
 }
 
@@ -168,6 +180,7 @@ describe("AdminSiderNav capability nodes", () => {
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-1",
+      project: { projectId: "project-1" },
       organizationId: "org-1",
       slug: "workspace-one",
       name: "Workspace One",
@@ -178,6 +191,10 @@ describe("AdminSiderNav capability nodes", () => {
       iconEmoji: null,
       iconUrl: null,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("shows favorites in the global sidebar and renders the empty state when expanded", async () => {
@@ -267,8 +284,9 @@ describe("AdminSiderNav capability nodes", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("breadcrumb")).toHaveTextContent("Workspace One");
     });
-    expect(screen.getByText("Content")).toBeVisible();
-    expect(screen.getByText("Assets")).toBeVisible();
+    const breadcrumb = screen.getByLabelText("breadcrumb");
+    expect(breadcrumb).toHaveTextContent("Workspace One");
+    expect(breadcrumb).toHaveTextContent("Assets");
     const openInNewTabButton = getVisibleButtonByName("Open in new tab");
     const openInThisTabButton = getVisibleButtonByName("Open in this tab");
     const closeOverlayButton = getVisibleButtonByName("Close overlay");
@@ -310,7 +328,7 @@ describe("AdminSiderNav capability nodes", () => {
   });
 
   it("keeps favorites accessible in collapsed mode through the capability popover", async () => {
-    const user = userEvent.setup();
+    vi.useFakeTimers();
     mockPathname = "/w/ws-1/";
     useFavoritesStore.setState({
       paths: ["/w/ws-1/assets"],
@@ -325,10 +343,12 @@ describe("AdminSiderNav capability nodes", () => {
       </SidebarProvider>,
     );
 
-    await waitForCollapsedRender();
-    await user.click(screen.getByRole("button", { name: "Favorites" }));
-    await user.click(screen.getByRole("button", { name: "Expand favorites" }));
+    advanceCollapsedRenderTimers();
+    expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
 
-    expect(await screen.findByRole("button", { name: "Assets" })).toBeVisible();
+    openCollapsedSidebarPreview();
+    fireEvent.click(screen.getByRole("button", { name: "Favorites" }));
+
+    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
   });
 });

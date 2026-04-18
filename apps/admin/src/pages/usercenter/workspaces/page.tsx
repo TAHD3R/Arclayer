@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { workspaceHomePath } from "@/lib/routing/workspace-routing";
+import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { createNameSeedWorkspaceSlugState } from "@/lib/workspace-slug";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { Button } from "@arclayer/ui/button";
@@ -29,14 +29,16 @@ import type {
   UserCenterWorkspacesTab,
   UserCenterWorkspacesViewMode,
 } from "@/pages/usercenter/workspaces/types";
+import type { UserCenterWorkspaceListItem } from "@/pages/usercenter/workspaces/workspace-list-items";
 
 export function WorkspacesPage() {
-  const { create } = useSearch({ from: "/workspaces/" });
+  const { create } = useSearch({ from: "/projects/" });
   const autoOpenCreate = create === "1";
 
   const { t } = useTranslation(["account", "common"]);
   const navigate = useNavigate();
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
 
   const [tab, setTab] = useState<UserCenterWorkspacesTab>("active");
   const [viewMode, setViewMode] = useState<UserCenterWorkspacesViewMode>("card");
@@ -57,19 +59,21 @@ export function WorkspacesPage() {
   }, [autoOpenCreate]);
 
   const handleEnterWorkspace = useCallback(
-    (workspaceId: string) => {
-      setCurrentWorkspaceId(workspaceId);
-      void navigate({ to: workspaceHomePath(workspaceId) as never });
+    (workspace: UserCenterWorkspaceListItem) => {
+      setCurrentWorkspaceId(workspace.workspaceId);
+      setCurrentProjectId(workspace.projectId);
+      void navigate({ to: projectHomePath(workspace.projectId) as never });
     },
-    [navigate, setCurrentWorkspaceId],
+    [navigate, setCurrentProjectId, setCurrentWorkspaceId],
   );
 
   const handleManageWorkspace = useCallback(
-    (workspaceId: string) => {
-      setCurrentWorkspaceId(workspaceId);
-      void navigate({ to: `/w/${workspaceId}/settings/workspace/` as never });
+    (workspace: UserCenterWorkspaceListItem) => {
+      setCurrentWorkspaceId(workspace.workspaceId);
+      setCurrentProjectId(workspace.projectId);
+      void navigate({ to: `/projects/${workspace.projectId}/settings/general/` as never });
     },
-    [navigate, setCurrentWorkspaceId],
+    [navigate, setCurrentProjectId, setCurrentWorkspaceId],
   );
   const handleOpenCreate = useCallback(() => {
     setCreateOpen(true);
@@ -187,7 +191,7 @@ export function WorkspacesPage() {
               emptyDescription={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_DESC")}
               emptyExtra={renderCreateWorkspaceButton()}
               onRetry={() => void activeTableHook.refetch()}
-              onRowClick={(row) => handleEnterWorkspace(row.original.workspaceId)}
+              onRowClick={(row) => handleEnterWorkspace(row.original)}
               t={t}
               rowHeight={activeRowHeight}
               wrapHeaders={activeWrapHeaders}
@@ -209,7 +213,7 @@ export function WorkspacesPage() {
               onCommitWorkspaceEdit={workspaceMenuActions.commitWorkspaceEdit}
               onCancelWorkspaceEdit={workspaceMenuActions.cancelWorkspaceEdit}
               disableWorkspaceNavigation={workspaceMenuActions.isWorkspaceEditNavigationSuppressed}
-              onCardClick={(workspace) => handleEnterWorkspace(workspace.workspaceId)}
+              onCardClick={(workspace) => handleEnterWorkspace(workspace)}
               appendCard={activeCreateCard}
             />
           </ChromeTabsContent>

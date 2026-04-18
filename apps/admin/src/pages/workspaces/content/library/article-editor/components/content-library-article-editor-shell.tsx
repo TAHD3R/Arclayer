@@ -6,6 +6,10 @@ import { useTranslation } from "react-i18next";
 import { useEditorScrollRef } from "platejs/react";
 
 import { deleteContentItem, duplicateContentItem } from "@/api/content";
+import {
+  workspaceContentLibraryItemPath,
+  workspaceContentLibraryPath,
+} from "@/lib/routing/workspace-content-routing";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { buildContentItemsQueryKey } from "@/pages/workspaces/content/library/utils";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
@@ -177,8 +181,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         queryKey: buildContentItemsQueryKey(props.workspaceId),
       });
       await navigate({
-        to: "/w/$workspaceId/content/library/$itemId",
-        params: { workspaceId: props.workspaceId, itemId: nextItem.id },
+        to: workspaceContentLibraryItemPath(props.workspaceId, nextItem.id),
       });
     },
     onError: (error) => notifyError(error),
@@ -197,8 +200,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         return;
       }
       await navigate({
-        to: "/w/$workspaceId/content/library",
-        params: { workspaceId: props.workspaceId },
+        to: workspaceContentLibraryPath(props.workspaceId),
       } as never);
     },
     onError: (error) => notifyError(error),
@@ -215,8 +217,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
       );
     }
     await navigate({
-      to: "/w/$workspaceId/content/library/$itemId",
-      params: { workspaceId: props.workspaceId, itemId: props.itemId },
+      to: workspaceContentLibraryItemPath(props.workspaceId, props.itemId),
     });
   }, [navigate, props.itemId, props.mode, props.workspaceId]);
 

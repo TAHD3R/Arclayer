@@ -11,7 +11,7 @@ import { RouteTransition } from "@/components/layout/route-transition";
 import { resolveGlobalNavItems } from "@/constants/menu/global";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
-import { workspaceHomePath } from "@/lib/routing/workspace-routing";
+import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { WorkspaceActionDialogs } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
 import { WorkspaceActionsDropdown } from "@/pages/usercenter/workspaces/components/workspace-actions-dropdown";
@@ -41,23 +41,26 @@ export function GlobalLayout() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const { isSuperAdmin } = useCurrentUserProfile();
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
 
   const handleEnterWorkspace = useCallback(
-    (workspaceId: string) => {
-      setCurrentWorkspaceId(workspaceId);
-      void navigate({ to: workspaceHomePath(workspaceId) as never });
+    (workspace: { workspaceId: string; projectId: string }) => {
+      setCurrentWorkspaceId(workspace.workspaceId);
+      setCurrentProjectId(workspace.projectId);
+      void navigate({ to: projectHomePath(workspace.projectId) as never });
     },
-    [navigate, setCurrentWorkspaceId],
+    [navigate, setCurrentProjectId, setCurrentWorkspaceId],
   );
 
   const handleManageWorkspace = useCallback(
-    (workspaceId: string) => {
-      setCurrentWorkspaceId(workspaceId);
-      void navigate({ to: `/w/${workspaceId}/settings/workspace/` as never });
+    (workspace: { workspaceId: string; projectId: string }) => {
+      setCurrentWorkspaceId(workspace.workspaceId);
+      setCurrentProjectId(workspace.projectId);
+      void navigate({ to: `/projects/${workspace.projectId}/settings/general/` as never });
     },
-    [navigate, setCurrentWorkspaceId],
+    [navigate, setCurrentProjectId, setCurrentWorkspaceId],
   );
 
   const workspaceMenuActions = useWorkspaceMenuActions({
@@ -87,7 +90,7 @@ export function GlobalLayout() {
       (workspacesQuery.data ?? []).map((workspace) => ({
         key: `global.workspaces.${workspace.workspaceId}`,
         label: workspace.name,
-        to: workspaceHomePath(workspace.workspaceId),
+        to: projectHomePath(workspace.projectId),
         icon: PanelsTopLeft,
         disabled: !workspace.enterable,
         renderLabel: () => (

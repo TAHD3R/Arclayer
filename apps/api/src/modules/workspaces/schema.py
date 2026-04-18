@@ -8,6 +8,7 @@ from pydantic import Field
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.workspaces.workspace import WorkspaceIconMode, WorkspaceKind
+from src.modules.projects.schema import WorkspacePrimaryProjectOut
 
 
 class WorkspaceFirstOnboardingStatus(StrEnum):
@@ -25,6 +26,7 @@ class MyWorkspaceMemberPreviewOut(BaseSchema):
 
 class MyWorkspaceOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    project_id: PublicUUID = Field(..., description="Primary project id.")
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
@@ -89,6 +91,7 @@ class OnboardingWorkspaceCreateRequest(BaseSchema):
 
 class OnboardingWorkspaceCreateOut(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Created workspace id.")
+    project_id: PublicUUID = Field(..., description="Primary project id for the created workspace.")
 
 
 class MyWorkspaceListResult(BaseSchema):
@@ -103,6 +106,7 @@ class MyWorkspaceListResult(BaseSchema):
 class WorkspaceDetailOut(BaseOut):
     """Workspace metadata used by the admin workspace settings page."""
 
+    project: WorkspacePrimaryProjectOut = Field(..., description="Primary project binding for this workspace.")
     organization_id: PublicUUID = Field(..., description="Organization id.")
     kind: WorkspaceKind = Field(..., description="Workspace kind.")
     slug: str = Field(..., description="Workspace slug.")

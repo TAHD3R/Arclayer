@@ -10,8 +10,7 @@ describe("resolveWorkspaceSettingsTabNavigation", () => {
       "?arclayer_favorite_overlay=content-only",
     );
 
-    expect(navigation.to).toBe("/w/$workspaceId/settings/workspace/content");
-    expect(navigation.params).toEqual({ workspaceId: "ws-1" });
+    expect(navigation.to).toBe("/settings/workspace/general");
     expect(navigation.search?.({})).toEqual({
       arclayer_favorite_overlay: "content-only",
     });
@@ -20,8 +19,7 @@ describe("resolveWorkspaceSettingsTabNavigation", () => {
   it("does not add overlay search when the current route is not embedded", () => {
     const navigation = resolveWorkspaceSettingsTabNavigation("ws-1", "danger");
 
-    expect(navigation.to).toBe("/w/$workspaceId/settings/workspace/danger");
-    expect(navigation.params).toEqual({ workspaceId: "ws-1" });
+    expect(navigation.to).toBe("/settings/workspace/general");
     expect(navigation.search).toBeUndefined();
   });
 });

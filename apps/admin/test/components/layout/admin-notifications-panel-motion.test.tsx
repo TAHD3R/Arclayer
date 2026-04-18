@@ -51,10 +51,47 @@ vi.mock("motion/react", async (importOriginal) => {
     });
   }
 
+  function createMotionComponent<ComponentProps extends object>(
+    Component: React.ComponentType<ComponentProps>,
+  ) {
+    return React.forwardRef<
+      HTMLElement,
+      ComponentProps & {
+        variants?: Record<string, unknown>;
+        initial?: unknown;
+        animate?: unknown;
+        exit?: unknown;
+        whileTap?: unknown;
+        transition?: unknown;
+      }
+    >(function MotionComponent(
+      { variants, initial, animate, exit, whileTap: _whileTap, transition: _transition, ...props },
+      ref,
+    ) {
+      return React.createElement(Component, {
+        ...(props as ComponentProps),
+        ref,
+        "data-motion-initial": typeof initial === "string" ? initial : undefined,
+        "data-motion-animate": typeof animate === "string" ? animate : undefined,
+        "data-motion-exit": typeof exit === "string" ? exit : undefined,
+        "data-motion-closed-x":
+          typeof variants?.closed === "object" &&
+          variants.closed &&
+          "x" in variants.closed &&
+          typeof variants.closed.x === "number"
+            ? String(variants.closed.x)
+            : undefined,
+      } as ComponentProps & React.RefAttributes<HTMLElement>);
+    });
+  }
+
   const motion = new Proxy(
-    {},
     {
-      get(_target, property: string) {
+      create: createMotionComponent,
+    },
+    {
+      get(target, property: string) {
+        if (property in target) return target[property as keyof typeof target];
         return createMotionElement(property as keyof React.JSX.IntrinsicElements);
       },
     },

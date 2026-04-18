@@ -31,10 +31,6 @@ export type WorkspaceSettingsPageProps = {
 };
 
 export type WorkspaceSettingsTabNavigation = {
-  to:
-    | "/w/$workspaceId/settings/workspace/basics"
-    | "/w/$workspaceId/settings/workspace/content"
-    | "/w/$workspaceId/settings/workspace/danger";
-  params: { workspaceId: string };
+  to: "/settings/workspace/general";
   search?: (prev: Record<string, unknown>) => Record<string, unknown>;
 };

@@ -22,8 +22,8 @@ export function isSystemPath(pathname: string): boolean {
 export function isGlobalPath(pathname: string): boolean {
   return (
     pathname === "/" ||
-    pathname === "/workspaces" ||
-    pathname === "/workspaces/" ||
+    pathname === "/projects" ||
+    pathname === "/projects/" ||
     isSystemPath(pathname)
   );
 }

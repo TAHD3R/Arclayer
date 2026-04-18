@@ -22,6 +22,7 @@ import type { InstalledExtensionItem } from "@/pages/workspaces/extensions/types
 type UseWorkspaceExtensionDetailParams = {
   workspaceId: string;
   extensionRef: string;
+  backTo: string;
 };
 
 function findCapability(
@@ -119,6 +120,7 @@ function useWorkspaceCapabilityToggle(input: {
 export function useWorkspaceExtensionDetail({
   workspaceId,
   extensionRef,
+  backTo,
 }: UseWorkspaceExtensionDetailParams): ExtensionDetailPageProps {
   const navigate = useNavigate();
 
@@ -147,7 +149,7 @@ export function useWorkspaceExtensionDetail({
     loading,
     loadError,
     onRetryLoad: loadError ? () => void capabilitiesQuery.refetch() : undefined,
-    onBack: () => void navigate({ to: `/w/${workspaceId}/extensions` }),
+    onBack: () => void navigate({ to: backTo }),
     onToggleEnabled: async (enabled: boolean) => toggleMutation.mutateAsync(enabled),
     togglePending: toggleMutation.isPending,
     canManage,

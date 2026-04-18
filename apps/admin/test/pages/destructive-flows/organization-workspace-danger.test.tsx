@@ -162,7 +162,7 @@ describe("workspace destructive flows", () => {
     await waitFor(() => {
       expect(deleteWorkspaceMock).toHaveBeenCalledWith("ws-1", "Workspace Alpha");
       expect(navigateMock).toHaveBeenCalledWith({
-        to: "/w/ws-2/settings/workspace",
+        to: "/settings/workspace/general",
         replace: true,
       });
     });

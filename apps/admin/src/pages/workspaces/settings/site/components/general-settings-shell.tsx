@@ -30,35 +30,41 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 type GeneralSettingsPageProps = {
   activeTab: GeneralSettingsTabKey;
   workspaceIdOverride?: string | null;
+  embedded?: boolean;
 };
 
 type GeneralSettingsTabNavigation = {
-  to: "/w/$workspaceId/settings/site/basics" | "/w/$workspaceId/settings/site/localization";
-  params: { workspaceId: string };
+  to: "/projects/$projectId/settings/general" | "/projects/$projectId/settings/localization";
+  params: { projectId: string };
 };
 
 function resolveGeneralSettingsTabNavigation(
-  workspaceId: string,
+  projectId: string,
   tab: GeneralSettingsTabKey,
 ): GeneralSettingsTabNavigation {
   if (tab === "localization") {
     return {
-      to: "/w/$workspaceId/settings/site/localization",
-      params: { workspaceId },
+      to: "/projects/$projectId/settings/localization",
+      params: { projectId },
     };
   }
   return {
-    to: "/w/$workspaceId/settings/site/basics",
-    params: { workspaceId },
+    to: "/projects/$projectId/settings/general",
+    params: { projectId },
   };
 }
 
-export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: GeneralSettingsPageProps) {
+export function GeneralSettingsShell({
+  activeTab,
+  workspaceIdOverride,
+  embedded = false,
+}: GeneralSettingsPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { savingKey, withSavingKey } = useSavingKey();
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const projectIdFromStore = useWorkspaceStore((s) => s.currentProjectId);
   const workspaceId = workspaceIdOverride ?? workspaceIdFromStore;
 
   const workspaceCoreQuery = useQuery({
@@ -126,13 +132,59 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
 
   const handleTabChange = useCallback(
     (next: GeneralSettingsTabKey) => {
-      if (!workspaceId) return;
+      if (!projectIdFromStore) return;
       void navigate({
-        ...resolveGeneralSettingsTabNavigation(String(workspaceId), next),
+        ...resolveGeneralSettingsTabNavigation(String(projectIdFromStore), next),
       });
     },
-    [navigate, workspaceId],
+    [navigate, projectIdFromStore],
   );
+
+  const content = (
+    <ContentGuard
+      loading={workspaceCoreQuery.isLoading && !workspaceCoreQuery.data}
+      loadingVariant="form"
+      error={loadError}
+      onRetry={loadError ? () => void workspaceCoreQuery.refetch() : undefined}
+    >
+      <Form {...form}>
+        <ChromeTabsContent value="basics">
+          <SiteSettingsTab
+            form={form}
+            initialValues={initialValues}
+            disabled={workspaceDisabled}
+            savingKey={savingKey}
+            withSavingKey={withSavingKey}
+            patch={patchWorkspace}
+          />
+        </ChromeTabsContent>
+
+        <ChromeTabsContent value="localization">
+          <LocalizationSettingsTab
+            form={form}
+            initialValues={initialValues}
+            disabled={workspaceDisabled}
+            savingKey={savingKey}
+            withSavingKey={withSavingKey}
+            patch={patchWorkspace}
+          />
+        </ChromeTabsContent>
+      </Form>
+    </ContentGuard>
+  );
+
+  if (embedded) {
+    return (
+      <ChromeTabs
+        value={activeTab}
+        onValueChange={(next) => {
+          handleTabChange(next as GeneralSettingsTabKey);
+        }}
+      >
+        {content}
+      </ChromeTabs>
+    );
+  }
 
   return (
     <ChromeTabs
@@ -156,36 +208,7 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
           </ChromeTabsList>
         }
       >
-        <ContentGuard
-          loading={workspaceCoreQuery.isLoading && !workspaceCoreQuery.data}
-          loadingVariant="form"
-          error={loadError}
-          onRetry={loadError ? () => void workspaceCoreQuery.refetch() : undefined}
-        >
-          <Form {...form}>
-            <ChromeTabsContent value="basics">
-              <SiteSettingsTab
-                form={form}
-                initialValues={initialValues}
-                disabled={workspaceDisabled}
-                savingKey={savingKey}
-                withSavingKey={withSavingKey}
-                patch={patchWorkspace}
-              />
-            </ChromeTabsContent>
-
-            <ChromeTabsContent value="localization">
-              <LocalizationSettingsTab
-                form={form}
-                initialValues={initialValues}
-                disabled={workspaceDisabled}
-                savingKey={savingKey}
-                withSavingKey={withSavingKey}
-                patch={patchWorkspace}
-              />
-            </ChromeTabsContent>
-          </Form>
-        </ContentGuard>
+        {content}
       </DefaultPage>
     </ChromeTabs>
   );

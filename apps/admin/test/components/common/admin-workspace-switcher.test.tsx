@@ -12,7 +12,7 @@ import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
 const navigateMock = vi.fn();
-let mockPathname = "/w/ws-alpha/assets";
+let mockPathname = "/projects/project-alpha/assets";
 const translations: Record<string, string> = {
   "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE": "Select workspace",
   "common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS": "Workspace settings",
@@ -50,6 +50,7 @@ vi.mock("@/api/workspaces", () => ({
 const workspaceFixtures: MyWorkspace[] = [
   {
     workspaceId: "ws-alpha",
+    projectId: "project-alpha",
     organizationId: "org-1",
     slug: "alpha",
     name: "Workspace Alpha",
@@ -86,6 +87,7 @@ const workspaceFixtures: MyWorkspace[] = [
   },
   {
     workspaceId: "ws-beta",
+    projectId: "project-beta",
     organizationId: "org-1",
     slug: "beta",
     name: "Workspace Beta",
@@ -189,14 +191,19 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockPathname = "/w/ws-alpha/assets";
+  mockPathname = "/projects/project-alpha/assets";
 
   useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
-  useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
+  useWorkspaceStore.setState({
+    currentWorkspaceId: "ws-alpha",
+    currentProjectId: "project-alpha",
+    lastWorkspaceId: "ws-alpha",
+  });
 
   vi.mocked(listMyWorkspaces).mockResolvedValue(createWorkspaceListResult());
   vi.mocked(getWorkspaceDetail).mockResolvedValue({
     id: "ws-alpha",
+    project: { projectId: "project-alpha" },
     organizationId: "org-1",
     slug: "alpha",
     name: "Workspace Alpha",
@@ -242,6 +249,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
   it("workspace scope: trigger avatar uses square shape and workspace icon", async () => {
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-alpha",
+      project: { projectId: "project-alpha" },
       organizationId: "org-1",
       slug: "alpha",
       name: "Workspace Alpha",
@@ -270,6 +278,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
   it("workspace scope: trigger renders glyph metadata when image mode is not selected", async () => {
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-alpha",
+      project: { projectId: "project-alpha" },
       organizationId: "org-1",
       slug: "alpha",
       name: "Workspace Alpha",
@@ -491,13 +500,15 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Workspace settings/ }));
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-alpha/settings/workspace/" });
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-alpha/settings/general/",
+      });
     });
 
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Invite members/ }));
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-alpha/team/members/" });
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/settings/workspace/members" });
     });
 
     await user.click(trigger);
@@ -505,13 +516,13 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       within(getLatestDialog()).getByRole("button", { name: /View all workspaces/ }),
     );
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/workspaces" });
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
     });
 
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Add workspace/ }));
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/workspaces?create=1" });
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects?create=1" });
     });
   });
 
@@ -532,7 +543,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     await user.click(workspaceBetaButton);
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-beta/assets" });
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-beta/assets" });
     });
     expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
   });

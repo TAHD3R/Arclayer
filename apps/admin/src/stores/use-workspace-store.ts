@@ -9,19 +9,43 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     (set) => ({
       currentWorkspaceId: null,
       lastWorkspaceId: null,
+      currentProjectId: null,
+      lastProjectId: null,
       setCurrentWorkspaceId: (workspaceId) =>
         set((s) => ({
           currentWorkspaceId: workspaceId || null,
           lastWorkspaceId: workspaceId || s.lastWorkspaceId,
         })),
+      setCurrentProjectId: (projectId) =>
+        set((s) => ({
+          currentProjectId: projectId || null,
+          lastProjectId: projectId || s.lastProjectId,
+        })),
+      setCurrentContext: ({ workspaceId, projectId }) =>
+        set((s) => ({
+          currentWorkspaceId: workspaceId || null,
+          lastWorkspaceId: workspaceId || s.lastWorkspaceId,
+          currentProjectId: projectId || null,
+          lastProjectId: projectId || s.lastProjectId,
+        })),
       setLastWorkspaceId: (workspaceId) => set({ lastWorkspaceId: workspaceId || null }),
-      clearWorkspace: () => set({ currentWorkspaceId: null, lastWorkspaceId: null }),
+      setLastProjectId: (projectId) => set({ lastProjectId: projectId || null }),
+      clearWorkspace: () =>
+        set({
+          currentWorkspaceId: null,
+          lastWorkspaceId: null,
+          currentProjectId: null,
+          lastProjectId: null,
+        }),
     }),
     {
       name: STORAGE_KEYS.workspace,
       storage: createJSONStorage(() => localStorage),
-      version: 1,
-      partialize: (s) => ({ lastWorkspaceId: s.lastWorkspaceId }),
+      version: 2,
+      partialize: (s) => ({
+        lastWorkspaceId: s.lastWorkspaceId,
+        lastProjectId: s.lastProjectId,
+      }),
     },
   ),
 );

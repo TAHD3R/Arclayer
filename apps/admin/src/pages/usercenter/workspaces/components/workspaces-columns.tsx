@@ -6,7 +6,6 @@ import {
   workspaceAvatarPropsFromIdentity,
 } from "@/components/common/entity-avatar";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
-import type { OrganizationWorkspace } from "@/types/api";
 
 import type {
   UserCenterWorkspaceListItem,
@@ -120,9 +119,7 @@ export function useUserCenterWorkspacesColumns(
           kind: "meta",
         },
         header: t("common:ORG_WORKSPACES_TABLE_MEMBERS"),
-        cell: ({ row }) => (
-          <WorkspaceMembersPopover workspace={row.original as OrganizationWorkspace} />
-        ),
+        cell: ({ row }) => <WorkspaceMembersPopover workspace={row.original} />,
         size: 200,
         minSize: 180,
       },

@@ -1039,15 +1039,15 @@ describe("AdminSiderNav collapsed groups", () => {
   });
 
   it("marks Content -> Contents active for the content create route alias", async () => {
-    const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/w/ws-1");
+    const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/projects/ws-1");
 
     renderTreeNav({
       items: workspaceItems,
-      favoriteWorkspaceBase: "/w/ws-1",
-      pathnameOverride: "/w/ws-1/content/create",
+      favoriteWorkspaceBase: "/projects/ws-1",
+      pathnameOverride: "/projects/ws-1/content/create",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_CONTENT_LIBRARY" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
       "data-active",
       "true",
     );
@@ -1060,44 +1060,41 @@ describe("AdminSiderNav collapsed groups", () => {
   it("updates the active branch when pathnameOverride changes between workspace source pages", async () => {
     const user = userEvent.setup();
     mockPathname = "/settings/personal/profile";
-    const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/w/ws-1");
+    const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/projects/ws-1");
 
     const view = renderTreeNav({
       items: workspaceItems,
-      favoriteWorkspaceBase: "/w/ws-1",
-      pathnameOverride: "/w/ws-1/team/members",
+      favoriteWorkspaceBase: "/projects/ws-1",
+      pathnameOverride: "/projects/ws-1/settings/general",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_TEAM" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
       "data-active",
       "true",
     );
 
-    await user.click(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_TEAM" }));
+    await user.click(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" }));
 
-    expect(
-      screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_TEAM_MEMBER_LIST" }),
-    ).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_PROJECT" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
 
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav
             items={workspaceItems}
-            favoriteWorkspaceBase="/w/ws-1"
-            pathnameOverride="/w/ws-1/assets"
+            favoriteWorkspaceBase="/projects/ws-1"
+            pathnameOverride="/projects/ws-1/assets"
           />
         </Sidebar>
       </SidebarProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_ASSETS" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
       "data-active",
       "true",
-    );
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_TEAM" })).toHaveAttribute(
-      "data-active",
-      "false",
     );
   });
 

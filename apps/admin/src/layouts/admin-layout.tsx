@@ -33,10 +33,10 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
 
   const workspaceBase = useMemo(() => extractWorkspaceBaseFromPath(pathname), [pathname]);
-  const workspaceId = useMemo(() => workspaceBase?.replace("/w/", "") ?? null, [workspaceBase]);
-  const effectiveWorkspaceId = workspaceId ?? workspaceIdFromStore;
+  const effectiveWorkspaceId = workspaceIdFromStore;
 
   const resolvePermissionName = useMemo(() => {
     return (code: string) => {
@@ -62,8 +62,13 @@ export function AdminLayout({ children }: PropsWithChildren) {
   });
 
   const workspaceNav = useMemo(
-    () => (workspaceBase ? mapWorkspaceNavItems(getWorkspaceNavItems(), workspaceBase) : []),
-    [workspaceBase],
+    () =>
+      workspaceBase && currentProjectId
+        ? mapWorkspaceNavItems(getWorkspaceNavItems(), `/projects/${currentProjectId}`)
+        : workspaceBase
+          ? mapWorkspaceNavItems(getWorkspaceNavItems(), workspaceBase)
+          : [],
+    [currentProjectId, workspaceBase],
   );
 
   const mainItems = useMemo(
@@ -164,7 +169,13 @@ export function AdminLayout({ children }: PropsWithChildren) {
         />
       )}
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
-      favoriteWorkspaceBase={isWorkspaceScopeRoute ? workspaceBase : null}
+      favoriteWorkspaceBase={
+        isWorkspaceScopeRoute
+          ? currentProjectId
+            ? `/projects/${currentProjectId}`
+            : workspaceBase
+          : null
+      }
       resolvePermissionName={resolvePermissionName}
       showNavSkeleton={false}
       sidebarCollapsible="icon"

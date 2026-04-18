@@ -8,7 +8,7 @@ import { useWorkspaceSettingsBasicsController } from "../hooks/use-workspace-set
 import { WorkspaceSettingsAssignRoleDialog } from "./workspace-settings-assign-role-dialog";
 import { WorkspaceSettingsBasicsForm } from "./workspace-settings-basics-form";
 
-export function WorkspaceSettingsBasicsView(props: { workspaceId: string }) {
+export function WorkspaceSettingsBasicsView(props: { workspaceId: string; embedded?: boolean }) {
   const c = useWorkspaceSettingsBasicsController({ workspaceId: props.workspaceId });
 
   const error = c.detailQuery.isError
@@ -18,6 +18,30 @@ export function WorkspaceSettingsBasicsView(props: { workspaceId: string }) {
       : c.rolesQuery.isError
         ? c.rolesQuery.error
         : null;
+
+  const content = (
+    <section className="min-w-0">
+      <ContentGuard
+        loading={Boolean(
+          (c.detailQuery.isLoading || c.rolesQuery.isLoading) && !c.detailQuery.data,
+        )}
+        loadingVariant="form"
+        error={error}
+        onRetry={() => {
+          void c.detailQuery.refetch();
+          void c.coreQuery.refetch();
+          void c.rolesQuery.refetch();
+        }}
+      >
+        <WorkspaceSettingsBasicsForm controller={c} />
+        <WorkspaceSettingsAssignRoleDialog controller={c} />
+      </ContentGuard>
+    </section>
+  );
+
+  if (props.embedded) {
+    return content;
+  }
 
   return (
     <ChromeTabs
@@ -30,23 +54,7 @@ export function WorkspaceSettingsBasicsView(props: { workspaceId: string }) {
         headerVisibility="always"
         extra={<WorkspaceSettingsTabs />}
       >
-        <section className="min-w-0">
-          <ContentGuard
-            loading={Boolean(
-              (c.detailQuery.isLoading || c.rolesQuery.isLoading) && !c.detailQuery.data,
-            )}
-            loadingVariant="form"
-            error={error}
-            onRetry={() => {
-              void c.detailQuery.refetch();
-              void c.coreQuery.refetch();
-              void c.rolesQuery.refetch();
-            }}
-          >
-            <WorkspaceSettingsBasicsForm controller={c} />
-            <WorkspaceSettingsAssignRoleDialog controller={c} />
-          </ContentGuard>
-        </section>
+        {content}
       </DefaultPage>
     </ChromeTabs>
   );

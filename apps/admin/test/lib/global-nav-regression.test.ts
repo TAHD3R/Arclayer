@@ -56,12 +56,13 @@ describe("global nav regression", () => {
     expect(platformItem?.children?.map((item) => item.key)).toContain("global.platform.overview");
   });
 
-  test("marks workspaces as a navigate-self-and-expand group", () => {
+  test("marks projects as a navigate-self-and-expand group", () => {
     const workspacesItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.workspaces");
 
     expect(workspacesItem).toMatchObject({
       key: "global.workspaces",
-      to: "/workspaces",
+      label: "Projects",
+      to: "/projects",
       groupBehavior: "navigate-self-and-expand",
     });
   });
@@ -77,7 +78,7 @@ describe("global nav regression", () => {
         {
           key: "global.workspaces.ws-alpha",
           label: "Alpha",
-          to: "/w/ws-alpha",
+          to: "/projects/ws-alpha",
           icon: workspacesItemTemplate!.icon,
         },
       ],
@@ -88,7 +89,7 @@ describe("global nav regression", () => {
     expect(workspacesItem?.children?.[0]).toMatchObject({
       key: "global.workspaces.ws-alpha",
       label: "Alpha",
-      to: "/w/ws-alpha",
+      to: "/projects/ws-alpha",
     });
   });
 });

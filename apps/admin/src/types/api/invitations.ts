@@ -43,6 +43,7 @@ export type InvitationPreviewResult = {
 export type AcceptExistingInvitationResult = {
   organizationId: string;
   workspaceId: string | null;
+  projectId: string | null;
   roleCode: string | null;
 };
 

@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { afterEach } from "vitest";
 
 /**
  * JSDOM (nwsapi) currently throws on some Selectors Level 4 patterns that Ant Design emits,
@@ -77,6 +78,36 @@ function patchSelectorApis() {
 
 patchSelectorApis();
 
+const originalSetTimeout = globalThis.setTimeout.bind(globalThis);
+const originalClearTimeout = globalThis.clearTimeout.bind(globalThis);
+const pendingTimeouts = new Set<ReturnType<typeof originalSetTimeout>>();
+
+function trackedSetTimeout(handler: TimerHandler, timeout?: number, ...args: unknown[]) {
+  let timer: ReturnType<typeof originalSetTimeout>;
+  timer = originalSetTimeout(() => {
+    pendingTimeouts.delete(timer);
+    if (typeof handler === "function") {
+      handler(...args);
+      return;
+    }
+    globalThis.eval(handler);
+  }, timeout);
+  pendingTimeouts.add(timer);
+  return timer;
+}
+
+function trackedClearTimeout(timer: ReturnType<typeof originalSetTimeout> | undefined) {
+  if (timer !== undefined) {
+    pendingTimeouts.delete(timer);
+  }
+  return originalClearTimeout(timer);
+}
+
+globalThis.setTimeout = trackedSetTimeout as unknown as typeof globalThis.setTimeout;
+globalThis.clearTimeout = trackedClearTimeout as unknown as typeof globalThis.clearTimeout;
+window.setTimeout = trackedSetTimeout as unknown as typeof window.setTimeout;
+window.clearTimeout = trackedClearTimeout as unknown as typeof window.clearTimeout;
+
 // JSDOM does not provide ResizeObserver; Radix primitives rely on it for layout measurement.
 class ResizeObserverStub {
   observe() {}
@@ -115,3 +146,12 @@ if (!elementPrototype.releasePointerCapture) {
 if (!HTMLElement.prototype.scrollIntoView) {
   HTMLElement.prototype.scrollIntoView = () => undefined;
 }
+
+window.scrollTo = () => undefined;
+
+afterEach(() => {
+  for (const timer of pendingTimeouts) {
+    originalClearTimeout(timer);
+  }
+  pendingTimeouts.clear();
+});

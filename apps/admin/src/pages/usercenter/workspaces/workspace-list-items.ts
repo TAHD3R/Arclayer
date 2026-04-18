@@ -12,6 +12,7 @@ export type UserCenterWorkspaceListItemMemberPreview = {
 export type UserCenterWorkspaceListItem = {
   id: string;
   workspaceId: string;
+  projectId: string;
   organizationId: string;
   slug: string;
   name: string;

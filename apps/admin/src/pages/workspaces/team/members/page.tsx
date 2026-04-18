@@ -1,8 +1,13 @@
-import { useSearch } from "@tanstack/react-router";
-
 import { TeamMembersView } from "./components/team-members-view";
 
-export function TeamMembersPage() {
-  const { q, memberId } = useSearch({ from: "/w/$workspaceId/team/members/" });
-  return <TeamMembersView initialSearchQuery={q} initialInspectMemberId={memberId} />;
+export function TeamMembersPage(props: {
+  initialSearchQuery?: string;
+  initialInspectMemberId?: string;
+}) {
+  return (
+    <TeamMembersView
+      initialSearchQuery={props.initialSearchQuery}
+      initialInspectMemberId={props.initialInspectMemberId}
+    />
+  );
 }

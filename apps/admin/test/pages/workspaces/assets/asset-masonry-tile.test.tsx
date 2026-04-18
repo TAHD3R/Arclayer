@@ -31,12 +31,19 @@ describe("AssetMasonryTile", () => {
 
   beforeAll(() => {
     class MockIntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "0px";
+      readonly thresholds = [0];
+
       constructor(private readonly callback?: IntersectionObserverCallback) {}
 
       observe(target: Element) {
         this.callback?.([{ isIntersecting: true, target } as IntersectionObserverEntry], this);
       }
       disconnect() {}
+      takeRecords() {
+        return [];
+      }
       unobserve() {}
     }
 

@@ -8,6 +8,7 @@ from pydantic import Field
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.workspaces.workspace import WorkspaceIconMode
+from src.modules.projects.schema import WorkspacePrimaryProjectOut
 
 
 class OrganizationWorkspaceTemplate(StrEnum):
@@ -36,6 +37,7 @@ class OrganizationWorkspaceMemberOut(BaseSchema):
 
 class OrganizationWorkspaceOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    project_id: PublicUUID = Field(..., description="Primary project id.")
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
@@ -61,6 +63,7 @@ class OrganizationWorkspaceOut(BaseOut):
         default=False,
         description="Whether current user can enter this workspace admin scope.",
     )
+    project: WorkspacePrimaryProjectOut = Field(..., description="Primary project binding for this workspace.")
 
 
 class OrganizationWorkspaceCreateRequest(BaseSchema):

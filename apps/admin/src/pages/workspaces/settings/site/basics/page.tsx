@@ -1,8 +1,5 @@
-import { useParams } from "@tanstack/react-router";
-
 import { GeneralSettingsPage } from "@/pages/workspaces/settings/site/page";
 
-export function GeneralSiteSettingsPage() {
-  const { workspaceId } = useParams({ from: "/w/$workspaceId/settings/site/basics/" });
-  return <GeneralSettingsPage activeTab="basics" workspaceIdOverride={workspaceId} />;
+export function GeneralSiteSettingsPage(props: { workspaceId?: string | null }) {
+  return <GeneralSettingsPage activeTab="basics" workspaceIdOverride={props.workspaceId} />;
 }

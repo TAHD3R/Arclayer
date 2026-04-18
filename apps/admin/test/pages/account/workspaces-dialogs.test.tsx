@@ -105,6 +105,7 @@ function renderDialogs(
           ? {
               id: "ws-1",
               workspaceId: "ws-1",
+              projectId: "project-1",
               organizationId: "org-1",
               slug: "alpha",
               name: "Workspace Alpha",
@@ -174,6 +175,7 @@ function StatefulIconDialog(props: { initialValues: WorkspaceIconDialogValues })
         workspace: {
           id: "ws-1",
           workspaceId: "ws-1",
+          projectId: "project-1",
           organizationId: "org-1",
           slug: "alpha",
           name: "Workspace Alpha",

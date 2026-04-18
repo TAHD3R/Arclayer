@@ -1,0 +1,5 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,Inspect backend registration and existing workspace-site coupling,DONE,Target files and coupling points are identified,echo inspected,,0,Read models routes and workspace/http symbols
+2,Add project and runtime domain models,DONE,Project and runtime models are added and imported,pnpm -C apps/api uv -- python -m compileall src/models,2026-04-18T00:00:00,0,ProjectRecord and ProjectRuntimeRecord added
+3,Add project context schema service and router skeleton,DONE,Project module exposes minimal router service schema and context,pnpm -C apps/api uv -- python -m compileall src/modules,2026-04-18T00:00:00,0,Project context router service schema added
+4,Register project routers and run focused validation,DONE,Core routes include project router and compileall passes,pnpm -C apps/api uv -- python -m compileall src/models src/modules,2026-04-18T00:00:00,0,Project router registered and compileall passed

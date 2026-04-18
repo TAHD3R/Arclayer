@@ -13,6 +13,7 @@ const {
   meMock,
   patchCoreSettingsMock,
   workspaceState,
+  useWorkspaceStoreMock,
   i18nState,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
@@ -23,9 +24,17 @@ const {
   patchCoreSettingsMock: vi.fn(),
   workspaceState: {
     currentWorkspaceId: null as string | null,
+    currentProjectId: null as string | null,
     lastWorkspaceId: null as string | null,
     setCurrentWorkspaceId: vi.fn(),
+    setCurrentProjectId: vi.fn(),
   },
+  useWorkspaceStoreMock: Object.assign(
+    (selector: (state: typeof workspaceState) => unknown) => selector(workspaceState),
+    {
+      getState: () => workspaceState,
+    },
+  ),
   i18nState: {
     resolvedLanguage: "en-US",
     language: "en-US",
@@ -79,8 +88,7 @@ vi.mock("@/lib/routing/post-auth-routing", () => ({
 }));
 
 vi.mock("@/stores/use-workspace-store", () => ({
-  useWorkspaceStore: (selector: (state: typeof workspaceState) => unknown) =>
-    selector(workspaceState),
+  useWorkspaceStore: useWorkspaceStoreMock,
 }));
 
 vi.mock("react-i18next", () => ({
@@ -117,6 +125,8 @@ beforeEach(() => {
   meMock.mockReset();
   patchCoreSettingsMock.mockReset();
   workspaceState.setCurrentWorkspaceId.mockReset();
+  workspaceState.setCurrentProjectId.mockReset();
+  workspaceState.currentProjectId = null;
   workspaceState.lastWorkspaceId = null;
   i18nState.resolvedLanguage = "en-US";
   i18nState.language = "en-US";
@@ -137,6 +147,7 @@ beforeEach(() => {
   });
   createMyOnboardingWorkspaceMock.mockResolvedValue({
     workspaceId: "ws-1",
+    projectId: "project-1",
   });
   patchCoreSettingsMock.mockResolvedValue({
     namespace: "core",
@@ -152,6 +163,7 @@ describe("WorkspaceFirstOnboardingPage", () => {
       items: [
         {
           workspaceId: "ws-team",
+          projectId: "project-team",
           organizationId: "org-team",
           slug: "founder",
           name: "Founder Workspace",
@@ -165,6 +177,7 @@ describe("WorkspaceFirstOnboardingPage", () => {
         teams: [
           {
             workspaceId: "ws-team",
+            projectId: "project-team",
             organizationId: "org-team",
             slug: "founder",
             name: "Founder Workspace",
@@ -183,7 +196,8 @@ describe("WorkspaceFirstOnboardingPage", () => {
 
     await waitFor(() => {
       expect(workspaceState.setCurrentWorkspaceId).toHaveBeenCalledWith("ws-team");
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-team", replace: true });
+      expect(workspaceState.setCurrentProjectId).toHaveBeenCalledWith("project-team");
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-team", replace: true });
     });
   });
 
@@ -201,6 +215,7 @@ describe("WorkspaceFirstOnboardingPage", () => {
         items: [
           {
             workspaceId: "ws-1",
+            projectId: "project-1",
             organizationId: "org-1",
             slug: "founder-team",
             name: "Studio Team",
@@ -214,6 +229,7 @@ describe("WorkspaceFirstOnboardingPage", () => {
           teams: [
             {
               workspaceId: "ws-1",
+              projectId: "project-1",
               organizationId: "org-1",
               slug: "founder-team",
               name: "Studio Team",
@@ -231,6 +247,7 @@ describe("WorkspaceFirstOnboardingPage", () => {
         items: [
           {
             workspaceId: "ws-1",
+            projectId: "project-1",
             organizationId: "org-1",
             slug: "founder-team",
             name: "Studio Team",
@@ -244,6 +261,39 @@ describe("WorkspaceFirstOnboardingPage", () => {
           teams: [
             {
               workspaceId: "ws-1",
+              projectId: "project-1",
+              organizationId: "org-1",
+              slug: "founder-team",
+              name: "Studio Team",
+              kind: "team",
+              visibleOnly: false,
+              isCreatorAdmin: true,
+              isLegacy: false,
+            },
+          ],
+        },
+        instanceSetup: { status: "ready", repairReason: null },
+        onboarding: { status: "completed", workspaceId: "ws-1" },
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            workspaceId: "ws-1",
+            projectId: "project-1",
+            organizationId: "org-1",
+            slug: "founder-team",
+            name: "Studio Team",
+            kind: "team",
+            visibleOnly: false,
+            isCreatorAdmin: true,
+            isLegacy: false,
+          },
+        ],
+        switcher: {
+          teams: [
+            {
+              workspaceId: "ws-1",
+              projectId: "project-1",
               organizationId: "org-1",
               slug: "founder-team",
               name: "Studio Team",
@@ -311,7 +361,8 @@ describe("WorkspaceFirstOnboardingPage", () => {
 
     await waitFor(() => {
       expect(workspaceState.setCurrentWorkspaceId).toHaveBeenCalledWith("ws-1");
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1", replace: true });
+      expect(workspaceState.setCurrentProjectId).toHaveBeenCalledWith("project-1");
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-1", replace: true });
     });
   });
 

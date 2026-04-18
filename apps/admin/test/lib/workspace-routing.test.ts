@@ -1,67 +1,67 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  pickDefaultWorkspaceId,
+  pickDefaultWorkspace,
   switchWorkspacePath,
   workspaceHomePath,
 } from "@/lib/routing/workspace-routing";
 
 describe("workspace-routing", () => {
-  test("pickDefaultWorkspaceId prefers lastWorkspaceId when it exists in list", () => {
-    const id = pickDefaultWorkspaceId({
+  test("pickDefaultWorkspace prefers lastWorkspaceId when it exists in list", () => {
+    const workspace = pickDefaultWorkspace({
       workspaces: [
-        { workspaceId: "w1", name: "A" },
-        { workspaceId: "w2", name: "B" },
+        { workspaceId: "w1", projectId: "p1", name: "A" },
+        { workspaceId: "w2", projectId: "p2", name: "B" },
       ],
       lastWorkspaceId: "w2",
     });
-    expect(id).toBe("w2");
+    expect(workspace?.workspaceId).toBe("w2");
   });
 
-  test("pickDefaultWorkspaceId falls back to the only workspace", () => {
-    const id = pickDefaultWorkspaceId({
-      workspaces: [{ workspaceId: "solo" }],
+  test("pickDefaultWorkspace falls back to the only workspace", () => {
+    const workspace = pickDefaultWorkspace({
+      workspaces: [{ workspaceId: "solo", projectId: "project-solo" }],
       lastWorkspaceId: null,
     });
-    expect(id).toBe("solo");
+    expect(workspace?.workspaceId).toBe("solo");
   });
 
-  test("pickDefaultWorkspaceId returns null when multiple workspaces and no valid lastWorkspaceId", () => {
-    const id = pickDefaultWorkspaceId({
+  test("pickDefaultWorkspace returns null when multiple workspaces and no valid lastWorkspaceId", () => {
+    const workspace = pickDefaultWorkspace({
       workspaces: [
-        { workspaceId: "w1", name: "A" },
-        { workspaceId: "w2", name: "B" },
+        { workspaceId: "w1", projectId: "p1", name: "A" },
+        { workspaceId: "w2", projectId: "p2", name: "B" },
       ],
       lastWorkspaceId: "missing",
     });
-    expect(id).toBeNull();
+    expect(workspace).toBeNull();
   });
 
-  test("pickDefaultWorkspaceId returns null when list is empty", () => {
-    const id = pickDefaultWorkspaceId({ workspaces: [], lastWorkspaceId: "w1" });
-    expect(id).toBeNull();
+  test("pickDefaultWorkspace returns null when list is empty", () => {
+    const workspace = pickDefaultWorkspace({ workspaces: [], lastWorkspaceId: "w1" });
+    expect(workspace).toBeNull();
   });
 
-  test("workspaceHomePath builds /w/:id", () => {
-    expect(workspaceHomePath("abc")).toBe("/w/abc");
+  test("workspaceHomePath builds /projects/:id", () => {
+    expect(workspaceHomePath("abc")).toBe("/projects/abc");
   });
 
-  test("switchWorkspacePath replaces /w/:id prefix when pathname is workspace-scoped", () => {
+  test("switchWorkspacePath replaces /projects/:id prefix when pathname is workspace-scoped", () => {
     const next = switchWorkspacePath({
-      pathname: "/w/old/assets?x=1",
-      currentWorkspaceId: "old",
-      nextWorkspaceId: "new",
+      pathname: "/projects/old/assets?x=1",
+      currentProjectId: "old",
+      nextProjectId: "new",
     });
     // We normally receive `pathname` without query, but keep behavior stable even if a query is present.
-    expect(next).toBe("/w/new/assets?x=1");
+    expect(next).toBe("/projects/new/assets?x=1");
   });
 
-  test("switchWorkspacePath falls back to /w/:id/ when pathname is not workspace-scoped", () => {
+  test("switchWorkspacePath falls back to /projects/:id/ when pathname is not workspace-scoped", () => {
     const next = switchWorkspacePath({
       pathname: "/login",
-      currentWorkspaceId: "old",
-      nextWorkspaceId: "new",
+      currentProjectId: "old",
+      nextProjectId: "new",
     });
-    expect(next).toBe("/w/new/");
+    expect(next).toBe("/projects/new/");
   });
 });

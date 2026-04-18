@@ -157,15 +157,15 @@ describe("topbar sidebar toggle icon", () => {
     expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "");
   });
 
-  it("AdminTopbar 在 global workspaces 场景不向 logo 注入返回首页 hover 文案", async () => {
-    await setPathname("/workspaces");
+  it("AdminTopbar 在 global projects 场景不向 logo 注入返回首页 hover 文案", async () => {
+    await setPathname("/projects");
 
     renderWithSidebar(
       <AdminTopbar
         navItems={[]}
         commandScope={{
           kind: "none",
-          pathname: "/workspaces",
+          pathname: "/projects",
           workspaceId: null,
           organizationId: null,
         }}
@@ -202,14 +202,14 @@ describe("topbar sidebar toggle icon", () => {
   });
 
   it("AdminTopbar 在非 global nav 场景向 logo 注入返回首页 hover 文案", async () => {
-    await setPathname("/w/ws-1");
+    await setPathname("/notifications");
 
     renderWithSidebar(
       <AdminTopbar
         navItems={[]}
         commandScope={{
           kind: "workspace",
-          pathname: "/w/ws-1",
+          pathname: "/notifications",
           workspaceId: "ws-1",
           organizationId: null,
         }}
@@ -224,14 +224,14 @@ describe("topbar sidebar toggle icon", () => {
   });
 
   it("AdminTopbar 在 workspace 桌面场景可将 sidebar toggle 收敛为仅移动端显示", async () => {
-    await setPathname("/w/ws-1");
+    await setPathname("/projects/ws-1");
 
     renderWithSidebar(
       <AdminTopbar
         navItems={[]}
         commandScope={{
           kind: "workspace",
-          pathname: "/w/ws-1",
+          pathname: "/projects/ws-1",
           workspaceId: "ws-1",
           organizationId: null,
         }}
@@ -338,7 +338,7 @@ describe("topbar sidebar toggle icon", () => {
         navItems={[]}
         commandScope={{
           kind: "none",
-          pathname: "/workspaces",
+          pathname: "/projects",
           workspaceId: null,
           organizationId: null,
         }}
@@ -368,7 +368,7 @@ describe("topbar sidebar toggle icon", () => {
         navItems={[]}
         commandScope={{
           kind: "none",
-          pathname: "/workspaces",
+          pathname: "/projects",
           workspaceId: null,
           organizationId: null,
         }}

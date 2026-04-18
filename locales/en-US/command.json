@@ -18,6 +18,8 @@
   "COMMAND_GROUP_ASSETS": "Assets",
   "COMMAND_ACTION_SWITCH_WORKSPACE": "Switch workspace",
   "COMMAND_ACTION_SWITCH_WORKSPACE_DESC": "Open the workspace switcher for this organization.",
+  "COMMAND_ACTION_SWITCH_PROJECT": "Switch project",
+  "COMMAND_ACTION_SWITCH_PROJECT_DESC": "Open projects and switch the current workspace context.",
   "COMMAND_ACTION_PROFILE_DESC": "Open your profile settings.",
   "COMMAND_ACTION_PREFERENCES_DESC": "Adjust appearance, language, and accessibility.",
   "COMMAND_ACTION_SECURITY_DESC": "Review password, 2FA, and sessions.",

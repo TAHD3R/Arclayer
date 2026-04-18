@@ -63,7 +63,7 @@ function findNearestAncestorTemplate(
 
 function parseWorkspaceSuffix(path: string): string | null {
   const normalizedPath = normalizePath(path);
-  const match = /^\/w\/[^/]+(?:\/(.*))?$/.exec(normalizedPath);
+  const match = /^\/(?:w|projects)\/[^/]+(?:\/(.*))?$/.exec(normalizedPath);
   if (!match) return null;
   const suffix = match[1] ? `/${match[1]}` : "/";
   return normalizePath(suffix);
@@ -71,8 +71,8 @@ function parseWorkspaceSuffix(path: string): string | null {
 
 function parseWorkspaceBase(path: string): string | null {
   const normalizedPath = normalizePath(path);
-  const match = /^\/w\/[^/]+/.exec(normalizedPath);
-  return match?.[0] ?? null;
+  const match = /^\/(?:w|projects)\/([^/]+)/.exec(normalizedPath);
+  return match?.[1] ? `/projects/${match[1]}` : null;
 }
 
 function buildTemplateIndex(items: readonly AdminNavItem[], t: TFunction): FavoriteTemplateIndex {
@@ -129,10 +129,13 @@ function resolveFavoriteItem(
       findNearestAncestorTemplate(workspaceSuffix, templates.workspaceBySuffix)?.template)
     : undefined;
   const workspaceBasePath = parseWorkspaceBase(normalizedPath);
+  const globalAncestorWorkspaceBase = globalAncestorTemplate?.path
+    ? parseWorkspaceBase(globalAncestorTemplate.path)
+    : null;
   const preferWorkspaceTemplate =
     Boolean(workspaceTemplate) &&
     Boolean(workspaceBasePath) &&
-    globalAncestorTemplate?.path === workspaceBasePath &&
+    globalAncestorWorkspaceBase === workspaceBasePath &&
     normalizedPath !== workspaceBasePath;
   const template =
     globalExactTemplate ??

@@ -1,5 +1,6 @@
 export type WorkspaceListItem = {
   workspaceId: string;
+  projectId: string;
   name?: string | null;
   slug?: string | null;
 };
@@ -7,10 +8,10 @@ export type WorkspaceListItem = {
 /**
  * 登录后「1B」策略：优先进入最近访问的工作区；否则若仅 1 个工作区则自动进入；否则返回 null 交由 UI 选择。
  */
-export function pickDefaultWorkspaceId(params: {
+export function pickDefaultWorkspace(params: {
   workspaces: WorkspaceListItem[];
   lastWorkspaceId: string | null | undefined;
-}): string | null {
+}): WorkspaceListItem | null {
   const { workspaces, lastWorkspaceId } = params;
   if (!workspaces.length) return null;
 
@@ -18,15 +19,26 @@ export function pickDefaultWorkspaceId(params: {
     lastWorkspaceId &&
     workspaces.some((w) => String(w.workspaceId) === String(lastWorkspaceId))
   ) {
-    return lastWorkspaceId;
+    return (
+      workspaces.find((workspace) => String(workspace.workspaceId) === String(lastWorkspaceId)) ??
+      null
+    );
   }
 
-  if (workspaces.length === 1) return workspaces[0]?.workspaceId ?? null;
+  if (workspaces.length === 1) return workspaces[0] ?? null;
   return null;
 }
 
-export function workspaceHomePath(workspaceId: string): string {
-  return `/w/${workspaceId}`;
+export function projectHomePath(projectId: string): string {
+  return `/projects/${projectId}`;
+}
+
+export function workspaceHomePath(projectId: string): string {
+  return projectHomePath(projectId);
+}
+
+export function projectsHomePath(): string {
+  return "/projects";
 }
 
 /**
@@ -35,19 +47,22 @@ export function workspaceHomePath(workspaceId: string): string {
  */
 export function switchWorkspacePath(params: {
   pathname: string;
-  currentWorkspaceId: string | null | undefined;
-  nextWorkspaceId: string;
+  currentProjectId: string | null | undefined;
+  nextProjectId: string;
 }): string {
-  const { pathname, currentWorkspaceId, nextWorkspaceId } = params;
-  const nextPrefix = `/w/${nextWorkspaceId}`;
+  const { pathname, currentProjectId, nextProjectId } = params;
+  const nextPrefix = `/projects/${nextProjectId}`;
 
-  const currentId = String(currentWorkspaceId || "");
-  const fromPrefix = currentId ? `/w/${currentId}` : "";
+  if (pathname.startsWith("/settings/workspace/")) {
+    return pathname;
+  }
+
+  const currentId = String(currentProjectId || "");
+  const fromPrefix = currentId ? `/projects/${currentId}` : "";
 
   if (fromPrefix && pathname.startsWith(fromPrefix)) {
     return pathname.replace(fromPrefix, nextPrefix) || `${nextPrefix}/`;
   }
 
-  // 兜底：避免把用户带到一个不可预期的路径
   return `${nextPrefix}/`;
 }
