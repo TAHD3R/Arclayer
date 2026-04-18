@@ -75,16 +75,6 @@ function buildDefaultWorkspaceName(ownerName: string, language: string) {
   return `${ownerName}'s Workspace`;
 }
 
-function findProjectIdForWorkspace(params: {
-  items: Array<{ workspaceId: string; projectId: string }>;
-  workspaceId: string;
-}) {
-  return (
-    params.items.find((workspace) => workspace.workspaceId === params.workspaceId)?.projectId ??
-    null
-  );
-}
-
 function FieldHint(props: { children: ReactNode; tone?: "default" | "success" | "danger" }) {
   const toneClassName =
     props.tone === "success"
@@ -151,7 +141,7 @@ export function WorkspaceFirstOnboardingPage() {
     () => buildTimezoneOptions(workspaceTimezone || browserTimeZone),
     [browserTimeZone, workspaceTimezone],
   );
-  const dateFormatOptions = useMemo(() => buildDateFormatOptions(), []);
+  const dateFormatOptions = useMemo(() => buildDateFormatOptions(t), [t]);
   const dateTimePreferenceOptions = useMemo(
     () => [
       {
@@ -286,16 +276,8 @@ export function WorkspaceFirstOnboardingPage() {
     void (async () => {
       if (onboarding.workspaceId) {
         setCurrentWorkspaceId(onboarding.workspaceId);
-        const projectId = findProjectIdForWorkspace({
-          items: workspacesQuery.data?.items ?? [],
-          workspaceId: onboarding.workspaceId,
-        });
-        if (projectId) {
-          useWorkspaceStore.getState().setCurrentProjectId(projectId);
-          await navigate({ to: `/projects/${projectId}`, replace: true });
-          return;
-        }
-        await navigate({ to: "/projects", replace: true });
+        useWorkspaceStore.getState().setCurrentProjectId(null);
+        await navigate({ to: "/", replace: true });
         return;
       }
       const decision = await resolvePostAuthRoute({ lastWorkspaceId });
@@ -357,7 +339,6 @@ export function WorkspaceFirstOnboardingPage() {
 
       const createdWorkspace = await createMyOnboardingWorkspace(nextPayload);
       const createdWorkspaceId = createdWorkspace.workspaceId ?? createdWorkspace.workspace_id;
-      const createdProjectId = createdWorkspace.projectId ?? createdWorkspace.project_id;
       if (!createdWorkspaceId) {
         throw new Error("ONBOARDING_WORKSPACE_STATE_MISMATCH");
       }
@@ -374,20 +355,11 @@ export function WorkspaceFirstOnboardingPage() {
 
       return {
         workspaceId: createdWorkspaceId,
-        projectId:
-          createdProjectId ??
-          findProjectIdForWorkspace({
-            items: refreshed.data?.items ?? [],
-            workspaceId: createdWorkspaceId,
-          }),
       };
     },
-    onSuccess: ({ workspaceId, projectId }) => {
+    onSuccess: ({ workspaceId }) => {
       setStepError(null);
       setCreatedWorkspaceId(workspaceId);
-      if (projectId) {
-        useWorkspaceStore.getState().setCurrentProjectId(projectId);
-      }
       setStep(3);
     },
     onError: (error) => {
@@ -427,17 +399,8 @@ export function WorkspaceFirstOnboardingPage() {
     onSuccess: async (workspaceId) => {
       setStepError(null);
       setCurrentWorkspaceId(workspaceId);
-      const refreshed = await workspacesQuery.refetch();
-      const projectId = findProjectIdForWorkspace({
-        items: refreshed.data?.items ?? [],
-        workspaceId,
-      });
-      if (projectId) {
-        useWorkspaceStore.getState().setCurrentProjectId(projectId);
-        await navigate({ to: `/projects/${projectId}`, replace: true });
-        return;
-      }
-      await navigate({ to: "/projects", replace: true });
+      useWorkspaceStore.getState().setCurrentProjectId(null);
+      await navigate({ to: "/", replace: true });
     },
     onError: (error) => {
       if (error instanceof Error) {

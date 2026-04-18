@@ -371,13 +371,8 @@ class WorkspaceService(BaseService):
             )
             if existing_workspace is None:
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-            project = await self.project_repo.get_or_create_primary_project_for_workspace(
-                workspace_id=UUID(str(existing_workspace.id)),
-                actor_user_id=user_id,
-            )
             return OnboardingWorkspaceCreateOut(
                 workspace_id=UUID(str(existing_workspace.id)),
-                project_id=UUID(str(project.id)),
             )
 
         workspace_name = str(payload.name or "").strip()
@@ -415,7 +410,6 @@ class WorkspaceService(BaseService):
         )
         return OnboardingWorkspaceCreateOut(
             workspace_id=UUID(str(created_workspace.workspace_id)),
-            project_id=UUID(str(created_workspace.project_id)),
         )
 
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:

@@ -1,9 +1,5 @@
 import { listMyWorkspaces } from "@/api/workspaces";
-import {
-  pickDefaultWorkspace,
-  projectHomePath,
-  projectsHomePath,
-} from "@/lib/routing/workspace-routing";
+import { pickDefaultWorkspace, projectsHomePath } from "@/lib/routing/workspace-routing";
 
 export interface PostAuthRouteDecision {
   path: string;
@@ -59,9 +55,9 @@ export async function resolvePostAuthRoute(params: {
 
   if (workspace) {
     return {
-      path: projectHomePath(workspace.projectId),
+      path: "/",
       workspaceId: workspace.workspaceId,
-      projectId: workspace.projectId,
+      projectId: workspace.projectId ?? null,
       onboardingRequired: false,
     };
   }

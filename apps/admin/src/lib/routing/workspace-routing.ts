@@ -1,6 +1,6 @@
 export type WorkspaceListItem = {
   workspaceId: string;
-  projectId: string;
+  projectId?: string | null;
   name?: string | null;
   slug?: string | null;
 };

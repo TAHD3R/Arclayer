@@ -1,4 +1,5 @@
 import { DATE_FORMAT_ITEMS, DEFAULT_DATE_FORMAT } from "@/lib/time/datetime-config";
+import { FULL_DATE_TIME_FORMAT } from "@/lib/time/datetime-config";
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 
 export type LocalizationOption<T extends string = string> = {
@@ -30,16 +31,26 @@ function listSupportedTimeZones(): string[] {
   }
 }
 
-export function buildDateFormatOptions(): Array<LocalizationOption> {
+export function buildDateFormatOptions(t: (key: string) => string): Array<LocalizationOption> {
   return DATE_FORMAT_ITEMS.map((item) => ({
     value: item.value,
     label: item.label,
-  }));
+  })).concat({
+    value: FULL_DATE_TIME_FORMAT,
+    label: t("settings:SETTINGS_LOCALIZATION_FULL_DATE_TIME_LABEL"),
+  });
 }
 
-export function resolveDateFormatLabel(dateFormat: string | undefined): string {
+export function resolveDateFormatLabel(
+  dateFormat: string | undefined,
+  t?: (key: string) => string,
+): string {
   if (!dateFormat) {
     return DATE_FORMAT_ITEMS[0]?.label ?? DEFAULT_DATE_FORMAT;
+  }
+
+  if (dateFormat === FULL_DATE_TIME_FORMAT) {
+    return t?.("settings:SETTINGS_LOCALIZATION_FULL_DATE_TIME_LABEL") ?? FULL_DATE_TIME_FORMAT;
   }
 
   return DATE_FORMAT_ITEMS.find((item) => item.value === dateFormat)?.label ?? dateFormat;

@@ -51,6 +51,7 @@ const translations: Record<string, string> = {
   "onboarding:PREFERENCES_STEP_TITLE": "Set workspace preferences",
   "settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE":
     "Use relative datetime by default",
+  "settings:SETTINGS_LOCALIZATION_FULL_DATE_TIME_LABEL": "Full date and time",
   "onboarding:PERSONALIZE_TITLE": "Personalize your experience",
   "onboarding:PERSONALIZE_ROLE_FOUNDER": "Founder",
   "onboarding:PERSONALIZE_GOAL_AI_AGENTS": "Building AI agents",
@@ -142,7 +143,6 @@ beforeEach(() => {
   });
   createMyOnboardingWorkspaceMock.mockResolvedValue({
     workspaceId: "ws-1",
-    projectId: "project-1",
   });
   patchCoreSettingsMock.mockResolvedValue({
     namespace: "core",
@@ -158,7 +158,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
       items: [
         {
           workspaceId: "ws-team",
-          projectId: "project-team",
           organizationId: "org-team",
           slug: "founder",
           name: "Founder Workspace",
@@ -172,7 +171,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
         teams: [
           {
             workspaceId: "ws-team",
-            projectId: "project-team",
             organizationId: "org-team",
             slug: "founder",
             name: "Founder Workspace",
@@ -191,8 +189,8 @@ describe("WorkspaceFirstOnboardingPage", () => {
 
     await waitFor(() => {
       expect(workspaceState.setCurrentWorkspaceId).toHaveBeenCalledWith("ws-team");
-      expect(workspaceState.setCurrentProjectId).toHaveBeenCalledWith("project-team");
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-team", replace: true });
+      expect(workspaceState.setCurrentProjectId).toHaveBeenCalledWith(null);
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/", replace: true });
     });
   });
 
@@ -210,7 +208,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
         items: [
           {
             workspaceId: "ws-1",
-            projectId: "project-1",
             organizationId: "org-1",
             slug: "founder-team",
             name: "Studio Team",
@@ -224,7 +221,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
           teams: [
             {
               workspaceId: "ws-1",
-              projectId: "project-1",
               organizationId: "org-1",
               slug: "founder-team",
               name: "Studio Team",
@@ -242,7 +238,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
         items: [
           {
             workspaceId: "ws-1",
-            projectId: "project-1",
             organizationId: "org-1",
             slug: "founder-team",
             name: "Studio Team",
@@ -256,7 +251,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
           teams: [
             {
               workspaceId: "ws-1",
-              projectId: "project-1",
               organizationId: "org-1",
               slug: "founder-team",
               name: "Studio Team",
@@ -274,7 +268,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
         items: [
           {
             workspaceId: "ws-1",
-            projectId: "project-1",
             organizationId: "org-1",
             slug: "founder-team",
             name: "Studio Team",
@@ -288,7 +281,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
           teams: [
             {
               workspaceId: "ws-1",
-              projectId: "project-1",
               organizationId: "org-1",
               slug: "founder-team",
               name: "Studio Team",
@@ -354,8 +346,8 @@ describe("WorkspaceFirstOnboardingPage", () => {
 
     await waitFor(() => {
       expect(workspaceState.setCurrentWorkspaceId).toHaveBeenCalledWith("ws-1");
-      expect(workspaceState.setCurrentProjectId).toHaveBeenCalledWith("project-1");
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-1", replace: true });
+      expect(workspaceState.setCurrentProjectId).toHaveBeenCalledWith(null);
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/", replace: true });
     });
   });
 

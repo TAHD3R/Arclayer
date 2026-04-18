@@ -70,7 +70,7 @@ export function LocalizationSettingsTab({
       label: getLocaleMetadata(value, t).label,
     }));
   const timezoneOptions = buildTimezoneOptions(timezone);
-  const dateFormatOptions = buildDateFormatOptions();
+  const dateFormatOptions = buildDateFormatOptions(t);
 
   const localeLabel = defaultLocale ? getLocaleMetadata(defaultLocale, t).label : defaultLocale;
   const fallbackLocaleLabel = fallbackLocale
@@ -85,6 +85,7 @@ export function LocalizationSettingsTab({
   const dateFormatLabel = resolveLocalizationDateFormatSummary({
     dateFormat,
     relativeLabel: t("settings:SETTINGS_DATETIME_RELATIVE_SHORT"),
+    translate: t,
     useRelativeDateTime,
   });
 

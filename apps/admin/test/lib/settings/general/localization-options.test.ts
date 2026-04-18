@@ -40,13 +40,16 @@ describe("localization options helpers", () => {
   });
 
   it("builds date format options and resolves labels", () => {
-    const dateFormatOptions = buildDateFormatOptions();
+    const t = (key: string): string =>
+      key === "settings:SETTINGS_LOCALIZATION_FULL_DATE_TIME_LABEL" ? "Full date and time" : key;
+
+    const dateFormatOptions = buildDateFormatOptions(t);
 
     expect(dateFormatOptions.length).toBeGreaterThan(0);
     expect(dateFormatOptions.some((item) => item.value === DEFAULT_DATE_FORMAT)).toBe(true);
     expect(dateFormatOptions.some((item) => item.value === FULL_DATE_TIME_FORMAT)).toBe(true);
-    expect(resolveDateFormatLabel("MM/DD/YYYY")).toContain("MM/DD/YYYY");
-    expect(resolveDateFormatLabel(FULL_DATE_TIME_FORMAT)).not.toBe(FULL_DATE_TIME_FORMAT);
+    expect(resolveDateFormatLabel("MM/DD/YYYY", t)).toContain("MM/DD/YYYY");
+    expect(resolveDateFormatLabel(FULL_DATE_TIME_FORMAT, t)).toBe("Full date and time");
     expect(resolveDateFormatLabel("custom-format")).toBe("custom-format");
   });
 });

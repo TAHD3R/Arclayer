@@ -17,7 +17,7 @@ export type WorkspaceIconMetadata = {
 
 export type MyWorkspace = {
   workspaceId: string;
-  projectId: string;
+  projectId?: string | null;
   organizationId: string;
   slug: string;
   name: string;
@@ -70,9 +70,7 @@ export type OnboardingWorkspaceCreatePayload = {
 
 export type OnboardingWorkspaceCreateResult = {
   workspaceId: string;
-  projectId?: string;
   workspace_id?: string;
-  project_id?: string;
 };
 
 export type MyWorkspaceListResult = {

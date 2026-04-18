@@ -500,7 +500,11 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
                 onSelect={(workspace) => {
                   closeFloatingPanel();
                   setCurrentWorkspaceId(workspace.workspaceId);
-                  setCurrentProjectId(workspace.projectId);
+                  setCurrentProjectId(workspace.projectId ?? null);
+                  if (!workspace.projectId) {
+                    void navigate({ to: projectsHomePath() as never });
+                    return;
+                  }
                   const nextPath = switchWorkspacePath({
                     pathname,
                     currentProjectId,

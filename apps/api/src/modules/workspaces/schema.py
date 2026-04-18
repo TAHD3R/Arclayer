@@ -26,7 +26,7 @@ class MyWorkspaceMemberPreviewOut(BaseSchema):
 
 class MyWorkspaceOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
-    project_id: PublicUUID = Field(..., description="Primary project id.")
+    project_id: PublicUUID | None = Field(default=None, description="Primary project id when available.")
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
@@ -91,7 +91,6 @@ class OnboardingWorkspaceCreateRequest(BaseSchema):
 
 class OnboardingWorkspaceCreateOut(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Created workspace id.")
-    project_id: PublicUUID = Field(..., description="Primary project id for the created workspace.")
 
 
 class MyWorkspaceListResult(BaseSchema):

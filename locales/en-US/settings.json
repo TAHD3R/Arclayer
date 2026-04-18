@@ -166,6 +166,7 @@
   "SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC": "When enabled, the detected browser timezone is used and manual timezone selection is disabled.",
   "SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE": "Use relative datetime by default",
   "SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC": "When enabled, relative datetime display is preferred and manual datetime format selection is disabled.",
+  "SETTINGS_LOCALIZATION_FULL_DATE_TIME_LABEL": "Full date and time",
   "SETTINGS_TIMEZONE_AUTO_SHORT": "Auto",
   "SETTINGS_DATETIME_RELATIVE_SHORT": "Relative time",
   "SETTINGS_WORKSPACE_ACCESS_PANEL_TITLE": "Default role policy",

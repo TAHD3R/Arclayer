@@ -54,7 +54,7 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: "w-a" });
-    expect(decision.path).toBe("/projects/project-a");
+    expect(decision.path).toBe("/");
     expect(decision.workspaceId).toBe("w-a");
     expect(decision.projectId).toBe("project-a");
     expect(decision.onboardingRequired).toBe(false);

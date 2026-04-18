@@ -35,7 +35,7 @@ describe("date-time-localization-controls", () => {
         switchLabel="Relative datetime"
         onSelectChange={() => undefined}
         onSwitchChange={() => undefined}
-        options={[{ value: "FULL_DATE_TIME", label: "Full date & time" }]}
+        options={[{ value: "FULL_DATE_TIME", label: "Full date and time" }]}
       />,
     );
 

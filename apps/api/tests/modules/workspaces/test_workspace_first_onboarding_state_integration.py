@@ -82,6 +82,7 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
             created_workspace = create_workspace_resp.json()["data"]
             workspace_id = created_workspace["workspaceId"]
+            assert "projectId" not in created_workspace
 
             post_create_workspaces_resp = await client.get("/api/v1/me/workspaces", headers=headers)
             assert post_create_workspaces_resp.status_code == 200, post_create_workspaces_resp.text
@@ -175,6 +176,7 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
             created_workspace = create_workspace_resp.json()["data"]
             workspace_id = created_workspace["workspaceId"]
+            assert "projectId" not in created_workspace
 
             post_create_workspaces_resp = await client.get("/api/v1/me/workspaces", headers=headers)
             assert post_create_workspaces_resp.status_code == 200, post_create_workspaces_resp.text
@@ -298,7 +300,7 @@ async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_o
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
             created_workspace = create_workspace_resp.json()["data"]
             assert created_workspace["workspaceId"]
-            assert created_workspace["projectId"]
+            assert "projectId" not in created_workspace
 
             post_create_workspaces_resp = await client.get("/api/v1/me/workspaces", headers=headers)
             assert post_create_workspaces_resp.status_code == 200, post_create_workspaces_resp.text

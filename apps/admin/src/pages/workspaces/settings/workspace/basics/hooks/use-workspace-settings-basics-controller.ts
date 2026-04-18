@@ -239,7 +239,7 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     () => buildTimezoneOptions(workspaceTimezone || browserTimeZone),
     [browserTimeZone, workspaceTimezone],
   );
-  const dateFormatOptions = useMemo(() => buildDateFormatOptions(), []);
+  const dateFormatOptions = useMemo(() => buildDateFormatOptions(t), [t]);
 
   const roleOptions = roleMetadata.roleOptions;
   const roleLabelMap = roleMetadata.roleLabelMap;
@@ -257,6 +257,7 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     dateFormat: String(workspaceDateFormat),
     useRelativeDateTime: workspaceUseRelativeDateTime,
     relativeLabel: t("settings:SETTINGS_DATETIME_RELATIVE_SHORT"),
+    translate: t,
   });
   const defaultRoleLabel = roleLabelMap.get(String(defaultRoleCode)) ?? String(defaultRoleCode);
   const assignRoleLabel = roleLabelMap.get(String(assignRoleCode)) ?? String(assignRoleCode);

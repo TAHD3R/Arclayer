@@ -3,6 +3,7 @@ import { resolveDateFormatLabel } from "@/lib/settings/general/localization-opti
 type DateFormatSummaryParams = {
   dateFormat?: string;
   relativeLabel?: string;
+  translate?: (key: string) => string;
   useRelativeDateTime?: boolean;
 };
 
@@ -18,7 +19,7 @@ export function resolveLocalizationDateFormatSummary(params: DateFormatSummaryPa
     return params.relativeLabel ?? "Relative time";
   }
 
-  return resolveDateFormatLabel(params.dateFormat);
+  return resolveDateFormatLabel(params.dateFormat, params.translate);
 }
 
 export function resolveLocalizationTimeZoneSummary(params: TimeZoneSummaryParams): string {
