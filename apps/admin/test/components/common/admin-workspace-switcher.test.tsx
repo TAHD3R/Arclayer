@@ -17,7 +17,7 @@ const translations: Record<string, string> = {
   "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE": "Select workspace",
   "common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS": "Workspace settings",
   "team:TEAM_INVITE_MEMBER": "Invite members",
-  "common:WORKSPACE_SWITCHER_VIEW_ALL_WORKSPACES": "View all workspaces",
+  "common:WORKSPACE_SWITCHER_VIEW_ALL_PROJECTS": "View all projects",
   "common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY": "No workspaces yet",
   "common:WORKSPACE_SWITCHER_ADD_WORKSPACE": "Add workspace",
   "common:WORKSPACE_SWITCHER_ORG_SETTINGS": "Organization settings",
@@ -465,7 +465,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     const settingsButton = within(panel).getByRole("button", { name: /Workspace settings/ });
     const inviteMembersButton = within(panel).getByRole("button", { name: /Invite members/ });
     const viewAllWorkspacesButton = within(panel).getByRole("button", {
-      name: /View all workspaces/,
+      name: /View all projects/,
     });
     const addWorkspaceButton = within(panel).getByRole("button", { name: /Add workspace/ });
 
@@ -512,9 +512,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     });
 
     await user.click(trigger);
-    await user.click(
-      within(getLatestDialog()).getByRole("button", { name: /View all workspaces/ }),
-    );
+    await user.click(within(getLatestDialog()).getByRole("button", { name: /View all projects/ }));
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
     });
@@ -522,7 +520,8 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Add workspace/ }));
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects?create=1" });
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByText("common:ORG_WORKSPACES_CREATE_TEAM")).toBeInTheDocument();
     });
   });
 

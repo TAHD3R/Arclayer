@@ -22,6 +22,12 @@ import {
 } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import { projectsHomePath, switchWorkspacePath } from "@/lib/routing/workspace-routing";
+import { createNameSeedWorkspaceSlugState } from "@/lib/workspace-slug";
+import {
+  WorkspaceCreateDialog,
+  type CreateWorkspaceFormValues,
+} from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
+import { useUserCenterWorkspacesMutations } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { MyWorkspace } from "@/types/api";
@@ -416,7 +422,7 @@ function ViewAllWorkspacesButton() {
   return (
     <WorkspaceActionButton
       icon={<PanelsTopLeft className="h-4 w-4" aria-hidden="true" />}
-      text={t("common:WORKSPACE_SWITCHER_VIEW_ALL_WORKSPACES")}
+      text={t("common:WORKSPACE_SWITCHER_VIEW_ALL_PROJECTS")}
       onClick={() => {
         closeFloatingPanel();
         void navigate({ to: projectsHomePath() as never });
@@ -425,7 +431,7 @@ function ViewAllWorkspacesButton() {
   );
 }
 
-function PanelContentInner() {
+function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
   const { t } = useTranslation(["common", "team"]);
   const { closeFloatingPanel } = useFloatingPanel();
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -526,7 +532,7 @@ function PanelContentInner() {
           text={t("common:WORKSPACE_SWITCHER_ADD_WORKSPACE")}
           onClick={() => {
             closeFloatingPanel();
-            void navigate({ to: "/projects?create=1" as never });
+            props.onOpenCreateDialog();
           }}
         />
       </div>
@@ -641,9 +647,26 @@ export function AdminWorkspaceSwitcher({
   const { t } = useTranslation(["common"]);
   const accessToken = useAuthStore((state) => state.accessToken);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>(() => {
+    const initialSlugState = createNameSeedWorkspaceSlugState("");
+    return {
+      name: "",
+      slug: initialSlugState.value,
+      slugSource: initialSlugState.source,
+      description: "",
+    };
+  });
   const { toggleSidebar } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
+  const mutations = useUserCenterWorkspacesMutations({
+    organizationId: undefined,
+    t,
+    onCreateSuccess: () => undefined,
+    onArchiveSuccess: () => undefined,
+    onDeleteSuccess: () => undefined,
+  });
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", currentWorkspaceId, sessionVersion],
@@ -669,65 +692,115 @@ export function AdminWorkspaceSwitcher({
 
   if (isHeaderVariant) {
     return (
-      <FloatingPanelRoot className={cn("inline-flex min-w-0 max-w-full", className)}>
-        <HeaderWorkspaceTrigger
-          workspaceTriggerText={workspaceTriggerText}
-          workspaceIdentity={workspaceIdentity}
-          label={label}
-          disabled={!canOpenPanel}
-        />
-
-        <FloatingPanelContent placement="bottom" offset={10} showTitle={false} className="p-0">
-          <PanelContentInner />
-        </FloatingPanelContent>
-      </FloatingPanelRoot>
-    );
-  }
-
-  return (
-    <FloatingPanelRoot className={cn("w-full min-w-0", className)}>
-      <div className="min-w-0">
-        <div
-          className={cn(
-            sidebarTriggerShellClassName,
-            "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
-          )}
-        >
-          <SidebarWorkspaceTrigger
+      <>
+        <FloatingPanelRoot className={cn("inline-flex min-w-0 max-w-full", className)}>
+          <HeaderWorkspaceTrigger
             workspaceTriggerText={workspaceTriggerText}
             workspaceIdentity={workspaceIdentity}
             label={label}
             disabled={!canOpenPanel}
           />
 
+          <FloatingPanelContent placement="bottom" offset={10} showTitle={false} className="p-0">
+            <PanelContentInner onOpenCreateDialog={() => setCreateOpen(true)} />
+          </FloatingPanelContent>
+        </FloatingPanelRoot>
+
+        <WorkspaceCreateDialog
+          t={t}
+          createDialog={{
+            open: createOpen,
+            organizationId: undefined,
+            setOpen: setCreateOpen,
+            values: createValues,
+            setValues: setCreateValues,
+            pending: mutations.createMutation.isPending,
+            onSubmit: async (values) => {
+              await mutations.createMutation.mutateAsync(values);
+              setCreateOpen(false);
+              const resetSlugState = createNameSeedWorkspaceSlugState("");
+              setCreateValues({
+                name: "",
+                slug: resetSlugState.value,
+                slugSource: resetSlugState.source,
+                description: "",
+              });
+            },
+          }}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <FloatingPanelRoot className={cn("w-full min-w-0", className)}>
+        <div className="min-w-0">
+          <div
+            className={cn(
+              sidebarTriggerShellClassName,
+              "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+            )}
+          >
+            <SidebarWorkspaceTrigger
+              workspaceTriggerText={workspaceTriggerText}
+              workspaceIdentity={workspaceIdentity}
+              label={label}
+              disabled={!canOpenPanel}
+            />
+
+            {showSidebarToggle ? (
+              <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+            ) : null}
+          </div>
+
           {showSidebarToggle ? (
-            <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+            <div
+              className={cn(
+                "mt-0 flex justify-center overflow-hidden",
+                "h-0 opacity-0 pointer-events-none",
+                "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+                "group-data-[collapsible=icon]:mt-2",
+                "group-data-[collapsible=icon]:h-10",
+                "group-data-[collapsible=icon]:opacity-100",
+                "group-data-[collapsible=icon]:pointer-events-auto",
+              )}
+            >
+              <CollapsedCollapseButton
+                ariaLabel={t("common:SIDEBAR_TOGGLE")}
+                onClick={toggleSidebar}
+              />
+            </div>
           ) : null}
         </div>
 
-        {showSidebarToggle ? (
-          <div
-            className={cn(
-              "mt-0 flex justify-center overflow-hidden",
-              "h-0 opacity-0 pointer-events-none",
-              "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-              "group-data-[collapsible=icon]:mt-2",
-              "group-data-[collapsible=icon]:h-10",
-              "group-data-[collapsible=icon]:opacity-100",
-              "group-data-[collapsible=icon]:pointer-events-auto",
-            )}
-          >
-            <CollapsedCollapseButton
-              ariaLabel={t("common:SIDEBAR_TOGGLE")}
-              onClick={toggleSidebar}
-            />
-          </div>
-        ) : null}
-      </div>
+        <FloatingPanelContent placement="bottom" offset={8} showTitle={false} className="p-0">
+          <PanelContentInner onOpenCreateDialog={() => setCreateOpen(true)} />
+        </FloatingPanelContent>
+      </FloatingPanelRoot>
 
-      <FloatingPanelContent placement="bottom" offset={8} showTitle={false} className="p-0">
-        <PanelContentInner />
-      </FloatingPanelContent>
-    </FloatingPanelRoot>
+      <WorkspaceCreateDialog
+        t={t}
+        createDialog={{
+          open: createOpen,
+          organizationId: undefined,
+          setOpen: setCreateOpen,
+          values: createValues,
+          setValues: setCreateValues,
+          pending: mutations.createMutation.isPending,
+          onSubmit: async (values) => {
+            await mutations.createMutation.mutateAsync(values);
+            setCreateOpen(false);
+            const resetSlugState = createNameSeedWorkspaceSlugState("");
+            setCreateValues({
+              name: "",
+              slug: resetSlugState.value,
+              slugSource: resetSlugState.source,
+              description: "",
+            });
+          },
+        }}
+      />
+    </>
   );
 }

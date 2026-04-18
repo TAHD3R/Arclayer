@@ -199,6 +199,20 @@ export function WorkspaceActionDialogs(props: WorkspaceActionDialogsProps) {
 
 export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsProps) {
   const { t, createDialog, archiveDialog, deleteDialog, iconDialog } = props;
+  return (
+    <>
+      <WorkspaceCreateDialog t={t} createDialog={createDialog} />
+      <WorkspaceIconDialog t={t} dialog={iconDialog} />
+      <WorkspaceActionDialogs t={t} archiveDialog={archiveDialog} deleteDialog={deleteDialog} />
+    </>
+  );
+}
+
+export function WorkspaceCreateDialog(props: {
+  t: UserCenterWorkspacesTranslateFn;
+  createDialog: UserCenterWorkspacesDialogsProps["createDialog"];
+}) {
+  const { t, createDialog } = props;
   const [createNameTouched, setCreateNameTouched] = useState(false);
   const [createSlugTouched, setCreateSlugTouched] = useState(false);
   const [createSlugCheck, setCreateSlugCheck] = useState<{
@@ -286,163 +300,157 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
       active = false;
     };
   }, [createDialog.open, createDialog.organizationId, debouncedCreateSlug]);
-
   return (
-    <>
-      <SettingDialog
-        open={createDialog.open}
-        onOpenChange={(open) => {
-          if (!createDialog.pending) {
-            createDialog.setOpen(open);
-          }
-        }}
-        title={t("common:ORG_WORKSPACES_CREATE_TEAM")}
-        description={t("common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC")}
-        footer={
-          <div className="flex w-full items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => createDialog.setOpen(false)}
-              disabled={createDialog.pending}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              variant="default"
-              loading={createDialog.pending}
-              disabled={createConfirmDisabled}
-              onClick={async () => {
-                await createDialog.onSubmit({
-                  name: createDialog.values.name.trim(),
-                  slug: createSlug,
-                  slugSource: createDialog.values.slugSource,
-                  description: createDialog.values.description?.trim() || undefined,
-                });
-              }}
-            >
-              {t("common:CONFIRM")}
-            </Button>
-          </div>
+    <SettingDialog
+      open={createDialog.open}
+      onOpenChange={(open) => {
+        if (!createDialog.pending) {
+          createDialog.setOpen(open);
         }
-      >
-        <SettingDialogFields>
-          <SettingDialogField
-            title={t("common:ORG_WORKSPACES_FIELD_NAME")}
-            description={t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
-            error={
-              showCreateNameError ? (
-                <span className="text-caption text-destructive">
-                  {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
-                </span>
-              ) : undefined
-            }
+      }}
+      title={t("common:ORG_WORKSPACES_CREATE_TEAM")}
+      description={t("common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC")}
+      footer={
+        <div className="flex w-full items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => createDialog.setOpen(false)}
+            disabled={createDialog.pending}
           >
-            <Input
-              value={createDialog.values.name}
-              onChange={(event) => {
-                setCreateNameTouched(true);
-                createDialog.setValues((prev) => {
-                  const nextName = event.target.value;
-                  const nextSlugState = syncWorkspaceSlugWithName(
-                    {
-                      value: prev.slug,
-                      source: prev.slugSource,
-                    },
-                    nextName,
-                  );
+            {t("common:CANCEL")}
+          </Button>
+          <Button
+            variant="default"
+            loading={createDialog.pending}
+            disabled={createConfirmDisabled}
+            onClick={async () => {
+              await createDialog.onSubmit({
+                name: createDialog.values.name.trim(),
+                slug: createSlug,
+                slugSource: createDialog.values.slugSource,
+                description: createDialog.values.description?.trim() || undefined,
+              });
+            }}
+          >
+            {t("common:CONFIRM")}
+          </Button>
+        </div>
+      }
+    >
+      <SettingDialogFields>
+        <SettingDialogField
+          title={t("common:ORG_WORKSPACES_FIELD_NAME")}
+          description={t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
+          error={
+            showCreateNameError ? (
+              <span className="text-caption text-destructive">
+                {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
+              </span>
+            ) : undefined
+          }
+        >
+          <Input
+            value={createDialog.values.name}
+            onChange={(event) => {
+              setCreateNameTouched(true);
+              createDialog.setValues((prev) => {
+                const nextName = event.target.value;
+                const nextSlugState = syncWorkspaceSlugWithName(
+                  {
+                    value: prev.slug,
+                    source: prev.slugSource,
+                  },
+                  nextName,
+                );
 
+                return {
+                  ...prev,
+                  name: nextName,
+                  slug: nextSlugState.value,
+                  slugSource: nextSlugState.source,
+                };
+              });
+            }}
+            onBlur={() => setCreateNameTouched(true)}
+            placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
+            aria-invalid={showCreateNameError}
+          />
+        </SettingDialogField>
+
+        <SettingDialogField
+          title={t("common:ORG_WORKSPACES_FIELD_SLUG")}
+          description={t("common:ORG_WORKSPACES_FIELD_SLUG_HELP")}
+        >
+          <div className="space-y-2">
+            <Input
+              value={createDialog.values.slug}
+              onChange={(event) => {
+                setCreateSlugTouched(true);
+                createDialog.setValues((prev) => {
+                  const nextSlugState = applyManualWorkspaceSlugInput(event.target.value);
                   return {
                     ...prev,
-                    name: nextName,
                     slug: nextSlugState.value,
                     slugSource: nextSlugState.source,
                   };
                 });
               }}
-              onBlur={() => setCreateNameTouched(true)}
-              placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
-              aria-invalid={showCreateNameError}
+              onBlur={() => setCreateSlugTouched(true)}
+              placeholder={t("common:ORG_WORKSPACES_FIELD_SLUG_PLACEHOLDER")}
+              aria-invalid={
+                showCreateSlugRequired || createSlugCheckFailed || createSlugUnavailableReason
+                  ? true
+                  : undefined
+              }
             />
-          </SettingDialogField>
+            {showCreateSlugRequired ? (
+              <div className="text-footnote text-destructive">
+                {t("common:ORG_WORKSPACES_FIELD_SLUG_REQUIRED")}
+              </div>
+            ) : createSlugStatusChecking ? (
+              <div className="text-footnote text-label-secondary">
+                {t("common:ORG_WORKSPACES_FIELD_SLUG_CHECKING")}
+              </div>
+            ) : createSlugAvailable ? (
+              <div className="flex items-center gap-2 text-footnote text-success">
+                <CheckCircle2 className="size-4" />
+                <span>{t("common:ORG_WORKSPACES_FIELD_SLUG_AVAILABLE")}</span>
+              </div>
+            ) : createSlugCheckFailed ? (
+              <div className="text-footnote text-destructive">
+                {t("common:ORG_WORKSPACES_FIELD_SLUG_CHECK_FAILED")}
+              </div>
+            ) : createSlugUnavailableReason ? (
+              <div className="text-footnote text-destructive">
+                {resolveWorkspaceSlugReasonText(createSlugUnavailableReason, t)}
+              </div>
+            ) : null}
+          </div>
+        </SettingDialogField>
 
-          <SettingDialogField
-            title={t("common:ORG_WORKSPACES_FIELD_SLUG")}
-            description={t("common:ORG_WORKSPACES_FIELD_SLUG_HELP")}
-          >
-            <div className="space-y-2">
-              <Input
-                value={createDialog.values.slug}
-                onChange={(event) => {
-                  setCreateSlugTouched(true);
-                  createDialog.setValues((prev) => {
-                    const nextSlugState = applyManualWorkspaceSlugInput(event.target.value);
-                    return {
-                      ...prev,
-                      slug: nextSlugState.value,
-                      slugSource: nextSlugState.source,
-                    };
-                  });
-                }}
-                onBlur={() => setCreateSlugTouched(true)}
-                placeholder={t("common:ORG_WORKSPACES_FIELD_SLUG_PLACEHOLDER")}
-                aria-invalid={
-                  showCreateSlugRequired || createSlugCheckFailed || createSlugUnavailableReason
-                    ? true
-                    : undefined
-                }
-              />
-              {showCreateSlugRequired ? (
-                <div className="text-footnote text-destructive">
-                  {t("common:ORG_WORKSPACES_FIELD_SLUG_REQUIRED")}
-                </div>
-              ) : createSlugStatusChecking ? (
-                <div className="text-footnote text-label-secondary">
-                  {t("common:ORG_WORKSPACES_FIELD_SLUG_CHECKING")}
-                </div>
-              ) : createSlugAvailable ? (
-                <div className="flex items-center gap-2 text-footnote text-success">
-                  <CheckCircle2 className="size-4" />
-                  <span>{t("common:ORG_WORKSPACES_FIELD_SLUG_AVAILABLE")}</span>
-                </div>
-              ) : createSlugCheckFailed ? (
-                <div className="text-footnote text-destructive">
-                  {t("common:ORG_WORKSPACES_FIELD_SLUG_CHECK_FAILED")}
-                </div>
-              ) : createSlugUnavailableReason ? (
-                <div className="text-footnote text-destructive">
-                  {resolveWorkspaceSlugReasonText(createSlugUnavailableReason, t)}
-                </div>
-              ) : null}
-            </div>
-          </SettingDialogField>
-
-          <SettingDialogField
-            title={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
-            description={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
-          >
-            <textarea
-              rows={3}
-              value={createDialog.values.description ?? ""}
-              onChange={(event) => {
-                createDialog.setValues((prev) => ({
-                  ...prev,
-                  description: event.target.value,
-                }));
-              }}
-              placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
-              className={cn(
-                "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
-                "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-              )}
-            />
-          </SettingDialogField>
-        </SettingDialogFields>
-      </SettingDialog>
-
-      <WorkspaceIconDialog t={t} dialog={iconDialog} />
-      <WorkspaceActionDialogs t={t} archiveDialog={archiveDialog} deleteDialog={deleteDialog} />
-    </>
+        <SettingDialogField
+          title={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
+          description={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
+        >
+          <textarea
+            rows={3}
+            value={createDialog.values.description ?? ""}
+            onChange={(event) => {
+              createDialog.setValues((prev) => ({
+                ...prev,
+                description: event.target.value,
+              }));
+            }}
+            placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
+            className={cn(
+              "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
+              "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+            )}
+          />
+        </SettingDialogField>
+      </SettingDialogFields>
+    </SettingDialog>
   );
 }
 

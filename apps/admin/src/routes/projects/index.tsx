@@ -12,6 +12,6 @@ export const Route = createFileRoute("/projects/")({
     if (search.create === "1") next.create = "1";
     return next;
   },
-  staticData: { titleKey: "account:ACCOUNT_PAGE_WORKSPACES_TITLE" },
+  staticData: { titleKey: "account:ACCOUNT_PAGE_PROJECTS_TITLE" },
   component: WorkspacesPage,
 });

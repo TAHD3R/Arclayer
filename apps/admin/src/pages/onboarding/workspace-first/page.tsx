@@ -7,14 +7,11 @@ import {
   Building2,
   CheckCircle2,
   Code2,
-  Globe2,
   HandCoins,
-  Languages,
   LoaderCircle,
   Megaphone,
   Paintbrush2,
   Rocket,
-  SlidersHorizontal,
   UserRound,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -26,7 +23,7 @@ import {
   createMyOnboardingWorkspace,
   listMyWorkspaces,
 } from "@/api/workspaces";
-import { FeatureCarousel, Onboarding, StepIndicator } from "@/components/ui/onboarding";
+import { Onboarding, StepIndicator } from "@/components/ui/onboarding";
 import { useDebouncedValue } from "@/lib/auth/form-feedback";
 import {
   applyManualWorkspaceSlugInput,
@@ -73,7 +70,7 @@ function buildDefaultWorkspaceName(ownerName: string, language: string) {
   if (!ownerName) return "";
   const normalized = normalizeLocale(language || DEFAULT_LOCALE);
   if (normalized.startsWith("zh")) {
-    return `${ownerName} 的工作区`;
+    return `${ownerName} 的工作空间`;
   }
   return `${ownerName}'s Workspace`;
 }
@@ -127,7 +124,6 @@ export function WorkspaceFirstOnboardingPage() {
   const [workspaceNameTouched, setWorkspaceNameTouched] = useState(false);
   const [workspaceSlugTouched, setWorkspaceSlugTouched] = useState(false);
   const [step, setStep] = useState(1);
-  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [personalizeSubstep, setPersonalizeSubstep] = useState(0);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
@@ -165,29 +161,6 @@ export function WorkspaceFirstOnboardingPage() {
       ...dateFormatOptions,
     ],
     [dateFormatOptions, t],
-  );
-  const introFeatures = useMemo(
-    () => [
-      {
-        imageSrc: "/onboarding/onboarding-01.jpg",
-        icon: Globe2,
-        title: t("onboarding:WORKSPACE_FIRST_FEATURE_1_TITLE"),
-        description: t("onboarding:WORKSPACE_FIRST_FEATURE_1_DESC"),
-      },
-      {
-        imageSrc: "/onboarding/onboarding-02.jpg",
-        icon: SlidersHorizontal,
-        title: t("onboarding:WORKSPACE_FIRST_FEATURE_2_TITLE"),
-        description: t("onboarding:WORKSPACE_FIRST_FEATURE_2_DESC"),
-      },
-      {
-        imageSrc: "/onboarding/onboarding-03.jpg",
-        icon: Languages,
-        title: t("onboarding:WORKSPACE_FIRST_FEATURE_3_TITLE"),
-        description: t("onboarding:WORKSPACE_FIRST_FEATURE_3_DESC"),
-      },
-    ],
-    [t],
   );
   const roleOptions = useMemo(
     () => [
@@ -233,27 +206,22 @@ export function WorkspaceFirstOnboardingPage() {
           (workspace) => workspace.workspaceId === createdWorkspaceId,
         ) ?? null);
   const workspaceCreated = createdWorkspaceId != null;
-  const activeFeature = introFeatures[activeFeatureIndex] ?? introFeatures[0];
   const currentStepTitle =
     step === 1
-      ? t("onboarding:WORKSPACE_FIRST_WELCOME_TITLE")
+      ? t("onboarding:WORKSPACE_SETUP_STEP_TITLE")
       : step === 2
-        ? t("onboarding:WORKSPACE_SETUP_STEP_TITLE")
+        ? t("onboarding:PREFERENCES_STEP_TITLE")
         : step === 3
-          ? t("onboarding:PREFERENCES_STEP_TITLE")
-          : step === 4
-            ? t("onboarding:PERSONALIZE_TITLE")
-            : t("onboarding:READY_TITLE");
+          ? t("onboarding:PERSONALIZE_TITLE")
+          : t("onboarding:READY_TITLE");
   const currentStepDescription =
     step === 1
-      ? t("onboarding:WORKSPACE_FIRST_MARKETING_DESC")
+      ? t("onboarding:WORKSPACE_SETUP_STEP_DESC")
       : step === 2
-        ? t("onboarding:WORKSPACE_SETUP_STEP_DESC")
+        ? t("onboarding:PREFERENCES_STEP_DESC")
         : step === 3
-          ? t("onboarding:PREFERENCES_STEP_DESC")
-          : step === 4
-            ? t("onboarding:PERSONALIZE_DESC")
-            : t("onboarding:READY_DESC");
+          ? t("onboarding:PERSONALIZE_DESC")
+          : t("onboarding:READY_DESC");
   const selectedDateTimePreference = workspaceUseRelativeDateTime
     ? RELATIVE_DATETIME_OPTION_VALUE
     : workspaceDateFormat;
@@ -304,7 +272,7 @@ export function WorkspaceFirstOnboardingPage() {
     };
     if (onboarding.status === "pending_workspace_defaults" && onboarding.workspaceId) {
       setCreatedWorkspaceId(onboarding.workspaceId);
-      setStep(3);
+      setStep(2);
       return;
     }
     if (onboarding.status === "pending_workspace") {
@@ -343,7 +311,7 @@ export function WorkspaceFirstOnboardingPage() {
 
   const slugAvailabilityQuery = useQuery({
     queryKey: ["me", "workspaces", "onboarding", "slug", debouncedSlug],
-    enabled: step === 2 && debouncedSlug.length > 0,
+    enabled: step === 1 && debouncedSlug.length > 0,
     queryFn: async () => checkMyOnboardingWorkspaceSlugAvailability(debouncedSlug),
     retry: false,
     meta: { silent: true },
@@ -483,27 +451,27 @@ export function WorkspaceFirstOnboardingPage() {
 
   const primaryActionPending = createWorkspaceMutation.isPending || saveDefaultsMutation.isPending;
   const nextButtonLoading =
-    step === 2
+    step === 1
       ? createWorkspaceMutation.isPending
-      : step === 5
+      : step === 4
         ? saveDefaultsMutation.isPending
         : false;
   const nextButtonDisabled =
     primaryActionPending ||
-    (step === 2
+    (step === 1
       ? workspaceCreated
         ? false
         : workspaceNameMissing ||
           workspaceSlugMissing ||
           slugAvailabilityQuery.isFetching ||
           !slugAvailable
-      : step === 3
+      : step === 2
         ? workspacePreferencesInvalid
-        : step === 4
+        : step === 3
           ? personalizeSubstep === 0
             ? !selectedRole
             : !selectedGoal
-          : step === 5
+          : step === 4
             ? !createdWorkspaceId
             : false);
   const backButtonDisabled = primaryActionPending || step === 1;
@@ -537,7 +505,7 @@ export function WorkspaceFirstOnboardingPage() {
 
   return (
     <Onboarding
-      totalSteps={5}
+      totalSteps={4}
       value={step}
       className="relative flex h-155 w-full flex-col overflow-hidden rounded-2xl border bg-background p-6"
     >
@@ -545,75 +513,12 @@ export function WorkspaceFirstOnboardingPage() {
         <div className="text-title text-label-primary">{currentStepTitle}</div>
         <p className="mx-auto max-w-2xl text-body text-label-secondary">{currentStepDescription}</p>
         <div className="pt-3">
-          <StepIndicator currentStep={step} totalSteps={5} className="justify-center" />
+          <StepIndicator currentStep={step} totalSteps={4} className="justify-center" />
         </div>
       </div>
 
       <div className="my-6 min-h-0 flex-1 overflow-hidden">
         <Onboarding.Step step={1} className="h-full">
-          <div className="flex h-full flex-col gap-4 md:flex-row md:items-stretch md:gap-6">
-            <FeatureCarousel
-              value={activeFeatureIndex}
-              onValueChange={setActiveFeatureIndex}
-              totalItems={introFeatures.length}
-              className="order-2 flex h-full w-full flex-col gap-3 md:order-1 md:w-1/2"
-            >
-              {introFeatures.map((feature, index) => {
-                const isActive = activeFeatureIndex === index;
-                const Icon = feature.icon;
-
-                return (
-                  <FeatureCarousel.Item
-                    key={feature.imageSrc}
-                    index={index}
-                    className="focus-visible:outline-none"
-                    onMouseEnter={() => setActiveFeatureIndex(index)}
-                  >
-                    <div
-                      className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-300 ease-out ${
-                        isActive
-                          ? "translate-x-1 border-border bg-muted"
-                          : "border-transparent hover:bg-muted/60"
-                      }`}
-                    >
-                      <Icon
-                        className={`mt-0.5 size-5 shrink-0 transition-colors duration-300 ${
-                          isActive ? "text-label-primary" : "text-label-secondary"
-                        }`}
-                      />
-                      <div className="min-w-0">
-                        <p className="text-callout font-semibold text-label-primary">
-                          {feature.title}
-                        </p>
-                        <div
-                          className={`grid transition-all duration-300 ease-out ${
-                            isActive ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                          }`}
-                        >
-                          <p className="mt-1 overflow-hidden text-footnote text-label-secondary">
-                            {feature.description}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </FeatureCarousel.Item>
-                );
-              })}
-            </FeatureCarousel>
-
-            <div className="order-1 h-44 w-full md:order-2 md:h-full md:w-1/2">
-              <div className="relative h-full overflow-hidden rounded-xl bg-muted">
-                <img
-                  src={activeFeature.imageSrc}
-                  alt={activeFeature.title}
-                  className="h-full w-full object-cover transition-all duration-500 ease-out"
-                />
-              </div>
-            </div>
-          </div>
-        </Onboarding.Step>
-
-        <Onboarding.Step step={2} className="h-full">
           <div className="mx-auto flex h-full w-full max-w-2xl flex-col justify-start gap-4">
             <div className="grid gap-1.5">
               <label
@@ -691,7 +596,7 @@ export function WorkspaceFirstOnboardingPage() {
           </div>
         </Onboarding.Step>
 
-        <Onboarding.Step step={3} className="h-full">
+        <Onboarding.Step step={2} className="h-full">
           <div className="mx-auto flex h-full w-full max-w-2xl flex-col justify-start gap-5">
             <div className="grid gap-1.5">
               <label
@@ -772,7 +677,7 @@ export function WorkspaceFirstOnboardingPage() {
           </div>
         </Onboarding.Step>
 
-        <Onboarding.Step step={4} className="h-full">
+        <Onboarding.Step step={3} className="h-full">
           {personalizeSubstep === 0 ? (
             <div className="flex h-full flex-col gap-6">
               <div className="flex items-center justify-between gap-4">
@@ -842,7 +747,7 @@ export function WorkspaceFirstOnboardingPage() {
                   className="shrink-0 text-footnote font-semibold text-label-secondary transition-colors hover:text-label-primary"
                   onClick={() => {
                     setStepError(null);
-                    setStep(5);
+                    setStep(4);
                   }}
                 >
                   {t("onboarding:PERSONALIZE_SKIP")}
@@ -886,7 +791,7 @@ export function WorkspaceFirstOnboardingPage() {
           )}
         </Onboarding.Step>
 
-        <Onboarding.Step step={5} className="h-full">
+        <Onboarding.Step step={4} className="h-full">
           <div className="flex h-full flex-col gap-6 md:flex-row md:items-stretch md:gap-6">
             <div className="flex w-full flex-col gap-6 md:w-1/2">
               <div className="text-headline text-label-primary">
@@ -930,19 +835,15 @@ export function WorkspaceFirstOnboardingPage() {
               return;
             }
             if (step === 3) {
-              setStep(2);
-              return;
-            }
-            if (step === 4) {
               if (personalizeSubstep > 0) {
                 setPersonalizeSubstep((currentValue) => Math.max(currentValue - 1, 0));
                 return;
               }
-              setStep(3);
+              setStep(2);
               return;
             }
-            if (step === 5) {
-              setStep(4);
+            if (step === 4) {
+              setStep(3);
             }
           }}
         >
@@ -955,35 +856,31 @@ export function WorkspaceFirstOnboardingPage() {
           onClick={() => {
             setStepError(null);
             if (step === 1) {
-              setStep(2);
-              return;
-            }
-            if (step === 2) {
               setWorkspaceNameTouched(true);
               setWorkspaceSlugTouched(true);
               if (workspaceCreated || onboardingStatus === "pending_workspace_defaults") {
-                setStep(3);
+                setStep(2);
                 return;
               }
               void createWorkspaceMutation.mutateAsync();
               return;
             }
-            if (step === 3) {
-              setStep(4);
+            if (step === 2) {
+              setStep(3);
               return;
             }
-            if (step === 4) {
+            if (step === 3) {
               if (personalizeSubstep === 0) {
                 setPersonalizeSubstep(1);
                 return;
               }
-              setStep(5);
+              setStep(4);
               return;
             }
             void saveDefaultsMutation.mutateAsync();
           }}
         >
-          {step === 5 ? t("onboarding:READY_CTA") : t("common:NEXT")}
+          {step === 4 ? t("onboarding:READY_CTA") : t("common:NEXT")}
         </Button>
       </div>
     </Onboarding>

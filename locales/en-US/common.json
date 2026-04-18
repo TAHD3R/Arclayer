@@ -108,6 +108,7 @@
   "GLOBAL_HOME_OPEN_PROJECTS": "Open projects",
   "LANDING_WORKSPACE_EMPTY_DESC": "You haven't joined any workspaces yet. Ask an administrator to invite you, or join via an invitation link.",
   "LANDING_WORKSPACE_EMPTY_TITLE": "No accessible workspaces",
+  "WORKSPACE_SWITCHER_VIEW_ALL_PROJECTS": "View all projects",
   "LOADING": "Loading…",
   "NA": "N/A",
   "ITEMS_PER_PAGE": "Items per page",

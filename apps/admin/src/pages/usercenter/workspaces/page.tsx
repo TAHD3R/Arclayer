@@ -175,8 +175,8 @@ export function WorkspacesPage() {
       onValueChange={(value) => setTab(value === "archived" ? "archived" : "active")}
     >
       <DefaultPage
-        title={t("account:ACCOUNT_PAGE_WORKSPACES_TITLE")}
-        description={t("account:ACCOUNT_PAGE_WORKSPACES_DESC")}
+        title={t("account:ACCOUNT_PAGE_PROJECTS_TITLE")}
+        description={t("account:ACCOUNT_PAGE_PROJECTS_DESC")}
         contentClassName="min-h-0 flex flex-col"
         showFavoriteToggle={false}
         action={showPageAction ? renderCreateWorkspaceButton() : undefined}

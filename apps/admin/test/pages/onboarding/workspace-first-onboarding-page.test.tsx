@@ -43,12 +43,11 @@ const {
 const translations: Record<string, string> = {
   "common:NEXT": "Next",
   "common:ORG_WORKSPACES_FIELD_NAME_REQUIRED": "Workspace name is required",
-  "onboarding:WORKSPACE_FIRST_WELCOME_TITLE": "Welcome to Arclayer",
-  "onboarding:WORKSPACE_SETUP_STEP_TITLE": "Name your workspace",
+  "onboarding:WORKSPACE_SETUP_STEP_TITLE": "Set up your workspace",
   "onboarding:WORKSPACE_NAME_LABEL": "Workspace name",
   "onboarding:WORKSPACE_NAME_HELP": "Choose the name people see when they enter this workspace.",
   "onboarding:WORKSPACE_NAME_PLACEHOLDER": "e.g. Product studio",
-  "onboarding:WORKSPACE_SLUG_LABEL": "Workspace slug",
+  "onboarding:WORKSPACE_SLUG_LABEL": "Workspace address",
   "onboarding:PREFERENCES_STEP_TITLE": "Set workspace preferences",
   "settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE":
     "Use relative datetime by default",
@@ -111,10 +110,6 @@ function renderPage() {
       <WorkspaceFirstOnboardingPage />
     </QueryClientProvider>,
   );
-}
-
-async function advanceIntroToWorkspaceStep(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "Next" }));
 }
 
 beforeEach(() => {
@@ -311,11 +306,9 @@ describe("WorkspaceFirstOnboardingPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await screen.findByText("Welcome to Arclayer");
-    await advanceIntroToWorkspaceStep(user);
-    await screen.findByText("Name your workspace");
+    await screen.findByText("Set up your workspace");
     const nameInput = screen.getByLabelText("Workspace name");
-    const slugInput = screen.getByLabelText("Workspace slug");
+    const slugInput = screen.getByLabelText("Workspace address");
 
     await waitFor(() => expect(slugInput).toHaveValue("founder-team"));
     await waitFor(() => expect(nameInput).toHaveValue("Founder's Workspace"));
@@ -380,13 +373,10 @@ describe("WorkspaceFirstOnboardingPage", () => {
     });
 
     renderPage();
-    const user = userEvent.setup();
 
-    await screen.findByText("Welcome to Arclayer");
-    await advanceIntroToWorkspaceStep(user);
-    await screen.findByText("Name your workspace");
+    await screen.findByText("Set up your workspace");
     await waitFor(() => {
-      expect(screen.getByLabelText("Workspace name")).toHaveValue("Founder 的工作区");
+      expect(screen.getByLabelText("Workspace name")).toHaveValue("Founder 的工作空间");
     });
   });
 

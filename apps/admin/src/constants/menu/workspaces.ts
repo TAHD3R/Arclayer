@@ -60,9 +60,9 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
         icon: LibraryBig,
       },
       {
-        key: "settings.project",
-        label: "Project Settings",
-        labelKey: "nav:NAV_SETTINGS_PROJECT",
+        key: "settings.site",
+        label: "Site Settings",
+        labelKey: "nav:NAV_SETTINGS_SITE",
         to: "/settings/general",
         icon: Globe,
       },
@@ -227,6 +227,13 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
     to: "/activity",
     icon: History,
     dividerBefore: true,
+  },
+  {
+    key: "settings.project",
+    label: "Project Settings",
+    labelKey: "nav:NAV_SETTINGS_PROJECT",
+    to: "/settings/members",
+    icon: Settings2,
   },
   {
     key: "settings.workspace",

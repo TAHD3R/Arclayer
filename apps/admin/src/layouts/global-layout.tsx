@@ -194,7 +194,7 @@ export function GlobalLayout() {
           showNotificationsBadge={topbar.showNotificationsBadge}
           unreadCount={topbar.unreadCount}
           onNotificationToggle={topbar.onNotificationToggle}
-          leadingMode="logo"
+          leadingMode="workspace-switcher"
           sidebarToggleMode="mobile-only"
         />
       )}

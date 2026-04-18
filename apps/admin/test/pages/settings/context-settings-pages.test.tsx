@@ -1,13 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ProjectGeneralSettingsPage,
   ProjectMembersSettingsPage,
   WorkspaceMembersSettingsPage,
 } from "@/pages/settings/context-settings-pages";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 vi.mock("@tanstack/react-router", () => ({
   useRouterState: ({
@@ -56,17 +57,17 @@ vi.mock("@/pages/workspaces/team/members/components/team-members-view", () => ({
   ),
 }));
 
-vi.mock("@/pages/workspaces/settings/site/page", () => ({
-  GeneralSettingsPage: (props: {
-    activeTab: string;
-    workspaceIdOverride?: string | null;
-    embedded?: boolean;
-  }) => (
+vi.mock("@/pages/workspaces/settings/site/basics/page", () => ({
+  GeneralSiteSettingsPage: (props: { workspaceId?: string | null }) => (
+    <div data-testid="general-site-settings-page" data-workspace-id={props.workspaceId ?? ""} />
+  ),
+}));
+
+vi.mock("@/pages/workspaces/settings/site/localization/page", () => ({
+  GeneralLocalizationSettingsPage: (props: { workspaceId?: string | null }) => (
     <div
-      data-testid="general-settings-page"
-      data-active-tab={props.activeTab}
-      data-workspace-id={props.workspaceIdOverride ?? ""}
-      data-embedded={String(Boolean(props.embedded))}
+      data-testid="general-localization-settings-page"
+      data-workspace-id={props.workspaceId ?? ""}
     />
   ),
 }));
@@ -108,6 +109,14 @@ describe("context settings pages", () => {
     return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
   }
 
+  beforeEach(() => {
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "ws-store",
+      currentProjectId: "project-store",
+      lastWorkspaceId: "ws-store",
+    });
+  });
+
   it("renders workspace members under the context shell with the selected workspace context", () => {
     renderWithQueryClient(
       <WorkspaceMembersSettingsPage
@@ -126,28 +135,18 @@ describe("context settings pages", () => {
     expect(screen.getByTestId("team-members-view")).toHaveAttribute("data-member-id", "member-1");
   });
 
-  it("renders project general settings through the project shell with embedded general settings", () => {
+  it("renders project general settings through the site settings page with workspace context from store", () => {
     renderWithQueryClient(<ProjectGeneralSettingsPage />);
 
-    expect(screen.getByTestId("context-settings-shell")).toHaveAttribute(
-      "data-title",
-      "account:SETTINGS_PROJECT_TITLE",
+    expect(screen.getByTestId("general-site-settings-page")).toHaveAttribute(
+      "data-workspace-id",
+      "ws-store",
     );
-    expect(screen.getByTestId("general-settings-page")).toHaveAttribute(
-      "data-active-tab",
-      "basics",
-    );
-    expect(screen.getByTestId("general-settings-page")).toHaveAttribute("data-workspace-id", "");
-    expect(screen.getByTestId("general-settings-page")).toHaveAttribute("data-embedded", "true");
   });
 
   it("renders project members settings with member data", async () => {
     renderWithQueryClient(<ProjectMembersSettingsPage projectId="project-1" />);
 
-    expect(screen.getByTestId("context-settings-shell")).toHaveAttribute(
-      "data-title",
-      "account:SETTINGS_PROJECT_TITLE",
-    );
     expect(await screen.findByText("Ada Lovelace")).toBeInTheDocument();
   });
 });
