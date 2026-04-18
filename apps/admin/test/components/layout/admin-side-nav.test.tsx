@@ -268,17 +268,17 @@ const navigateSelfAndExpandItems: AdminNavItem[] = [
     to: "/",
   },
   {
-    key: "global.workspaces",
-    label: "Workspaces",
+    key: "global.projects",
+    label: "Projects",
     icon: Users,
-    to: "/workspaces",
+    to: "/projects",
     groupBehavior: "navigate-self-and-expand",
     children: [
       {
-        key: "global.workspaces.ws-alpha",
-        label: "Alpha Workspace",
+        key: "global.projects.project-alpha",
+        label: "Alpha Project",
         icon: Home,
-        to: "/w/ws-alpha",
+        to: "/projects/project-alpha",
       },
     ],
   },
@@ -299,10 +299,10 @@ const globalItems: AdminNavItem[] = [
     insertStarredAfter: true,
   },
   {
-    key: "global.workspaces",
-    label: "Workspaces",
+    key: "global.projects",
+    label: "Projects",
     icon: Users,
-    to: "/workspaces",
+    to: "/projects",
     dividerBefore: true,
   },
 ];

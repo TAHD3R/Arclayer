@@ -16,6 +16,7 @@ import {
 } from "@arclayer/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { Spinner } from "@arclayer/ui/spinner";
+import type { UserCenterWorkspacesTranslateFn } from "../types";
 
 function normalizeQuery(input: string): string {
   return String(input || "").trim();
@@ -28,10 +29,13 @@ type WorkspaceMembersPopoverWorkspace = Pick<
 
 export function WorkspaceMembersPopover({
   workspace,
+  t: tOverride,
 }: {
   workspace: WorkspaceMembersPopoverWorkspace;
+  t?: UserCenterWorkspacesTranslateFn;
 }) {
-  const { t } = useTranslation(["common"]);
+  const { t: defaultT } = useTranslation(["common"]);
+  const t = tOverride ?? defaultT;
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [rawQ, setRawQ] = useState("");

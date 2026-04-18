@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { WorkspacesPage } from "@/pages/usercenter/workspaces/page";
+import { ProjectsPage } from "@/pages/usercenter/projects/page";
 
 type ProjectsSearch = {
   create?: "1";
@@ -13,5 +13,5 @@ export const Route = createFileRoute("/projects/")({
     return next;
   },
   staticData: { titleKey: "account:ACCOUNT_PAGE_PROJECTS_TITLE" },
-  component: WorkspacesPage,
+  component: ProjectsPage,
 });

@@ -71,10 +71,16 @@ export type {
 export type { ProjectMember, ProjectMemberRole } from "./project-members";
 export type {
   Project,
+  ProjectArchiveResult,
   ProjectCreateInput,
+  ProjectDangerAction,
+  ProjectDangerCapabilities,
+  ProjectDeleteResult,
   ProjectDetail,
   ProjectListItem,
   ProjectRuntime,
+  ProjectSlugAvailability,
+  ProjectUpdateInput,
 } from "./projects";
 export type { SystemBootstrapPayload, SystemInstanceSetupStatus, SystemRuntime } from "./system";
 

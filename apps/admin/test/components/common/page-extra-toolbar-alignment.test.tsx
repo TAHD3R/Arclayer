@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { ChromeTabs, ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { UserCenterWorkspacesToolbar } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-toolbar";
+import { UserCenterProjectsToolbar } from "@/pages/usercenter/projects/components/usercenter-projects-toolbar";
 import { TeamInvitationsPageExtra } from "@/pages/workspaces/team/shared/components/team-invitations-page-extra";
 
 vi.mock("@arclayer/ui/data-table", () => ({
@@ -69,22 +69,22 @@ const buildLabels = (overrides: Record<string, string> = {}) =>
   buildDataTableToolsLabels((key) => overrides[key] ?? key);
 
 describe("PageExtraToolbar alignment", () => {
-  it("keeps organization workspaces tabs vertically centered with trailing actions", () => {
+  it("keeps projects tabs vertically centered with trailing actions", () => {
     renderWithChromeTabs(
-      <UserCenterWorkspacesToolbar
+      <UserCenterProjectsToolbar
         t={(key) =>
           (
             ({
-              "common:ORG_WORKSPACES_TAB_ACTIVE": "Active",
-              "common:ORG_WORKSPACES_TAB_ARCHIVED": "Archived",
-              "common:ORG_WORKSPACES_SEARCH_PLACEHOLDER": "Search workspaces",
+              "account:ACCOUNT_PROJECTS_TAB_ACTIVE": "Active",
+              "account:ACCOUNT_PROJECTS_TAB_ARCHIVED": "Archived",
+              "account:ACCOUNT_PROJECTS_SEARCH_PLACEHOLDER": "Search projects",
               "common:CLEAR": "Clear",
             }) as const
           )[
             key as
-              | "common:ORG_WORKSPACES_TAB_ACTIVE"
-              | "common:ORG_WORKSPACES_TAB_ARCHIVED"
-              | "common:ORG_WORKSPACES_SEARCH_PLACEHOLDER"
+              | "account:ACCOUNT_PROJECTS_TAB_ACTIVE"
+              | "account:ACCOUNT_PROJECTS_TAB_ARCHIVED"
+              | "account:ACCOUNT_PROJECTS_SEARCH_PLACEHOLDER"
               | "common:CLEAR"
           ] ?? key
         }

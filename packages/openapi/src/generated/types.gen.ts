@@ -31,6 +31,12 @@ export type AcceptExistingInvitationResult = {
      */
     organizationId: string;
     /**
+     * Projectid
+     *
+     * Primary project id for the joined workspace.
+     */
+    projectId?: string | null;
+    /**
      * Rolecode
      *
      * Role code assigned by the invitation.
@@ -6026,6 +6032,12 @@ export type MyWorkspaceOut = {
      */
     organizationId: string;
     /**
+     * Projectid
+     *
+     * Primary project id.
+     */
+    projectId: string;
+    /**
      * Slug
      *
      * Workspace slug.
@@ -6400,6 +6412,12 @@ export type OAuthLinkedIdentityOut = {
  * OnboardingWorkspaceCreateOut
  */
 export type OnboardingWorkspaceCreateOut = {
+    /**
+     * Projectid
+     *
+     * Primary project id for the created workspace.
+     */
+    projectId: string;
     /**
      * Workspaceid
      *
@@ -7859,6 +7877,16 @@ export type OrganizationWorkspaceOut = {
      */
     organizationId: string;
     /**
+     * Primary project binding for this workspace.
+     */
+    project: WorkspacePrimaryProjectOut;
+    /**
+     * Projectid
+     *
+     * Primary project id.
+     */
+    projectId: string;
+    /**
      * Slug
      *
      * Workspace slug.
@@ -8912,15 +8940,15 @@ export type PageDataPermissionOut = {
 };
 
 /**
- * PageData[SettingsNamespaceSummary]
+ * PageData[ProjectMemberOut]
  */
-export type PageDataSettingsNamespaceSummary = {
+export type PageDataProjectMemberOut = {
     /**
      * Items
      *
      * Current page items.
      */
-    items?: Array<SettingsNamespaceSummary>;
+    items?: Array<ProjectMemberOut>;
     /**
      * Next
      *
@@ -8960,15 +8988,15 @@ export type PageDataSettingsNamespaceSummary = {
 };
 
 /**
- * PageData[SiteDomainOut]
+ * PageData[SettingsNamespaceSummary]
  */
-export type PageDataSiteDomainOut = {
+export type PageDataSettingsNamespaceSummary = {
     /**
      * Items
      *
      * Current page items.
      */
-    items?: Array<SiteDomainOut>;
+    items?: Array<SettingsNamespaceSummary>;
     /**
      * Next
      *
@@ -9465,6 +9493,606 @@ export type PersonalApiKeyCreateIn = {
      * Scopes
      */
     scopes?: Array<ApiKeyScope>;
+};
+
+/**
+ * ProjectArchiveResult
+ */
+export type ProjectArchiveResult = {
+    /**
+     * Isactive
+     *
+     * Whether the project is active after the operation.
+     */
+    isActive: boolean;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+};
+
+/**
+ * ProjectCreateRequest
+ */
+export type ProjectCreateRequest = {
+    /**
+     * Description
+     *
+     * Project description.
+     */
+    description?: string | null;
+    /**
+     * Name
+     *
+     * Project name.
+     */
+    name: string;
+    /**
+     * Slug
+     *
+     * Project slug.
+     */
+    slug?: string | null;
+    /**
+     * Workspaceid
+     *
+     * Workspace that owns the project.
+     */
+    workspaceId: string;
+};
+
+/**
+ * ProjectDangerActionOut
+ */
+export type ProjectDangerActionOut = {
+    /**
+     * Blockedreason
+     *
+     * Explicit blocking reason code when disabled.
+     */
+    blockedReason?: string | null;
+    /**
+     * Enabled
+     *
+     * Whether the destructive action is currently allowed.
+     */
+    enabled?: boolean;
+};
+
+/**
+ * ProjectDangerCapabilitiesOut
+ */
+export type ProjectDangerCapabilitiesOut = {
+    /**
+     * Capability for archiving the project.
+     */
+    archiveAction: ProjectDangerActionOut;
+    /**
+     * Confirmdeletename
+     *
+     * Exact project name required for delete confirmation.
+     */
+    confirmDeleteName: string;
+    /**
+     * Capability for deleting the project.
+     */
+    deleteAction: ProjectDangerActionOut;
+    /**
+     * Organizationid
+     *
+     * Organization id for the project workspace.
+     */
+    organizationId: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id that owns the project.
+     */
+    workspaceId: string;
+};
+
+/**
+ * ProjectDeleteResult
+ */
+export type ProjectDeleteResult = {
+    /**
+     * Deleted
+     *
+     * Whether project was deleted.
+     */
+    deleted?: boolean;
+    /**
+     * Projectid
+     *
+     * Deleted project id.
+     */
+    projectId: string;
+};
+
+/**
+ * ProjectDetailOut
+ */
+export type ProjectDetailOut = {
+    /**
+     * Primary runtime detail.
+     */
+    primaryRuntime?: ProjectRuntimeOut | null;
+    /**
+     * Project detail.
+     */
+    project: ProjectOut;
+};
+
+/**
+ * ProjectListItemOut
+ */
+export type ProjectListItemOut = {
+    /**
+     * Archivedat
+     *
+     * Archived timestamp.
+     */
+    archivedAt?: string | null;
+    /**
+     * Archivedbyuserid
+     *
+     * Archived by user id.
+     */
+    archivedByUserId?: string | null;
+    /**
+     * Createdat
+     *
+     * Project creation time.
+     */
+    createdAt: string;
+    /**
+     * Description
+     *
+     * Project description.
+     */
+    description?: string | null;
+    /**
+     * Enterable
+     *
+     * Whether current user can enter this project.
+     */
+    enterable?: boolean;
+    /**
+     * Iconcolor
+     *
+     * Project icon background color.
+     */
+    iconColor?: string;
+    /**
+     * Iconemoji
+     *
+     * Project icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Project icon glyph id.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Project icon presentation mode.
+     */
+    iconMode?: WorkspaceIconMode;
+    /**
+     * Iconurl
+     *
+     * Project icon URL.
+     */
+    iconUrl?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isactive
+     *
+     * Whether the project is active.
+     */
+    isActive: boolean;
+    /**
+     * Membercount
+     *
+     * Active project member count.
+     */
+    memberCount?: number;
+    /**
+     * Memberspreview
+     *
+     * Preview project members for list rendering.
+     */
+    membersPreview?: Array<ProjectMemberPreviewOut>;
+    /**
+     * Name
+     *
+     * Project name.
+     */
+    name: string;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Primary runtime detail.
+     */
+    primaryRuntime?: ProjectRuntimeOut | null;
+    /**
+     * Slug
+     *
+     * Project slug.
+     */
+    slug: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * ProjectListOut
+ *
+ * Project list.
+ */
+export type ProjectListOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<ProjectListItemOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * ProjectMemberOut
+ */
+export type ProjectMemberOut = {
+    /**
+     * Avatarurl
+     *
+     * Avatar URL.
+     */
+    avatarUrl?: string | null;
+    /**
+     * Displayname
+     *
+     * Display name.
+     */
+    displayName?: string | null;
+    /**
+     * Email
+     *
+     * Email.
+     */
+    email?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Project role.
+     */
+    role: ProjectMemberRole;
+    /**
+     * Userid
+     *
+     * User id.
+     */
+    userId: string;
+    userStatus: UserStatus;
+    /**
+     * Username
+     *
+     * Username.
+     */
+    username: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * ProjectMemberPreviewOut
+ */
+export type ProjectMemberPreviewOut = {
+    /**
+     * Avatarurl
+     *
+     * Avatar URL.
+     */
+    avatarUrl?: string | null;
+    /**
+     * Displayname
+     *
+     * Display name.
+     */
+    displayName?: string | null;
+    /**
+     * Email
+     *
+     * Email.
+     */
+    email?: string | null;
+    /**
+     * Userid
+     *
+     * Member user id.
+     */
+    userId: string;
+    /**
+     * Username
+     *
+     * Username.
+     */
+    username: string;
+};
+
+/**
+ * ProjectMemberRole
+ */
+export type ProjectMemberRole = 'owner' | 'editor' | 'viewer';
+
+/**
+ * ProjectMemberRoleUpdateRequest
+ */
+export type ProjectMemberRoleUpdateRequest = {
+    /**
+     * Project role to assign.
+     */
+    role: ProjectMemberRole;
+};
+
+/**
+ * ProjectOut
+ */
+export type ProjectOut = {
+    /**
+     * Description
+     *
+     * Project description.
+     */
+    description?: string | null;
+    /**
+     * Iconcolor
+     *
+     * Project icon background color.
+     */
+    iconColor?: string;
+    /**
+     * Iconemoji
+     *
+     * Project icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Project icon glyph id.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Project icon presentation mode.
+     */
+    iconMode?: WorkspaceIconMode;
+    /**
+     * Iconurl
+     *
+     * Project icon URL.
+     */
+    iconUrl?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isactive
+     *
+     * Whether the project is active.
+     */
+    isActive: boolean;
+    /**
+     * Name
+     *
+     * Project name.
+     */
+    name: string;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Slug
+     *
+     * Project slug.
+     */
+    slug: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * ProjectRuntimeOut
+ */
+export type ProjectRuntimeOut = {
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isactive
+     *
+     * Whether the runtime is active.
+     */
+    isActive: boolean;
+    /**
+     * Kind
+     *
+     * Runtime kind.
+     */
+    kind: string;
+    /**
+     * Name
+     *
+     * Runtime name.
+     */
+    name: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+};
+
+/**
+ * ProjectSlugAvailabilityOut
+ */
+export type ProjectSlugAvailabilityOut = {
+    /**
+     * Available
+     *
+     * Whether the slug is currently available in the workspace.
+     */
+    available?: boolean;
+    /**
+     * Normalizedslug
+     *
+     * Normalized project slug if parseable.
+     */
+    normalizedSlug?: string | null;
+    /**
+     * Reason
+     *
+     * Explicit reason code when unavailable: invalid, reserved, or exists.
+     */
+    reason?: string | null;
+};
+
+/**
+ * ProjectUpdateRequest
+ */
+export type ProjectUpdateRequest = {
+    /**
+     * Description
+     *
+     * Project description.
+     */
+    description?: string | null;
+    /**
+     * Iconcolor
+     *
+     * Project icon background color.
+     */
+    iconColor?: string | null;
+    /**
+     * Iconemoji
+     *
+     * Project icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Project icon glyph id.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Project icon presentation mode.
+     */
+    iconMode?: WorkspaceIconMode | null;
+    /**
+     * Iconurl
+     *
+     * Project icon URL.
+     */
+    iconUrl?: string | null;
+    /**
+     * Name
+     *
+     * Project name.
+     */
+    name?: string | null;
+    /**
+     * Slug
+     *
+     * Project slug.
+     */
+    slug?: string | null;
 };
 
 /**
@@ -12232,10 +12860,10 @@ export type ResponseModelPageDataPermissionOut = {
 };
 
 /**
- * ResponseModel[PageData[SettingsNamespaceSummary]]
+ * ResponseModel[PageData[ProjectMemberOut]]
  */
-export type ResponseModelPageDataSettingsNamespaceSummary = {
-    data?: PageDataSettingsNamespaceSummary | null;
+export type ResponseModelPageDataProjectMemberOut = {
+    data?: PageDataProjectMemberOut | null;
     /**
      * Error
      */
@@ -12257,10 +12885,10 @@ export type ResponseModelPageDataSettingsNamespaceSummary = {
 };
 
 /**
- * ResponseModel[PageData[SiteDomainOut]]
+ * ResponseModel[PageData[SettingsNamespaceSummary]]
  */
-export type ResponseModelPageDataSiteDomainOut = {
-    data?: PageDataSiteDomainOut | null;
+export type ResponseModelPageDataSettingsNamespaceSummary = {
+    data?: PageDataSettingsNamespaceSummary | null;
     /**
      * Error
      */
@@ -12461,6 +13089,181 @@ export type ResponseModelPageDataWorkspaceTeamMemberOut = {
  */
 export type ResponseModelPageDataWorkspaceTeamUserOptionOut = {
     data?: PageDataWorkspaceTeamUserOptionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectArchiveResult]
+ */
+export type ResponseModelProjectArchiveResult = {
+    data?: ProjectArchiveResult | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDangerCapabilitiesOut]
+ */
+export type ResponseModelProjectDangerCapabilitiesOut = {
+    data?: ProjectDangerCapabilitiesOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDeleteResult]
+ */
+export type ResponseModelProjectDeleteResult = {
+    data?: ProjectDeleteResult | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDetailOut]
+ */
+export type ResponseModelProjectDetailOut = {
+    data?: ProjectDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectListOut]
+ */
+export type ResponseModelProjectListOut = {
+    data?: ProjectListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectMemberOut]
+ */
+export type ResponseModelProjectMemberOut = {
+    data?: ProjectMemberOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectSlugAvailabilityOut]
+ */
+export type ResponseModelProjectSlugAvailabilityOut = {
+    data?: ProjectSlugAvailabilityOut | null;
     /**
      * Error
      */
@@ -12732,110 +13535,35 @@ export type ResponseModelRouteBindingOut = {
 };
 
 /**
+ * ResponseModel[RuntimePreviewTokenOut]
+ */
+export type ResponseModelRuntimePreviewTokenOut = {
+    data?: RuntimePreviewTokenOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[SettingsDetail]
  */
 export type ResponseModelSettingsDetail = {
     data?: SettingsDetail | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteDomainCreateOut]
- */
-export type ResponseModelSiteDomainCreateOut = {
-    data?: SiteDomainCreateOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteDomainDeleteOut]
- */
-export type ResponseModelSiteDomainDeleteOut = {
-    data?: SiteDomainDeleteOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteDomainOut]
- */
-export type ResponseModelSiteDomainOut = {
-    data?: SiteDomainOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteDomainVerifyOut]
- */
-export type ResponseModelSiteDomainVerifyOut = {
-    data?: SiteDomainVerifyOut | null;
     /**
      * Error
      */
@@ -12907,85 +13635,10 @@ export type ResponseModelSitePatternOut = {
 };
 
 /**
- * ResponseModel[SitePresenceHeartbeatOut]
- */
-export type ResponseModelSitePresenceHeartbeatOut = {
-    data?: SitePresenceHeartbeatOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SitePresenceListOut]
- */
-export type ResponseModelSitePresenceListOut = {
-    data?: SitePresenceListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[SitePreviewTokenOut]
  */
 export type ResponseModelSitePreviewTokenOut = {
     data?: SitePreviewTokenOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteResolveOut]
- */
-export type ResponseModelSiteResolveOut = {
-    data?: SiteResolveOut | null;
     /**
      * Error
      */
@@ -13036,31 +13689,6 @@ export type ResponseModelSiteRouteResolveOut = {
  */
 export type ResponseModelSiteRuntimeOut = {
     data?: SiteRuntimeOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteSettingGetOut]
- */
-export type ResponseModelSiteSettingGetOut = {
-    data?: SiteSettingGetOut | null;
     /**
      * Error
      */
@@ -14181,6 +14809,36 @@ export type RoutePrimarySourceOut = {
 };
 
 /**
+ * RuntimePreviewTokenOut
+ */
+export type RuntimePreviewTokenOut = {
+    /**
+     * Expiresatms
+     *
+     * Expiration timestamp in milliseconds.
+     */
+    expiresAtMs: number;
+    /**
+     * Runtimeid
+     *
+     * Runtime id.
+     */
+    runtimeId: string;
+    /**
+     * Siteid
+     *
+     * Resolved site id.
+     */
+    siteId: string;
+    /**
+     * Token
+     *
+     * Preview token.
+     */
+    token: string;
+};
+
+/**
  * SetMyPasswordRequest
  *
  * Set password for current user (OAuth-only accounts).
@@ -14414,148 +15072,6 @@ export type SettingsSectionItem = {
      * Localized title.
      */
     title?: string | null;
-};
-
-/**
- * SiteDomainCreateIn
- */
-export type SiteDomainCreateIn = {
-    /**
-     * Hostname
-     *
-     * Custom hostname to bind (e.g. example.com).
-     */
-    hostname: string;
-};
-
-/**
- * SiteDomainCreateOut
- */
-export type SiteDomainCreateOut = {
-    /**
-     * DNS TXT verification instructions.
-     */
-    dns: SiteDomainDnsInstructionOut;
-    /**
-     * Created domain binding.
-     */
-    domain: SiteDomainOut;
-};
-
-/**
- * SiteDomainDeleteOut
- */
-export type SiteDomainDeleteOut = {
-    /**
-     * Domainid
-     *
-     * Deleted domain record id.
-     */
-    domainId: string;
-};
-
-/**
- * SiteDomainDnsInstructionOut
- */
-export type SiteDomainDnsInstructionOut = {
-    /**
-     * Txtrecordname
-     *
-     * DNS TXT record name to publish (FQDN).
-     */
-    txtRecordName: string;
-    /**
-     * Txtrecordvalue
-     *
-     * DNS TXT record value to publish.
-     */
-    txtRecordValue: string;
-};
-
-/**
- * SiteDomainOut
- */
-export type SiteDomainOut = {
-    /**
-     * Createdbyuserid
-     *
-     * User id that created the binding.
-     */
-    createdByUserId?: string | null;
-    /**
-     * Domainid
-     *
-     * Domain record id.
-     */
-    domainId: string;
-    /**
-     * Hostname
-     *
-     * Bound hostname (lowercase, no port).
-     */
-    hostname: string;
-    /**
-     * Isactive
-     *
-     * Whether the domain is enabled for routing.
-     */
-    isActive: boolean;
-    /**
-     * Isverified
-     *
-     * Whether the domain is verified via DNS TXT.
-     */
-    isVerified: boolean;
-    /**
-     * Siteid
-     *
-     * Site id.
-     */
-    siteId: string;
-    /**
-     * Verificationtoken
-     *
-     * DNS TXT verification token (value to publish).
-     */
-    verificationToken: string;
-    /**
-     * Verifiedatms
-     *
-     * Verification timestamp in milliseconds (UTC).
-     */
-    verifiedAtMs?: number | null;
-};
-
-/**
- * SiteDomainUpdateIn
- */
-export type SiteDomainUpdateIn = {
-    /**
-     * Isactive
-     *
-     * Whether the domain is active (only takes effect when verified).
-     */
-    isActive?: boolean | null;
-};
-
-/**
- * SiteDomainVerifyOut
- */
-export type SiteDomainVerifyOut = {
-    /**
-     * DNS TXT verification instructions.
-     */
-    dns: SiteDomainDnsInstructionOut;
-    /**
-     * Domain binding after verification attempt.
-     */
-    domain: SiteDomainOut;
-    /**
-     * Observedtxtvalues
-     *
-     * Observed TXT values from DNS lookup (best-effort, truncated).
-     */
-    observedTxtValues?: Array<string>;
 };
 
 /**
@@ -14887,88 +15403,6 @@ export type SitePatternUpdateIn = {
 };
 
 /**
- * SitePresenceHeartbeatIn
- */
-export type SitePresenceHeartbeatIn = {
-    /**
-     * Actor
-     *
-     * Optional actor metadata (e.g. displayName).
-     */
-    actor?: {
-        [key: string]: string;
-    } | null;
-    /**
-     * Clientid
-     *
-     * Client instance id (random, stable within a browser tab).
-     */
-    clientId: string;
-    /**
-     * Dockey
-     *
-     * Document key (e.g. 'route:/about' or 'page:<uuid>').
-     */
-    docKey: string;
-};
-
-/**
- * SitePresenceHeartbeatOut
- */
-export type SitePresenceHeartbeatOut = {
-    /**
-     * Expiresatms
-     *
-     * Presence TTL expiration timestamp in milliseconds (UTC).
-     */
-    expiresAtMs: number;
-};
-
-/**
- * SitePresenceListOut
- */
-export type SitePresenceListOut = {
-    /**
-     * Dockey
-     *
-     * Document key.
-     */
-    docKey: string;
-    /**
-     * Items
-     *
-     * Presence records.
-     */
-    items?: Array<SitePresenceRecordOut>;
-};
-
-/**
- * SitePresenceRecordOut
- */
-export type SitePresenceRecordOut = {
-    /**
-     * Actor
-     *
-     * Actor metadata (optional).
-     */
-    actor?: {
-        [key: string]: string;
-    } | null;
-    /**
-     * Clientid
-     *
-     * Client instance id.
-     */
-    clientId: string;
-    /**
-     * Updatedatms
-     *
-     * Last heartbeat timestamp in milliseconds (UTC).
-     */
-    updatedAtMs: number;
-};
-
-/**
  * SitePreviewTokenCreateIn
  */
 export type SitePreviewTokenCreateIn = {
@@ -15040,36 +15474,6 @@ export type SitePrimaryContextOut = {
      * Primary entry title.
      */
     title?: string | null;
-};
-
-/**
- * SiteResolveOut
- */
-export type SiteResolveOut = {
-    /**
-     * Defaultlocale
-     *
-     * Default locale (e.g. zh-CN).
-     */
-    defaultLocale: string;
-    /**
-     * Fallbacklocale
-     *
-     * Fallback locale (e.g. en-US).
-     */
-    fallbackLocale: string;
-    /**
-     * Siteid
-     *
-     * Resolved site id.
-     */
-    siteId: string;
-    /**
-     * Supportedlocales
-     *
-     * Supported locales enabled for the site (BCP 47 tags).
-     */
-    supportedLocales?: Array<string>;
 };
 
 /**
@@ -15273,40 +15677,6 @@ export type SiteSeoDefaultsOut = {
      */
     titlePolicyV1?: {
         [key: string]: JsonValueOutput;
-    } | null;
-};
-
-/**
- * SiteSettingGetOut
- */
-export type SiteSettingGetOut = {
-    /**
-     * Namespace
-     *
-     * Setting namespace.
-     */
-    namespace: string;
-    /**
-     * Value
-     *
-     * Setting value (JSON).
-     */
-    value?: {
-        [key: string]: unknown;
-    } | null;
-};
-
-/**
- * SiteSettingUpsertIn
- */
-export type SiteSettingUpsertIn = {
-    /**
-     * Value
-     *
-     * Setting value (JSON).
-     */
-    value?: {
-        [key: string]: unknown;
     } | null;
 };
 
@@ -16424,6 +16794,10 @@ export type WorkspaceDetailOut = {
      */
     organizationId: string;
     /**
+     * Primary project binding for this workspace.
+     */
+    project: WorkspacePrimaryProjectOut;
+    /**
      * Slug
      *
      * Workspace slug.
@@ -16840,6 +17214,18 @@ export type WorkspacePermissionOut = {
      * Localized plugin name (if applicable).
      */
     pluginName?: string | null;
+};
+
+/**
+ * WorkspacePrimaryProjectOut
+ */
+export type WorkspacePrimaryProjectOut = {
+    /**
+     * Projectid
+     *
+     * Primary project id for this workspace.
+     */
+    projectId: string;
 };
 
 /**
@@ -21887,83 +22273,863 @@ export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses = {
 
 export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponse = DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses[keyof DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses];
 
-export type ExternalSitesResolveSiteByHostData = {
+export type DomainProjectsListProjectsData = {
     body?: never;
     path?: never;
     query?: {
         /**
-         * Workspaceslug
+         * Q
          *
-         * Workspace slug to resolve (e.g. philipcole).
+         * Search query (project name).
          */
-        workspaceSlug?: string | null;
+        q?: string | null;
         /**
-         * Host
+         * Archived
          *
-         * Request host (e.g. philipcole.arclayer.app, localhost:3100).
+         * Whether to list archived projects.
          */
-        host?: string | null;
+        archived?: boolean;
+        /**
+         * Workspaceid
+         *
+         * Workspace id.
+         */
+        workspaceId?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
     };
-    url: '/api/v1/sites/resolve';
+    url: '/api/v1/projects';
 };
 
-export type ExternalSitesResolveSiteByHostErrors = {
+export type DomainProjectsListProjectsErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesResolveSiteByHostError = ExternalSitesResolveSiteByHostErrors[keyof ExternalSitesResolveSiteByHostErrors];
+export type DomainProjectsListProjectsError = DomainProjectsListProjectsErrors[keyof DomainProjectsListProjectsErrors];
 
-export type ExternalSitesResolveSiteByHostResponses = {
+export type DomainProjectsListProjectsResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelSiteResolveOut;
+    200: ResponseModelProjectListOut;
 };
 
-export type ExternalSitesResolveSiteByHostResponse = ExternalSitesResolveSiteByHostResponses[keyof ExternalSitesResolveSiteByHostResponses];
+export type DomainProjectsListProjectsResponse = DomainProjectsListProjectsResponses[keyof DomainProjectsListProjectsResponses];
 
-export type ExternalSitesGetSiteContextData = {
+export type DomainProjectsCreateProjectData = {
+    body: ProjectCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/projects';
+};
+
+export type DomainProjectsCreateProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectError = DomainProjectsCreateProjectErrors[keyof DomainProjectsCreateProjectErrors];
+
+export type DomainProjectsCreateProjectResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelProjectDetailOut;
+};
+
+export type DomainProjectsCreateProjectResponse = DomainProjectsCreateProjectResponses[keyof DomainProjectsCreateProjectResponses];
+
+export type DomainProjectsCheckProjectSlugAvailabilityData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Slug
+         *
+         * Desired project slug.
+         */
+        slug: string;
+        /**
+         * Projectid
+         *
+         * Project id to exclude when editing an existing project.
+         */
+        projectId?: string | null;
+        /**
+         * Workspaceid
+         *
+         * Workspace id.
+         */
+        workspaceId: string;
+    };
+    url: '/api/v1/projects/slug-availability';
+};
+
+export type DomainProjectsCheckProjectSlugAvailabilityErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCheckProjectSlugAvailabilityError = DomainProjectsCheckProjectSlugAvailabilityErrors[keyof DomainProjectsCheckProjectSlugAvailabilityErrors];
+
+export type DomainProjectsCheckProjectSlugAvailabilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectSlugAvailabilityOut;
+};
+
+export type DomainProjectsCheckProjectSlugAvailabilityResponse = DomainProjectsCheckProjectSlugAvailabilityResponses[keyof DomainProjectsCheckProjectSlugAvailabilityResponses];
+
+export type DomainProjectsDeleteProjectData = {
     body?: never;
     path: {
         /**
-         * Site Id
+         * Project Id
          *
-         * Site ID.
+         * Project ID.
          */
-        site_id: string;
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Confirmname
+         *
+         * Project name confirmation for destructive delete.
+         */
+        confirmName?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}';
+};
+
+export type DomainProjectsDeleteProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteProjectError = DomainProjectsDeleteProjectErrors[keyof DomainProjectsDeleteProjectErrors];
+
+export type DomainProjectsDeleteProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDeleteResult;
+};
+
+export type DomainProjectsDeleteProjectResponse = DomainProjectsDeleteProjectResponses[keyof DomainProjectsDeleteProjectResponses];
+
+export type DomainProjectsGetProjectDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
     };
     query?: never;
-    url: '/api/v1/sites/{site_id}/context';
+    url: '/api/v1/projects/{project_id}';
 };
 
-export type ExternalSitesGetSiteContextErrors = {
+export type DomainProjectsGetProjectDetailErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesGetSiteContextError = ExternalSitesGetSiteContextErrors[keyof ExternalSitesGetSiteContextErrors];
+export type DomainProjectsGetProjectDetailError = DomainProjectsGetProjectDetailErrors[keyof DomainProjectsGetProjectDetailErrors];
 
-export type ExternalSitesGetSiteContextResponses = {
+export type DomainProjectsGetProjectDetailResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelSiteResolveOut;
+    200: ResponseModelProjectDetailOut;
 };
 
-export type ExternalSitesGetSiteContextResponse = ExternalSitesGetSiteContextResponses[keyof ExternalSitesGetSiteContextResponses];
+export type DomainProjectsGetProjectDetailResponse = DomainProjectsGetProjectDetailResponses[keyof DomainProjectsGetProjectDetailResponses];
 
-export type ExternalSitesDeliveryResolveDeliveryGlobalSetData = {
+export type DomainProjectsUpdateProjectData = {
+    body: ProjectUpdateRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}';
+};
+
+export type DomainProjectsUpdateProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpdateProjectError = DomainProjectsUpdateProjectErrors[keyof DomainProjectsUpdateProjectErrors];
+
+export type DomainProjectsUpdateProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDetailOut;
+};
+
+export type DomainProjectsUpdateProjectResponse = DomainProjectsUpdateProjectResponses[keyof DomainProjectsUpdateProjectResponses];
+
+export type DomainProjectsListProjectApiKeysData = {
     body?: never;
     path: {
         /**
-         * Site Id
+         * Project Id
+         *
+         * Project ID.
          */
-        site_id: string;
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/api-keys';
+};
+
+export type DomainProjectsListProjectApiKeysErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectApiKeysError = DomainProjectsListProjectApiKeysErrors[keyof DomainProjectsListProjectApiKeysErrors];
+
+export type DomainProjectsListProjectApiKeysResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyListOut;
+};
+
+export type DomainProjectsListProjectApiKeysResponse = DomainProjectsListProjectApiKeysResponses[keyof DomainProjectsListProjectApiKeysResponses];
+
+export type DomainProjectsCreateProjectApiKeyData = {
+    body: WorkspaceApiKeyCreateIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/api-keys';
+};
+
+export type DomainProjectsCreateProjectApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectApiKeyError = DomainProjectsCreateProjectApiKeyErrors[keyof DomainProjectsCreateProjectApiKeyErrors];
+
+export type DomainProjectsCreateProjectApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyCreateOut;
+};
+
+export type DomainProjectsCreateProjectApiKeyResponse = DomainProjectsCreateProjectApiKeyResponses[keyof DomainProjectsCreateProjectApiKeyResponses];
+
+export type DomainProjectsGetProjectApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/api-keys/{key_id}';
+};
+
+export type DomainProjectsGetProjectApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectApiKeyError = DomainProjectsGetProjectApiKeyErrors[keyof DomainProjectsGetProjectApiKeyErrors];
+
+export type DomainProjectsGetProjectApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyOut;
+};
+
+export type DomainProjectsGetProjectApiKeyResponse = DomainProjectsGetProjectApiKeyResponses[keyof DomainProjectsGetProjectApiKeyResponses];
+
+export type DomainProjectsRevokeProjectApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/api-keys/{key_id}/revoke';
+};
+
+export type DomainProjectsRevokeProjectApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRevokeProjectApiKeyError = DomainProjectsRevokeProjectApiKeyErrors[keyof DomainProjectsRevokeProjectApiKeyErrors];
+
+export type DomainProjectsRevokeProjectApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyOut;
+};
+
+export type DomainProjectsRevokeProjectApiKeyResponse = DomainProjectsRevokeProjectApiKeyResponses[keyof DomainProjectsRevokeProjectApiKeyResponses];
+
+export type DomainProjectsRotateProjectApiKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/api-keys/{key_id}/rotate';
+};
+
+export type DomainProjectsRotateProjectApiKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRotateProjectApiKeyError = DomainProjectsRotateProjectApiKeyErrors[keyof DomainProjectsRotateProjectApiKeyErrors];
+
+export type DomainProjectsRotateProjectApiKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelApiKeyCreateOut;
+};
+
+export type DomainProjectsRotateProjectApiKeyResponse = DomainProjectsRotateProjectApiKeyResponses[keyof DomainProjectsRotateProjectApiKeyResponses];
+
+export type DomainProjectsArchiveProjectData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/archive';
+};
+
+export type DomainProjectsArchiveProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsArchiveProjectError = DomainProjectsArchiveProjectErrors[keyof DomainProjectsArchiveProjectErrors];
+
+export type DomainProjectsArchiveProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectArchiveResult;
+};
+
+export type DomainProjectsArchiveProjectResponse = DomainProjectsArchiveProjectResponses[keyof DomainProjectsArchiveProjectResponses];
+
+export type DomainProjectsGetProjectDangerCapabilitiesData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/danger-capabilities';
+};
+
+export type DomainProjectsGetProjectDangerCapabilitiesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectDangerCapabilitiesError = DomainProjectsGetProjectDangerCapabilitiesErrors[keyof DomainProjectsGetProjectDangerCapabilitiesErrors];
+
+export type DomainProjectsGetProjectDangerCapabilitiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDangerCapabilitiesOut;
+};
+
+export type DomainProjectsGetProjectDangerCapabilitiesResponse = DomainProjectsGetProjectDangerCapabilitiesResponses[keyof DomainProjectsGetProjectDangerCapabilitiesResponses];
+
+export type DomainProjectsListProjectMembersData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Q
+         *
+         * Search query (username/email/display_name).
+         */
+        q?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/projects/{project_id}/members';
+};
+
+export type DomainProjectsListProjectMembersErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectMembersError = DomainProjectsListProjectMembersErrors[keyof DomainProjectsListProjectMembersErrors];
+
+export type DomainProjectsListProjectMembersResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataProjectMemberOut;
+};
+
+export type DomainProjectsListProjectMembersResponse = DomainProjectsListProjectMembersResponses[keyof DomainProjectsListProjectMembersResponses];
+
+export type DomainProjectsUpdateProjectMemberRoleData = {
+    body: ProjectMemberRoleUpdateRequest;
+    path: {
+        /**
+         * Membership Id
+         */
+        membership_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/members/{membership_id}/role';
+};
+
+export type DomainProjectsUpdateProjectMemberRoleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpdateProjectMemberRoleError = DomainProjectsUpdateProjectMemberRoleErrors[keyof DomainProjectsUpdateProjectMemberRoleErrors];
+
+export type DomainProjectsUpdateProjectMemberRoleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectMemberOut;
+};
+
+export type DomainProjectsUpdateProjectMemberRoleResponse = DomainProjectsUpdateProjectMemberRoleResponses[keyof DomainProjectsUpdateProjectMemberRoleResponses];
+
+export type DomainProjectsGetProjectPublishImpactData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/publish/impact';
+};
+
+export type DomainProjectsGetProjectPublishImpactErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectPublishImpactError = DomainProjectsGetProjectPublishImpactErrors[keyof DomainProjectsGetProjectPublishImpactErrors];
+
+export type DomainProjectsGetProjectPublishImpactResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPublishImpactOut;
+};
+
+export type DomainProjectsGetProjectPublishImpactResponse = DomainProjectsGetProjectPublishImpactResponses[keyof DomainProjectsGetProjectPublishImpactResponses];
+
+export type DomainProjectsGetProjectPublishPreviewContractData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/publish/preview-contract';
+};
+
+export type DomainProjectsGetProjectPublishPreviewContractErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectPublishPreviewContractError = DomainProjectsGetProjectPublishPreviewContractErrors[keyof DomainProjectsGetProjectPublishPreviewContractErrors];
+
+export type DomainProjectsGetProjectPublishPreviewContractResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPublishExportContractOut;
+};
+
+export type DomainProjectsGetProjectPublishPreviewContractResponse = DomainProjectsGetProjectPublishPreviewContractResponses[keyof DomainProjectsGetProjectPublishPreviewContractResponses];
+
+export type DomainProjectsListProjectReleasesData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/releases';
+};
+
+export type DomainProjectsListProjectReleasesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectReleasesError = DomainProjectsListProjectReleasesErrors[keyof DomainProjectsListProjectReleasesErrors];
+
+export type DomainProjectsListProjectReleasesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseListOut;
+};
+
+export type DomainProjectsListProjectReleasesResponse = DomainProjectsListProjectReleasesResponses[keyof DomainProjectsListProjectReleasesResponses];
+
+export type DomainProjectsPublishProjectReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/releases/publish';
+};
+
+export type DomainProjectsPublishProjectReleaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPublishProjectReleaseError = DomainProjectsPublishProjectReleaseErrors[keyof DomainProjectsPublishProjectReleaseErrors];
+
+export type DomainProjectsPublishProjectReleaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleasePublishOut;
+};
+
+export type DomainProjectsPublishProjectReleaseResponse = DomainProjectsPublishProjectReleaseResponses[keyof DomainProjectsPublishProjectReleaseResponses];
+
+export type DomainProjectsGetProjectReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * Release Id
+         */
+        release_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/releases/{release_id}';
+};
+
+export type DomainProjectsGetProjectReleaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectReleaseError = DomainProjectsGetProjectReleaseErrors[keyof DomainProjectsGetProjectReleaseErrors];
+
+export type DomainProjectsGetProjectReleaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseOut;
+};
+
+export type DomainProjectsGetProjectReleaseResponse = DomainProjectsGetProjectReleaseResponses[keyof DomainProjectsGetProjectReleaseResponses];
+
+export type DomainProjectsRollbackProjectReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * Release Id
+         */
+        release_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/releases/{release_id}/rollback';
+};
+
+export type DomainProjectsRollbackProjectReleaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRollbackProjectReleaseError = DomainProjectsRollbackProjectReleaseErrors[keyof DomainProjectsRollbackProjectReleaseErrors];
+
+export type DomainProjectsRollbackProjectReleaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseRollbackOut;
+};
+
+export type DomainProjectsRollbackProjectReleaseResponse = DomainProjectsRollbackProjectReleaseResponses[keyof DomainProjectsRollbackProjectReleaseResponses];
+
+export type DomainProjectsGetProjectSiteData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/site';
+};
+
+export type DomainProjectsGetProjectSiteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectSiteError = DomainProjectsGetProjectSiteErrors[keyof DomainProjectsGetProjectSiteErrors];
+
+export type DomainProjectsGetProjectSiteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceSiteOut;
+};
+
+export type DomainProjectsGetProjectSiteResponse = DomainProjectsGetProjectSiteResponses[keyof DomainProjectsGetProjectSiteResponses];
+
+export type DomainProjectsCreateProjectSitePreviewTokenData = {
+    /**
+     * Preview token request.
+     */
+    body: SitePreviewTokenCreateIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/site/preview-tokens';
+};
+
+export type DomainProjectsCreateProjectSitePreviewTokenErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectSitePreviewTokenError = DomainProjectsCreateProjectSitePreviewTokenErrors[keyof DomainProjectsCreateProjectSitePreviewTokenErrors];
+
+export type DomainProjectsCreateProjectSitePreviewTokenResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSitePreviewTokenOut;
+};
+
+export type DomainProjectsCreateProjectSitePreviewTokenResponse = DomainProjectsCreateProjectSitePreviewTokenResponses[keyof DomainProjectsCreateProjectSitePreviewTokenResponses];
+
+export type DomainProjectsUnarchiveProjectData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/unarchive';
+};
+
+export type DomainProjectsUnarchiveProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUnarchiveProjectError = DomainProjectsUnarchiveProjectErrors[keyof DomainProjectsUnarchiveProjectErrors];
+
+export type DomainProjectsUnarchiveProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectArchiveResult;
+};
+
+export type DomainProjectsUnarchiveProjectResponse = DomainProjectsUnarchiveProjectResponses[keyof DomainProjectsUnarchiveProjectResponses];
+
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
         /**
          * Key
          */
@@ -21983,68 +23149,68 @@ export type ExternalSitesDeliveryResolveDeliveryGlobalSetData = {
          */
         token?: string | null;
     };
-    url: '/api/v1/sites/{site_id}/delivery/global-sets/{key}';
+    url: '/api/v1/runtimes/{runtime_id}/delivery/global-sets/{key}';
 };
 
-export type ExternalSitesDeliveryResolveDeliveryGlobalSetErrors = {
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesDeliveryResolveDeliveryGlobalSetError = ExternalSitesDeliveryResolveDeliveryGlobalSetErrors[keyof ExternalSitesDeliveryResolveDeliveryGlobalSetErrors];
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetError = ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors[keyof ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors];
 
-export type ExternalSitesDeliveryResolveDeliveryGlobalSetResponses = {
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelDeliveryGlobalSetOut;
 };
 
-export type ExternalSitesDeliveryResolveDeliveryGlobalSetResponse = ExternalSitesDeliveryResolveDeliveryGlobalSetResponses[keyof ExternalSitesDeliveryResolveDeliveryGlobalSetResponses];
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponse = ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses[keyof ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses];
 
-export type ExternalSitesDeliveryGetDeliveryMenuData = {
+export type ExternalRuntimesGetRuntimeDeliveryMenuData = {
     body?: never;
     path: {
         /**
-         * Site Id
+         * Runtime Id
          */
-        site_id: string;
+        runtime_id: string;
         /**
          * Menu Key
          */
         menu_key: string;
     };
     query?: never;
-    url: '/api/v1/sites/{site_id}/delivery/menus/{menu_key}';
+    url: '/api/v1/runtimes/{runtime_id}/delivery/menus/{menu_key}';
 };
 
-export type ExternalSitesDeliveryGetDeliveryMenuErrors = {
+export type ExternalRuntimesGetRuntimeDeliveryMenuErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesDeliveryGetDeliveryMenuError = ExternalSitesDeliveryGetDeliveryMenuErrors[keyof ExternalSitesDeliveryGetDeliveryMenuErrors];
+export type ExternalRuntimesGetRuntimeDeliveryMenuError = ExternalRuntimesGetRuntimeDeliveryMenuErrors[keyof ExternalRuntimesGetRuntimeDeliveryMenuErrors];
 
-export type ExternalSitesDeliveryGetDeliveryMenuResponses = {
+export type ExternalRuntimesGetRuntimeDeliveryMenuResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelDeliveryMenuOut;
 };
 
-export type ExternalSitesDeliveryGetDeliveryMenuResponse = ExternalSitesDeliveryGetDeliveryMenuResponses[keyof ExternalSitesDeliveryGetDeliveryMenuResponses];
+export type ExternalRuntimesGetRuntimeDeliveryMenuResponse = ExternalRuntimesGetRuntimeDeliveryMenuResponses[keyof ExternalRuntimesGetRuntimeDeliveryMenuResponses];
 
-export type ExternalSitesDeliveryResolveDeliveryPageData = {
+export type ExternalRuntimesResolveRuntimeDeliveryPageData = {
     body?: never;
     path: {
         /**
-         * Site Id
+         * Runtime Id
          */
-        site_id: string;
+        runtime_id: string;
     };
     query: {
         /**
@@ -22066,34 +23232,34 @@ export type ExternalSitesDeliveryResolveDeliveryPageData = {
          */
         token?: string | null;
     };
-    url: '/api/v1/sites/{site_id}/delivery/pages/resolve';
+    url: '/api/v1/runtimes/{runtime_id}/delivery/pages/resolve';
 };
 
-export type ExternalSitesDeliveryResolveDeliveryPageErrors = {
+export type ExternalRuntimesResolveRuntimeDeliveryPageErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesDeliveryResolveDeliveryPageError = ExternalSitesDeliveryResolveDeliveryPageErrors[keyof ExternalSitesDeliveryResolveDeliveryPageErrors];
+export type ExternalRuntimesResolveRuntimeDeliveryPageError = ExternalRuntimesResolveRuntimeDeliveryPageErrors[keyof ExternalRuntimesResolveRuntimeDeliveryPageErrors];
 
-export type ExternalSitesDeliveryResolveDeliveryPageResponses = {
+export type ExternalRuntimesResolveRuntimeDeliveryPageResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelSiteRouteResolveOut;
 };
 
-export type ExternalSitesDeliveryResolveDeliveryPageResponse = ExternalSitesDeliveryResolveDeliveryPageResponses[keyof ExternalSitesDeliveryResolveDeliveryPageResponses];
+export type ExternalRuntimesResolveRuntimeDeliveryPageResponse = ExternalRuntimesResolveRuntimeDeliveryPageResponses[keyof ExternalRuntimesResolveRuntimeDeliveryPageResponses];
 
-export type ExternalSitesDeliveryGetDeliveryPageByIdData = {
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdData = {
     body?: never;
     path: {
         /**
-         * Site Id
+         * Runtime Id
          */
-        site_id: string;
+        runtime_id: string;
         /**
          * Page Id
          */
@@ -22113,34 +23279,34 @@ export type ExternalSitesDeliveryGetDeliveryPageByIdData = {
          */
         token?: string | null;
     };
-    url: '/api/v1/sites/{site_id}/delivery/pages/{page_id}';
+    url: '/api/v1/runtimes/{runtime_id}/delivery/pages/{page_id}';
 };
 
-export type ExternalSitesDeliveryGetDeliveryPageByIdErrors = {
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesDeliveryGetDeliveryPageByIdError = ExternalSitesDeliveryGetDeliveryPageByIdErrors[keyof ExternalSitesDeliveryGetDeliveryPageByIdErrors];
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdError = ExternalRuntimesGetRuntimeDeliveryPageByIdErrors[keyof ExternalRuntimesGetRuntimeDeliveryPageByIdErrors];
 
-export type ExternalSitesDeliveryGetDeliveryPageByIdResponses = {
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelSiteRouteResolveOut;
 };
 
-export type ExternalSitesDeliveryGetDeliveryPageByIdResponse = ExternalSitesDeliveryGetDeliveryPageByIdResponses[keyof ExternalSitesDeliveryGetDeliveryPageByIdResponses];
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdResponse = ExternalRuntimesGetRuntimeDeliveryPageByIdResponses[keyof ExternalRuntimesGetRuntimeDeliveryPageByIdResponses];
 
-export type ExternalSitesDeliveryGetDeliverySectionByAliasData = {
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasData = {
     body?: never;
     path: {
         /**
-         * Site Id
+         * Runtime Id
          */
-        site_id: string;
+        runtime_id: string;
         /**
          * Alias
          */
@@ -22160,91 +23326,187 @@ export type ExternalSitesDeliveryGetDeliverySectionByAliasData = {
          */
         token?: string | null;
     };
-    url: '/api/v1/sites/{site_id}/delivery/sections/{alias}';
+    url: '/api/v1/runtimes/{runtime_id}/delivery/sections/{alias}';
 };
 
-export type ExternalSitesDeliveryGetDeliverySectionByAliasErrors = {
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesDeliveryGetDeliverySectionByAliasError = ExternalSitesDeliveryGetDeliverySectionByAliasErrors[keyof ExternalSitesDeliveryGetDeliverySectionByAliasErrors];
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasError = ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors[keyof ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors];
 
-export type ExternalSitesDeliveryGetDeliverySectionByAliasResponses = {
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelDeliverySectionOut;
 };
 
-export type ExternalSitesDeliveryGetDeliverySectionByAliasResponse = ExternalSitesDeliveryGetDeliverySectionByAliasResponses[keyof ExternalSitesDeliveryGetDeliverySectionByAliasResponses];
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasResponse = ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses[keyof ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses];
 
-export type ExternalSitesDeliveryGetDeliveryStyleData = {
+export type ExternalRuntimesGetRuntimeDeliveryStyleData = {
     body?: never;
     path: {
         /**
-         * Site Id
+         * Runtime Id
          */
-        site_id: string;
+        runtime_id: string;
     };
     query?: never;
-    url: '/api/v1/sites/{site_id}/delivery/style';
+    url: '/api/v1/runtimes/{runtime_id}/delivery/style';
 };
 
-export type ExternalSitesDeliveryGetDeliveryStyleErrors = {
+export type ExternalRuntimesGetRuntimeDeliveryStyleErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesDeliveryGetDeliveryStyleError = ExternalSitesDeliveryGetDeliveryStyleErrors[keyof ExternalSitesDeliveryGetDeliveryStyleErrors];
+export type ExternalRuntimesGetRuntimeDeliveryStyleError = ExternalRuntimesGetRuntimeDeliveryStyleErrors[keyof ExternalRuntimesGetRuntimeDeliveryStyleErrors];
 
-export type ExternalSitesDeliveryGetDeliveryStyleResponses = {
+export type ExternalRuntimesGetRuntimeDeliveryStyleResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelDeliveryStyleOut;
 };
 
-export type ExternalSitesDeliveryGetDeliveryStyleResponse = ExternalSitesDeliveryGetDeliveryStyleResponses[keyof ExternalSitesDeliveryGetDeliveryStyleResponses];
+export type ExternalRuntimesGetRuntimeDeliveryStyleResponse = ExternalRuntimesGetRuntimeDeliveryStyleResponses[keyof ExternalRuntimesGetRuntimeDeliveryStyleResponses];
 
-export type DomainSitesHandleHttpGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/sites/{site_id}/graphql';
-};
-
-export type DomainSitesHandleHttpGetErrors = {
+export type ExternalRuntimesCreateRuntimePreviewTokenData = {
     /**
-     * Not found if GraphiQL or query via GET are not enabled.
+     * Preview token request.
      */
-    404: unknown;
-};
-
-export type DomainSitesHandleHttpGetResponses = {
-    /**
-     * The GraphiQL integrated development environment.
-     */
-    200: unknown;
-};
-
-export type DomainSitesHandleHttpPostData = {
-    body?: never;
-    path?: never;
+    body?: SitePreviewTokenCreateIn;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
     query?: never;
-    url: '/api/v1/sites/{site_id}/graphql';
+    url: '/api/v1/runtimes/{runtime_id}/preview-tokens';
 };
 
-export type DomainSitesHandleHttpPostResponses = {
+export type ExternalRuntimesCreateRuntimePreviewTokenErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesCreateRuntimePreviewTokenError = ExternalRuntimesCreateRuntimePreviewTokenErrors[keyof ExternalRuntimesCreateRuntimePreviewTokenErrors];
+
+export type ExternalRuntimesCreateRuntimePreviewTokenResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    201: ResponseModelRuntimePreviewTokenOut;
 };
+
+export type ExternalRuntimesCreateRuntimePreviewTokenResponse = ExternalRuntimesCreateRuntimePreviewTokenResponses[keyof ExternalRuntimesCreateRuntimePreviewTokenResponses];
+
+export type ExternalRuntimesResolveRuntimeRouteData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query: {
+        /**
+         * Path
+         *
+         * Request pathname (e.g. /blog/hello).
+         */
+        path: string;
+        /**
+         * Mode
+         *
+         * Runtime mode.
+         */
+        mode?: 'public' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when mode=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/runtimes/{runtime_id}/routes/resolve';
+};
+
+export type ExternalRuntimesResolveRuntimeRouteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesResolveRuntimeRouteError = ExternalRuntimesResolveRuntimeRouteErrors[keyof ExternalRuntimesResolveRuntimeRouteErrors];
+
+export type ExternalRuntimesResolveRuntimeRouteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type ExternalRuntimesResolveRuntimeRouteResponse = ExternalRuntimesResolveRuntimeRouteResponses[keyof ExternalRuntimesResolveRuntimeRouteResponses];
+
+export type ExternalRuntimesGetRuntimeConfigData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Mode
+         *
+         * Runtime mode.
+         */
+        mode?: 'public' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when mode=preview).
+         */
+        token?: string | null;
+        /**
+         * Locale
+         *
+         * Resolved locale for localized settings (e.g. en-US).
+         */
+        locale?: string | null;
+    };
+    url: '/api/v1/runtimes/{runtime_id}/runtime';
+};
+
+export type ExternalRuntimesGetRuntimeConfigErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesGetRuntimeConfigError = ExternalRuntimesGetRuntimeConfigErrors[keyof ExternalRuntimesGetRuntimeConfigErrors];
+
+export type ExternalRuntimesGetRuntimeConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRuntimeOut;
+};
+
+export type ExternalRuntimesGetRuntimeConfigResponse = ExternalRuntimesGetRuntimeConfigResponses[keyof ExternalRuntimesGetRuntimeConfigResponses];
 
 export type ExternalSitesPatternsListSitePatternsData = {
     body?: never;
@@ -22392,337 +23654,6 @@ export type ExternalSitesPatternsUpdateSitePatternResponses = {
 };
 
 export type ExternalSitesPatternsUpdateSitePatternResponse = ExternalSitesPatternsUpdateSitePatternResponses[keyof ExternalSitesPatternsUpdateSitePatternResponses];
-
-export type DomainSitesListPresenceData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query: {
-        /**
-         * Dockey
-         *
-         * Document key (e.g. route:/about).
-         */
-        docKey: string;
-        /**
-         * Token
-         *
-         * Preview token (required).
-         */
-        token: string;
-    };
-    url: '/api/v1/sites/{site_id}/presence';
-};
-
-export type DomainSitesListPresenceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesListPresenceError = DomainSitesListPresenceErrors[keyof DomainSitesListPresenceErrors];
-
-export type DomainSitesListPresenceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSitePresenceListOut;
-};
-
-export type DomainSitesListPresenceResponse = DomainSitesListPresenceResponses[keyof DomainSitesListPresenceResponses];
-
-export type DomainSitesHeartbeatPresenceData = {
-    /**
-     * Presence heartbeat payload.
-     */
-    body: SitePresenceHeartbeatIn;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query: {
-        /**
-         * Token
-         *
-         * Preview token (required).
-         */
-        token: string;
-    };
-    url: '/api/v1/sites/{site_id}/presence/heartbeat';
-};
-
-export type DomainSitesHeartbeatPresenceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesHeartbeatPresenceError = DomainSitesHeartbeatPresenceErrors[keyof DomainSitesHeartbeatPresenceErrors];
-
-export type DomainSitesHeartbeatPresenceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSitePresenceHeartbeatOut;
-};
-
-export type DomainSitesHeartbeatPresenceResponse = DomainSitesHeartbeatPresenceResponses[keyof DomainSitesHeartbeatPresenceResponses];
-
-export type DomainSitesCreatePreviewTokenData = {
-    /**
-     * Preview token request.
-     */
-    body?: SitePreviewTokenCreateIn;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/preview-tokens';
-};
-
-export type DomainSitesCreatePreviewTokenErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesCreatePreviewTokenError = DomainSitesCreatePreviewTokenErrors[keyof DomainSitesCreatePreviewTokenErrors];
-
-export type DomainSitesCreatePreviewTokenResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSitePreviewTokenOut;
-};
-
-export type DomainSitesCreatePreviewTokenResponse = DomainSitesCreatePreviewTokenResponses[keyof DomainSitesCreatePreviewTokenResponses];
-
-export type DomainSitesResolveSiteRouteData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query: {
-        /**
-         * Path
-         *
-         * Request pathname (e.g. /blog/hello).
-         */
-        path: string;
-        /**
-         * Mode
-         *
-         * Runtime mode.
-         */
-        mode?: 'public' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when mode=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/sites/{site_id}/routes/resolve';
-};
-
-export type DomainSitesResolveSiteRouteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesResolveSiteRouteError = DomainSitesResolveSiteRouteErrors[keyof DomainSitesResolveSiteRouteErrors];
-
-export type DomainSitesResolveSiteRouteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRouteResolveOut;
-};
-
-export type DomainSitesResolveSiteRouteResponse = DomainSitesResolveSiteRouteResponses[keyof DomainSitesResolveSiteRouteResponses];
-
-export type DomainSitesGetSiteRuntimeData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query?: {
-        /**
-         * Mode
-         *
-         * Runtime mode.
-         */
-        mode?: 'public' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when mode=preview).
-         */
-        token?: string | null;
-        /**
-         * Locale
-         *
-         * Resolved locale for localized settings (e.g. en-US).
-         */
-        locale?: string | null;
-    };
-    url: '/api/v1/sites/{site_id}/runtime';
-};
-
-export type DomainSitesGetSiteRuntimeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetSiteRuntimeError = DomainSitesGetSiteRuntimeErrors[keyof DomainSitesGetSiteRuntimeErrors];
-
-export type DomainSitesGetSiteRuntimeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRuntimeOut;
-};
-
-export type DomainSitesGetSiteRuntimeResponse = DomainSitesGetSiteRuntimeResponses[keyof DomainSitesGetSiteRuntimeResponses];
-
-export type DomainSitesGetSiteSettingData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query: {
-        /**
-         * Namespace
-         *
-         * Setting namespace (e.g. site.runtime).
-         */
-        namespace: string;
-        /**
-         * Token
-         *
-         * Preview token (required).
-         */
-        token: string;
-    };
-    url: '/api/v1/sites/{site_id}/settings';
-};
-
-export type DomainSitesGetSiteSettingErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetSiteSettingError = DomainSitesGetSiteSettingErrors[keyof DomainSitesGetSiteSettingErrors];
-
-export type DomainSitesGetSiteSettingResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteSettingGetOut;
-};
-
-export type DomainSitesGetSiteSettingResponse = DomainSitesGetSiteSettingResponses[keyof DomainSitesGetSiteSettingResponses];
-
-export type DomainSitesUpsertSiteSettingData = {
-    /**
-     * Upsert payload.
-     */
-    body: SiteSettingUpsertIn;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query: {
-        /**
-         * Namespace
-         *
-         * Setting namespace (e.g. site.runtime).
-         */
-        namespace: string;
-        /**
-         * Token
-         *
-         * Preview token (required).
-         */
-        token: string;
-    };
-    url: '/api/v1/sites/{site_id}/settings';
-};
-
-export type DomainSitesUpsertSiteSettingErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesUpsertSiteSettingError = DomainSitesUpsertSiteSettingErrors[keyof DomainSitesUpsertSiteSettingErrors];
-
-export type DomainSitesUpsertSiteSettingResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteSettingGetOut;
-};
-
-export type DomainSitesUpsertSiteSettingResponse = DomainSitesUpsertSiteSettingResponses[keyof DomainSitesUpsertSiteSettingResponses];
-
-export type DomainSitesGetSitemapXmlData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/sitemap.xml';
-};
-
-export type DomainSitesGetSitemapXmlErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetSitemapXmlError = DomainSitesGetSitemapXmlErrors[keyof DomainSitesGetSitemapXmlErrors];
-
-export type DomainSitesGetSitemapXmlResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
 
 export type InternalSystemListActivityData = {
     body?: never;
@@ -26387,203 +27318,6 @@ export type DomainWorkspacesGetWorkspaceSiteResponses = {
 };
 
 export type DomainWorkspacesGetWorkspaceSiteResponse = DomainWorkspacesGetWorkspaceSiteResponses[keyof DomainWorkspacesGetWorkspaceSiteResponses];
-
-export type DomainSitesListSiteDomainsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/site/domains';
-};
-
-export type DomainSitesListSiteDomainsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesListSiteDomainsError = DomainSitesListSiteDomainsErrors[keyof DomainSitesListSiteDomainsErrors];
-
-export type DomainSitesListSiteDomainsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataSiteDomainOut;
-};
-
-export type DomainSitesListSiteDomainsResponse = DomainSitesListSiteDomainsResponses[keyof DomainSitesListSiteDomainsResponses];
-
-export type DomainSitesCreateSiteDomainData = {
-    /**
-     * Custom domain binding request.
-     */
-    body: SiteDomainCreateIn;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/domains';
-};
-
-export type DomainSitesCreateSiteDomainErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesCreateSiteDomainError = DomainSitesCreateSiteDomainErrors[keyof DomainSitesCreateSiteDomainErrors];
-
-export type DomainSitesCreateSiteDomainResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSiteDomainCreateOut;
-};
-
-export type DomainSitesCreateSiteDomainResponse = DomainSitesCreateSiteDomainResponses[keyof DomainSitesCreateSiteDomainResponses];
-
-export type DomainSitesDeleteSiteDomainData = {
-    body?: never;
-    path: {
-        /**
-         * Domain Id
-         *
-         * Domain record id.
-         */
-        domain_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}';
-};
-
-export type DomainSitesDeleteSiteDomainErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesDeleteSiteDomainError = DomainSitesDeleteSiteDomainErrors[keyof DomainSitesDeleteSiteDomainErrors];
-
-export type DomainSitesDeleteSiteDomainResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteDomainDeleteOut;
-};
-
-export type DomainSitesDeleteSiteDomainResponse = DomainSitesDeleteSiteDomainResponses[keyof DomainSitesDeleteSiteDomainResponses];
-
-export type DomainSitesUpdateSiteDomainData = {
-    /**
-     * Update payload.
-     */
-    body: SiteDomainUpdateIn;
-    path: {
-        /**
-         * Domain Id
-         *
-         * Domain record id.
-         */
-        domain_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}';
-};
-
-export type DomainSitesUpdateSiteDomainErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesUpdateSiteDomainError = DomainSitesUpdateSiteDomainErrors[keyof DomainSitesUpdateSiteDomainErrors];
-
-export type DomainSitesUpdateSiteDomainResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteDomainOut;
-};
-
-export type DomainSitesUpdateSiteDomainResponse = DomainSitesUpdateSiteDomainResponses[keyof DomainSitesUpdateSiteDomainResponses];
-
-export type DomainSitesVerifySiteDomainData = {
-    body?: never;
-    path: {
-        /**
-         * Domain Id
-         *
-         * Domain record id.
-         */
-        domain_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}/verify';
-};
-
-export type DomainSitesVerifySiteDomainErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesVerifySiteDomainError = DomainSitesVerifySiteDomainErrors[keyof DomainSitesVerifySiteDomainErrors];
-
-export type DomainSitesVerifySiteDomainResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteDomainVerifyOut;
-};
-
-export type DomainSitesVerifySiteDomainResponse = DomainSitesVerifySiteDomainResponses[keyof DomainSitesVerifySiteDomainResponses];
 
 export type DomainWorkspacesCreateWorkspaceSitePreviewTokenData = {
     /**

@@ -4,50 +4,62 @@ import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  UserCenterWorkspacesDialogs,
-  type CreateWorkspaceFormValues,
-} from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
-import type { WorkspaceIconDialogValues } from "@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions";
+  UserCenterProjectsDialogs,
+  type CreateProjectFormValues,
+} from "@/pages/usercenter/projects/components/usercenter-projects-dialogs";
+import type { ProjectIconDialogValues } from "@/pages/usercenter/projects/hooks/use-project-menu-actions";
 
-vi.mock("@/api/organization-workspaces", () => ({
-  checkOrganizationWorkspaceSlugAvailability: vi.fn(),
+vi.mock("@/api/projects", () => ({
+  checkProjectSlugAvailability: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/form-feedback", () => ({
   useDebouncedValue: (value: string) => value,
 }));
 
-import { checkOrganizationWorkspaceSlugAvailability } from "@/api/organization-workspaces";
+import { checkProjectSlugAvailability } from "@/api/projects";
 
 const translations: Record<string, string> = {
   "common:CANCEL": "Cancel",
   "common:CONFIRM": "Confirm",
-  "common:ORG_WORKSPACES_CREATE_TEAM": "Create workspace",
-  "common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC":
-    "Create a workspace for collaboration, projects, and client work.",
-  "common:ORG_WORKSPACES_FIELD_NAME": "Workspace name",
-  "common:ORG_WORKSPACES_FIELD_NAME_HELP":
-    "Use a clear business name so teammates can identify this workspace quickly.",
-  "common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER": "e.g. Marketing website",
-  "common:ORG_WORKSPACES_FIELD_NAME_REQUIRED": "Workspace name is required",
-  "common:ORG_WORKSPACES_FIELD_SLUG": "Workspace URL",
-  "common:ORG_WORKSPACES_FIELD_SLUG_HELP":
-    "Review or adjust the workspace URL used in links and admin routing.",
-  "common:ORG_WORKSPACES_FIELD_SLUG_PLACEHOLDER": "e.g. marketing-website",
-  "common:ORG_WORKSPACES_FIELD_SLUG_REQUIRED": "Workspace URL is required",
-  "common:ORG_WORKSPACES_FIELD_SLUG_CHECKING": "Checking workspace URL",
-  "common:ORG_WORKSPACES_FIELD_SLUG_CHECK_FAILED": "Workspace URL check failed",
-  "common:ORG_WORKSPACES_FIELD_SLUG_AVAILABLE": "Workspace URL is available",
-  "common:ORG_WORKSPACES_FIELD_SLUG_INVALID": "Workspace URL format is invalid",
-  "common:ORG_WORKSPACES_FIELD_SLUG_RESERVED": "Workspace URL is reserved",
-  "common:ORG_WORKSPACES_FIELD_SLUG_EXISTS": "Workspace URL already exists",
-  "common:ORG_WORKSPACES_FIELD_DESCRIPTION": "Description",
-  "common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP":
-    "Summarize the workspace scope and collaboration purpose.",
-  "common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER":
-    "Describe the workspace purpose (optional)",
-  "common:ORG_WORKSPACES_ACTION_CHANGE_ICON": "Change icon",
-  "common:ORG_WORKSPACES_ICON_DIALOG_DESC": "Update the workspace icon for {{name}}.",
+  "account:ACCOUNT_PROJECTS_CREATE_TITLE": "Create project",
+  "account:ACCOUNT_PROJECTS_CREATE_DESC": "Create a project for sites and publishing.",
+  "account:ACCOUNT_PROJECTS_FIELD_NAME": "Project name",
+  "account:ACCOUNT_PROJECTS_FIELD_NAME_DESC":
+    "Use a clear name your team will recognize in navigation and settings.",
+  "account:ACCOUNT_PROJECTS_FIELD_NAME_PLACEHOLDER": "e.g. Marketing site",
+  "account:ACCOUNT_PROJECTS_FIELD_NAME_REQUIRED": "Project name is required",
+  "account:ACCOUNT_PROJECTS_FIELD_WORKSPACE_REQUIRED": "Workspace is required",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG": "Project URL",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_HELP":
+    "Review or adjust the project URL used in links and admin routing.",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_PLACEHOLDER": "e.g. marketing-site",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_REQUIRED": "Project URL is required",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_CHECKING": "Checking project URL",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_CHECK_FAILED": "Project URL check failed",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_AVAILABLE": "Project URL is available",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_INVALID": "Project URL format is invalid",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_RESERVED": "Project URL is reserved",
+  "account:ACCOUNT_PROJECTS_FIELD_SLUG_EXISTS": "Project URL already exists",
+  "account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION": "Description",
+  "account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_DESC":
+    "Capture the purpose of this project so people understand what ships here.",
+  "account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_PLACEHOLDER":
+    "Landing pages, launch campaigns, and growth content.",
+  "account:ACCOUNT_PROJECTS_ACTION_CHANGE_ICON": "Change project icon",
+  "account:ACCOUNT_PROJECTS_ICON_DIALOG_DESC": "Update the project icon for {{name}}.",
+  "account:ACCOUNT_PROJECTS_ARCHIVE_CONFIRM_TITLE": "Archive project",
+  "account:ACCOUNT_PROJECTS_ARCHIVE_CONFIRM_DESC":
+    "This will archive {{name}}. You can restore it later.",
+  "account:ACCOUNT_PROJECTS_ACTION_ARCHIVE": "Archive project",
+  "account:ACCOUNT_PROJECTS_DELETE_CONFIRM_TITLE": "Delete project",
+  "account:ACCOUNT_PROJECTS_DELETE_CONFIRM_DESC":
+    "This permanently deletes {{name}} and related resources. This action cannot be undone.",
+  "account:ACCOUNT_PROJECTS_DELETE_CONFIRM_INPUT_LABEL": "Type {{name}} to confirm deletion",
+  "account:ACCOUNT_PROJECTS_DELETE_CONFIRM_INPUT_HELP":
+    "Type the exact project name to confirm this irreversible operation.",
+  "account:ACCOUNT_PROJECTS_DELETE_CONFIRM_INPUT_PLACEHOLDER": "Enter project name",
+  "account:ACCOUNT_PROJECTS_ACTION_DELETE": "Delete project",
   "common:ORG_WORKSPACES_ICON_COLOR_TITLE": "Background color",
   "common:ORG_WORKSPACES_ICON_GALLERY_TITLE": "Icon",
   "common:ORG_WORKSPACES_ICON_UPLOAD_PHOTO_TOOLTIP": "Upload photo",
@@ -56,9 +68,10 @@ const translations: Record<string, string> = {
 };
 
 function buildInitialCreateValues(
-  overrides: Partial<CreateWorkspaceFormValues> = {},
-): CreateWorkspaceFormValues {
+  overrides: Partial<CreateProjectFormValues> = {},
+): CreateProjectFormValues {
   return {
+    workspaceId: "ws-1",
     name: "",
     slug: "",
     slugSource: "name-seed",
@@ -70,15 +83,16 @@ function buildInitialCreateValues(
 function renderDialogs(
   options: {
     iconDialogOpen?: boolean;
-    iconMode?: WorkspaceIconDialogValues["iconMode"];
+    iconMode?: ProjectIconDialogValues["iconMode"];
     iconUrl?: string | null;
   } = {},
 ) {
   return render(
-    <UserCenterWorkspacesDialogs
+    <UserCenterProjectsDialogs
       t={(key: string) => translations[key] ?? key}
       createDialog={{
         open: !options.iconDialogOpen,
+        workspaceId: "ws-1",
         setOpen: vi.fn(),
         values: buildInitialCreateValues(),
         setValues: vi.fn(),
@@ -86,14 +100,14 @@ function renderDialogs(
         onSubmit: vi.fn().mockResolvedValue(undefined),
       }}
       archiveDialog={{
-        workspace: null,
-        setWorkspace: vi.fn(),
+        project: null,
+        setProject: vi.fn(),
         pending: false,
         onConfirm: vi.fn().mockResolvedValue(undefined),
       }}
       deleteDialog={{
-        workspace: null,
-        setWorkspace: vi.fn(),
+        project: null,
+        setProject: vi.fn(),
         confirmName: "",
         setConfirmName: vi.fn(),
         confirmMatches: false,
@@ -101,15 +115,14 @@ function renderDialogs(
         onConfirm: vi.fn().mockResolvedValue(undefined),
       }}
       iconDialog={{
-        workspace: options.iconDialogOpen
+        project: options.iconDialogOpen
           ? {
-              id: "ws-1",
-              workspaceId: "ws-1",
+              id: "project-1",
               projectId: "project-1",
+              workspaceId: "ws-1",
               organizationId: "org-1",
               slug: "alpha",
-              name: "Workspace Alpha",
-              kind: "team",
+              name: "Project Alpha",
               description: null,
               iconMode: options.iconMode ?? "initials",
               iconColor: "#337ea9",
@@ -123,9 +136,10 @@ function renderDialogs(
               membersPreview: [],
               createdAt: "2026-04-15T00:00:00Z",
               enterable: true,
+              primaryRuntime: null,
             }
           : null,
-        setWorkspace: vi.fn(),
+        setProject: vi.fn(),
         values: {
           iconMode: options.iconMode ?? "initials",
           iconColor: "#337ea9",
@@ -142,14 +156,15 @@ function renderDialogs(
   );
 }
 
-function StatefulIconDialog(props: { initialValues: WorkspaceIconDialogValues }) {
-  const [values, setValues] = useState<WorkspaceIconDialogValues>(props.initialValues);
+function StatefulIconDialog(props: { initialValues: ProjectIconDialogValues }) {
+  const [values, setValues] = useState<ProjectIconDialogValues>(props.initialValues);
 
   return (
-    <UserCenterWorkspacesDialogs
+    <UserCenterProjectsDialogs
       t={(key: string) => translations[key] ?? key}
       createDialog={{
         open: false,
+        workspaceId: "ws-1",
         setOpen: vi.fn(),
         values: buildInitialCreateValues(),
         setValues: vi.fn(),
@@ -157,14 +172,14 @@ function StatefulIconDialog(props: { initialValues: WorkspaceIconDialogValues })
         onSubmit: vi.fn().mockResolvedValue(undefined),
       }}
       archiveDialog={{
-        workspace: null,
-        setWorkspace: vi.fn(),
+        project: null,
+        setProject: vi.fn(),
         pending: false,
         onConfirm: vi.fn().mockResolvedValue(undefined),
       }}
       deleteDialog={{
-        workspace: null,
-        setWorkspace: vi.fn(),
+        project: null,
+        setProject: vi.fn(),
         confirmName: "",
         setConfirmName: vi.fn(),
         confirmMatches: false,
@@ -172,14 +187,13 @@ function StatefulIconDialog(props: { initialValues: WorkspaceIconDialogValues })
         onConfirm: vi.fn().mockResolvedValue(undefined),
       }}
       iconDialog={{
-        workspace: {
-          id: "ws-1",
-          workspaceId: "ws-1",
+        project: {
+          id: "project-1",
           projectId: "project-1",
+          workspaceId: "ws-1",
           organizationId: "org-1",
           slug: "alpha",
-          name: "Workspace Alpha",
-          kind: "team",
+          name: "Project Alpha",
           description: null,
           iconMode: values.iconMode,
           iconColor: values.iconColor,
@@ -193,8 +207,9 @@ function StatefulIconDialog(props: { initialValues: WorkspaceIconDialogValues })
           membersPreview: [],
           createdAt: "2026-04-15T00:00:00Z",
           enterable: true,
+          primaryRuntime: null,
         },
-        setWorkspace: vi.fn(),
+        setProject: vi.fn(),
         values,
         setValues,
         pending: false,
@@ -206,19 +221,19 @@ function StatefulIconDialog(props: { initialValues: WorkspaceIconDialogValues })
 }
 
 function StatefulCreateDialog(props: {
-  initialValues?: Partial<CreateWorkspaceFormValues>;
-  onSubmit?: (values: CreateWorkspaceFormValues) => Promise<void>;
+  initialValues?: Partial<CreateProjectFormValues>;
+  onSubmit?: (values: CreateProjectFormValues) => Promise<void>;
 }) {
-  const [values, setValues] = useState<CreateWorkspaceFormValues>(() =>
+  const [values, setValues] = useState<CreateProjectFormValues>(() =>
     buildInitialCreateValues(props.initialValues),
   );
 
   return (
-    <UserCenterWorkspacesDialogs
+    <UserCenterProjectsDialogs
       t={(key: string) => translations[key] ?? key}
       createDialog={{
         open: true,
-        organizationId: undefined,
+        workspaceId: "ws-1",
         setOpen: vi.fn(),
         values,
         setValues,
@@ -226,14 +241,14 @@ function StatefulCreateDialog(props: {
         onSubmit: props.onSubmit ?? vi.fn().mockResolvedValue(undefined),
       }}
       archiveDialog={{
-        workspace: null,
-        setWorkspace: vi.fn(),
+        project: null,
+        setProject: vi.fn(),
         pending: false,
         onConfirm: vi.fn().mockResolvedValue(undefined),
       }}
       deleteDialog={{
-        workspace: null,
-        setWorkspace: vi.fn(),
+        project: null,
+        setProject: vi.fn(),
         confirmName: "",
         setConfirmName: vi.fn(),
         confirmMatches: false,
@@ -241,8 +256,8 @@ function StatefulCreateDialog(props: {
         onConfirm: vi.fn().mockResolvedValue(undefined),
       }}
       iconDialog={{
-        workspace: null,
-        setWorkspace: vi.fn(),
+        project: null,
+        setProject: vi.fn(),
         values: {
           iconMode: "initials",
           iconColor: "#337ea9",
@@ -259,72 +274,69 @@ function StatefulCreateDialog(props: {
   );
 }
 
-describe("UserCenterWorkspacesDialogs", () => {
+describe("UserCenterProjectsDialogs", () => {
   beforeEach(() => {
-    vi.mocked(checkOrganizationWorkspaceSlugAvailability).mockReset();
-    vi.mocked(checkOrganizationWorkspaceSlugAvailability).mockImplementation(
-      async (_organizationId, slug) => ({
-        normalizedSlug: slug,
-        available: true,
-        reason: null,
-      }),
-    );
+    vi.mocked(checkProjectSlugAvailability).mockReset();
+    vi.mocked(checkProjectSlugAvailability).mockImplementation(async (_workspaceId, slug) => ({
+      normalizedSlug: slug,
+      available: true,
+      reason: null,
+    }));
   });
 
   it("uses team-oriented create copy", () => {
     renderDialogs();
 
-    expect(screen.getByText("Create workspace")).toBeInTheDocument();
-    expect(
-      screen.getByText("Create a workspace for collaboration, projects, and client work."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Create project")).toBeInTheDocument();
+    expect(screen.getByText("Create a project for sites and publishing.")).toBeInTheDocument();
   });
 
   it("does not show the required name error until the field has been interacted with", async () => {
     const user = userEvent.setup();
     renderDialogs();
 
-    expect(screen.queryByText("Workspace name is required")).not.toBeInTheDocument();
+    expect(screen.queryByText("Project name is required")).not.toBeInTheDocument();
 
-    const nameInput = screen.getByPlaceholderText("e.g. Marketing website");
+    const nameInput = screen.getByPlaceholderText("e.g. Marketing site");
     await user.click(nameInput);
     await user.tab();
 
-    expect(screen.getByText("Workspace name is required")).toBeInTheDocument();
+    expect(screen.getByText("Project name is required")).toBeInTheDocument();
   });
 
-  it("generates a slug from the workspace name and submits it after availability succeeds", async () => {
+  it("generates a slug from the project name and submits it after availability succeeds", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
     render(<StatefulCreateDialog onSubmit={onSubmit} />);
 
-    await user.type(screen.getByPlaceholderText("e.g. Marketing website"), "Marketing website");
+    await user.type(screen.getByPlaceholderText("e.g. Marketing site"), "Marketing site");
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("marketing-website")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("marketing-site")).toBeInTheDocument();
     });
-    expect(await screen.findByText("Workspace URL is available")).toBeInTheDocument();
+    expect(await screen.findByText("Project URL is available")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Confirm" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
-      name: "Marketing website",
-      slug: "marketing-website",
+      workspaceId: "ws-1",
+      name: "Marketing site",
+      slug: "marketing-site",
       slugSource: "name-seed",
       description: undefined,
     });
   });
 
-  it("generates a pinyin slug from a Chinese workspace name", async () => {
+  it("generates a pinyin slug from a Chinese project name", async () => {
     const user = userEvent.setup();
 
     render(<StatefulCreateDialog />);
 
-    await user.type(screen.getByPlaceholderText("e.g. Marketing website"), "中文工作空间");
+    await user.type(screen.getByPlaceholderText("e.g. Marketing site"), "中文项目");
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("zhong-wen-gong-zuo-kong-jian")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("zhong-wen-xiang-mu")).toBeInTheDocument();
     });
   });
 
@@ -333,32 +345,32 @@ describe("UserCenterWorkspacesDialogs", () => {
 
     render(<StatefulCreateDialog />);
 
-    const nameInput = screen.getByPlaceholderText("e.g. Marketing website");
-    const slugInput = screen.getByPlaceholderText("e.g. marketing-website");
+    const nameInput = screen.getByPlaceholderText("e.g. Marketing site");
+    const slugInput = screen.getByPlaceholderText("e.g. marketing-site");
 
-    await user.type(nameInput, "Marketing website");
+    await user.type(nameInput, "Marketing site");
     await waitFor(() => {
-      expect(screen.getByDisplayValue("marketing-website")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("marketing-site")).toBeInTheDocument();
     });
 
     await user.clear(slugInput);
-    await user.type(slugInput, "custom-team");
+    await user.type(slugInput, "custom-project");
     await waitFor(() => {
-      expect(screen.getByDisplayValue("custom-team")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("custom-project")).toBeInTheDocument();
     });
 
     await user.clear(nameInput);
-    await user.type(nameInput, "Marketing website v2");
+    await user.type(nameInput, "Marketing site v2");
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("custom-team")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("custom-project")).toBeInTheDocument();
     });
   });
 
   it("renders the change-icon dialog with color, icon, and photo sections", () => {
     renderDialogs({ iconDialogOpen: true });
 
-    expect(screen.getByText("Change icon")).toBeInTheDocument();
+    expect(screen.getByText("Change project icon")).toBeInTheDocument();
     expect(screen.getByText("Background color")).toBeInTheDocument();
     expect(screen.getByText("Icon")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload photo" })).toBeInTheDocument();
@@ -386,10 +398,10 @@ describe("UserCenterWorkspacesDialogs", () => {
       />,
     );
 
-    expect(screen.getByRole("img", { name: "Workspace Alpha" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Project Alpha" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "#111827" }));
 
-    expect(screen.queryByRole("img", { name: "Workspace Alpha" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Project Alpha" })).not.toBeInTheDocument();
   });
 });

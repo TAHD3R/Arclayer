@@ -96,10 +96,10 @@ const globalItems: AdminNavItem[] = [
     to: "/",
   },
   {
-    key: "global.workspaces",
-    label: "Workspaces",
+    key: "global.projects",
+    label: "Projects",
     icon: Users,
-    to: "/workspaces",
+    to: "/projects",
   },
 ];
 

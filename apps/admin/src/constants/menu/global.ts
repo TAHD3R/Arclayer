@@ -33,7 +33,7 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     insertStarredAfter: true,
   },
   {
-    key: "global.workspaces",
+    key: "global.projects",
     label: "Projects",
     labelKey: "account:ACCOUNT_NAV_PROJECTS",
     to: "/projects",
@@ -42,34 +42,11 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     dividerBefore: true,
   },
   {
-    key: "global.billing",
-    label: "Billing & Subscription",
-    labelKey: "nav:NAV_SECTION_BILLING_SUBSCRIPTION",
-    icon: CreditCard,
-    children: [
-      {
-        key: "global.billing.subscriptions",
-        label: "Subscriptions",
-        labelKey: "nav:NAV_GLOBAL_BILLING_SUBSCRIPTIONS",
-        to: "/billing/subscriptions",
-        icon: Wallet,
-        disabled: true,
-      },
-      {
-        key: "global.billing.history",
-        label: "Billing History",
-        labelKey: "nav:NAV_GLOBAL_BILLING_HISTORY",
-        to: "/billing/history",
-        icon: ReceiptText,
-        disabled: true,
-      },
-    ],
-  },
-  {
     key: "global.platform",
     label: "Platform",
     labelKey: "nav:NAV_SECTION_PLATFORM",
     icon: Wrench,
+    dividerBefore: true,
     children: [
       {
         key: "global.platform.tenants",
@@ -148,13 +125,13 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
 
 export function resolveGlobalNavItems(params: {
   isSuperAdmin: boolean;
-  workspaceChildren?: AdminNavItem[];
+  projectChildren?: AdminNavItem[];
 }): AdminNavItem[] {
   const filterItems = (items: readonly AdminNavItem[]): AdminNavItem[] =>
     items.flatMap((item) => {
       const nextItem =
-        item.key === "global.workspaces" && params.workspaceChildren?.length
-          ? { ...item, children: params.workspaceChildren }
+        item.key === "global.projects" && params.projectChildren?.length
+          ? { ...item, children: params.projectChildren }
           : item;
 
       if (nextItem.key === "global.platform" && !params.isSuperAdmin) {

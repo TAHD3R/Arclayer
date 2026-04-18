@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from tortoise import fields
 from tortoise.signals import post_save
@@ -57,6 +59,9 @@ class Workspace(BaseModel):
     deleted_at = fields.DatetimeField(null=True, db_index=True)
 
     created_by_user_id = fields.UUIDField(db_index=True)
+
+    if TYPE_CHECKING:
+        organization_id: UUID
 
     class Meta(BaseModel.Meta):
         table = "domain_workspaces"

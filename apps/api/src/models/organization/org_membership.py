@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from tortoise import fields
 
@@ -42,6 +44,10 @@ class OrgMembership(BaseModel):
     # Built-in roles use owner/admin/member; template roles use custom codes.
     role_code = fields.CharField(max_length=64, default=OrgRole.MEMBER.value, db_index=True)
     status = fields.CharField(max_length=16, default="active", db_index=True)
+
+    if TYPE_CHECKING:
+        organization_id: UUID
+        user_id: UUID
 
     class Meta(BaseModel.Meta):
         table = "domain_org_memberships"

@@ -1,0 +1,191 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+import {
+  archiveProject,
+  checkProjectSlugAvailability,
+  createProject,
+  deleteProject,
+  patchProject,
+  unarchiveProject,
+} from "@/api/projects";
+import { ApiError } from "@/lib/http";
+import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
+
+import type { UserCenterProjectsTranslateFn } from "../types";
+
+export type CreateProjectPayload = {
+  workspaceId: string;
+  name: string;
+  slug: string;
+  description?: string;
+};
+
+type DeleteProjectPayload = {
+  projectId: string;
+  confirmName: string;
+};
+
+export type UpdateProjectPayload = {
+  projectId: string;
+  patch: {
+    name?: string;
+    slug?: string;
+    description?: string | null;
+    iconMode?: "initials" | "glyph" | "emoji" | "image";
+    iconColor?: string | null;
+    iconGlyph?: string | null;
+    iconEmoji?: string | null;
+    iconUrl?: string | null;
+  };
+};
+
+interface UseUserCenterProjectsMutationsOptions {
+  workspaceId?: string;
+  t: UserCenterProjectsTranslateFn;
+  onCreateSuccess: () => void;
+  onArchiveSuccess: () => void;
+  onDeleteSuccess: () => void;
+}
+
+export function useUserCenterProjectsMutations(options: UseUserCenterProjectsMutationsOptions) {
+  const { workspaceId, t, onCreateSuccess, onArchiveSuccess, onDeleteSuccess } = options;
+  const queryClient = useQueryClient();
+
+  const tableScope = workspaceId ? `workspace:${workspaceId}` : "all";
+  const activeTableKey = ["dataTable", `projects-active:${tableScope}`] as const;
+  const archivedTableKey = ["dataTable", `projects-archived:${tableScope}`] as const;
+
+  const invalidateProjectTables = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: activeTableKey }),
+      queryClient.invalidateQueries({ queryKey: archivedTableKey }),
+    ]);
+  };
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: CreateProjectPayload) => {
+      const nextName = payload.name.trim();
+      const nextSlug = payload.slug.trim();
+
+      if (!payload.workspaceId) {
+        throw new Error("PROJECT_WORKSPACE_REQUIRED");
+      }
+      if (!nextName) {
+        throw new Error("PROJECT_NAME_REQUIRED");
+      }
+      if (!nextSlug) {
+        throw new Error("PROJECT_SLUG_REQUIRED");
+      }
+
+      const availability = await checkProjectSlugAvailability(payload.workspaceId, nextSlug);
+      if (!availability.available || !availability.normalizedSlug) {
+        if (availability.reason === "reserved") {
+          throw new Error("PROJECT_SLUG_RESERVED");
+        }
+        if (availability.reason === "exists") {
+          throw new Error("PROJECT_SLUG_EXISTS");
+        }
+        throw new Error("PROJECT_SLUG_INVALID");
+      }
+
+      return createProject({
+        workspaceId: payload.workspaceId,
+        name: nextName,
+        slug: availability.normalizedSlug,
+        description: payload.description,
+      });
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("common:ACTION_SUCCESS"));
+      onCreateSuccess();
+      await invalidateProjectTables();
+    },
+    onError: (error) => {
+      const message = resolveProjectCreateErrorMessage(error, t);
+      if (message) {
+        notifyErrorText(message);
+        return;
+      }
+      notifyError(error);
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (projectId: string) => archiveProject(projectId),
+    onSuccess: async () => {
+      notifySuccessText(t("common:ACTION_SUCCESS"));
+      onArchiveSuccess();
+      await invalidateProjectTables();
+    },
+    onError: (error) => notifyError(error),
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (projectId: string) => unarchiveProject(projectId),
+    onSuccess: async () => {
+      notifySuccessText(t("common:ACTION_SUCCESS"));
+      await invalidateProjectTables();
+    },
+    onError: (error) => notifyError(error),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (payload: DeleteProjectPayload) =>
+      deleteProject(payload.projectId, payload.confirmName),
+    onSuccess: async () => {
+      notifySuccessText(t("common:ACTION_SUCCESS"));
+      onDeleteSuccess();
+      await invalidateProjectTables();
+    },
+    onError: (error) => notifyError(error),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (payload: UpdateProjectPayload) =>
+      patchProject(payload.projectId, payload.patch),
+    onSuccess: async (_result, payload) => {
+      notifySuccessText(t("common:ACTION_SUCCESS"));
+      await Promise.all([
+        invalidateProjectTables(),
+        queryClient.invalidateQueries({ queryKey: ["project", "detail", payload.projectId] }),
+      ]);
+    },
+    onError: (error) => notifyError(error),
+  });
+
+  return {
+    createMutation,
+    archiveMutation,
+    unarchiveMutation,
+    deleteMutation,
+    updateMutation,
+  } as const;
+}
+
+function resolveProjectCreateErrorMessage(
+  error: unknown,
+  t: UserCenterProjectsTranslateFn,
+): string | null {
+  const errorCode =
+    error instanceof ApiError ? error.error : error instanceof Error ? error.message : null;
+  if (!errorCode) return null;
+  if (errorCode === "PROJECT_WORKSPACE_REQUIRED") {
+    return t("account:ACCOUNT_PROJECTS_FIELD_WORKSPACE_REQUIRED");
+  }
+  if (errorCode === "PROJECT_NAME_REQUIRED") {
+    return t("account:ACCOUNT_PROJECTS_FIELD_NAME_REQUIRED");
+  }
+  if (errorCode === "PROJECT_SLUG_REQUIRED") {
+    return t("account:ACCOUNT_PROJECTS_FIELD_SLUG_REQUIRED");
+  }
+  if (errorCode === "PROJECT_SLUG_RESERVED") {
+    return t("account:ACCOUNT_PROJECTS_FIELD_SLUG_RESERVED");
+  }
+  if (errorCode === "PROJECT_SLUG_EXISTS") {
+    return t("account:ACCOUNT_PROJECTS_FIELD_SLUG_EXISTS");
+  }
+  if (errorCode === "PROJECT_SLUG_INVALID") {
+    return t("account:ACCOUNT_PROJECTS_FIELD_SLUG_INVALID");
+  }
+  return null;
+}

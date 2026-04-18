@@ -119,6 +119,13 @@ Do not:
 
 Backend ad-hoc commands must go through scripts, e.g. `pnpm -C apps/api uv -- <command>`.
 
+For API schema migrations, use:
+
+- `pnpm --filter @arclayer/api db:migrate`
+- `pnpm --filter @arclayer/api db:upgrade`
+
+Keep migration files command-generated and review the generated artifact before upgrade.
+
 Avoid running infra / interactive commands unless the user asks:
 
 - `pnpm infra:*` (starts `docker compose`)

@@ -301,7 +301,7 @@ export function SystemSettingsStoragePage() {
                     onValueChange={field.onChange}
                     className="grid gap-3"
                   >
-                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
+                    <label className="flex w-full items-start gap-3 py-2">
                       <RadioGroupItem value="local" className="mt-1" />
                       <div className="grid min-w-0 gap-1">
                         <div className="text-headline text-label-primary">
@@ -312,7 +312,7 @@ export function SystemSettingsStoragePage() {
                         </div>
                       </div>
                     </label>
-                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
+                    <label className="flex w-full items-start gap-3 py-2">
                       <RadioGroupItem value="s3" className="mt-1" />
                       <div className="grid min-w-0 gap-1">
                         <div className="text-headline text-label-primary">
@@ -361,7 +361,7 @@ export function SystemSettingsStoragePage() {
                     onValueChange={field.onChange}
                     className="grid gap-3"
                   >
-                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
+                    <label className="flex w-full items-start gap-3 py-2">
                       <RadioGroupItem value="auto" className="mt-1" />
                       <div className="grid min-w-0 gap-1">
                         <div className="text-headline text-label-primary">
@@ -372,7 +372,7 @@ export function SystemSettingsStoragePage() {
                         </div>
                       </div>
                     </label>
-                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
+                    <label className="flex w-full items-start gap-3 py-2">
                       <RadioGroupItem value="direct" className="mt-1" />
                       <div className="grid min-w-0 gap-1">
                         <div className="text-headline text-label-primary">
@@ -383,7 +383,7 @@ export function SystemSettingsStoragePage() {
                         </div>
                       </div>
                     </label>
-                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
+                    <label className="flex w-full items-start gap-3 py-2">
                       <RadioGroupItem value="presign" className="mt-1" />
                       <div className="grid min-w-0 gap-1">
                         <div className="text-headline text-label-primary">

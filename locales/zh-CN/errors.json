@@ -18,6 +18,8 @@
   "WORKSPACE_LEAVE_CONFIRM_TEXT_MISMATCH": "确认文本不正确，请输入 LEAVE",
   "WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH": "工作空间名称不匹配，请输入当前工作空间名称",
   "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE": "当前组织至少需要保留一个激活工作空间，不能删除最后一个工作空间",
+  "LAST_ACTIVE_PROJECT_NOT_ARCHIVABLE": "当前工作空间至少需要保留一个激活项目",
+  "LAST_ACTIVE_PROJECT_NOT_DELETABLE": "当前工作空间至少需要保留一个激活项目，不能删除最后一个激活项目",
   "ACCOUNT_DELETE_LAST_ORG_OWNER": "你仍是至少一个组织的最后一名所有者，先转移所有权后才能删除账号",
   "ACCOUNT_DELETE_LAST_WORKSPACE_OWNER": "你仍是至少一个工作空间的最后一名所有者，先转移所有权后才能删除账号",
   "ACCOUNT_DELETE_EMAIL_MISMATCH": "确认邮箱与当前账号不一致",

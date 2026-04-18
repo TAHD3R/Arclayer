@@ -119,7 +119,7 @@ export function useUserCenterWorkspacesColumns(
           kind: "meta",
         },
         header: t("common:ORG_WORKSPACES_TABLE_MEMBERS"),
-        cell: ({ row }) => <WorkspaceMembersPopover workspace={row.original} />,
+        cell: ({ row }) => <WorkspaceMembersPopover workspace={row.original} t={t} />,
         size: 200,
         minSize: 180,
       },

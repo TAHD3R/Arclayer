@@ -84,16 +84,16 @@ const globalItemsWithWorkspaceChildren: AdminNavItem[] = [
     to: "/",
   },
   {
-    key: "global.workspaces",
-    label: "Workspaces",
+    key: "global.projects",
+    label: "Projects",
     icon: Users,
-    to: "/workspaces",
+    to: "/projects",
     children: [
       {
-        key: "global.workspaces.ws-9",
-        label: "Philip Cole's Workspace",
+        key: "global.projects.project-9",
+        label: "Philip Cole's Project",
         icon: Home,
-        to: "/w/ws-9",
+        to: "/projects/project-9",
       },
     ],
   },

@@ -18,6 +18,8 @@
   "WORKSPACE_LEAVE_CONFIRM_TEXT_MISMATCH": "Confirmation text does not match. Enter LEAVE",
   "WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH": "Workspace name does not match. Enter the current workspace name",
   "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE": "At least one active workspace must remain in the organization",
+  "LAST_ACTIVE_PROJECT_NOT_ARCHIVABLE": "At least one active project must remain in the workspace",
+  "LAST_ACTIVE_PROJECT_NOT_DELETABLE": "At least one active project must remain in the workspace",
   "ACCOUNT_DELETE_LAST_ORG_OWNER": "You are still the last owner of at least one organization. Transfer ownership before deleting your account",
   "ACCOUNT_DELETE_LAST_WORKSPACE_OWNER": "You are still the last owner of at least one workspace. Transfer ownership before deleting your account",
   "ACCOUNT_DELETE_EMAIL_MISMATCH": "Confirmation email does not match the current account",

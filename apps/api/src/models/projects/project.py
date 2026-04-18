@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+from uuid import UUID
+
 from tortoise import fields
 from tortoise.signals import post_save
 
 from src.common.models.base import BaseModel
+from src.models.workspaces.workspace import WorkspaceIconMode
 
 
 class ProjectRecord(BaseModel):
@@ -18,8 +22,20 @@ class ProjectRecord(BaseModel):
     slug = fields.CharField(max_length=64, db_index=True)
     name = fields.CharField(max_length=128)
     description = fields.CharField(max_length=256, null=True)
+    icon_mode = fields.CharEnumField(
+        WorkspaceIconMode,
+        default=WorkspaceIconMode.INITIALS,
+        db_default=WorkspaceIconMode.INITIALS,
+    )
+    icon_color = fields.CharField(max_length=16, default="#337ea9", db_default="#337ea9")
+    icon_glyph = fields.CharField(max_length=64, null=True)
+    icon_emoji = fields.CharField(max_length=32, null=True)
+    icon_url = fields.CharField(max_length=1024, null=True)
     is_active = fields.BooleanField(default=True, db_index=True)
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
 
     class Meta(BaseModel.Meta):
         table = "domain_projects"

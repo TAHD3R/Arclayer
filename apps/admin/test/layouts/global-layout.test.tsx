@@ -97,25 +97,25 @@ vi.mock("@/hooks/use-current-user-profile", () => ({
   useCurrentUserProfile: vi.fn(),
 }));
 
-vi.mock("@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions", () => ({
-  useWorkspaceMenuActions: () => ({
+vi.mock("@/pages/usercenter/projects/hooks/use-project-menu-actions", () => ({
+  useProjectMenuActions: () => ({
     buildMenuItems: () => [],
-    editingWorkspaceId: null,
-    editingWorkspaceField: null,
-    editingWorkspaceName: "",
-    isWorkspaceEditNavigationSuppressed: false,
-    setEditingWorkspaceName: vi.fn(),
-    commitWorkspaceEdit: vi.fn(),
-    cancelWorkspaceEdit: vi.fn(),
+    editingProjectId: null,
+    editingProjectField: null,
+    editingProjectName: "",
+    isProjectEditNavigationSuppressed: false,
+    setEditingProjectName: vi.fn(),
+    commitProjectEdit: vi.fn(),
+    cancelProjectEdit: vi.fn(),
     archiveDialog: {
-      workspace: null,
-      setWorkspace: vi.fn(),
+      project: null,
+      setProject: vi.fn(),
       pending: false,
       onConfirm: vi.fn(),
     },
     deleteDialog: {
-      workspace: null,
-      setWorkspace: vi.fn(),
+      project: null,
+      setProject: vi.fn(),
       confirmName: "",
       setConfirmName: vi.fn(),
       confirmMatches: false,
@@ -123,8 +123,8 @@ vi.mock("@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions", () => 
       onConfirm: vi.fn(),
     },
     iconDialog: {
-      workspace: null,
-      setWorkspace: vi.fn(),
+      project: null,
+      setProject: vi.fn(),
       values: {
         iconMode: "initials",
         iconColor: "#337ea9",
@@ -176,20 +176,20 @@ describe("GlobalLayout", () => {
     );
   });
 
-  it("keeps billing visible while hiding platform from non-super-admin global navigation", () => {
+  it("keeps projects visible while hiding platform from non-super-admin global navigation", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     const navKeys = topbarSpy.mock.calls[0]?.[0]?.navItems?.map(
       (item: { key: string }) => item.key,
     );
-    expect(navKeys).toContain("global.billing");
+    expect(navKeys).toContain("global.projects");
     expect(navKeys).not.toContain("global.platform");
     expect(
       sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.map((item: { key: string }) => item.key),
-    ).toContain("global.billing");
+    ).toContain("global.projects");
   });
 
-  it("shows platform alongside billing when the current user is a super admin", () => {
+  it("shows platform alongside projects when the current user is a super admin", () => {
     vi.mocked(useCurrentUserProfile).mockReturnValue({
       isSuperAdmin: true,
       isLoading: false,
@@ -201,13 +201,12 @@ describe("GlobalLayout", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     const navKeys = collectNavKeys(topbarSpy.mock.calls[0]?.[0]?.navItems ?? []);
-    expect(navKeys).toContain("global.billing");
-    expect(navKeys).toContain("global.billing.subscriptions");
+    expect(navKeys).toContain("global.projects");
     expect(navKeys).toContain("global.platform");
     expect(navKeys).toContain("global.platform.overview");
   });
 
-  it("includes the resources placeholder before workspaces in global navigation", () => {
+  it("includes the resources placeholder before projects in global navigation", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     const navKeys = topbarSpy.mock.calls[0]?.[0]?.navItems?.map(
@@ -216,7 +215,7 @@ describe("GlobalLayout", () => {
 
     expect(navKeys).toContain("global.resources");
     expect(navKeys.indexOf("global.resources")).toBeGreaterThan(navKeys.indexOf("global.home"));
-    expect(navKeys.indexOf("global.resources")).toBeLessThan(navKeys.indexOf("global.workspaces"));
+    expect(navKeys.indexOf("global.resources")).toBeLessThan(navKeys.indexOf("global.projects"));
   });
 
   it("renders only route content when favorite overlay content-only mode is active", () => {

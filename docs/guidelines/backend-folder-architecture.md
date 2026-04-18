@@ -126,12 +126,17 @@ Hard prohibitions:
 
 ## 9. Migration Rules
 
-- Use the built-in Tortoise migration flow via `pnpm -C apps/api db:migrate`.
-- For straightforward additive changes, accept the generated migration after review.
-- For destructive corrections, table renames, or data rewrites:
-  - generate the migration first
-  - then hand-edit the generated file to the minimal explicit operations required
-- Do not accept auto-generated migrations that mix the intended schema move with unrelated model deletion or drift.
+- Use the built-in Tortoise migration flow via:
+  - `pnpm --filter @arclayer/api db:migrate`
+  - `pnpm --filter @arclayer/api db:upgrade`
+- Treat migration files as command-generated artifacts.
+- Do a schema change in models first, then generate the migration with `db:migrate`, then apply it with `db:upgrade`.
+- Do not hand-write or hand-edit migration file contents.
+- If a generated migration includes unrelated drift or duplicate schema operations:
+  - audit the model change against the existing migration chain
+  - remove the redundant generated migration artifact
+  - regenerate through `db:migrate`
+- Keep the migration chain command-driven and reviewable.
 
 ## 10. Hard-Cut Architecture Rule
 

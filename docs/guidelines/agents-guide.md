@@ -50,6 +50,16 @@ Avoid running infra / interactive commands unless the user explicitly asks:
 - `pnpm infra:*` (starts `docker compose`)
 - `turbo run db:migrate` / `turbo run db:upgrade` (interactive tasks)
 
+### Backend Migration Workflow
+
+- Handle API schema changes through:
+  - `pnpm --filter @arclayer/api db:migrate`
+  - `pnpm --filter @arclayer/api db:upgrade`
+- Keep migration files command-generated.
+- Review generated migrations before applying them.
+- Resolve migration drift by auditing models and existing migrations, then regenerating through the commands above.
+- Do not hand-write or hand-edit migration file contents.
+
 ## 7. Cross-References (Source of Truth)
 
 - Guidelines index: `docs/guidelines/README.md`

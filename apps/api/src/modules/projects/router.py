@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Body, Depends, Query, status
 
+from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest, Forbidden
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
@@ -13,14 +16,44 @@ from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.projects.members_schema import ProjectMemberOut, ProjectMemberRoleUpdateRequest
 from src.modules.projects.members_service import ProjectMembersService
-from src.modules.projects.schema import ProjectCreateRequest, ProjectDetailOut, ProjectListOut
+from src.modules.projects.schema import (
+    ProjectArchiveResult,
+    ProjectCreateRequest,
+    ProjectDangerCapabilitiesOut,
+    ProjectDeleteResult,
+    ProjectDetailOut,
+    ProjectListOut,
+    ProjectSlugAvailabilityOut,
+    ProjectUpdateRequest,
+)
 from src.modules.projects.service import ProjectService
-from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted, require_workspace_permission
+from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
 from src.modules.workspaces.http.schema import WorkspaceContext
-from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.http.service import require_workspace_manage_access, resolve_workspace_context_by_id
 
 router = APIRouter(tags=["domain.projects"])
 router.include_router(projects_facade_router)
+
+
+async def get_project_list_workspace_context(
+    workspace_id: Annotated[PublicUUID, Query(..., alias="workspaceId", description="Workspace id.")],
+    user_id: UUID = Depends(get_current_user_id),
+) -> WorkspaceContext:
+    return await resolve_workspace_context_by_id(workspace_id=workspace_id, user_id=user_id)
+
+
+async def get_project_create_workspace_context(
+    payload: Annotated[ProjectCreateRequest, Body(...)],
+    user_id: UUID = Depends(get_current_user_id),
+) -> WorkspaceContext:
+    return await resolve_workspace_context_by_id(workspace_id=payload.workspace_id, user_id=user_id)
+
+
+async def get_project_slug_workspace_context(
+    workspace_id: Annotated[PublicUUID, Query(..., alias="workspaceId", description="Workspace id.")],
+    user_id: UUID = Depends(get_current_user_id),
+) -> WorkspaceContext:
+    return await resolve_workspace_context_by_id(workspace_id=workspace_id, user_id=user_id)
 
 
 async def require_project_team_permission(
@@ -48,35 +81,45 @@ async def require_project_team_permission(
 
 
 @router.get(
-    "/workspaces/{workspace_id}/projects",
+    "/projects",
     response_model=ResponseModel[ProjectListOut],
-    summary="List projects in the current workspace",
-    dependencies=[require_workspace_permission("system:content:read")],
+    summary="List projects",
 )
-async def list_workspace_projects(
+async def list_projects(
     q: str | None = Query(default=None, description="Search query (project name)."),
+    archived: bool = Query(default=False, description="Whether to list archived projects."),
     params: PageParams = Depends(get_page_params),
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
+    workspace_id: PublicUUID | None = Query(default=None, alias="workspaceId", description="Workspace id."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectListOut]:
     service = ProjectService(settings)
-    page = await service.list_projects(workspace_id=ctx.workspace_id, params=params, q=q)
+    page = await service.list_projects(
+        workspace_id=UUID(str(workspace_id)) if workspace_id is not None else None,
+        actor_user_id=user_id,
+        params=params,
+        q=q,
+        archived=archived,
+    )
     return ApiResponse.success(data=page)
 
 
 @router.post(
-    "/workspaces/{workspace_id}/projects",
+    "/projects",
     response_model=ResponseModel[ProjectDetailOut],
     status_code=status.HTTP_201_CREATED,
-    summary="Create a project in the current workspace",
-    dependencies=[require_workspace_permission("system:content:manage")],
+    summary="Create a project",
 )
-async def create_workspace_project(
+async def create_project(
     payload: ProjectCreateRequest,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
+    ctx: WorkspaceContext = Depends(get_project_create_workspace_context),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectDetailOut]:
+    if ctx.workspace_id != payload.workspace_id:
+        raise Forbidden("Workspace access denied", error="WORKSPACE_ACCESS_DENIED")
+    ctx = await require_workspace_manage_access(ctx)
+    await ensure_workspace_permission_granted("system:content:manage", user_id=user_id, ctx=ctx)
     service = ProjectService(settings)
     detail = await service.create_project(
         workspace_id=ctx.workspace_id,
@@ -84,6 +127,32 @@ async def create_workspace_project(
         actor_user_id=user_id,
     )
     return ApiResponse.success(data=detail)
+
+
+@router.get(
+    "/projects/slug-availability",
+    response_model=ResponseModel[ProjectSlugAvailabilityOut],
+    summary="Check project slug availability",
+)
+async def check_project_slug_availability(
+    slug: str = Query(..., min_length=1, max_length=64, description="Desired project slug."),
+    project_id: PublicUUID | None = Query(
+        default=None,
+        alias="projectId",
+        description="Project id to exclude when editing an existing project.",
+    ),
+    ctx: WorkspaceContext = Depends(get_project_slug_workspace_context),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[ProjectSlugAvailabilityOut]:
+    await ensure_workspace_permission_granted("system:content:manage", user_id=user_id, ctx=ctx)
+    service = ProjectService(settings)
+    out = await service.check_slug_availability(
+        workspace_id=ctx.workspace_id,
+        slug=slug,
+        exclude_project_id=UUID(str(project_id)) if project_id is not None else None,
+    )
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -100,6 +169,105 @@ async def get_project_detail(
     service = ProjectService(settings)
     detail = await service.get_project_detail(project_id=ctx.project_id)
     return ApiResponse.success(data=detail)
+
+
+@router.get(
+    "/projects/{project_id}/danger-capabilities",
+    response_model=ResponseModel[ProjectDangerCapabilitiesOut],
+    summary="Get project danger capabilities for current user",
+)
+async def get_project_danger_capabilities(
+    ctx: ProjectRequestContext = Depends(get_project_context),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[ProjectDangerCapabilitiesOut]:
+    try:
+        await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+        can_manage_settings = True
+    except Forbidden:
+        can_manage_settings = False
+
+    service = ProjectService(settings)
+    out = await service.get_danger_capabilities(
+        project_id=ctx.project_id,
+        can_manage_settings=can_manage_settings,
+    )
+    return ApiResponse.success(data=out)
+
+
+@router.patch(
+    "/projects/{project_id}",
+    response_model=ResponseModel[ProjectDetailOut],
+    summary="Update project metadata",
+)
+async def update_project(
+    payload: ProjectUpdateRequest,
+    ctx: ProjectRequestContext = Depends(get_project_context),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[ProjectDetailOut]:
+    await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+    service = ProjectService(settings)
+    detail = await service.update_project(project_id=ctx.project_id, payload=payload)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/projects/{project_id}/archive",
+    response_model=ResponseModel[ProjectArchiveResult],
+    summary="Archive project",
+)
+async def archive_project(
+    ctx: ProjectRequestContext = Depends(get_project_context),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[ProjectArchiveResult]:
+    await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+    service = ProjectService(settings)
+    out = await service.archive_project(project_id=ctx.project_id)
+    return ApiResponse.success(data=out)
+
+
+@router.post(
+    "/projects/{project_id}/unarchive",
+    response_model=ResponseModel[ProjectArchiveResult],
+    summary="Restore project",
+)
+async def unarchive_project(
+    ctx: ProjectRequestContext = Depends(get_project_context),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[ProjectArchiveResult]:
+    await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+    service = ProjectService(settings)
+    out = await service.unarchive_project(project_id=ctx.project_id)
+    return ApiResponse.success(data=out)
+
+
+@router.delete(
+    "/projects/{project_id}",
+    response_model=ResponseModel[ProjectDeleteResult],
+    summary="Delete project",
+)
+async def delete_project(
+    confirm_name: str | None = Query(
+        default=None,
+        alias="confirmName",
+        description="Project name confirmation for destructive delete.",
+        min_length=1,
+        max_length=128,
+    ),
+    ctx: ProjectRequestContext = Depends(get_project_context),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[ProjectDeleteResult]:
+    await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+    service = ProjectService(settings)
+    detail = await service.get_project_detail(project_id=ctx.project_id)
+    if (confirm_name or "").strip() != detail.project.name:
+        raise BadRequest("Project delete confirmation does not match", error="PROJECT_DELETE_CONFIRM_NAME_MISMATCH")
+    out = await service.delete_project(project_id=ctx.project_id)
+    return ApiResponse.success(data=out)
 
 
 @router.get(

@@ -4,8 +4,13 @@ import { PanelsTopLeft } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
+import { listProjects } from "@/api/projects";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
+import { ProjectActionDialogs } from "@/pages/usercenter/projects/components/usercenter-projects-dialogs";
+import { ProjectActionsDropdown } from "@/pages/usercenter/projects/components/project-actions-dropdown";
+import { ProjectInlineNameEditor } from "@/pages/usercenter/projects/components/project-inline-name-editor";
+import { useProjectMenuActions } from "@/pages/usercenter/projects/hooks/use-project-menu-actions";
+import { mapProjectToListItem } from "@/pages/usercenter/projects/project-list-items";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
 import { resolveGlobalNavItems } from "@/constants/menu/global";
@@ -13,11 +18,6 @@ import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
 import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
-import { WorkspaceActionDialogs } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
-import { WorkspaceActionsDropdown } from "@/pages/usercenter/workspaces/components/workspace-actions-dropdown";
-import { WorkspaceInlineNameEditor } from "@/pages/usercenter/workspaces/components/workspace-inline-name-editor";
-import { useWorkspaceMenuActions } from "@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions";
-import { mapOrganizationWorkspaceToListItem } from "@/pages/usercenter/workspaces/workspace-list-items";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
@@ -29,7 +29,7 @@ const GLOBAL_COMMAND_SCOPE = {
   organizationId: null,
 } as const;
 
-const WORKSPACE_NAME_MAX_LENGTH = 128;
+const PROJECT_NAME_MAX_LENGTH = 128;
 
 export function GlobalLayout() {
   const { t } = useTranslation(["account", "common"]);
@@ -45,39 +45,39 @@ export function GlobalLayout() {
   const { isSuperAdmin } = useCurrentUserProfile();
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
 
-  const handleEnterWorkspace = useCallback(
-    (workspace: { workspaceId: string; projectId: string }) => {
-      setCurrentWorkspaceId(workspace.workspaceId);
-      setCurrentProjectId(workspace.projectId);
-      void navigate({ to: projectHomePath(workspace.projectId) as never });
+  const handleEnterProject = useCallback(
+    (project: { workspaceId: string; projectId: string }) => {
+      setCurrentWorkspaceId(project.workspaceId);
+      setCurrentProjectId(project.projectId);
+      void navigate({ to: projectHomePath(project.projectId) as never });
     },
     [navigate, setCurrentProjectId, setCurrentWorkspaceId],
   );
 
-  const handleManageWorkspace = useCallback(
-    (workspace: { workspaceId: string; projectId: string }) => {
-      setCurrentWorkspaceId(workspace.workspaceId);
-      setCurrentProjectId(workspace.projectId);
-      void navigate({ to: `/projects/${workspace.projectId}/settings/general/` as never });
+  const handleManageProject = useCallback(
+    (project: { workspaceId: string; projectId: string }) => {
+      setCurrentWorkspaceId(project.workspaceId);
+      setCurrentProjectId(project.projectId);
+      void navigate({ to: `/projects/${project.projectId}/settings/general/` as never });
     },
     [navigate, setCurrentProjectId, setCurrentWorkspaceId],
   );
 
-  const workspaceMenuActions = useWorkspaceMenuActions({
-    organizationId: undefined,
+  const projectMenuActions = useProjectMenuActions({
+    workspaceId: undefined,
     t,
-    onEnterWorkspace: handleEnterWorkspace,
-    onManageWorkspace: handleManageWorkspace,
+    onEnterProject: handleEnterProject,
+    onManageProject: handleManageProject,
   });
 
-  const workspacesQuery = useQuery({
-    queryKey: ["global-nav", "workspaces", sessionVersion],
+  const projectsQuery = useQuery({
+    queryKey: ["global-nav", "projects", sessionVersion],
     enabled: Boolean(accessToken),
     queryFn: async () => {
-      const items = await listAllOrganizationWorkspaces({ archived: false });
+      const items = await listProjects({ archived: false, page: 1, size: 100 });
 
-      return items
-        .map(mapOrganizationWorkspaceToListItem)
+      return items.items
+        .map(mapProjectToListItem)
         .sort((left, right) => left.name.localeCompare(right.name));
     },
     staleTime: 30 * 1000,
@@ -85,40 +85,40 @@ export function GlobalLayout() {
     meta: { silent: true },
   });
 
-  const workspaceChildren = useMemo(
+  const projectChildren = useMemo(
     () =>
-      (workspacesQuery.data ?? []).map((workspace) => ({
-        key: `global.workspaces.${workspace.workspaceId}`,
-        label: workspace.name,
-        to: projectHomePath(workspace.projectId),
+      (projectsQuery.data ?? []).map((project) => ({
+        key: `global.projects.${project.projectId}`,
+        label: project.name,
+        to: projectHomePath(project.projectId),
         icon: PanelsTopLeft,
-        disabled: !workspace.enterable,
+        disabled: !project.enterable,
         renderLabel: () => (
-          <WorkspaceInlineNameEditor
+          <ProjectInlineNameEditor
             editing={
-              workspaceMenuActions.editingWorkspaceId === workspace.workspaceId &&
-              workspaceMenuActions.editingWorkspaceField === "name"
+              projectMenuActions.editingProjectId === project.projectId &&
+              projectMenuActions.editingProjectField === "name"
             }
-            value={workspace.name}
-            draftValue={workspaceMenuActions.editingWorkspaceName}
-            ariaLabel={t("common:ORG_WORKSPACES_RENAME_INPUT_LABEL")}
-            maxLength={WORKSPACE_NAME_MAX_LENGTH}
+            value={project.name}
+            draftValue={projectMenuActions.editingProjectName}
+            ariaLabel={t("account:ACCOUNT_PROJECTS_RENAME_INPUT_LABEL")}
+            maxLength={PROJECT_NAME_MAX_LENGTH}
             counterPlacement="suffix"
             className="block min-w-0 flex-1 truncate"
             containerClassName="min-w-0 flex-1"
             inputClassName="h-8 text-callout"
             counterClassName="right-2"
-            onDraftChange={workspaceMenuActions.setEditingWorkspaceName}
-            onCommit={() => void workspaceMenuActions.commitWorkspaceEdit(workspace, "name")}
-            onCancel={workspaceMenuActions.cancelWorkspaceEdit}
+            onDraftChange={projectMenuActions.setEditingProjectName}
+            onCommit={() => void projectMenuActions.commitProjectEdit(project, "name")}
+            onCancel={projectMenuActions.cancelProjectEdit}
           />
         ),
         actionRenderer: () => (
-          <WorkspaceActionsDropdown
-            menuItems={workspaceMenuActions
-              .buildMenuItems(workspace)
+          <ProjectActionsDropdown
+            menuItems={projectMenuActions
+              .buildMenuItems(project)
               .map((item) => {
-                if (item.type === "divider" || item.key !== "edit-workspace") {
+                if (item.type === "divider" || item.key !== "edit-project") {
                   return item;
                 }
 
@@ -134,7 +134,7 @@ export function GlobalLayout() {
                 item.type === "divider" ? true : (item.children?.length ?? 1) > 0,
               )}
             onPrepareMenu={() => {
-              void workspaceMenuActions.prefetchWorkspaceDangerCapabilities(workspace.workspaceId);
+              void projectMenuActions.prefetchProjectDangerCapabilities(project.projectId);
             }}
             buttonClassName="size-6 rounded-sm text-label-secondary opacity-0 transition-opacity duration-150 hover:bg-accent/70 hover:text-label-primary group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100"
           />
@@ -142,20 +142,20 @@ export function GlobalLayout() {
       })),
     [
       t,
-      workspaceMenuActions.buildMenuItems,
-      workspaceMenuActions.cancelWorkspaceEdit,
-      workspaceMenuActions.commitWorkspaceEdit,
-      workspaceMenuActions.editingWorkspaceField,
-      workspaceMenuActions.editingWorkspaceId,
-      workspaceMenuActions.editingWorkspaceName,
-      workspaceMenuActions.setEditingWorkspaceName,
-      workspacesQuery.data,
+      projectMenuActions.buildMenuItems,
+      projectMenuActions.cancelProjectEdit,
+      projectMenuActions.commitProjectEdit,
+      projectMenuActions.editingProjectField,
+      projectMenuActions.editingProjectId,
+      projectMenuActions.editingProjectName,
+      projectMenuActions.setEditingProjectName,
+      projectsQuery.data,
     ],
   );
 
   const navItems = useMemo(
-    () => resolveGlobalNavItems({ isSuperAdmin, workspaceChildren }),
-    [isSuperAdmin, workspaceChildren],
+    () => resolveGlobalNavItems({ isSuperAdmin, projectChildren }),
+    [isSuperAdmin, projectChildren],
   );
 
   if (contentOnlyMode) {
@@ -202,11 +202,11 @@ export function GlobalLayout() {
       sidebarCollapsible="icon"
     >
       <Outlet />
-      <WorkspaceActionDialogs
+      <ProjectActionDialogs
         t={t}
-        archiveDialog={workspaceMenuActions.archiveDialog}
-        deleteDialog={workspaceMenuActions.deleteDialog}
-        iconDialog={workspaceMenuActions.iconDialog}
+        archiveDialog={projectMenuActions.archiveDialog}
+        deleteDialog={projectMenuActions.deleteDialog}
+        iconDialog={projectMenuActions.iconDialog}
       />
     </AdminSceneLayout>
   );

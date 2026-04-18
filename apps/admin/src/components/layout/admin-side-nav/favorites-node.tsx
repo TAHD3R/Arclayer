@@ -464,7 +464,7 @@ function EmptyFavoritesCard() {
   const { t } = useTranslation("nav");
 
   return (
-    <div className="rounded-xl border border-dashed border-border/80 bg-card/30 px-4 py-5">
+    <div className="p-2">
       <div className="flex items-start gap-3">
         <FavoritesEmptyStateIllustration />
         <div className="min-w-0">

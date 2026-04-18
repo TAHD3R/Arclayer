@@ -3,24 +3,23 @@ import { describe, expect, test } from "vitest";
 import { GLOBAL_NAV_ITEMS, resolveGlobalNavItems } from "@/constants/menu/global";
 
 describe("global nav regression", () => {
-  test("registers billing and platform global groups", () => {
-    const billingItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.billing");
+  test("registers projects and platform global groups", () => {
+    const projectsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.projects");
     const platformItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.platform");
-    const billingChildren = billingItem?.children?.map((item) => item.key);
     const platformChildren = platformItem?.children?.map((item) => item.key);
     const configurationItem = platformItem?.children?.find(
       (item) => item.key === "global.platform.configuration",
     );
 
-    expect(billingItem).toMatchObject({
-      key: "global.billing",
-      label: "Billing & Subscription",
+    expect(projectsItem).toMatchObject({
+      key: "global.projects",
+      label: "Projects",
+      to: "/projects",
     });
     expect(platformItem).toMatchObject({
       key: "global.platform",
       label: "Platform",
     });
-    expect(billingChildren).toEqual(["global.billing.subscriptions", "global.billing.history"]);
     expect(platformChildren).toEqual([
       "global.platform.tenants",
       "global.platform.plans",
@@ -39,57 +38,53 @@ describe("global nav regression", () => {
     expect(configurationItem?.disabled).toBeUndefined();
   });
 
-  test("only exposes platform to super admins while keeping billing visible", () => {
+  test("only exposes platform to super admins while keeping projects visible", () => {
     const regularKeys = resolveGlobalNavItems({ isSuperAdmin: false }).map((item) => item.key);
     const superAdminItems = resolveGlobalNavItems({ isSuperAdmin: true });
     const superAdminKeys = superAdminItems.map((item) => item.key);
     const platformItem = superAdminItems.find((item) => item.key === "global.platform");
-    const billingItem = superAdminItems.find((item) => item.key === "global.billing");
+    const projectsItem = superAdminItems.find((item) => item.key === "global.projects");
 
-    expect(regularKeys).toContain("global.billing");
+    expect(regularKeys).toContain("global.projects");
     expect(regularKeys).not.toContain("global.platform");
-    expect(superAdminKeys).toContain("global.billing");
+    expect(superAdminKeys).toContain("global.projects");
     expect(superAdminKeys).toContain("global.platform");
-    expect(billingItem?.children?.map((item) => item.key)).toContain(
-      "global.billing.subscriptions",
-    );
+    expect(projectsItem?.to).toBe("/projects");
     expect(platformItem?.children?.map((item) => item.key)).toContain("global.platform.overview");
   });
 
   test("marks projects as a navigate-self-and-expand group", () => {
-    const workspacesItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.workspaces");
+    const projectsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.projects");
 
-    expect(workspacesItem).toMatchObject({
-      key: "global.workspaces",
+    expect(projectsItem).toMatchObject({
+      key: "global.projects",
       label: "Projects",
       to: "/projects",
       groupBehavior: "navigate-self-and-expand",
     });
   });
 
-  test("injects runtime workspace children under the global workspaces node", () => {
-    const workspacesItemTemplate = GLOBAL_NAV_ITEMS.find(
-      (item) => item.key === "global.workspaces",
-    );
+  test("injects runtime project children under the global projects node", () => {
+    const projectsItemTemplate = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.projects");
 
     const injectedItems = resolveGlobalNavItems({
       isSuperAdmin: false,
-      workspaceChildren: [
+      projectChildren: [
         {
-          key: "global.workspaces.ws-alpha",
+          key: "global.projects.project-alpha",
           label: "Alpha",
-          to: "/projects/ws-alpha",
-          icon: workspacesItemTemplate!.icon,
+          to: "/projects/project-alpha",
+          icon: projectsItemTemplate!.icon,
         },
       ],
     });
-    const workspacesItem = injectedItems.find((item) => item.key === "global.workspaces");
+    const projectsItem = injectedItems.find((item) => item.key === "global.projects");
 
-    expect(workspacesItem?.children).toHaveLength(1);
-    expect(workspacesItem?.children?.[0]).toMatchObject({
-      key: "global.workspaces.ws-alpha",
+    expect(projectsItem?.children).toHaveLength(1);
+    expect(projectsItem?.children?.[0]).toMatchObject({
+      key: "global.projects.project-alpha",
       label: "Alpha",
-      to: "/projects/ws-alpha",
+      to: "/projects/project-alpha",
     });
   });
 });

@@ -3,23 +3,22 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { WorkspacesPage } from "@/pages/usercenter/workspaces/page";
+import { ProjectsPage } from "@/pages/usercenter/projects/page";
 
 const translations = {
-  "account:ACCOUNT_PAGE_WORKSPACES_TITLE": "Workspaces",
-  "account:ACCOUNT_PAGE_WORKSPACES_DESC": "Manage your workspaces",
-  "common:ORG_WORKSPACES_CREATE_TEAM": "Create workspace",
-  "common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC":
-    "Create a workspace for collaboration, projects, and client work.",
-  "common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE": "No active workspaces",
-  "common:ORG_WORKSPACES_ACTIVE_EMPTY_DESC": "Create your first workspace",
-  "common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE": "No archived workspaces",
-  "common:ORG_WORKSPACES_ARCHIVED_EMPTY_DESC": "Archived workspaces will appear here",
+  "account:ACCOUNT_PAGE_PROJECTS_TITLE": "Projects",
+  "account:ACCOUNT_PAGE_PROJECTS_DESC": "Manage your projects",
+  "account:ACCOUNT_PROJECTS_CREATE_ACTION": "Create project",
+  "account:ACCOUNT_PROJECTS_CREATE_DESC": "Create a project for sites and publishing.",
+  "account:ACCOUNT_PROJECTS_EMPTY_TITLE": "No projects yet",
+  "account:ACCOUNT_PROJECTS_EMPTY_DESC": "Create your first project",
+  "account:ACCOUNT_PROJECTS_ARCHIVED_EMPTY_TITLE": "No archived projects",
+  "account:ACCOUNT_PROJECTS_ARCHIVED_EMPTY_DESC": "Archived projects will appear here",
 } as const;
 
 const useSearchMock = vi.fn();
 const useNavigateMock = vi.fn();
-const workspacesContentSectionMock = vi.fn();
+const projectsContentSectionMock = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
   useSearch: () => useSearchMock(),
@@ -80,42 +79,42 @@ vi.mock("@/stores/use-workspace-store", () => ({
   useWorkspaceStore: () => vi.fn(),
 }));
 
-vi.mock("@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs", () => ({
-  UserCenterWorkspacesDialogs: () => null,
+vi.mock("@/pages/usercenter/projects/components/usercenter-projects-dialogs", () => ({
+  UserCenterProjectsDialogs: () => null,
 }));
 
-vi.mock("@/pages/usercenter/workspaces/components/usercenter-workspaces-toolbar", () => ({
-  UserCenterWorkspacesToolbar: (props: { onViewModeChange: (mode: "card" | "table") => void }) => (
+vi.mock("@/pages/usercenter/projects/components/usercenter-projects-toolbar", () => ({
+  UserCenterProjectsToolbar: (props: { onViewModeChange: (mode: "card" | "table") => void }) => (
     <button type="button" onClick={() => props.onViewModeChange("table")}>
       Switch to table
     </button>
   ),
 }));
 
-vi.mock("@/pages/usercenter/workspaces/components/workspaces-table-section", () => ({
-  WorkspacesContentSection: (props: Record<string, unknown>) => {
-    workspacesContentSectionMock(props);
+vi.mock("@/pages/usercenter/projects/components/projects-content-section", () => ({
+  ProjectsContentSection: (props: Record<string, unknown>) => {
+    projectsContentSectionMock(props);
     return <div data-testid={`section-${props.archived ? "archived" : "active"}`} />;
   },
 }));
 
-vi.mock("@/pages/usercenter/workspaces/components/workspaces-columns", () => ({
-  useUserCenterWorkspacesColumns: () => [],
+vi.mock("@/pages/usercenter/projects/components/projects-columns", () => ({
+  useUserCenterProjectsColumns: () => [],
 }));
 
-vi.mock("@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions", () => ({
-  useWorkspaceMenuActions: () => ({
+vi.mock("@/pages/usercenter/projects/hooks/use-project-menu-actions", () => ({
+  useProjectMenuActions: () => ({
     buildMenuItems: () => [],
-    prefetchWorkspaceDangerCapabilities: vi.fn(),
-    editingWorkspaceId: null,
-    editingWorkspaceField: null,
-    editingWorkspaceName: "",
-    editingWorkspaceDescription: "",
-    setEditingWorkspaceName: vi.fn(),
-    setEditingWorkspaceDescription: vi.fn(),
-    commitWorkspaceEdit: vi.fn(),
-    cancelWorkspaceEdit: vi.fn(),
-    isWorkspaceEditNavigationSuppressed: false,
+    prefetchProjectDangerCapabilities: vi.fn(),
+    editingProjectId: null,
+    editingProjectField: null,
+    editingProjectName: "",
+    editingProjectDescription: "",
+    setEditingProjectName: vi.fn(),
+    setEditingProjectDescription: vi.fn(),
+    commitProjectEdit: vi.fn(),
+    cancelProjectEdit: vi.fn(),
+    isProjectEditNavigationSuppressed: false,
     mutations: {
       createMutation: {
         isPending: false,
@@ -123,14 +122,14 @@ vi.mock("@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions", () => 
       },
     },
     archiveDialog: {
-      workspace: null,
-      setWorkspace: vi.fn(),
+      project: null,
+      setProject: vi.fn(),
       pending: false,
       onConfirm: vi.fn(),
     },
     deleteDialog: {
-      workspace: null,
-      setWorkspace: vi.fn(),
+      project: null,
+      setProject: vi.fn(),
       confirmName: "",
       setConfirmName: vi.fn(),
       confirmMatches: false,
@@ -138,8 +137,8 @@ vi.mock("@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions", () => 
       onConfirm: vi.fn(),
     },
     iconDialog: {
-      workspace: null,
-      setWorkspace: vi.fn(),
+      project: null,
+      setProject: vi.fn(),
       values: {
         iconMode: "initials",
         iconColor: "#337ea9",
@@ -155,8 +154,8 @@ vi.mock("@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions", () => 
   }),
 }));
 
-vi.mock("@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-tables", () => ({
-  useUserCenterWorkspacesTables: () => ({
+vi.mock("@/pages/usercenter/projects/hooks/use-usercenter-projects-tables", () => ({
+  useUserCenterProjectsTables: () => ({
     activeTableId: "active-table",
     archivedTableId: "archived-table",
     activeTableHook: {
@@ -184,19 +183,19 @@ vi.mock("@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-tables", 
   }),
 }));
 
-describe("WorkspacesPage", () => {
+describe("ProjectsPage", () => {
   it("shows the header create action in table mode and keeps inline create affordances scoped to the active section", async () => {
     const user = userEvent.setup();
     useSearchMock.mockReturnValue({ create: undefined });
 
-    render(<WorkspacesPage />);
+    render(<ProjectsPage />);
 
-    expect(screen.queryByRole("button", { name: /create workspace/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create project/i })).not.toBeInTheDocument();
 
-    let activeProps = workspacesContentSectionMock.mock.calls
+    let activeProps = projectsContentSectionMock.mock.calls
       .map(([props]) => props)
       .find((props) => props.archived === false);
-    let archivedProps = workspacesContentSectionMock.mock.calls
+    let archivedProps = projectsContentSectionMock.mock.calls
       .map(([props]) => props)
       .find((props) => props.archived === true);
 
@@ -207,6 +206,6 @@ describe("WorkspacesPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Switch to table" }));
 
-    expect(screen.getByRole("button", { name: /create workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create project/i })).toBeInTheDocument();
   });
 });

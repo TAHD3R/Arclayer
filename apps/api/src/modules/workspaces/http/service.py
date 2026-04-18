@@ -29,6 +29,25 @@ async def _require_active_workspace(*, workspace_id: PublicUUID) -> Workspace:
     return ws
 
 
+async def resolve_workspace_context_by_id(*, workspace_id: PublicUUID, user_id: UUID) -> WorkspaceContext:
+    workspace = await _require_active_workspace(workspace_id=workspace_id)
+    organization_id = _resolve_workspace_org_id(workspace=workspace)
+
+    orgm = await _find_active_org_membership(organization_id=organization_id, user_id=user_id)
+    if orgm is None:
+        return await _resolve_guest_workspace_context(
+            workspace=workspace,
+            organization_id=organization_id,
+            user_id=user_id,
+        )
+    return await _resolve_member_workspace_context(
+        workspace=workspace,
+        organization_id=organization_id,
+        user_id=user_id,
+        orgm=orgm,
+    )
+
+
 def _resolve_workspace_org_id(*, workspace: Workspace) -> UUID:
     workspace_like = cast(HasOrganizationId, workspace)
     return UUID(str(workspace_like.organization_id))
@@ -165,23 +184,7 @@ async def get_workspace_context(
     user_id: UUID = Depends(get_current_user_id),
 ) -> WorkspaceContext:
     """Resolve workspace request context (member vs guest)."""
-
-    workspace = await _require_active_workspace(workspace_id=workspace_id)
-    organization_id = _resolve_workspace_org_id(workspace=workspace)
-
-    orgm = await _find_active_org_membership(organization_id=organization_id, user_id=user_id)
-    if orgm is None:
-        return await _resolve_guest_workspace_context(
-            workspace=workspace,
-            organization_id=organization_id,
-            user_id=user_id,
-        )
-    return await _resolve_member_workspace_context(
-        workspace=workspace,
-        organization_id=organization_id,
-        user_id=user_id,
-        orgm=orgm,
-    )
+    return await resolve_workspace_context_by_id(workspace_id=workspace_id, user_id=user_id)
 
 
 async def require_workspace_manage_access(
