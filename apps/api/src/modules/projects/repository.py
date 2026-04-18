@@ -10,7 +10,7 @@ from src.common.utils.slug import slugify
 from src.core.exceptions import Conflict, NotFound
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
-from src.models.projects.membership import ProjectMembership
+from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
@@ -162,6 +162,54 @@ class ProjectRepository(BaseRepository):
             is_active=True,
             created_by_user_id=actor_user_id,
         )
+
+    async def bootstrap_project_memberships(
+        self,
+        *,
+        project_id: UUID,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+    ) -> None:
+        existing = await ProjectMembership.filter(project_id=project_id).exists()
+        if existing:
+            return
+
+        workspace = await Workspace.get_or_none(id=workspace_id)
+        if workspace is None:
+            raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
+
+        workspace_user_ids = [
+            UUID(str(value))
+            for value in await WorkspaceMembership.filter(
+                workspace_id=workspace_id,
+                status=WorkspaceMembershipStatus.ACTIVE,
+            ).values_list("user_id", flat=True)
+            if value is not None
+        ]
+        if not workspace_user_ids:
+            return
+
+        owner_user_ids = {
+            UUID(str(value))
+            for value in await OrgMembership.filter(
+                organization_id=workspace.organization_id,
+                status="active",
+                role=OrgRole.OWNER,
+            ).values_list("user_id", flat=True)
+            if value is not None
+        }
+
+        rows = [
+            ProjectMembership(
+                project_id=project_id,
+                user_id=user_id,
+                role=ProjectMemberRole.OWNER if user_id in owner_user_ids else ProjectMemberRole.VIEWER,
+                created_by_user_id=actor_user_id,
+            )
+            for user_id in workspace_user_ids
+        ]
+        if rows:
+            await ProjectMembership.bulk_create(rows, ignore_conflicts=True)
 
     async def update_project(
         self,

@@ -22,6 +22,7 @@ from src.modules.projects.schema import (
     ProjectDangerCapabilitiesOut,
     ProjectDeleteResult,
     ProjectDetailOut,
+    ProjectListItemOut,
     ProjectListOut,
     ProjectSlugAvailabilityOut,
     ProjectUpdateRequest,
@@ -106,7 +107,7 @@ async def list_projects(
 
 @router.post(
     "/projects",
-    response_model=ResponseModel[ProjectDetailOut],
+    response_model=ResponseModel[ProjectListItemOut],
     status_code=status.HTTP_201_CREATED,
     summary="Create a project",
 )
@@ -115,18 +116,18 @@ async def create_project(
     user_id: UUID = Depends(get_current_user_id),
     ctx: WorkspaceContext = Depends(get_project_create_workspace_context),
     settings: Settings = Depends(get_settings),
-) -> ResponseModel[ProjectDetailOut]:
+) -> ResponseModel[ProjectListItemOut]:
     if ctx.workspace_id != payload.workspace_id:
         raise Forbidden("Workspace access denied", error="WORKSPACE_ACCESS_DENIED")
     ctx = await require_workspace_manage_access(ctx)
     await ensure_workspace_permission_granted("system:content:manage", user_id=user_id, ctx=ctx)
     service = ProjectService(settings)
-    detail = await service.create_project(
+    project = await service.create_project(
         workspace_id=ctx.workspace_id,
         payload=payload,
         actor_user_id=user_id,
     )
-    return ApiResponse.success(data=detail)
+    return ApiResponse.success(data=project)
 
 
 @router.get(

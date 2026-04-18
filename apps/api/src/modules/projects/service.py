@@ -99,7 +99,7 @@ class ProjectService(BaseService):
         workspace_id: UUID,
         payload: ProjectCreateRequest,
         actor_user_id: UUID,
-    ) -> ProjectDetailOut:
+    ) -> ProjectListItemOut:
         await self._require_workspace(workspace_id=workspace_id)
         project = await self.repo.create_project(
             workspace_id=workspace_id,
@@ -108,11 +108,24 @@ class ProjectService(BaseService):
             description=(payload.description or "").strip() or None,
             actor_user_id=actor_user_id,
         )
+        await self.repo.bootstrap_project_memberships(
+            project_id=UUID(str(project.id)),
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+        )
         workspace = await Workspace.get(id=workspace_id)
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
-        return ProjectDetailOut(
-            project=self._build_project_out(project=project, workspace=workspace),
+        memberships = await self.repo.list_project_memberships(project_ids=[UUID(str(project.id))])
+        members_preview = [self._build_member_preview(user=membership.user) for membership in memberships[:3]]
+        return ProjectListItemOut(
+            **self._build_project_out(project=project, workspace=workspace).model_dump(),
             primary_runtime=ProjectRuntimeOut.model_validate(runtime) if runtime is not None else None,
+            member_count=len(memberships),
+            members_preview=members_preview,
+            archived_at=None,
+            archived_by_user_id=None,
+            created_at=project.created_at,
+            enterable=True,
         )
 
     async def update_project(

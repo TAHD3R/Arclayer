@@ -54,11 +54,15 @@ export function useUserCenterProjectsMutations(options: UseUserCenterProjectsMut
   const tableScope = workspaceId ? `workspace:${workspaceId}` : "all";
   const activeTableKey = ["dataTable", `projects-active:${tableScope}`] as const;
   const archivedTableKey = ["dataTable", `projects-archived:${tableScope}`] as const;
+  const cardsKeyPrefix = ["projects-cards"] as const;
+  const globalNavProjectsKey = ["global-nav", "projects"] as const;
 
   const invalidateProjectTables = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: activeTableKey }),
       queryClient.invalidateQueries({ queryKey: archivedTableKey }),
+      queryClient.invalidateQueries({ queryKey: cardsKeyPrefix }),
+      queryClient.invalidateQueries({ queryKey: globalNavProjectsKey }),
     ]);
   };
 

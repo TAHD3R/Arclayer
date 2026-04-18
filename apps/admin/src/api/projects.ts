@@ -35,8 +35,8 @@ export async function listProjects(
   return api.get<PageData<ProjectListItem>>(`/projects${query}`);
 }
 
-export async function createProject(payload: ProjectCreateInput): Promise<ProjectDetail> {
-  return api.post<ProjectDetail>("/projects", payload);
+export async function createProject(payload: ProjectCreateInput): Promise<ProjectListItem> {
+  return api.post<ProjectListItem>("/projects", payload);
 }
 
 export async function patchProject(
