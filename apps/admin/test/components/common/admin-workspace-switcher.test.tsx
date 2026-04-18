@@ -198,6 +198,7 @@ beforeEach(() => {
     currentWorkspaceId: "ws-alpha",
     currentProjectId: "project-alpha",
     lastWorkspaceId: "ws-alpha",
+    lastProjectId: "project-alpha",
   });
 
   vi.mocked(listMyWorkspaces).mockResolvedValue(createWorkspaceListResult());
@@ -333,6 +334,24 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       expect(avatar).toHaveClass("rounded-md");
       expect(avatar).toHaveStyle({ width: "28px", height: "28px" });
     });
+  });
+
+  it("global scope: trigger uses the last selected workspace", async () => {
+    mockPathname = "/projects";
+    useWorkspaceStore.setState({
+      currentWorkspaceId: null,
+      currentProjectId: null,
+      lastWorkspaceId: "ws-alpha",
+      lastProjectId: "project-alpha",
+    });
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher variant="header" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Workspace Alpha")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Select workspace")).not.toBeInTheDocument();
+    expect(getWorkspaceDetail).toHaveBeenCalledWith("ws-alpha");
   });
 
   it("workspace scope: opening panel shows team workspaces only", async () => {
@@ -500,15 +519,25 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Workspace settings/ }));
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({
-        to: "/projects/project-alpha/settings/general/",
+      const navigation = navigateMock.mock.calls.at(-1)?.[0];
+      expect(navigation.to).toBe("/projects/project-alpha/assets");
+      expect(navigation.mask).toEqual({ to: "/settings/workspace/general" });
+      expect(navigation.search({ q: "demo" })).toEqual({
+        q: "demo",
+        personalSettings: "workspace-general",
       });
     });
 
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Invite members/ }));
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/settings/workspace/members" });
+      const navigation = navigateMock.mock.calls.at(-1)?.[0];
+      expect(navigation.to).toBe("/projects/project-alpha/assets");
+      expect(navigation.mask).toEqual({ to: "/settings/workspace/members" });
+      expect(navigation.search({ q: "demo" })).toEqual({
+        q: "demo",
+        personalSettings: "workspace-members",
+      });
     });
 
     await user.click(trigger);

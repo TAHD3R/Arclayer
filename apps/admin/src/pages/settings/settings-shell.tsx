@@ -24,8 +24,8 @@ import { SETTINGS_NAV_ITEMS } from "@/constants/menu/settings";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import {
   buildUsercenterOverlayPath,
-  resolveUsercenterOverlayTabFromPath,
-  type UsercenterOverlayTab,
+  resolveSettingsOverlayTabFromPath,
+  type SettingsOverlayTab,
 } from "@/lib/routing/usercenter-overlay";
 import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
@@ -34,7 +34,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 
 type SettingsFrameProps = {
   activePath: string;
-  activeTab: UsercenterOverlayTab;
+  activeTab: SettingsOverlayTab;
   children: ReactNode;
   onClose?: () => void;
   onSelectItem?: (item: AdminNavItem) => void;
@@ -249,6 +249,6 @@ export function SettingsRouteBridge() {
   return null;
 }
 
-export function resolveSettingsFrameTab(pathname: string): UsercenterOverlayTab {
-  return resolveUsercenterOverlayTabFromPath(pathname) ?? "profile";
+export function resolveSettingsFrameTab(pathname: string): SettingsOverlayTab {
+  return resolveSettingsOverlayTabFromPath(pathname) ?? "profile";
 }

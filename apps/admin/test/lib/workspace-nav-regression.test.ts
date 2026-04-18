@@ -36,6 +36,7 @@ describe("workspace nav regression", () => {
       "/content/library",
       "/settings/general",
       "/activity",
+      "/settings/members",
       "/settings/workspace/general",
     ]);
   });
@@ -61,6 +62,7 @@ describe("workspace nav regression", () => {
       "apps",
       "automations",
       "activity",
+      "settings.project",
       "settings.workspace",
     ]);
 
@@ -74,7 +76,7 @@ describe("workspace nav regression", () => {
 
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "website")?.children?.map((item) => item.key),
-    ).toEqual(["assets", "content.models", "content.library", "settings.project"]);
+    ).toEqual(["assets", "content.models", "content.library", "settings.site"]);
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "marketing")?.children?.every(
         (item) => item.disabled,
@@ -114,6 +116,7 @@ describe("workspace nav regression", () => {
       "apps",
       "automations",
       "activity",
+      "settings.project",
       "settings.workspace",
     ]);
     expect(listWorkspaceNavTargets(workspaceNav)).toContain("/settings/general");

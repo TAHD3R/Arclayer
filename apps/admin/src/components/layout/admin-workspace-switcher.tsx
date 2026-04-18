@@ -21,6 +21,7 @@ import {
   type WorkspaceAvatarIdentity,
 } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
+import { buildUsercenterOverlayNavigate } from "@/lib/routing/usercenter-overlay";
 import { projectsHomePath, switchWorkspacePath } from "@/lib/routing/workspace-routing";
 import { createNameSeedWorkspaceSlugState } from "@/lib/workspace-slug";
 import {
@@ -438,6 +439,8 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
+  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
+  const lastProjectId = useWorkspaceStore((state) => state.lastProjectId);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -462,7 +465,22 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
   const pickerWorkspaces = teamWorkspaces;
   const hasWorkspaceItems = pickerWorkspaces.length > 0;
 
-  const currentProjectBase = currentProjectId ? `/projects/${currentProjectId}` : null;
+  const effectiveWorkspaceId =
+    currentWorkspaceId ??
+    (lastWorkspaceId &&
+    pickerWorkspaces.some((workspace) => String(workspace.workspaceId) === String(lastWorkspaceId))
+      ? lastWorkspaceId
+      : null) ??
+    pickerWorkspaces[0]?.workspaceId ??
+    null;
+  const effectiveProjectId =
+    currentProjectId ??
+    (effectiveWorkspaceId
+      ? (pickerWorkspaces.find(
+          (workspace) => String(workspace.workspaceId) === String(effectiveWorkspaceId),
+        )?.projectId ?? null)
+      : null) ??
+    lastProjectId;
   const divider = <div className="mx-3 h-px bg-border/45" />;
 
   return (
@@ -478,7 +496,7 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
               <WorkspacePickerSection
                 title={null}
                 workspaces={pickerWorkspaces}
-                activeWorkspaceId={currentWorkspaceId}
+                activeWorkspaceId={effectiveWorkspaceId}
                 onSelect={(workspace) => {
                   closeFloatingPanel();
                   setCurrentWorkspaceId(workspace.workspaceId);
@@ -502,22 +520,40 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
         <WorkspaceActionButton
           icon={<Settings2 className="h-4 w-4" aria-hidden="true" />}
           text={t("common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS")}
-          disabled={!currentProjectBase}
+          disabled={!effectiveWorkspaceId}
           onClick={() => {
-            if (!currentProjectBase) return;
+            if (!effectiveWorkspaceId) return;
+            if (effectiveProjectId) {
+              setCurrentProjectId(effectiveProjectId);
+            }
+            setCurrentWorkspaceId(effectiveWorkspaceId);
             closeFloatingPanel();
-            void navigate({ to: `${currentProjectBase}/settings/general/` as never });
+            void navigate(
+              buildUsercenterOverlayNavigate({
+                currentLocation: { pathname, hash: "" },
+                tab: "workspace-general",
+              }),
+            );
           }}
         />
-        {currentProjectBase ? (
+        {effectiveWorkspaceId ? (
           <WorkspaceActionButton
             icon={<Users className="h-4 w-4" aria-hidden="true" />}
             text={t("team:TEAM_INVITE_MEMBER")}
-            disabled={!currentProjectBase}
+            disabled={!effectiveWorkspaceId}
             onClick={() => {
-              if (!currentProjectBase) return;
+              if (!effectiveWorkspaceId) return;
+              if (effectiveProjectId) {
+                setCurrentProjectId(effectiveProjectId);
+              }
+              setCurrentWorkspaceId(effectiveWorkspaceId);
               closeFloatingPanel();
-              void navigate({ to: "/settings/workspace/members" as never });
+              void navigate(
+                buildUsercenterOverlayNavigate({
+                  currentLocation: { pathname, hash: "" },
+                  tab: "workspace-members",
+                }),
+              );
             }}
           />
         ) : null}
@@ -647,6 +683,7 @@ export function AdminWorkspaceSwitcher({
   const { t } = useTranslation(["common"]);
   const accessToken = useAuthStore((state) => state.accessToken);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
   const [createOpen, setCreateOpen] = useState(false);
   const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>(() => {
     const initialSlugState = createNameSeedWorkspaceSlugState("");
@@ -669,9 +706,9 @@ export function AdminWorkspaceSwitcher({
   });
 
   const workspaceDetailQuery = useQuery({
-    queryKey: ["workspace", "detail", currentWorkspaceId, sessionVersion],
-    enabled: Boolean(accessToken && currentWorkspaceId),
-    queryFn: async () => getWorkspaceDetail(String(currentWorkspaceId)),
+    queryKey: ["workspace", "detail", currentWorkspaceId ?? lastWorkspaceId, sessionVersion],
+    enabled: Boolean(accessToken && (currentWorkspaceId || lastWorkspaceId)),
+    queryFn: async () => getWorkspaceDetail(String(currentWorkspaceId ?? lastWorkspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },

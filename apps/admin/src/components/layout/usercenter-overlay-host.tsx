@@ -3,7 +3,8 @@ import { useNavigate, useRouter, useRouterState, useSearch } from "@tanstack/rea
 
 import {
   buildUsercenterOverlayNavigate,
-  isUsercenterOverlayTab,
+  isSettingsOverlayTab,
+  resolveSettingsOverlayTabFromPath,
 } from "@/lib/routing/usercenter-overlay";
 import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
@@ -51,7 +52,7 @@ export function UsercenterOverlayHost() {
 
   const handleTabChange = useCallback(
     (nextValue: string) => {
-      if (!isUsercenterOverlayTab(nextValue)) return;
+      if (!isSettingsOverlayTab(nextValue)) return;
       void navigate(
         buildUsercenterOverlayNavigate({
           currentLocation: location,
@@ -65,8 +66,8 @@ export function UsercenterOverlayHost() {
 
   const handleItemSelect = useCallback(
     (item: AdminNavItem) => {
-      const nextTab = item.to ? item.to.replace(/\/+$/, "").split("/").at(-1) : null;
-      if (!isUsercenterOverlayTab(nextTab)) return;
+      const nextTab = item.to ? resolveSettingsOverlayTabFromPath(item.to) : null;
+      if (!nextTab) return;
       handleTabChange(nextTab);
     },
     [handleTabChange],

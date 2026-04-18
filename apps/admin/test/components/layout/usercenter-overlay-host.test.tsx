@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UsercenterOverlayHost } from "@/components/layout/usercenter-overlay-host";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const historyBackMock = vi.fn();
@@ -44,6 +45,33 @@ vi.mock("@/pages/usercenter/notifications/components/user-notification-settings-
   ),
 }));
 
+vi.mock(
+  "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view",
+  () => ({
+    WorkspaceSettingsBasicsView: ({ workspaceId }: { workspaceId: string }) => (
+      <div data-testid="overlay-workspace-general-view">{workspaceId}</div>
+    ),
+  }),
+);
+
+vi.mock("@/pages/workspaces/team/members/components/team-members-view", () => ({
+  TeamMembersView: ({ workspaceIdOverride }: { workspaceIdOverride: string }) => (
+    <div data-testid="overlay-workspace-members-view">{workspaceIdOverride}</div>
+  ),
+}));
+
+vi.mock("@/pages/workspaces/team/invitations/page", () => ({
+  TeamInvitationsPage: ({ workspaceIdOverride }: { workspaceIdOverride: string }) => (
+    <div data-testid="overlay-workspace-invitations-view">{workspaceIdOverride}</div>
+  ),
+}));
+
+vi.mock("@/pages/workspaces/team/roles/page", () => ({
+  TeamRolesPage: ({ workspaceIdOverride }: { workspaceIdOverride: string }) => (
+    <div data-testid="overlay-workspace-roles-view">{workspaceIdOverride}</div>
+  ),
+}));
+
 function renderOverlayHost() {
   return render(<UsercenterOverlayHost />);
 }
@@ -56,6 +84,12 @@ describe("UsercenterOverlayHost", () => {
     routerState.pathname = "/w/ws-1/assets";
     routerState.hash = "#gallery";
     window.history.replaceState({ __TSR_index: 1 }, "");
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "ws-alpha",
+      currentProjectId: "project-alpha",
+      lastWorkspaceId: "ws-alpha",
+      lastProjectId: "project-alpha",
+    });
   });
 
   it("renders the shared settings frame inside the overlay chrome", () => {
@@ -113,6 +147,28 @@ describe("UsercenterOverlayHost", () => {
     });
   });
 
+  it("switches to workspace settings sections inside the same overlay", async () => {
+    const user = userEvent.setup();
+    overlaySearch.personalSettings = "workspace-general";
+    renderOverlayHost();
+
+    expect(screen.getByTestId("overlay-workspace-general-view")).toHaveTextContent("ws-alpha");
+
+    await user.click(
+      screen.getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_MEMBERS" }),
+    );
+
+    const navigation = navigateMock.mock.calls.at(-1)?.[0];
+    expect(navigation.to).toBe("/w/ws-1/assets");
+    expect(navigation.hash).toBe("#gallery");
+    expect(navigation.replace).toBe(true);
+    expect(navigation.mask).toEqual({ to: "/settings/workspace/members" });
+    expect(navigation.search({ assetId: "asset-1" })).toEqual({
+      assetId: "asset-1",
+      personalSettings: "workspace-members",
+    });
+  });
+
   it("mounts a dedicated internal scroll region for overlay content", () => {
     renderOverlayHost();
 
@@ -136,6 +192,12 @@ describe("UsercenterOverlayHost", () => {
   it("falls back to the root route when there is no history entry to go back to", async () => {
     const user = userEvent.setup();
     window.history.replaceState({ __TSR_index: 0 }, "");
+    useWorkspaceStore.setState({
+      currentWorkspaceId: null,
+      currentProjectId: null,
+      lastWorkspaceId: null,
+      lastProjectId: null,
+    });
     renderOverlayHost();
 
     await user.click(screen.getByRole("button", { name: "Close" }));
