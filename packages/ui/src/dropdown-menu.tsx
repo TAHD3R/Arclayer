@@ -54,7 +54,7 @@ function DropdownMenuContent({ sideOffset = 4, className, ...props }: DropdownMe
     <DropdownMenuContentPrimitive
       sideOffset={sideOffset}
       className={cn(
-        "bg-popover text-popover-foreground flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col overflow-hidden rounded-md border p-1  outline-none",
+        "bg-popover text-popover-foreground flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col overflow-hidden rounded-md border p-2  outline-none",
         DROPDOWN_MENU_LAYER_Z_INDEX_CLASSNAME,
         className,
       )}

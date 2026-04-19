@@ -384,7 +384,6 @@ export function ActivityFilterPopover(props: {
         trigger={
           <Button variant="outline">
             <ListFilterIcon className="size-4" />
-            {t("activity:ACTIVITY_FILTER_TITLE")}
           </Button>
         }
       />

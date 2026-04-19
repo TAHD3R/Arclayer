@@ -13,7 +13,6 @@ import { ArrowLeftIcon } from "lucide-react";
 import { AnimatePresence, motion, MotionConfig, type Variants } from "motion/react";
 
 import { cn } from "@arclayer/lib/utils";
-import { useAdaptiveOverlayBackdropClassName } from "./adaptive-overlay-backdrop";
 import {
   focusInitialFloatingPanelTarget,
   trapFocusWithinFloatingPanel,
@@ -243,7 +242,6 @@ export function FloatingPanelContent({
     useFloatingPanel();
   const contentRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
-  const backdropClassName = useAdaptiveOverlayBackdropClassName();
   const computePosition = useCallback(() => {
     if (!isOpen) return;
 
@@ -380,7 +378,7 @@ export function FloatingPanelContent({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={cn("fixed inset-0 z-40 pointer-events-auto", backdropClassName)}
+            className={cn("fixed inset-0 z-40 pointer-events-auto")}
           />
           <motion.div
             ref={contentRef}

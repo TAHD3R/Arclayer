@@ -1275,7 +1275,7 @@ export function Filters<T = unknown>({
   size = "default",
   radius = "default",
   i18n,
-  showSearchInput = true,
+  showSearchInput = false,
   trigger,
   allowMultiple = true,
   menuPopupClassName,

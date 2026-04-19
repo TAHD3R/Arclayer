@@ -137,7 +137,8 @@ function buildAssetsTableColumns(params: {
     {
       id: "purpose",
       accessorKey: "purpose",
-      meta: { title: t("assets:ASSET_META_PURPOSE"), kind: "meta" },
+
+      meta: { title: t("assets:ASSET_META_PURPOSE"), defaultHidden: true, kind: "meta" },
       header: t("assets:ASSET_META_PURPOSE"),
       cell: ({ row }) => <AssetPurposeCell asset={row.original} t={t} />,
       size: 150,

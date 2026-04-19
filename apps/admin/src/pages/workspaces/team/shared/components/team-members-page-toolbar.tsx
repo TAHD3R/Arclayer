@@ -233,7 +233,6 @@ export function TeamMembersPageToolbar<TData>({
             trigger={
               <Button variant="outline" disabled={rolesLoading}>
                 <ListFilterIcon className="size-4" />
-                {t("team:TEAM_FILTER_TITLE")}
               </Button>
             }
           />

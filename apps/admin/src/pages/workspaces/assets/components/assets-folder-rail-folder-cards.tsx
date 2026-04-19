@@ -51,14 +51,7 @@ function FolderGlyph(props: { large?: boolean; withPlus?: boolean; className?: s
 
 function FolderMetaLine(props: { label: string }) {
   return (
-    <div className="relative mt-auto flex min-w-0 items-center gap-1.5 pt-3 text-caption text-label-tertiary xl:gap-2 xl:pt-4">
-      <svg viewBox="0 0 20 20" className="size-3.5 shrink-0 stroke-current fill-none xl:size-4">
-        <path
-          d="M3.5 6.5h4l1.4-2h7.6a1.5 1.5 0 0 1 1.5 1.5v7.5A1.5 1.5 0 0 1 16.5 15h-13A1.5 1.5 0 0 1 2 13.5V8a1.5 1.5 0 0 1 1.5-1.5Z"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
+    <div className="relative mt-auto flex min-w-0 items-center gap-1.5 pt-2 text-caption text-label-tertiary xl:gap-2">
       <span className="truncate">{props.label}</span>
     </div>
   );

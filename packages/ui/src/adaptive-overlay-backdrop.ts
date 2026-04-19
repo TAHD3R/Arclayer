@@ -19,8 +19,7 @@ type AdaptiveOverlayBackdropEnvironment = {
 
 const LOW_END_DEVICE_MEMORY_GB = 4;
 const LOW_END_CPU_CORES = 4;
-export const SUBTLE_OVERLAY_BACKDROP_CLASSNAME =
-  "bg-black/44 supports-[backdrop-filter]:backdrop-blur-md dark:bg-black/56";
+export const SUBTLE_OVERLAY_BACKDROP_CLASSNAME = "bg-black/44  dark:bg-black/56";
 export const STRONG_OVERLAY_BACKDROP_CLASSNAME = "bg-black/58 dark:bg-black/68";
 
 function readAdaptiveOverlayBackdropEnvironment(

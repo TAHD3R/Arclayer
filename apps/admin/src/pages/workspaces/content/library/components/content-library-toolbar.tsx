@@ -541,7 +541,6 @@ export function ContentLibraryToolbar<TData>(props: {
               trigger={
                 <Button variant="outline">
                   <ListFilterIcon className="size-4" />
-                  {t("content:CONTENT_LIBRARY_FILTER_TITLE")}
                 </Button>
               }
             />

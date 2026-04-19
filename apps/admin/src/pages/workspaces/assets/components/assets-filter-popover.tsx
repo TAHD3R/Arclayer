@@ -230,7 +230,6 @@ export function AssetsFilterPopover(props: {
         trigger={
           <Button variant="outline" disabled={props.tagsLoading && props.tags.length === 0}>
             <ListFilterIcon className="size-4" />
-            {t("assets:ASSET_FILTER_TITLE")}
           </Button>
         }
       />

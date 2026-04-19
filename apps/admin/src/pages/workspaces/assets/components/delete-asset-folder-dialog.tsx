@@ -1,4 +1,3 @@
-import { FolderInput, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -163,11 +162,6 @@ export function DeleteAssetFolderDialog(props: DeleteAssetFolderDialogProps) {
                 props.onOpenChange(false);
               }}
             >
-              {strategy === "folder" ? (
-                <FolderInput className="size-4" aria-hidden="true" />
-              ) : (
-                <Trash2 className="size-4" aria-hidden="true" />
-              )}
               {t("assets:ASSET_FOLDER_DELETE_CONFIRM")}
             </Button>
           </AlertDialogActionPrimitive>

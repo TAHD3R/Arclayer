@@ -8,10 +8,8 @@ import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuIconItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 
@@ -20,7 +18,8 @@ import {
   buildFolderPath,
   flattenFoldersDepthFirst,
 } from "./assets-folder-rail-utils";
-import { FolderAddCard, FolderCard, FolderCardSkeleton } from "./assets-folder-rail-folder-cards";
+import { AssetsFolderRailEmptyCard } from "./assets-folder-rail-empty-card";
+import { FolderCard, FolderCardSkeleton } from "./assets-folder-rail-folder-cards";
 import { toFolderDndId } from "./assets-view-dnd";
 
 type AssetsFolderRailFolderSectionProps = {
@@ -49,9 +48,6 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
   const canManageAssets = props.canManageAssets !== false;
   const folderById = useMemo(() => buildFolderById(props.folders), [props.folders]);
   const orderedFolders = useMemo(() => flattenFoldersDepthFirst(props.folders), [props.folders]);
-  const currentFolder = props.currentFolderId
-    ? (folderById.get(props.currentFolderId) ?? null)
-    : null;
   const gridClassName = layoutMode === "single" ? "grid-cols-1" : "grid-cols-2";
 
   return (
@@ -60,34 +56,37 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
         <div className="text-title3 text-label-primary">
           {props.t("assets:ASSET_FOLDER_PANEL_TITLE")}
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={props.t("common:MORE")}>
-              <EllipsisVertical className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuRadioGroup
-              value={layoutMode}
-              onValueChange={(value) => setLayoutMode(value === "single" ? "single" : "multi")}
-            >
-              <DropdownMenuRadioItem value="single">
-                {props.t("assets:ASSET_FOLDER_LAYOUT_SINGLE")}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="multi">
-                {props.t("assets:ASSET_FOLDER_LAYOUT_MULTI")}
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuIconItem
-              icon={<FolderPlus className="size-4" />}
-              disabled={!canManageAssets}
-              onSelect={() => props.onCreateFolder(currentFolder ? String(currentFolder.id) : null)}
-            >
-              {props.t("assets:ASSET_ACTION_CREATE_FOLDER")}
-            </DropdownMenuIconItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={props.t("assets:ASSET_ACTION_CREATE_FOLDER")}
+            disabled={!canManageAssets}
+            onClick={() => props.onCreateFolder(props.currentFolderId)}
+          >
+            <FolderPlus className="size-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={props.t("common:MORE")}>
+                <EllipsisVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={layoutMode}
+                onValueChange={(value) => setLayoutMode(value === "single" ? "single" : "multi")}
+              >
+                <DropdownMenuRadioItem value="single">
+                  {props.t("assets:ASSET_FOLDER_LAYOUT_SINGLE")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="multi">
+                  {props.t("assets:ASSET_FOLDER_LAYOUT_MULTI")}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {props.foldersLoading ? (
@@ -112,16 +111,11 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
       ) : null}
 
       {!props.foldersLoading && !props.foldersError && orderedFolders.length === 0 ? (
-        <div className={cn("grid gap-3", gridClassName)}>
-          <FolderAddCard
-            t={props.t}
-            currentFolder={null}
-            onCreateFolder={props.onCreateFolder}
-            isDraggingAssets={props.isDraggingAssets}
-            layoutMode={layoutMode}
-            disabled={!canManageAssets}
-          />
-        </div>
+        <AssetsFolderRailEmptyCard
+          title={props.t("assets:ASSET_FOLDER_PANEL_EMPTY")}
+          description={props.t("assets:ASSET_FOLDER_PANEL_EMPTY_DESC")}
+          icon={<FolderPlus className="size-5" />}
+        />
       ) : null}
 
       {!props.foldersLoading && !props.foldersError && orderedFolders.length > 0 ? (
@@ -159,14 +153,6 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
               />
             );
           })}
-          <FolderAddCard
-            t={props.t}
-            currentFolder={currentFolder}
-            onCreateFolder={props.onCreateFolder}
-            isDraggingAssets={props.isDraggingAssets}
-            layoutMode={layoutMode}
-            disabled={!canManageAssets}
-          />
         </div>
       ) : null}
     </section>

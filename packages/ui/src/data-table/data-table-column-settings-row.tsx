@@ -50,10 +50,10 @@ function VisibilityToggle(props: {
       aria-pressed={props.visible}
       disabled={props.disabled}
       className={cn(
-        "flex size-7 shrink-0 items-center justify-center rounded-md border transition-colors",
+        "flex size-7 shrink-0 items-center justify-center rounded-md  transition-colors",
         props.visible
-          ? "border-border/60 bg-accent/20 text-label-primary"
-          : "border-transparent text-label-secondary hover:border-border/50 hover:bg-accent/12 hover:text-label-primary",
+          ? "hover:bg-accent text-label-primary"
+          : "border-transparent text-label-secondary hover:border-border/50 hover:bg-accent hover:text-label-primary",
         props.disabled ? "pointer-events-none opacity-35" : "",
       )}
       onClick={props.onToggle}

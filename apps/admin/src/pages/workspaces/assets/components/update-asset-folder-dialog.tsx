@@ -1,4 +1,3 @@
-import { Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -67,7 +66,6 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
               props.onOpenChange(false);
             }}
           >
-            <Save className="size-4" aria-hidden="true" />
             {t("common:CONFIRM")}
           </Button>
         </>

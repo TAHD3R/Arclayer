@@ -390,11 +390,11 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             }}
             createFolderOpen={createFolderOpen}
             setCreateFolderOpen={setCreateFolderDialogOpen}
+            createFolderInitialParentId={createFolderParentId ?? currentFolderId}
             createParentLabel={createParentLabel}
             createFolderPending={createFolderMutation.isPending}
             createFolderAssetCount={createFolderSeedAssetCount}
-            onCreateFolder={async (name, description) => {
-              const parentId = createFolderParentId ?? currentFolderId;
+            onCreateFolder={async ({ name, description, parentId }) => {
               const nextFolder = await createFolderMutation.mutateAsync({
                 name,
                 parentId,
