@@ -408,7 +408,7 @@ export function SystemSettingsEmailPage() {
           </SettingActionGroup>
         </SettingPanel>
 
-        <section className="space-y-3 rounded-2xl border border-border bg-card p-5">
+        <section className="space-y-3">
           <header className="space-y-1">
             <h2 className="text-title2 font-bold">
               {t("settings:SETTINGS_MESSAGING_MAIL_TEST_TITLE")}
