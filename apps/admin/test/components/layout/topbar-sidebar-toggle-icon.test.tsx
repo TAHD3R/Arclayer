@@ -247,6 +247,57 @@ describe("topbar sidebar toggle icon", () => {
     expect(toggleButton.className).toContain("md:hidden");
   });
 
+  it("AdminTopbar 在常驻 sidebar toggle 模式下使用 collapsed sidebar 宽度", async () => {
+    await setPathname("/projects/ws-1");
+
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "workspace",
+          pathname: "/projects/ws-1",
+          workspaceId: "ws-1",
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+        sidebarToggleMode="always"
+      />,
+    );
+
+    const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
+    expect(toggleButton).toHaveAttribute("data-variant", "ghost");
+    expect(toggleButton).toHaveAttribute("data-size", "icon-lg");
+    expect(Array.from(toggleButton.classList)).not.toContain("border-r");
+    expect(toggleButton.className).not.toContain("md:hidden");
+    expect(toggleButton.closest(".grid")).toHaveClass("p-2");
+  });
+
+  it("AdminTopbar 将 command trigger 宽度收窄", async () => {
+    await setPathname("/projects/ws-1");
+
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "workspace",
+          pathname: "/projects/ws-1",
+          workspaceId: "ws-1",
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    const commandShell = screen.getByTestId("command-trigger").parentElement;
+    expect(commandShell).toHaveClass("max-w-[24rem]");
+  });
+
   it("UserCenterTopbar 使用 lucide-react 的静态 Menu icon", () => {
     renderWithSidebar(
       <UserCenterTopbar

@@ -124,6 +124,53 @@ describe("AdminSidebarShell", () => {
     expect(screen.queryByRole("button", { name: "Toggle sidebar" })).toBeNull();
   });
 
+  it("keeps the expanded visual tree through the desktop collapse width transition", () => {
+    vi.useFakeTimers();
+
+    try {
+      const view = renderWithSidebar(
+        <AdminSidebarShell
+          showNavSkeleton={false}
+          showOrgNavErrorOverlay={false}
+          mainItems={[]}
+          collapsible="icon"
+        />,
+      );
+
+      const sidebar = view.container.querySelector<HTMLElement>('[data-slot="sidebar"]');
+      const rail = screen.getByRole("button", { name: "Toggle sidebar" });
+
+      expect(sidebar).not.toBeNull();
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-layout-state", "expanded");
+
+      act(() => {
+        fireEvent.click(rail);
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
+      expect(sidebar).toHaveAttribute("data-collapsible", "");
+
+      act(() => {
+        vi.advanceTimersByTime(249);
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-collapsible", "icon");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("temporarily expands a collapsed desktop sidebar after the hover threshold and collapses after the leave delay", () => {
     vi.useFakeTimers();
 
@@ -192,9 +239,23 @@ describe("AdminSidebarShell", () => {
       expect(sidebar).toHaveAttribute("data-state", "expanded");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "true");
 
       act(() => {
         vi.advanceTimersByTime(40);
+      });
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "");
+      expect(sidebar).toHaveAttribute("data-collapsible", "");
+
+      act(() => {
+        vi.advanceTimersByTime(249);
+      });
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+
+      act(() => {
+        vi.advanceTimersByTime(1);
       });
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");

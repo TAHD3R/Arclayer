@@ -174,6 +174,7 @@ describe("GlobalLayout", () => {
       "data-sidebar-collapsible",
       "icon",
     );
+    expect(topbarSpy.mock.calls[0]?.[0]?.sidebarToggleMode).toBe("always");
   });
 
   it("keeps projects visible while hiding platform from non-super-admin global navigation", () => {

@@ -100,17 +100,7 @@ function NavGroupMarker(props: { label: string }) {
 
 function NavDivider() {
   return (
-    <li
-      data-slot="admin-side-nav-divider"
-      className={cn(
-        "py-3",
-        "transition-[padding] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none",
-        "group-data-[state=expanded]:px-3",
-        "group-data-[state=expanded]:pt-4",
-        "group-data-[state=expanded]:pb-2",
-      )}
-      aria-hidden="true"
-    >
+    <li data-slot="admin-side-nav-divider" className="py-3" aria-hidden="true">
       <div className="border-b border-sidebar-border" />
     </li>
   );

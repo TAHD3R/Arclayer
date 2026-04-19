@@ -18,14 +18,14 @@ export function AdminLogo(props: { to?: string; ariaLabel: string; size?: number
     <Link
       to={to}
       aria-label={props.ariaLabel}
-      className="inline-flex items-center justify-center"
+      className="inline-flex shrink-0 items-center justify-center"
       style={{ width: size, height: size }}
     >
       <img
         src="/logo.svg"
         width={size}
         height={size}
-        className="block object-contain"
+        className="block max-w-none shrink-0 object-contain"
         style={{ width: size, height: size }}
         alt=""
       />
@@ -71,7 +71,7 @@ export function AdminFullLogo(props: {
       to={to}
       aria-label={props.ariaLabel}
       className={cn(
-        "group relative inline-flex items-center justify-center overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "group relative inline-flex shrink-0 items-center justify-center overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         props.className,
       )}
       style={{ width: width }}
@@ -85,7 +85,7 @@ export function AdminFullLogo(props: {
           src={getFullLogoSrc(themeMode)}
           width={width}
           className={cn(
-            "block h-full w-full object-contain transition-opacity duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+            "block h-full w-full max-w-none shrink-0 object-contain transition-opacity duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
             showHoverAffordance && "group-hover:opacity-0 group-focus-visible:opacity-0",
             props.imgClassName,
           )}

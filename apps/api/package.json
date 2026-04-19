@@ -10,7 +10,7 @@
     "uv": "uv run",
     "lock": "uv lock",
     "install": "uv sync",
-    "dev": "pnpm openapi:sync && uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev": "pnpm openapi:sync && uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000 --workers 8",
     "openapi:sync": "uv run python -m scripts.sync_openapi_sdk",
     "openapi:export": "uv run python -m scripts.export_openapi",
     "graphql:schema:export": "uv run python -m scripts.export_graphql_schema",

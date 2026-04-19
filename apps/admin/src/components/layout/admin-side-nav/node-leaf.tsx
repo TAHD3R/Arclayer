@@ -17,6 +17,7 @@ import {
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
   NAV_ITEM_RADIUS_CLASSNAME,
+  NAV_TRAILING_ICON_SLOT_CLASSNAME,
   NAV_TRAILING_RAIL_CLASSNAME,
 } from "./nav-utils";
 import {
@@ -117,6 +118,7 @@ function NodeLeafSub({
 function NodeLeafRoot({
   item,
   depth,
+  isCollapsed,
   label,
   pathname,
   isSelected,
@@ -129,6 +131,24 @@ function NodeLeafRoot({
 }: NodeLeafProps & { onNavigate: (to: string, search?: Record<string, unknown>) => void }) {
   const Icon = item.icon;
   const labelContent = item.renderLabel ? item.renderLabel(item) : label;
+  const expandedRowClassName = cn(
+    "relative z-10 flex items-center gap-1",
+    NAV_ITEM_HEIGHT_CLASSNAME,
+    NAV_ITEM_RADIUS_CLASSNAME,
+    NAV_ITEM_BUTTON_PADDING_CLASSNAME,
+    INTERACTIVE_TRANSITION_CLASSNAME,
+    NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
+    NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+    "text-callout",
+    item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
+  );
+  const handleSelect = () => {
+    onSelect(item.to);
+    openChainForKey(item.key);
+    if (!item.to || item.disabled) return;
+    if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
+    onNavigate(item.to, item.search);
+  };
 
   return (
     <SidebarMenuItem
@@ -143,41 +163,80 @@ function NodeLeafRoot({
       }}
     >
       <WithBlockedTooltip tooltip={blockedTooltip}>
-        <SidebarMenuButton
-          isActive={isSelected}
-          tooltip={label}
-          aria-disabled={item.disabled ? "true" : undefined}
-          className={cn(
-            "relative z-10",
-            NAV_ITEM_HEIGHT_CLASSNAME,
-            NAV_ITEM_RADIUS_CLASSNAME,
-            INTERACTIVE_TRANSITION_CLASSNAME,
-            NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-            NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-            NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
-            NAV_ITEM_BUTTON_PADDING_CLASSNAME,
-            "group-data-[collapsible=icon]:gap-0",
-            item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
-          )}
-          onClick={() => {
-            onSelect(item.to);
-            openChainForKey(item.key);
-            if (!item.to || item.disabled) return;
-            if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
-            onNavigate(item.to, item.search);
-          }}
-        >
-          {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
-          {item.renderLabel ? (
-            <div className={cn("min-w-0 flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-              {labelContent}
+        {isCollapsed ? (
+          <SidebarMenuButton
+            isActive={isSelected}
+            tooltip={label}
+            aria-disabled={item.disabled ? "true" : undefined}
+            className={cn(
+              "relative z-10",
+              NAV_ITEM_HEIGHT_CLASSNAME,
+              NAV_ITEM_RADIUS_CLASSNAME,
+              INTERACTIVE_TRANSITION_CLASSNAME,
+              NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
+              NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+              NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
+              NAV_ITEM_BUTTON_PADDING_CLASSNAME,
+              "group-data-[collapsible=icon]:gap-0",
+              item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
+            )}
+            onClick={handleSelect}
+          >
+            {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
+            {item.renderLabel ? (
+              <div className={cn("min-w-0 flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+                {labelContent}
+              </div>
+            ) : (
+              <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+                {labelContent}
+              </span>
+            )}
+            <span
+              aria-hidden="true"
+              className={cn(
+                NAV_TRAILING_RAIL_CLASSNAME,
+                NAV_TRAILING_ICON_SLOT_CLASSNAME,
+                "pointer-events-none opacity-0",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
+              )}
+            />
+          </SidebarMenuButton>
+        ) : (
+          <div data-active={isSelected ? "true" : "false"} className={expandedRowClassName}>
+            <ButtonPrimitive
+              type="button"
+              tapScale={1}
+              data-active={isSelected ? "true" : "false"}
+              aria-disabled={item.disabled ? "true" : undefined}
+              aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left outline-none"
+              onClick={handleSelect}
+            >
+              {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
+              {item.renderLabel ? (
+                <div className={cn("min-w-0 flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+                  {labelContent}
+                </div>
+              ) : (
+                <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+                  {labelContent}
+                </span>
+              )}
+            </ButtonPrimitive>
+            <div
+              aria-hidden="true"
+              className={cn(
+                NAV_TRAILING_RAIL_CLASSNAME,
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
+              )}
+            >
+              <span className={cn(NAV_TRAILING_ICON_SLOT_CLASSNAME, "pointer-events-none")} />
             </div>
-          ) : (
-            <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-              {labelContent}
-            </span>
-          )}
-        </SidebarMenuButton>
+          </div>
+        )}
       </WithBlockedTooltip>
     </SidebarMenuItem>
   );

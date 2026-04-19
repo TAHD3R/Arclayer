@@ -1,6 +1,6 @@
 {
   "COMMAND_TRIGGER_ARIA_LABEL": "打开命令菜单",
-  "COMMAND_TRIGGER_LABEL": "搜索文件、成员与动作...",
+  "COMMAND_TRIGGER_LABEL": "快速跳转或执行操作...",
   "COMMAND_TRIGGER_SHORTCUT": "⌘K",
   "COMMAND_DIALOG_TITLE": "命令菜单",
   "COMMAND_DIALOG_DESCRIPTION": "搜索动作、页面、成员与资源，并在后台工作空间中快速跳转。",

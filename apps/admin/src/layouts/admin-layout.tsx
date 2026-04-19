@@ -164,7 +164,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         <AdminTopbar
           navItems={mainItems}
           commandScope={commandScope}
-          sidebarToggleMode="mobile-only"
+          sidebarToggleMode="always"
           {...topbar}
         />
       )}

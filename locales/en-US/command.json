@@ -1,6 +1,6 @@
 {
   "COMMAND_TRIGGER_ARIA_LABEL": "Open command menu",
-  "COMMAND_TRIGGER_LABEL": "Search files, people, and actions...",
+  "COMMAND_TRIGGER_LABEL": "Jump to a page or run an action...",
   "COMMAND_TRIGGER_SHORTCUT": "⌘K",
   "COMMAND_DIALOG_TITLE": "Command menu",
   "COMMAND_DIALOG_DESCRIPTION": "Search actions, pages, people, and assets across the admin workspace.",

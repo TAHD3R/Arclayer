@@ -94,7 +94,7 @@ function CommandTriggerButton(props: {
       onClick={props.onClick}
       data-state={props.open ? "open" : "closed"}
       className={cn(
-        "group flex h-10 w-full items-center gap-3 rounded-md border border-border/50",
+        "group flex h-10 w-full items-center gap-3 rounded-full border border-border/50",
         "bg-muted px-3 text-left text-footnote text-label-secondary ",
         TRANSITION_CLASSNAME,
         "hover:bg-accent/70 hover:text-label-primary",

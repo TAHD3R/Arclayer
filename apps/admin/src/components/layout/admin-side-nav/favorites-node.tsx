@@ -167,6 +167,12 @@ const FAVORITES_ACTION_BUTTON_CLASSNAME =
 
 const FAVORITES_TRAILING_CONTROLS_CLASSNAME =
   "ml-auto flex shrink-0 items-center gap-2 self-center";
+const FAVORITES_LAYOUT_COLLAPSE_CONTROLS_CLASSNAME = cn(
+  FAVORITES_TRAILING_CONTROLS_CLASSNAME,
+  NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:gap-0",
+);
 const FAVORITES_ROW_ACTIONS_CLASSNAME = cn(
   FAVORITES_TRAILING_CONTROLS_CLASSNAME,
   "opacity-0 transition-opacity duration-150",
@@ -1300,9 +1306,11 @@ export function FavoritesNode(props: FavoritesNodeProps) {
                   isActive: props.isTrailActive,
                   collapseMotion: "shift",
                 })}
-                <span className="min-w-0 flex-1 truncate">{props.label}</span>
+                <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+                  {props.label}
+                </span>
               </ButtonPrimitive>
-              <div className={FAVORITES_TRAILING_CONTROLS_CLASSNAME}>
+              <div className={FAVORITES_LAYOUT_COLLAPSE_CONTROLS_CLASSNAME}>
                 {effectiveExpanded ? (
                   <FavoritesHeaderMenu onCreateFolder={handleCreateFolder} />
                 ) : null}

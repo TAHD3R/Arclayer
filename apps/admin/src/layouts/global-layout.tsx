@@ -195,7 +195,7 @@ export function GlobalLayout() {
           unreadCount={topbar.unreadCount}
           onNotificationToggle={topbar.onNotificationToggle}
           leadingMode="workspace-switcher"
-          sidebarToggleMode="mobile-only"
+          sidebarToggleMode="always"
         />
       )}
       mainItems={navItems}

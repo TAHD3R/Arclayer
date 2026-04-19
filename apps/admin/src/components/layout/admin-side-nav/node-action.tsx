@@ -120,6 +120,7 @@ function NodeActionRoot({ item, depth, label, isActive, hoverDropdown }: NodeAct
             className={cn(
               "ml-auto shrink-0 group-data-[collapsible=icon]:ml-0",
               NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+              "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
             )}
           >
             {item.actionRenderer(item)}
@@ -130,6 +131,7 @@ function NodeActionRoot({ item, depth, label, isActive, hoverDropdown }: NodeAct
             className={cn(
               "ml-auto shrink-0 group-data-[collapsible=icon]:ml-0",
               NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+              "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
             )}
           >
             <TrailingIcon className="size-3.5 shrink-0 text-label-secondary" aria-hidden="true" />

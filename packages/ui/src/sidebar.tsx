@@ -31,6 +31,7 @@ const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_HOVER_OPEN_DELAY_MS = 70;
 const SIDEBAR_HOVER_CLOSE_DELAY_MS = 180;
+const SIDEBAR_COLLAPSE_VISUAL_DELAY_MS = 250;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
@@ -73,8 +74,12 @@ function SidebarProvider({
   const [openMobile, setOpenMobile] = React.useState(false);
   const [hoverOpen, setHoverOpen] = React.useState(false);
   const [hoverIntent, setHoverIntent] = React.useState(false);
+  const [collapseVisualHold, setCollapseVisualHold] = React.useState(false);
   const hoverOpenTimerRef = React.useRef<number | null>(null);
   const hoverCloseTimerRef = React.useRef<number | null>(null);
+  const collapseVisualTimerRef = React.useRef<number | null>(null);
+  const previousOpenRef = React.useRef(openProp ?? defaultOpen);
+  const previousHoverOpenRef = React.useRef(false);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -106,6 +111,21 @@ function SidebarProvider({
     window.clearTimeout(hoverCloseTimerRef.current);
     hoverCloseTimerRef.current = null;
   }, []);
+
+  const clearCollapseVisualTimer = React.useCallback(() => {
+    if (collapseVisualTimerRef.current === null) return;
+    window.clearTimeout(collapseVisualTimerRef.current);
+    collapseVisualTimerRef.current = null;
+  }, []);
+
+  const startCollapseVisualHold = React.useCallback(() => {
+    setCollapseVisualHold(true);
+    clearCollapseVisualTimer();
+    collapseVisualTimerRef.current = window.setTimeout(() => {
+      setCollapseVisualHold(false);
+      collapseVisualTimerRef.current = null;
+    }, SIDEBAR_COLLAPSE_VISUAL_DELAY_MS);
+  }, [clearCollapseVisualTimer]);
 
   const markHoverPointerEnter = React.useCallback(() => {
     clearHoverOpenTimer();
@@ -143,24 +163,55 @@ function SidebarProvider({
     if (!open) return;
     setHoverIntent(false);
     setHoverOpen(false);
+    setCollapseVisualHold(false);
     clearHoverOpenTimer();
     clearHoverCloseTimer();
-  }, [clearHoverCloseTimer, clearHoverOpenTimer, open]);
+    clearCollapseVisualTimer();
+  }, [clearCollapseVisualTimer, clearHoverCloseTimer, clearHoverOpenTimer, open]);
 
   React.useEffect(() => {
     if (!isMobile) return;
     setHoverIntent(false);
     setHoverOpen(false);
+    setCollapseVisualHold(false);
     clearHoverOpenTimer();
     clearHoverCloseTimer();
-  }, [clearHoverCloseTimer, clearHoverOpenTimer, isMobile]);
+    clearCollapseVisualTimer();
+  }, [clearCollapseVisualTimer, clearHoverCloseTimer, clearHoverOpenTimer, isMobile]);
+
+  React.useEffect(() => {
+    const wasOpen = previousOpenRef.current;
+    previousOpenRef.current = open;
+
+    if (isMobile) return;
+    if (open) return;
+    if (!wasOpen) return;
+
+    startCollapseVisualHold();
+  }, [isMobile, open, startCollapseVisualHold]);
+
+  React.useEffect(() => {
+    const wasHoverOpen = previousHoverOpenRef.current;
+    previousHoverOpenRef.current = hoverOpen;
+
+    if (hoverOpen) {
+      setCollapseVisualHold(false);
+      clearCollapseVisualTimer();
+      return;
+    }
+    if (isMobile || open) return;
+    if (!wasHoverOpen) return;
+
+    startCollapseVisualHold();
+  }, [clearCollapseVisualTimer, hoverOpen, isMobile, open, startCollapseVisualHold]);
 
   React.useEffect(() => {
     return () => {
       clearHoverOpenTimer();
       clearHoverCloseTimer();
+      clearCollapseVisualTimer();
     };
-  }, [clearHoverCloseTimer, clearHoverOpenTimer]);
+  }, [clearCollapseVisualTimer, clearHoverCloseTimer, clearHoverOpenTimer]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -179,7 +230,7 @@ function SidebarProvider({
   // - visual state drives labels, tooltips, and hover-preview presentation
   // - layout state drives the reserved page width
   const layoutState = open ? "expanded" : "collapsed";
-  const visualState = open || hoverOpen ? "expanded" : "collapsed";
+  const visualState = open || hoverOpen || collapseVisualHold ? "expanded" : "collapsed";
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({

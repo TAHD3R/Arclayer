@@ -13,6 +13,7 @@ import {
 } from "@/components/layout/admin-workspace-switcher";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { useSidebar } from "@arclayer/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
@@ -25,7 +26,12 @@ const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
   "data-[state=open]:border-border/60 data-[state=open]:bg-accent/70 data-[state=open]:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
-const TOPBAR_CONTENT_PADDING_CLASSNAME = "pl-2 pr-4";
+const TOPBAR_SIDEBAR_BUTTON_CLASSNAME = cn(
+  "shrink-0 text-label-secondary transition-[background-color,color] duration-200",
+  "hover:bg-accent/60 hover:text-label-primary",
+  "data-[state=open]:bg-accent/70 data-[state=open]:text-label-primary",
+);
+const TOPBAR_CONTENT_PADDING_CLASSNAME = "p-2";
 const DESKTOP_SCENE_NAV_ALIGNMENT_CLASSNAME = "md:pl-3";
 
 type AdminTopbarLeadingMode = "workspace-switcher" | "logo" | "back";
@@ -39,18 +45,20 @@ function SidebarToggleButton(props: {
   if (props.mode === "hidden") return null;
 
   return (
-    <ButtonPrimitive
+    <Button
       type="button"
+      variant="ghost"
+      size="icon-lg"
       tapScale={1}
       aria-label={props.label}
       onClick={props.onToggle}
       className={cn(
-        TOPBAR_ICON_BUTTON_CLASSNAME,
+        TOPBAR_SIDEBAR_BUTTON_CLASSNAME,
         props.mode === "mobile-only" ? "md:hidden" : null,
       )}
     >
       <Menu className="size-5" aria-hidden="true" />
-    </ButtonPrimitive>
+    </Button>
   );
 }
 
@@ -80,18 +88,18 @@ function TopbarLeading(props: {
         <AdminFullLogo
           ariaLabel="Arclayer"
           width={100}
-          className="flex h-8 items-center"
+          className="flex h-8 shrink-0 items-center"
           hoverLabel={props.homeLabel}
           hoverIcon={<ChevronLeft className="size-4 shrink-0" aria-hidden="true" />}
         />
       </div>
 
       {props.leadingMode === "workspace-switcher" ? (
-        <div className="min-w-0 max-w-[14rem] xl:max-w-[18rem] 2xl:max-w-[20rem] flex">
+        <div className="flex min-w-0 max-w-[12rem] xl:max-w-[14rem] 2xl:max-w-[16rem]">
           <AdminWorkspaceSwitcher
             variant="header"
             showSidebarToggle={false}
-            className="min-w-0 justify-center items-center"
+            className="min-w-0 items-center justify-center"
           />
         </div>
       ) : null}
@@ -203,10 +211,10 @@ export function AdminTopbar(props: {
       {showCommandTrigger ? (
         <div
           className={cn(
-            "grid h-(--admin-topbar-height) items-center gap-3",
+            "grid items-center gap-3",
             TOPBAR_CONTENT_PADDING_CLASSNAME,
-            "grid-cols-[minmax(0,1fr)_minmax(11rem,24rem)_minmax(0,1fr)]",
-            "lg:grid-cols-[minmax(0,1fr)_minmax(14rem,28rem)_minmax(0,1fr)]",
+            "grid-cols-[minmax(0,1fr)_minmax(10rem,20rem)_minmax(0,1fr)]",
+            "lg:grid-cols-[minmax(0,1fr)_minmax(12rem,24rem)_minmax(0,1fr)]",
           )}
         >
           <TopbarLeading
@@ -219,7 +227,7 @@ export function AdminTopbar(props: {
             onBack={props.onBack}
           />
 
-          <div className="min-w-0 justify-self-center w-full max-w-[32rem]">
+          <div className="min-w-0 justify-self-center w-full max-w-[24rem]">
             <AdminCommandTrigger
               sections={commandPalette.sections}
               query={commandPalette.query}
@@ -241,7 +249,7 @@ export function AdminTopbar(props: {
       ) : (
         <div
           className={cn(
-            "flex h-(--admin-topbar-height) items-center justify-between gap-4",
+            "flex items-center justify-between gap-4",
             TOPBAR_CONTENT_PADDING_CLASSNAME,
           )}
         >

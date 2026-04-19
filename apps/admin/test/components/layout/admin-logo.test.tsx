@@ -52,4 +52,15 @@ describe("AdminFullLogo", () => {
     expect(screen.getByText("common:GO_HOME")).toBeInTheDocument();
     expect(link.querySelector("img")?.className).toContain("group-hover:opacity-0");
   });
+
+  it("keeps the full logo from shrinking inside flex layouts", () => {
+    render(<AdminFullLogo ariaLabel="Arclayer" width={100} />);
+
+    const link = screen.getByRole("link", { name: "Arclayer" });
+    const img = link.querySelector("img");
+
+    expect(link.className).toContain("shrink-0");
+    expect(img?.className).toContain("max-w-none");
+    expect(img?.className).toContain("shrink-0");
+  });
 });

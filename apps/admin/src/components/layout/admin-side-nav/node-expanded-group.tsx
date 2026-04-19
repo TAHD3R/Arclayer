@@ -162,6 +162,7 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
             NAV_TRAILING_RAIL_CLASSNAME,
             NAV_TRAILING_ICON_SLOT_CLASSNAME,
             NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+            "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
           )}
         >
           <ChevronRight
@@ -373,6 +374,62 @@ export function NodeExpandedGroupRoot({
 }: NodeExpandedGroupRootProps) {
   const dropdownEnabled = isCollapsed && hoverDropdown !== null;
   const dropdownOpen = dropdownEnabled ? hoverDropdown.isOpen(item.key) : false;
+  const expandedRowClassName = cn(
+    "relative z-10 flex items-center gap-1",
+    NAV_ITEM_HEIGHT_CLASSNAME,
+    NAV_ITEM_RADIUS_CLASSNAME,
+    NAV_ITEM_BUTTON_PADDING_CLASSNAME,
+    INTERACTIVE_TRANSITION_CLASSNAME,
+    NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
+    NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+    "text-callout",
+    item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
+  );
+
+  if (!isCollapsed) {
+    return (
+      <Collapsible open={isOpen}>
+        <SidebarMenuItem className="group/nav-item">
+          <WithBlockedTooltip tooltip={blockedTooltip}>
+            <div data-active={isTrailActive ? "true" : "false"} className={expandedRowClassName}>
+              <ButtonPrimitive
+                type="button"
+                tapScale={1}
+                data-active={isTrailActive ? "true" : "false"}
+                aria-disabled={item.disabled ? "true" : undefined}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left outline-none"
+                onClick={onToggle}
+              >
+                {iconSlot(0, item.icon, { isActive: isTrailActive, collapseMotion: "shift" })}
+                <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+                  {label}
+                </span>
+              </ButtonPrimitive>
+              <div
+                className={cn(
+                  NAV_TRAILING_RAIL_CLASSNAME,
+                  NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
+                )}
+              >
+                <span className={NAV_TRAILING_ICON_SLOT_CLASSNAME}>
+                  <ChevronRight
+                    size={16}
+                    className={cn(
+                      "shrink-0 text-label-secondary transition-transform duration-200",
+                      isOpen && "rotate-90",
+                    )}
+                    aria-hidden="true"
+                  />
+                </span>
+              </div>
+            </div>
+          </WithBlockedTooltip>
+          <GroupChildren>{children}</GroupChildren>
+        </SidebarMenuItem>
+      </Collapsible>
+    );
+  }
 
   return (
     <Collapsible open={dropdownEnabled ? false : isOpen}>

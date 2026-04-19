@@ -20,10 +20,9 @@ export const NAV_ITEM_COLLAPSE_HIDE_CLASSNAME = cn(
   "max-w-full overflow-hidden whitespace-nowrap",
   "origin-left transform-gpu will-change-[max-width,opacity,transform]",
   "transition-[max-width,opacity,transform] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)]",
-  "group-data-[collapsible=icon]:flex-none",
-  "group-data-[collapsible=icon]:max-w-0",
-  "group-data-[collapsible=icon]:opacity-0",
-  "group-data-[collapsible=icon]:pointer-events-none",
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:opacity-0",
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:pointer-events-none",
 );
 
 export const DISABLED_ITEM_CLASSNAME = cn(

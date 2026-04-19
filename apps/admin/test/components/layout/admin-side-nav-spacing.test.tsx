@@ -1,9 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Home, Users } from "lucide-react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
+import { useFavoritesStore } from "@/stores/use-favorites-store";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { Sidebar, SidebarProvider } from "@arclayer/ui/sidebar";
 
@@ -70,6 +72,18 @@ const dividerItems: AdminNavItem[] = [
   },
 ];
 
+function renderWithQueryClient(node: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+}
+
 describe("AdminSiderNav spacing", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
@@ -103,8 +117,12 @@ describe("AdminSiderNav spacing", () => {
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
   });
 
+  beforeEach(() => {
+    useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
+  });
+
   it("uses a larger root menu gap in icon-collapsed mode", () => {
-    const { container } = render(
+    const { container } = renderWithQueryClient(
       <SidebarProvider defaultOpen={false} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={items} />
@@ -120,7 +138,7 @@ describe("AdminSiderNav spacing", () => {
   });
 
   it("keeps collapsed section markers on the same divider row contract while revealing text in expanded state", () => {
-    render(
+    renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
@@ -150,7 +168,7 @@ describe("AdminSiderNav spacing", () => {
   });
 
   it("uses the reference-style divider row spacing", () => {
-    render(
+    renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={dividerItems} favoriteWorkspaceBase="/w/ws-1" />
@@ -162,14 +180,14 @@ describe("AdminSiderNav spacing", () => {
 
     expect(dividerRow).not.toBeNull();
     expect(dividerRow).toHaveClass("py-3");
-    expect(dividerRow?.className).toContain("group-data-[state=expanded]:px-3");
-    expect(dividerRow?.className).toContain("group-data-[state=expanded]:pt-4");
-    expect(dividerRow?.className).toContain("group-data-[state=expanded]:pb-2");
+    expect(dividerRow?.className).not.toContain("group-data-[state=expanded]:px-3");
+    expect(dividerRow?.className).not.toContain("group-data-[state=expanded]:pt-4");
+    expect(dividerRow?.className).not.toContain("group-data-[state=expanded]:pb-2");
     expect(dividerRow?.firstElementChild).toHaveClass("border-b", "border-sidebar-border");
   });
 
   it("keeps the sidebar inner column stretched so group markers and dividers use the full width", () => {
-    const { container } = render(
+    const { container } = renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
@@ -187,7 +205,7 @@ describe("AdminSiderNav spacing", () => {
   });
 
   it("uses the updated nav item padding, height, and active styling", () => {
-    render(
+    renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={items} />
@@ -197,8 +215,10 @@ describe("AdminSiderNav spacing", () => {
 
     const dashboardButton = screen.getByRole("button", { name: "Overview" });
     const teamButton = screen.getByRole("button", { name: "Team" });
+    const dashboardRow = dashboardButton.parentElement;
+    const teamRow = teamButton.parentElement;
 
-    expect(dashboardButton).toHaveClass(
+    expect(dashboardRow).toHaveClass(
       "h-9",
       "rounded-md",
       "!pl-3",
@@ -206,22 +226,11 @@ describe("AdminSiderNav spacing", () => {
       "!py-1.5",
       "text-callout",
     );
-    expect(dashboardButton.className).not.toContain("data-[active=true]:bg-accent/50");
+    expect(dashboardRow?.className).not.toContain("data-[active=true]:bg-accent/50");
 
-    expect(teamButton).toHaveClass(
-      "h-9",
-      "rounded-md",
-      "!pl-3",
-      "!pr-2.5",
-      "!py-1.5",
-      "text-callout",
-    );
+    expect(teamRow).toHaveClass("h-9", "rounded-md", "!pl-3", "!pr-2.5", "!py-1.5", "text-callout");
     expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:size-9!");
-    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!pl-3");
-    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!pr-3");
-    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!py-1.5");
-    expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:justify-center");
-    expect(teamButton.className).toContain("data-[active=true]:bg-transparent");
+    expect(teamRow?.className).toContain("data-[active=true]:bg-transparent");
 
     const dashboardLabel = dashboardButton.querySelector("span.min-w-0.flex-1");
     const teamLabel = teamButton.querySelector("span.min-w-0.flex-1");
@@ -230,12 +239,16 @@ describe("AdminSiderNav spacing", () => {
     expect(teamLabel).not.toBeNull();
     expect(dashboardLabel?.className).toContain("duration-250");
     expect(teamLabel?.className).toContain("duration-250");
-    expect(dashboardLabel?.className).not.toContain("translate-x-1");
-    expect(teamLabel?.className).not.toContain("translate-x-1");
+    expect(dashboardLabel?.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+    );
+    expect(teamLabel?.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+    );
   });
 
   it("uses the top-level group trigger spacing with the new group marker row", () => {
-    render(
+    renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
@@ -244,18 +257,78 @@ describe("AdminSiderNav spacing", () => {
     );
 
     const groupButton = screen.getByRole("button", { name: "Content" });
-    const groupChevronWrapper = groupButton.querySelector("span:last-child");
+    const groupRow = groupButton.parentElement;
+    const groupChevronWrapper = groupRow?.lastElementChild;
+    const groupLabel = groupButton.querySelector("span.min-w-0.flex-1");
 
     expect(screen.getByText("Website")).toBeVisible();
     expect(document.querySelector('[data-slot="admin-side-nav-group-marker"]')).not.toBeNull();
-    expect(groupButton).toHaveClass("!pl-3", "!pr-2.5", "h-9", "rounded-md");
+    expect(groupRow).toHaveClass("!pl-3", "!pr-2.5", "h-9", "rounded-md", "text-callout");
+    expect(groupLabel?.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+    );
     expect(groupChevronWrapper).toHaveClass("ml-auto");
+    expect(groupChevronWrapper?.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:ml-0",
+    );
+    expect(groupChevronWrapper?.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
+    );
+  });
+
+  it("uses the layout-driven hide contract for the favorites header during desktop collapse motion", () => {
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/team"],
+      items: [],
+      sectionExpanded: true,
+    });
+
+    renderWithQueryClient(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    const favoritesButton = screen.getByRole("button", { name: "nav:NAV_FAVORITES" });
+    const favoritesLabel = favoritesButton.querySelector("span.min-w-0.flex-1");
+    const favoritesRow = favoritesButton.parentElement;
+    const favoritesControls = favoritesRow?.lastElementChild;
+
+    expect(favoritesLabel?.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+    );
+    expect(favoritesControls?.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
+    );
+  });
+
+  it("centers collapsed root icons with symmetric horizontal padding", () => {
+    renderWithQueryClient(
+      <SidebarProvider defaultOpen={false} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={items} />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    const teamButton = screen.getByRole("button", { name: "Team" });
+    const iconWrapper = teamButton.querySelector("span.size-5");
+
+    expect(teamButton.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:!px-1.5",
+    );
+    expect(teamButton.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:justify-center",
+    );
+    expect(iconWrapper?.className).not.toContain("group-data-[collapsible=icon]:mx-auto");
   });
 
   it("keeps expanded children aligned with their parent and removes hover background styling", async () => {
     const user = userEvent.setup();
 
-    render(
+    renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
@@ -278,7 +351,7 @@ describe("AdminSiderNav spacing", () => {
   });
 
   it("keeps fixed sidebars on the correct border edge when collapsible is none", () => {
-    const { container, rerender } = render(
+    const { container, rerender } = renderWithQueryClient(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar side="left" collapsible="none" animateOnHover={false}>
           <div>left</div>
