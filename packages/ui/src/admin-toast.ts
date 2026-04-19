@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { getI18n } from "react-i18next";
+import { CopyIcon } from "lucide-react";
 import { toast, type ExternalToast } from "sonner";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
+import { Button } from "./button";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 type AdminToastType = "success" | "error" | "info" | "warning";
 
@@ -36,6 +38,57 @@ function isStructuredToastContent(
 
 function ToastDescription(props: { description?: React.ReactNode; requestId: string }) {
   const hint = resolveCommonTranslation("TOAST_REQUEST_ID_TOOLTIP");
+  const [open, setOpen] = React.useState(false);
+  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle");
+  const closeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+
+  const clearCloseTimer = React.useCallback(() => {
+    if (!closeTimerRef.current) return;
+    clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
+  }, []);
+
+  const openPopover = React.useCallback(() => {
+    clearCloseTimer();
+    setOpen(true);
+  }, [clearCloseTimer]);
+
+  const scheduleClose = React.useCallback(() => {
+    clearCloseTimer();
+    closeTimerRef.current = setTimeout(() => {
+      setOpen(false);
+      setCopyState("idle");
+      closeTimerRef.current = null;
+    }, 120);
+  }, [clearCloseTimer]);
+
+  React.useEffect(() => clearCloseTimer, [clearCloseTimer]);
+
+  const copyRequestId = React.useCallback(async () => {
+    try {
+      if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+        throw new Error("[admin-toast] Clipboard API is unavailable.");
+      }
+      await navigator.clipboard.writeText(props.requestId);
+      setCopyState("copied");
+    } catch (error) {
+      setCopyState("failed");
+      console.error("[admin-toast] Failed to copy request id.", error);
+    }
+  }, [props.requestId]);
+
+  const copyLabel =
+    copyState === "copied"
+      ? resolveCommonTranslation("TOAST_REQUEST_ID_COPIED")
+      : copyState === "failed"
+        ? resolveCommonTranslation("TOAST_REQUEST_ID_COPY_FAILED")
+        : resolveCommonTranslation("TOAST_REQUEST_ID_COPY");
+
+  const popoverContainer =
+    triggerRef.current?.closest("[data-sonner-toaster]") instanceof HTMLElement
+      ? triggerRef.current.closest("[data-sonner-toaster]")
+      : undefined;
 
   return React.createElement(
     "div",
@@ -49,27 +102,64 @@ function ToastDescription(props: { description?: React.ReactNode; requestId: str
         null,
         resolveCommonTranslation("TOAST_REQUEST_ID_VALUE", { id: props.requestId }),
       ),
-      React.createElement(Tooltip, {
-        side: "top",
-        align: "center",
+      React.createElement(Popover, {
+        open,
+        onOpenChange: setOpen,
         children: [
-          React.createElement(TooltipTrigger, {
+          React.createElement(PopoverTrigger, {
             asChild: true,
-            focusTrigger: false,
             children: React.createElement(
               "button",
               {
+                ref: triggerRef,
                 type: "button",
                 "aria-label": hint,
                 className:
                   "inline-flex size-4 items-center justify-center rounded-full text-[11px] font-semibold text-label-tertiary transition-colors hover:text-label-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                onPointerEnter: openPopover,
+                onPointerLeave: scheduleClose,
+                onFocus: openPopover,
+                onBlur: scheduleClose,
+                onClick: (event) => {
+                  event.preventDefault();
+                  openPopover();
+                },
               },
               "?",
             ),
           }),
-          React.createElement(TooltipContent, {
-            className: "max-w-64",
-            children: hint,
+          React.createElement(PopoverContent, {
+            side: "top",
+            align: "start",
+            sideOffset: 8,
+            container: popoverContainer,
+            className: "grid w-80 max-w-[calc(100vw-2rem)] gap-3 p-3 shadow-lg shadow-black/5",
+            onPointerEnter: openPopover,
+            onPointerLeave: scheduleClose,
+            onOpenAutoFocus: (event) => event.preventDefault(),
+            onCloseAutoFocus: (event) => event.preventDefault(),
+            children: React.createElement(
+              React.Fragment,
+              null,
+              React.createElement(
+                "div",
+                { className: "grid gap-1.5" },
+                React.createElement("p", { className: "text-callout text-label-secondary" }, hint),
+              ),
+              React.createElement(
+                Button,
+                {
+                  type: "button",
+                  size: "xs",
+                  variant: "ghost",
+                  className:
+                    "w-fit gap-1.5 px-0 text-label-secondary hover:bg-transparent hover:text-label-primary",
+                  onClick: copyRequestId,
+                },
+                React.createElement(CopyIcon, { className: "size-3.5" }),
+                copyLabel,
+              ),
+            ),
           }),
         ],
       }),

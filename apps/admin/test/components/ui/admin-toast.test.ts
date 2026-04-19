@@ -23,6 +23,9 @@ vi.mock("react-i18next", () => ({
             TOAST_REQUEST_ID_VALUE: "Request ID: {{id}}",
             TOAST_REQUEST_ID_TOOLTIP:
               "If you report this error to Customer Care, share this request ID so they can investigate.",
+            TOAST_REQUEST_ID_COPY: "Copy request ID",
+            TOAST_REQUEST_ID_COPIED: "Copied",
+            TOAST_REQUEST_ID_COPY_FAILED: "Copy failed",
           } as const
         )[
           key as
@@ -32,6 +35,9 @@ vi.mock("react-i18next", () => ({
             | "TOAST_TITLE_WARNING"
             | "TOAST_REQUEST_ID_VALUE"
             | "TOAST_REQUEST_ID_TOOLTIP"
+            | "TOAST_REQUEST_ID_COPY"
+            | "TOAST_REQUEST_ID_COPIED"
+            | "TOAST_REQUEST_ID_COPY_FAILED"
         ] ?? key;
 
       return options?.id ? value.replace("{{id}}", options.id) : value;
@@ -49,8 +55,14 @@ vi.mock("sonner", () => ({
 }));
 
 describe("admin-toast message", () => {
+  const writeTextMock = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: writeTextMock },
+    });
   });
 
   it("maps structured content into title and description payloads", async () => {
@@ -73,8 +85,10 @@ describe("admin-toast message", () => {
     });
   });
 
-  it("renders a request id helper row for warning toasts", async () => {
+  it("renders a request id popover with copy action for warning toasts", async () => {
     const { message } = await import("@arclayer/ui/admin-toast");
+
+    writeTextMock.mockResolvedValue(undefined);
 
     message.warning({
       title: "Warning!",
@@ -90,16 +104,22 @@ describe("admin-toast message", () => {
     expect(screen.getByText("Import completed with skipped rows.")).toBeInTheDocument();
     expect(screen.getByText("Request ID: req_123")).toBeInTheDocument();
 
-    fireEvent.mouseEnter(
-      screen.getByRole("button", {
-        name: "If you report this error to Customer Care, share this request ID so they can investigate.",
-      }),
-    );
+    const trigger = screen.getByRole("button", {
+      name: "If you report this error to Customer Care, share this request ID so they can investigate.",
+    });
+    fireEvent.pointerEnter(trigger);
 
     expect(
       await screen.findByText(
         "If you report this error to Customer Care, share this request ID so they can investigate.",
       ),
     ).toBeInTheDocument();
+
+    const copyButton = await screen.findByRole("button", { name: "Copy request ID" });
+    fireEvent.click(copyButton);
+
+    expect(writeTextMock).toHaveBeenCalledWith("req_123");
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
+    expect(screen.getAllByText("Request ID: req_123")).toHaveLength(1);
   });
 });

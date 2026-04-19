@@ -9,7 +9,7 @@ import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { notifySuccessText } from "@/lib/notifications";
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
 import {
   getSystemSettingsSection,
@@ -67,14 +67,9 @@ export function SystemSettingsNotificationsPage() {
     patch: Record<string, unknown>,
     nextValues: NotificationsFormValues,
   ) => {
-    try {
-      await patchMutation.mutateAsync(patch);
-      form.reset(nextValues);
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-    } catch (error) {
-      notifyError(error);
-      throw error;
-    }
+    await patchMutation.mutateAsync(patch);
+    form.reset(nextValues);
+    notifySuccessText(t("settings:SETTINGS_SAVED"));
   };
 
   const saveEmailDelivery = () =>

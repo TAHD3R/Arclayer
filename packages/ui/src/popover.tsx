@@ -13,6 +13,8 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-popover";
 import { cn } from "@arclayer/lib/utils";
 
+const POPOVER_LAYER_Z_INDEX_CLASSNAME = "z-[2400]";
+
 type PopoverProps = PopoverPrimitiveProps;
 
 function Popover(props: PopoverProps) {
@@ -45,7 +47,8 @@ function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "bg-popover text-popover-foreground z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4  outline-hidden",
+          "bg-popover text-popover-foreground w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4  outline-hidden",
+          POPOVER_LAYER_Z_INDEX_CLASSNAME,
           className,
         )}
         {...props}

@@ -52,7 +52,9 @@ type PopoverContentProps = Omit<
   React.ComponentProps<typeof PopoverPrimitive.Content>,
   "forceMount" | "asChild"
 > &
-  HTMLMotionProps<"div">;
+  HTMLMotionProps<"div"> & {
+    container?: React.ComponentProps<typeof PopoverPrimitive.Portal>["container"];
+  };
 
 function PopoverContent({
   onOpenAutoFocus,
@@ -71,6 +73,7 @@ function PopoverContent({
   arrowPadding,
   sticky,
   hideWhenDetached,
+  container,
   transition = { duration: 0.2 },
   style,
   ...props
@@ -78,41 +81,43 @@ function PopoverContent({
   const { isOpen } = usePopover();
 
   return (
-    <PopoverPrimitive.Content
-      asChild
-      forceMount
-      align={align}
-      alignOffset={alignOffset}
-      side={side}
-      sideOffset={sideOffset}
-      avoidCollisions={avoidCollisions}
-      collisionBoundary={collisionBoundary}
-      collisionPadding={collisionPadding}
-      arrowPadding={arrowPadding}
-      sticky={sticky}
-      hideWhenDetached={hideWhenDetached}
-      onOpenAutoFocus={onOpenAutoFocus}
-      onCloseAutoFocus={onCloseAutoFocus}
-      onEscapeKeyDown={onEscapeKeyDown}
-      onPointerDownOutside={onPointerDownOutside}
-      onInteractOutside={onInteractOutside}
-      onFocusOutside={onFocusOutside}
-    >
-      <motion.div
-        key="popover-content"
-        data-slot="popover-content"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={transition}
-        style={{
-          willChange: "opacity, transform",
-          pointerEvents: isOpen ? "auto" : "none",
-          ...style,
-        }}
-        {...props}
-      />
-    </PopoverPrimitive.Content>
+    <PopoverPrimitive.Portal forceMount container={container}>
+      <PopoverPrimitive.Content
+        asChild
+        forceMount
+        align={align}
+        alignOffset={alignOffset}
+        side={side}
+        sideOffset={sideOffset}
+        avoidCollisions={avoidCollisions}
+        collisionBoundary={collisionBoundary}
+        collisionPadding={collisionPadding}
+        arrowPadding={arrowPadding}
+        sticky={sticky}
+        hideWhenDetached={hideWhenDetached}
+        onOpenAutoFocus={onOpenAutoFocus}
+        onCloseAutoFocus={onCloseAutoFocus}
+        onEscapeKeyDown={onEscapeKeyDown}
+        onPointerDownOutside={onPointerDownOutside}
+        onInteractOutside={onInteractOutside}
+        onFocusOutside={onFocusOutside}
+      >
+        <motion.div
+          key="popover-content"
+          data-slot="popover-content"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={transition}
+          style={{
+            willChange: "opacity, transform",
+            pointerEvents: isOpen ? "auto" : "none",
+            ...style,
+          }}
+          {...props}
+        />
+      </PopoverPrimitive.Content>
+    </PopoverPrimitive.Portal>
   );
 }
 

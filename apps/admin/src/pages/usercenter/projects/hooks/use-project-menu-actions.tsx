@@ -513,14 +513,8 @@ export function useProjectMenuActions({
       project: confirmArchive,
       setProject: setConfirmArchive,
       pending: mutations.archiveMutation.isPending,
-      onConfirm: async (projectId: string) => {
-        try {
-          await mutations.archiveMutation.mutateAsync(projectId);
-        } catch (error) {
-          notifyError(error);
-          throw error;
-        }
-      },
+      onConfirm: async (projectId: string) =>
+        await mutations.archiveMutation.mutateAsync(projectId),
     },
     deleteDialog: {
       project: confirmDelete,
@@ -529,14 +523,8 @@ export function useProjectMenuActions({
       setConfirmName: setDeleteConfirmName,
       confirmMatches: deleteConfirmName.trim() === (confirmDelete?.name || ""),
       pending: mutations.deleteMutation.isPending,
-      onConfirm: async (payload: { projectId: string; confirmName: string }) => {
-        try {
-          await mutations.deleteMutation.mutateAsync(payload);
-        } catch (error) {
-          notifyError(error);
-          throw error;
-        }
-      },
+      onConfirm: async (payload: { projectId: string; confirmName: string }) =>
+        await mutations.deleteMutation.mutateAsync(payload),
     },
   } as const;
 }

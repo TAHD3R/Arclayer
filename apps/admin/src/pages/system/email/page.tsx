@@ -106,14 +106,9 @@ export function SystemSettingsEmailPage() {
   }, [coreSettingsQuery.coreSettings, form, initialValues]);
 
   const persistPatch = async (patch: Record<string, unknown>, nextValues: EmailFormValues) => {
-    try {
-      await patchMutation.mutateAsync(patch);
-      form.reset(nextValues);
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-    } catch (error) {
-      notifyError(error);
-      throw error;
-    }
+    await patchMutation.mutateAsync(patch);
+    form.reset(nextValues);
+    notifySuccessText(t("settings:SETTINGS_SAVED"));
   };
 
   const setMailEnabled = (next: boolean) =>

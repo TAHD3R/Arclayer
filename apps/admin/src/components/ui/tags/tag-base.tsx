@@ -10,7 +10,7 @@ const TAG_TEXT_STYLE_CLASSNAMES = {
 } as const;
 
 export const TAG_BASE_ROOT_CLASSNAME =
-  "inline-flex items-center rounded-full border border-border px-2 py-1 font-semibold ";
+  "inline-flex items-center rounded-sm border border-border px-2 py-1 font-semibold ";
 
 type TagSemanticClassNames = {
   root?: string;
@@ -100,7 +100,7 @@ export function BaseTag({
       {closable ? (
         <button
           type="button"
-          className="ml-1 inline-flex size-4 items-center justify-center rounded-full opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
+          className="ml-1 inline-flex size-4 items-center justify-center rounded-sm opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
           onClick={(event) => {
             onClose?.(event);
           }}

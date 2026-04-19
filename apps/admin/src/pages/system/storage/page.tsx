@@ -13,7 +13,7 @@ import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { notifySuccessText } from "@/lib/notifications";
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
 import {
@@ -120,14 +120,9 @@ export function SystemSettingsStoragePage() {
   }, [coreSettingsQuery.coreSettings, form, initialValues]);
 
   const persistPatch = async (patch: Record<string, unknown>, nextValues: StorageFormValues) => {
-    try {
-      await patchMutation.mutateAsync(patch);
-      form.reset(nextValues);
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-    } catch (error) {
-      notifyError(error);
-      throw error;
-    }
+    await patchMutation.mutateAsync(patch);
+    form.reset(nextValues);
+    notifySuccessText(t("settings:SETTINGS_SAVED"));
   };
 
   const saveProvider = () =>

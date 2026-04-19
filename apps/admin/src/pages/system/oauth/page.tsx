@@ -11,7 +11,7 @@ import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { notifySuccessText } from "@/lib/notifications";
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
 import {
   getSystemSettingsSection,
@@ -88,14 +88,9 @@ export function SystemSettingsOAuthPage() {
   }, [coreSettingsQuery.coreSettings, form, initialValues]);
 
   const persistPatch = async (patch: Record<string, unknown>, nextValues: OAuthFormValues) => {
-    try {
-      await patchMutation.mutateAsync(patch);
-      form.reset(nextValues);
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-    } catch (error) {
-      notifyError(error);
-      throw error;
-    }
+    await patchMutation.mutateAsync(patch);
+    form.reset(nextValues);
+    notifySuccessText(t("settings:SETTINGS_SAVED"));
   };
 
   const saveProvider = (provider: "google" | "github") =>
