@@ -6,7 +6,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ProjectGeneralSettingsPage,
   ProjectMembersSettingsPage,
+  WorkspaceInvitationsSettingsPage,
   WorkspaceMembersSettingsPage,
+  WorkspaceRolesSettingsPage,
 } from "@/pages/settings/context-settings-pages";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -29,6 +31,7 @@ vi.mock("@/pages/settings/context-settings-shell", () => ({
     title: string;
     description: string;
     pathname: string;
+    action?: ReactNode;
     children: ReactNode;
   }) => (
     <div
@@ -37,6 +40,7 @@ vi.mock("@/pages/settings/context-settings-shell", () => ({
       data-description={props.description}
       data-pathname={props.pathname}
     >
+      <div data-testid="context-settings-shell-action">{props.action}</div>
       {props.children}
     </div>
   ),
@@ -53,6 +57,31 @@ vi.mock("@/pages/workspaces/team/members/components/team-members-view", () => ({
       data-workspace-id={props.workspaceIdOverride ?? ""}
       data-query={props.initialSearchQuery ?? ""}
       data-member-id={props.initialInspectMemberId ?? ""}
+    />
+  ),
+}));
+
+vi.mock("@/pages/workspaces/team/invitations/page", () => ({
+  TeamInvitationsPage: (props: {
+    workspaceIdOverride?: string | null;
+    inviteLinkOpen?: boolean;
+    inviteEmailOpen?: boolean;
+  }) => (
+    <div
+      data-testid="team-invitations-page"
+      data-workspace-id={props.workspaceIdOverride ?? ""}
+      data-link-open={String(Boolean(props.inviteLinkOpen))}
+      data-email-open={String(Boolean(props.inviteEmailOpen))}
+    />
+  ),
+}));
+
+vi.mock("@/pages/workspaces/team/roles/page", () => ({
+  TeamRolesPage: (props: { workspaceIdOverride?: string | null; createOpen?: boolean }) => (
+    <div
+      data-testid="team-roles-page"
+      data-workspace-id={props.workspaceIdOverride ?? ""}
+      data-create-open={String(Boolean(props.createOpen))}
     />
   ),
 }));
@@ -128,11 +157,14 @@ describe("context settings pages", () => {
 
     expect(screen.getByTestId("context-settings-shell")).toHaveAttribute(
       "data-title",
-      "SETTINGS_WORKSPACE_TITLE",
+      "SETTINGS_WORKSPACE_MEMBERS_TITLE",
     );
     expect(screen.getByTestId("team-members-view")).toHaveAttribute("data-workspace-id", "ws-1");
     expect(screen.getByTestId("team-members-view")).toHaveAttribute("data-query", "alice");
     expect(screen.getByTestId("team-members-view")).toHaveAttribute("data-member-id", "member-1");
+    expect(screen.getByTestId("context-settings-shell-action")).toHaveTextContent(
+      "TEAM_INVITE_MEMBER",
+    );
   });
 
   it("renders project general settings through the site settings page with workspace context from store", () => {
@@ -148,5 +180,29 @@ describe("context settings pages", () => {
     renderWithQueryClient(<ProjectMembersSettingsPage projectId="project-1" />);
 
     expect(await screen.findByText("Ada Lovelace")).toBeInTheDocument();
+  });
+
+  it("renders workspace invitations with both header actions in the context shell", () => {
+    renderWithQueryClient(<WorkspaceInvitationsSettingsPage workspaceId="ws-1" />);
+
+    expect(screen.getByTestId("team-invitations-page")).toHaveAttribute(
+      "data-workspace-id",
+      "ws-1",
+    );
+    expect(screen.getByTestId("context-settings-shell-action")).toHaveTextContent(
+      "TEAM_INVITE_CREATE_LINK_ACTION",
+    );
+    expect(screen.getByTestId("context-settings-shell-action")).toHaveTextContent(
+      "common:ORG_MEMBERS_INVITE",
+    );
+  });
+
+  it("renders workspace roles with the header action in the context shell", () => {
+    renderWithQueryClient(<WorkspaceRolesSettingsPage workspaceId="ws-1" />);
+
+    expect(screen.getByTestId("team-roles-page")).toHaveAttribute("data-workspace-id", "ws-1");
+    expect(screen.getByTestId("context-settings-shell-action")).toHaveTextContent(
+      "TEAM_ROLES_ADD_ROLE",
+    );
   });
 });

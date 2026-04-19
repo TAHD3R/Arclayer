@@ -55,20 +55,54 @@ vi.mock(
 );
 
 vi.mock("@/pages/workspaces/team/members/components/team-members-view", () => ({
-  TeamMembersView: ({ workspaceIdOverride }: { workspaceIdOverride: string }) => (
-    <div data-testid="overlay-workspace-members-view">{workspaceIdOverride}</div>
+  TeamMembersView: ({
+    workspaceIdOverride,
+    inviteOpen,
+  }: {
+    workspaceIdOverride: string;
+    inviteOpen?: boolean;
+  }) => (
+    <>
+      <div data-testid="overlay-workspace-members-view">{workspaceIdOverride}</div>
+      <div data-testid="overlay-workspace-members-invite-state">{String(Boolean(inviteOpen))}</div>
+    </>
   ),
 }));
 
 vi.mock("@/pages/workspaces/team/invitations/page", () => ({
-  TeamInvitationsPage: ({ workspaceIdOverride }: { workspaceIdOverride: string }) => (
-    <div data-testid="overlay-workspace-invitations-view">{workspaceIdOverride}</div>
+  TeamInvitationsPage: ({
+    workspaceIdOverride,
+    inviteLinkOpen,
+    inviteEmailOpen,
+  }: {
+    workspaceIdOverride: string;
+    inviteLinkOpen?: boolean;
+    inviteEmailOpen?: boolean;
+  }) => (
+    <>
+      <div data-testid="overlay-workspace-invitations-view">{workspaceIdOverride}</div>
+      <div data-testid="overlay-workspace-invitations-link-state">
+        {String(Boolean(inviteLinkOpen))}
+      </div>
+      <div data-testid="overlay-workspace-invitations-email-state">
+        {String(Boolean(inviteEmailOpen))}
+      </div>
+    </>
   ),
 }));
 
 vi.mock("@/pages/workspaces/team/roles/page", () => ({
-  TeamRolesPage: ({ workspaceIdOverride }: { workspaceIdOverride: string }) => (
-    <div data-testid="overlay-workspace-roles-view">{workspaceIdOverride}</div>
+  TeamRolesPage: ({
+    workspaceIdOverride,
+    createOpen,
+  }: {
+    workspaceIdOverride: string;
+    createOpen?: boolean;
+  }) => (
+    <>
+      <div data-testid="overlay-workspace-roles-view">{workspaceIdOverride}</div>
+      <div data-testid="overlay-workspace-roles-create-state">{String(Boolean(createOpen))}</div>
+    </>
   ),
 }));
 
@@ -167,6 +201,57 @@ describe("UsercenterOverlayHost", () => {
       assetId: "asset-1",
       personalSettings: "workspace-members",
     });
+  });
+
+  it("shows the workspace members primary action in the overlay header and controls invite state", async () => {
+    const user = userEvent.setup();
+    overlaySearch.personalSettings = "workspace-members";
+    renderOverlayHost();
+
+    expect(screen.getByRole("button", { name: "TEAM_INVITE_MEMBER" })).toBeVisible();
+    expect(screen.getByTestId("overlay-workspace-members-invite-state")).toHaveTextContent("false");
+
+    await user.click(screen.getByRole("button", { name: "TEAM_INVITE_MEMBER" }));
+
+    expect(screen.getByTestId("overlay-workspace-members-invite-state")).toHaveTextContent("true");
+  });
+
+  it("shows the workspace invitations header actions in the overlay and controls both dialogs", async () => {
+    const user = userEvent.setup();
+    overlaySearch.personalSettings = "workspace-invitations";
+    renderOverlayHost();
+
+    expect(screen.getByRole("button", { name: "TEAM_INVITE_CREATE_LINK_ACTION" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "common:ORG_MEMBERS_INVITE" })).toBeVisible();
+    expect(screen.getByTestId("overlay-workspace-invitations-link-state")).toHaveTextContent(
+      "false",
+    );
+    expect(screen.getByTestId("overlay-workspace-invitations-email-state")).toHaveTextContent(
+      "false",
+    );
+
+    await user.click(screen.getByRole("button", { name: "TEAM_INVITE_CREATE_LINK_ACTION" }));
+    expect(screen.getByTestId("overlay-workspace-invitations-link-state")).toHaveTextContent(
+      "true",
+    );
+
+    await user.click(screen.getByRole("button", { name: "common:ORG_MEMBERS_INVITE" }));
+    expect(screen.getByTestId("overlay-workspace-invitations-email-state")).toHaveTextContent(
+      "true",
+    );
+  });
+
+  it("shows the workspace roles header action in the overlay and controls create state", async () => {
+    const user = userEvent.setup();
+    overlaySearch.personalSettings = "workspace-roles";
+    renderOverlayHost();
+
+    expect(screen.getByRole("button", { name: "TEAM_ROLES_ADD_ROLE" })).toBeVisible();
+    expect(screen.getByTestId("overlay-workspace-roles-create-state")).toHaveTextContent("false");
+
+    await user.click(screen.getByRole("button", { name: "TEAM_ROLES_ADD_ROLE" }));
+
+    expect(screen.getByTestId("overlay-workspace-roles-create-state")).toHaveTextContent("true");
   });
 
   it("mounts a dedicated internal scroll region for overlay content", () => {

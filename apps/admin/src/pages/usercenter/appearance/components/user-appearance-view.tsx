@@ -28,7 +28,6 @@ export function UserAppearanceView(props: UserAppearanceViewProps) {
 
       <UserCenterSettingPanel
         title={t("ME_PREF_LOCALIZATION_PANEL_TITLE")}
-        description={t("ME_PREF_LOCALIZATION_PANEL_DESC")}
         variant={panelVariant}
         showDivider
       >

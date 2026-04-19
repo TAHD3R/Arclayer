@@ -58,6 +58,8 @@ function resolveRoleHeaderLines(roleName: string) {
 export function TeamRolesView(
   props: {
     workspaceIdOverride?: string | null;
+    createOpen?: boolean;
+    onCreateOpenChange?: (open: boolean) => void;
     embedded?: boolean;
   } = {},
 ) {
@@ -68,7 +70,9 @@ export function TeamRolesView(
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
   const [search, setSearch] = React.useState("");
   const needle = React.useMemo(() => normalizeNeedle(search), [search]);
-  const [createOpen, setCreateOpen] = React.useState(false);
+  const [uncontrolledCreateOpen, setUncontrolledCreateOpen] = React.useState(false);
+  const createOpen = props.createOpen ?? uncontrolledCreateOpen;
+  const setCreateOpen = props.onCreateOpenChange ?? setUncontrolledCreateOpen;
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<{ code: string; name: string } | null>(
     null,
@@ -331,7 +335,7 @@ export function TeamRolesView(
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
-          <div className="relative isolate overflow-x-auto rounded-lg bg-background">
+          <div className="relative isolate overflow-x-auto rounded-xl border border-border/70 bg-background">
             <table className="w-full table-fixed border-collapse caption-bottom text-callout">
               <colgroup>
                 <col style={{ width: matrixColumnWidths.permission }} />
@@ -341,7 +345,7 @@ export function TeamRolesView(
               </colgroup>
               <TableHeader className="border-b border-border/60 [&_tr]:border-0">
                 <TableRow className="border-0 bg-background hover:bg-transparent">
-                  <TableHead className="sticky top-0 left-0 z-[3] bg-background align-top text-center">
+                  <TableHead className="sticky top-0 left-0 z-[3] bg-background text-center">
                     <div className="flex min-h-24 items-center justify-center px-2 py-2.5 text-center">
                       <span className="block text-callout font-semibold text-label-secondary">
                         {t("team:TEAM_ROLES_COL_PERMISSION")}
@@ -353,7 +357,7 @@ export function TeamRolesView(
                     return (
                       <TableHead
                         key={role.code}
-                        className="sticky top-0 z-[2] min-w-[5.5rem] bg-background align-top"
+                        className="sticky top-0 z-[2] min-w-[5.5rem] bg-background"
                       >
                         <div className="relative min-h-24 px-2 py-2.5">
                           <div
@@ -423,7 +427,7 @@ export function TeamRolesView(
                     className="group/row border-border/45 bg-background hover:bg-muted/20"
                   >
                     <TableCell className="sticky left-0 z-[1] bg-inherit transition-colors">
-                      <div className="min-w-0">
+                      <div className="min-w-0 p-2">
                         <div className="break-words font-semibold text-label-primary">
                           {perm.name}
                         </div>
@@ -511,10 +515,7 @@ export function TeamRolesView(
   if (props.embedded) {
     return (
       <div className="flex min-h-0 flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">{toolbar}</div>
-          {actionButton}
-        </div>
+        {toolbar}
         {content}
       </div>
     );

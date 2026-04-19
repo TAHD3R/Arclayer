@@ -205,7 +205,7 @@ describe("TeamRolesView", () => {
     });
   });
 
-  it("shows permission count beside search and uses the shared borderless row treatment", async () => {
+  it("shows permission count beside search and uses the shared settings table border treatment", async () => {
     const { container } = renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
 
     await screen.findByTitle("Content editor");
@@ -214,8 +214,7 @@ describe("TeamRolesView", () => {
 
     const matrix = screen.getByRole("table");
     const matrixShell = matrix.parentElement;
-    expect(matrixShell).toHaveClass("rounded-lg", "bg-background");
-    expect(matrixShell).not.toHaveClass("border", "border-border");
+    expect(matrixShell).toHaveClass("rounded-xl", "border", "border-border/70", "bg-background");
     const columns = matrix.querySelectorAll("col");
     expect(columns).toHaveLength(3);
     expect(columns[0]).toHaveAttribute("style", expect.stringContaining("42%"));
@@ -234,6 +233,7 @@ describe("TeamRolesView", () => {
     const stickyPermissionCell = firstBodyRow?.querySelector("td");
     expect(stickyPermissionCell).toHaveClass("bg-inherit");
     expect(stickyPermissionCell).not.toHaveClass("border-r");
+    expect(stickyPermissionCell?.firstElementChild).toHaveClass("min-w-0", "p-2");
 
     const pageBody = container.querySelector(".flex.flex-col.gap-4.pb-8");
     expect(pageBody).not.toBeNull();

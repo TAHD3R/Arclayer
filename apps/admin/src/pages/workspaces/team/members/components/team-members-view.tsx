@@ -1,64 +1,57 @@
-import { Eye, MoreVertical, Plus, UserCheck, UserCog, UserX } from "lucide-react";
+import { MoreVertical, Plus, UserCheck, UserCog, UserX } from "lucide-react";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
-import { type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
+import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
-import { listMyWorkspaces } from "@/api/workspaces";
 import { listWorkspaceRoles } from "@/api/rbac";
+import { DataPaginationControls } from "@/components/common/data-pagination-controls";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { EditMemberRolesDialog } from "@/pages/workspaces/team/shared/components/edit-member-roles-dialog";
+import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
+import { MemberIdentityCell } from "@/pages/workspaces/team/shared/components/member-identity-cell";
+import { SettingsTableRefreshSkeleton } from "@/pages/workspaces/team/shared/components/settings-table-refresh-skeleton";
+import {
+  DEFAULT_TEAM_MEMBER_PAGE_SIZE,
+  DEFAULT_TEAM_MEMBER_SORT,
+} from "@/pages/workspaces/team/shared/constants";
+import type { TeamMemberSort } from "@/pages/workspaces/team/shared/types";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { TeamMember } from "@/types/api";
+import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
 import {
   disableTeamMember,
   enableTeamMember,
   listTeamMembers,
   setTeamMemberRoles,
 } from "@/api/team";
-import { MemberIdentityCell } from "@/pages/workspaces/team/shared/components/member-identity-cell";
-import type { TeamMember, UserStatus } from "@/types/api";
-import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
-import {
-  useDataTableRowHeightPreference,
-  useDataTableWrapHeadersPreference,
-  useDataTable,
-} from "@arclayer/ui/data-table";
+import { listMyWorkspaces } from "@/api/workspaces";
 import { Button } from "@arclayer/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
-import {
-  DEFAULT_TEAM_MEMBER_PAGE_SIZE,
-  DEFAULT_TEAM_MEMBER_SORT,
-} from "@/pages/workspaces/team/shared/constants";
-import type { TeamMemberSort, TeamMembersFilters } from "@/pages/workspaces/team/shared/types";
-import { useAuthStore } from "@/stores/use-auth-store";
-import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { EditMemberRolesDialog } from "@/pages/workspaces/team/shared/components/edit-member-roles-dialog";
-import { WorkspaceMemberContextDialog } from "@/pages/workspaces/team/shared/components/workspace-member-context-dialog";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-import type { TeamMemberExtraQuery } from "../types";
-import {
-  buildTeamMemberExtraQuery,
-  resolveWorkspaceName,
-  sortValueToTableSorting,
-  tableSortingToSortValue,
-  teamMembersQueryKey,
-  teamMembersTableId,
-} from "../utils";
-import { TeamMembersPageToolbar } from "@/pages/workspaces/team/shared/components/team-members-page-toolbar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { resolveWorkspaceName } from "../utils";
+
+function teamMembersSettingsQueryKeyPrefix(workspaceId: string | null | undefined) {
+  return ["team-members-settings", workspaceId ? String(workspaceId) : null] as const;
+}
 
 export function TeamMembersView(props: {
   workspaceIdOverride?: string | null;
   initialSearchQuery?: string;
   initialInspectMemberId?: string;
+  inviteOpen?: boolean;
+  onInviteOpenChange?: (open: boolean) => void;
   embedded?: boolean;
 }) {
   const { t } = useTranslation(["team", "common"]);
@@ -68,19 +61,14 @@ export function TeamMembersView(props: {
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
-
-  const [filters, setFilters] = React.useState<TeamMembersFilters>({});
-
   const [sort, setSort] = React.useState<TeamMemberSort>(DEFAULT_TEAM_MEMBER_SORT);
+  const [searchInput, setSearchInput] = React.useState("");
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_TEAM_MEMBER_PAGE_SIZE);
 
-  const dataTableId = React.useMemo(
-    () => teamMembersTableId(workspaceId ? String(workspaceId) : null),
-    [workspaceId],
-  );
-  const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId: dataTableId });
-  const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId: dataTableId });
-
-  const [inviteOpen, setInviteOpen] = React.useState(false);
+  const [uncontrolledInviteOpen, setUncontrolledInviteOpen] = React.useState(false);
+  const inviteOpen = props.inviteOpen ?? uncontrolledInviteOpen;
+  const setInviteOpen = props.onInviteOpenChange ?? setUncontrolledInviteOpen;
 
   const meQuery = useQuery({
     queryKey: ["auth", "me", sessionVersion],
@@ -131,15 +119,16 @@ export function TeamMembersView(props: {
 
   const [editingMember, setEditingMember] = React.useState<TeamMember | null>(null);
   const [editingRoleCode, setEditingRoleCode] = React.useState<string | null>(null);
-  const [inspectingMember, setInspectingMember] = React.useState<TeamMember | null>(null);
   const hydratedSearchRef = React.useRef<string | null>(null);
-  const hydratedInspectRef = React.useRef<string | null>(null);
   const canEditRoles = Boolean(editingMember) && editingMember?.membershipStatus === "active";
+  const membersSettingsQueryKeyPrefix = teamMembersSettingsQueryKeyPrefix(workspaceId);
 
-  const extraQuery = React.useMemo<TeamMemberExtraQuery>(
-    () => buildTeamMemberExtraQuery(filters),
-    [filters.membershipStatus, filters.roleCode, filters.userStatus],
-  );
+  const invalidateMembersQuery = React.useCallback(() => {
+    return queryClient.invalidateQueries({
+      queryKey: membersSettingsQueryKeyPrefix,
+      exact: false,
+    });
+  }, [membersSettingsQueryKeyPrefix, queryClient]);
 
   const enableMutation = useMutation({
     mutationFn: async (membershipId: string) => {
@@ -148,9 +137,7 @@ export function TeamMembersView(props: {
     },
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({
-        queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
-      });
+      void invalidateMembersQuery();
     },
     onError: (err) => notifyError(err),
   });
@@ -162,9 +149,7 @@ export function TeamMembersView(props: {
     },
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({
-        queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
-      });
+      void invalidateMembersQuery();
     },
     onError: (err) => notifyError(err),
   });
@@ -178,9 +163,7 @@ export function TeamMembersView(props: {
         : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({
-        queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
-      });
+      void invalidateMembersQuery();
       setEditingMember(null);
       setEditingRoleCode(null);
     },
@@ -188,310 +171,276 @@ export function TeamMembersView(props: {
   });
 
   const dateTime = useWorkspaceDateTimeFormatter();
-
-  const columns = React.useMemo<ColumnDef<TeamMember, unknown>[]>(() => {
-    const cols: ColumnDef<TeamMember, unknown>[] = [
-      {
-        id: "user",
-        meta: {
-          title: t("team:TEAM_TABLE_COL_USER"),
-          sortKey: "user__username",
-          kind: "primary",
-        },
-        header: t("team:TEAM_TABLE_COL_USER"),
-        cell: ({ row }) => {
-          const m = row.original;
-          const canEnable = m.membershipStatus === "disabled";
-          const canDisable = m.membershipStatus === "active";
-          const isSelf = currentUserId ? String(currentUserId) === String(m.userId) : false;
-          const canEditMemberRoles = m.membershipStatus === "active";
-          const roleSummary =
-            m.roleCodes.length <= 1
-              ? (roleNameByCode.get(m.roleCodes[0] ?? "") ?? m.roleCodes[0] ?? "-")
-              : t("team:TEAM_MEMBER_CONTEXT_MULTIPLE_ROLES", { count: m.roleCodes.length });
-          const hoverStatusLabel =
-            m.userStatus === "active"
-              ? t("team:TEAM_USER_STATUS_ACTIVE")
-              : m.userStatus === "disabled"
-                ? t("team:TEAM_USER_STATUS_DISABLED")
-                : t("team:TEAM_USER_STATUS_LOCKED");
-
-          return (
-            <div className="flex items-center gap-3">
-              <MemberIdentityCell
-                member={m}
-                scopeLabel={t("team:TEAM_MEMBER_CONTEXT_SCOPE")}
-                scopeVariant="workspace"
-                badges={
-                  <>
-                    <TeamRoleTag
-                      className="!mr-0 max-w-full overflow-hidden"
-                      label={<span className="truncate">{roleSummary}</span>}
-                    />
-                    <TeamUserStatusTag
-                      status={m.userStatus}
-                      className="!mr-0 max-w-full overflow-hidden"
-                      label={<span className="truncate">{hoverStatusLabel}</span>}
-                    />
-                  </>
-                }
-                description={t("team:TEAM_MEMBER_CONTEXT_HOVER_SUMMARY", {
-                  roleCount: m.roleCodes.length,
-                })}
-                onOpenDetails={() => setInspectingMember(m)}
-                className="min-w-0 flex-1"
-              />
-
-              <div className="ml-auto">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" aria-label={t("team:TEAM_USER_ACTIONS")}>
-                      <MoreVertical className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuIconItem
-                      icon={<Eye className="size-4" />}
-                      onSelect={() => setInspectingMember(m)}
-                    >
-                      {t("team:TEAM_MEMBER_CONTEXT_TITLE")}
-                    </DropdownMenuIconItem>
-                    <DropdownMenuIconItem
-                      icon={<UserCog className="size-4" />}
-                      disabled={!canEditMemberRoles || rolesQueryFailed}
-                      onSelect={() => {
-                        setEditingMember(m);
-                        setEditingRoleCode(m.roleCodes?.[0] ?? null);
-                      }}
-                    >
-                      {t("team:TEAM_ACTION_EDIT_ROLES")}
-                    </DropdownMenuIconItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuIconItem
-                      icon={<UserCheck className="size-4" />}
-                      disabled={!canEnable}
-                      onSelect={() => enableMutation.mutate(m.membershipId)}
-                    >
-                      {t("team:TEAM_ACTION_ENABLE")}
-                    </DropdownMenuIconItem>
-                    <DropdownMenuIconItem
-                      icon={<UserX className="size-4" />}
-                      disabled={!canDisable || isSelf}
-                      onSelect={() => {
-                        if (isSelf) return;
-                        disableMutation.mutate(m.membershipId);
-                      }}
-                    >
-                      {isSelf
-                        ? t("team:TEAM_ACTION_DISABLE_SELF_DISABLED")
-                        : t("team:TEAM_ACTION_DISABLE")}
-                    </DropdownMenuIconItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          );
-        },
-        size: 360,
-        minSize: 300,
-      },
-      {
-        id: "roles",
-        meta: {
-          title: t("team:TEAM_TABLE_COL_ROLES"),
-          kind: "meta",
-        },
-        header: () => <span>{t("team:TEAM_TABLE_COL_ROLES")}</span>,
-        cell: ({ row }) => {
-          const codes = row.original.roleCodes ?? [];
-          if (!codes.length) return <span className="text-label-secondary">-</span>;
-          return (
-            <div className="flex flex-wrap gap-1">
-              {codes.slice(0, 3).map((code) => (
-                <TeamRoleTag
-                  key={code}
-                  className="mr-0!"
-                  label={roleNameByCode.get(code) ?? code}
-                />
-              ))}
-              {codes.length > 3 ? (
-                <span className="text-label-secondary text-caption">
-                  {t("team:TEAM_MORE_ROLES", { count: codes.length - 3 })}
-                </span>
-              ) : null}
-            </div>
-          );
-        },
-        size: 220,
-        minSize: 180,
-      },
-      {
-        accessorKey: "userStatus",
-        meta: {
-          title: t("team:TEAM_TABLE_COL_STATUS"),
-          sortKey: "status",
-          kind: "status",
-        },
-        header: t("team:TEAM_TABLE_COL_STATUS"),
-        cell: ({ row }) => {
-          const membership = row.original.membershipStatus;
-          const user = row.original.userStatus;
-          const isNormal = membership === "active" && user === "active";
-          return (
-            <div className="flex flex-wrap items-center gap-1">
-              <TeamMembershipStatusTag
-                status={membership}
-                className="mr-0!"
-                label={
-                  membership === "active"
-                    ? t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")
-                    : membership === "invited"
-                      ? t("team:TEAM_MEMBERSHIP_STATUS_INVITED")
-                      : t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")
-                }
-              />
-              {!isNormal && (
-                <TeamUserStatusTag
-                  status={user}
-                  className="mr-0!"
-                  label={
-                    user === "active"
-                      ? t("team:TEAM_USER_STATUS_ACTIVE")
-                      : user === "disabled"
-                        ? t("team:TEAM_USER_STATUS_DISABLED")
-                        : t("team:TEAM_USER_STATUS_LOCKED")
-                  }
-                />
-              )}
-            </div>
-          );
-        },
-        size: 190,
-        minSize: 168,
-      },
-      {
-        accessorKey: "lastLoginAt",
-        meta: {
-          title: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
-          sortKey: "user__last_login_at",
-          kind: "time",
-        },
-        header: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
-        cell: ({ row }) => {
-          const formatted = dateTime.formatDateTimeOrNull(row.original.lastLoginAt);
-          return (
-            <span className={formatted ? "" : "text-label-secondary"}>
-              {formatted || t("team:TEAM_LAST_LOGIN_NEVER")}
-            </span>
-          );
-        },
-        size: 210,
-        minSize: 190,
-      },
-    ];
-    return cols;
-  }, [currentUserId, dateTime, roleNameByCode, rolesQueryFailed, t]);
-
-  const tableHook = useDataTable<
-    TeamMember,
-    { status?: TeamMember["membershipStatus"]; userStatus?: UserStatus; roleCode?: string }
-  >({
-    tableId: dataTableId,
-    columns,
-    extraQuery,
-    orderingOverride: sort,
-    initialState: { pageSize: DEFAULT_TEAM_MEMBER_PAGE_SIZE },
-    onSortingChange: (nextSorting) => {
-      const mapped = tableSortingToSortValue(nextSorting);
-      setSort(mapped ?? DEFAULT_TEAM_MEMBER_SORT);
+  const membersQuery = useQuery({
+    queryKey: [...membersSettingsQueryKeyPrefix, searchInput, sort, page, pageSize],
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return listTeamMembers(String(workspaceId), {
+        page,
+        size: pageSize,
+        q: searchInput.trim() || undefined,
+        ordering: sort,
+      });
     },
-    fetcher: async (params) =>
-      workspaceId
-        ? listTeamMembers(String(workspaceId), {
-            page: params.page,
-            size: params.size,
-            q: params.q,
-            ordering: params.ordering,
-            status: params.status,
-            userStatus: params.userStatus,
-            roleCode: params.roleCode,
-          })
-        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
-    queryOptions: {
-      staleTime: 30 * 1000,
-      retry: false,
-      meta: { silent: true },
-    },
+    enabled: Boolean(workspaceId),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
   });
-
-  const table = tableHook.table;
-  const pageData = tableHook.pageData;
-  const toolsLabels = React.useMemo(() => buildDataTableToolsLabels(t), [t]);
+  const rows = membersQuery.data?.items ?? [];
 
   React.useEffect(() => {
     const nextQuery = String(props.initialSearchQuery || "").trim();
     if (!nextQuery || hydratedSearchRef.current === nextQuery) return;
     hydratedSearchRef.current = nextQuery;
-    tableHook.setSearchInput(nextQuery);
-  }, [props.initialSearchQuery, tableHook]);
+    setSearchInput(nextQuery);
+  }, [props.initialSearchQuery]);
 
   React.useEffect(() => {
-    const nextMemberId = String(props.initialInspectMemberId || "").trim();
-    if (!nextMemberId || hydratedInspectRef.current === nextMemberId) return;
-    const matched =
-      tableHook.items.find((member) => String(member.userId) === nextMemberId) ?? null;
-    if (!matched) return;
-    hydratedInspectRef.current = nextMemberId;
-    setInspectingMember(matched);
-  }, [props.initialInspectMemberId, tableHook.items]);
+    setPage(1);
+  }, [searchInput, sort]);
+
+  const renderMemberActions = React.useCallback(
+    (member: TeamMember) => {
+      const canEnable = member.membershipStatus === "disabled";
+      const canDisable = member.membershipStatus === "active";
+      const isSelf = currentUserId ? String(currentUserId) === String(member.userId) : false;
+      const canEditMemberRoles = member.membershipStatus === "active";
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label={t("team:TEAM_USER_ACTIONS")}>
+              <MoreVertical className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuIconItem
+              icon={<UserCog className="size-4" />}
+              disabled={!canEditMemberRoles || rolesQueryFailed}
+              onSelect={() => {
+                setEditingMember(member);
+                setEditingRoleCode(member.roleCodes?.[0] ?? null);
+              }}
+            >
+              {t("team:TEAM_ACTION_EDIT_ROLES")}
+            </DropdownMenuIconItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuIconItem
+              icon={<UserCheck className="size-4" />}
+              disabled={!canEnable}
+              onSelect={() => enableMutation.mutate(member.membershipId)}
+            >
+              {t("team:TEAM_ACTION_ENABLE")}
+            </DropdownMenuIconItem>
+            <DropdownMenuIconItem
+              icon={<UserX className="size-4" />}
+              disabled={!canDisable || isSelf}
+              onSelect={() => {
+                if (isSelf) return;
+                disableMutation.mutate(member.membershipId);
+              }}
+            >
+              {isSelf ? t("team:TEAM_ACTION_DISABLE_SELF_DISABLED") : t("team:TEAM_ACTION_DISABLE")}
+            </DropdownMenuIconItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
+    [currentUserId, enableMutation, disableMutation, rolesQueryFailed, t],
+  );
 
   const pageToolbar = (
-    <TeamMembersPageToolbar
-      table={table}
-      searchInput={tableHook.searchInput}
-      onSearchInputChange={tableHook.setSearchInput}
-      filters={filters}
-      onFiltersChange={setFilters}
-      sort={sort}
-      onSortChange={(next) => {
-        setSort(next);
-        tableHook.setSorting(sortValueToTableSorting(next));
-      }}
-      roles={rolesQuery.data?.items ?? []}
-      rolesLoading={rolesQuery.isLoading}
-      rowHeight={rowHeight}
-      onRowHeightChange={setRowHeight}
-      wrapHeaders={wrapHeaders}
-      onWrapHeadersChange={setWrapHeaders}
-      refreshing={tableHook.isFetching}
-      onRefresh={() => void tableHook.refetch()}
-      onResetColumnVisibility={tableHook.resetColumnVisibility}
-      toolsLabels={toolsLabels}
-    />
+    <div className="flex flex-wrap items-center gap-3">
+      <DataTableSearchInput
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
+        clearLabel={t("common:CLEAR")}
+      />
+
+      <Select value={sort} onValueChange={(next) => setSort(next as TeamMemberSort)}>
+        <SelectTrigger className="w-[13rem] min-w-[13rem]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="start" position="popper">
+          <SelectItem value="-created_at">{t("team:TEAM_SORT_NEWEST")}</SelectItem>
+          <SelectItem value="user__username">{t("team:TEAM_SORT_USERNAME_AZ")}</SelectItem>
+          <SelectItem value="-user__username">{t("team:TEAM_SORT_USERNAME_ZA")}</SelectItem>
+          <SelectItem value="user__email">{t("team:TEAM_SORT_EMAIL_AZ")}</SelectItem>
+          <SelectItem value="-user__email">{t("team:TEAM_SORT_EMAIL_ZA")}</SelectItem>
+          <SelectItem value="-user__last_login_at">
+            {t("team:TEAM_SORT_LAST_LOGIN_RECENT")}
+          </SelectItem>
+          <SelectItem value="user__last_login_at">{t("team:TEAM_SORT_LAST_LOGIN_OLD")}</SelectItem>
+          <SelectItem value="status">{t("team:TEAM_SORT_MEMBER_STATUS")}</SelectItem>
+          <SelectItem value="-status">{t("team:TEAM_SORT_MEMBER_STATUS_DESC")}</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
   );
 
   const content = (
     <>
-      <AdminDataTableSection
-        table={table}
-        emptyText={t("team:TEAM_EMPTY_TABLE")}
+      <ContentGuard
+        loading={Boolean(membersQuery.isLoading && !membersQuery.data)}
+        error={membersQuery.error}
+        empty={!membersQuery.isLoading && !membersQuery.isError && rows.length === 0}
+        onRetry={() => {
+          void membersQuery.refetch();
+        }}
+        container="raw"
+        loadingVariant="table"
         emptyTitle={t("team:TEAM_EMPTY_TITLE")}
         emptyDescription={t("team:TEAM_EMPTY_DESC")}
-        loading={tableHook.isLoading}
-        error={tableHook.error}
-        onRetry={() => void tableHook.refetch()}
-        pageData={pageData}
-        onPaginationChange={(nextPage, nextSize) => {
-          if (nextSize !== table.getState().pagination.pageSize) {
-            table.setPageSize(nextSize);
-          }
-          table.setPageIndex(Math.max(0, nextPage - 1));
-        }}
-        t={t}
-        rowHeight={rowHeight}
-        wrapHeaders={wrapHeaders}
-        refreshing={tableHook.isFetching && !tableHook.isLoading}
-      />
+        variant="compact"
+      >
+        {membersQuery.isFetching && !membersQuery.isLoading ? (
+          <SettingsTableRefreshSkeleton />
+        ) : null}
+        <div className="min-w-0 overflow-x-auto">
+          <table className="min-w-[62rem] w-full table-fixed border-collapse">
+            <thead>
+              <tr className="border-b border-border/60">
+                <th className="w-1/4 py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
+                  {t("team:TEAM_TABLE_COL_USER")}
+                </th>
+                <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                  {t("team:TEAM_TABLE_COL_ROLES")}
+                </th>
+                <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                  {t("team:TEAM_TABLE_COL_STATUS")}
+                </th>
+                <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                  {t("team:TEAM_TABLE_COL_LAST_LOGIN")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((member) => {
+                const roleSummary =
+                  member.roleCodes.length <= 1
+                    ? (roleNameByCode.get(member.roleCodes[0] ?? "") ?? member.roleCodes[0] ?? "-")
+                    : t("team:TEAM_MEMBER_CONTEXT_MULTIPLE_ROLES", {
+                        count: member.roleCodes.length,
+                      });
+                const hoverStatusLabel =
+                  member.userStatus === "active"
+                    ? t("team:TEAM_USER_STATUS_ACTIVE")
+                    : member.userStatus === "disabled"
+                      ? t("team:TEAM_USER_STATUS_DISABLED")
+                      : t("team:TEAM_USER_STATUS_LOCKED");
+                const membership = member.membershipStatus;
+                const user = member.userStatus;
+                const isNormal = membership === "active" && user === "active";
+                const formattedLastLogin = dateTime.formatDateTimeOrNull(member.lastLoginAt);
+
+                return (
+                  <tr
+                    key={member.membershipId}
+                    className="border-b border-border/50 last:border-b-0"
+                  >
+                    <td className="py-4 pr-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <MemberIdentityCell
+                          member={member}
+                          scopeLabel={t("team:TEAM_MEMBER_CONTEXT_SCOPE")}
+                          scopeVariant="workspace"
+                          badges={
+                            <>
+                              <TeamRoleTag
+                                className="!mr-0 max-w-full overflow-hidden"
+                                label={<span className="truncate">{roleSummary}</span>}
+                              />
+                              <TeamUserStatusTag
+                                status={member.userStatus}
+                                className="!mr-0 max-w-full overflow-hidden"
+                                label={<span className="truncate">{hoverStatusLabel}</span>}
+                              />
+                            </>
+                          }
+                          description={t("team:TEAM_MEMBER_CONTEXT_HOVER_SUMMARY", {
+                            roleCount: member.roleCodes.length,
+                          })}
+                          className="min-w-0 flex-1"
+                        />
+                        <div className="shrink-0">{renderMemberActions(member)}</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      {member.roleCodes.length ? (
+                        <div className="flex flex-wrap gap-1">
+                          {member.roleCodes.slice(0, 3).map((code) => (
+                            <TeamRoleTag
+                              key={code}
+                              className="mr-0!"
+                              label={roleNameByCode.get(code) ?? code}
+                            />
+                          ))}
+                          {member.roleCodes.length > 3 ? (
+                            <span className="text-caption text-label-secondary">
+                              {t("team:TEAM_MORE_ROLES", { count: member.roleCodes.length - 3 })}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-label-secondary">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <TeamMembershipStatusTag
+                          status={membership}
+                          className="mr-0!"
+                          label={
+                            membership === "active"
+                              ? t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")
+                              : membership === "invited"
+                                ? t("team:TEAM_MEMBERSHIP_STATUS_INVITED")
+                                : t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")
+                          }
+                        />
+                        {!isNormal ? (
+                          <TeamUserStatusTag
+                            status={user}
+                            className="mr-0!"
+                            label={
+                              user === "active"
+                                ? t("team:TEAM_USER_STATUS_ACTIVE")
+                                : user === "disabled"
+                                  ? t("team:TEAM_USER_STATUS_DISABLED")
+                                  : t("team:TEAM_USER_STATUS_LOCKED")
+                            }
+                          />
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-callout text-label-primary">
+                      <span className={formattedLastLogin ? "" : "text-label-secondary"}>
+                        {formattedLastLogin || t("team:TEAM_LAST_LOGIN_NEVER")}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {membersQuery.data ? (
+          <div className="border-t border-border/50 pt-3">
+            <DataPaginationControls
+              page={membersQuery.data.page}
+              size={membersQuery.data.size}
+              total={membersQuery.data.total}
+              onChange={(nextPage, nextSize) => {
+                setPage(nextPage);
+                setPageSize(nextSize);
+              }}
+              t={t}
+            />
+          </div>
+        ) : null}
+      </ContentGuard>
 
       <EditMemberRolesDialog
         open={Boolean(editingMember)}
@@ -518,26 +467,6 @@ export function TeamMembersView(props: {
         }}
       />
 
-      <WorkspaceMemberContextDialog
-        open={Boolean(inspectingMember)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setInspectingMember(null);
-          }
-        }}
-        workspaceId={workspaceId ? String(workspaceId) : null}
-        member={inspectingMember}
-        currentUserId={currentUserId}
-        onAdjustRoles={(member) => {
-          setInspectingMember(null);
-          setEditingMember(member);
-          setEditingRoleCode(member.roleCodes?.[0] ?? null);
-        }}
-        onEnable={(membershipId) => enableMutation.mutate(membershipId)}
-        onDisable={(membershipId) => disableMutation.mutate(membershipId)}
-        rolesUpdateDisabled={rolesQueryFailed || rolesQuery.isLoading}
-      />
-
       <InviteMembersDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
@@ -546,11 +475,7 @@ export function TeamMembersView(props: {
         workspaceName={workspaceName}
         roles={rolesQuery.data?.items ?? []}
         rolesLoading={rolesQuery.isLoading}
-        onInvited={() =>
-          void queryClient.invalidateQueries({
-            queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
-          })
-        }
+        onInvited={() => void invalidateMembersQuery()}
       />
     </>
   );
@@ -558,13 +483,7 @@ export function TeamMembersView(props: {
   if (props.embedded) {
     return (
       <div className="flex min-h-0 flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">{pageToolbar}</div>
-          <Button onClick={() => setInviteOpen(true)}>
-            <Plus size={16} />
-            {t("team:TEAM_INVITE_MEMBER")}
-          </Button>
-        </div>
+        {pageToolbar}
         {content}
       </div>
     );

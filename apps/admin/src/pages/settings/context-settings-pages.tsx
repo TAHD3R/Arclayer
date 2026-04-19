@@ -1,5 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -46,6 +47,8 @@ export function WorkspaceMembersSettingsPage(props: {
   initialInspectMemberId?: string;
 }) {
   const { t } = useTranslation("settings");
+  const { t: tTeam } = useTranslation("team");
+  const [inviteOpen, setInviteOpen] = useState(false);
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
     structuralSharing: true,
@@ -57,11 +60,19 @@ export function WorkspaceMembersSettingsPage(props: {
       description={t("SETTINGS_WORKSPACE_MEMBERS_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
+      action={
+        <Button onClick={() => setInviteOpen(true)}>
+          <Plus size={16} />
+          {tTeam("TEAM_INVITE_MEMBER")}
+        </Button>
+      }
     >
       <TeamMembersView
         workspaceIdOverride={props.workspaceId}
         initialSearchQuery={props.initialSearchQuery}
         initialInspectMemberId={props.initialInspectMemberId}
+        inviteOpen={inviteOpen}
+        onInviteOpenChange={setInviteOpen}
         embedded
       />
     </ContextSettingsShell>
@@ -70,6 +81,9 @@ export function WorkspaceMembersSettingsPage(props: {
 
 export function WorkspaceInvitationsSettingsPage(props: { workspaceId: string }) {
   const { t } = useTranslation("settings");
+  const { t: tTeam } = useTranslation(["team", "common"]);
+  const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
+  const [inviteEmailOpen, setInviteEmailOpen] = useState(false);
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
     structuralSharing: true,
@@ -81,14 +95,34 @@ export function WorkspaceInvitationsSettingsPage(props: { workspaceId: string })
       description={t("SETTINGS_WORKSPACE_INVITATIONS_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
+      action={
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setInviteLinkOpen(true)}>
+            {tTeam("TEAM_INVITE_CREATE_LINK_ACTION")}
+          </Button>
+          <Button onClick={() => setInviteEmailOpen(true)}>
+            <Plus size={16} />
+            {tTeam("common:ORG_MEMBERS_INVITE")}
+          </Button>
+        </div>
+      }
     >
-      <TeamInvitationsPage workspaceIdOverride={props.workspaceId} embedded />
+      <TeamInvitationsPage
+        workspaceIdOverride={props.workspaceId}
+        inviteLinkOpen={inviteLinkOpen}
+        onInviteLinkOpenChange={setInviteLinkOpen}
+        inviteEmailOpen={inviteEmailOpen}
+        onInviteEmailOpenChange={setInviteEmailOpen}
+        embedded
+      />
     </ContextSettingsShell>
   );
 }
 
 export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
   const { t } = useTranslation("settings");
+  const { t: tTeam } = useTranslation("team");
+  const [createOpen, setCreateOpen] = useState(false);
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
     structuralSharing: true,
@@ -100,8 +134,19 @@ export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
       description={t("SETTINGS_WORKSPACE_ROLES_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
+      action={
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus size={16} />
+          {tTeam("TEAM_ROLES_ADD_ROLE")}
+        </Button>
+      }
     >
-      <TeamRolesPage workspaceIdOverride={props.workspaceId} embedded />
+      <TeamRolesPage
+        workspaceIdOverride={props.workspaceId}
+        createOpen={createOpen}
+        onCreateOpenChange={setCreateOpen}
+        embedded
+      />
     </ContextSettingsShell>
   );
 }

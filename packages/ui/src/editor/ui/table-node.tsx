@@ -812,7 +812,7 @@ function TableCellBase(
       {...props}
       as={props.as}
       className={cn(
-        "relative min-w-[8rem] border-r border-border/70 align-top last:border-r-0",
+        "relative min-w-[8rem] border-r border-border/70 last:border-r-0",
         cellState.selected && "bg-primary/6",
         props.className,
       )}

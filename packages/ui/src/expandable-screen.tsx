@@ -49,7 +49,7 @@ export function ExpandableScreen({
   contentRadius = "24px",
   animationDuration = 0.3,
   lockScroll = true,
-  overlayZIndexClassName = "z-[2200]",
+  overlayZIndexClassName = "z-[100]",
 }: ExpandableScreenProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isControlled = expanded !== undefined;

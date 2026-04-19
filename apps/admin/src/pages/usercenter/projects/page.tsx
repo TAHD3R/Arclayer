@@ -43,9 +43,9 @@ export function ProjectsPage() {
     [t],
   );
   const navigate = useNavigate();
-  const currentWorkspaceId =
-    useWorkspaceStore((state) => state.currentWorkspaceId) ??
-    useWorkspaceStore((state) => state.lastWorkspaceId);
+  const currentWorkspaceIdFromStore = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
+  const currentWorkspaceId = currentWorkspaceIdFromStore ?? lastWorkspaceId;
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
 

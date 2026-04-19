@@ -1,50 +1,94 @@
 "use client";
+
 import { Link2Off, Plus, RotateCcw } from "lucide-react";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
-import { type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listMyWorkspaces } from "@/api/workspaces";
+import { useTranslation } from "react-i18next";
+
 import { listWorkspaceRoles } from "@/api/rbac";
 import {
-  disableTeamInviteLink,
   deleteTeamInvitation,
-  listTeamInvitations,
+  disableTeamInviteLink,
   listTeamInviteLinks,
+  listTeamInvitations,
   renewTeamInvitation,
   renewTeamInviteLink,
 } from "@/api/team";
-import {
-  buildDataTableActionsColumnMeta,
-  DataTableActionsCell,
-} from "@/components/common/data-table-actions-cell";
-import type { TeamInvitation, TeamInviteLink } from "@/types/api";
-import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import {
-  useDataTable,
-  useDataTableRowHeightPreference,
-  useDataTableWrapHeadersPreference,
-} from "@arclayer/ui/data-table";
-import { Button } from "@arclayer/ui/button";
-import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { TeamInvitationsPageExtra } from "@/pages/workspaces/team/shared/components/team-invitations-page-extra";
-import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
-import { InviteLinkParticipantsPopover } from "@/pages/workspaces/team/shared/components/invite-link-participants-popover";
-import { useAuthStore } from "@/stores/use-auth-store";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { listMyWorkspaces } from "@/api/workspaces";
+import { DataPaginationControls } from "@/components/common/data-pagination-controls";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import { InvitationStatusTag } from "@/components/ui/tags";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-import type { RenewExpiresInSeconds, TabKey } from "../types";
-import { TeamInvitationsTableSection } from "@/pages/workspaces/team/shared/components/team-invitations-table-section";
-import { TeamInvitationsDialogs } from "./invitations-dialogs";
-import { InvitationRoleTag, InvitationStatusTag } from "@/components/ui/tags";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { TeamInvitationsDialogs } from "@/pages/workspaces/team/invitations/components/invitations-dialogs";
+import { InviteLinkParticipantsPopover } from "@/pages/workspaces/team/shared/components/invite-link-participants-popover";
+import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
 import { InvitationUserLabel } from "@/pages/workspaces/team/shared/components/invitation-user-label";
 import { buildInvitationUserDetails } from "@/pages/workspaces/team/shared/components/invitation-user-details";
+import { SettingsTableRefreshSkeleton } from "@/pages/workspaces/team/shared/components/settings-table-refresh-skeleton";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { TeamInvitation, TeamInviteLink } from "@/types/api";
+import { Button } from "@arclayer/ui/button";
+import {
+  ChromeTabs,
+  ChromeTabsContent,
+  ChromeTabsList,
+  ChromeTabsTrigger,
+} from "@arclayer/ui/chrome-tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+
+import type { RenewExpiresInSeconds, TabKey } from "../types";
+
+type InvitationSort =
+  | "email"
+  | "-email"
+  | "status"
+  | "-status"
+  | "created_at"
+  | "-created_at"
+  | "expires_at"
+  | "-expires_at";
+
+type InviteLinkSort =
+  | "display_code"
+  | "-display_code"
+  | "uses_count"
+  | "-uses_count"
+  | "created_at"
+  | "-created_at"
+  | "expires_at"
+  | "-expires_at";
+
+const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PENDING_SORT: InvitationSort = "-created_at";
+const DEFAULT_ACCEPTED_SORT: InvitationSort = "-created_at";
+const DEFAULT_LINKS_SORT: InviteLinkSort = "-created_at";
+
+function invitationsQueryKeyPrefix(
+  workspaceId: string | null | undefined,
+  tab: "pending" | "accepted",
+) {
+  return ["team-invitations-settings", workspaceId ? String(workspaceId) : null, tab] as const;
+}
+
+function inviteLinksQueryKeyPrefix(workspaceId: string | null | undefined) {
+  return ["team-invite-links-settings", workspaceId ? String(workspaceId) : null] as const;
+}
+
+const INVITATIONS_ACTION_COLUMN_CLASSNAME =
+  "sticky right-0 z-10 whitespace-nowrap bg-background/95 shadow-[-12px_0_24px_-20px_rgba(15,23,42,0.22)] backdrop-blur supports-[backdrop-filter]:bg-background/88";
 
 export function TeamInvitationsView(
   props: {
     workspaceIdOverride?: string | null;
+    inviteLinkOpen?: boolean;
+    onInviteLinkOpenChange?: (open: boolean) => void;
+    inviteEmailOpen?: boolean;
+    onInviteEmailOpenChange?: (open: boolean) => void;
     embedded?: boolean;
   } = {},
 ) {
@@ -56,14 +100,48 @@ export function TeamInvitationsView(
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
   const dateTime = useWorkspaceDateTimeFormatter();
   const [tab, setTab] = React.useState<TabKey>("pending");
-  const [inviteOpen, setInviteOpen] = React.useState(false);
-  const [inviteEmailOpen, setInviteEmailOpen] = React.useState(false);
+
+  const [pendingSearchInput, setPendingSearchInput] = React.useState("");
+  const [pendingPage, setPendingPage] = React.useState(1);
+  const [pendingPageSize, setPendingPageSize] = React.useState(DEFAULT_PAGE_SIZE);
+  const [pendingSort, setPendingSort] = React.useState<InvitationSort>(DEFAULT_PENDING_SORT);
+
+  const [acceptedSearchInput, setAcceptedSearchInput] = React.useState("");
+  const [acceptedPage, setAcceptedPage] = React.useState(1);
+  const [acceptedPageSize, setAcceptedPageSize] = React.useState(DEFAULT_PAGE_SIZE);
+  const [acceptedSort, setAcceptedSort] = React.useState<InvitationSort>(DEFAULT_ACCEPTED_SORT);
+
+  const [linksSearchInput, setLinksSearchInput] = React.useState("");
+  const [linksPage, setLinksPage] = React.useState(1);
+  const [linksPageSize, setLinksPageSize] = React.useState(DEFAULT_PAGE_SIZE);
+  const [linksSort, setLinksSort] = React.useState<InviteLinkSort>(DEFAULT_LINKS_SORT);
+
+  const [uncontrolledInviteLinkOpen, setUncontrolledInviteLinkOpen] = React.useState(false);
+  const [uncontrolledInviteEmailOpen, setUncontrolledInviteEmailOpen] = React.useState(false);
+  const inviteOpen = props.inviteLinkOpen ?? uncontrolledInviteLinkOpen;
+  const setInviteOpen = props.onInviteLinkOpenChange ?? setUncontrolledInviteLinkOpen;
+  const inviteEmailOpen = props.inviteEmailOpen ?? uncontrolledInviteEmailOpen;
+  const setInviteEmailOpen = props.onInviteEmailOpenChange ?? setUncontrolledInviteEmailOpen;
+
   const [deleteInvitation, setDeleteInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewInvitation, setRenewInvitation] = React.useState<TeamInvitation | null>(null);
   const [renewLink, setRenewLink] = React.useState<TeamInviteLink | null>(null);
   const [renewExpiresInSeconds, setRenewExpiresInSeconds] = React.useState<RenewExpiresInSeconds>(
     7 * 24 * 60 * 60,
   );
+
+  React.useEffect(() => {
+    setPendingPage(1);
+  }, [pendingSearchInput, pendingSort]);
+
+  React.useEffect(() => {
+    setAcceptedPage(1);
+  }, [acceptedSearchInput, acceptedSort]);
+
+  React.useEffect(() => {
+    setLinksPage(1);
+  }, [linksSearchInput, linksSort]);
+
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", sessionVersion],
     enabled: Boolean(accessToken),
@@ -72,6 +150,7 @@ export function TeamInvitationsView(
     retry: false,
     meta: { silent: true },
   });
+
   const workspaceName = React.useMemo(() => {
     const items = workspacesQuery.data?.items ?? [];
     const found = workspaceId
@@ -79,6 +158,7 @@ export function TeamInvitationsView(
       : undefined;
     return found?.name || t("team:TEAM_WORKSPACE_FALLBACK");
   }, [t, workspaceId, workspacesQuery.data?.items]);
+
   const rolesQuery = useQuery({
     queryKey: ["rbac", "roles", "list", workspaceId],
     enabled: Boolean(workspaceId),
@@ -87,13 +167,27 @@ export function TeamInvitationsView(
     retry: false,
     meta: { silent: true },
   });
+
   const roleNameByCode = React.useMemo(() => {
     const map = new Map<string, string>();
-    for (const r of rolesQuery.data?.items ?? []) {
-      map.set(r.code, r.name || r.code);
+    for (const role of rolesQuery.data?.items ?? []) {
+      map.set(role.code, role.name || role.code);
     }
     return map;
   }, [rolesQuery.data?.items]);
+
+  const pendingInvitationsKey = invitationsQueryKeyPrefix(workspaceId, "pending");
+  const acceptedInvitationsKey = invitationsQueryKeyPrefix(workspaceId, "accepted");
+  const inviteLinksKey = inviteLinksQueryKeyPrefix(workspaceId);
+
+  const invalidatePendingInvitations = React.useCallback(() => {
+    return queryClient.invalidateQueries({ queryKey: pendingInvitationsKey, exact: false });
+  }, [pendingInvitationsKey, queryClient]);
+
+  const invalidateInviteLinks = React.useCallback(() => {
+    return queryClient.invalidateQueries({ queryKey: inviteLinksKey, exact: false });
+  }, [inviteLinksKey, queryClient]);
+
   const disableLinkMutation = useMutation({
     mutationFn: async (linkId: string) =>
       workspaceId
@@ -101,15 +195,11 @@ export function TeamInvitationsView(
         : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({
-        queryKey: [
-          "dataTable",
-          workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
-        ],
-      });
+      void invalidateInviteLinks();
     },
     onError: (err) => notifyError(err),
   });
+
   const renewLinkMutation = useMutation({
     mutationFn: async (payload: { linkId: string; expiresInSeconds: number | null }) =>
       workspaceId
@@ -119,16 +209,12 @@ export function TeamInvitationsView(
         : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({
-        queryKey: [
-          "dataTable",
-          workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
-        ],
-      });
+      void invalidateInviteLinks();
       setRenewLink(null);
     },
     onError: (err) => notifyError(err),
   });
+
   const renewInvitationMutation = useMutation({
     mutationFn: async (payload: { invitationId: string; expiresInSeconds: number | null }) =>
       workspaceId
@@ -138,16 +224,12 @@ export function TeamInvitationsView(
         : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({
-        queryKey: [
-          "dataTable",
-          workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
-        ],
-      });
+      void invalidatePendingInvitations();
       setRenewInvitation(null);
     },
     onError: (err) => notifyError(err),
   });
+
   const deleteInvitationMutation = useMutation({
     mutationFn: async (invitationId: string) =>
       workspaceId
@@ -155,17 +237,83 @@ export function TeamInvitationsView(
         : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
     onSuccess: () => {
       notifySuccessText(t("team:TEAM_ACTION_SUCCESS"));
-      void queryClient.invalidateQueries({
-        queryKey: [
-          "dataTable",
-          workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
-        ],
-      });
+      void invalidatePendingInvitations();
     },
     onError: (err) => notifyError(err),
   });
-  const pendingExtraQuery = React.useMemo(() => ({ status: "pending" as const }), []);
-  const acceptedExtraQuery = React.useMemo(() => ({ status: "accepted" as const }), []);
+
+  const pendingInvitationsQuery = useQuery({
+    queryKey: [
+      ...pendingInvitationsKey,
+      pendingSearchInput,
+      pendingSort,
+      pendingPage,
+      pendingPageSize,
+    ],
+    enabled: Boolean(workspaceId) && tab === "pending",
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return listTeamInvitations(String(workspaceId), {
+        page: pendingPage,
+        size: pendingPageSize,
+        q: pendingSearchInput.trim() || undefined,
+        ordering: pendingSort,
+        status: "pending",
+        mine: true,
+      });
+    },
+    staleTime: 20 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const acceptedInvitationsQuery = useQuery({
+    queryKey: [
+      ...acceptedInvitationsKey,
+      acceptedSearchInput,
+      acceptedSort,
+      acceptedPage,
+      acceptedPageSize,
+    ],
+    enabled: Boolean(workspaceId) && tab === "accepted",
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return listTeamInvitations(String(workspaceId), {
+        page: acceptedPage,
+        size: acceptedPageSize,
+        q: acceptedSearchInput.trim() || undefined,
+        ordering: acceptedSort,
+        status: "accepted",
+        mine: true,
+      });
+    },
+    staleTime: 20 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const inviteLinksQuery = useQuery({
+    queryKey: [...inviteLinksKey, linksSearchInput, linksSort, linksPage, linksPageSize],
+    enabled: Boolean(workspaceId) && tab === "links",
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      const data = await listTeamInviteLinks(String(workspaceId), {
+        page: linksPage,
+        size: linksPageSize,
+        q: linksSearchInput.trim() || undefined,
+        ordering: linksSort,
+        mine: true,
+      });
+      return {
+        ...data,
+        items: (data.items ?? []).filter((item) => !item.disabledAt),
+      };
+    },
+    staleTime: 20 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
   const renderInvitationStatus = React.useCallback(
     (status: TeamInvitation["status"] | null | undefined): string => {
       if (status === "pending") return t("team:TEAM_INVITATION_STATUS_PENDING");
@@ -176,45 +324,45 @@ export function TeamInvitationsView(
     },
     [t],
   );
-  const invitationsColumns = React.useMemo<ColumnDef<TeamInvitation, unknown>[]>(() => {
-    return [
-      {
-        id: "email",
-        meta: {
-          title: t("team:TEAM_INVITATIONS_COL_EMAIL"),
-          sortKey: "email",
-          kind: "primary",
-        },
-        header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
-        cell: ({ row }) => {
-          const inv = row.original;
-          const roleCode = inv.roleCode || null;
-          const roleName = roleCode ? (roleNameByCode.get(roleCode) ?? roleCode) : null;
-          return (
-            <div className="min-w-0">
-              <div className="font-medium truncate">{inv.email || "-"}</div>
-              <div className="mt-1">
-                <InvitationRoleTag label={roleName || t("common:NA")} />
+
+  const renewOptions = React.useMemo<Array<{ label: string; value: RenewExpiresInSeconds }>>(
+    () => [
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_1_DAY"), value: 1 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_7_DAYS"), value: 7 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_30_DAYS"), value: 30 * 24 * 60 * 60 },
+      { label: t("team:TEAM_INVITE_LINK_EXPIRES_NEVER"), value: null },
+    ],
+    [t],
+  );
+
+  const tabs = [
+    { value: "pending" as const, label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
+    { value: "accepted" as const, label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
+    { value: "links" as const, label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
+  ];
+
+  const renderPendingRow = React.useCallback(
+    (invitation: TeamInvitation) => {
+      const roleName = invitation.roleCode
+        ? (roleNameByCode.get(invitation.roleCode) ?? invitation.roleCode)
+        : null;
+      const status = invitation.status;
+      const createdAt = dateTime.formatDateTimeOrNull(invitation.createdAt);
+      const expiresAt = dateTime.formatDateTimeOrNull(invitation.expiresAt);
+
+      return (
+        <tr key={invitation.id} className="border-b border-border/50 last:border-b-0">
+          <td className="py-4 pr-4">
+            <div className="flex min-w-0 items-baseline justify-between gap-3">
+              <div className="truncate font-medium text-label-primary">
+                {invitation.email || "-"}
+              </div>
+              <div className="shrink-0 text-callout text-label-secondary">
+                {roleName || t("common:NA")}
               </div>
             </div>
-          );
-        },
-        size: 320,
-        minSize: 260,
-      },
-      {
-        id: "inviter",
-        meta: {
-          title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
-          defaultHidden: true,
-          kind: "meta",
-        },
-        header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
-        cell: ({ row }) => {
-          const invitation = row.original;
-          const roleName = invitation.roleCode ? roleNameByCode.get(invitation.roleCode) : null;
-          const status = invitation.status;
-          return (
+          </td>
+          <td className="px-4 py-4">
             <InvitationUserLabel
               user={invitation.createdBy}
               roleLabel={roleName}
@@ -228,83 +376,27 @@ export function TeamInvitationsView(
                 expiresAt: invitation.expiresAt,
               })}
             />
-          );
-        },
-        size: 240,
-        minSize: 220,
-      },
-
-      {
-        accessorKey: "status",
-        meta: {
-          title: t("team:TEAM_INVITATIONS_COL_STATUS"),
-          sortKey: "status",
-          kind: "status",
-        },
-        header: t("team:TEAM_INVITATIONS_COL_STATUS"),
-        cell: ({ row }) => {
-          const status = row.original.status;
-          return <InvitationStatusTag status={status} label={renderInvitationStatus(status)} />;
-        },
-        size: 150,
-        minSize: 140,
-      },
-      {
-        accessorKey: "createdAt",
-        meta: {
-          title: t("team:TEAM_INVITATIONS_COL_CREATED"),
-          sortKey: "created_at",
-          kind: "time",
-        },
-        header: t("team:TEAM_INVITATIONS_COL_CREATED"),
-        cell: ({ row }) => {
-          const formatted = dateTime.formatDateTimeOrNull(row.original.createdAt);
-          return (
-            <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
-          );
-        },
-        size: 190,
-        minSize: 170,
-      },
-      {
-        accessorKey: "expiresAt",
-        meta: {
-          title: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
-          sortKey: "expires_at",
-          kind: "time",
-        },
-        header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
-        cell: ({ row }) => {
-          const formatted = dateTime.formatDateTimeOrNull(row.original.expiresAt);
-          return (
-            <span className={formatted ? "" : "text-label-secondary"}>
-              {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
+          </td>
+          <td className="px-4 py-4">
+            <InvitationStatusTag status={status} label={renderInvitationStatus(status)} />
+          </td>
+          <td className="px-4 py-4 text-callout text-label-primary">
+            <span className={createdAt ? "" : "text-label-secondary"}>{createdAt || "-"}</span>
+          </td>
+          <td className="px-4 py-4 text-callout text-label-primary">
+            <span className={expiresAt ? "" : "text-label-secondary"}>
+              {expiresAt || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
             </span>
-          );
-        },
-        size: 190,
-        minSize: 170,
-      },
-      {
-        id: "actions",
-        enableHiding: false,
-        enableSorting: false,
-        size: 280,
-        minSize: 280,
-        meta: buildDataTableActionsColumnMeta("right"),
-        header: "",
-        cell: ({ row }) => {
-          const inv = row.original;
-          const canRenew = inv.status === "pending";
-          return (
-            <DataTableActionsCell className="gap-2">
+          </td>
+          <td className={`py-4 pl-4 ${INVITATIONS_ACTION_COLUMN_CLASSNAME}`}>
+            <div className="flex items-center justify-end gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={!canRenew}
+                disabled={status !== "pending"}
                 onClick={() => {
                   setRenewExpiresInSeconds(7 * 24 * 60 * 60);
-                  setRenewInvitation(inv);
+                  setRenewInvitation(invitation);
                 }}
               >
                 <RotateCcw className="size-4" />
@@ -313,66 +405,37 @@ export function TeamInvitationsView(
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => {
-                  setDeleteInvitation(inv);
-                }}
+                onClick={() => setDeleteInvitation(invitation)}
               >
                 <Link2Off className="size-4" />
                 {t("team:TEAM_ACTION_DELETE")}
               </Button>
-            </DataTableActionsCell>
-          );
-        },
-      },
-    ];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateTime, deleteInvitationMutation, renderInvitationStatus, roleNameByCode, t]);
-  const processedColumns = React.useMemo<ColumnDef<TeamInvitation, unknown>[]>(() => {
-    return [
-      {
-        id: "email",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_EMAIL"), sortKey: "email", kind: "primary" },
-        header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
-        cell: ({ row }) => <span>{row.original.email || "-"}</span>,
-        size: 260,
-        minSize: 220,
-      },
-      {
-        id: "role",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_ROLE"), sortKey: "role_code", kind: "meta" },
-        header: t("team:TEAM_INVITATIONS_COL_ROLE"),
-        cell: ({ row }) => {
-          const code = row.original.roleCode;
-          return <span>{(code ? roleNameByCode.get(code) : null) || code || "-"}</span>;
-        },
-        size: 180,
-        minSize: 160,
-      },
-      {
-        id: "status",
-        meta: {
-          title: t("team:TEAM_INVITATIONS_COL_STATUS"),
-          sortKey: "status",
-          kind: "status",
-        },
-        header: t("team:TEAM_INVITATIONS_COL_STATUS"),
-        cell: ({ row }) => <span>{renderInvitationStatus(row.original.status)}</span>,
-        size: 150,
-        minSize: 140,
-      },
-      {
-        id: "processedBy",
-        meta: {
-          title: t("common:ORG_MEMBERS_TABLE_MEMBER"),
-          defaultHidden: true,
-          kind: "meta",
-        },
-        header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
-        cell: ({ row }) => {
-          const invitation = row.original;
-          const roleName = invitation.roleCode ? roleNameByCode.get(invitation.roleCode) : null;
-          const status = invitation.status;
-          return (
+            </div>
+          </td>
+        </tr>
+      );
+    },
+    [dateTime, renderInvitationStatus, roleNameByCode, t],
+  );
+
+  const renderAcceptedRow = React.useCallback(
+    (invitation: TeamInvitation) => {
+      const roleCode = invitation.roleCode;
+      const roleName = roleCode ? (roleNameByCode.get(roleCode) ?? roleCode) : null;
+      const status = invitation.status;
+      const processedAt = dateTime.formatDateTimeOrNull(
+        invitation.acceptedAt || invitation.revokedAt,
+      );
+      const createdAt = dateTime.formatDateTimeOrNull(invitation.createdAt);
+
+      return (
+        <tr key={invitation.id} className="border-b border-border/50 last:border-b-0">
+          <td className="py-4 pr-4 text-callout text-label-primary">{invitation.email || "-"}</td>
+          <td className="px-4 py-4 text-callout text-label-primary">{roleName || "-"}</td>
+          <td className="px-4 py-4">
+            <InvitationStatusTag status={status} label={renderInvitationStatus(status)} />
+          </td>
+          <td className="px-4 py-4">
             <InvitationUserLabel
               user={invitation.acceptedBy}
               roleLabel={roleName}
@@ -388,65 +451,37 @@ export function TeamInvitationsView(
                 processedAtLabel: t("team:TEAM_INVITATIONS_COL_PROCESSED"),
               })}
             />
-          );
-        },
-        size: 240,
-        minSize: 220,
-      },
-      {
-        id: "processedAt",
-        meta: {
-          title: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
-          defaultHidden: true,
-          kind: "time",
-        },
-        header: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
-        cell: ({ row }) => {
-          const formatted = dateTime.formatDate(row.original.acceptedAt || row.original.revokedAt, {
-            emptyValue: "",
-          });
-          return (
-            <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
-          );
-        },
-        size: 180,
-        minSize: 160,
-      },
-      {
-        id: "createdAt",
-        meta: {
-          title: t("team:TEAM_INVITATIONS_COL_CREATED"),
-          sortKey: "created_at",
-          kind: "time",
-        },
-        header: t("team:TEAM_INVITATIONS_COL_CREATED"),
-        cell: ({ row }) => {
-          const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
-          return (
-            <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
-          );
-        },
-        size: 180,
-        minSize: 160,
-      },
-    ];
-  }, [dateTime, renderInvitationStatus, roleNameByCode, t]);
-  const inviteLinksColumns = React.useMemo<ColumnDef<TeamInviteLink, unknown>[]>(() => {
-    return [
-      {
-        id: "creator",
-        size: 240,
-        minSize: 220,
-        meta: {
-          title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
-          defaultHidden: true,
-          kind: "meta",
-        },
-        header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
-        cell: ({ row }) => {
-          const link = row.original;
-          const roleName = link.roleCode ? roleNameByCode.get(link.roleCode) : null;
-          return (
+          </td>
+          <td className="px-4 py-4 text-callout text-label-primary">
+            <span className={processedAt ? "" : "text-label-secondary"}>{processedAt || "-"}</span>
+          </td>
+          <td className="py-4 pl-4 text-callout text-label-primary">
+            <span className={createdAt ? "" : "text-label-secondary"}>{createdAt || "-"}</span>
+          </td>
+        </tr>
+      );
+    },
+    [dateTime, renderInvitationStatus, roleNameByCode, t],
+  );
+
+  const renderInviteLinkRow = React.useCallback(
+    (link: TeamInviteLink) => {
+      const roleName = link.roleCode ? (roleNameByCode.get(link.roleCode) ?? link.roleCode) : null;
+      const createdAt = dateTime.formatDateTimeOrNull(link.createdAt);
+      const expiresAt = dateTime.formatDateTimeOrNull(link.expiresAt);
+      const disabled = Boolean(link.disabledAt);
+      const canManage = !disabled;
+      const code = link.displayCode;
+      const token = link.token;
+      const inviteUrl =
+        link.inviteUrl ??
+        (typeof window !== "undefined"
+          ? `${window.location.origin}/invitations?token=${encodeURIComponent(token)}`
+          : null);
+
+      return (
+        <tr key={link.id} className="border-b border-border/50 last:border-b-0">
+          <td className="py-4 pr-4">
             <InvitationUserLabel
               user={link.createdBy}
               roleLabel={roleName}
@@ -460,32 +495,12 @@ export function TeamInvitationsView(
                 lastUsedAtLabel: t("team:TEAM_INVITE_LINKS_COL_LAST_USED"),
               })}
             />
-          );
-        },
-      },
-      {
-        accessorKey: "code",
-        size: 180,
-        minSize: 160,
-        meta: {
-          title: t("team:TEAM_INVITE_LINKS_COL_CODE"),
-          sortKey: "display_code",
-          kind: "meta",
-        },
-        header: t("team:TEAM_INVITE_LINKS_COL_CODE"),
-        cell: ({ row }) => {
-          const code = row.original.displayCode;
-          const token = row.original.token;
-          const inviteUrl =
-            row.original.inviteUrl ??
-            (typeof window !== "undefined"
-              ? `${window.location.origin}/invitations?token=${encodeURIComponent(token)}`
-              : null);
-          return (
+          </td>
+          <td className="px-4 py-4">
             <Button
               variant="link"
               size="sm"
-              className="font-mono text-footnote"
+              className="px-0 font-mono text-footnote"
               onClick={() => {
                 const text = inviteUrl || code;
                 void navigator.clipboard.writeText(text);
@@ -495,82 +510,32 @@ export function TeamInvitationsView(
             >
               {code}
             </Button>
-          );
-        },
-      },
-      {
-        id: "participant",
-        size: 240,
-        minSize: 220,
-        meta: {
-          title: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
-          sortKey: "uses_count",
-        },
-        header: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
-        cell: ({ row }) => {
-          const uses = Number(row.original.usesCount || 0);
-          const participants = row.original.recentParticipants ?? [];
-          const lastUsedBy = row.original.lastUsedBy;
-          const primaryUser = participants[0]?.user ?? lastUsedBy ?? null;
-          return (
-            <InviteLinkParticipantsPopover
-              workspaceId={String(workspaceId || "")}
-              linkId={row.original.id}
-              usesCount={uses}
-              primaryUser={primaryUser}
-              lastUsedAt={row.original.lastUsedAt}
-            />
-          );
-        },
-      },
-      {
-        accessorKey: "createdAt",
-        size: 190,
-        minSize: 170,
-        meta: {
-          title: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
-          sortKey: "created_at",
-        },
-        header: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
-        cell: ({ row }) => {
-          const formatted = dateTime.formatDateTimeOrNull(row.original.createdAt);
-          return (
-            <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
-          );
-        },
-      },
-      {
-        accessorKey: "expiresAt",
-        size: 190,
-        minSize: 170,
-        meta: {
-          title: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
-          sortKey: "expires_at",
-        },
-        header: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
-        cell: ({ row }) => {
-          const formatted = dateTime.formatDateTimeOrNull(row.original.expiresAt);
-          return (
-            <span className={formatted ? "" : "text-label-secondary"}>
-              {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
+          </td>
+          <td className="px-4 py-4">
+            {Number(link.usesCount || 0) > 0 ? (
+              <InviteLinkParticipantsPopover
+                workspaceId={String(workspaceId || "")}
+                linkId={link.id}
+                usesCount={Number(link.usesCount || 0)}
+                primaryUser={link.recentParticipants?.[0]?.user ?? link.lastUsedBy ?? null}
+                lastUsedAt={link.lastUsedAt}
+              />
+            ) : (
+              <span className="text-label-secondary text-callout">
+                {t("team:TEAM_INVITE_LINKS_PARTICIPANT_EMPTY")}
+              </span>
+            )}
+          </td>
+          <td className="px-4 py-4 text-callout text-label-primary">
+            <span className={createdAt ? "" : "text-label-secondary"}>{createdAt || "-"}</span>
+          </td>
+          <td className="px-4 py-4 text-callout text-label-primary">
+            <span className={expiresAt ? "" : "text-label-secondary"}>
+              {expiresAt || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
             </span>
-          );
-        },
-      },
-      {
-        id: "actions",
-        enableHiding: false,
-        enableSorting: false,
-        size: 280,
-        minSize: 280,
-        meta: buildDataTableActionsColumnMeta("right"),
-        header: "",
-        cell: ({ row }) => {
-          const link = row.original;
-          const disabled = Boolean(link.disabledAt);
-          const canManage = !disabled;
-          return (
-            <DataTableActionsCell className="gap-2">
+          </td>
+          <td className={`py-4 pl-4 ${INVITATIONS_ACTION_COLUMN_CLASSNAME}`}>
+            <div className="flex items-center justify-end gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -592,98 +557,151 @@ export function TeamInvitationsView(
                 <Link2Off className="size-4" />
                 {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
               </Button>
-            </DataTableActionsCell>
-          );
-        },
-      },
-    ];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateTime, disableLinkMutation, renewLinkMutation, t, workspaceId]);
-  const pendingTable = useDataTable<TeamInvitation, { status: "pending" | "accepted"; mine: true }>(
-    {
-      tableId: workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
-      columns: invitationsColumns,
-      extraQuery: { ...pendingExtraQuery, mine: true },
-      initialState: { pageSize: 10 },
-      fetcher: async (params) =>
-        workspaceId
-          ? listTeamInvitations(String(workspaceId), {
-              page: params.page,
-              size: params.size,
-              q: params.q,
-              ordering: params.ordering,
-              status: (params.status ?? "pending") as "pending",
-              mine: params.mine,
-            })
-          : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
-      queryOptions: {
-        enabled: Boolean(workspaceId) && tab === "pending",
-        staleTime: 20 * 1000,
-        retry: false,
-        meta: { silent: true },
-      },
+            </div>
+          </td>
+        </tr>
+      );
     },
+    [dateTime, disableLinkMutation, roleNameByCode, t, workspaceId],
   );
-  const acceptedTable = useDataTable<
-    TeamInvitation,
-    { status: "pending" | "accepted"; mine: true }
-  >({
-    tableId: workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
-    columns: processedColumns,
-    extraQuery: { ...acceptedExtraQuery, mine: true },
-    initialState: { pageSize: 10 },
-    fetcher: async (params) =>
-      workspaceId
-        ? listTeamInvitations(String(workspaceId), {
-            page: params.page,
-            size: params.size,
-            q: params.q,
-            ordering: params.ordering,
-            status: (params.status ?? "accepted") as "accepted",
-            mine: params.mine,
-          })
-        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
-    queryOptions: {
-      enabled: Boolean(workspaceId) && tab === "accepted",
-      staleTime: 20 * 1000,
-      retry: false,
-      meta: { silent: true },
-    },
-  });
-  const renewOptions = React.useMemo<Array<{ label: string; value: RenewExpiresInSeconds }>>(
-    () => [
-      { label: t("team:TEAM_INVITE_LINK_EXPIRES_1_DAY"), value: 1 * 24 * 60 * 60 },
-      { label: t("team:TEAM_INVITE_LINK_EXPIRES_7_DAYS"), value: 7 * 24 * 60 * 60 },
-      { label: t("team:TEAM_INVITE_LINK_EXPIRES_30_DAYS"), value: 30 * 24 * 60 * 60 },
-      { label: t("team:TEAM_INVITE_LINK_EXPIRES_NEVER"), value: null },
-    ],
-    [t],
-  );
-  const linksTable = useDataTable<TeamInviteLink, { mine: true }>({
-    tableId: workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
-    columns: inviteLinksColumns,
-    extraQuery: { mine: true },
-    initialState: { pageSize: 10 },
-    fetcher: async (params) =>
-      workspaceId
-        ? listTeamInviteLinks(String(workspaceId), {
-            page: params.page,
-            size: params.size,
-            q: params.q,
-            ordering: params.ordering,
-            mine: params.mine,
-          }).then((data) => ({
-            ...data,
-            items: (data.items ?? []).filter((it) => !it.disabledAt),
-          }))
-        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
-    queryOptions: {
-      enabled: Boolean(workspaceId) && tab === "links",
-      staleTime: 20 * 1000,
-      retry: false,
-      meta: { silent: true },
-    },
-  });
+
+  const currentToolbar =
+    tab === "pending" ? (
+      <PageExtraToolbar
+        className="items-center lg:flex-nowrap"
+        leading={
+          <ChromeTabsList className="w-auto">
+            {tabs.map((item) => (
+              <ChromeTabsTrigger key={item.value} value={item.value}>
+                {item.label}
+              </ChromeTabsTrigger>
+            ))}
+          </ChromeTabsList>
+        }
+        trailing={
+          <>
+            <DataTableSearchInput
+              value={pendingSearchInput}
+              onChange={setPendingSearchInput}
+              placeholder={t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")}
+              clearLabel={t("common:CLEAR")}
+              className="w-[min(100%,20rem)] min-w-[r12em]"
+            />
+            <Select
+              value={pendingSort}
+              onValueChange={(next) => setPendingSort(next as InvitationSort)}
+            >
+              <SelectTrigger className="w-40 min-w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start" position="popper">
+                <SelectItem value="-created_at">{t("team:TEAM_SORT_NEWEST")}</SelectItem>
+                <SelectItem value="created_at">{t("team:TEAM_SORT_OLDEST")}</SelectItem>
+                <SelectItem value="email">{t("team:TEAM_SORT_EMAIL_AZ")}</SelectItem>
+                <SelectItem value="-email">{t("team:TEAM_SORT_EMAIL_ZA")}</SelectItem>
+                <SelectItem value="expires_at">{t("team:TEAM_INVITATIONS_COL_EXPIRES")}</SelectItem>
+                <SelectItem value="-expires_at">{t("team:TEAM_SORT_LAST_LOGIN_RECENT")}</SelectItem>
+                <SelectItem value="status">{t("team:TEAM_SORT_MEMBER_STATUS")}</SelectItem>
+                <SelectItem value="-status">{t("team:TEAM_SORT_MEMBER_STATUS_DESC")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
+        leadingClassName="items-center lg:flex-nowrap"
+        trailingClassName="w-full flex-wrap justify-start gap-3 sm:flex-nowrap lg:w-auto lg:justify-end"
+      />
+    ) : tab === "accepted" ? (
+      <PageExtraToolbar
+        className="items-center lg:flex-nowrap"
+        leading={
+          <ChromeTabsList className="w-auto">
+            {tabs.map((item) => (
+              <ChromeTabsTrigger key={item.value} value={item.value}>
+                {item.label}
+              </ChromeTabsTrigger>
+            ))}
+          </ChromeTabsList>
+        }
+        trailing={
+          <>
+            <DataTableSearchInput
+              value={acceptedSearchInput}
+              onChange={setAcceptedSearchInput}
+              placeholder={t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")}
+              clearLabel={t("common:CLEAR")}
+              className="w-[min(100%,20rem)] min-w-[r12em]"
+            />
+            <Select
+              value={acceptedSort}
+              onValueChange={(next) => setAcceptedSort(next as InvitationSort)}
+            >
+              <SelectTrigger className="w-40 min-w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start" position="popper">
+                <SelectItem value="-created_at">{t("team:TEAM_SORT_NEWEST")}</SelectItem>
+                <SelectItem value="created_at">{t("team:TEAM_SORT_OLDEST")}</SelectItem>
+                <SelectItem value="email">{t("team:TEAM_SORT_EMAIL_AZ")}</SelectItem>
+                <SelectItem value="-email">{t("team:TEAM_SORT_EMAIL_ZA")}</SelectItem>
+                <SelectItem value="status">{t("team:TEAM_SORT_MEMBER_STATUS")}</SelectItem>
+                <SelectItem value="-status">{t("team:TEAM_SORT_MEMBER_STATUS_DESC")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
+        leadingClassName="items-center lg:flex-nowrap"
+        trailingClassName="w-full flex-wrap justify-start gap-3 sm:flex-nowrap lg:w-auto lg:justify-end"
+      />
+    ) : (
+      <PageExtraToolbar
+        className="items-center lg:flex-nowrap"
+        leading={
+          <ChromeTabsList className="w-auto">
+            {tabs.map((item) => (
+              <ChromeTabsTrigger key={item.value} value={item.value}>
+                {item.label}
+              </ChromeTabsTrigger>
+            ))}
+          </ChromeTabsList>
+        }
+        trailing={
+          <>
+            <DataTableSearchInput
+              value={linksSearchInput}
+              onChange={setLinksSearchInput}
+              placeholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
+              clearLabel={t("common:CLEAR")}
+              className="w-[min(100%,20rem)] min-w-[r12em]"
+            />
+            <Select
+              value={linksSort}
+              onValueChange={(next) => setLinksSort(next as InviteLinkSort)}
+            >
+              <SelectTrigger className="w-40 min-w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start" position="popper">
+                <SelectItem value="-created_at">{t("team:TEAM_SORT_NEWEST")}</SelectItem>
+                <SelectItem value="created_at">{t("team:TEAM_SORT_OLDEST")}</SelectItem>
+                <SelectItem value="display_code">{t("team:TEAM_INVITE_LINKS_COL_CODE")}</SelectItem>
+                <SelectItem value="-display_code">
+                  {t("team:TEAM_INVITE_LINKS_COL_CODE")}
+                </SelectItem>
+                <SelectItem value="-uses_count">
+                  {t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT")}
+                </SelectItem>
+                <SelectItem value="uses_count">
+                  {t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
+        leadingClassName="items-center lg:flex-nowrap"
+        trailingClassName="w-full flex-wrap justify-start gap-3 sm:flex-nowrap lg:w-auto lg:justify-end"
+      />
+    );
+
   const inviteAction = (
     <div className="flex items-center gap-2">
       <Button variant="outline" onClick={() => setInviteOpen(true)}>
@@ -695,126 +713,208 @@ export function TeamInvitationsView(
       </Button>
     </div>
   );
-  const toolsLabels = buildDataTableToolsLabels(t);
-  const invitationsTableId = workspaceId ? `team-invitations:${workspaceId}` : "team-invitations";
-  const inviteLinksTableId = workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links";
-  const [pendingRowHeight, setPendingRowHeight] = useDataTableRowHeightPreference({
-    tableId: invitationsTableId,
-  });
-  const [pendingWrapHeaders, setPendingWrapHeaders] = useDataTableWrapHeadersPreference({
-    tableId: invitationsTableId,
-  });
-  const [acceptedRowHeight, setAcceptedRowHeight] = useDataTableRowHeightPreference({
-    tableId: invitationsTableId,
-  });
-  const [acceptedWrapHeaders, setAcceptedWrapHeaders] = useDataTableWrapHeadersPreference({
-    tableId: invitationsTableId,
-  });
-  const [linksRowHeight, setLinksRowHeight] = useDataTableRowHeightPreference({
-    tableId: inviteLinksTableId,
-  });
-  const [linksWrapHeaders, setLinksWrapHeaders] = useDataTableWrapHeadersPreference({
-    tableId: inviteLinksTableId,
-  });
-
-  const tabs = [
-    { value: "pending" as const, label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
-    { value: "accepted" as const, label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
-    { value: "links" as const, label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
-  ];
-
-  const currentToolbar =
-    tab === "pending" ? (
-      <TeamInvitationsPageExtra
-        tabs={tabs}
-        table={pendingTable.table}
-        searchInput={pendingTable.searchInput}
-        onSearchInputChange={pendingTable.setSearchInput}
-        searchPlaceholder={t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")}
-        clearLabel={t("common:CLEAR")}
-        rowHeight={pendingRowHeight}
-        onRowHeightChange={setPendingRowHeight}
-        wrapHeaders={pendingWrapHeaders}
-        onWrapHeadersChange={setPendingWrapHeaders}
-        onRefresh={() => void pendingTable.refetch()}
-        refreshing={pendingTable.isFetching}
-        onResetColumnVisibility={pendingTable.resetColumnVisibility}
-        labels={toolsLabels}
-      />
-    ) : tab === "accepted" ? (
-      <TeamInvitationsPageExtra
-        tabs={tabs}
-        table={acceptedTable.table}
-        searchInput={acceptedTable.searchInput}
-        onSearchInputChange={acceptedTable.setSearchInput}
-        searchPlaceholder={t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")}
-        clearLabel={t("common:CLEAR")}
-        rowHeight={acceptedRowHeight}
-        onRowHeightChange={setAcceptedRowHeight}
-        wrapHeaders={acceptedWrapHeaders}
-        onWrapHeadersChange={setAcceptedWrapHeaders}
-        onRefresh={() => void acceptedTable.refetch()}
-        refreshing={acceptedTable.isFetching}
-        onResetColumnVisibility={acceptedTable.resetColumnVisibility}
-        labels={toolsLabels}
-      />
-    ) : (
-      <TeamInvitationsPageExtra
-        tabs={tabs}
-        table={linksTable.table}
-        searchInput={linksTable.searchInput}
-        onSearchInputChange={linksTable.setSearchInput}
-        searchPlaceholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
-        clearLabel={t("common:CLEAR")}
-        rowHeight={linksRowHeight}
-        onRowHeightChange={setLinksRowHeight}
-        wrapHeaders={linksWrapHeaders}
-        onWrapHeadersChange={setLinksWrapHeaders}
-        onRefresh={() => void linksTable.refetch()}
-        refreshing={linksTable.isFetching}
-        onResetColumnVisibility={linksTable.resetColumnVisibility}
-        labels={toolsLabels}
-      />
-    );
 
   const content = (
     <ChromeTabs value={tab} onValueChange={(next) => setTab(next as TabKey)}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">{currentToolbar}</div>
-        {inviteAction}
-      </div>
+      {props.embedded ? <div className="min-w-0">{currentToolbar}</div> : null}
+
       <div className="flex min-h-0 flex-1 flex-col">
         <ChromeTabsContent value="pending" className="min-h-0 flex flex-col">
-          <TeamInvitationsTableSection
-            tableHook={pendingTable}
+          <ContentGuard
+            loading={Boolean(pendingInvitationsQuery.isLoading && !pendingInvitationsQuery.data)}
+            error={pendingInvitationsQuery.error}
+            empty={
+              !pendingInvitationsQuery.isLoading &&
+              !pendingInvitationsQuery.isError &&
+              (pendingInvitationsQuery.data?.items?.length ?? 0) === 0
+            }
+            onRetry={() => {
+              void pendingInvitationsQuery.refetch();
+            }}
+            container="raw"
+            loadingVariant="table"
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
-            t={t}
-            rowHeight={pendingRowHeight}
-            wrapHeaders={pendingWrapHeaders}
-          />
+            variant="compact"
+          >
+            {pendingInvitationsQuery.isFetching && !pendingInvitationsQuery.isLoading ? (
+              <SettingsTableRefreshSkeleton />
+            ) : null}
+            <div className="min-w-0 overflow-x-auto">
+              <table className="min-w-[72rem] w-full table-fixed border-collapse">
+                <thead>
+                  <tr className="border-b border-border/60">
+                    <th className="w-[20%] py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_EMAIL")}
+                    </th>
+                    <th className="w-[20%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITE_LINKS_COL_CREATOR")}
+                    </th>
+                    <th className="w-[12%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_STATUS")}
+                    </th>
+                    <th className="w-[14%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_CREATED")}
+                    </th>
+                    <th className="w-[14%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_EXPIRES")}
+                    </th>
+                    <th
+                      className={`w-[24%] py-2 pl-4 text-right text-footnote font-medium text-label-secondary ${INVITATIONS_ACTION_COLUMN_CLASSNAME}`}
+                    />
+                  </tr>
+                </thead>
+                <tbody>{(pendingInvitationsQuery.data?.items ?? []).map(renderPendingRow)}</tbody>
+              </table>
+            </div>
+            {pendingInvitationsQuery.data ? (
+              <div className="border-t border-border/50 pt-3">
+                <DataPaginationControls
+                  page={pendingInvitationsQuery.data.page}
+                  size={pendingInvitationsQuery.data.size}
+                  total={pendingInvitationsQuery.data.total}
+                  onChange={(nextPage, nextSize) => {
+                    setPendingPage(nextPage);
+                    setPendingPageSize(nextSize);
+                  }}
+                  t={t}
+                />
+              </div>
+            ) : null}
+          </ContentGuard>
         </ChromeTabsContent>
+
         <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col">
-          <TeamInvitationsTableSection
-            tableHook={acceptedTable}
+          <ContentGuard
+            loading={Boolean(acceptedInvitationsQuery.isLoading && !acceptedInvitationsQuery.data)}
+            error={acceptedInvitationsQuery.error}
+            empty={
+              !acceptedInvitationsQuery.isLoading &&
+              !acceptedInvitationsQuery.isError &&
+              (acceptedInvitationsQuery.data?.items?.length ?? 0) === 0
+            }
+            onRetry={() => {
+              void acceptedInvitationsQuery.refetch();
+            }}
+            container="raw"
+            loadingVariant="table"
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
-            t={t}
-            rowHeight={acceptedRowHeight}
-            wrapHeaders={acceptedWrapHeaders}
-          />
+            variant="compact"
+          >
+            {acceptedInvitationsQuery.isFetching && !acceptedInvitationsQuery.isLoading ? (
+              <SettingsTableRefreshSkeleton />
+            ) : null}
+            <div className="min-w-0 overflow-x-auto">
+              <table className="min-w-[72rem] w-full table-fixed border-collapse">
+                <thead>
+                  <tr className="border-b border-border/60">
+                    <th className="w-[18%] py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_EMAIL")}
+                    </th>
+                    <th className="w-[14%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_ROLE")}
+                    </th>
+                    <th className="w-[12%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_STATUS")}
+                    </th>
+                    <th className="w-[22%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("common:ORG_MEMBERS_TABLE_MEMBER")}
+                    </th>
+                    <th className="w-[16%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_ACCEPTED")}
+                    </th>
+                    <th className="w-[18%] py-2 pl-4 text-left text-footnote font-medium text-label-secondary">
+                      {t("team:TEAM_INVITATIONS_COL_CREATED")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>{(acceptedInvitationsQuery.data?.items ?? []).map(renderAcceptedRow)}</tbody>
+              </table>
+            </div>
+            {acceptedInvitationsQuery.data ? (
+              <div className="border-t border-border/50 pt-3">
+                <DataPaginationControls
+                  page={acceptedInvitationsQuery.data.page}
+                  size={acceptedInvitationsQuery.data.size}
+                  total={acceptedInvitationsQuery.data.total}
+                  onChange={(nextPage, nextSize) => {
+                    setAcceptedPage(nextPage);
+                    setAcceptedPageSize(nextSize);
+                  }}
+                  t={t}
+                />
+              </div>
+            ) : null}
+          </ContentGuard>
         </ChromeTabsContent>
+
         <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
-          <TeamInvitationsTableSection
-            tableHook={linksTable}
+          <ContentGuard
+            loading={Boolean(inviteLinksQuery.isLoading && !inviteLinksQuery.data)}
+            error={inviteLinksQuery.error}
+            empty={
+              !inviteLinksQuery.isLoading &&
+              !inviteLinksQuery.isError &&
+              (inviteLinksQuery.data?.items?.length ?? 0) === 0
+            }
+            onRetry={() => {
+              void inviteLinksQuery.refetch();
+            }}
+            container="raw"
+            loadingVariant="table"
             emptyTitle={t("team:TEAM_INVITE_LINKS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITE_LINKS_EMPTY_DESC")}
-            t={t}
-            rowHeight={linksRowHeight}
-            wrapHeaders={linksWrapHeaders}
-          />
+            variant="compact"
+          >
+            {inviteLinksQuery.isFetching && !inviteLinksQuery.isLoading ? (
+              <SettingsTableRefreshSkeleton />
+            ) : null}
+            <div className="min-w-0 overflow-x-auto">
+              <table className="min-w-[72rem] w-full table-fixed border-collapse">
+                <thead>
+                  <tr className="border-b border-border/60">
+                    <th className="w-[20%] py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
+                      {t("team:TEAM_INVITE_LINKS_COL_CREATOR")}
+                    </th>
+                    <th className="w-[16%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITE_LINKS_COL_CODE")}
+                    </th>
+                    <th className="w-[18%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT")}
+                    </th>
+                    <th className="w-[14%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITE_LINKS_COL_CREATED")}
+                    </th>
+                    <th className="w-[14%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                      {t("team:TEAM_INVITE_LINKS_COL_EXPIRES")}
+                    </th>
+                    <th
+                      className={`w-[22%] py-2 pl-4 text-right text-footnote font-medium text-label-secondary ${INVITATIONS_ACTION_COLUMN_CLASSNAME}`}
+                    />
+                  </tr>
+                </thead>
+                <tbody>{(inviteLinksQuery.data?.items ?? []).map(renderInviteLinkRow)}</tbody>
+              </table>
+            </div>
+            {inviteLinksQuery.data ? (
+              <div className="border-t border-border/50 pt-3">
+                <DataPaginationControls
+                  page={inviteLinksQuery.data.page}
+                  size={inviteLinksQuery.data.size}
+                  total={inviteLinksQuery.data.total}
+                  onChange={(nextPage, nextSize) => {
+                    setLinksPage(nextPage);
+                    setLinksPageSize(nextSize);
+                  }}
+                  t={t}
+                />
+              </div>
+            ) : null}
+          </ContentGuard>
         </ChromeTabsContent>
       </div>
+
       <InviteMembersDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
@@ -824,23 +924,11 @@ export function TeamInvitationsView(
         roles={rolesQuery.data?.items ?? []}
         rolesLoading={rolesQuery.isLoading}
         onInvited={() => {
-          // Inviting members may create:
-          // - invitation deliveries (email-bound invitations)
-          // - invite links (reusable join links)
-          void queryClient.invalidateQueries({
-            queryKey: [
-              "dataTable",
-              workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
-            ],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: [
-              "dataTable",
-              workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links",
-            ],
-          });
+          void invalidatePendingInvitations();
+          void invalidateInviteLinks();
         }}
       />
+
       <InviteMembersDialog
         open={inviteEmailOpen}
         onOpenChange={setInviteEmailOpen}
@@ -850,14 +938,10 @@ export function TeamInvitationsView(
         roles={rolesQuery.data?.items ?? []}
         rolesLoading={rolesQuery.isLoading}
         onInvited={() => {
-          void queryClient.invalidateQueries({
-            queryKey: [
-              "dataTable",
-              workspaceId ? `team-invitations:${workspaceId}` : "team-invitations",
-            ],
-          });
+          void invalidatePendingInvitations();
         }}
       />
+
       <TeamInvitationsDialogs
         t={t}
         deleteInvitation={deleteInvitation}
@@ -889,6 +973,8 @@ export function TeamInvitationsView(
       description={t("team:TEAM_INVITATIONS_DESC")}
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
+      action={inviteAction}
+      extra={currentToolbar}
     >
       {content}
     </DefaultPage>

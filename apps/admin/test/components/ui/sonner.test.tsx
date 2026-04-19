@@ -27,7 +27,7 @@ describe("shared Toaster", () => {
 
     expect(capturedProps?.position).toBe("top-right");
     expect(capturedProps?.closeButton).toBe(true);
-    expect(capturedProps?.className).toBe("toaster group !z-[2200]");
+    expect(capturedProps?.className).toBe("toaster group ");
     expect(capturedProps?.toastOptions).toMatchObject({
       classNames: {
         toast:

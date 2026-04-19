@@ -25,6 +25,7 @@ type ContextSettingsShellProps = {
   description: string;
   pathname: string;
   items: readonly AdminNavItem[];
+  action?: ReactNode;
   children: ReactNode;
 };
 
@@ -97,6 +98,7 @@ export function ContextSettingsShell(props: ContextSettingsShellProps) {
       className="min-h-full"
       contentClassName="min-h-full"
       contentContainerClassName="min-h-full"
+      action={props.action}
     >
       <div className="mx-auto flex min-h-full w-full max-w-6xl gap-8">
         <aside className="hidden min-h-full w-60 shrink-0 lg:block">

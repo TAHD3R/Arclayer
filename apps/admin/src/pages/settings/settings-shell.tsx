@@ -35,6 +35,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 type SettingsFrameProps = {
   activePath: string;
   activeTab: SettingsOverlayTab;
+  action?: ReactNode;
   children: ReactNode;
   onClose?: () => void;
   onSelectItem?: (item: AdminNavItem) => void;
@@ -195,15 +196,14 @@ export function SettingsFrame(props: SettingsFrameProps) {
             title={t(activeItem.titleKey)}
             description={t(activeItem.descriptionKey)}
             showFavoriteToggle={false}
+            action={props.action}
             pageFrame="full"
             largeViewportGutters={props.expandedGutters}
             className="min-h-full"
             contentClassName="min-h-full"
             contentContainerClassName="min-h-full"
           >
-            <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col">
-              {props.children}
-            </div>
+            <div className="mx-auto flex min-h-full w-full flex-col">{props.children}</div>
           </DefaultPage>
         </div>
       </div>

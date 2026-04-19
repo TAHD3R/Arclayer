@@ -262,7 +262,7 @@ function ChromeTabsListImpl(
       ref={wrapperRef}
       className={cn(
         "relative",
-        widthMode === "content" ? "inline-block max-w-full align-top" : undefined,
+        widthMode === "content" ? "inline-block max-w-full" : undefined,
         wrapperClassName,
       )}
     >

@@ -63,7 +63,7 @@ function SessionActionCell(props: {
   if (!props.row.revocable) {
     return (
       <DataTableActionsCell>
-        <Button variant="outline" size="sm" disabled>
+        <Button variant="ghost" size="sm" disabled>
           {props.t("account:ME_SECURITY_SESSIONS_KICK")}
         </Button>
       </DataTableActionsCell>
@@ -73,7 +73,7 @@ function SessionActionCell(props: {
   return (
     <DataTableActionsCell>
       <Button
-        variant="outline"
+        variant="ghost"
         size="sm"
         loading={props.isRevoking && props.revokingSessionId === props.row.sessionId}
         onClick={() => props.onRevoke(props.row)}
@@ -105,13 +105,13 @@ export function SecuritySessionsTableContent(props: SecuritySessionsTableContent
       <table className="min-w-[42rem] w-full table-fixed border-collapse">
         <thead>
           <tr className="border-b border-border/60">
-            <th className="w-[42%] py-2 pr-4 text-left text-footnote font-medium text-label-secondary">
+            <th className="w-[42%] py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
               {props.t("account:ME_SECURITY_SESSIONS_COL_DEVICE")}
             </th>
-            <th className="w-[22%] px-4 py-2 text-left text-footnote font-medium text-label-secondary">
+            <th className="w-[22%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
               {props.t("account:ME_SECURITY_SESSIONS_COL_LAST_ACTIVE")}
             </th>
-            <th className="w-[20%] px-4 py-2 text-left text-footnote font-medium text-label-secondary">
+            <th className="w-[20%] px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
               {props.t("account:ME_SECURITY_SESSIONS_COL_LOCATION")}
             </th>
             <th
@@ -125,20 +125,18 @@ export function SecuritySessionsTableContent(props: SecuritySessionsTableContent
         <tbody>
           {props.rows.map((row) => (
             <tr key={row.sessionId} className="border-b border-border/50 last:border-b-0">
-              <td className="py-4 pr-4 align-top">
+              <td className="py-4 pr-4">
                 <SessionDeviceCell row={row} t={props.t} />
               </td>
-              <td className="px-4 py-4 align-top text-callout text-label-primary">
+              <td className="px-4 py-4 text-callout text-label-primary">
                 <span
                   className={cn("block text-pretty", !row.lastActiveLabel && "text-label-tertiary")}
                 >
                   {row.lastActiveLabel}
                 </span>
               </td>
-              <td className="px-4 py-4 align-top text-callout text-label-primary">
-                {row.location}
-              </td>
-              <td className="py-4 pl-4 align-top text-right">
+              <td className="px-4 py-4 text-callout text-label-primary">{row.location}</td>
+              <td className="py-4 pl-4 text-right">
                 <SessionActionCell
                   row={row}
                   isRevoking={props.isRevoking}

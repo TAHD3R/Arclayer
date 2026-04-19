@@ -36,7 +36,7 @@ export function UserProfileUserIdSection(props: UserProfileUserIdSectionProps) {
         </code>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon-sm"
           disabled={!hasUserId}
           aria-label={t("account:ME_PROFILE_USER_ID_COPY")}

@@ -1,6 +1,4 @@
 "use client";
-
-import { UserPlus } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -273,7 +271,6 @@ export function InviteMembersDialog(props: {
             {t("common:CANCEL")}
           </Button>
           <Button loading={inviteMutation.isPending} onClick={() => void onSubmit()}>
-            <UserPlus className="size-4" aria-hidden="true" />
             {t("common:CONFIRM")}
           </Button>
         </>
