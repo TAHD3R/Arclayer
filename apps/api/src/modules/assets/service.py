@@ -51,6 +51,12 @@ def build_asset_headers(asset: AssetPublicView) -> dict[str, str]:
     return headers
 
 
+def build_asset_redirect_headers(asset: AssetPublicView) -> dict[str, str]:
+    headers = build_asset_headers(asset)
+    headers["Cache-Control"] = "no-store"
+    return headers
+
+
 class AssetsService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -165,7 +171,7 @@ class AssetsService:
             else:
                 url = None
             if url:
-                return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
+                return RedirectResponse(url=url, status_code=302, headers=build_asset_redirect_headers(view))
 
             # Dev / no-CDN fallback: presigned GET.
             provider = self._try_build_s3_provider(effective=effective, object_key=view.object_key)
@@ -178,7 +184,7 @@ class AssetsService:
                 expires_in=int(getattr(effective.storage, "s3_presign_expires_seconds", 900) or 900),
                 response_content_type=view.mime or "application/octet-stream",
             )
-            return RedirectResponse(url=presigned, status_code=302, headers=build_asset_headers(view))
+            return RedirectResponse(url=presigned, status_code=302, headers=build_asset_redirect_headers(view))
 
         root_dir = self.settings.storage.local_root_dir
         path = safe_object_key_to_path(root_dir, view.object_key)
@@ -220,7 +226,7 @@ class AssetsService:
                 response_content_type=view.mime or "application/octet-stream",
                 response_content_disposition=build_attachment_content_disposition(filename),
             )
-            return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
+            return RedirectResponse(url=url, status_code=302, headers=build_asset_redirect_headers(view))
 
         root_dir = self.settings.storage.local_root_dir
         path = safe_object_key_to_path(root_dir, view.object_key)
@@ -283,7 +289,7 @@ class AssetsService:
             else:
                 url = None
             if url:
-                return RedirectResponse(url=url, status_code=302, headers=build_asset_headers(view))
+                return RedirectResponse(url=url, status_code=302, headers=build_asset_redirect_headers(view))
 
             provider = self._try_build_s3_provider(effective=effective, object_key=object_key)
             if provider is not None:
@@ -294,7 +300,7 @@ class AssetsService:
                     expires_in=int(getattr(effective.storage, "s3_presign_expires_seconds", 900) or 900),
                     response_content_type=str((picked or {}).get("mime") or "") or "application/octet-stream",
                 )
-                return RedirectResponse(url=presigned, status_code=302, headers=build_asset_headers(view))
+                return RedirectResponse(url=presigned, status_code=302, headers=build_asset_redirect_headers(view))
 
             canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
             return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{canonical}", status_code=302)

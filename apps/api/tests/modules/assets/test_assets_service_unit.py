@@ -50,3 +50,26 @@ def test_build_asset_headers_omits_noindex_when_indexable() -> None:
     )
     headers = build_asset_headers(view)
     assert "X-Robots-Tag" not in headers
+
+
+def test_build_asset_redirect_headers_disables_redirect_caching() -> None:
+    from src.modules.assets.service import AssetPublicView, build_asset_redirect_headers
+
+    view = AssetPublicView(
+        id=uuid4(),
+        slug="x",
+        ext="png",
+        mime="image/png",
+        checksum_sha256=None,
+        original_filename="x.png",
+        object_key="org/x/assets/y.png",
+        storage_bucket=None,
+        indexable=False,
+        variants=None,
+        storage_provider="s3",
+    )
+
+    headers = build_asset_redirect_headers(view)
+
+    assert headers["Cache-Control"] == "no-store"
+    assert headers["X-Robots-Tag"] == "noindex"
