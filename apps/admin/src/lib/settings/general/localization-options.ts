@@ -7,6 +7,8 @@ export type LocalizationOption<T extends string = string> = {
   label: string;
 };
 
+export const RELATIVE_DATETIME_OPTION_VALUE = "__relative_datetime__";
+
 export function buildLocaleOptions(
   t: (key: string) => string,
 ): Array<LocalizationOption<AppLocale>> {
@@ -39,6 +41,18 @@ export function buildDateFormatOptions(t: (key: string) => string): Array<Locali
     value: FULL_DATE_TIME_FORMAT,
     label: t("settings:SETTINGS_LOCALIZATION_FULL_DATE_TIME_LABEL"),
   });
+}
+
+export function buildDateTimePreferenceOptions(
+  t: (key: string) => string,
+): Array<LocalizationOption> {
+  return [
+    {
+      value: RELATIVE_DATETIME_OPTION_VALUE,
+      label: t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE"),
+    },
+    ...buildDateFormatOptions(t),
+  ];
 }
 
 export function resolveDateFormatLabel(

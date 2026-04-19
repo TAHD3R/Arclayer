@@ -1,6 +1,6 @@
 import type { ParsedLocation } from "@tanstack/react-router";
 
-export const USERCENTER_OVERLAY_TABS = ["profile", "notifications"] as const;
+export const USERCENTER_OVERLAY_TABS = ["profile", "preferences", "notifications"] as const;
 export const WORKSPACE_SETTINGS_OVERLAY_TABS = [
   "workspace-general",
   "workspace-members",

@@ -20,6 +20,7 @@ export function useWorkspaceSettingsBasicsMutations(options: {
   const patchWorkspaceMutation = useMutation({
     mutationFn: async (patch: {
       name?: string;
+      description?: string | null;
       slug?: string;
       iconMode?: "initials" | "glyph" | "emoji" | "image";
       iconColor?: string | null;

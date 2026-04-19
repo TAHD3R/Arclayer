@@ -1,31 +1,59 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type {
+  ButtonHTMLAttributes,
+  Dispatch,
+  InputHTMLAttributes,
+  PropsWithChildren,
+  SetStateAction,
+} from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WorkspaceSettingsIconAccordionItem } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-icon-accordion-item";
 
-vi.mock("@arclayer/ui/setting-accordion-item", () => ({
-  SettingAccordionItem: (props: {
-    title: React.ReactNode;
-    description?: React.ReactNode;
-    summary?: React.ReactNode;
-    children?: React.ReactNode;
-  }) => (
-    <div>
-      <div>{props.title}</div>
-      <div>{props.description}</div>
-      <div data-testid="icon-summary">{props.summary}</div>
-      <div>{props.children}</div>
-    </div>
+vi.mock("@/lib/clipboard", () => ({
+  copyToClipboard: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/notifications", () => ({
+  notifyError: vi.fn(),
+  notifySuccessText: vi.fn(),
+}));
+
+vi.mock("@/components/common/entity-avatar", () => ({
+  WorkspaceAvatar: (props: { name?: string | null }) => (
+    <div aria-label={props.name ?? "workspace"} />
   ),
+  workspaceAvatarPropsFromIdentity: () => ({}),
+}));
+
+vi.mock("@arclayer/ui/setting-card", () => ({
+  SettingCard: ({ children }: PropsWithChildren) => <div>{children}</div>,
+  SettingCardContent: ({ children }: PropsWithChildren) => (
+    <div data-testid="workspace-basics-card">{children}</div>
+  ),
+}));
+
+vi.mock("@arclayer/ui/button", () => ({
+  Button: ({
+    children,
+    loading,
+    ...props
+  }: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }>) => (
+    <button {...props}>{loading ? "loading" : children}</button>
+  ),
+}));
+
+vi.mock("@arclayer/ui/input", () => ({
+  Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
 vi.mock("@/pages/usercenter/workspaces/components/workspace-icon-dialog", () => ({
   WorkspaceIconDialog: (props: {
     dialog: {
       workspace: { name: string } | null;
-      setValues: React.Dispatch<
-        React.SetStateAction<{
+      setValues: Dispatch<
+        SetStateAction<{
           iconMode: "initials" | "glyph" | "emoji" | "image";
           iconColor: string;
           iconGlyph: string | null;
@@ -67,15 +95,25 @@ function createController() {
     t: (key: string) =>
       (
         ({
-          "settings:SETTINGS_WORKSPACE_ICON_LABEL": "工作空间图标",
-          "settings:SETTINGS_WORKSPACE_ICON_ITEM_DESC":
-            "用于侧边栏、选择器与标题等位置展示工作空间标识。",
-          "settings:SETTINGS_NOT_SET": "未设置",
+          "settings:SETTINGS_WORKSPACE_NAME_LABEL": "名称",
+          "settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER": "例如：品牌官网",
+          "settings:SETTINGS_WORKSPACE_ID_TITLE": "工作空间 ID",
+          "settings:SETTINGS_WORKSPACE_ID_COPIED": "工作空间 ID 已复制",
+          "settings:SETTINGS_WORKSPACE_SLUG_LABEL": "工作空间标识（Slug）",
+          "settings:SETTINGS_WORKSPACE_SLUG_COPIED": "工作空间标识已复制",
+          "settings:SETTINGS_SAVE": "保存",
+          "settings:SETTINGS_WORKSPACE_DESCRIPTION_TOO_LONG": "介绍过长（最多 256 字符）",
+          "common:ORG_WORKSPACES_FIELD_DESCRIPTION": "介绍",
+          "common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER": "填写工作空间介绍",
           "common:ORG_WORKSPACES_ACTION_CHANGE_ICON": "更换图标",
+          "common:DUPLICATE": "复制",
         }) as Record<string, string>
       )[key] ?? key,
     disabled: false,
-    workspaceId: "ws-1",
+    savingKey: null,
+    currentWorkspaceName: "Workspace Alpha",
+    currentWorkspaceDescription: "Brand system and marketing operations.",
+    currentWorkspaceSlug: "alpha",
     detailQuery: {
       data: {
         id: "ws-1",
@@ -83,7 +121,7 @@ function createController() {
         organizationId: "org-1",
         slug: "alpha",
         name: "Workspace Alpha",
-        description: null,
+        description: "Brand system and marketing operations.",
         kind: "team",
         iconMode: "image",
         iconColor: "#337ea9",
@@ -101,19 +139,58 @@ function createController() {
 }
 
 describe("WorkspaceSettingsIconAccordionItem", () => {
-  it("shows avatar summaries and keeps the helper copy in the content area", () => {
+  it("renders the inline basics card with workspace id and slug rows", () => {
     render(<WorkspaceSettingsIconAccordionItem controller={createController() as never} />);
 
-    expect(screen.getByTestId("icon-summary")).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Workspace Alpha").length).toBeGreaterThan(0);
-    expect(
-      screen.getByText("用于侧边栏、选择器与标题等位置展示工作空间标识。"),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "更换图标" })).toHaveClass("cursor-pointer");
-    expect(screen.queryByText("/assets/icon-1")).not.toBeInTheDocument();
+    expect(screen.getByTestId("workspace-basics-card")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Workspace Alpha")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Brand system and marketing operations.")).toBeInTheDocument();
+    expect(screen.getByText("工作空间 ID")).toBeInTheDocument();
+    expect(screen.getByText("ws-1")).toBeInTheDocument();
+    expect(screen.getByText("工作空间标识（Slug）")).toBeInTheDocument();
+    expect(screen.getByText("alpha")).toBeInTheDocument();
   });
 
-  it("opens the shared icon dialog and saves the full icon contract", async () => {
+  it("saves name inline", async () => {
+    const user = userEvent.setup();
+    const controller = createController();
+
+    render(<WorkspaceSettingsIconAccordionItem controller={controller as never} />);
+
+    const input = screen.getByDisplayValue("Workspace Alpha");
+    await user.clear(input);
+    await user.type(input, "Workspace Beta");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(controller.withSavingKey).toHaveBeenCalledWith("workspace:name", expect.any(Function));
+    expect(controller.patchWorkspaceMutation.mutateAsync).toHaveBeenCalledWith({
+      name: "Workspace Beta",
+    });
+  });
+
+  it("saves description inline", async () => {
+    const user = userEvent.setup();
+    const controller = createController();
+
+    render(<WorkspaceSettingsIconAccordionItem controller={controller as never} />);
+
+    const textarea = screen.getByDisplayValue("Brand system and marketing operations.");
+    await user.clear(textarea);
+    await user.type(textarea, "New workspace description");
+
+    const saveButtons = screen.getAllByRole("button", { name: "保存" });
+    await user.click(saveButtons[saveButtons.length - 1]);
+
+    expect(controller.withSavingKey).toHaveBeenCalledWith(
+      "workspace:description",
+      expect.any(Function),
+    );
+    expect(controller.patchWorkspaceMutation.mutateAsync).toHaveBeenCalledWith({
+      description: "New workspace description",
+    });
+  });
+
+  it("opens the shared icon dialog and saves the selected icon", async () => {
     const user = userEvent.setup();
     const controller = createController();
 

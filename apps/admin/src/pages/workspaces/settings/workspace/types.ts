@@ -3,6 +3,7 @@ import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 export type WorkspaceSettingsFormValues = {
   name: string;
+  description: string;
   slug: string;
   locale: AppLocale;
   timezone: string;

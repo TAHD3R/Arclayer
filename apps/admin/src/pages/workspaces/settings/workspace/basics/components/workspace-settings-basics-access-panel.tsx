@@ -1,19 +1,11 @@
 import { Controller } from "react-hook-form";
 
-import { Accordion } from "@arclayer/ui/accordion";
 import { Button } from "@arclayer/ui/button";
-import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
-import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
-import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
-import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
+import { PreferenceSettingRow } from "@/pages/usercenter/appearance/components/preference-setting-row";
+import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
-
-function FieldMessage({ message }: { message: string | null }) {
-  if (!message) return null;
-  return <div className="text-footnote text-destructive">{message}</div>;
-}
 
 export function WorkspaceSettingsBasicsAccessPanel(props: {
   controller: WorkspaceSettingsBasicsController;
@@ -22,136 +14,66 @@ export function WorkspaceSettingsBasicsAccessPanel(props: {
   const { t } = c;
 
   return (
-    <SettingPanel
+    <UserCenterSettingPanel
       title={t("settings:SETTINGS_WORKSPACE_ACCESS_PANEL_TITLE")}
-      description={t("settings:SETTINGS_WORKSPACE_ACCESS_PANEL_DESC")}
-      bordered={false}
+      variant="dialog"
+      showDivider
     >
-      <SettingActionGroup>
-        <Accordion type="single" collapsible className="px-0">
-          <SettingAccordionItem
-            value="workspace_default_role"
-            variant="action"
-            title={t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_TITLE")}
-            description={t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_DESC")}
-            showSummary
-            summary={c.defaultRoleLabel}
-            placeholder={t("settings:SETTINGS_NOT_SET")}
-            keepRendered
-            disabled={c.disabled || c.roleOptions.length === 0}
-            contentLayout="inline"
-            confirmText={t("settings:SETTINGS_SAVE")}
-            confirmLoading={c.savingKey === "workspace:defaultRole"}
-            onConfirm={() =>
-              void c.withSavingKey("workspace:defaultRole", async () => {
-                const values = await validateFormFields(c.form, ["defaultRoleCode"]);
-                await c.patchWorkspaceRolePolicyMutation.mutateAsync({
-                  defaultRoleCode: String(values.defaultRoleCode),
-                });
-              })
-            }
-            onReset={
-              c.isDefaultRoleDirty
-                ? () =>
-                    void c.withSavingKey("reset:workspace:defaultRole", async () => {
-                      c.form.setValue("defaultRoleCode", c.initialDefaultRoleCode, {
-                        shouldDirty: false,
-                      });
-                      c.form.clearErrors("defaultRoleCode");
+      <div className="flex flex-col gap-4">
+        <PreferenceSettingRow
+          title={t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_TITLE")}
+          description={t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_DESC")}
+          action={
+            <Controller
+              control={c.form.control}
+              name="defaultRoleCode"
+              render={({ field }) => (
+                <Select
+                  value={field.value || undefined}
+                  disabled={c.disabled || c.roleOptions.length === 0}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    void c.withSavingKey("workspace:defaultRole", async () => {
                       await c.patchWorkspaceRolePolicyMutation.mutateAsync({
-                        defaultRoleCode: String(c.initialDefaultRoleCode),
+                        defaultRoleCode: value,
                       });
-                    })
-                : undefined
-            }
-            resetText={t("settings:SETTINGS_RESET")}
-            resetLoading={c.savingKey === "reset:workspace:defaultRole"}
-          >
-            <div className="space-y-2">
-              <Controller
-                control={c.form.control}
-                name="defaultRoleCode"
-                rules={{ required: t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_REQUIRED") }}
-                render={({ field }) => (
-                  <Select value={field.value || undefined} onValueChange={field.onChange}>
-                    <SelectTrigger
-                      className="w-full"
-                      aria-invalid={
-                        getFieldErrorMessage(c.form, "defaultRoleCode") ? true : undefined
-                      }
-                    >
-                      <SelectValue placeholder={t("common:SELECT")} />
-                    </SelectTrigger>
-                    <SelectContent position="popper" align="start">
-                      {c.roleOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              <FieldMessage message={getFieldErrorMessage(c.form, "defaultRoleCode")} />
-            </div>
-          </SettingAccordionItem>
+                    });
+                  }}
+                >
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder={t("common:SELECT")} />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="end">
+                    {c.roleOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          }
+        />
 
-          <SettingAccordionItem
-            value="workspace_assign_role_to_all"
-            variant="action"
-            title={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_TITLE")}
-            description={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_DESC")}
-            showSummary={false}
-            keepRendered
-            disabled={c.disabled || c.roleOptions.length === 0}
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-              <div className="flex-1 space-y-2">
-                <Controller
-                  control={c.form.control}
-                  name="assignRoleCode"
-                  rules={{ required: t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_REQUIRED") }}
-                  render={({ field }) => (
-                    <Select value={field.value || undefined} onValueChange={field.onChange}>
-                      <SelectTrigger
-                        className="w-full"
-                        aria-invalid={
-                          getFieldErrorMessage(c.form, "assignRoleCode") ? true : undefined
-                        }
-                      >
-                        <SelectValue placeholder={t("common:SELECT")} />
-                      </SelectTrigger>
-                      <SelectContent position="popper" align="start">
-                        {c.roleOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FieldMessage message={getFieldErrorMessage(c.form, "assignRoleCode")} />
-              </div>
-
-              <Button
-                type="button"
-                disabled={c.disabled || c.roleOptions.length === 0}
-                onClick={() => {
-                  void validateFormFields(c.form, ["assignRoleCode"])
-                    .then(() => {
-                      c.assignRoleDialogForm.reset();
-                      c.setAssignRoleDialogOpen(true);
-                    })
-                    .catch(() => undefined);
-                }}
-              >
-                {t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_CONFIRM")}
-              </Button>
-            </div>
-          </SettingAccordionItem>
-        </Accordion>
-      </SettingActionGroup>
-    </SettingPanel>
+        <PreferenceSettingRow
+          title={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_TITLE")}
+          description={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_DESC")}
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              disabled={c.disabled || c.roleOptions.length === 0}
+              onClick={() => {
+                c.assignRoleDialogForm.reset();
+                c.setAssignRoleDialogOpen(true);
+              }}
+            >
+              {t("team:TEAM_ACTION_EDIT")}
+            </Button>
+          }
+        />
+      </div>
+    </UserCenterSettingPanel>
   );
 }

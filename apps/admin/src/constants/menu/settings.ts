@@ -1,4 +1,12 @@
-import { Bell, MailPlus, Shield, SquareStack, UserRound, Users } from "lucide-react";
+import {
+  Bell,
+  MailPlus,
+  Shield,
+  SlidersHorizontal,
+  SquareStack,
+  UserRound,
+  Users,
+} from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
@@ -10,6 +18,13 @@ export const SETTINGS_PERSONAL_NAV_ITEMS: readonly AdminNavItem[] = [
     to: "/settings/personal/profile",
     icon: UserRound,
     groupLabelBeforeKey: "account:SETTINGS_NAV_SECTION_PERSONAL",
+  },
+  {
+    key: "settings.personal.preferences",
+    label: "Preferences",
+    labelKey: "account:ACCOUNT_NAV_APPEARANCE",
+    to: "/settings/personal/preferences",
+    icon: SlidersHorizontal,
   },
   {
     key: "settings.personal.notifications",

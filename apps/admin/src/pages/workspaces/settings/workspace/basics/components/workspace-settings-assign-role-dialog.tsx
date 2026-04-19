@@ -1,11 +1,12 @@
-import { UserCog } from "lucide-react";
 import { useCallback } from "react";
+import { Controller } from "react-hook-form";
 
 import { Button } from "@arclayer/ui/button";
 import { Form } from "@arclayer/ui/form";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
@@ -56,26 +57,41 @@ export function WorkspaceSettingsAssignRoleDialog(props: {
             disabled={c.disabled || c.roleOptions.length === 0}
             onClick={() => void handleConfirm()}
           >
-            <span className="inline-flex items-center gap-2">
-              <UserCog className="size-4" aria-hidden="true" />
-              {t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_CONFIRM")}
-            </span>
+            {t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_CONFIRM")}
           </Button>
         </div>
       }
     >
       <Form {...c.assignRoleDialogForm}>
         <SettingDialogFields className="py-2">
-          {c.assignRoleDescription ? (
-            <div className="rounded-md border border-border bg-muted/20 px-3 py-2">
-              <div className="text-footnote font-semibold text-label-primary">
-                {c.assignRoleLabel}
-              </div>
-              <div className="mt-1 text-caption text-label-secondary">
-                {c.assignRoleDescription}
-              </div>
-            </div>
-          ) : null}
+          <SettingDialogField
+            title={t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_TITLE")}
+            description={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_DESC")}
+            error={getFieldErrorMessage(c.form, "assignRoleCode") ?? undefined}
+          >
+            <Controller
+              control={c.form.control}
+              name="assignRoleCode"
+              rules={{ required: t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_REQUIRED") }}
+              render={({ field }) => (
+                <Select value={field.value || undefined} onValueChange={field.onChange}>
+                  <SelectTrigger
+                    className="w-full"
+                    aria-invalid={getFieldErrorMessage(c.form, "assignRoleCode") ? true : undefined}
+                  >
+                    <SelectValue placeholder={t("common:SELECT")} />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="start">
+                    {c.roleOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </SettingDialogField>
 
           <SettingDialogField
             title={t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL")}

@@ -16,6 +16,7 @@ import {
 } from "@/lib/settings/general/datetime-localization";
 import {
   buildDateFormatOptions,
+  buildDateTimePreferenceOptions,
   buildLocaleOptions,
   buildTimezoneOptions,
 } from "@/lib/settings/general/localization-options";
@@ -39,6 +40,7 @@ function getBrowserTimeZone(): string {
 
 const DEFAULT_FORM_VALUES: WorkspaceSettingsFormValues = {
   name: "",
+  description: "",
   slug: "",
   locale: DEFAULT_LOCALE,
   timezone: DEFAULT_TIMEZONE,
@@ -120,6 +122,9 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     if (!form.getFieldState("name").isDirty) {
       form.setValue("name", detailQuery.data.name, { shouldDirty: false });
     }
+    if (!form.getFieldState("description").isDirty) {
+      form.setValue("description", detailQuery.data.description ?? "", { shouldDirty: false });
+    }
     if (!form.getFieldState("slug").isDirty) {
       form.setValue("slug", detailQuery.data.slug, { shouldDirty: false });
     }
@@ -194,6 +199,11 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const currentWorkspaceName =
     useWatch({ control: form.control, name: "name" }) ?? initialWorkspaceName;
 
+  const initialWorkspaceDescription = detailQuery.data?.description ?? "";
+  const persistedWorkspaceDescription = String(initialWorkspaceDescription || "").trim();
+  const currentWorkspaceDescription =
+    useWatch({ control: form.control, name: "description" }) ?? initialWorkspaceDescription;
+
   const initialWorkspaceSlug = detailQuery.data?.slug ?? "";
   const persistedWorkspaceSlug = String(initialWorkspaceSlug || "").trim();
   const currentWorkspaceSlug =
@@ -240,6 +250,7 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     [browserTimeZone, workspaceTimezone],
   );
   const dateFormatOptions = useMemo(() => buildDateFormatOptions(t), [t]);
+  const dateTimePreferenceOptions = useMemo(() => buildDateTimePreferenceOptions(t), [t]);
 
   const roleOptions = roleMetadata.roleOptions;
   const roleLabelMap = roleMetadata.roleLabelMap;
@@ -264,6 +275,8 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const assignRoleDescription = roleDescriptionMap.get(String(assignRoleCode)) ?? null;
 
   const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
+  const isWorkspaceDescriptionDirty =
+    (currentWorkspaceDescription || "") !== (initialWorkspaceDescription || "");
   const isWorkspaceSlugDirty = (currentWorkspaceSlug || "") !== (initialWorkspaceSlug || "");
   const isWorkspaceLocaleDirty = (workspaceLocale || "") !== String(initialWorkspaceLocale);
   const isWorkspaceTimezoneDirty =
@@ -298,6 +311,9 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     initialWorkspaceName,
     persistedWorkspaceName,
     currentWorkspaceName,
+    initialWorkspaceDescription,
+    persistedWorkspaceDescription,
+    currentWorkspaceDescription,
     initialWorkspaceSlug,
     persistedWorkspaceSlug,
     currentWorkspaceSlug,
@@ -317,6 +333,7 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     localeOptions,
     timezoneOptions,
     dateFormatOptions,
+    dateTimePreferenceOptions,
     roleOptions,
     roleOptionsLength: roleOptions.length,
     roleLabelMap,
@@ -328,6 +345,7 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     assignRoleLabel,
     assignRoleDescription,
     isWorkspaceNameDirty,
+    isWorkspaceDescriptionDirty,
     isWorkspaceSlugDirty,
     isWorkspaceLocaleDirty,
     isWorkspaceTimezoneDirty,

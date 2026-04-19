@@ -33,9 +33,10 @@ import {
   type WorkspaceSlugState,
 } from "@/lib/workspace-slug";
 import {
-  buildDateFormatOptions,
+  buildDateTimePreferenceOptions,
   buildLocaleOptions,
   buildTimezoneOptions,
+  RELATIVE_DATETIME_OPTION_VALUE,
 } from "@/lib/settings/general/localization-options";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
@@ -84,8 +85,6 @@ function FieldHint(props: { children: ReactNode; tone?: "default" | "success" | 
         : "text-label-secondary";
   return <div className={`text-footnote ${toneClassName}`}>{props.children}</div>;
 }
-
-const RELATIVE_DATETIME_OPTION_VALUE = "__relative_datetime__";
 
 export function WorkspaceFirstOnboardingPage() {
   const { t, i18n } = useTranslation(["onboarding", "common", "settings", "setup"]);
@@ -141,17 +140,7 @@ export function WorkspaceFirstOnboardingPage() {
     () => buildTimezoneOptions(workspaceTimezone || browserTimeZone),
     [browserTimeZone, workspaceTimezone],
   );
-  const dateFormatOptions = useMemo(() => buildDateFormatOptions(t), [t]);
-  const dateTimePreferenceOptions = useMemo(
-    () => [
-      {
-        value: RELATIVE_DATETIME_OPTION_VALUE,
-        label: t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE"),
-      },
-      ...dateFormatOptions,
-    ],
-    [dateFormatOptions, t],
-  );
+  const dateTimePreferenceOptions = useMemo(() => buildDateTimePreferenceOptions(t), [t]);
   const roleOptions = useMemo(
     () => [
       { value: "designer", label: t("onboarding:PERSONALIZE_ROLE_DESIGNER"), icon: Paintbrush2 },

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { UserAppearanceView } from "@/pages/usercenter/appearance/components/user-appearance-view";
 import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/components/user-notification-settings-view";
 import { UserProfileView } from "@/pages/usercenter/profile/components/user-profile-view";
 import {
@@ -59,6 +60,14 @@ export const USERCENTER_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] = [
     titleKey: "account:ME_TAB_PROFILE",
     descriptionKey: "account:ME_TAB_PROFILE_DESC",
     render: () => <UserProfileView mode="dialog" />,
+  },
+  {
+    tab: "preferences",
+    to: "/settings/personal/preferences",
+    labelKey: "account:ACCOUNT_NAV_APPEARANCE",
+    titleKey: "account:ME_TAB_PREFERENCES",
+    descriptionKey: "account:ME_TAB_PREFERENCES_DESC",
+    render: () => <UserAppearanceView mode="dialog" />,
   },
   {
     tab: "notifications",
