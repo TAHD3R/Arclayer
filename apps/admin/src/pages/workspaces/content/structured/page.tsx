@@ -63,7 +63,6 @@ export function ContentStructuredSurfacePage(props: {
   return (
     <DefaultPage
       title={t("CONTENT_STRUCTURED_SURFACE_TITLE")}
-      description={t("CONTENT_STRUCTURED_SURFACE_DESC")}
       showFavoriteToggle={false}
       contentContainerClassName="mx-auto w-full max-w-4xl"
     >

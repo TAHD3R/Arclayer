@@ -56,11 +56,7 @@ export function NotificationsView() {
     );
 
   return (
-    <DefaultPage
-      title={t("NOTIFICATIONS_PAGE_TITLE")}
-      description={t("NOTIFICATIONS_PAGE_DESC")}
-      action={action}
-    >
+    <DefaultPage title={t("NOTIFICATIONS_PAGE_TITLE")} action={action}>
       <ChromeTabs value={status} onValueChange={(next) => n.setStatus(next as ListStatus)}>
         <ChromeTabsList className="w-auto">
           <ChromeTabsTrigger value="unread">{t("NOTIFICATIONS_TAB_UNREAD")}</ChromeTabsTrigger>

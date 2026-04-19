@@ -67,11 +67,7 @@ export function SystemSettingsShell(props: { children: ReactNode }) {
 
   if (currentUserQuery.isLoading && !currentUserQuery.profile) {
     return (
-      <DefaultPage
-        title={t("settings:SETTINGS_SYSTEM_TITLE")}
-        description={t("settings:SETTINGS_SYSTEM_DESC")}
-        showFavoriteToggle={false}
-      >
+      <DefaultPage title={t("settings:SETTINGS_SYSTEM_TITLE")} showFavoriteToggle={false}>
         <ContentGuard loading loadingVariant="form" />
       </DefaultPage>
     );
@@ -79,11 +75,7 @@ export function SystemSettingsShell(props: { children: ReactNode }) {
 
   if (currentUserQuery.isError) {
     return (
-      <DefaultPage
-        title={t("settings:SETTINGS_SYSTEM_TITLE")}
-        description={t("settings:SETTINGS_SYSTEM_DESC")}
-        showFavoriteToggle={false}
-      >
+      <DefaultPage title={t("settings:SETTINGS_SYSTEM_TITLE")} showFavoriteToggle={false}>
         <ContentGuard
           loading={false}
           error={currentUserQuery.error}
@@ -108,7 +100,6 @@ export function SystemSettingsShell(props: { children: ReactNode }) {
     >
       <DefaultPage
         title={t("settings:SETTINGS_SYSTEM_TITLE")}
-        description={t("settings:SETTINGS_SYSTEM_DESC")}
         showFavoriteToggle={false}
         contentContainerClassName="min-w-0"
         extra={

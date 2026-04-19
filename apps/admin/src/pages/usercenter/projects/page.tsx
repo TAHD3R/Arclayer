@@ -202,7 +202,6 @@ export function ProjectsPage() {
     >
       <DefaultPage
         title={t("account:ACCOUNT_PAGE_PROJECTS_TITLE")}
-        description={t("account:ACCOUNT_PAGE_PROJECTS_DESC")}
         contentClassName="min-h-0 flex flex-col"
         showFavoriteToggle={false}
         action={showPageAction ? renderCreateProjectButton() : undefined}

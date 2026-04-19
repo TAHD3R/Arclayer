@@ -1413,7 +1413,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-background px-10 pt-8 pb-20">
       <PageMainRegion
         title={t("nav:NAV_CONTENT_LIBRARY")}
-        description={t("content:CONTENT_LIBRARY_DESC")}
         action={
           <ContentLibraryPrimaryAction
             workspaceId={workspaceId ? String(workspaceId) : null}

@@ -507,11 +507,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
 
   if (modelsQuery.isLoading) {
     return (
-      <DefaultPage
-        title={t("CONTENT_MODELS_TITLE")}
-        description={t("CONTENT_MODELS_DESC")}
-        showFavoriteToggle={false}
-      >
+      <DefaultPage title={t("CONTENT_MODELS_TITLE")} showFavoriteToggle={false}>
         <div>{t("CONTENT_MODELS_LOADING")}</div>
       </DefaultPage>
     );
@@ -519,11 +515,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
 
   if (modelsQuery.isError) {
     return (
-      <DefaultPage
-        title={t("CONTENT_MODELS_TITLE")}
-        description={t("CONTENT_MODELS_DESC")}
-        showFavoriteToggle={false}
-      >
+      <DefaultPage title={t("CONTENT_MODELS_TITLE")} showFavoriteToggle={false}>
         <div>{t("CONTENT_MODELS_EMPTY")}</div>
       </DefaultPage>
     );
@@ -531,22 +523,14 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
 
   if (!selectedModel || !draft || !selectedTypeLabel) {
     return (
-      <DefaultPage
-        title={t("CONTENT_MODELS_TITLE")}
-        description={t("CONTENT_MODELS_DESC")}
-        showFavoriteToggle={false}
-      >
+      <DefaultPage title={t("CONTENT_MODELS_TITLE")} showFavoriteToggle={false}>
         <div>{t("CONTENT_MODELS_EMPTY")}</div>
       </DefaultPage>
     );
   }
 
   return (
-    <DefaultPage
-      title={t("CONTENT_MODELS_TITLE")}
-      description={t("CONTENT_MODELS_DESC")}
-      showFavoriteToggle={false}
-    >
+    <DefaultPage title={t("CONTENT_MODELS_TITLE")} showFavoriteToggle={false}>
       <div
         className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_340px]"
         data-testid="content-models-governance-surface"

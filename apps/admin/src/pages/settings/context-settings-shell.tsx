@@ -22,7 +22,6 @@ import type { AdminNavItem } from "@/types/admin-nav";
 
 type ContextSettingsShellProps = {
   title: string;
-  description: string;
   pathname: string;
   items: readonly AdminNavItem[];
   action?: ReactNode;
@@ -91,7 +90,6 @@ export function ContextSettingsShell(props: ContextSettingsShellProps) {
   return (
     <DefaultPage
       title={props.title}
-      description={props.description}
       showFavoriteToggle={false}
       pageFrame="full"
       largeViewportGutters

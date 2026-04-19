@@ -223,7 +223,6 @@ export function ContentReleaseCenterPage(props: { workspaceId: string }) {
   return (
     <DefaultPage
       title={t("CONTENT_RELEASE_TITLE")}
-      description={t("CONTENT_RELEASE_DESC")}
       showFavoriteToggle={false}
       action={
         <Button

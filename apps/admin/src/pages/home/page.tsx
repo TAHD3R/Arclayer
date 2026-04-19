@@ -13,7 +13,6 @@ export function HomePage() {
   return (
     <DefaultPage
       title={t("nav:NAV_HOME")}
-      description={t("common:GLOBAL_HOME_DESC")}
       showFavoriteToggle={false}
       action={
         <Button variant="default" onClick={openProjects}>

@@ -7,10 +7,7 @@ export function WorkspaceOverviewPage() {
   const { t } = useTranslation();
 
   return (
-    <DefaultPage
-      title={t("nav:NAV_DASHBOARD")}
-      description="This is the starting point for the Arclayer console."
-    >
+    <DefaultPage title={t("nav:NAV_DASHBOARD")}>
       <Card>
         <CardContent className="pt-6">
           <p className="mb-0 text-body text-label-primary">

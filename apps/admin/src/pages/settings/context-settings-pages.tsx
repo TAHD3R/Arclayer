@@ -32,7 +32,6 @@ export function WorkspaceGeneralSettingsPage(props: { workspaceId: string }) {
   return (
     <ContextSettingsShell
       title={t("SETTINGS_WORKSPACE_GENERAL_TITLE")}
-      description={t("SETTINGS_WORKSPACE_GENERAL_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
     >
@@ -57,7 +56,6 @@ export function WorkspaceMembersSettingsPage(props: {
   return (
     <ContextSettingsShell
       title={t("SETTINGS_WORKSPACE_MEMBERS_TITLE")}
-      description={t("SETTINGS_WORKSPACE_MEMBERS_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
       action={
@@ -92,7 +90,6 @@ export function WorkspaceInvitationsSettingsPage(props: { workspaceId: string })
   return (
     <ContextSettingsShell
       title={t("SETTINGS_WORKSPACE_INVITATIONS_TITLE")}
-      description={t("SETTINGS_WORKSPACE_INVITATIONS_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
       action={
@@ -131,7 +128,6 @@ export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
   return (
     <ContextSettingsShell
       title={t("SETTINGS_WORKSPACE_ROLES_TITLE")}
-      description={t("SETTINGS_WORKSPACE_ROLES_DESC")}
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
       action={
@@ -192,7 +188,6 @@ export function ProjectMembersSettingsPage(props: { projectId: string }) {
   return (
     <DefaultPage
       title={t("account:SETTINGS_NAV_PROJECT_MEMBERS")}
-      description={t("account:SETTINGS_PROJECT_MEMBERS_DESC")}
       showFavoriteToggle={false}
       pageFrame="full"
       largeViewportGutters={false}
