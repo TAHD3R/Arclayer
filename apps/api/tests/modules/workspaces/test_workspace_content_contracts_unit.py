@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from src.modules.workspaces.content.contracts.schema import (
     ContentItemOut,
     ContentModelCapability,
+    ContentModelImpactPreviewOut,
     ContentModelOut,
     ContentPresentationOut,
     ContentVersionOut,
@@ -38,6 +39,50 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
         default_surface="canvas",
         starter_pack_policy={"preset": "page"},
         surface_policy={"allowedSurfaces": ["canvas"]},
+        contract_registry={
+            "protocol_key": "page",
+            "protocol_version": 1,
+            "category": "site_builder",
+            "system_managed": True,
+            "boundaries": {
+                "system_fields": [
+                    {
+                        "key": "title",
+                        "label": "Title",
+                        "scalar": "text",
+                        "required": True,
+                    },
+                    {
+                        "key": "path",
+                        "label": "Path",
+                        "scalar": "text",
+                        "required": True,
+                    },
+                    {
+                        "key": "route_pattern",
+                        "label": "Route Pattern",
+                        "scalar": "text",
+                        "required": False,
+                    },
+                ],
+                "custom_fields": [],
+                "locked_field_keys": ["title", "path", "route_pattern"],
+                "custom_field_count": 0,
+            },
+            "capabilities": {
+                "workflow": ["versioned", "publishable"],
+                "delivery": ["routable", "treeable", "publishable"],
+                "graphql": [],
+            },
+            "workflow_policy": {"supportsSchedule": True},
+            "delivery_policy": {
+                "routing": {"mode": "static_or_dynamic"},
+                "presentation": {"allowed": ["visual_blueprint", "seo"]},
+                "seo": None,
+                "surface": {"allowedSurfaces": ["canvas"]},
+            },
+            "graphql_policy": {"enabled": False},
+        },
         field_schema={"title": {"type": "text"}},
         relation_schema={"layout": {"target": "layout", "kind": "one"}},
         routing_schema={"mode": "static_or_dynamic"},
@@ -67,7 +112,96 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
         "visual_editable",
         "publishable",
     ]
+    assert payload["contract_registry"]["protocol_key"] == "page"
+    assert payload["contract_registry"]["boundaries"]["locked_field_keys"] == ["title", "path", "route_pattern"]
+    assert payload["contract_registry"]["capabilities"]["workflow"] == ["versioned", "publishable"]
+    assert payload["contract_registry"]["delivery_policy"] == {
+        "routing": {"mode": "static_or_dynamic"},
+        "presentation": {"allowed": ["visual_blueprint", "seo"]},
+        "seo": None,
+        "surface": {"allowedSurfaces": ["canvas"]},
+    }
     assert set(ContentModelCapability.__args__) >= {"versioned", "routable", "visual_editable"}
+
+
+def test_content_model_impact_preview_out_exposes_change_plan() -> None:
+    preview = ContentModelImpactPreviewOut(
+        affected_items_count=1,
+        recovery_items_count=0,
+        reshape_items_count=1,
+        has_blocking_changes=False,
+        preview_token="preview-token",
+        impact={
+            "has_breaking_changes": False,
+            "breaking_changes": [],
+            "warnings": [],
+        },
+        change_plan={
+            "revisions": {
+                "current_draft_revision": 2,
+                "published_revision": 1,
+                "next_draft_revision": 3,
+            },
+            "current_snapshot": {
+                "stage": "current_draft",
+                "revision": 2,
+                "field_count": 3,
+                "relation_count": 1,
+                "view_count": 1,
+                "payload": {"key": "page", "fields": [{"key": "title"}]},
+            },
+            "next_snapshot": {
+                "stage": "next_draft",
+                "revision": 3,
+                "field_count": 4,
+                "relation_count": 1,
+                "view_count": 1,
+                "payload": {"key": "page", "fields": [{"key": "title"}, {"key": "summary"}]},
+            },
+            "published_snapshot": {
+                "stage": "published",
+                "revision": 1,
+                "field_count": 3,
+                "relation_count": 1,
+                "view_count": 1,
+                "payload": {"key": "page", "fields": [{"key": "title"}]},
+            },
+            "diff": {
+                "has_changes": True,
+                "has_breaking_changes": False,
+                "breaking_change_count": 0,
+                "entries": [
+                    {
+                        "kind": "field",
+                        "operation": "added",
+                        "target": "fields.summary",
+                        "summary": "Field 'summary' will be added to the next draft.",
+                        "breaking": False,
+                        "before": None,
+                        "after": {"key": "summary"},
+                    }
+                ],
+            },
+            "apply_gates": [
+                {
+                    "code": "impact_scope",
+                    "status": "review",
+                    "title": "Impact scope",
+                    "detail": "1 items will need lifecycle review.",
+                }
+            ],
+            "apply_ready": True,
+        },
+    )
+
+    payload = preview.model_dump(mode="json")
+
+    assert payload["change_plan"]["revisions"] == {
+        "current_draft_revision": 2,
+        "published_revision": 1,
+        "next_draft_revision": 3,
+    }
+    assert payload["change_plan"]["diff"]["entries"][0]["target"] == "fields.summary"
 
 
 def test_content_model_out_rejects_unknown_capability() -> None:

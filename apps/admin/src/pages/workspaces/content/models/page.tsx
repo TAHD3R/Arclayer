@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import {
+  buildContentModelsGovernanceQueryKey,
   getContentModelImpactPreview,
   listAllContentModels,
   patchContentModel,
@@ -14,7 +15,6 @@ import {
   getContentTypeLabel,
   sortContentModelsByPresentation,
 } from "@/pages/workspaces/content/content-type-presentation";
-import { buildContentModelsQueryKey } from "@/pages/workspaces/content/library/utils";
 import type {
   AdminContentContinuationPosture,
   AdminContentContinuationRole,
@@ -23,6 +23,15 @@ import type {
   AdminContentModelImpactPreview,
   PatchAdminContentModelPayload,
 } from "@/types/api";
+import { Button } from "@arclayer/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@arclayer/ui/dialog";
 
 const CONTINUATION_ROLE_OPTIONS: Array<AdminContentContinuationRole> = [
   "page",
@@ -138,6 +147,14 @@ type ContentModelDraft = {
   starterPackPolicyText: string;
 };
 
+type GovernancePanelProps = {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+};
+
+type CompareBaseline = "current_draft" | "published";
+
 function formatPolicyText(value: Record<string, unknown> | null | undefined): string {
   if (!value) return "";
   return JSON.stringify(value, null, 2);
@@ -223,11 +240,66 @@ function ImpactMetric(props: { label: string; value: number }) {
   );
 }
 
+function GovernancePanel(props: GovernancePanelProps) {
+  return (
+    <section className="rounded-[28px] border border-border/60 bg-card/60 p-5">
+      <div className="text-sm font-semibold text-foreground">{props.title}</div>
+      <div className="mt-1 text-sm leading-6 text-muted-foreground">{props.description}</div>
+      <div className="mt-4">{props.children}</div>
+    </section>
+  );
+}
+
+function GovernanceBadgeList(props: { values: string[]; emptyLabel: string }) {
+  if (props.values.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
+        {props.emptyLabel}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {props.values.map((value) => (
+        <span
+          key={value}
+          className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground"
+        >
+          {value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PolicyBlock(props: { title: string; value: unknown; emptyLabel: string }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background px-4 py-4">
+      <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        {props.title}
+      </div>
+      {props.value ? (
+        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words text-xs leading-6 text-foreground">
+          {JSON.stringify(props.value, null, 2)}
+        </pre>
+      ) : (
+        <div className="mt-3 text-sm text-muted-foreground">{props.emptyLabel}</div>
+      )}
+    </div>
+  );
+}
+
+function statusTone(status: "ready" | "review" | "blocked"): string {
+  if (status === "blocked") return "border-destructive/40 bg-destructive/10 text-destructive";
+  if (status === "review") return "border-amber-500/40 bg-amber-500/10 text-amber-700";
+  return "border-emerald-500/40 bg-emerald-500/10 text-emerald-700";
+}
+
 export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
   const { t } = useTranslation("content");
   const queryClient = useQueryClient();
   const modelsQuery = useQuery({
-    queryKey: buildContentModelsQueryKey(props.workspaceId),
+    queryKey: buildContentModelsGovernanceQueryKey(props.workspaceId),
     queryFn: () => listAllContentModels(props.workspaceId),
   });
   const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null);
@@ -235,6 +307,9 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
   const [preview, setPreview] = React.useState<AdminContentModelImpactPreview | null>(null);
   const [previewPayloadKey, setPreviewPayloadKey] = React.useState<string | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [pendingModelId, setPendingModelId] = React.useState<string | null>(null);
+  const [confirmApplyOpen, setConfirmApplyOpen] = React.useState(false);
+  const [compareBaseline, setCompareBaseline] = React.useState<CompareBaseline>("current_draft");
 
   const models = React.useMemo(
     () => sortContentModelsByPresentation(modelsQuery.data ?? []),
@@ -275,6 +350,9 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
     setPreview(null);
     setPreviewPayloadKey(null);
     setSaveError(null);
+    setPendingModelId(null);
+    setConfirmApplyOpen(false);
+    setCompareBaseline("current_draft");
   }, [selectedModel]);
 
   const currentPayloadState = React.useMemo(() => {
@@ -306,6 +384,41 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
   const previewIsCurrent =
     preview !== null && previewPayloadKey !== null && previewPayloadKey === currentPayloadKey;
   const hasPendingChanges = Boolean(currentPayload && Object.keys(currentPayload).length > 0);
+  const hasStalePreview = hasPendingChanges && !previewIsCurrent && preview !== null;
+  const contractRegistry = selectedModel?.contractRegistry;
+  const systemFields = contractRegistry?.boundaries?.systemFields ?? [];
+  const customFields = contractRegistry?.boundaries?.customFields ?? [];
+  const workflowCapabilities = contractRegistry?.capabilities?.workflow ?? [];
+  const deliveryCapabilities = contractRegistry?.capabilities?.delivery ?? [];
+  const graphqlCapabilities = contractRegistry?.capabilities?.graphql ?? [];
+  const changePlan = preview?.changePlan;
+  const compareSnapshot =
+    compareBaseline === "published" ? changePlan?.publishedSnapshot : changePlan?.currentSnapshot;
+  const compareLabel =
+    compareBaseline === "published"
+      ? t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_PUBLISHED")
+      : t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_CURRENT");
+  const changePlanDiffEntries = React.useMemo(() => {
+    const entries = changePlan?.diff?.entries ?? [];
+    if (!compareSnapshot?.payload) return entries;
+    return entries.filter((entry) => {
+      if (
+        (entry.kind ?? "") !== "default" &&
+        (entry.kind ?? "") !== "meta" &&
+        (entry.kind ?? "") !== "policy" &&
+        (entry.kind ?? "") !== "capability"
+      ) {
+        return true;
+      }
+      return compareBaseline === "current_draft" || changePlan?.publishedSnapshot != null;
+    });
+  }, [
+    changePlan?.diff?.entries,
+    changePlan?.publishedSnapshot,
+    compareBaseline,
+    compareSnapshot?.payload,
+  ]);
+  const changePlanApplyGates = changePlan?.applyGates ?? [];
 
   const previewMutation = useMutation({
     mutationFn: async () => {
@@ -323,6 +436,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
       setSaveError(null);
       setPreview(value?.result ?? null);
       setPreviewPayloadKey(value?.payloadKey ?? null);
+      setCompareBaseline("current_draft");
     },
     onError: (error) => {
       setSaveError(error instanceof Error ? error.message : "CONTENT_MODELS_SAVE_FAILED");
@@ -346,8 +460,9 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
       setPreview(null);
       setPreviewPayloadKey(null);
       setDraft(createDraft(updatedModel));
+      setConfirmApplyOpen(false);
       await queryClient.invalidateQueries({
-        queryKey: buildContentModelsQueryKey(props.workspaceId),
+        queryKey: buildContentModelsGovernanceQueryKey(props.workspaceId),
       });
     },
     onError: (error) => {
@@ -355,6 +470,35 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
       notifyError(error);
     },
   });
+
+  const handleSelectModel = React.useCallback(
+    (nextModelId: string) => {
+      if (nextModelId === selectedModel?.id) return;
+      if (hasPendingChanges) {
+        setPendingModelId(nextModelId);
+        setSaveError("CONTENT_MODELS_UNSAVED_CHANGES");
+        return;
+      }
+      setSelectedModelId(nextModelId);
+    },
+    [hasPendingChanges, selectedModel?.id],
+  );
+
+  const discardPendingChanges = React.useCallback(() => {
+    if (!selectedModel) return;
+    setDraft(createDraft(selectedModel));
+    setPreview(null);
+    setPreviewPayloadKey(null);
+    setSaveError(null);
+    if (pendingModelId) {
+      setSelectedModelId(pendingModelId);
+      setPendingModelId(null);
+    }
+  }, [pendingModelId, selectedModel]);
+
+  const handleSaveClick = React.useCallback(() => {
+    setConfirmApplyOpen(true);
+  }, []);
 
   if (modelsQuery.isLoading) {
     return (
@@ -392,21 +536,6 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
     );
   }
 
-  const systemNodes = [
-    {
-      title: t("CONTENT_MODELS_SYSTEM_NODE_ROUTING_TITLE"),
-      description: t("CONTENT_MODELS_SYSTEM_NODE_ROUTING_DESC"),
-    },
-    {
-      title: t("CONTENT_MODELS_SYSTEM_NODE_DELIVERY_TITLE"),
-      description: t("CONTENT_MODELS_SYSTEM_NODE_DELIVERY_DESC"),
-    },
-    {
-      title: t("CONTENT_MODELS_SYSTEM_NODE_WORKFLOW_TITLE"),
-      description: t("CONTENT_MODELS_SYSTEM_NODE_WORKFLOW_DESC"),
-    },
-  ];
-
   return (
     <DefaultPage
       title={t("CONTENT_MODELS_TITLE")}
@@ -437,12 +566,13 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
                 <button
                   key={model.id}
                   type="button"
+                  aria-label={label}
                   className={`rounded-2xl border px-4 py-3 text-left transition-colors ${
                     active
                       ? "border-border bg-background text-foreground"
                       : "border-border/60 bg-transparent text-muted-foreground hover:bg-muted/40"
                   }`}
-                  onClick={() => setSelectedModelId(model.id)}
+                  onClick={() => handleSelectModel(model.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-medium">{label}</div>
@@ -472,16 +602,24 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <ModelFact label={t("CONTENT_MODELS_FIELD_MODEL_KEY")} value={selectedModel.key} />
                 <ModelFact
+                  label={t("CONTENT_MODELS_FIELD_PROTOCOL_VERSION")}
+                  value={String(selectedModel.protocolVersion ?? 1)}
+                />
+                <ModelFact
+                  label={t("CONTENT_MODELS_FIELD_BOUNDARY_SYSTEM")}
+                  value={String(systemFields.length)}
+                />
+                <ModelFact
+                  label={t("CONTENT_MODELS_FIELD_BOUNDARY_CUSTOM")}
+                  value={String(customFields.length)}
+                />
+                <ModelFact
                   label={t("CONTENT_MODELS_FIELD_DEFAULT_EDITOR")}
                   value={
                     selectedModel.defaultEditor
                       ? t(EDITOR_PRESENTATION[selectedModel.defaultEditor])
                       : t("CONTENT_MODELS_OPTION_UNSET")
                   }
-                />
-                <ModelFact
-                  label={t("CONTENT_MODELS_FIELD_CAPABILITY_COUNT")}
-                  value={String(selectedModel.capabilities.length)}
                 />
                 <ModelFact
                   label={t("CONTENT_MODELS_FIELD_SURFACE")}
@@ -494,167 +632,245 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
               </div>
             </div>
 
-            <div className="mt-6 rounded-[28px] border border-dashed border-border/70 bg-background/80 p-5">
-              <div className="text-sm font-semibold text-foreground">
-                {t("CONTENT_MODELS_PROTOCOL_CANVAS_TITLE")}
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                {t("CONTENT_MODELS_PROTOCOL_CANVAS_DESC")}
-              </div>
-              <div
-                className="mt-5 grid gap-4 md:grid-cols-3"
-                data-testid="content-models-governance-canvas"
+            <div
+              className="mt-6 grid gap-4 xl:grid-cols-2"
+              data-testid="content-models-governance-canvas"
+            >
+              <GovernancePanel
+                title={t("CONTENT_MODELS_GOVERNANCE_SYSTEM_TITLE")}
+                description={t("CONTENT_MODELS_GOVERNANCE_SYSTEM_DESC")}
               >
-                {systemNodes.map((node) => (
-                  <CanvasNode key={node.title} title={node.title} description={node.description} />
-                ))}
-              </div>
+                <div className="grid gap-3">
+                  {systemFields.map((field) => (
+                    <CanvasNode
+                      key={field.key}
+                      title={field.label}
+                      description={`${field.key} · ${field.scalar}`}
+                    />
+                  ))}
+                </div>
+              </GovernancePanel>
+
+              <GovernancePanel
+                title={t("CONTENT_MODELS_GOVERNANCE_CUSTOM_TITLE")}
+                description={t("CONTENT_MODELS_GOVERNANCE_CUSTOM_DESC")}
+              >
+                <div className="grid gap-3">
+                  {customFields.length > 0 ? (
+                    customFields.map((field) => (
+                      <div
+                        key={field.key}
+                        className="rounded-2xl border border-border/60 bg-background px-4 py-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-medium text-foreground">{field.label}</div>
+                          <span className="text-xs text-muted-foreground">{field.scalar}</span>
+                        </div>
+                        <div className="mt-1 text-sm text-muted-foreground">{field.key}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
+                      {t("CONTENT_MODELS_EMPTY_BOUNDARY_CUSTOM")}
+                    </div>
+                  )}
+                </div>
+              </GovernancePanel>
             </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="rounded-[28px] border border-border/60 bg-card/60 p-5">
-              <div className="text-sm font-semibold text-foreground">
-                {t("CONTENT_MODELS_SECTION_CAPABILITIES_TITLE")}
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                {t("CONTENT_MODELS_SECTION_CAPABILITIES_DESC")}
-              </div>
-              <div className="mt-4 grid gap-3">
-                {selectedModel.capabilities.map((capability) => (
-                  <div
-                    key={capability}
-                    className="rounded-2xl border border-border/60 bg-background px-4 py-4"
-                  >
-                    <div className="text-sm font-medium text-foreground">
-                      {t(CAPABILITY_PRESENTATION[capability].labelKey)}
+            <div className="space-y-6">
+              <GovernancePanel
+                title={t("CONTENT_MODELS_SECTION_CAPABILITIES_TITLE")}
+                description={t("CONTENT_MODELS_SECTION_CAPABILITIES_DESC")}
+              >
+                <div className="grid gap-3">
+                  {selectedModel.capabilities.map((capability) => (
+                    <div
+                      key={capability}
+                      className="rounded-2xl border border-border/60 bg-background px-4 py-4"
+                    >
+                      <div className="text-sm font-medium text-foreground">
+                        {t(CAPABILITY_PRESENTATION[capability].labelKey)}
+                      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {t(CAPABILITY_PRESENTATION[capability].descriptionKey)}
+                      </div>
                     </div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      {t(CAPABILITY_PRESENTATION[capability].descriptionKey)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </GovernancePanel>
+
+              <GovernancePanel
+                title={t("CONTENT_MODELS_GOVERNANCE_WORKFLOW_TITLE")}
+                description={t("CONTENT_MODELS_GOVERNANCE_WORKFLOW_DESC")}
+              >
+                <div className="grid gap-4">
+                  <GovernanceBadgeList
+                    values={workflowCapabilities}
+                    emptyLabel={t("CONTENT_MODELS_EMPTY_GOVERNANCE_WORKFLOW")}
+                  />
+                  <PolicyBlock
+                    title={t("CONTENT_MODELS_FIELD_WORKFLOW_POLICY")}
+                    value={contractRegistry?.workflowPolicy}
+                    emptyLabel={t("CONTENT_MODELS_EMPTY_POLICY")}
+                  />
+                </div>
+              </GovernancePanel>
+
+              <GovernancePanel
+                title={t("CONTENT_MODELS_GOVERNANCE_DELIVERY_TITLE")}
+                description={t("CONTENT_MODELS_GOVERNANCE_DELIVERY_DESC")}
+              >
+                <div className="grid gap-4">
+                  <GovernanceBadgeList
+                    values={deliveryCapabilities}
+                    emptyLabel={t("CONTENT_MODELS_EMPTY_GOVERNANCE_DELIVERY")}
+                  />
+                  <PolicyBlock
+                    title={t("CONTENT_MODELS_FIELD_DELIVERY_POLICY")}
+                    value={contractRegistry?.deliveryPolicy}
+                    emptyLabel={t("CONTENT_MODELS_EMPTY_POLICY")}
+                  />
+                </div>
+              </GovernancePanel>
+
+              <GovernancePanel
+                title={t("CONTENT_MODELS_GOVERNANCE_GRAPHQL_TITLE")}
+                description={t("CONTENT_MODELS_GOVERNANCE_GRAPHQL_DESC")}
+              >
+                <div className="grid gap-4">
+                  <GovernanceBadgeList
+                    values={graphqlCapabilities}
+                    emptyLabel={t("CONTENT_MODELS_EMPTY_GOVERNANCE_GRAPHQL")}
+                  />
+                  <PolicyBlock
+                    title={t("CONTENT_MODELS_FIELD_GRAPHQL_POLICY")}
+                    value={contractRegistry?.graphqlPolicy}
+                    emptyLabel={t("CONTENT_MODELS_EMPTY_POLICY")}
+                  />
+                </div>
+              </GovernancePanel>
             </div>
 
-            <div className="rounded-[28px] border border-border/60 bg-card/60 p-5">
-              <div className="text-sm font-semibold text-foreground">
-                {t("CONTENT_MODELS_SECTION_DEFAULTS_TITLE")}
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                {t("CONTENT_MODELS_SECTION_EXTENSIONS_DESC")}
-              </div>
-              <div className="mt-4 grid gap-4">
-                <label className="grid gap-2 text-sm">
-                  <span className="font-medium text-foreground">
-                    {t("CONTENT_MODELS_FIELD_ROLE")}
-                  </span>
-                  <select
-                    aria-label={t("CONTENT_MODELS_FIELD_ROLE")}
-                    className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
-                    value={draft.defaultRole ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) =>
-                        current
-                          ? {
-                              ...current,
-                              defaultRole: event.target.value
-                                ? (event.target.value as AdminContentContinuationRole)
-                                : null,
-                            }
-                          : current,
-                      )
-                    }
-                  >
-                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                    {CONTINUATION_ROLE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {t(ROLE_PRESENTATION[option])}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            <div className="space-y-6">
+              <GovernancePanel
+                title={t("CONTENT_MODELS_SECTION_DEFAULTS_TITLE")}
+                description={t("CONTENT_MODELS_SECTION_EXTENSIONS_DESC")}
+              >
+                <div className="grid gap-4">
+                  <label className="grid gap-2 text-sm">
+                    <span className="font-medium text-foreground">
+                      {t("CONTENT_MODELS_FIELD_ROLE")}
+                    </span>
+                    <select
+                      aria-label={t("CONTENT_MODELS_FIELD_ROLE")}
+                      className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
+                      value={draft.defaultRole ?? ""}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                defaultRole: event.target.value
+                                  ? (event.target.value as AdminContentContinuationRole)
+                                  : null,
+                              }
+                            : current,
+                        )
+                      }
+                    >
+                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                      {CONTINUATION_ROLE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {t(ROLE_PRESENTATION[option])}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <label className="grid gap-2 text-sm">
-                  <span className="font-medium text-foreground">
-                    {t("CONTENT_MODELS_FIELD_POSTURE")}
-                  </span>
-                  <select
-                    aria-label={t("CONTENT_MODELS_FIELD_POSTURE")}
-                    className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
-                    value={draft.defaultPosture ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) =>
-                        current
-                          ? {
-                              ...current,
-                              defaultPosture: event.target.value
-                                ? (event.target.value as AdminContentContinuationPosture)
-                                : null,
-                            }
-                          : current,
-                      )
-                    }
-                  >
-                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                    {CONTINUATION_POSTURE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {t(POSTURE_PRESENTATION[option])}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <label className="grid gap-2 text-sm">
+                    <span className="font-medium text-foreground">
+                      {t("CONTENT_MODELS_FIELD_POSTURE")}
+                    </span>
+                    <select
+                      aria-label={t("CONTENT_MODELS_FIELD_POSTURE")}
+                      className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
+                      value={draft.defaultPosture ?? ""}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                defaultPosture: event.target.value
+                                  ? (event.target.value as AdminContentContinuationPosture)
+                                  : null,
+                              }
+                            : current,
+                        )
+                      }
+                    >
+                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                      {CONTINUATION_POSTURE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {t(POSTURE_PRESENTATION[option])}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <label className="grid gap-2 text-sm">
-                  <span className="font-medium text-foreground">
-                    {t("CONTENT_MODELS_FIELD_SURFACE")}
-                  </span>
-                  <select
-                    aria-label={t("CONTENT_MODELS_FIELD_SURFACE")}
-                    className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
-                    value={draft.defaultSurface ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) =>
-                        current
-                          ? {
-                              ...current,
-                              defaultSurface: event.target.value
-                                ? (event.target.value as AdminContentContinuationSurface)
-                                : null,
-                            }
-                          : current,
-                      )
-                    }
-                  >
-                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                    {CONTINUATION_SURFACE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {t(SURFACE_PRESENTATION[option])}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <label className="grid gap-2 text-sm">
+                    <span className="font-medium text-foreground">
+                      {t("CONTENT_MODELS_FIELD_SURFACE")}
+                    </span>
+                    <select
+                      aria-label={t("CONTENT_MODELS_FIELD_SURFACE")}
+                      className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
+                      value={draft.defaultSurface ?? ""}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                defaultSurface: event.target.value
+                                  ? (event.target.value as AdminContentContinuationSurface)
+                                  : null,
+                              }
+                            : current,
+                        )
+                      }
+                    >
+                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                      {CONTINUATION_SURFACE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {t(SURFACE_PRESENTATION[option])}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <label className="grid gap-2 text-sm">
-                  <span className="font-medium text-foreground">
-                    {t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
-                  </span>
-                  <textarea
-                    value={draft.starterPackPolicyText}
-                    onChange={(event) =>
-                      setDraft((current) =>
-                        current
-                          ? {
-                              ...current,
-                              starterPackPolicyText: event.target.value,
-                            }
-                          : current,
-                      )
-                    }
-                    className="min-h-36 rounded-2xl border border-border/70 bg-background px-3 py-3 font-mono text-sm"
-                  />
-                </label>
-              </div>
+                  <label className="grid gap-2 text-sm">
+                    <span className="font-medium text-foreground">
+                      {t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
+                    </span>
+                    <textarea
+                      value={draft.starterPackPolicyText}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                starterPackPolicyText: event.target.value,
+                              }
+                            : current,
+                        )
+                      }
+                      className="min-h-36 rounded-2xl border border-border/70 bg-background px-3 py-3 font-mono text-sm"
+                    />
+                  </label>
+                </div>
+              </GovernancePanel>
             </div>
           </div>
         </section>
@@ -690,6 +906,130 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
                   ? t("CONTENT_MODELS_PREVIEW_BLOCKING")
                   : t("CONTENT_MODELS_PREVIEW_READY")}
               </div>
+
+              {hasStalePreview ? (
+                <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-4 text-sm text-amber-700">
+                  {t("CONTENT_MODELS_PREVIEW_STALE")}
+                </div>
+              ) : null}
+
+              {changePlan ? (
+                <div className="grid gap-3">
+                  <div className="rounded-2xl border border-border/60 bg-background px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                        {t("CONTENT_MODELS_CHANGE_PLAN_REVISION_TITLE")}
+                      </div>
+                      <div className="inline-flex rounded-full border border-border/60 bg-card/60 p-1">
+                        <button
+                          type="button"
+                          className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+                            compareBaseline === "current_draft"
+                              ? "bg-background text-foreground"
+                              : "text-muted-foreground"
+                          }`}
+                          onClick={() => setCompareBaseline("current_draft")}
+                        >
+                          {t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_CURRENT")}
+                        </button>
+                        <button
+                          type="button"
+                          className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+                            compareBaseline === "published"
+                              ? "bg-background text-foreground"
+                              : "text-muted-foreground"
+                          }`}
+                          onClick={() => setCompareBaseline("published")}
+                          disabled={!changePlan.publishedSnapshot}
+                        >
+                          {t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_PUBLISHED")}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-3">
+                      <ModelFact
+                        label={t("CONTENT_MODELS_CHANGE_PLAN_CURRENT_REVISION")}
+                        value={String(changePlan.revisions?.currentDraftRevision ?? 1)}
+                      />
+                      <ModelFact
+                        label={t("CONTENT_MODELS_CHANGE_PLAN_NEXT_REVISION")}
+                        value={String(changePlan.revisions?.nextDraftRevision ?? 1)}
+                      />
+                      <ModelFact
+                        label={compareLabel}
+                        value={
+                          compareSnapshot?.revision != null
+                            ? String(compareSnapshot.revision)
+                            : t("CONTENT_MODELS_CHANGE_PLAN_UNPUBLISHED")
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/60 bg-background px-4 py-4">
+                    <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                      {t("CONTENT_MODELS_CHANGE_PLAN_GATE_TITLE")}
+                    </div>
+                    <div className="mt-3 grid gap-3">
+                      {changePlanApplyGates.map((gate) => (
+                        <div
+                          key={gate.code}
+                          className={`rounded-2xl border px-4 py-4 ${statusTone(
+                            gate.status ?? "review",
+                          )}`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-medium">{gate.title}</div>
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">
+                              {gate.status}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm leading-6">{gate.detail}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/60 bg-background px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                        {t("CONTENT_MODELS_CHANGE_PLAN_DIFF_TITLE")}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {changePlan.diff?.breakingChangeCount ?? 0}{" "}
+                        {t("CONTENT_MODELS_PREVIEW_BREAKING")}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_HINT", { baseline: compareLabel })}
+                    </div>
+                    <div className="mt-3 grid gap-3">
+                      {changePlanDiffEntries.length > 0 ? (
+                        changePlanDiffEntries.map((entry) => (
+                          <div
+                            key={`${entry.target}-${entry.operation}`}
+                            className="rounded-2xl border border-border/60 bg-card/60 px-4 py-4"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm font-medium text-foreground">
+                                {entry.summary}
+                              </div>
+                              <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                                {entry.operation}
+                              </span>
+                            </div>
+                            <div className="mt-2 text-xs text-muted-foreground">{entry.target}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 px-4 py-4 text-sm text-muted-foreground">
+                          {t("CONTENT_MODELS_CHANGE_PLAN_DIFF_EMPTY")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
@@ -700,6 +1040,13 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
           {saveError ? (
             <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-4 text-sm text-destructive">
               {t(saveError)}
+              {pendingModelId ? (
+                <div className="mt-3">
+                  <Button variant="ghost" size="sm" onClick={discardPendingChanges}>
+                    {t("CONTENT_MODELS_DISCARD_ACTION")}
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -723,7 +1070,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
                 preview?.hasBlockingChanges === true ||
                 saveMutation.isPending
               }
-              onClick={() => saveMutation.mutate()}
+              onClick={handleSaveClick}
             >
               {saveMutation.isPending
                 ? t("CONTENT_MODELS_SAVE_PENDING")
@@ -732,6 +1079,33 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
           </div>
         </aside>
       </div>
+
+      <Dialog open={confirmApplyOpen} onOpenChange={setConfirmApplyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("CONTENT_MODELS_APPLY_CONFIRM_TITLE")}</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>{t("CONTENT_MODELS_APPLY_CONFIRM_DESC")}</p>
+                <p>
+                  {t("CONTENT_MODELS_APPLY_CONFIRM_IMPACT", {
+                    affected: preview?.affectedItemsCount ?? 0,
+                    breaking: changePlan?.diff?.breakingChangeCount ?? 0,
+                  })}
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmApplyOpen(false)}>
+              {t("CONTENT_MODELS_APPLY_CONFIRM_CANCEL")}
+            </Button>
+            <Button onClick={() => saveMutation.mutate()}>
+              {t("CONTENT_MODELS_APPLY_CONFIRM_OK")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DefaultPage>
   );
 }

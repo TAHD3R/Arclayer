@@ -10,6 +10,12 @@ const getContentModelImpactPreviewMock = vi.fn();
 const patchContentModelMock = vi.fn();
 
 vi.mock("@/api/content", () => ({
+  buildContentModelsGovernanceQueryKey: (...args: unknown[]) => [
+    "content",
+    "models",
+    "governance",
+    ...args,
+  ],
   listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
   getContentModelImpactPreview: (...args: unknown[]) => getContentModelImpactPreviewMock(...args),
   patchContentModel: (...args: unknown[]) => patchContentModelMock(...args),
@@ -64,6 +70,132 @@ function buildModel(overrides: Partial<Record<string, unknown>> = {}) {
     defaultSurface: "structured",
     starterPackPolicy: null,
     surfacePolicy: null,
+    contractRegistry: {
+      protocolKey: "article",
+      protocolVersion: 1,
+      category: "content_library",
+      systemManaged: true,
+      boundaries: {
+        systemFields: [
+          {
+            key: "title",
+            label: "Title",
+            scalar: "text",
+            required: true,
+            config: null,
+          },
+        ],
+        customFields: [
+          {
+            key: "hero_theme",
+            label: "Hero theme",
+            scalar: "text",
+            required: false,
+            config: null,
+          },
+        ],
+        lockedFieldKeys: ["title", "slug", "summary", "content", "published_at"],
+        customFieldCount: 1,
+      },
+      capabilities: {
+        workflow: ["versioned", "publishable"],
+        delivery: ["publishable", "seo_managed"],
+        graphql: ["has_relations"],
+      },
+      workflowPolicy: {
+        states: ["draft", "published"],
+        initialState: "draft",
+      },
+      deliveryPolicy: {
+        routing: { mode: "none" },
+        presentation: { allowedKinds: ["form_data", "rich_text_document", "seo"] },
+        seo: { titleField: "title", descriptionField: "summary" },
+        surface: { allowedSurfaces: ["writing", "structured"] },
+      },
+      graphqlPolicy: {
+        enabled: false,
+        relationSchema: {},
+        viewSchema: {},
+      },
+    },
+    ...overrides,
+  };
+}
+
+function buildPreview(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    affectedItemsCount: 2,
+    recoveryItemsCount: 0,
+    reshapeItemsCount: 2,
+    hasBlockingChanges: false,
+    previewToken: "preview-1",
+    impact: {
+      hasBreakingChanges: false,
+      breakingChanges: [],
+      warnings: [],
+    },
+    changePlan: {
+      revisions: {
+        currentDraftRevision: 1,
+        publishedRevision: 1,
+        nextDraftRevision: 2,
+      },
+      currentSnapshot: {
+        stage: "current_draft",
+        revision: 1,
+        fieldCount: 5,
+        relationCount: 0,
+        viewCount: 0,
+        payload: { key: "article" },
+      },
+      nextSnapshot: {
+        stage: "next_draft",
+        revision: 2,
+        fieldCount: 6,
+        relationCount: 0,
+        viewCount: 0,
+        payload: { key: "article" },
+      },
+      publishedSnapshot: {
+        stage: "published",
+        revision: 1,
+        fieldCount: 5,
+        relationCount: 0,
+        viewCount: 0,
+        payload: { key: "article" },
+      },
+      diff: {
+        hasChanges: true,
+        hasBreakingChanges: false,
+        breakingChangeCount: 0,
+        entries: [
+          {
+            kind: "default",
+            operation: "changed",
+            target: "defaults.default_surface",
+            summary: "Default surface will change for newly created entries.",
+            breaking: false,
+            before: "structured",
+            after: "writing",
+          },
+        ],
+      },
+      applyGates: [
+        {
+          code: "impact_scope",
+          status: "review",
+          title: "Impact scope",
+          detail: "2 items will need lifecycle review.",
+        },
+        {
+          code: "continuation_recovery",
+          status: "ready",
+          title: "Continuation recovery",
+          detail: "2 items stay ready and require reshape.",
+        },
+      ],
+      applyReady: true,
+    },
     ...overrides,
   };
 }
@@ -77,31 +209,78 @@ describe("ContentModelsControlCenterPage", () => {
 
   test("requires a fresh impact preview before save", async () => {
     listAllContentModelsMock.mockResolvedValue([buildModel()]);
-    getContentModelImpactPreviewMock
-      .mockResolvedValueOnce({
-        affectedItemsCount: 2,
-        recoveryItemsCount: 0,
-        reshapeItemsCount: 2,
-        hasBlockingChanges: false,
-        previewToken: "preview-1",
-        impact: {
-          hasBreakingChanges: false,
-          breakingChanges: [],
-          warnings: [],
-        },
-      })
-      .mockResolvedValueOnce({
+    getContentModelImpactPreviewMock.mockResolvedValueOnce(buildPreview()).mockResolvedValueOnce(
+      buildPreview({
         affectedItemsCount: 3,
-        recoveryItemsCount: 0,
         reshapeItemsCount: 3,
-        hasBlockingChanges: false,
         previewToken: "preview-2",
-        impact: {
-          hasBreakingChanges: false,
-          breakingChanges: [],
-          warnings: [],
+        changePlan: {
+          revisions: {
+            currentDraftRevision: 1,
+            publishedRevision: 1,
+            nextDraftRevision: 2,
+          },
+          currentSnapshot: {
+            stage: "current_draft",
+            revision: 1,
+            fieldCount: 5,
+            relationCount: 0,
+            viewCount: 0,
+            payload: { key: "article" },
+          },
+          nextSnapshot: {
+            stage: "next_draft",
+            revision: 2,
+            fieldCount: 5,
+            relationCount: 0,
+            viewCount: 0,
+            payload: { key: "article" },
+          },
+          publishedSnapshot: {
+            stage: "published",
+            revision: 1,
+            fieldCount: 5,
+            relationCount: 0,
+            viewCount: 0,
+            payload: { key: "article" },
+          },
+          diff: {
+            hasChanges: true,
+            hasBreakingChanges: false,
+            breakingChangeCount: 0,
+            entries: [
+              {
+                kind: "default",
+                operation: "changed",
+                target: "defaults.default_posture",
+                summary: "Default posture will change for newly created entries.",
+                breaking: false,
+                before: "structured",
+                after: "entry",
+              },
+              {
+                kind: "default",
+                operation: "changed",
+                target: "defaults.default_surface",
+                summary: "Default surface will change for newly created entries.",
+                breaking: false,
+                before: "structured",
+                after: "writing",
+              },
+            ],
+          },
+          applyGates: [
+            {
+              code: "impact_scope",
+              status: "review",
+              title: "Impact scope",
+              detail: "3 items will need lifecycle review.",
+            },
+          ],
+          applyReady: true,
         },
-      });
+      }),
+    );
     patchContentModelMock.mockResolvedValue(
       buildModel({
         defaultPosture: "entry",
@@ -156,6 +335,12 @@ describe("ContentModelsControlCenterPage", () => {
     });
 
     fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("CONTENT_MODELS_APPLY_CONFIRM_TITLE")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_APPLY_CONFIRM_OK" }));
+
     await waitFor(() => {
       expect(patchContentModelMock).toHaveBeenCalledWith("ws-1", "model-1", {
         defaultPosture: "entry",
@@ -167,18 +352,71 @@ describe("ContentModelsControlCenterPage", () => {
 
   test("blocks commit when the preview reports recovery impact", async () => {
     listAllContentModelsMock.mockResolvedValue([buildModel()]);
-    getContentModelImpactPreviewMock.mockResolvedValue({
-      affectedItemsCount: 1,
-      recoveryItemsCount: 1,
-      reshapeItemsCount: 0,
-      hasBlockingChanges: true,
-      previewToken: "preview-blocking",
-      impact: {
-        hasBreakingChanges: false,
-        breakingChanges: [],
-        warnings: [],
-      },
-    });
+    getContentModelImpactPreviewMock.mockResolvedValue(
+      buildPreview({
+        affectedItemsCount: 1,
+        recoveryItemsCount: 1,
+        reshapeItemsCount: 0,
+        hasBlockingChanges: true,
+        previewToken: "preview-blocking",
+        changePlan: {
+          revisions: {
+            currentDraftRevision: 1,
+            publishedRevision: 1,
+            nextDraftRevision: 2,
+          },
+          currentSnapshot: {
+            stage: "current_draft",
+            revision: 1,
+            fieldCount: 5,
+            relationCount: 0,
+            viewCount: 0,
+            payload: { key: "article" },
+          },
+          nextSnapshot: {
+            stage: "next_draft",
+            revision: 2,
+            fieldCount: 5,
+            relationCount: 0,
+            viewCount: 0,
+            payload: { key: "article" },
+          },
+          publishedSnapshot: {
+            stage: "published",
+            revision: 1,
+            fieldCount: 5,
+            relationCount: 0,
+            viewCount: 0,
+            payload: { key: "article" },
+          },
+          diff: {
+            hasChanges: true,
+            hasBreakingChanges: false,
+            breakingChangeCount: 0,
+            entries: [
+              {
+                kind: "default",
+                operation: "removed",
+                target: "defaults.default_surface",
+                summary: "Default surface will change for newly created entries.",
+                breaking: false,
+                before: "structured",
+                after: null,
+              },
+            ],
+          },
+          applyGates: [
+            {
+              code: "continuation_recovery",
+              status: "blocked",
+              title: "Continuation recovery",
+              detail: "1 items would move into recovery and block apply.",
+            },
+          ],
+          applyReady: false,
+        },
+      }),
+    );
 
     render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
       wrapper: createWrapper(),
@@ -207,6 +445,143 @@ describe("ContentModelsControlCenterPage", () => {
     expect(screen.getByText("CONTENT_MODELS_PREVIEW_BLOCKING")).toBeInTheDocument();
     expect(saveButton).toBeDisabled();
     expect(patchContentModelMock).not.toHaveBeenCalled();
+    expect(screen.getByText("CONTENT_MODELS_CHANGE_PLAN_GATE_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("Continuation recovery")).toBeInTheDocument();
+  });
+
+  test("renders schema change plan revisions and diff entries inside the inspector", async () => {
+    listAllContentModelsMock.mockResolvedValue([buildModel()]);
+    getContentModelImpactPreviewMock.mockResolvedValue(buildPreview());
+
+    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
+    });
+
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_SURFACE"), {
+      target: { value: "writing" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_PREVIEW_ACTION" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("CONTENT_MODELS_CHANGE_PLAN_REVISION_TITLE")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("CONTENT_MODELS_CHANGE_PLAN_DIFF_TITLE")).toBeInTheDocument();
+    expect(
+      screen.getByText("Default surface will change for newly created entries."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("defaults.default_surface")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_CHANGE_PLAN_CURRENT_REVISION")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_CHANGE_PLAN_NEXT_REVISION")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CHANGE_PLAN_COMPARE_CURRENT" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CHANGE_PLAN_COMPARE_PUBLISHED" }),
+    ).toBeInTheDocument();
+  });
+
+  test("shows stale preview warning after the draft changes again", async () => {
+    listAllContentModelsMock.mockResolvedValue([buildModel()]);
+    getContentModelImpactPreviewMock.mockResolvedValue(buildPreview());
+
+    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
+    });
+
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_SURFACE"), {
+      target: { value: "writing" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_PREVIEW_ACTION" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("CONTENT_MODELS_CHANGE_PLAN_REVISION_TITLE")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_POSTURE"), {
+      target: { value: "entry" },
+    });
+
+    expect(screen.getByText("CONTENT_MODELS_PREVIEW_STALE")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "CONTENT_MODELS_SAVE_ACTION" })).toBeDisabled();
+  });
+
+  test("guards protocol switching while unsaved changes exist and allows discard", async () => {
+    listAllContentModelsMock.mockResolvedValue([
+      buildModel(),
+      buildModel({ id: "model-2", key: "page", name: "Page" }),
+    ]);
+
+    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
+    });
+
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_SURFACE"), {
+      target: { value: "writing" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_TYPE_PAGE_NAME" }));
+
+    expect(screen.getByText("CONTENT_MODELS_UNSAVED_CHANGES")).toBeInTheDocument();
+    expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_DISCARD_ACTION" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("CONTENT_TYPE_PAGE_NAME").length).toBeGreaterThan(0);
+    });
+  });
+
+  test("opens apply confirmation before saving the next draft revision", async () => {
+    listAllContentModelsMock.mockResolvedValue([buildModel()]);
+    getContentModelImpactPreviewMock.mockResolvedValue(buildPreview());
+    patchContentModelMock.mockResolvedValue(
+      buildModel({
+        defaultSurface: "writing",
+      }),
+    );
+
+    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
+    });
+
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_SURFACE"), {
+      target: { value: "writing" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_PREVIEW_ACTION" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("CONTENT_MODELS_CHANGE_PLAN_REVISION_TITLE")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_SAVE_ACTION" }));
+
+    expect(screen.getByText("CONTENT_MODELS_APPLY_CONFIRM_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_APPLY_CONFIRM_DESC")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_APPLY_CONFIRM_OK" }));
+
+    await waitFor(() => {
+      expect(patchContentModelMock).toHaveBeenCalledWith("ws-1", "model-1", {
+        defaultSurface: "writing",
+        impactPreviewToken: "preview-1",
+      });
+    });
   });
 
   test("surfaces capabilities and user-facing option labels instead of raw continuation jargon", async () => {
@@ -240,5 +615,26 @@ describe("ContentModelsControlCenterPage", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "writing" })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "entry" })).not.toBeInTheDocument();
+  });
+
+  test("renders governance sections for system boundary, custom boundary, workflow, delivery, and graphql", async () => {
+    listAllContentModelsMock.mockResolvedValue([buildModel()]);
+
+    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getByText("CONTENT_MODELS_GOVERNANCE_SYSTEM_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_GOVERNANCE_CUSTOM_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_GOVERNANCE_WORKFLOW_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_GOVERNANCE_DELIVERY_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_GOVERNANCE_GRAPHQL_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_FIELD_BOUNDARY_SYSTEM")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_FIELD_BOUNDARY_CUSTOM")).toBeInTheDocument();
+    expect(screen.getByText("hero_theme")).toBeInTheDocument();
   });
 });

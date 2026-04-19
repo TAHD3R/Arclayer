@@ -75,6 +75,82 @@ FieldScalarType = Literal[
 
 RelationType = Literal["one_to_one", "one_to_many", "many_to_one", "many_to_many"]
 ViewType = Literal["detail", "list", "table", "grid", "tree"]
+ContentModelSchemaSnapshotStage = Literal["published", "current_draft", "next_draft"]
+ContentModelSchemaDiffKind = Literal["field", "relation", "view", "policy", "default", "meta", "capability"]
+ContentModelSchemaDiffOperation = Literal["added", "removed", "changed"]
+ContentModelSchemaApplyGateStatus = Literal["ready", "review", "blocked"]
+
+
+class ContentModelFieldDefinitionOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    key: str = Field(..., min_length=1, description="Stable field key.")
+    label: str = Field(..., min_length=1, description="User-facing field label.")
+    scalar: FieldScalarType = Field(..., description="Stored scalar type.")
+    required: bool = Field(default=False, description="Whether the field is required.")
+    config: dict[str, Any] | None = Field(default=None, description="Optional field configuration payload.")
+
+
+class ContentModelContractBoundaryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    system_fields: list[ContentModelFieldDefinitionOut] = Field(
+        default_factory=list,
+        description="Locked system fields owned by the official protocol contract.",
+    )
+    custom_fields: list[ContentModelFieldDefinitionOut] = Field(
+        default_factory=list,
+        description="Workspace-managed fields that extend the protocol contract.",
+    )
+    locked_field_keys: list[str] = Field(
+        default_factory=list,
+        description="Field keys reserved by the official system contract.",
+    )
+    custom_field_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of workspace-managed custom fields attached to the model.",
+    )
+
+
+class ContentModelCapabilityRegistryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    workflow: list[ContentModelCapability] = Field(
+        default_factory=list,
+        description="Capabilities that shape review and revision workflow behavior.",
+    )
+    delivery: list[ContentModelCapability] = Field(
+        default_factory=list,
+        description="Capabilities that shape publish and delivery behavior.",
+    )
+    graphql: list[ContentModelCapability] = Field(
+        default_factory=list,
+        description="Capabilities that affect GraphQL and query-facing behavior.",
+    )
+
+
+class ContentModelContractRegistryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    protocol_key: ContentModelProtocolKey | None = Field(
+        default=None,
+        description="Official protocol identity for the current model registry entry.",
+    )
+    protocol_version: int = Field(default=1, ge=1, description="Protocol registry version.")
+    category: ContentModelCategory = Field(default="custom", description="Registry-level model category.")
+    system_managed: bool = Field(default=False, description="Whether this registry entry is system managed.")
+    boundaries: ContentModelContractBoundaryOut = Field(
+        default_factory=ContentModelContractBoundaryOut,
+        description="System and custom field boundary definition.",
+    )
+    capabilities: ContentModelCapabilityRegistryOut = Field(
+        default_factory=ContentModelCapabilityRegistryOut,
+        description="Capability registry grouped by platform concern.",
+    )
+    workflow_policy: dict[str, Any] | None = Field(default=None, description="Workflow governance policy payload.")
+    delivery_policy: dict[str, Any] | None = Field(default=None, description="Delivery governance policy payload.")
+    graphql_policy: dict[str, Any] | None = Field(default=None, description="GraphQL governance policy payload.")
 
 
 class ContentModelImpactChangeOut(BaseSchema):
@@ -96,6 +172,95 @@ class ContentModelImpactOut(BaseSchema):
     warnings: list[str] = Field(default_factory=list, description="Non-blocking schema warnings.")
 
 
+class ContentModelRevisionSummaryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    current_draft_revision: int = Field(default=1, ge=1, description="Current mutable draft revision.")
+    published_revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="Published revision used by runtime reads when available.",
+    )
+    next_draft_revision: int = Field(default=1, ge=1, description="Draft revision that would be saved by the patch.")
+
+
+class ContentModelSchemaSnapshotOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    stage: ContentModelSchemaSnapshotStage = Field(..., description="Snapshot stage within the revision lifecycle.")
+    revision: int | None = Field(default=None, ge=1, description="Revision id associated with the snapshot.")
+    field_count: int = Field(default=0, ge=0, description="Number of fields stored in the snapshot payload.")
+    relation_count: int = Field(default=0, ge=0, description="Number of relations stored in the snapshot payload.")
+    view_count: int = Field(default=0, ge=0, description="Number of views stored in the snapshot payload.")
+    payload: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Canonical schema snapshot payload used for diff and review surfaces.",
+    )
+
+
+class ContentModelSchemaDiffEntryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    kind: ContentModelSchemaDiffKind = Field(..., description="Changed schema concern.")
+    operation: ContentModelSchemaDiffOperation = Field(..., description="Diff operation for the changed target.")
+    target: str = Field(..., min_length=1, description="Machine-readable change target path.")
+    summary: str = Field(..., min_length=1, description="Human-readable description for the changed target.")
+    breaking: bool = Field(default=False, description="Whether this diff entry introduces a breaking change.")
+    before: Any | None = Field(default=None, description="Current draft value before the change.")
+    after: Any | None = Field(default=None, description="Next draft value after the change.")
+
+
+class ContentModelSchemaDiffOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    has_changes: bool = Field(default=False, description="Whether the change plan contains any schema changes.")
+    has_breaking_changes: bool = Field(default=False, description="Whether the diff contains breaking changes.")
+    breaking_change_count: int = Field(default=0, ge=0, description="Number of breaking diff entries.")
+    entries: list[ContentModelSchemaDiffEntryOut] = Field(
+        default_factory=list,
+        description="Normalized schema diff entries between current and next draft snapshots.",
+    )
+
+
+class ContentModelSchemaApplyGateOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    code: str = Field(..., min_length=1, description="Machine-readable apply gate code.")
+    status: ContentModelSchemaApplyGateStatus = Field(..., description="Apply gate status.")
+    title: str = Field(..., min_length=1, description="User-facing apply gate title.")
+    detail: str = Field(..., min_length=1, description="User-facing apply gate detail.")
+
+
+class ContentModelSchemaChangePlanOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    revisions: ContentModelRevisionSummaryOut = Field(
+        default_factory=ContentModelRevisionSummaryOut,
+        description="Revision lifecycle summary for the current preview.",
+    )
+    current_snapshot: ContentModelSchemaSnapshotOut = Field(
+        default_factory=lambda: ContentModelSchemaSnapshotOut(stage="current_draft"),
+        description="Canonical current draft snapshot.",
+    )
+    next_snapshot: ContentModelSchemaSnapshotOut = Field(
+        default_factory=lambda: ContentModelSchemaSnapshotOut(stage="next_draft"),
+        description="Canonical next draft snapshot after applying the patch payload.",
+    )
+    published_snapshot: ContentModelSchemaSnapshotOut | None = Field(
+        default=None,
+        description="Published baseline snapshot when runtime delivery has a recorded contract revision.",
+    )
+    diff: ContentModelSchemaDiffOut = Field(
+        default_factory=ContentModelSchemaDiffOut,
+        description="Normalized diff between the current and next draft snapshots.",
+    )
+    apply_gates: list[ContentModelSchemaApplyGateOut] = Field(
+        default_factory=list,
+        description="Read-only apply gates that explain save readiness and review obligations.",
+    )
+    apply_ready: bool = Field(default=False, description="Whether the current preview can be applied without blockers.")
+
+
 class ContentModelImpactPreviewOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -114,6 +279,10 @@ class ContentModelImpactPreviewOut(BaseSchema):
     )
     impact: ContentModelImpactOut = Field(
         default_factory=ContentModelImpactOut, description="Schema mutation impact summary."
+    )
+    change_plan: ContentModelSchemaChangePlanOut = Field(
+        default_factory=ContentModelSchemaChangePlanOut,
+        description="Formal schema change plan with revision snapshots, diff entries, and apply gates.",
     )
 
 
@@ -164,6 +333,10 @@ class ContentModelOut(BaseSchema):
     surface_policy: dict[str, Any] | None = Field(
         default=None,
         description="Surface policy constraints for continuation routing.",
+    )
+    contract_registry: ContentModelContractRegistryOut = Field(
+        default_factory=ContentModelContractRegistryOut,
+        description="Formal model contract registry entry used by admin governance surfaces.",
     )
     field_schema: dict[str, Any] | None = Field(default=None, description="Field schema payload.")
     relation_schema: dict[str, Any] | None = Field(default=None, description="Relation schema payload.")

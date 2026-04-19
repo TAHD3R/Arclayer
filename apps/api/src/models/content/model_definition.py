@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from tortoise import fields
+from tortoise.fields.relational import ReverseRelation
 
 from src.common.models import BaseModel
 from src.models.content._enums import (
@@ -66,8 +67,15 @@ class ContentModelDefinitionRecord(BaseModel):
     workflow_policy = fields.JSONField(null=True)
 
     if TYPE_CHECKING:
+        from src.models.content.model_field import ContentModelFieldRecord
+        from src.models.content.model_relation import ContentModelRelationRecord
+        from src.models.content.model_view import ContentModelViewRecord
+
         workspace_id: UUID
         site_id: UUID
+        fields: ReverseRelation[ContentModelFieldRecord]
+        relations: ReverseRelation[ContentModelRelationRecord]
+        views: ReverseRelation[ContentModelViewRecord]
 
     class Meta(BaseModel.Meta):
         table = "domain_content_model_definitions"

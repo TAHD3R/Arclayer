@@ -2000,6 +2000,122 @@ export type ContentLibraryViewsStateOut = {
 };
 
 /**
+ * ContentModelCapabilityRegistryOut
+ */
+export type ContentModelCapabilityRegistryOut = {
+    /**
+     * Delivery
+     *
+     * Capabilities that shape publish and delivery behavior.
+     */
+    delivery?: Array<'versioned' | 'routable' | 'treeable' | 'visual_editable' | 'rich_text_editable' | 'queryable' | 'has_slots' | 'has_relations' | 'localizable' | 'publishable' | 'schedulable' | 'seo_managed'>;
+    /**
+     * Graphql
+     *
+     * Capabilities that affect GraphQL and query-facing behavior.
+     */
+    graphql?: Array<'versioned' | 'routable' | 'treeable' | 'visual_editable' | 'rich_text_editable' | 'queryable' | 'has_slots' | 'has_relations' | 'localizable' | 'publishable' | 'schedulable' | 'seo_managed'>;
+    /**
+     * Workflow
+     *
+     * Capabilities that shape review and revision workflow behavior.
+     */
+    workflow?: Array<'versioned' | 'routable' | 'treeable' | 'visual_editable' | 'rich_text_editable' | 'queryable' | 'has_slots' | 'has_relations' | 'localizable' | 'publishable' | 'schedulable' | 'seo_managed'>;
+};
+
+/**
+ * ContentModelContractBoundaryOut
+ */
+export type ContentModelContractBoundaryOut = {
+    /**
+     * Customfieldcount
+     *
+     * Number of workspace-managed custom fields attached to the model.
+     */
+    customFieldCount?: number;
+    /**
+     * Customfields
+     *
+     * Workspace-managed fields that extend the protocol contract.
+     */
+    customFields?: Array<ContentModelFieldDefinitionOut>;
+    /**
+     * Lockedfieldkeys
+     *
+     * Field keys reserved by the official system contract.
+     */
+    lockedFieldKeys?: Array<string>;
+    /**
+     * Systemfields
+     *
+     * Locked system fields owned by the official protocol contract.
+     */
+    systemFields?: Array<ContentModelFieldDefinitionOut>;
+};
+
+/**
+ * ContentModelContractRegistryOut
+ */
+export type ContentModelContractRegistryOut = {
+    /**
+     * System and custom field boundary definition.
+     */
+    boundaries?: ContentModelContractBoundaryOut;
+    /**
+     * Capability registry grouped by platform concern.
+     */
+    capabilities?: ContentModelCapabilityRegistryOut;
+    /**
+     * Category
+     *
+     * Registry-level model category.
+     */
+    category?: 'site_builder' | 'content_library' | 'system' | 'custom';
+    /**
+     * Deliverypolicy
+     *
+     * Delivery governance policy payload.
+     */
+    deliveryPolicy?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Graphqlpolicy
+     *
+     * GraphQL governance policy payload.
+     */
+    graphqlPolicy?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Protocolkey
+     *
+     * Official protocol identity for the current model registry entry.
+     */
+    protocolKey?: 'article' | 'page' | 'reusable-section' | 'category' | null;
+    /**
+     * Protocolversion
+     *
+     * Protocol registry version.
+     */
+    protocolVersion?: number;
+    /**
+     * Systemmanaged
+     *
+     * Whether this registry entry is system managed.
+     */
+    systemManaged?: boolean;
+    /**
+     * Workflowpolicy
+     *
+     * Workflow governance policy payload.
+     */
+    workflowPolicy?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * ContentModelDefinitionContract
  */
 export type ContentModelDefinitionContract = {
@@ -2240,6 +2356,44 @@ export type ContentModelFieldContract = {
 };
 
 /**
+ * ContentModelFieldDefinitionOut
+ */
+export type ContentModelFieldDefinitionOut = {
+    /**
+     * Config
+     *
+     * Optional field configuration payload.
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Key
+     *
+     * Stable field key.
+     */
+    key: string;
+    /**
+     * Label
+     *
+     * User-facing field label.
+     */
+    label: string;
+    /**
+     * Required
+     *
+     * Whether the field is required.
+     */
+    required?: boolean;
+    /**
+     * Scalar
+     *
+     * Stored scalar type.
+     */
+    scalar: 'text' | 'long_text' | 'number' | 'boolean' | 'date_time' | 'json';
+};
+
+/**
  * ContentModelImpactChangeOut
  */
 export type ContentModelImpactChangeOut = {
@@ -2297,6 +2451,10 @@ export type ContentModelImpactPreviewOut = {
      * Items whose persisted continuation truth would change.
      */
     affectedItemsCount?: number;
+    /**
+     * Formal schema change plan with revision snapshots, diff entries, and apply gates.
+     */
+    changePlan?: ContentModelSchemaChangePlanOut;
     /**
      * Hasblockingchanges
      *
@@ -2422,6 +2580,10 @@ export type ContentModelOut = {
      * Model grouping category.
      */
     category: 'site_builder' | 'content_library' | 'system' | 'custom';
+    /**
+     * Formal model contract registry entry used by admin governance surfaces.
+     */
+    contractRegistry?: ContentModelContractRegistryOut;
     /**
      * Defaulteditor
      *
@@ -2620,6 +2782,220 @@ export type ContentModelRelationContract = {
      * Target model key.
      */
     targetModelKey: string;
+};
+
+/**
+ * ContentModelRevisionSummaryOut
+ */
+export type ContentModelRevisionSummaryOut = {
+    /**
+     * Currentdraftrevision
+     *
+     * Current mutable draft revision.
+     */
+    currentDraftRevision?: number;
+    /**
+     * Nextdraftrevision
+     *
+     * Draft revision that would be saved by the patch.
+     */
+    nextDraftRevision?: number;
+    /**
+     * Publishedrevision
+     *
+     * Published revision used by runtime reads when available.
+     */
+    publishedRevision?: number | null;
+};
+
+/**
+ * ContentModelSchemaApplyGateOut
+ */
+export type ContentModelSchemaApplyGateOut = {
+    /**
+     * Code
+     *
+     * Machine-readable apply gate code.
+     */
+    code: string;
+    /**
+     * Detail
+     *
+     * User-facing apply gate detail.
+     */
+    detail: string;
+    /**
+     * Status
+     *
+     * Apply gate status.
+     */
+    status: 'ready' | 'review' | 'blocked';
+    /**
+     * Title
+     *
+     * User-facing apply gate title.
+     */
+    title: string;
+};
+
+/**
+ * ContentModelSchemaChangePlanOut
+ */
+export type ContentModelSchemaChangePlanOut = {
+    /**
+     * Applygates
+     *
+     * Read-only apply gates that explain save readiness and review obligations.
+     */
+    applyGates?: Array<ContentModelSchemaApplyGateOut>;
+    /**
+     * Applyready
+     *
+     * Whether the current preview can be applied without blockers.
+     */
+    applyReady?: boolean;
+    /**
+     * Canonical current draft snapshot.
+     */
+    currentSnapshot?: ContentModelSchemaSnapshotOut;
+    /**
+     * Normalized diff between the current and next draft snapshots.
+     */
+    diff?: ContentModelSchemaDiffOut;
+    /**
+     * Canonical next draft snapshot after applying the patch payload.
+     */
+    nextSnapshot?: ContentModelSchemaSnapshotOut;
+    /**
+     * Published baseline snapshot when runtime delivery has a recorded contract revision.
+     */
+    publishedSnapshot?: ContentModelSchemaSnapshotOut | null;
+    /**
+     * Revision lifecycle summary for the current preview.
+     */
+    revisions?: ContentModelRevisionSummaryOut;
+};
+
+/**
+ * ContentModelSchemaDiffEntryOut
+ */
+export type ContentModelSchemaDiffEntryOut = {
+    /**
+     * After
+     *
+     * Next draft value after the change.
+     */
+    after?: unknown | null;
+    /**
+     * Before
+     *
+     * Current draft value before the change.
+     */
+    before?: unknown | null;
+    /**
+     * Breaking
+     *
+     * Whether this diff entry introduces a breaking change.
+     */
+    breaking?: boolean;
+    /**
+     * Kind
+     *
+     * Changed schema concern.
+     */
+    kind: 'field' | 'relation' | 'view' | 'policy' | 'default' | 'meta' | 'capability';
+    /**
+     * Operation
+     *
+     * Diff operation for the changed target.
+     */
+    operation: 'added' | 'removed' | 'changed';
+    /**
+     * Summary
+     *
+     * Human-readable description for the changed target.
+     */
+    summary: string;
+    /**
+     * Target
+     *
+     * Machine-readable change target path.
+     */
+    target: string;
+};
+
+/**
+ * ContentModelSchemaDiffOut
+ */
+export type ContentModelSchemaDiffOut = {
+    /**
+     * Breakingchangecount
+     *
+     * Number of breaking diff entries.
+     */
+    breakingChangeCount?: number;
+    /**
+     * Entries
+     *
+     * Normalized schema diff entries between current and next draft snapshots.
+     */
+    entries?: Array<ContentModelSchemaDiffEntryOut>;
+    /**
+     * Hasbreakingchanges
+     *
+     * Whether the diff contains breaking changes.
+     */
+    hasBreakingChanges?: boolean;
+    /**
+     * Haschanges
+     *
+     * Whether the change plan contains any schema changes.
+     */
+    hasChanges?: boolean;
+};
+
+/**
+ * ContentModelSchemaSnapshotOut
+ */
+export type ContentModelSchemaSnapshotOut = {
+    /**
+     * Fieldcount
+     *
+     * Number of fields stored in the snapshot payload.
+     */
+    fieldCount?: number;
+    /**
+     * Payload
+     *
+     * Canonical schema snapshot payload used for diff and review surfaces.
+     */
+    payload?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Relationcount
+     *
+     * Number of relations stored in the snapshot payload.
+     */
+    relationCount?: number;
+    /**
+     * Revision
+     *
+     * Revision id associated with the snapshot.
+     */
+    revision?: number | null;
+    /**
+     * Stage
+     *
+     * Snapshot stage within the revision lifecycle.
+     */
+    stage: 'published' | 'current_draft' | 'next_draft';
+    /**
+     * Viewcount
+     *
+     * Number of views stored in the snapshot payload.
+     */
+    viewCount?: number;
 };
 
 /**
@@ -6034,9 +6410,9 @@ export type MyWorkspaceOut = {
     /**
      * Projectid
      *
-     * Primary project id.
+     * Primary project id when available.
      */
-    projectId: string;
+    projectId?: string | null;
     /**
      * Slug
      *
@@ -6412,12 +6788,6 @@ export type OAuthLinkedIdentityOut = {
  * OnboardingWorkspaceCreateOut
  */
 export type OnboardingWorkspaceCreateOut = {
-    /**
-     * Projectid
-     *
-     * Primary project id for the created workspace.
-     */
-    projectId: string;
     /**
      * Workspaceid
      *
@@ -7877,15 +8247,15 @@ export type OrganizationWorkspaceOut = {
      */
     organizationId: string;
     /**
-     * Primary project binding for this workspace.
+     * Primary project binding for this workspace when available.
      */
-    project: WorkspacePrimaryProjectOut;
+    project?: WorkspacePrimaryProjectOut | null;
     /**
      * Projectid
      *
-     * Primary project id.
+     * Primary project id when available.
      */
-    projectId: string;
+    projectId?: string | null;
     /**
      * Slug
      *
@@ -13210,6 +13580,31 @@ export type ResponseModelProjectDetailOut = {
 };
 
 /**
+ * ResponseModel[ProjectListItemOut]
+ */
+export type ResponseModelProjectListItemOut = {
+    data?: ProjectListItemOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ProjectListOut]
  */
 export type ResponseModelProjectListOut = {
@@ -16794,9 +17189,9 @@ export type WorkspaceDetailOut = {
      */
     organizationId: string;
     /**
-     * Primary project binding for this workspace.
+     * Primary project binding for this workspace when available.
      */
-    project: WorkspacePrimaryProjectOut;
+    project?: WorkspacePrimaryProjectOut | null;
     /**
      * Slug
      *
@@ -22349,7 +22744,7 @@ export type DomainProjectsCreateProjectResponses = {
     /**
      * Successful Response
      */
-    201: ResponseModelProjectDetailOut;
+    201: ResponseModelProjectListItemOut;
 };
 
 export type DomainProjectsCreateProjectResponse = DomainProjectsCreateProjectResponses[keyof DomainProjectsCreateProjectResponses];

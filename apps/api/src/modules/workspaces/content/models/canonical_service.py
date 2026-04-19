@@ -39,6 +39,12 @@ from src.modules.workspaces.content.contracts.schema import (
     ContentModelImpactOut,
     ContentModelOut,
     ContentModelRelationContract,
+    ContentModelRevisionSummaryOut,
+    ContentModelSchemaApplyGateOut,
+    ContentModelSchemaChangePlanOut,
+    ContentModelSchemaDiffEntryOut,
+    ContentModelSchemaDiffOut,
+    ContentModelSchemaSnapshotOut,
     ContentModelViewContract,
     ContentRoutingContract,
     ContentWorkflowContract,
@@ -97,9 +103,6 @@ _SYSTEM_MANAGED_PATCH_FIELDS = frozenset({
     "name",
     "category",
     "default_editor",
-    "default_role",
-    "default_posture",
-    "default_surface",
     "capabilities",
     "routing",
     "presentation",
@@ -126,6 +129,7 @@ class ContentModelImpactPreviewResult:
     has_blocking_changes: bool
     preview_token: str
     impact: ContentModelImpactOut
+    change_plan: ContentModelSchemaChangePlanOut
 
 
 @dataclass(frozen=True)
@@ -154,6 +158,339 @@ class _ModelUpdateContext:
     fields_to_update: dict[str, Any]
     preview: ContentModelImpactPreviewResult
     default_changes: dict[str, dict[str, Any | None]]
+
+
+def _snapshot_counts(payload: dict[str, Any]) -> tuple[int, int, int]:
+    fields = payload.get("fields")
+    relations = payload.get("relations")
+    views = payload.get("views")
+    return (
+        len(fields) if isinstance(fields, list) else 0,
+        len(relations) if isinstance(relations, list) else 0,
+        len(views) if isinstance(views, list) else 0,
+    )
+
+
+def _build_snapshot(
+    *,
+    stage: str,
+    revision: int | None,
+    payload: dict[str, Any],
+) -> ContentModelSchemaSnapshotOut:
+    field_count, relation_count, view_count = _snapshot_counts(payload)
+    return ContentModelSchemaSnapshotOut(
+        stage=cast(Any, stage),
+        revision=revision,
+        field_count=field_count,
+        relation_count=relation_count,
+        view_count=view_count,
+        payload=payload,
+    )
+
+
+def _read_snapshot_fields(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rows = payload.get("fields")
+    if not isinstance(rows, list):
+        return {}
+    return {str(row["key"]): row for row in rows if isinstance(row, dict) and isinstance(row.get("key"), str)}
+
+
+def _read_snapshot_relations(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rows = payload.get("relations")
+    if not isinstance(rows, list):
+        return {}
+    return {str(row["key"]): row for row in rows if isinstance(row, dict) and isinstance(row.get("key"), str)}
+
+
+def _read_snapshot_views(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rows = payload.get("views")
+    if not isinstance(rows, list):
+        return {}
+    return {str(row["key"]): row for row in rows if isinstance(row, dict) and isinstance(row.get("key"), str)}
+
+
+def _schema_diff_entry(
+    *,
+    kind: str,
+    operation: str,
+    target: str,
+    summary: str,
+    breaking: bool = False,
+    before: Any | None = None,
+    after: Any | None = None,
+) -> ContentModelSchemaDiffEntryOut:
+    return ContentModelSchemaDiffEntryOut(
+        kind=cast(Any, kind),
+        operation=cast(Any, operation),
+        target=target,
+        summary=summary,
+        breaking=breaking,
+        before=before,
+        after=after,
+    )
+
+
+def _append_mapping_diff_entries(
+    *,
+    entries: list[ContentModelSchemaDiffEntryOut],
+    kind: str,
+    prefix: str,
+    before_map: dict[str, dict[str, Any]],
+    after_map: dict[str, dict[str, Any]],
+) -> None:
+    for key in sorted(before_map.keys() - after_map.keys()):
+        entries.append(
+            _schema_diff_entry(
+                kind=kind,
+                operation="removed",
+                target=f"{prefix}.{key}",
+                summary=f"{kind.title()} '{key}' will be removed from the next draft.",
+                breaking=kind in {"field", "relation"},
+                before=before_map[key],
+                after=None,
+            )
+        )
+    for key in sorted(after_map.keys() - before_map.keys()):
+        entries.append(
+            _schema_diff_entry(
+                kind=kind,
+                operation="added",
+                target=f"{prefix}.{key}",
+                summary=f"{kind.title()} '{key}' will be added to the next draft.",
+                breaking=False,
+                before=None,
+                after=after_map[key],
+            )
+        )
+    for key in sorted(before_map.keys() & after_map.keys()):
+        if before_map[key] == after_map[key]:
+            continue
+        entries.append(
+            _schema_diff_entry(
+                kind=kind,
+                operation="changed",
+                target=f"{prefix}.{key}",
+                summary=f"{kind.title()} '{key}' will change in the next draft.",
+                breaking=kind in {"field", "relation"},
+                before=before_map[key],
+                after=after_map[key],
+            )
+        )
+
+
+def _append_scalar_diff_entries(
+    *,
+    entries: list[ContentModelSchemaDiffEntryOut],
+    kind: str,
+    targets: dict[str, tuple[str, Any | None, Any | None]],
+) -> None:
+    for target, (summary, before, after) in targets.items():
+        if before == after:
+            continue
+        operation = (
+            "added"
+            if before is None and after is not None
+            else "removed"
+            if before is not None and after is None
+            else "changed"
+        )
+        entries.append(
+            _schema_diff_entry(
+                kind=kind,
+                operation=operation,
+                target=target,
+                summary=summary,
+                before=before,
+                after=after,
+            )
+        )
+
+
+def _build_schema_diff(
+    *,
+    current_snapshot: dict[str, Any],
+    next_snapshot: dict[str, Any],
+    impact: ContentModelImpactOut,
+) -> ContentModelSchemaDiffOut:
+    entries: list[ContentModelSchemaDiffEntryOut] = []
+    _append_mapping_diff_entries(
+        entries=entries,
+        kind="field",
+        prefix="fields",
+        before_map=_read_snapshot_fields(current_snapshot),
+        after_map=_read_snapshot_fields(next_snapshot),
+    )
+    _append_mapping_diff_entries(
+        entries=entries,
+        kind="relation",
+        prefix="relations",
+        before_map=_read_snapshot_relations(current_snapshot),
+        after_map=_read_snapshot_relations(next_snapshot),
+    )
+    _append_mapping_diff_entries(
+        entries=entries,
+        kind="view",
+        prefix="views",
+        before_map=_read_snapshot_views(current_snapshot),
+        after_map=_read_snapshot_views(next_snapshot),
+    )
+    _append_scalar_diff_entries(
+        entries=entries,
+        kind="default",
+        targets={
+            "defaults.default_role": (
+                "Default role will change for newly created entries.",
+                current_snapshot.get("default_role"),
+                next_snapshot.get("default_role"),
+            ),
+            "defaults.default_posture": (
+                "Default posture will change for newly created entries.",
+                current_snapshot.get("default_posture"),
+                next_snapshot.get("default_posture"),
+            ),
+            "defaults.default_surface": (
+                "Default surface will change for newly created entries.",
+                current_snapshot.get("default_surface"),
+                next_snapshot.get("default_surface"),
+            ),
+        },
+    )
+    _append_scalar_diff_entries(
+        entries=entries,
+        kind="meta",
+        targets={
+            "meta.description": (
+                "Model description will change.",
+                current_snapshot.get("description"),
+                next_snapshot.get("description"),
+            ),
+            "meta.starter_pack_policy": (
+                "Starter pack policy will change.",
+                current_snapshot.get("starter_pack_policy"),
+                next_snapshot.get("starter_pack_policy"),
+            ),
+            "meta.surface_policy": (
+                "Surface policy will change.",
+                current_snapshot.get("surface_policy"),
+                next_snapshot.get("surface_policy"),
+            ),
+        },
+    )
+    _append_scalar_diff_entries(
+        entries=entries,
+        kind="policy",
+        targets={
+            "policy.workflow": (
+                "Workflow policy will change.",
+                current_snapshot.get("workflow_policy"),
+                next_snapshot.get("workflow_policy"),
+            ),
+            "policy.routing": (
+                "Routing policy will change.",
+                current_snapshot.get("routing_policy"),
+                next_snapshot.get("routing_policy"),
+            ),
+            "policy.presentation": (
+                "Presentation policy will change.",
+                current_snapshot.get("presentation_policy"),
+                next_snapshot.get("presentation_policy"),
+            ),
+            "policy.seo": (
+                "SEO policy will change.",
+                current_snapshot.get("seo_policy"),
+                next_snapshot.get("seo_policy"),
+            ),
+        },
+    )
+    _append_scalar_diff_entries(
+        entries=entries,
+        kind="capability",
+        targets={
+            "capabilities": (
+                "Capability contract will change.",
+                current_snapshot.get("capabilities"),
+                next_snapshot.get("capabilities"),
+            ),
+        },
+    )
+
+    breaking_targets = {change.target for change in impact.breaking_changes}
+    if breaking_targets:
+        normalized_entries: list[ContentModelSchemaDiffEntryOut] = []
+        for entry in entries:
+            normalized_entries.append(
+                entry.model_copy(
+                    update={
+                        "breaking": entry.breaking or entry.target in breaking_targets,
+                    }
+                )
+            )
+        entries = normalized_entries
+
+    breaking_count = sum(1 for entry in entries if entry.breaking)
+    return ContentModelSchemaDiffOut(
+        has_changes=bool(entries),
+        has_breaking_changes=breaking_count > 0,
+        breaking_change_count=breaking_count,
+        entries=entries,
+    )
+
+
+def _build_apply_gates(
+    *,
+    diff: ContentModelSchemaDiffOut,
+    affected_items_count: int,
+    recovery_items_count: int,
+    reshape_items_count: int,
+    has_blocking_changes: bool,
+) -> list[ContentModelSchemaApplyGateOut]:
+    gates = [
+        ContentModelSchemaApplyGateOut(
+            code="impact_scope",
+            status="review" if affected_items_count > 0 else "ready",
+            title="Impact scope",
+            detail=(
+                f"{affected_items_count} items will need lifecycle review."
+                if affected_items_count > 0
+                else "No existing items are affected by this draft change."
+            ),
+        ),
+        ContentModelSchemaApplyGateOut(
+            code="revision_delta",
+            status="review" if diff.has_changes else "ready",
+            title="Revision delta",
+            detail=(
+                f"{len(diff.entries)} schema entries will move into the next draft revision."
+                if diff.has_changes
+                else "The preview payload does not change the saved draft contract."
+            ),
+        ),
+        ContentModelSchemaApplyGateOut(
+            code="breaking_changes",
+            status="review" if diff.has_breaking_changes else "ready",
+            title="Breaking contract review",
+            detail=(
+                f"{diff.breaking_change_count} breaking changes require operator review."
+                if diff.has_breaking_changes
+                else "No breaking schema contract changes were detected."
+            ),
+        ),
+        ContentModelSchemaApplyGateOut(
+            code="continuation_recovery",
+            status="blocked" if has_blocking_changes else "ready",
+            title="Continuation recovery",
+            detail=(
+                f"{recovery_items_count} items would move into recovery and block apply."
+                if has_blocking_changes
+                else (
+                    f"{reshape_items_count} items stay ready and require reshape."
+                    if reshape_items_count > 0
+                    else "No item recovery work is required before apply."
+                )
+            ),
+        ),
+    ]
+    return gates
 
 
 def _breaking_change(*, code: str, target: str, message: str) -> ContentModelImpactChangeOut:
@@ -663,6 +1000,102 @@ def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[s
     return updates
 
 
+def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, Any]:
+    return {
+        "protocol_key": record.protocol_key,
+        "protocol_version": int(record.protocol_version or 1),
+        "system_managed": bool(record.is_system_managed),
+        "system_field_keys": list(record.system_field_keys or []),
+        "key": str(record.key),
+        "name": str(record.name),
+        "description": record.description,
+        "category": str(record.category or "custom"),
+        "default_editor": str(record.default_editor or "form"),
+        "default_role": str(record.default_role) if record.default_role is not None else None,
+        "default_posture": str(record.default_posture) if record.default_posture is not None else None,
+        "default_surface": str(record.default_surface) if record.default_surface is not None else None,
+        "capabilities": list(record.capabilities or []),
+        "routing_policy": record.routing_policy,
+        "presentation_policy": record.presentation_policy,
+        "seo_policy": record.seo_policy,
+        "starter_pack_policy": record.starter_pack_policy,
+        "surface_policy": record.surface_policy,
+        "workflow_policy": record.workflow_policy,
+        "fields": [
+            ContentModelFieldContract(
+                key=str(field.key),
+                label=str(field.label),
+                scalar=cast(Any, str(field.field_type)),
+                required=bool(field.is_required),
+                config=field.config,
+            ).model_dump(mode="json", by_alias=False, exclude_none=True)
+            for field in record.fields
+        ],
+        "relations": [
+            ContentModelRelationContract(
+                key=str(relation.key),
+                relation=cast(Any, str(relation.relation_type)),
+                target_model_key=str(relation.target_model_key),
+                required=bool(relation.is_required),
+                config=relation.config,
+            ).model_dump(mode="json", by_alias=False, exclude_none=True)
+            for relation in record.relations
+        ],
+        "views": [
+            ContentModelViewContract(
+                key=str(view.key),
+                label=str(view.label),
+                type=cast(Any, str(view.view_type)),
+                config=view.dsl,
+            ).model_dump(mode="json", by_alias=False, exclude_none=True)
+            for view in record.views
+        ],
+    }
+
+
+def _next_snapshot_payload(
+    *,
+    record: ContentModelDefinitionRecord,
+    fields_to_update: dict[str, Any],
+    fields_set: set[str],
+    fields: list[ContentModelFieldContract],
+    relations: list[ContentModelRelationContract] | None,
+    views: list[ContentModelViewContract] | None,
+) -> dict[str, Any]:
+    current_payload = _record_snapshot_payload(record)
+    next_payload = dict(current_payload)
+    for field_name in (
+        "key",
+        "name",
+        "description",
+        "category",
+        "default_editor",
+        "default_role",
+        "default_posture",
+        "default_surface",
+        "capabilities",
+        "routing_policy",
+        "presentation_policy",
+        "seo_policy",
+        "starter_pack_policy",
+        "surface_policy",
+        "workflow_policy",
+    ):
+        if field_name in fields_to_update:
+            next_payload[field_name] = fields_to_update[field_name]
+    if "fields" in fields_set:
+        next_payload["fields"] = [field.model_dump(mode="json", by_alias=False, exclude_none=True) for field in fields]
+    if "relations" in fields_set:
+        next_payload["relations"] = [
+            relation.model_dump(mode="json", by_alias=False, exclude_none=True) for relation in (relations or [])
+        ]
+    if "views" in fields_set:
+        next_payload["views"] = [
+            view.model_dump(mode="json", by_alias=False, exclude_none=True) for view in (views or [])
+        ]
+    return next_payload
+
+
 class WorkspaceContentCanonicalModelsService:
     def __init__(self, repo: WorkspaceContentModelsRepository, settings: Settings) -> None:
         self.repo = repo
@@ -772,8 +1205,49 @@ class WorkspaceContentCanonicalModelsService:
         if record.is_system_managed and protocol is not None and "fields" in fields_set:
             payload_fields = _merge_system_and_custom_fields(protocol=protocol, custom_fields=payload.fields or [])
         else:
-            payload_fields = payload.fields or []
-        fields_to_update["draft_contract_revision"] = _bump_draft_contract_revision(record, fields_set=fields_set)
+            payload_fields = (
+                list(payload.fields or [])
+                if "fields" in fields_set
+                else [
+                    ContentModelFieldContract(
+                        key=str(field.key),
+                        label=str(field.label),
+                        scalar=cast(Any, str(field.field_type)),
+                        required=bool(field.is_required),
+                        config=field.config,
+                    )
+                    for field in record.fields
+                ]
+            )
+        next_relations = (
+            list(payload.relations or [])
+            if "relations" in fields_set
+            else [
+                ContentModelRelationContract(
+                    key=str(relation.key),
+                    relation=cast(Any, str(relation.relation_type)),
+                    target_model_key=str(relation.target_model_key),
+                    required=bool(relation.is_required),
+                    config=relation.config,
+                )
+                for relation in record.relations
+            ]
+        )
+        next_views = (
+            list(payload.views or [])
+            if "views" in fields_set
+            else [
+                ContentModelViewContract(
+                    key=str(view.key),
+                    label=str(view.label),
+                    type=cast(Any, str(view.view_type)),
+                    config=view.dsl,
+                )
+                for view in record.views
+            ]
+        )
+        next_draft_revision = _bump_draft_contract_revision(record, fields_set=fields_set)
+        fields_to_update["draft_contract_revision"] = next_draft_revision
         next_default_role, next_default_posture, next_default_surface = _resolved_next_defaults(
             record=record,
             fields_to_update=fields_to_update,
@@ -809,23 +1283,88 @@ class WorkspaceContentCanonicalModelsService:
             updated_at=record.updated_at,
             payload=payload,
         )
+        impact = _build_mutation_impact(
+            record,
+            _PreviewModelRecord(
+                fields=_preview_field_rows_from_contracts(payload_fields),
+                relations=tuple(
+                    _PreviewRelationRow(
+                        key=item.key,
+                        relation_type=item.relation,
+                        target_model_key=item.target_model_key,
+                        is_required=item.required,
+                    )
+                    for item in next_relations
+                ),
+            ),
+        )
+        current_snapshot_payload = _record_snapshot_payload(record)
+        next_snapshot_payload = _next_snapshot_payload(
+            record=record,
+            fields_to_update=fields_to_update,
+            fields_set=fields_set,
+            fields=payload_fields,
+            relations=next_relations,
+            views=next_views,
+        )
+        diff = _build_schema_diff(
+            current_snapshot=current_snapshot_payload,
+            next_snapshot=next_snapshot_payload,
+            impact=impact,
+        )
+        apply_gates = _build_apply_gates(
+            diff=diff,
+            affected_items_count=affected_items_count,
+            recovery_items_count=recovery_items_count,
+            reshape_items_count=reshape_items_count,
+            has_blocking_changes=recovery_items_count > 0,
+        )
+        published_snapshot_payload = (
+            dict(record.published_contract_snapshot) if isinstance(record.published_contract_snapshot, dict) else None
+        )
+        change_plan = ContentModelSchemaChangePlanOut(
+            revisions=ContentModelRevisionSummaryOut(
+                current_draft_revision=int(record.draft_contract_revision or 1),
+                published_revision=(
+                    int(record.published_contract_revision) if record.published_contract_revision is not None else None
+                ),
+                next_draft_revision=next_draft_revision,
+            ),
+            current_snapshot=_build_snapshot(
+                stage="current_draft",
+                revision=int(record.draft_contract_revision or 1),
+                payload=current_snapshot_payload,
+            ),
+            next_snapshot=_build_snapshot(
+                stage="next_draft",
+                revision=next_draft_revision,
+                payload=next_snapshot_payload,
+            ),
+            published_snapshot=(
+                _build_snapshot(
+                    stage="published",
+                    revision=(
+                        int(record.published_contract_revision)
+                        if record.published_contract_revision is not None
+                        else None
+                    ),
+                    payload=published_snapshot_payload,
+                )
+                if published_snapshot_payload is not None
+                else None
+            ),
+            diff=diff,
+            apply_gates=apply_gates,
+            apply_ready=not any(gate.status == "blocked" for gate in apply_gates),
+        )
         preview = ContentModelImpactPreviewResult(
             affected_items_count=affected_items_count,
             recovery_items_count=recovery_items_count,
             reshape_items_count=reshape_items_count,
             has_blocking_changes=recovery_items_count > 0,
             preview_token=_build_impact_preview_token(self.settings, claims=claims),
-            impact=_build_mutation_impact(
-                record,
-                _PreviewModelRecord(
-                    fields=(
-                        _preview_field_rows_from_contracts(payload_fields)
-                        if "fields" in fields_set
-                        else tuple(_field_rows(record).values())
-                    ),
-                    relations=_preview_relation_rows(payload, record),
-                ),
-            ),
+            impact=impact,
+            change_plan=change_plan,
         )
         return _ModelUpdateContext(
             fields_to_update=fields_to_update,

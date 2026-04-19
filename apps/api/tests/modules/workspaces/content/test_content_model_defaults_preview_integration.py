@@ -93,6 +93,21 @@ async def test_content_model_impact_preview_returns_counts_and_preview_token(
         assert isinstance(preview["previewToken"], str)
         assert preview["previewToken"]
         assert preview["impact"]["hasBreakingChanges"] is False
+        assert preview["changePlan"]["revisions"] == {
+            "currentDraftRevision": 1,
+            "publishedRevision": 1,
+            "nextDraftRevision": 2,
+        }
+        assert preview["changePlan"]["currentSnapshot"]["stage"] == "current_draft"
+        assert preview["changePlan"]["nextSnapshot"]["stage"] == "next_draft"
+        assert preview["changePlan"]["publishedSnapshot"]["stage"] == "published"
+        assert preview["changePlan"]["diff"]["hasChanges"] is True
+        assert preview["changePlan"]["diff"]["entries"][0]["target"] == "fields.reading_time_minutes"
+        assert preview["changePlan"]["applyReady"] is True
+        assert any(
+            gate["code"] == "revision_delta" and gate["status"] == "review"
+            for gate in preview["changePlan"]["applyGates"]
+        )
 
 
 @pytest.mark.asyncio
@@ -137,6 +152,54 @@ async def test_content_model_patch_requires_valid_preview_token(
 
 
 @pytest.mark.asyncio
+async def test_content_model_impact_preview_blocks_apply_when_defaults_break_item_truth(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        create_response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_blank_first_create_payload(),
+        )
+        assert create_response.status_code == 201, create_response.text
+        model_payload = create_response.json()["data"]
+        model_id = model_payload["id"]
+        model_site_id = decode_public_id(model_payload["siteId"])
+
+        await _seed_model_item(
+            workspace_id=workspace_id,
+            model_key="article",
+            model_id=model_id,
+            site_id=model_site_id,
+            title="Existing Article",
+            resolved_role="article",
+            resolved_posture="structured",
+            resolved_surface="structured",
+        )
+
+        preview = await _preview_model_update(
+            client,
+            workspace_id=workspace_id,
+            model_id=model_id,
+            payload={"defaultSurface": None},
+        )
+
+        assert preview["affectedItemsCount"] == 1
+        assert preview["recoveryItemsCount"] == 1
+        assert preview["reshapeItemsCount"] == 0
+        assert preview["hasBlockingChanges"] is True
+        assert preview["changePlan"]["applyReady"] is False
+        assert any(
+            gate["code"] == "continuation_recovery" and gate["status"] == "blocked"
+            for gate in preview["changePlan"]["applyGates"]
+        )
+        assert any(
+            entry["target"] == "defaults.default_surface" and entry["operation"] == "removed"
+            for entry in preview["changePlan"]["diff"]["entries"]
+        )
+
+
+@pytest.mark.asyncio
 async def test_content_model_locked_system_fields_are_rejected(
     prepared_db,
     integration_valkey_settings,
@@ -150,7 +213,7 @@ async def test_content_model_locked_system_fields_are_rejected(
         model_id = create_response.json()["data"]["id"]
         patch_response = await client.patch(
             f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
-            json={"defaultSurface": "structured"},
+            json={"name": "Renamed Article"},
         )
         assert patch_response.status_code == 409, patch_response.text
         assert patch_response.json()["error"] == "CONTENT_MODEL_SYSTEM_FIELD_LOCKED"

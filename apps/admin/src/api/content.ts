@@ -24,6 +24,18 @@ import type {
 
 const CONTENT_LIST_PAGE_SIZE = 200;
 
+export function buildContentModelsGovernanceQueryKey(workspaceId: string | null) {
+  return ["content", "models", "governance", workspaceId] as const;
+}
+
+export function buildContentModelPreviewQueryKey(
+  workspaceId: string | null,
+  modelId: string | null,
+  payloadKey: string | null,
+) {
+  return ["content", "models", "preview", workspaceId, modelId, payloadKey] as const;
+}
+
 async function collectAllPages<T>(fetchPage: (page: number) => Promise<PageData<T>>): Promise<T[]> {
   const firstPage = await fetchPage(1);
   const totalPages = Math.max(firstPage.pages ?? 0, 1);

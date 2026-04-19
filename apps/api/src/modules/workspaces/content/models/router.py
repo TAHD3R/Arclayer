@@ -130,6 +130,7 @@ def _to_preview_out(result: ContentModelImpactPreviewResult) -> ContentModelImpa
         has_blocking_changes=result.has_blocking_changes,
         preview_token=result.preview_token,
         impact=result.impact,
+        change_plan=result.change_plan,
     )
 
 

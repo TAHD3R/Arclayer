@@ -144,6 +144,62 @@ def test_official_model_registry_defines_v1_protocol_surface() -> None:
     assert protocols["category"].routing_policy == {"mode": "single", "slug_field": "slug"}
 
 
+def test_content_model_out_contract_registry_surfaces_formal_governance_sections() -> None:
+    registry_fields = contracts_schema.ContentModelContractRegistryOut.model_fields
+    boundary_fields = contracts_schema.ContentModelContractBoundaryOut.model_fields
+    capability_fields = contracts_schema.ContentModelCapabilityRegistryOut.model_fields
+    model_fields = contracts_schema.ContentModelOut.model_fields
+
+    assert "contract_registry" in model_fields
+    assert "boundaries" in registry_fields
+    assert "capabilities" in registry_fields
+    assert "workflow_policy" in registry_fields
+    assert "delivery_policy" in registry_fields
+    assert "graphql_policy" in registry_fields
+    assert "system_fields" in boundary_fields
+    assert "custom_fields" in boundary_fields
+    assert "locked_field_keys" in boundary_fields
+    assert "workflow" in capability_fields
+    assert "delivery" in capability_fields
+    assert "graphql" in capability_fields
+
+
+def test_content_model_impact_preview_contract_surfaces_change_plan_artifacts() -> None:
+    preview_fields = contracts_schema.ContentModelImpactPreviewOut.model_fields
+    change_plan_fields = contracts_schema.ContentModelSchemaChangePlanOut.model_fields
+    revision_fields = contracts_schema.ContentModelRevisionSummaryOut.model_fields
+    snapshot_fields = contracts_schema.ContentModelSchemaSnapshotOut.model_fields
+    diff_fields = contracts_schema.ContentModelSchemaDiffOut.model_fields
+    diff_entry_fields = contracts_schema.ContentModelSchemaDiffEntryOut.model_fields
+    gate_fields = contracts_schema.ContentModelSchemaApplyGateOut.model_fields
+
+    assert "change_plan" in preview_fields
+    assert "revisions" in change_plan_fields
+    assert "current_snapshot" in change_plan_fields
+    assert "next_snapshot" in change_plan_fields
+    assert "published_snapshot" in change_plan_fields
+    assert "diff" in change_plan_fields
+    assert "apply_gates" in change_plan_fields
+    assert "apply_ready" in change_plan_fields
+    assert "current_draft_revision" in revision_fields
+    assert "published_revision" in revision_fields
+    assert "next_draft_revision" in revision_fields
+    assert "stage" in snapshot_fields
+    assert "revision" in snapshot_fields
+    assert "payload" in snapshot_fields
+    assert "entries" in diff_fields
+    assert "breaking_change_count" in diff_fields
+    assert "kind" in diff_entry_fields
+    assert "operation" in diff_entry_fields
+    assert "target" in diff_entry_fields
+    assert "summary" in diff_entry_fields
+    assert "breaking" in diff_entry_fields
+    assert "code" in gate_fields
+    assert "status" in gate_fields
+    assert "title" in gate_fields
+    assert "detail" in gate_fields
+
+
 def test_item_has_capability_merges_item_and_model_capabilities() -> None:
     item_only = SimpleNamespace(
         capability_pack_ids=["publishable"],
