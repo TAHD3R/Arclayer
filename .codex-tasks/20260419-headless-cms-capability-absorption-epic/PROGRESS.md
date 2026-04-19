@@ -17,18 +17,18 @@
 
 ## Context Recovery Block
 
-**Current milestone**: Milestone 3 — execute Epic 1 Model Lifecycle Platform
-- **Current status**: DONE
+**Current milestone**: Milestone 4 — execute Epic 2 Document Runtime Platform
+- **Current status**: IN_PROGRESS
 - **Last completed**: Milestone 3 — execute Epic 1 Model Lifecycle Platform
 - **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
 - **Key context**:
   - Epic 0 is complete and its baseline docs now live under `docs/plan`.
   - Epic 1 is complete and its dependency on Epic 0 is satisfied.
   - Epic 1 now covers contract registry, schema change plan, and the Models governance operator workflow.
-  - The next active work should recover the next epic from `SUBTASKS.csv`.
+  - Epic 2 is now active and is being expanded from scaffold child rows into Module 2A~2G execution slices.
 - **Known issues**:
   - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic1 slice.
-- **Next action**: Recover Epic 2 child truth before implementation.
+- **Next action**: Continue Epic 2 child task by finishing Module 2A facade mapping and then implement the first backend runtime slice.
 
 ---
 
@@ -114,3 +114,25 @@
   - `locales/zh-CN/content.json`
   - `packages/openapi/src/generated/types.gen.ts`
 - **Next step**: Recover Epic 2 child truth before coding.
+
+---
+
+## Milestone 4: Execute Epic 2 Document Runtime Platform
+
+- **Status**: IN_PROGRESS
+- **Started**: 2026-04-19
+- **Completed**: In progress
+- **What was done**:
+  - Activated child task `20260419-epic2-document-runtime-platform`.
+  - Recovered live Epic2 scope from the implementation plan section covering Module 2A through 2G.
+  - Mapped current backend runtime entry points across `content/items`, `workspaces/publish`, `sites/publishing`, and `sites/graphql`.
+  - Mapped current frontend consumer surfaces across `Content Library`, `article editor`, and `item resolver`.
+  - Expanded the child `TODO.csv` from 3 scaffold rows into 6 module-aligned execution rows tied to live repo files.
+- **Validation**:
+  - `rg -n "Epic 2|Module 2A|Module 2B|Module 2C|Module 2D|Module 2E|Module 2F|Module 2G" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md` → passed
+- **Files changed**:
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/PROGRESS.md`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic2-document-runtime-platform/TODO.csv`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic2-document-runtime-platform/PROGRESS.md`
+- **Next step**: Complete the first executable Epic2 slice around Module 2A Document Facade.

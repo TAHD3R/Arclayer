@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,细化 workflow domain 与 release orchestration 任务,TODO,stage/transition/release/rollback/readiness 任务齐备,"rg -n ""Module 5A|Module 5B|Module 5C"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+2,细化 workflow UI surfaces 任务,TODO,stage lane/editor workflow lane/transition dialog 任务齐备,"rg -n ""Module 5D|Workflow UI Surfaces"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+3,细化 release center UI 任务,TODO,release list/detail/dry-run/impact viewer 任务齐备,"rg -n ""Module 5E|Release Center UI"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,

@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,细化 asset system object 与 file lifecycle 任务,TODO,asset/folder/tag/metadata/history/direct-delivery 任务齐备,"rg -n ""Module 8A|Module 8B|Asset and File System Object Platform"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+2,细化 asset query and SDK surface 任务,TODO,management SDK、delivery SDK、GraphQL file object 任务齐备,"rg -n ""Module 8C|Asset Query and SDK Surface"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+3,细化 assets management surface 与 editor asset pickers 任务,TODO,files/folders/usage/history/pickers 任务齐备,"rg -n ""Module 8D|Assets Management Surface"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,

@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,细化 audit objects 与 observability 任务,TODO,audit events、metrics、logs、diagnostics contracts 任务齐备,"rg -n ""Module 10A|Module 10B|Audit, Observability"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+2,细化 benchmarks 和 upgrade tooling 任务,TODO,benchmark/coverage/readiness/compatibility/regression 任务齐备,"rg -n ""Module 10C|Module 10D|Benchmarks and Readiness Gates"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+3,细化 diagnostics and operator surfaces 任务,TODO,diagnostics 页面、operator links、只读运营面 任务齐备,"rg -n ""Module 10E|Diagnostics and Operator Surfaces"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,

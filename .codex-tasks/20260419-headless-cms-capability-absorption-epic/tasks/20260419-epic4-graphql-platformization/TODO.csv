@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,细化 GraphQL schema builder 与 runtime 任务,TODO,schema registry、object types、planner、sanitization 任务齐备,"rg -n ""Module 4A|Module 4B|GraphQL Platformization"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+2,细化 extension hooks 与 artifacts 工作流任务,TODO,schema hooks、manifest、changelog、snapshot validation 任务齐备,"rg -n ""Module 4C|Module 4D|Artifact and Version Workflow"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+3,细化 realtime foundation 与 frontend query consumer layer,TODO,subscription contract、shared input contract、query helpers 任务齐备,"rg -n ""Module 4E|Module 4F|Query Builder and Developer Surfaces"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,

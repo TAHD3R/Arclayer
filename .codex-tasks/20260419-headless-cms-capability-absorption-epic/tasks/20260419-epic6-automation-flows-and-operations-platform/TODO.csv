@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,细化 flow domain 和 operation runtime 任务,TODO,flow/trigger/operation/run/run log 任务齐备,"rg -n ""Module 6A|Module 6B|Automation Flows and Operations Platform"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+2,细化 execution safety 与 SDK surface 任务,TODO,retry/dead-letter/secrets/CRUD/SDK client 任务齐备,"rg -n ""Module 6C|Module 6D|Management and SDK Surfaces"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+3,细化 automation builder UI 任务,TODO,builder、trigger picker、run log、credentials summary 任务齐备,"rg -n ""Module 6E|Automation Builder UI"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,

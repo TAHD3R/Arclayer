@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,细化 backend extension registry 与 admin extension contracts,TODO,manifest/capability/slots/contracts 任务齐备,"rg -n ""Module 7A|Module 7B|Extension and Admin Surface Platform"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+2,细化 editor plugin surface 与 packaging lifecycle,TODO,plugin manifest/toolbar hooks/test harness/install lifecycle 任务齐备,"rg -n ""Module 7C|Module 7D|Editor Plugin Surface"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+3,细化 marketplace 与 site builder frontend 任务,TODO,extensions page/detail、site builder shell、layout slots 任务齐备,"rg -n ""Module 7E|Module 7F|Extensions Marketplace and Detail Surfaces"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,

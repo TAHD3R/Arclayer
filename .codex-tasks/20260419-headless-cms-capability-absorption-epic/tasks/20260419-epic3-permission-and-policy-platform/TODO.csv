@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,细化 action registry 与 policy core 任务,TODO,action、policy、decision、context 任务齐备,"rg -n ""Module 3A|Module 3B|Policy Evaluation Core"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+2,细化 query field payload enforcement 任务,TODO,management/graphql/delivery/API key enforcement 任务齐备,"rg -n ""Module 3C|Query / Field / Payload Enforcement"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
+3,细化 permissions admin surface 与 frontend consumption,TODO,roles/policy matrix/route guards/component guards 任务齐备,"rg -n ""Module 3E|Module 3F|Permissions Admin Surface"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
