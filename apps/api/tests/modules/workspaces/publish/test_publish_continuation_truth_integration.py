@@ -58,6 +58,7 @@ async def test_publish_impact_blocks_unshaped_items_from_resolved_truth(
                 "reasonCode": "CONTINUATION_TRUTH_MISSING",
                 "shapeState": "unshaped",
                 "reasonMeta": {"source": "test"},
+                "workflowStage": "approved",
             }
         ]
 

@@ -58,6 +58,13 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
         icon: LibraryBig,
       },
       {
+        key: "content.releases",
+        label: "Release Center",
+        labelKey: "nav:NAV_CONTENT_RELEASES",
+        to: "/content/releases",
+        icon: History,
+      },
+      {
         key: "settings.site",
         label: "Site Settings",
         labelKey: "nav:NAV_SETTINGS_SITE",

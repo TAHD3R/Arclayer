@@ -17,10 +17,10 @@
 
 ## Context Recovery Block
 
-**Current milestone**: Milestone 6 — execute Epic 4 GraphQL Platformization
+**Current milestone**: Milestone 7 — execute Epic 5 Editorial Workflow and Release Orchestration
 - **Current status**: DONE
-- **Last completed**: Epic4 complete
-- **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic4-graphql-platformization/TODO.csv`
+- **Last completed**: Epic5 complete
+- **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic5-editorial-workflow-and-release-orchestration/TODO.csv`
 - **Key context**:
   - Epic 0 is complete and its baseline docs now live under `docs/plan`.
   - Epic 1 is complete and its dependency on Epic 0 is satisfied.
@@ -37,9 +37,13 @@
   - Epic4 delivery SDK manifest helper slice is complete with `packages/delivery-sdk/src/graphql-manifest.ts`, and SDK verification is green with `pnpm --filter @arclayer/delivery-sdk test` plus `pnpm --filter @arclayer/delivery-sdk typecheck`.
   - The SDK REST client now calls the current generated runtime delivery OpenAPI functions while preserving its existing `siteId` external input contract.
   - Epic4 is now complete: frontend/shared query input helpers also landed in `packages/delivery-sdk/src/graphql-query-input.ts`, backend focused verification passed with 33 tests, and SDK focused verification passed with 9 tests plus typecheck.
+  - Epic5 is now complete: backend workflow enums and content plus release metadata are live, content item workflow projection and workflow patch API are live, publish gates now honor workflow stage readiness, and release dry-run plus readiness summary plus lineage contracts are live.
+  - Epic5 admin workflow consumption is also live: Content Library columns render workflow status, article editor exposes the workflow lane and runtime refresh, and Release Center ships with readiness, blocker, lineage, publish, and rollback UI.
+  - Epic5 backend focused verification passed with `env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/publish tests/modules/workspaces/releases`.
+  - Epic5 admin focused verification passed with `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-library-table-columns.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-release-center-page.test.tsx` plus `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-library-runtime.test.ts`.
 - **Known issues**:
-  - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic1 slice.
-- **Next action**: Proceed to Epic 5 Editorial Workflow and Release Orchestration.
+  - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic5 slice, including localization options, workspace list items, workspace basics localization, roles view, asset preview dialog, and older test fixtures.
+- **Next action**: Proceed to Epic 6 Automation Flows and Operations Platform.
 
 ---
 
@@ -205,3 +209,89 @@
   - `timeout 60s pnpm -C apps/admin exec vitest run test/pages/settings/context-settings-pages.test.tsx test/pages/workspaces/content/content-models-control-center.test.tsx test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-site-builder-shell.test.tsx test/pages/workspaces/content/content-library-row-actions.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-editor-toolbar-ui.test.tsx test/pages/settings/general-settings-shell-permissions.test.tsx test/pages/workspaces/assets/assets-page-view.test.tsx test/pages/workspaces/assets/assets-view-overlays.test.tsx test/pages/workspaces/assets/asset-preview-dialog.test.tsx` → passed with 11 files / 83 tests
   - `pnpm -C apps/admin exec tsc --noEmit --pretty false --skipLibCheck` → blocked by pre-existing repo errors outside the Assets slice
 - **Next step**: Proceed to Epic 4.
+
+---
+
+## Milestone 6: Execute Epic 4 GraphQL Platformization
+
+- **Status**: DONE
+- **Started**: 2026-04-19
+- **Completed**: 2026-04-19
+- **What was done**:
+  - Activated child task `20260419-epic4-graphql-platformization`.
+  - Added GraphQL schema registry, artifact export verification, query planner, hook contracts, subscription contracts, and shared delivery SDK manifest helpers.
+  - Added shared frontend query input helpers so schema-aware GraphQL consumers can build filter, sort, and pagination payloads from one contract.
+- **Validation**:
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_graphql_integration.py tests/modules/sites/test_sites_graphql_service_unit.py tests/modules/sites/test_sites_graphql_artifacts_unit.py tests/modules/sites/test_sites_graphql_subscriptions_unit.py` → passed
+  - `pnpm --filter @arclayer/delivery-sdk test` → passed
+  - `pnpm --filter @arclayer/delivery-sdk typecheck` → passed
+- **Files changed**:
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic4-graphql-platformization/TODO.csv`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic4-graphql-platformization/PROGRESS.md`
+  - `apps/api/src/modules/sites/graphql/registry.py`
+  - `apps/api/src/modules/sites/graphql/planner.py`
+  - `apps/api/src/modules/sites/graphql/hooks.py`
+  - `apps/api/src/modules/sites/graphql/subscriptions.py`
+  - `packages/delivery-sdk/src/graphql-manifest.ts`
+  - `packages/delivery-sdk/src/graphql-query-input.ts`
+- **Next step**: Proceed to Epic 5.
+
+---
+
+## Milestone 7: Execute Epic 5 Editorial Workflow and Release Orchestration
+
+- **Status**: DONE
+- **Started**: 2026-04-19
+- **Completed**: 2026-04-19
+- **What was done**:
+  - Activated child task `20260419-epic5-editorial-workflow-and-release-orchestration`.
+  - Added workflow enums plus content item and release metadata fields, along with migration `0013_editorial_workflow_release_metadata.py`.
+  - Added content item workflow projection and item-level workflow patch API, then wired publish safety gates to workflow stage readiness.
+  - Added release dry-run, readiness summary, blocked item diagnostics, lineage metadata, and selection count contracts on the backend.
+  - Synced generated OpenAPI/admin content types and extended admin API helpers for workflow and release operations.
+  - Added Content Library workflow projection, article editor workflow lane with runtime refresh, and the full Release Center route and page rollout with publish, rollback, blocker, and lineage surfaces.
+- **Validation**:
+  - `env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/publish tests/modules/workspaces/releases` → passed
+  - `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-library-table-columns.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-release-center-page.test.tsx` → passed
+  - `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-library-runtime.test.ts` → passed
+- **Files changed**:
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic5-editorial-workflow-and-release-orchestration/TODO.csv`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic5-editorial-workflow-and-release-orchestration/PROGRESS.md`
+  - `apps/api/src/models/content/_enums.py`
+  - `apps/api/src/models/content/content_item.py`
+  - `apps/api/src/models/content/release.py`
+  - `apps/api/src/migrations/0013_editorial_workflow_release_metadata.py`
+  - `apps/api/src/modules/workspaces/content/contracts/schema.py`
+  - `apps/api/src/modules/workspaces/content/items/input_schema.py`
+  - `apps/api/src/modules/workspaces/content/items/domain_helpers.py`
+  - `apps/api/src/modules/workspaces/content/items/canonical_service.py`
+  - `apps/api/src/modules/workspaces/content/items/router.py`
+  - `apps/api/src/modules/workspaces/publish/schema.py`
+  - `apps/api/src/modules/workspaces/publish/service.py`
+  - `apps/api/src/modules/workspaces/releases/schema.py`
+  - `apps/api/src/modules/workspaces/releases/service.py`
+  - `apps/api/src/modules/workspaces/releases/router.py`
+  - `apps/api/tests/modules/workspaces/publish/test_publish_workflow_integration.py`
+  - `apps/api/tests/modules/workspaces/releases/test_release_dry_run_integration.py`
+  - `packages/openapi/src/admin-types.ts`
+  - `packages/openapi/src/generated/types.gen.ts`
+  - `apps/admin/src/api/content.ts`
+  - `apps/admin/src/types/api/content.ts`
+  - `apps/admin/src/pages/workspaces/content/library/components/content-library-table-columns.tsx`
+  - `apps/admin/src/pages/workspaces/content/library/article-editor/components/content-library-article-editor-shell.tsx`
+  - `apps/admin/src/pages/workspaces/content/library/article-editor/hooks/use-content-library-article-editor.ts`
+  - `apps/admin/src/pages/workspaces/content/library/runtime/index.ts`
+  - `apps/admin/src/pages/workspaces/content/releases/page.tsx`
+  - `apps/admin/src/routes/projects/$projectId/content/releases/index.tsx`
+  - `apps/admin/src/routes/projects/$projectId/content/releases/index.lazy.tsx`
+  - `apps/admin/src/constants/menu/workspaces.ts`
+  - `apps/admin/src/lib/routing/workspace-content-routing.ts`
+  - `apps/admin/test/pages/workspaces/content/content-library-table-columns.test.tsx`
+  - `apps/admin/test/pages/workspaces/content/content-library-article-editor-page.test.tsx`
+  - `apps/admin/test/pages/workspaces/content/content-release-center-page.test.tsx`
+  - `locales/en-US/content.json`
+  - `locales/zh-CN/content.json`
+  - `locales/en-US/nav.json`
+  - `locales/zh-CN/nav.json`
+- **Next step**: Proceed to Epic 6.

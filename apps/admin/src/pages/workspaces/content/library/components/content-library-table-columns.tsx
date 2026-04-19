@@ -148,6 +148,36 @@ function ContentLibraryDiagnosticsCell(props: { row: ContentLibraryTableRow }) {
   );
 }
 
+function ContentLibraryWorkflowCell(props: { row: ContentLibraryTableRow }) {
+  const { t } = useTranslation("content");
+  const stage = props.row.workflowStage ?? "drafting";
+  const ready = props.row.publishReadiness?.ready === true;
+  const blockerCodes = props.row.publishReadiness?.blockerCodes ?? [];
+  const tone = ready ? "green" : stage === "approved" ? "blue" : "gold";
+
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex min-w-0 items-center gap-2">
+        <BaseTag color={tone}>{t(`CONTENT_LIBRARY_WORKFLOW_STAGE_${stage.toUpperCase()}`)}</BaseTag>
+        {ready ? (
+          <span className="text-footnote text-label-secondary">
+            {t("CONTENT_LIBRARY_WORKFLOW_READY")}
+          </span>
+        ) : null}
+      </div>
+      {blockerCodes.length > 0 ? (
+        <div className="truncate text-footnote text-label-secondary">
+          {t("CONTENT_LIBRARY_WORKFLOW_BLOCKED_BY", { count: blockerCodes.length })}
+        </div>
+      ) : props.row.workflowSummary ? (
+        <div className="truncate text-footnote text-label-secondary">
+          {props.row.workflowSummary}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function useContentLibraryTableColumns(params: {
   formatDateTimeOrNull: (value: string | null | undefined) => string | null;
   actionPending: boolean;
@@ -262,6 +292,17 @@ export function useContentLibraryTableColumns(params: {
         cell: ({ row }) => <ContentLibraryRuntimeBadgeList row={row.original} />,
         size: 250,
         minSize: 220,
+      },
+      {
+        accessorKey: "workflowStage",
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_WORKFLOW"),
+          kind: "meta",
+        },
+        header: t("CONTENT_LIBRARY_TABLE_COL_WORKFLOW"),
+        cell: ({ row }) => <ContentLibraryWorkflowCell row={row.original} />,
+        size: 230,
+        minSize: 200,
       },
       {
         id: "diagnostics",

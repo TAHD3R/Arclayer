@@ -34,6 +34,14 @@ export function workspaceContentModelsPath(workspaceId: string): string {
   return `/projects/${encodeURIComponent(projectId)}/content/models`;
 }
 
+export function workspaceContentReleasesPath(workspaceId: string): string {
+  const projectId =
+    useWorkspaceStore.getState().currentProjectId ??
+    useWorkspaceStore.getState().lastProjectId ??
+    workspaceId;
+  return `/projects/${encodeURIComponent(projectId)}/content/releases`;
+}
+
 export function workspaceContentCreatePath(workspaceId: string): string {
   const projectId =
     useWorkspaceStore.getState().currentProjectId ??

@@ -30,6 +30,7 @@ const mocked = vi.hoisted(() => ({
   listWorkspacePermissionActions: vi.fn(),
   saveContentItemDraftVersion: vi.fn(),
   patchContentItemVersion: vi.fn(),
+  patchContentItemWorkflow: vi.fn(),
   publishContentItemVersion: vi.fn(),
 }));
 
@@ -89,6 +90,7 @@ vi.mock("@/pages/workspaces/content/library/article-editor/hooks/api", async (im
 vi.mock("@/api/content", () => ({
   saveContentItemDraftVersion: (...args: unknown[]) => mocked.saveContentItemDraftVersion(...args),
   patchContentItemVersion: (...args: unknown[]) => mocked.patchContentItemVersion(...args),
+  patchContentItemWorkflow: (...args: unknown[]) => mocked.patchContentItemWorkflow(...args),
   publishContentItemVersion: (...args: unknown[]) => mocked.publishContentItemVersion(...args),
 }));
 
@@ -265,7 +267,12 @@ function buildSnapshot(options?: {
       capabilityPackIds: ["publishable", "rich_text_editable", "seo_managed"],
       draftVersion: options?.draftVersionNumber ?? 3,
       publishedVersion: 2,
+      publishReadiness: { ready: false, blockerCodes: ["WORKFLOW_STAGE_NOT_APPROVED"] },
       updatedAt: "2026-03-28T00:00:00Z",
+      workflowAssigneeUserId: null,
+      workflowNotes: [],
+      workflowStage: "drafting",
+      workflowSummary: "Needs review",
     },
     draftVersion: {
       itemId: "content-1",
@@ -317,6 +324,12 @@ function buildEditorRuntime(
       shapeState: "ready",
       bootstrapPresetState: "selected",
     },
+    workflow: {
+      stage: "drafting",
+      assigneeUserId: null,
+      summary: "Needs review",
+      publishReadiness: { ready: false, blockerCodes: ["WORKFLOW_STAGE_NOT_APPROVED"] },
+    },
     badges: [],
     diagnostics: [],
     ...overrides,
@@ -331,6 +344,7 @@ describe("content-library-article-editor-page", () => {
     mocked.getCoreSettings.mockReset();
     mocked.saveContentItemDraftVersion.mockReset();
     mocked.patchContentItemVersion.mockReset();
+    mocked.patchContentItemWorkflow.mockReset();
     mocked.publishContentItemVersion.mockReset();
     renderStats.providerDocuments.length = 0;
     renderStats.toolbarRenders = 0;
@@ -739,5 +753,57 @@ describe("content-library-article-editor-page", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onOpenPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("updates workflow lane through the workflow patch endpoint", async () => {
+    const user = userEvent.setup();
+    mocked.patchContentItemWorkflow.mockResolvedValueOnce({
+      ...buildSnapshot().item,
+      publishReadiness: { ready: true, blockerCodes: [] },
+      workflowAssigneeUserId: null,
+      workflowNotes: [],
+      workflowStage: "approved",
+      workflowSummary: "Approved for release",
+    });
+
+    renderWithQuery(
+      <ContentLibraryArticleEditorShell
+        workspaceId="ws-1"
+        itemId="content-1"
+        mode="page"
+        title="Test article"
+        summary=""
+        onTitleChange={vi.fn()}
+        onSummaryChange={vi.fn()}
+        slug="test-article"
+        onSlugChange={vi.fn()}
+        status="draft"
+        visibility="public"
+        onVisibilityChange={vi.fn()}
+        coverAssetId=""
+        onCoverAssetIdChange={vi.fn()}
+        seo={{
+          metaTitle: "",
+          metaDescription: "",
+          canonicalUrl: "",
+          robotsDirective: "",
+        }}
+        onSeoChange={vi.fn()}
+        runtime={buildEditorRuntime()}
+        onPublish={vi.fn()}
+        onWorkflowUpdated={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_WORKFLOW_ACTION_APPROVED" }),
+    );
+
+    await waitFor(() => {
+      expect(mocked.patchContentItemWorkflow).toHaveBeenCalledWith("ws-1", "content-1", {
+        stage: "approved",
+        summary: "CONTENT_LIBRARY_WORKFLOW_SUMMARY_APPROVED",
+      });
+    });
   });
 });

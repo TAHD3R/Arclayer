@@ -279,6 +279,11 @@ export type AdminContentModelImpactPreview = Omit<
 };
 export type AdminContentItemStatus = NonNullable<Generated.ContentItemOut["status"]>;
 export type AdminContentItemVisibility = NonNullable<Generated.ContentItemOut["visibility"]>;
+export type AdminContentShapeState = NonNullable<Generated.ContentItemOut["shapeState"]>;
+export type AdminContentWorkflowStage = NonNullable<Generated.ContentItemOut["workflowStage"]>;
+export type AdminContentItemWorkflowNote = Generated.ContentItemWorkflowNoteOut;
+export type AdminContentItemPublishReadiness = Generated.ContentItemPublishReadinessOut;
+export type PatchAdminContentItemWorkflowPayload = Generated.ContentItemWorkflowPatchIn;
 export type AdminContentBootstrapPresetState = NonNullable<
   Generated.ContentItemBootstrapShapeIn["presetState"]
 >;
@@ -310,8 +315,18 @@ export type PatchAdminContentVersionPayload = Generated.ContentVersionPatchIn;
 export type AdminContentSeoProfile = Generated.ContentSeoProfileOut;
 export type AdminPublishImpact = RequiredDefined<
   Generated.PublishImpactOut,
-  "blockedItems" | "missingRoutes" | "unpublishedDependencies" | "unresolvedRelations"
+  | "blockedItems"
+  | "missingRoutes"
+  | "readinessSummary"
+  | "unpublishedDependencies"
+  | "unresolvedRelations"
 >;
+export type AdminPublishReadinessSummary = Generated.PublishReadinessSummaryOut;
+export type AdminRelease = Generated.ReleaseOut;
+export type AdminReleaseList = Generated.ReleaseListOut;
+export type AdminReleasePublishResult = Generated.ReleasePublishOut;
+export type AdminReleaseRollbackResult = Generated.ReleaseRollbackOut;
+export type AdminReleaseDryRun = Generated.ReleaseDryRunOut;
 export type ListAdminContentModelsParams =
   QueryOf<Generated.DomainWorkspacesListWorkspaceContentModelsCanonicalData>;
 export type ListAdminContentItemsParams =

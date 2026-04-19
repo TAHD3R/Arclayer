@@ -19,6 +19,19 @@ class PublishBlockedItemOut(BaseSchema):
         default=None,
         description="Structured blocker metadata propagated from continuation truth or publish validation.",
     )
+    workflow_stage: str | None = Field(default=None, description="Editorial workflow stage captured during publish.")
+
+
+class PublishReadinessSummaryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    ready: bool = Field(default=False, description="Whether the workspace site selection is ready to publish.")
+    selected_item_count: int = Field(default=0, ge=0, description="Number of publishable items considered by preview.")
+    blocked_item_count: int = Field(default=0, ge=0, description="Number of blocked items in the current preview.")
+    blocker_codes: list[str] = Field(
+        default_factory=list,
+        description="Distinct blocker codes found during readiness evaluation.",
+    )
 
 
 class PublishImpactOut(BaseSchema):
@@ -33,6 +46,10 @@ class PublishImpactOut(BaseSchema):
         default_factory=list,
         description="Published items blocked by resolved continuation truth or publish validation.",
     )
+    readiness_summary: PublishReadinessSummaryOut = Field(
+        default_factory=PublishReadinessSummaryOut,
+        description="Aggregated readiness summary for release orchestration.",
+    )
 
 
 class PublishArtifactsOut(BaseSchema):
@@ -40,6 +57,7 @@ class PublishArtifactsOut(BaseSchema):
 
     graph_nodes: int = Field(default=0, ge=0, description="Number of generated graph nodes.")
     impact: PublishImpactOut = Field(..., description="Publish impact summary.")
+    selection_count: int = Field(default=0, ge=0, description="Number of selected items captured in the release.")
 
 
 class PublishExportRoutePointerOut(BaseSchema):

@@ -38,6 +38,7 @@ ContentContinuationRole = Literal[
 ContentContinuationPosture = Literal["page", "entry", "composition", "structured"]
 ContentContinuationSurface = Literal["writing", "canvas", "structured"]
 ContentShapeState = Literal["ready", "blocked", "unshaped"]
+ContentWorkflowStage = Literal["drafting", "in_review", "changes_requested", "approved"]
 ContentWorkbenchDerivedStatus = Literal["published", "changed", "draft", "archived"]
 ContentWorkbenchRuntime = Literal["text", "visual", "data", "unknown"]
 ContentWorkbenchContext = Literal["site_builder", "content_library", "system", "custom", "standalone"]
@@ -380,6 +381,24 @@ class ContentOpenIntentOut(BaseSchema):
     )
 
 
+class ContentItemWorkflowNoteOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    body: str = Field(..., min_length=1, description="Workflow note body.")
+    created_at: datetime = Field(..., description="Workflow note timestamp.")
+    actor_user_id: PublicUUID | None = Field(default=None, description="Optional note author id.")
+
+
+class ContentItemPublishReadinessOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    ready: bool = Field(default=False, description="Whether the item is currently ready for publish orchestration.")
+    blocker_codes: list[str] = Field(
+        default_factory=list,
+        description="Machine-readable blocker codes that explain why publish is still blocked.",
+    )
+
+
 class ContentItemOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -455,6 +474,25 @@ class ContentItemOut(BaseSchema):
     shape_reason_meta: dict[str, Any] | None = Field(
         default=None,
         description="Structured metadata for the current shape reason.",
+    )
+    workflow_stage: ContentWorkflowStage = Field(
+        default="drafting",
+        description="Current editorial workflow stage for the item.",
+    )
+    workflow_assignee_user_id: PublicUUID | None = Field(
+        default=None,
+        description="Current editorial assignee for the item.",
+    )
+    workflow_summary: str | None = Field(
+        default=None, description="Optional workflow summary for current review cycle."
+    )
+    workflow_notes: list[ContentItemWorkflowNoteOut] = Field(
+        default_factory=list,
+        description="Editorial workflow notes attached to the item.",
+    )
+    publish_readiness: ContentItemPublishReadinessOut = Field(
+        default_factory=ContentItemPublishReadinessOut,
+        description="Per-item readiness summary used by workflow and release surfaces.",
     )
     open_intent: ContentOpenIntentOut | None = Field(
         default=None,

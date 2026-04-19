@@ -5,7 +5,7 @@ import { ImagePlus, Maximize2, PanelRightClose, Search, Upload } from "lucide-re
 import { useTranslation } from "react-i18next";
 import { useEditorScrollRef } from "platejs/react";
 
-import { deleteContentItem, duplicateContentItem } from "@/api/content";
+import { deleteContentItem, duplicateContentItem, patchContentItemWorkflow } from "@/api/content";
 import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import {
   workspaceContentLibraryItemPath,
@@ -37,8 +37,10 @@ import { ContentLibraryArticleEditorDateLocalizationProvider } from "./content-l
 import { ContentLibraryArticleEditorUpdatesPanel } from "./content-library-article-editor-updates-panel";
 import { ContentLibraryArticleEditorVersionHistorySurface } from "./content-library-article-editor-version-history-surface";
 import type { ContentLibraryArticleEditorRuntimeState } from "@/pages/workspaces/content/library/runtime";
+import type { AdminContentItemPublishReadiness, AdminContentWorkflowStage } from "@/types/api";
 
 const ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY = "content-library-article-editor:pending-panel";
+const WORKFLOW_TRANSITION_STAGES = ["in_review", "changes_requested", "approved"] as const;
 
 type ContentLibraryArticleEditorShellProps = {
   workspaceId: string;
@@ -70,6 +72,12 @@ type ContentLibraryArticleEditorShellProps = {
   bodyDocument?: Record<string, unknown>;
   onBodyDocumentChange?: (value: Record<string, unknown>) => void;
   isLoading?: boolean;
+  onWorkflowUpdated?: (value: {
+    publishReadiness?: AdminContentItemPublishReadiness | null;
+    workflowAssigneeUserId?: string | null;
+    workflowStage?: AdminContentWorkflowStage | null;
+    workflowSummary?: string | null;
+  }) => void;
   runtime: ContentLibraryArticleEditorRuntimeState;
   onPublish?: () => void;
   onClose?: () => void;
@@ -179,6 +187,56 @@ function ArticleEditorRuntimeSummary(props: { runtime: ContentLibraryArticleEdit
   );
 }
 
+function ArticleEditorWorkflowLane(props: {
+  disabled?: boolean;
+  onTransition: (stage: (typeof WORKFLOW_TRANSITION_STAGES)[number]) => void;
+  pending?: boolean;
+  runtime: ContentLibraryArticleEditorRuntimeState;
+}) {
+  const { t } = useTranslation("content");
+  const readiness = props.runtime.workflow.publishReadiness;
+  const blockerCodes = readiness?.blockerCodes ?? [];
+
+  return (
+    <div className="border-b border-border/70 bg-muted/20 px-4 py-3 md:px-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="rounded-full px-2.5">
+              {t(`CONTENT_LIBRARY_WORKFLOW_STAGE_${props.runtime.workflow.stage.toUpperCase()}`)}
+            </Badge>
+            <span className="text-footnote text-label-secondary">
+              {readiness?.ready
+                ? t("CONTENT_LIBRARY_WORKFLOW_READY")
+                : t("CONTENT_LIBRARY_WORKFLOW_NEEDS_REVIEW")}
+            </span>
+          </div>
+          <p className="mt-1 truncate text-footnote text-label-secondary">
+            {props.runtime.workflow.summary ||
+              (blockerCodes.length > 0
+                ? t("CONTENT_LIBRARY_WORKFLOW_BLOCKED_BY", { count: blockerCodes.length })
+                : t("CONTENT_LIBRARY_WORKFLOW_LANE_DESC"))}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {WORKFLOW_TRANSITION_STAGES.map((stage) => (
+            <Button
+              key={stage}
+              type="button"
+              variant={props.runtime.workflow.stage === stage ? "default" : "outline"}
+              size="sm"
+              disabled={props.disabled || props.pending || props.runtime.workflow.stage === stage}
+              onClick={() => props.onTransition(stage)}
+            >
+              {t(`CONTENT_LIBRARY_WORKFLOW_ACTION_${stage.toUpperCase()}`)}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
   const { t } = useTranslation(["content", "common"]);
   const permissionAccess = useWorkspacePermissionAccess(props.workspaceId);
@@ -239,6 +297,26 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
       await navigate({
         to: workspaceContentLibraryPath(props.workspaceId),
       } as never);
+    },
+    onError: (error) => notifyError(error),
+  });
+  const workflowMutation = useMutation({
+    mutationFn: async (stage: (typeof WORKFLOW_TRANSITION_STAGES)[number]) =>
+      patchContentItemWorkflow(props.workspaceId, props.itemId, {
+        stage,
+        summary: t(`CONTENT_LIBRARY_WORKFLOW_SUMMARY_${stage.toUpperCase()}`),
+      }),
+    onSuccess: async (item) => {
+      props.onWorkflowUpdated?.({
+        publishReadiness: item.publishReadiness ?? null,
+        workflowAssigneeUserId: item.workflowAssigneeUserId ?? null,
+        workflowStage: item.workflowStage ?? null,
+        workflowSummary: item.workflowSummary ?? null,
+      });
+      notifySuccessText(t("CONTENT_LIBRARY_WORKFLOW_UPDATE_SUCCESS"));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentLibraryItemsQueryKey(props.workspaceId),
+      });
     },
     onError: (error) => notifyError(error),
   });
@@ -353,6 +431,13 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
             onOpenSeo={() => setSeoDialogOpen(true)}
           />
         ) : null}
+
+        <ArticleEditorWorkflowLane
+          disabled={!canPublish}
+          onTransition={(stage) => workflowMutation.mutate(stage)}
+          pending={workflowMutation.isPending}
+          runtime={props.runtime}
+        />
 
         <div className="min-h-0 flex-1 overflow-hidden">
           <div

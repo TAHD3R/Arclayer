@@ -12,8 +12,10 @@ import type {
   AdminContentBootstrapPresetState,
   AdminContentItemStatus,
   AdminContentItemVisibility,
+  AdminContentItemPublishReadiness,
   AdminContentPresentation,
   AdminContentShapeState,
+  AdminContentWorkflowStage,
   AdminContentWorkbenchDerivedStatus,
   AdminContentVersion,
   AdminContentVersionState,
@@ -60,9 +62,13 @@ type ContentLibraryArticleEditorItemRuntime = {
   bootstrapPresetState: AdminContentBootstrapPresetState;
   derivedStatus: AdminContentWorkbenchDerivedStatus;
   publishedVersion: number | null;
+  publishReadiness: AdminContentItemPublishReadiness | null;
   shapeState: AdminContentShapeState;
   status: AdminContentItemStatus;
   visibility: AdminContentItemVisibility;
+  workflowAssigneeUserId: string | null;
+  workflowStage: AdminContentWorkflowStage;
+  workflowSummary: string | null;
 };
 
 function readStringField(source: Record<string, unknown>, key: string): string {
@@ -285,9 +291,13 @@ export function useContentLibraryArticleEditor(params: {
     bootstrapPresetState: "none",
     derivedStatus: "draft",
     publishedVersion: null,
+    publishReadiness: null,
     shapeState: "unshaped",
     status: "draft",
     visibility: "public",
+    workflowAssigneeUserId: null,
+    workflowStage: "drafting",
+    workflowSummary: null,
   });
   const [currentVersionNumber, setCurrentVersionNumber] = React.useState<number | null>(null);
   const [currentVersionState, setCurrentVersionState] =
@@ -536,10 +546,14 @@ export function useContentLibraryArticleEditor(params: {
         setItemRuntime({
           bootstrapPresetState: snapshot.item.bootstrapPresetState ?? "none",
           derivedStatus: snapshot.item.derivedStatus,
-          publishedVersion: snapshot.item.publishedVersion,
+          publishedVersion: snapshot.item.publishedVersion ?? null,
+          publishReadiness: snapshot.item.publishReadiness ?? null,
           shapeState: snapshot.item.shapeState ?? "unshaped",
           status: snapshot.item.status,
           visibility: snapshot.item.visibility,
+          workflowAssigneeUserId: snapshot.item.workflowAssigneeUserId ?? null,
+          workflowStage: snapshot.item.workflowStage ?? "drafting",
+          workflowSummary: snapshot.item.workflowSummary ?? null,
         });
         setCurrentVersionNumber(snapshot.draftVersion?.versionNumber ?? null);
         setCurrentVersionState(snapshot.draftVersion?.state ?? null);
@@ -677,6 +691,25 @@ export function useContentLibraryArticleEditor(params: {
     readCurrentDraft,
   ]);
 
+  const updateWorkflow = React.useCallback(
+    (value: {
+      publishReadiness?: AdminContentItemPublishReadiness | null;
+      workflowAssigneeUserId?: string | null;
+      workflowStage?: AdminContentWorkflowStage | null;
+      workflowSummary?: string | null;
+    }) => {
+      setItemRuntime((current) => ({
+        ...current,
+        publishReadiness:
+          value.publishReadiness === undefined ? current.publishReadiness : value.publishReadiness,
+        workflowAssigneeUserId: value.workflowAssigneeUserId ?? current.workflowAssigneeUserId,
+        workflowStage: value.workflowStage ?? current.workflowStage,
+        workflowSummary: value.workflowSummary ?? current.workflowSummary,
+      }));
+    },
+    [],
+  );
+
   const hasUnsavedChanges = !areDraftsEqual(readCurrentDraft(), lastSavedDraftRef.current);
   const runtime = React.useMemo(
     () =>
@@ -752,6 +785,7 @@ export function useContentLibraryArticleEditor(params: {
     publishedVersionNumber,
     hasUnsavedChanges,
     autosaveStrategy: contentStrategy.autosave,
+    updateWorkflow,
     publish,
     runtime,
   };

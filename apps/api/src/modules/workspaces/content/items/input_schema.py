@@ -8,6 +8,7 @@ from src.common.schemas import BaseSchema
 from src.modules.workspaces.content.contracts.schema import (
     ContentBootstrapPresetState,
     ContentPresentationKind,
+    ContentWorkflowStage,
 )
 
 
@@ -49,3 +50,18 @@ class ContentVersionPatchIn(BaseSchema):
     change_summary: str | None = Field(default=None, max_length=512)
     fields_snapshot: dict[str, Any] | None = None
     presentations: list[ContentPresentationIn] | None = None
+
+
+class ContentWorkflowNoteIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    body: str = Field(..., min_length=1, max_length=2000)
+
+
+class ContentItemWorkflowPatchIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    stage: ContentWorkflowStage | None = Field(default=None)
+    assignee_user_id: str | None = Field(default=None, min_length=22, max_length=22)
+    summary: str | None = Field(default=None, max_length=256)
+    note: ContentWorkflowNoteIn | None = Field(default=None)

@@ -15,9 +15,11 @@ import type {
   AdminContentModel,
   AdminContentPresentation,
   AdminContentPresentationKind,
+  AdminContentItemPublishReadiness,
   AdminContentShapeState,
   AdminContentVersion,
   AdminContentVersionState,
+  AdminContentWorkflowStage,
   ListAdminContentVersionsParams,
   PageData,
 } from "@/types/api";
@@ -60,6 +62,12 @@ export type ContentLibraryArticleEditorRuntimeState = {
     shapeState: AdminContentShapeState | null;
     bootstrapPresetState: AdminContentBootstrapPresetState | null;
   };
+  workflow: {
+    stage: AdminContentWorkflowStage;
+    assigneeUserId: string | null;
+    summary: string | null;
+    publishReadiness: AdminContentItemPublishReadiness | null;
+  };
   badges: ContentLibraryRuntimeBadge[];
   diagnostics: ContentLibraryRuntimeDiagnostic[];
 };
@@ -85,6 +93,21 @@ export type ContentLibraryRuntimeDiagnostic = {
   id: "shape-ready" | "shape-blocked" | "shape-unshaped" | "has-draft" | "bootstrap-customized";
   labelKey: string;
   tone: ContentLibraryRuntimeBadgeTone;
+};
+
+type ContentLibraryArticleEditorRuntimeItem = Pick<
+  AdminContentItem,
+  | "bootstrapPresetState"
+  | "derivedStatus"
+  | "publishedVersion"
+  | "shapeState"
+  | "status"
+  | "visibility"
+  | "workflowAssigneeUserId"
+  | "workflowStage"
+  | "workflowSummary"
+> & {
+  publishReadiness?: AdminContentItemPublishReadiness | null;
 };
 
 export function buildContentLibraryItemsQueryKey(workspaceId: string | null) {
@@ -283,31 +306,24 @@ export function buildContentLibraryArticleEditorRuntimeState(params: {
   hasUnsavedChanges: boolean;
   isLoading: boolean;
   isPublishing: boolean;
-  item: Pick<
-    AdminContentItem,
-    | "bootstrapPresetState"
-    | "derivedStatus"
-    | "publishedVersion"
-    | "shapeState"
-    | "status"
-    | "visibility"
-  >;
+  item: ContentLibraryArticleEditorRuntimeItem;
   publishedVersionNumber: number | null;
   saveError: unknown;
   saveState: ContentLibraryArticleEditorSaveState;
 }): ContentLibraryArticleEditorRuntimeState {
   const publishedVersionNumber =
     params.publishedVersionNumber ?? params.item.publishedVersion ?? null;
+  const draftVersionNumber = params.draftVersionNumber ?? 0;
   const badges = buildContentLibraryRuntimeBadges({
     bootstrapPresetState: params.item.bootstrapPresetState ?? "none",
     derivedStatus: params.item.derivedStatus,
-    draftVersion: params.draftVersionNumber,
+    draftVersion: draftVersionNumber,
     publishedVersion: publishedVersionNumber,
     shapeState: params.item.shapeState ?? "unshaped",
   });
   const diagnostics = buildContentLibraryRuntimeDiagnostics({
     bootstrapPresetState: params.item.bootstrapPresetState ?? "none",
-    draftVersion: params.draftVersionNumber,
+    draftVersion: draftVersionNumber,
     publishedVersion: publishedVersionNumber,
     shapeState: params.item.shapeState ?? "unshaped",
   });
@@ -334,6 +350,12 @@ export function buildContentLibraryArticleEditorRuntimeState(params: {
       visibility: params.item.visibility,
       shapeState: params.item.shapeState ?? null,
       bootstrapPresetState: params.item.bootstrapPresetState ?? null,
+    },
+    workflow: {
+      stage: params.item.workflowStage ?? "drafting",
+      assigneeUserId: params.item.workflowAssigneeUserId ?? null,
+      summary: params.item.workflowSummary ?? null,
+      publishReadiness: params.item.publishReadiness ?? null,
     },
     badges,
     diagnostics,

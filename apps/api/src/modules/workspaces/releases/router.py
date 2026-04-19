@@ -16,7 +16,13 @@ from src.modules.workspaces.authz.http.service import require_workspace_permissi
 from src.modules.workspaces.content.shared.router import _resolve_site_id
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
-from src.modules.workspaces.releases.schema import ReleaseListOut, ReleaseOut, ReleasePublishOut, ReleaseRollbackOut
+from src.modules.workspaces.releases.schema import (
+    ReleaseDryRunOut,
+    ReleaseListOut,
+    ReleaseOut,
+    ReleasePublishOut,
+    ReleaseRollbackOut,
+)
 from src.modules.workspaces.releases.service import WorkspaceReleasesService
 
 router = APIRouter(
@@ -92,6 +98,21 @@ async def list_workspace_releases(
     service: Annotated[WorkspaceReleasesService, Depends(get_workspace_releases_service)],
 ) -> ResponseModel[ReleaseListOut]:
     data = await service.list_releases_out(workspace_id=ctx.workspace_id, site_id=site_id)
+    return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/dry-run",
+    response_model=ResponseModel[ReleaseDryRunOut],
+    response_model_exclude_none=True,
+    summary="Preview release readiness and diagnostics",
+)
+async def get_workspace_release_dry_run(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[WorkspaceReleasesService, Depends(get_workspace_releases_service)],
+) -> ResponseModel[ReleaseDryRunOut]:
+    data = await service.get_release_dry_run_out(workspace_id=ctx.workspace_id, site_id=site_id)
     return ApiResponse.success(data=data)
 
 

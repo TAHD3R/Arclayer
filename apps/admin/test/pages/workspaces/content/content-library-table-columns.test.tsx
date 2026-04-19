@@ -99,7 +99,12 @@ function NameCellHarness() {
     bootstrapPresetState: "selected",
     capabilityPackIds: ["publishable", "routable"],
     draftVersion: 1,
+    publishReadiness: { ready: false, blockerCodes: ["WORKFLOW_STAGE_NOT_APPROVED"] },
     updatedAt: "2026-03-26T00:00:00Z",
+    workflowAssigneeUserId: null,
+    workflowNotes: [],
+    workflowStage: "drafting",
+    workflowSummary: "Needs review",
     modelName: "Page",
     modelDescription: null,
     modelCategory: "site_builder",
@@ -150,7 +155,12 @@ function ActionsCellHarness() {
     bootstrapPresetState: "selected",
     capabilityPackIds: ["publishable", "routable"],
     draftVersion: 1,
+    publishReadiness: { ready: true, blockerCodes: [] },
     updatedAt: "2026-03-26T00:00:00Z",
+    workflowAssigneeUserId: null,
+    workflowNotes: [],
+    workflowStage: "approved",
+    workflowSummary: "Approved for release",
     modelName: "Page",
     modelDescription: null,
     modelCategory: "site_builder",
@@ -166,6 +176,67 @@ function ActionsCellHarness() {
   return <div>{actionsColumn.cell({ row: { original: row } } as never)}</div>;
 }
 
+function WorkflowCellHarness() {
+  const columns = useContentLibraryTableColumns({
+    formatDateTimeOrNull: (value) => value ?? null,
+    actionPending: false,
+    selectedRowIds: new Set(),
+    onToggleVisibleRows: vi.fn(),
+    onToggleRowSelection: vi.fn(),
+    onOpen: vi.fn(),
+    onDuplicate: vi.fn(),
+    onDelete: vi.fn(),
+    onArchive: vi.fn(),
+    onUnarchive: vi.fn(),
+  });
+  const workflowColumn = columns.find((column) => {
+    const id =
+      typeof column.id === "string"
+        ? column.id
+        : "accessorKey" in column && typeof column.accessorKey === "string"
+          ? column.accessorKey
+          : null;
+    return id === "workflowStage";
+  });
+  if (!workflowColumn || typeof workflowColumn.cell !== "function") return null;
+
+  const row = {
+    id: "content-2",
+    workspaceId: "ws-1",
+    siteId: "site-1",
+    modelId: "model-article",
+    modelKey: "article",
+    slug: "launch-note",
+    title: "Launch note",
+    name: "Launch note",
+    status: "draft",
+    visibility: "public",
+    locale: "en-US",
+    bootstrapPresetKey: "article",
+    bootstrapPresetState: "selected",
+    capabilityPackIds: ["publishable", "rich_text_editable"],
+    draftVersion: 2,
+    publishReadiness: { ready: false, blockerCodes: ["WORKFLOW_STAGE_NOT_APPROVED"] },
+    updatedAt: "2026-03-26T00:00:00Z",
+    workflowAssigneeUserId: null,
+    workflowNotes: [],
+    workflowStage: "in_review",
+    workflowSummary: "Sent to review",
+    modelName: "Article",
+    modelDescription: null,
+    modelCategory: "content_library",
+    modelCapabilities: ["publishable", "rich_text_editable"],
+    derivedStatus: "draft",
+    runtime: "text",
+    context: "content_library",
+    libraryGroup: "general-content",
+    editWith: "writing",
+    role: "article",
+  } satisfies ContentLibraryTableRow;
+
+  return <div>{workflowColumn.cell({ row: { original: row } } as never)}</div>;
+}
+
 describe("content-library-table-columns", () => {
   test("uses the agreed default visible workbench columns", () => {
     render(<ColumnsHarness />);
@@ -174,6 +245,7 @@ describe("content-library-table-columns", () => {
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_CONTENT_TYPE")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_LIBRARY_GROUP")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_STATUS")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_WORKFLOW")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_DIAGNOSTICS")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_UPDATED")).toBeInTheDocument();
     expect(screen.queryByText("CONTENT_LIBRARY_TABLE_COL_LOCALE")).not.toBeInTheDocument();
@@ -194,6 +266,13 @@ describe("content-library-table-columns", () => {
 
     expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" })).toBeInTheDocument();
     expect(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS")).toBeInTheDocument();
+  });
+
+  test("renders workflow stage and blocker summary in the workflow column", () => {
+    render(<WorkflowCellHarness />);
+
+    expect(screen.getByText("CONTENT_LIBRARY_WORKFLOW_STAGE_IN_REVIEW")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_WORKFLOW_BLOCKED_BY")).toBeInTheDocument();
   });
 
   test("hides library group by default when no persisted column preference exists", () => {

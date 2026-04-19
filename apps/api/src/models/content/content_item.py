@@ -14,6 +14,7 @@ from src.models.content._enums import (
     ContentItemStatus,
     ContentItemVisibility,
     ContentShapeState,
+    ContentWorkflowStage,
 )
 
 
@@ -86,6 +87,15 @@ class ContentItemRecord(BaseModel):
     )
     shape_reason_code = fields.CharField(max_length=64, null=True, db_index=True)
     shape_reason_meta = fields.JSONField(null=True)
+    workflow_stage = fields.CharEnumField(
+        ContentWorkflowStage,
+        max_length=24,
+        default=ContentWorkflowStage.DRAFTING,
+        db_index=True,
+    )
+    workflow_assignee_user_id = fields.UUIDField(null=True, db_index=True)
+    workflow_summary = fields.CharField(max_length=256, null=True)
+    workflow_notes = fields.JSONField(null=True)
 
     draft_version = fields.IntField(default=0)
     published_version = fields.IntField(null=True)

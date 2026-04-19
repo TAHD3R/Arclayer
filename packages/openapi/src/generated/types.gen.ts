@@ -1686,6 +1686,10 @@ export type ContentItemOut = {
      */
     openIntent?: ContentOpenIntentOut | null;
     /**
+     * Per-item readiness summary used by workflow and release surfaces.
+     */
+    publishReadiness?: ContentItemPublishReadinessOut;
+    /**
      * Publishedversion
      *
      * Current published version pointer.
@@ -1784,11 +1788,96 @@ export type ContentItemOut = {
      */
     visibility: 'public' | 'private';
     /**
+     * Workflowassigneeuserid
+     *
+     * Current editorial assignee for the item.
+     */
+    workflowAssigneeUserId?: string | null;
+    /**
+     * Workflownotes
+     *
+     * Editorial workflow notes attached to the item.
+     */
+    workflowNotes?: Array<ContentItemWorkflowNoteOut>;
+    /**
+     * Workflowstage
+     *
+     * Current editorial workflow stage for the item.
+     */
+    workflowStage?: 'drafting' | 'in_review' | 'changes_requested' | 'approved';
+    /**
+     * Workflowsummary
+     *
+     * Optional workflow summary for current review cycle.
+     */
+    workflowSummary?: string | null;
+    /**
      * Workspaceid
      *
      * Workspace id.
      */
     workspaceId: string;
+};
+
+/**
+ * ContentItemPublishReadinessOut
+ */
+export type ContentItemPublishReadinessOut = {
+    /**
+     * Blockercodes
+     *
+     * Machine-readable blocker codes that explain why publish is still blocked.
+     */
+    blockerCodes?: Array<string>;
+    /**
+     * Ready
+     *
+     * Whether the item is currently ready for publish orchestration.
+     */
+    ready?: boolean;
+};
+
+/**
+ * ContentItemWorkflowNoteOut
+ */
+export type ContentItemWorkflowNoteOut = {
+    /**
+     * Actoruserid
+     *
+     * Optional note author id.
+     */
+    actorUserId?: string | null;
+    /**
+     * Body
+     *
+     * Workflow note body.
+     */
+    body: string;
+    /**
+     * Createdat
+     *
+     * Workflow note timestamp.
+     */
+    createdAt: string;
+};
+
+/**
+ * ContentItemWorkflowPatchIn
+ */
+export type ContentItemWorkflowPatchIn = {
+    /**
+     * Assigneeuserid
+     */
+    assigneeUserId?: string | null;
+    note?: ContentWorkflowNoteIn | null;
+    /**
+     * Stage
+     */
+    stage?: 'drafting' | 'in_review' | 'changes_requested' | 'approved' | null;
+    /**
+     * Summary
+     */
+    summary?: string | null;
 };
 
 /**
@@ -3327,6 +3416,16 @@ export type ContentWorkflowContract = {
 };
 
 /**
+ * ContentWorkflowNoteIn
+ */
+export type ContentWorkflowNoteIn = {
+    /**
+     * Body
+     */
+    body: string;
+};
+
+/**
  * CreateMyOrganizationRequest
  */
 export type CreateMyOrganizationRequest = {
@@ -3541,7 +3640,7 @@ export type DeliverySectionDocumentOut = {
      * Optional section/root layout payload.
      */
     layout?: {
-        [key: string]: JsonValueOutput;
+        [key: string]: JsonValue;
     } | null;
     /**
      * Sections
@@ -3621,1896 +3720,6 @@ export type DeliveryStyleOut = {
     effective?: {
         [key: string]: unknown;
     } | null;
-};
-
-/**
- * DesignAbsoluteLayoutV1
- */
-export type DesignAbsoluteLayoutV1 = {
-    /**
-     * Alignx
-     *
-     * X anchor.
-     */
-    alignX?: 'start' | 'center' | 'end' | null;
-    /**
-     * Aligny
-     *
-     * Y anchor.
-     */
-    alignY?: 'start' | 'center' | 'end' | null;
-    /**
-     * Optional constraints (partial).
-     */
-    constraints?: DesignConstraintsPartialV1 | null;
-    /**
-     * Absolute rectangle.
-     */
-    rect: DesignAbsoluteRectV1;
-};
-
-/**
- * DesignAbsoluteRectV1
- */
-export type DesignAbsoluteRectV1 = {
-    /**
-     * Height
-     *
-     * Height (px).
-     */
-    height: number;
-    /**
-     * Width
-     *
-     * Width (px).
-     */
-    width: number;
-    /**
-     * X
-     *
-     * X offset (px).
-     */
-    x: number;
-    /**
-     * Y
-     *
-     * Y offset (px).
-     */
-    y: number;
-};
-
-/**
- * DesignBindingExprV1
- */
-export type DesignBindingExprV1 = {
-    /**
-     * Kind
-     *
-     * Binding expression marker.
-     */
-    kind: 'binding';
-    /**
-     * Path
-     *
-     * Dot path, e.g. 'fields.title' or 'params.slug'.
-     */
-    path: string;
-    /**
-     * Source
-     *
-     * Binding source.
-     */
-    source: 'primaryEntry' | 'prefabProps' | 'routeParams' | 'site' | 'viewer';
-};
-
-/**
- * DesignChildrenLayoutAbsoluteV1
- */
-export type DesignChildrenLayoutAbsoluteV1 = {
-    /**
-     * Mode
-     *
-     * Absolute children layout mode.
-     */
-    mode: 'absolute';
-};
-
-/**
- * DesignChildrenLayoutAutoV1
- */
-export type DesignChildrenLayoutAutoV1 = {
-    /**
-     * Alignitems
-     *
-     * Cross-axis alignment.
-     */
-    alignItems?: 'start' | 'center' | 'end' | 'stretch' | null;
-    /**
-     * Direction
-     *
-     * Auto layout direction.
-     */
-    direction: 'row' | 'column';
-    /**
-     * Gap
-     *
-     * Gap (px).
-     */
-    gap?: number | null;
-    /**
-     * Justifycontent
-     *
-     * Main-axis justification.
-     */
-    justifyContent?: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | null;
-    /**
-     * Mode
-     *
-     * Auto children layout mode.
-     */
-    mode: 'auto';
-    /**
-     * Padding
-     *
-     * Padding (px).
-     */
-    padding?: number | null;
-    /**
-     * Wrap
-     *
-     * Wrap mode.
-     */
-    wrap?: 'nowrap' | 'wrap' | null;
-};
-
-/**
- * DesignConstraintsPartialV1
- */
-export type DesignConstraintsPartialV1 = {
-    /**
-     * Horizontal
-     *
-     * Horizontal constraint.
-     */
-    horizontal?: 'left' | 'right' | 'leftRight' | 'center' | 'scale' | null;
-    /**
-     * Vertical
-     *
-     * Vertical constraint.
-     */
-    vertical?: 'top' | 'bottom' | 'topBottom' | 'center' | 'scale' | null;
-};
-
-/**
- * DesignContentRefNodeV1
- */
-export type DesignContentRefNodeV1Input = {
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Props
-     *
-     * Override props for the referenced document.
-     */
-    props?: {
-        [key: string]: ({
-            kind: 'literal';
-        } & DesignLiteralValueV1Input) | ({
-            kind: 'binding';
-        } & DesignBindingExprV1);
-    } | null;
-    /**
-     * Refentryid
-     *
-     * PublicUUID of the referenced content entry.
-     */
-    refEntryId: string;
-    /**
-     * Refstate
-     *
-     * Revision state. 'auto' = published in public, draft in preview.
-     */
-    refState?: 'draft' | 'published' | 'auto';
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Styleoverridewhitelist
-     *
-     * Allowed style override keys.
-     */
-    styleOverrideWhitelist?: Array<string> | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'content_ref';
-};
-
-/**
- * DesignContentRefNodeV1
- */
-export type DesignContentRefNodeV1Output = {
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Props
-     *
-     * Override props for the referenced document.
-     */
-    props?: {
-        [key: string]: ({
-            kind: 'literal';
-        } & DesignLiteralValueV1Output) | ({
-            kind: 'binding';
-        } & DesignBindingExprV1);
-    } | null;
-    /**
-     * Refentryid
-     *
-     * PublicUUID of the referenced content entry.
-     */
-    refEntryId: string;
-    /**
-     * Refstate
-     *
-     * Revision state. 'auto' = published in public, draft in preview.
-     */
-    refState?: 'draft' | 'published' | 'auto';
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Styleoverridewhitelist
-     *
-     * Allowed style override keys.
-     */
-    styleOverrideWhitelist?: Array<string> | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'content_ref';
-};
-
-/**
- * DesignEmbedNodeV1
- */
-export type DesignEmbedNodeV1Input = {
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'embed';
-    /**
-     * Url
-     *
-     * Embed URL.
-     */
-    url: string | DesignBindingExprV1;
-};
-
-/**
- * DesignEmbedNodeV1
- */
-export type DesignEmbedNodeV1Output = {
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'embed';
-    /**
-     * Url
-     *
-     * Embed URL.
-     */
-    url: string | DesignBindingExprV1;
-};
-
-/**
- * DesignFrameNodeV1
- */
-export type DesignFrameNodeV1Input = {
-    /**
-     * Children
-     *
-     * Child node ids.
-     */
-    children?: Array<string>;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'frame';
-};
-
-/**
- * DesignFrameNodeV1
- */
-export type DesignFrameNodeV1Output = {
-    /**
-     * Children
-     *
-     * Child node ids.
-     */
-    children?: Array<string>;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'frame';
-};
-
-/**
- * DesignGroupNodeV1
- */
-export type DesignGroupNodeV1Input = {
-    /**
-     * Children
-     *
-     * Child node ids.
-     */
-    children?: Array<string>;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'group';
-};
-
-/**
- * DesignGroupNodeV1
- */
-export type DesignGroupNodeV1Output = {
-    /**
-     * Children
-     *
-     * Child node ids.
-     */
-    children?: Array<string>;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'group';
-};
-
-/**
- * DesignImageNodeV1
- */
-export type DesignImageNodeV1Input = {
-    /**
-     * Alt
-     *
-     * Alt text.
-     */
-    alt?: {
-        [key: string]: string;
-    } | DesignBindingExprV1 | null;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Objectfit
-     *
-     * CSS object-fit.
-     */
-    objectFit?: 'cover' | 'contain' | 'fill' | 'none' | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Src
-     *
-     * Image source URL.
-     */
-    src: string | DesignBindingExprV1;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'image';
-};
-
-/**
- * DesignImageNodeV1
- */
-export type DesignImageNodeV1Output = {
-    /**
-     * Alt
-     *
-     * Alt text.
-     */
-    alt?: {
-        [key: string]: string;
-    } | DesignBindingExprV1 | null;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Objectfit
-     *
-     * CSS object-fit.
-     */
-    objectFit?: 'cover' | 'contain' | 'fill' | 'none' | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Src
-     *
-     * Image source URL.
-     */
-    src: string | DesignBindingExprV1;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'image';
-};
-
-/**
- * DesignLayoutV1
- */
-export type DesignLayoutV1Input = {
-    /**
-     * Children
-     *
-     * Children layout definition.
-     */
-    children: ({
-        mode: 'absolute';
-    } & DesignChildrenLayoutAbsoluteV1) | ({
-        mode: 'auto';
-    } & DesignChildrenLayoutAutoV1);
-    /**
-     * Self layout inside parent.
-     */
-    self?: DesignAbsoluteLayoutV1 | null;
-};
-
-/**
- * DesignLayoutV1
- */
-export type DesignLayoutV1Output = {
-    /**
-     * Children
-     *
-     * Children layout definition.
-     */
-    children: ({
-        mode: 'absolute';
-    } & DesignChildrenLayoutAbsoluteV1) | ({
-        mode: 'auto';
-    } & DesignChildrenLayoutAutoV1);
-    /**
-     * Self layout inside parent.
-     */
-    self?: DesignAbsoluteLayoutV1 | null;
-};
-
-/**
- * DesignLiteralValueV1
- */
-export type DesignLiteralValueV1Input = {
-    /**
-     * Kind
-     *
-     * Literal value marker.
-     */
-    kind: 'literal';
-    /**
-     * JSON literal payload.
-     */
-    value: JsonValueInput;
-};
-
-/**
- * DesignLiteralValueV1
- */
-export type DesignLiteralValueV1Output = {
-    /**
-     * Kind
-     *
-     * Literal value marker.
-     */
-    kind: 'literal';
-    /**
-     * JSON literal payload.
-     */
-    value: JsonValueOutput;
-};
-
-/**
- * DesignMotionRefV1
- */
-export type DesignMotionRefV1 = {
-    /**
-     * Motionid
-     *
-     * Referenced motion definition id.
-     */
-    motionId: string;
-};
-
-/**
- * DesignNodeResponsiveOverrideV1
- *
- * Per-breakpoint overrides.
- *
- * Note: this schema intentionally accepts partial nested structures so editor can store diff-only payloads.
- */
-export type DesignNodeResponsiveOverrideV1Input = {
-    /**
-     * Layout
-     *
-     * Partial layout override (diff-only).
-     */
-    layout?: {
-        [key: string]: JsonValueInput;
-    } | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs override.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Style
-     *
-     * Partial style override (diff-only).
-     */
-    style?: {
-        [key: string]: JsonValueInput;
-    } | null;
-    /**
-     * Transform
-     *
-     * Partial transform override (diff-only).
-     */
-    transform?: {
-        [key: string]: JsonValueInput;
-    } | null;
-};
-
-/**
- * DesignNodeResponsiveOverrideV1
- *
- * Per-breakpoint overrides.
- *
- * Note: this schema intentionally accepts partial nested structures so editor can store diff-only payloads.
- */
-export type DesignNodeResponsiveOverrideV1Output = {
-    /**
-     * Layout
-     *
-     * Partial layout override (diff-only).
-     */
-    layout?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs override.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Style
-     *
-     * Partial style override (diff-only).
-     */
-    style?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Transform
-     *
-     * Partial transform override (diff-only).
-     */
-    transform?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-};
-
-/**
- * DesignPageRootDataSourcesV1
- */
-export type DesignPageRootDataSourcesV1Input = {
-    /**
-     * Named
-     *
-     * Named sources map.
-     */
-    named?: {
-        [key: string]: {
-            [key: string]: JsonValueInput;
-        };
-    } | null;
-    /**
-     * Primaryentryid
-     *
-     * Primary entry id.
-     */
-    primaryEntryId?: string | null;
-    /**
-     * Primaryentrytypehint
-     *
-     * Stable content type hint for primary entry (recommended: content type code).
-     */
-    primaryEntryTypeHint?: string | null;
-};
-
-/**
- * DesignPageRootDataSourcesV1
- */
-export type DesignPageRootDataSourcesV1Output = {
-    /**
-     * Named
-     *
-     * Named sources map.
-     */
-    named?: {
-        [key: string]: {
-            [key: string]: JsonValueOutput;
-        };
-    } | null;
-    /**
-     * Primaryentryid
-     *
-     * Primary entry id.
-     */
-    primaryEntryId?: string | null;
-    /**
-     * Primaryentrytypehint
-     *
-     * Stable content type hint for primary entry (recommended: content type code).
-     */
-    primaryEntryTypeHint?: string | null;
-};
-
-/**
- * DesignPageRootNodeV1
- */
-export type DesignPageRootNodeV1Input = {
-    /**
-     * Children
-     *
-     * Child node ids.
-     */
-    children?: Array<string>;
-    /**
-     * Data sources.
-     */
-    dataSources?: DesignPageRootDataSourcesV1Input | null;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Page-level SEO.
-     */
-    seo?: DesignPageRootSeoV1 | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'page_root';
-};
-
-/**
- * DesignPageRootNodeV1
- */
-export type DesignPageRootNodeV1Output = {
-    /**
-     * Children
-     *
-     * Child node ids.
-     */
-    children?: Array<string>;
-    /**
-     * Data sources.
-     */
-    dataSources?: DesignPageRootDataSourcesV1Output | null;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Page-level SEO.
-     */
-    seo?: DesignPageRootSeoV1 | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'page_root';
-};
-
-/**
- * DesignPageRootSeoV1
- */
-export type DesignPageRootSeoV1 = {
-    /**
-     * Description
-     *
-     * SEO description.
-     */
-    description?: {
-        [key: string]: string;
-    } | DesignBindingExprV1 | null;
-    /**
-     * Title
-     *
-     * SEO title.
-     */
-    title?: {
-        [key: string]: string;
-    } | DesignBindingExprV1 | null;
-};
-
-/**
- * DesignPrefabInstanceNodeV1
- */
-export type DesignPrefabInstanceNodeV1Input = {
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Prefabid
-     *
-     * Prefab id/code.
-     */
-    prefabId: string;
-    /**
-     * Props
-     *
-     * Prefab props map.
-     */
-    props?: {
-        [key: string]: ({
-            kind: 'literal';
-        } & DesignLiteralValueV1Input) | ({
-            kind: 'binding';
-        } & DesignBindingExprV1);
-    };
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Slotchildren
-     *
-     * Slot children ids.
-     */
-    slotChildren?: {
-        [key: string]: Array<string>;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'prefab_instance';
-};
-
-/**
- * DesignPrefabInstanceNodeV1
- */
-export type DesignPrefabInstanceNodeV1Output = {
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Prefabid
-     *
-     * Prefab id/code.
-     */
-    prefabId: string;
-    /**
-     * Props
-     *
-     * Prefab props map.
-     */
-    props?: {
-        [key: string]: ({
-            kind: 'literal';
-        } & DesignLiteralValueV1Output) | ({
-            kind: 'binding';
-        } & DesignBindingExprV1);
-    };
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Slotchildren
-     *
-     * Slot children ids.
-     */
-    slotChildren?: {
-        [key: string]: Array<string>;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'prefab_instance';
-};
-
-/**
- * DesignRectNodeV1
- */
-export type DesignRectNodeV1Input = {
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'rect';
-};
-
-/**
- * DesignRectNodeV1
- */
-export type DesignRectNodeV1Output = {
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'rect';
-};
-
-/**
- * DesignStyleV1
- */
-export type DesignStyleV1 = {
-    /**
-     * Backgroundcolor
-     *
-     * Background color.
-     */
-    backgroundColor?: string | null;
-    /**
-     * Bordercolor
-     *
-     * Border color.
-     */
-    borderColor?: string | null;
-    /**
-     * Borderradius
-     *
-     * Border radius.
-     */
-    borderRadius?: number | string | null;
-    /**
-     * Borderstyle
-     *
-     * Border style.
-     */
-    borderStyle?: 'solid' | 'dashed' | 'dotted' | null;
-    /**
-     * Borderwidth
-     *
-     * Border width.
-     */
-    borderWidth?: number | string | null;
-    /**
-     * Boxshadow
-     *
-     * Box shadow.
-     */
-    boxShadow?: string | null;
-    /**
-     * Color
-     *
-     * Text color.
-     */
-    color?: string | null;
-    /**
-     * Opacity
-     *
-     * Opacity.
-     */
-    opacity?: number | null;
-    /**
-     * Typography.
-     */
-    typography?: DesignTypographyV1 | null;
-};
-
-/**
- * DesignTextNodeV1
- */
-export type DesignTextNodeV1Input = {
-    /**
-     * Align
-     *
-     * Text align.
-     */
-    align?: 'left' | 'center' | 'right' | null;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Input | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Input;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Tag
-     *
-     * HTML tag.
-     */
-    tag?: 'p' | 'span' | 'h1' | 'h2' | 'h3' | null;
-    /**
-     * Text
-     *
-     * Text payload (localized or binding).
-     */
-    text: {
-        [key: string]: string;
-    } | DesignBindingExprV1;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'text';
-};
-
-/**
- * DesignTextNodeV1
- */
-export type DesignTextNodeV1Output = {
-    /**
-     * Align
-     *
-     * Text align.
-     */
-    align?: 'left' | 'center' | 'right' | null;
-    /**
-     * Hidden
-     *
-     * Hide in render tree.
-     */
-    hidden?: boolean | null;
-    /**
-     * Id
-     *
-     * Stable node id.
-     */
-    id: string;
-    /**
-     * Layout definition.
-     */
-    layout?: DesignLayoutV1Output | null;
-    /**
-     * Locked
-     *
-     * Lock editing.
-     */
-    locked?: boolean | null;
-    /**
-     * Motionrefs
-     *
-     * Motion refs.
-     */
-    motionRefs?: Array<DesignMotionRefV1> | null;
-    /**
-     * Name
-     *
-     * Layer name.
-     */
-    name?: string | null;
-    /**
-     * Responsive
-     *
-     * Per-breakpoint overrides.
-     */
-    responsive?: {
-        [key: string]: DesignNodeResponsiveOverrideV1Output;
-    } | null;
-    /**
-     * Style definition.
-     */
-    style?: DesignStyleV1 | null;
-    /**
-     * Tag
-     *
-     * HTML tag.
-     */
-    tag?: 'p' | 'span' | 'h1' | 'h2' | 'h3' | null;
-    /**
-     * Text
-     *
-     * Text payload (localized or binding).
-     */
-    text: {
-        [key: string]: string;
-    } | DesignBindingExprV1;
-    /**
-     * Transform definition.
-     */
-    transform?: DesignTransformV1 | null;
-    /**
-     * Type
-     *
-     * Node type.
-     */
-    type: 'text';
-};
-
-/**
- * DesignTransformV1
- */
-export type DesignTransformV1 = {
-    /**
-     * Rotation
-     *
-     * Rotation (deg).
-     */
-    rotation?: number | null;
-    /**
-     * Scalex
-     *
-     * Scale X.
-     */
-    scaleX?: number | null;
-    /**
-     * Scaley
-     *
-     * Scale Y.
-     */
-    scaleY?: number | null;
-};
-
-/**
- * DesignTypographyV1
- */
-export type DesignTypographyV1 = {
-    /**
-     * Fontfamily
-     *
-     * CSS font-family.
-     */
-    fontFamily?: string | null;
-    /**
-     * Fontsize
-     *
-     * Font size (px).
-     */
-    fontSize?: number | null;
-    /**
-     * Fontweight
-     *
-     * Font weight.
-     */
-    fontWeight?: number | null;
-    /**
-     * Letterspacing
-     *
-     * Letter spacing.
-     */
-    letterSpacing?: number | null;
-    /**
-     * Lineheight
-     *
-     * Line height (px).
-     */
-    lineHeight?: number | null;
 };
 
 /**
@@ -5830,12 +4039,8 @@ export type InvitationPreviewWorkspaceOut = {
  */
 export type InviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
 
-export type JsonValueInput = string | number | number | boolean | Array<JsonValueInput> | {
-    [key: string]: JsonValueInput;
-} | null;
-
-export type JsonValueOutput = string | number | number | boolean | Array<JsonValueOutput> | {
-    [key: string]: JsonValueOutput;
+export type JsonValue = string | number | number | boolean | Array<JsonValue> | {
+    [key: string]: JsonValue;
 } | null;
 
 /**
@@ -8300,104 +6505,6 @@ export type OrganizationWorkspaceSlugAvailabilityOut = {
 export type OrganizationWorkspaceTemplate = 'blog' | 'website' | 'blank';
 
 /**
- * PageBlueprintFragment
- *
- * Reusable PageBlueprint fragment (insertable subtree).
- *
- * Unlike `PageBlueprint`, a fragment may have one or multiple roots, and roots are not required
- * to be `page_root`.
- */
-export type PageBlueprintFragmentInput = {
-    /**
-     * Nodesbyid
-     *
-     * Node table.
-     */
-    nodesById?: {
-        [key: string]: ({
-            type: 'page_root';
-        } & DesignPageRootNodeV1Input) | ({
-            type: 'frame';
-        } & DesignFrameNodeV1Input) | ({
-            type: 'group';
-        } & DesignGroupNodeV1Input) | ({
-            type: 'rect';
-        } & DesignRectNodeV1Input) | ({
-            type: 'text';
-        } & DesignTextNodeV1Input) | ({
-            type: 'image';
-        } & DesignImageNodeV1Input) | ({
-            type: 'embed';
-        } & DesignEmbedNodeV1Input) | ({
-            type: 'prefab_instance';
-        } & DesignPrefabInstanceNodeV1Input) | ({
-            type: 'content_ref';
-        } & DesignContentRefNodeV1Input);
-    };
-    /**
-     * Rootids
-     *
-     * Root node ids.
-     */
-    rootIds?: Array<string>;
-    /**
-     * Version
-     *
-     * PageBlueprintFragment version.
-     */
-    version?: 1;
-};
-
-/**
- * PageBlueprintFragment
- *
- * Reusable PageBlueprint fragment (insertable subtree).
- *
- * Unlike `PageBlueprint`, a fragment may have one or multiple roots, and roots are not required
- * to be `page_root`.
- */
-export type PageBlueprintFragmentOutput = {
-    /**
-     * Nodesbyid
-     *
-     * Node table.
-     */
-    nodesById?: {
-        [key: string]: ({
-            type: 'page_root';
-        } & DesignPageRootNodeV1Output) | ({
-            type: 'frame';
-        } & DesignFrameNodeV1Output) | ({
-            type: 'group';
-        } & DesignGroupNodeV1Output) | ({
-            type: 'rect';
-        } & DesignRectNodeV1Output) | ({
-            type: 'text';
-        } & DesignTextNodeV1Output) | ({
-            type: 'image';
-        } & DesignImageNodeV1Output) | ({
-            type: 'embed';
-        } & DesignEmbedNodeV1Output) | ({
-            type: 'prefab_instance';
-        } & DesignPrefabInstanceNodeV1Output) | ({
-            type: 'content_ref';
-        } & DesignContentRefNodeV1Output);
-    };
-    /**
-     * Rootids
-     *
-     * Root node ids.
-     */
-    rootIds?: Array<string>;
-    /**
-     * Version
-     *
-     * PageBlueprintFragment version.
-     */
-    version?: 1;
-};
-
-/**
  * PageData[AdminAssetFolderOut]
  */
 export type PageDataAdminAssetFolderOut = {
@@ -9406,15 +7513,15 @@ export type PageDataSettingsNamespaceSummary = {
 };
 
 /**
- * PageData[SitePatternOut]
+ * PageData[SiteDomainOut]
  */
-export type PageDataSitePatternOut = {
+export type PageDataSiteDomainOut = {
     /**
      * Items
      *
      * Current page items.
      */
-    items?: Array<SitePatternOut>;
+    items?: Array<SiteDomainOut>;
     /**
      * Next
      *
@@ -10501,6 +8608,12 @@ export type PublishBlockedItemOut = {
      * Resolved continuation surface seen by publish.
      */
     surface?: string | null;
+    /**
+     * Workflowstage
+     *
+     * Editorial workflow stage captured during publish.
+     */
+    workflowStage?: string | null;
 };
 
 /**
@@ -10606,6 +8719,10 @@ export type PublishImpactOut = {
      */
     missingRoutes?: Array<string>;
     /**
+     * Aggregated readiness summary for release orchestration.
+     */
+    readinessSummary?: PublishReadinessSummaryOut;
+    /**
      * Unpublisheddependencies
      *
      * Items depending on unpublished parents.
@@ -10617,6 +8734,36 @@ export type PublishImpactOut = {
      * Items with unresolved relations.
      */
     unresolvedRelations?: Array<string>;
+};
+
+/**
+ * PublishReadinessSummaryOut
+ */
+export type PublishReadinessSummaryOut = {
+    /**
+     * Blockeditemcount
+     *
+     * Number of blocked items in the current preview.
+     */
+    blockedItemCount?: number;
+    /**
+     * Blockercodes
+     *
+     * Distinct blocker codes found during readiness evaluation.
+     */
+    blockerCodes?: Array<string>;
+    /**
+     * Ready
+     *
+     * Whether the workspace site selection is ready to publish.
+     */
+    ready?: boolean;
+    /**
+     * Selecteditemcount
+     *
+     * Number of publishable items considered by preview.
+     */
+    selectedItemCount?: number;
 };
 
 /**
@@ -10666,6 +8813,38 @@ export type RegisterRequest = {
 };
 
 /**
+ * ReleaseDryRunOut
+ */
+export type ReleaseDryRunOut = {
+    /**
+     * Detailed dry-run diagnostics for the pending release.
+     */
+    impact: PublishImpactOut;
+    /**
+     * Aggregated release readiness summary.
+     */
+    readinessSummary: PublishReadinessSummaryOut;
+};
+
+/**
+ * ReleaseLineageOut
+ */
+export type ReleaseLineageOut = {
+    /**
+     * Parentreleaseid
+     *
+     * Immediate parent release id for lineage.
+     */
+    parentReleaseId?: string | null;
+    /**
+     * Parentreleasenumber
+     *
+     * Immediate parent release number.
+     */
+    parentReleaseNumber?: number | null;
+};
+
+/**
  * ReleaseListOut
  */
 export type ReleaseListOut = {
@@ -10712,11 +8891,21 @@ export type ReleaseOut = {
      */
     isActive: boolean;
     /**
+     * Release lineage metadata.
+     */
+    lineage?: ReleaseLineageOut;
+    /**
      * Releasenumber
      *
      * Monotonic release number within the site.
      */
     releaseNumber: number;
+    /**
+     * Selectioncount
+     *
+     * Number of items selected into the release graph.
+     */
+    selectionCount?: number;
     /**
      * Siteid
      *
@@ -10755,6 +8944,12 @@ export type ReleasePublishOut = {
      * Created release metadata.
      */
     release: ReleaseOut;
+    /**
+     * Selectioncount
+     *
+     * Number of selected items captured in the release.
+     */
+    selectionCount: number;
 };
 
 /**
@@ -13280,10 +11475,10 @@ export type ResponseModelPageDataSettingsNamespaceSummary = {
 };
 
 /**
- * ResponseModel[PageData[SitePatternOut]]
+ * ResponseModel[PageData[SiteDomainOut]]
  */
-export type ResponseModelPageDataSitePatternOut = {
-    data?: PageDataSitePatternOut | null;
+export type ResponseModelPageDataSiteDomainOut = {
+    data?: PageDataSiteDomainOut | null;
     /**
      * Error
      */
@@ -13730,6 +11925,31 @@ export type ResponseModelPublishImpactOut = {
 };
 
 /**
+ * ResponseModel[ReleaseDryRunOut]
+ */
+export type ResponseModelReleaseDryRunOut = {
+    data?: ReleaseDryRunOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ReleaseListOut]
  */
 export type ResponseModelReleaseListOut = {
@@ -13980,10 +12200,10 @@ export type ResponseModelSettingsDetail = {
 };
 
 /**
- * ResponseModel[SitePatternDeleteOut]
+ * ResponseModel[SiteDomainCreateOut]
  */
-export type ResponseModelSitePatternDeleteOut = {
-    data?: SitePatternDeleteOut | null;
+export type ResponseModelSiteDomainCreateOut = {
+    data?: SiteDomainCreateOut | null;
     /**
      * Error
      */
@@ -14005,10 +12225,110 @@ export type ResponseModelSitePatternDeleteOut = {
 };
 
 /**
- * ResponseModel[SitePatternOut]
+ * ResponseModel[SiteDomainDeleteOut]
  */
-export type ResponseModelSitePatternOut = {
-    data?: SitePatternOut | null;
+export type ResponseModelSiteDomainDeleteOut = {
+    data?: SiteDomainDeleteOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SiteDomainOut]
+ */
+export type ResponseModelSiteDomainOut = {
+    data?: SiteDomainOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SiteDomainVerifyOut]
+ */
+export type ResponseModelSiteDomainVerifyOut = {
+    data?: SiteDomainVerifyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SitePresenceHeartbeatOut]
+ */
+export type ResponseModelSitePresenceHeartbeatOut = {
+    data?: SitePresenceHeartbeatOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SitePresenceListOut]
+ */
+export type ResponseModelSitePresenceListOut = {
+    data?: SitePresenceListOut | null;
     /**
      * Error
      */
@@ -14034,6 +12354,31 @@ export type ResponseModelSitePatternOut = {
  */
 export type ResponseModelSitePreviewTokenOut = {
     data?: SitePreviewTokenOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SiteResolveOut]
+ */
+export type ResponseModelSiteResolveOut = {
+    data?: SiteResolveOut | null;
     /**
      * Error
      */
@@ -14084,6 +12429,31 @@ export type ResponseModelSiteRouteResolveOut = {
  */
 export type ResponseModelSiteRuntimeOut = {
     data?: SiteRuntimeOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[SiteSettingGetOut]
+ */
+export type ResponseModelSiteSettingGetOut = {
+    data?: SiteSettingGetOut | null;
     /**
      * Error
      */
@@ -14986,6 +13356,34 @@ export type ResponseModelListRouteBindingOut = {
 };
 
 /**
+ * ResponseModel[list[WorkspacePermissionActionOut]]
+ */
+export type ResponseModelListWorkspacePermissionActionOut = {
+    /**
+     * Data
+     */
+    data?: Array<WorkspacePermissionActionOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * RoleCreateFromTemplateRequest
  */
 export type RoleCreateFromTemplateRequest = {
@@ -15470,6 +13868,148 @@ export type SettingsSectionItem = {
 };
 
 /**
+ * SiteDomainCreateIn
+ */
+export type SiteDomainCreateIn = {
+    /**
+     * Hostname
+     *
+     * Custom hostname to bind (e.g. example.com).
+     */
+    hostname: string;
+};
+
+/**
+ * SiteDomainCreateOut
+ */
+export type SiteDomainCreateOut = {
+    /**
+     * DNS TXT verification instructions.
+     */
+    dns: SiteDomainDnsInstructionOut;
+    /**
+     * Created domain binding.
+     */
+    domain: SiteDomainOut;
+};
+
+/**
+ * SiteDomainDeleteOut
+ */
+export type SiteDomainDeleteOut = {
+    /**
+     * Domainid
+     *
+     * Deleted domain record id.
+     */
+    domainId: string;
+};
+
+/**
+ * SiteDomainDnsInstructionOut
+ */
+export type SiteDomainDnsInstructionOut = {
+    /**
+     * Txtrecordname
+     *
+     * DNS TXT record name to publish (FQDN).
+     */
+    txtRecordName: string;
+    /**
+     * Txtrecordvalue
+     *
+     * DNS TXT record value to publish.
+     */
+    txtRecordValue: string;
+};
+
+/**
+ * SiteDomainOut
+ */
+export type SiteDomainOut = {
+    /**
+     * Createdbyuserid
+     *
+     * User id that created the binding.
+     */
+    createdByUserId?: string | null;
+    /**
+     * Domainid
+     *
+     * Domain record id.
+     */
+    domainId: string;
+    /**
+     * Hostname
+     *
+     * Bound hostname (lowercase, no port).
+     */
+    hostname: string;
+    /**
+     * Isactive
+     *
+     * Whether the domain is enabled for routing.
+     */
+    isActive: boolean;
+    /**
+     * Isverified
+     *
+     * Whether the domain is verified via DNS TXT.
+     */
+    isVerified: boolean;
+    /**
+     * Siteid
+     *
+     * Site id.
+     */
+    siteId: string;
+    /**
+     * Verificationtoken
+     *
+     * DNS TXT verification token (value to publish).
+     */
+    verificationToken: string;
+    /**
+     * Verifiedatms
+     *
+     * Verification timestamp in milliseconds (UTC).
+     */
+    verifiedAtMs?: number | null;
+};
+
+/**
+ * SiteDomainUpdateIn
+ */
+export type SiteDomainUpdateIn = {
+    /**
+     * Isactive
+     *
+     * Whether the domain is active (only takes effect when verified).
+     */
+    isActive?: boolean | null;
+};
+
+/**
+ * SiteDomainVerifyOut
+ */
+export type SiteDomainVerifyOut = {
+    /**
+     * DNS TXT verification instructions.
+     */
+    dns: SiteDomainDnsInstructionOut;
+    /**
+     * Domain binding after verification attempt.
+     */
+    domain: SiteDomainOut;
+    /**
+     * Observedtxtvalues
+     *
+     * Observed TXT values from DNS lookup (best-effort, truncated).
+     */
+    observedTxtValues?: Array<string>;
+};
+
+/**
  * SiteFlattenedPageOut
  */
 export type SiteFlattenedPageOut = {
@@ -15479,7 +14019,7 @@ export type SiteFlattenedPageOut = {
      * Optional page/root layout payload.
      */
     layout?: {
-        [key: string]: JsonValueOutput;
+        [key: string]: JsonValue;
     } | null;
     /**
      * Path
@@ -15517,7 +14057,7 @@ export type SiteFlattenedSectionOut = {
      * Flattened section props.
      */
     props?: {
-        [key: string]: JsonValueOutput;
+        [key: string]: JsonValue;
     };
 };
 
@@ -15666,135 +14206,85 @@ export type SiteLocalizationOut = {
 };
 
 /**
- * SitePatternCreateIn
+ * SitePresenceHeartbeatIn
  */
-export type SitePatternCreateIn = {
+export type SitePresenceHeartbeatIn = {
     /**
-     * Category
+     * Actor
      *
-     * Pattern category.
+     * Optional actor metadata (e.g. displayName).
      */
-    category?: string;
-    /**
-     * Code
-     *
-     * Pattern code (unique within site).
-     */
-    code: string;
-    /**
-     * Label
-     *
-     * Localized label map.
-     */
-    label?: {
-        [key: string]: string;
-    };
-    /**
-     * Reusable PageBlueprint fragment (serialized JSON).
-     */
-    pageBlueprintFragment?: PageBlueprintFragmentInput;
-    /**
-     * Previewimageurl
-     *
-     * Preview image URL.
-     */
-    previewImageUrl?: string | null;
-};
-
-/**
- * SitePatternDeleteOut
- */
-export type SitePatternDeleteOut = {
-    /**
-     * Patternid
-     *
-     * Deleted pattern id.
-     */
-    patternId: string;
-};
-
-/**
- * SitePatternOut
- */
-export type SitePatternOut = {
-    /**
-     * Category
-     *
-     * Pattern category.
-     */
-    category: string;
-    /**
-     * Code
-     *
-     * Pattern code (unique within site).
-     */
-    code: string;
-    /**
-     * Createdatms
-     *
-     * Created timestamp in milliseconds (UTC).
-     */
-    createdAtMs: number;
-    /**
-     * Id
-     *
-     * Pattern id.
-     */
-    id: string;
-    /**
-     * Label
-     *
-     * Localized label map.
-     */
-    label?: {
-        [key: string]: string;
-    };
-    /**
-     * Reusable PageBlueprint fragment (serialized JSON).
-     */
-    pageBlueprintFragment?: PageBlueprintFragmentOutput;
-    /**
-     * Previewimageurl
-     *
-     * Preview image URL.
-     */
-    previewImageUrl?: string | null;
-    /**
-     * Siteid
-     *
-     * Site id.
-     */
-    siteId: string;
-};
-
-/**
- * SitePatternUpdateIn
- */
-export type SitePatternUpdateIn = {
-    /**
-     * Category
-     *
-     * Pattern category.
-     */
-    category?: string | null;
-    /**
-     * Label
-     *
-     * Localized label map.
-     */
-    label?: {
+    actor?: {
         [key: string]: string;
     } | null;
     /**
-     * Reusable PageBlueprint fragment (serialized JSON).
-     */
-    pageBlueprintFragment?: PageBlueprintFragmentInput | null;
-    /**
-     * Previewimageurl
+     * Clientid
      *
-     * Preview image URL.
+     * Client instance id (random, stable within a browser tab).
      */
-    previewImageUrl?: string | null;
+    clientId: string;
+    /**
+     * Dockey
+     *
+     * Document key (e.g. 'route:/about' or 'page:<uuid>').
+     */
+    docKey: string;
+};
+
+/**
+ * SitePresenceHeartbeatOut
+ */
+export type SitePresenceHeartbeatOut = {
+    /**
+     * Expiresatms
+     *
+     * Presence TTL expiration timestamp in milliseconds (UTC).
+     */
+    expiresAtMs: number;
+};
+
+/**
+ * SitePresenceListOut
+ */
+export type SitePresenceListOut = {
+    /**
+     * Dockey
+     *
+     * Document key.
+     */
+    docKey: string;
+    /**
+     * Items
+     *
+     * Presence records.
+     */
+    items?: Array<SitePresenceRecordOut>;
+};
+
+/**
+ * SitePresenceRecordOut
+ */
+export type SitePresenceRecordOut = {
+    /**
+     * Actor
+     *
+     * Actor metadata (optional).
+     */
+    actor?: {
+        [key: string]: string;
+    } | null;
+    /**
+     * Clientid
+     *
+     * Client instance id.
+     */
+    clientId: string;
+    /**
+     * Updatedatms
+     *
+     * Last heartbeat timestamp in milliseconds (UTC).
+     */
+    updatedAtMs: number;
 };
 
 /**
@@ -15869,6 +14359,36 @@ export type SitePrimaryContextOut = {
      * Primary entry title.
      */
     title?: string | null;
+};
+
+/**
+ * SiteResolveOut
+ */
+export type SiteResolveOut = {
+    /**
+     * Defaultlocale
+     *
+     * Default locale (e.g. zh-CN).
+     */
+    defaultLocale: string;
+    /**
+     * Fallbacklocale
+     *
+     * Fallback locale (e.g. en-US).
+     */
+    fallbackLocale: string;
+    /**
+     * Siteid
+     *
+     * Resolved site id.
+     */
+    siteId: string;
+    /**
+     * Supportedlocales
+     *
+     * Supported locales enabled for the site (BCP 47 tags).
+     */
+    supportedLocales?: Array<string>;
 };
 
 /**
@@ -16071,7 +14591,41 @@ export type SiteSeoDefaultsOut = {
      * Structured title composition policy (v1).
      */
     titlePolicyV1?: {
-        [key: string]: JsonValueOutput;
+        [key: string]: JsonValue;
+    } | null;
+};
+
+/**
+ * SiteSettingGetOut
+ */
+export type SiteSettingGetOut = {
+    /**
+     * Namespace
+     *
+     * Setting namespace.
+     */
+    namespace: string;
+    /**
+     * Value
+     *
+     * Setting value (JSON).
+     */
+    value?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * SiteSettingUpsertIn
+ */
+export type SiteSettingUpsertIn = {
+    /**
+     * Value
+     *
+     * Setting value (JSON).
+     */
+    value?: {
+        [key: string]: unknown;
     } | null;
 };
 
@@ -17570,6 +16124,36 @@ export type WorkspaceKind = 'team';
 export type WorkspaceMembershipStatus = 'active' | 'invited' | 'disabled';
 
 /**
+ * WorkspacePermissionActionOut
+ */
+export type WorkspacePermissionActionOut = {
+    /**
+     * Code
+     *
+     * Canonical action code.
+     */
+    code: string;
+    /**
+     * Description
+     *
+     * Action description.
+     */
+    description?: string | null;
+    /**
+     * Permissioncodes
+     *
+     * Workspace permission codes that back this action.
+     */
+    permissionCodes?: Array<string>;
+    /**
+     * Subjectkinds
+     *
+     * Supported subject kinds.
+     */
+    subjectKinds?: Array<string>;
+};
+
+/**
  * WorkspacePermissionOut
  */
 export type WorkspacePermissionOut = {
@@ -18466,12 +17050,8 @@ export type AdminAssetSummaryOutWritable = {
     workspaceId: string;
 };
 
-export type JsonValueInputWritable = string | number | number | boolean | Array<JsonValueInputWritable> | {
-    [key: string]: JsonValueInputWritable;
-} | null;
-
-export type JsonValueOutputWritable = string | number | number | boolean | Array<JsonValueOutputWritable> | {
-    [key: string]: JsonValueOutputWritable;
+export type JsonValueWritable = string | number | number | boolean | Array<JsonValueWritable> | {
+    [key: string]: JsonValueWritable;
 } | null;
 
 /**
@@ -23903,7 +22483,531 @@ export type ExternalRuntimesGetRuntimeConfigResponses = {
 
 export type ExternalRuntimesGetRuntimeConfigResponse = ExternalRuntimesGetRuntimeConfigResponses[keyof ExternalRuntimesGetRuntimeConfigResponses];
 
-export type ExternalSitesPatternsListSitePatternsData = {
+export type DomainSitesResolveSiteByHostData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Workspaceslug
+         *
+         * Workspace slug to resolve (e.g. philipcole).
+         */
+        workspaceSlug?: string | null;
+        /**
+         * Host
+         *
+         * Request host (e.g. philipcole.arclayer.app, localhost:3100).
+         */
+        host?: string | null;
+    };
+    url: '/api/v1/sites/resolve';
+};
+
+export type DomainSitesResolveSiteByHostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesResolveSiteByHostError = DomainSitesResolveSiteByHostErrors[keyof DomainSitesResolveSiteByHostErrors];
+
+export type DomainSitesResolveSiteByHostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteResolveOut;
+};
+
+export type DomainSitesResolveSiteByHostResponse = DomainSitesResolveSiteByHostResponses[keyof DomainSitesResolveSiteByHostResponses];
+
+export type DomainSitesGetSiteContextData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         *
+         * Site ID.
+         */
+        site_id: string;
+    };
+    query?: never;
+    url: '/api/v1/sites/{site_id}/context';
+};
+
+export type DomainSitesGetSiteContextErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesGetSiteContextError = DomainSitesGetSiteContextErrors[keyof DomainSitesGetSiteContextErrors];
+
+export type DomainSitesGetSiteContextResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteResolveOut;
+};
+
+export type DomainSitesGetSiteContextResponse = DomainSitesGetSiteContextResponses[keyof DomainSitesGetSiteContextResponses];
+
+export type DomainSitesResolveDeliveryGlobalSetData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/delivery/global-sets/{key}';
+};
+
+export type DomainSitesResolveDeliveryGlobalSetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesResolveDeliveryGlobalSetError = DomainSitesResolveDeliveryGlobalSetErrors[keyof DomainSitesResolveDeliveryGlobalSetErrors];
+
+export type DomainSitesResolveDeliveryGlobalSetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliveryGlobalSetOut;
+};
+
+export type DomainSitesResolveDeliveryGlobalSetResponse = DomainSitesResolveDeliveryGlobalSetResponses[keyof DomainSitesResolveDeliveryGlobalSetResponses];
+
+export type DomainSitesGetDeliveryMenuData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+        /**
+         * Menu Key
+         */
+        menu_key: string;
+    };
+    query?: never;
+    url: '/api/v1/sites/{site_id}/delivery/menus/{menu_key}';
+};
+
+export type DomainSitesGetDeliveryMenuErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesGetDeliveryMenuError = DomainSitesGetDeliveryMenuErrors[keyof DomainSitesGetDeliveryMenuErrors];
+
+export type DomainSitesGetDeliveryMenuResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliveryMenuOut;
+};
+
+export type DomainSitesGetDeliveryMenuResponse = DomainSitesGetDeliveryMenuResponses[keyof DomainSitesGetDeliveryMenuResponses];
+
+export type DomainSitesResolveDeliveryPageData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query: {
+        /**
+         * Path
+         *
+         * Request pathname (e.g. /blog/hello).
+         */
+        path: string;
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/delivery/pages/resolve';
+};
+
+export type DomainSitesResolveDeliveryPageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesResolveDeliveryPageError = DomainSitesResolveDeliveryPageErrors[keyof DomainSitesResolveDeliveryPageErrors];
+
+export type DomainSitesResolveDeliveryPageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type DomainSitesResolveDeliveryPageResponse = DomainSitesResolveDeliveryPageResponses[keyof DomainSitesResolveDeliveryPageResponses];
+
+export type DomainSitesGetDeliveryPageByIdData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+        /**
+         * Page Id
+         */
+        page_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/delivery/pages/{page_id}';
+};
+
+export type DomainSitesGetDeliveryPageByIdErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesGetDeliveryPageByIdError = DomainSitesGetDeliveryPageByIdErrors[keyof DomainSitesGetDeliveryPageByIdErrors];
+
+export type DomainSitesGetDeliveryPageByIdResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type DomainSitesGetDeliveryPageByIdResponse = DomainSitesGetDeliveryPageByIdResponses[keyof DomainSitesGetDeliveryPageByIdResponses];
+
+export type DomainSitesGetDeliverySectionByAliasData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+        /**
+         * Alias
+         */
+        alias: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/delivery/sections/{alias}';
+};
+
+export type DomainSitesGetDeliverySectionByAliasErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesGetDeliverySectionByAliasError = DomainSitesGetDeliverySectionByAliasErrors[keyof DomainSitesGetDeliverySectionByAliasErrors];
+
+export type DomainSitesGetDeliverySectionByAliasResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliverySectionOut;
+};
+
+export type DomainSitesGetDeliverySectionByAliasResponse = DomainSitesGetDeliverySectionByAliasResponses[keyof DomainSitesGetDeliverySectionByAliasResponses];
+
+export type DomainSitesGetDeliveryStyleData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query?: never;
+    url: '/api/v1/sites/{site_id}/delivery/style';
+};
+
+export type DomainSitesGetDeliveryStyleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesGetDeliveryStyleError = DomainSitesGetDeliveryStyleErrors[keyof DomainSitesGetDeliveryStyleErrors];
+
+export type DomainSitesGetDeliveryStyleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliveryStyleOut;
+};
+
+export type DomainSitesGetDeliveryStyleResponse = DomainSitesGetDeliveryStyleResponses[keyof DomainSitesGetDeliveryStyleResponses];
+
+export type DomainSitesHandleHttpGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/sites/{site_id}/graphql';
+};
+
+export type DomainSitesHandleHttpGetErrors = {
+    /**
+     * Not found if GraphiQL or query via GET are not enabled.
+     */
+    404: unknown;
+};
+
+export type DomainSitesHandleHttpGetResponses = {
+    /**
+     * The GraphiQL integrated development environment.
+     */
+    200: unknown;
+};
+
+export type DomainSitesHandleHttpPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/sites/{site_id}/graphql';
+};
+
+export type DomainSitesHandleHttpPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type DomainSitesListPresenceData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query: {
+        /**
+         * Dockey
+         *
+         * Document key (e.g. route:/about).
+         */
+        docKey: string;
+        /**
+         * Token
+         *
+         * Preview token (required).
+         */
+        token: string;
+    };
+    url: '/api/v1/sites/{site_id}/presence';
+};
+
+export type DomainSitesListPresenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesListPresenceError = DomainSitesListPresenceErrors[keyof DomainSitesListPresenceErrors];
+
+export type DomainSitesListPresenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSitePresenceListOut;
+};
+
+export type DomainSitesListPresenceResponse = DomainSitesListPresenceResponses[keyof DomainSitesListPresenceResponses];
+
+export type DomainSitesHeartbeatPresenceData = {
+    /**
+     * Presence heartbeat payload.
+     */
+    body: SitePresenceHeartbeatIn;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query: {
+        /**
+         * Token
+         *
+         * Preview token (required).
+         */
+        token: string;
+    };
+    url: '/api/v1/sites/{site_id}/presence/heartbeat';
+};
+
+export type DomainSitesHeartbeatPresenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesHeartbeatPresenceError = DomainSitesHeartbeatPresenceErrors[keyof DomainSitesHeartbeatPresenceErrors];
+
+export type DomainSitesHeartbeatPresenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSitePresenceHeartbeatOut;
+};
+
+export type DomainSitesHeartbeatPresenceResponse = DomainSitesHeartbeatPresenceResponses[keyof DomainSitesHeartbeatPresenceResponses];
+
+export type DomainSitesCreatePreviewTokenData = {
+    /**
+     * Preview token request.
+     */
+    body?: SitePreviewTokenCreateIn;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query?: never;
+    url: '/api/v1/sites/{site_id}/preview-tokens';
+};
+
+export type DomainSitesCreatePreviewTokenErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesCreatePreviewTokenError = DomainSitesCreatePreviewTokenErrors[keyof DomainSitesCreatePreviewTokenErrors];
+
+export type DomainSitesCreatePreviewTokenResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSitePreviewTokenOut;
+};
+
+export type DomainSitesCreatePreviewTokenResponse = DomainSitesCreatePreviewTokenResponses[keyof DomainSitesCreatePreviewTokenResponses];
+
+export type DomainSitesResolveSiteRouteData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query: {
+        /**
+         * Path
+         *
+         * Request pathname (e.g. /blog/hello).
+         */
+        path: string;
+        /**
+         * Mode
+         *
+         * Runtime mode.
+         */
+        mode?: 'public' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when mode=preview).
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/sites/{site_id}/routes/resolve';
+};
+
+export type DomainSitesResolveSiteRouteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesResolveSiteRouteError = DomainSitesResolveSiteRouteErrors[keyof DomainSitesResolveSiteRouteErrors];
+
+export type DomainSitesResolveSiteRouteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type DomainSitesResolveSiteRouteResponse = DomainSitesResolveSiteRouteResponses[keyof DomainSitesResolveSiteRouteResponses];
+
+export type DomainSitesGetSiteRuntimeData = {
     body?: never;
     path: {
         /**
@@ -23913,142 +23017,161 @@ export type ExternalSitesPatternsListSitePatternsData = {
     };
     query?: {
         /**
-         * Page
+         * Mode
          *
-         * Page number (1-based).
+         * Runtime mode.
          */
-        page?: number;
+        mode?: 'public' | 'preview';
         /**
-         * Size
+         * Token
          *
-         * Page size.
+         * Preview token (required when mode=preview).
          */
-        size?: number;
+        token?: string | null;
+        /**
+         * Locale
+         *
+         * Resolved locale for localized settings (e.g. en-US).
+         */
+        locale?: string | null;
     };
-    url: '/api/v1/sites/{site_id}/patterns';
+    url: '/api/v1/sites/{site_id}/runtime';
 };
 
-export type ExternalSitesPatternsListSitePatternsErrors = {
+export type DomainSitesGetSiteRuntimeErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesPatternsListSitePatternsError = ExternalSitesPatternsListSitePatternsErrors[keyof ExternalSitesPatternsListSitePatternsErrors];
+export type DomainSitesGetSiteRuntimeError = DomainSitesGetSiteRuntimeErrors[keyof DomainSitesGetSiteRuntimeErrors];
 
-export type ExternalSitesPatternsListSitePatternsResponses = {
+export type DomainSitesGetSiteRuntimeResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPageDataSitePatternOut;
+    200: ResponseModelSiteRuntimeOut;
 };
 
-export type ExternalSitesPatternsListSitePatternsResponse = ExternalSitesPatternsListSitePatternsResponses[keyof ExternalSitesPatternsListSitePatternsResponses];
+export type DomainSitesGetSiteRuntimeResponse = DomainSitesGetSiteRuntimeResponses[keyof DomainSitesGetSiteRuntimeResponses];
 
-export type ExternalSitesPatternsCreateSitePatternData = {
-    /**
-     * Create payload.
-     */
-    body: SitePatternCreateIn;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/patterns';
-};
-
-export type ExternalSitesPatternsCreateSitePatternErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalSitesPatternsCreateSitePatternError = ExternalSitesPatternsCreateSitePatternErrors[keyof ExternalSitesPatternsCreateSitePatternErrors];
-
-export type ExternalSitesPatternsCreateSitePatternResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSitePatternOut;
-};
-
-export type ExternalSitesPatternsCreateSitePatternResponse = ExternalSitesPatternsCreateSitePatternResponses[keyof ExternalSitesPatternsCreateSitePatternResponses];
-
-export type ExternalSitesPatternsDeleteSitePatternData = {
+export type DomainSitesGetSiteSettingData = {
     body?: never;
     path: {
         /**
          * Site Id
          */
         site_id: string;
-        /**
-         * Pattern Id
-         */
-        pattern_id: string;
     };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/patterns/{pattern_id}';
+    query: {
+        /**
+         * Namespace
+         *
+         * Setting namespace (e.g. site.runtime).
+         */
+        namespace: string;
+        /**
+         * Token
+         *
+         * Preview token (required).
+         */
+        token: string;
+    };
+    url: '/api/v1/sites/{site_id}/settings';
 };
 
-export type ExternalSitesPatternsDeleteSitePatternErrors = {
+export type DomainSitesGetSiteSettingErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesPatternsDeleteSitePatternError = ExternalSitesPatternsDeleteSitePatternErrors[keyof ExternalSitesPatternsDeleteSitePatternErrors];
+export type DomainSitesGetSiteSettingError = DomainSitesGetSiteSettingErrors[keyof DomainSitesGetSiteSettingErrors];
 
-export type ExternalSitesPatternsDeleteSitePatternResponses = {
+export type DomainSitesGetSiteSettingResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelSitePatternDeleteOut;
+    200: ResponseModelSiteSettingGetOut;
 };
 
-export type ExternalSitesPatternsDeleteSitePatternResponse = ExternalSitesPatternsDeleteSitePatternResponses[keyof ExternalSitesPatternsDeleteSitePatternResponses];
+export type DomainSitesGetSiteSettingResponse = DomainSitesGetSiteSettingResponses[keyof DomainSitesGetSiteSettingResponses];
 
-export type ExternalSitesPatternsUpdateSitePatternData = {
+export type DomainSitesUpsertSiteSettingData = {
     /**
-     * Update payload.
+     * Upsert payload.
      */
-    body: SitePatternUpdateIn;
+    body: SiteSettingUpsertIn;
     path: {
         /**
          * Site Id
          */
         site_id: string;
-        /**
-         * Pattern Id
-         */
-        pattern_id: string;
     };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/patterns/{pattern_id}';
+    query: {
+        /**
+         * Namespace
+         *
+         * Setting namespace (e.g. site.runtime).
+         */
+        namespace: string;
+        /**
+         * Token
+         *
+         * Preview token (required).
+         */
+        token: string;
+    };
+    url: '/api/v1/sites/{site_id}/settings';
 };
 
-export type ExternalSitesPatternsUpdateSitePatternErrors = {
+export type DomainSitesUpsertSiteSettingErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalSitesPatternsUpdateSitePatternError = ExternalSitesPatternsUpdateSitePatternErrors[keyof ExternalSitesPatternsUpdateSitePatternErrors];
+export type DomainSitesUpsertSiteSettingError = DomainSitesUpsertSiteSettingErrors[keyof DomainSitesUpsertSiteSettingErrors];
 
-export type ExternalSitesPatternsUpdateSitePatternResponses = {
+export type DomainSitesUpsertSiteSettingResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelSitePatternOut;
+    200: ResponseModelSiteSettingGetOut;
 };
 
-export type ExternalSitesPatternsUpdateSitePatternResponse = ExternalSitesPatternsUpdateSitePatternResponses[keyof ExternalSitesPatternsUpdateSitePatternResponses];
+export type DomainSitesUpsertSiteSettingResponse = DomainSitesUpsertSiteSettingResponses[keyof DomainSitesUpsertSiteSettingResponses];
+
+export type DomainSitesGetSitemapXmlData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query?: never;
+    url: '/api/v1/sites/{site_id}/sitemap.xml';
+};
+
+export type DomainSitesGetSitemapXmlErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesGetSitemapXmlError = DomainSitesGetSitemapXmlErrors[keyof DomainSitesGetSitemapXmlErrors];
+
+export type DomainSitesGetSitemapXmlResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type InternalSystemListActivityData = {
     body?: never;
@@ -26163,6 +25286,45 @@ export type DomainWorkspacesGetWorkspaceContentSeoProfileResponses = {
 
 export type DomainWorkspacesGetWorkspaceContentSeoProfileResponse = DomainWorkspacesGetWorkspaceContentSeoProfileResponses[keyof DomainWorkspacesGetWorkspaceContentSeoProfileResponses];
 
+export type DomainWorkspacesPatchWorkspaceContentItemWorkflowData = {
+    /**
+     * Workflow patch payload.
+     */
+    body: ContentItemWorkflowPatchIn;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/workflow';
+};
+
+export type DomainWorkspacesPatchWorkspaceContentItemWorkflowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesPatchWorkspaceContentItemWorkflowError = DomainWorkspacesPatchWorkspaceContentItemWorkflowErrors[keyof DomainWorkspacesPatchWorkspaceContentItemWorkflowErrors];
+
+export type DomainWorkspacesPatchWorkspaceContentItemWorkflowResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemOut;
+};
+
+export type DomainWorkspacesPatchWorkspaceContentItemWorkflowResponse = DomainWorkspacesPatchWorkspaceContentItemWorkflowResponses[keyof DomainWorkspacesPatchWorkspaceContentItemWorkflowResponses];
+
 export type DomainWorkspacesListContentLibraryViewsData = {
     body?: never;
     path: {
@@ -26987,6 +26149,38 @@ export type DomainWorkspacesGetWorkspacePublishPreviewContractResponses = {
 
 export type DomainWorkspacesGetWorkspacePublishPreviewContractResponse = DomainWorkspacesGetWorkspacePublishPreviewContractResponses[keyof DomainWorkspacesGetWorkspacePublishPreviewContractResponses];
 
+export type DomainWorkspacesListActionsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/rbac/actions';
+};
+
+export type DomainWorkspacesListActionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListActionsError = DomainWorkspacesListActionsErrors[keyof DomainWorkspacesListActionsErrors];
+
+export type DomainWorkspacesListActionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListWorkspacePermissionActionOut;
+};
+
+export type DomainWorkspacesListActionsResponse = DomainWorkspacesListActionsResponses[keyof DomainWorkspacesListActionsResponses];
+
 export type DomainWorkspacesGetMatrixData = {
     body?: never;
     path: {
@@ -27316,6 +26510,38 @@ export type DomainWorkspacesListWorkspaceReleasesResponses = {
 };
 
 export type DomainWorkspacesListWorkspaceReleasesResponse = DomainWorkspacesListWorkspaceReleasesResponses[keyof DomainWorkspacesListWorkspaceReleasesResponses];
+
+export type DomainWorkspacesGetWorkspaceReleaseDryRunData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/releases/dry-run';
+};
+
+export type DomainWorkspacesGetWorkspaceReleaseDryRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceReleaseDryRunError = DomainWorkspacesGetWorkspaceReleaseDryRunErrors[keyof DomainWorkspacesGetWorkspaceReleaseDryRunErrors];
+
+export type DomainWorkspacesGetWorkspaceReleaseDryRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseDryRunOut;
+};
+
+export type DomainWorkspacesGetWorkspaceReleaseDryRunResponse = DomainWorkspacesGetWorkspaceReleaseDryRunResponses[keyof DomainWorkspacesGetWorkspaceReleaseDryRunResponses];
 
 export type DomainWorkspacesPublishWorkspaceReleaseData = {
     body?: never;
@@ -27713,6 +26939,203 @@ export type DomainWorkspacesGetWorkspaceSiteResponses = {
 };
 
 export type DomainWorkspacesGetWorkspaceSiteResponse = DomainWorkspacesGetWorkspaceSiteResponses[keyof DomainWorkspacesGetWorkspaceSiteResponses];
+
+export type DomainSitesListSiteDomainsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/site/domains';
+};
+
+export type DomainSitesListSiteDomainsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesListSiteDomainsError = DomainSitesListSiteDomainsErrors[keyof DomainSitesListSiteDomainsErrors];
+
+export type DomainSitesListSiteDomainsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataSiteDomainOut;
+};
+
+export type DomainSitesListSiteDomainsResponse = DomainSitesListSiteDomainsResponses[keyof DomainSitesListSiteDomainsResponses];
+
+export type DomainSitesCreateSiteDomainData = {
+    /**
+     * Custom domain binding request.
+     */
+    body: SiteDomainCreateIn;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/site/domains';
+};
+
+export type DomainSitesCreateSiteDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesCreateSiteDomainError = DomainSitesCreateSiteDomainErrors[keyof DomainSitesCreateSiteDomainErrors];
+
+export type DomainSitesCreateSiteDomainResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSiteDomainCreateOut;
+};
+
+export type DomainSitesCreateSiteDomainResponse = DomainSitesCreateSiteDomainResponses[keyof DomainSitesCreateSiteDomainResponses];
+
+export type DomainSitesDeleteSiteDomainData = {
+    body?: never;
+    path: {
+        /**
+         * Domain Id
+         *
+         * Domain record id.
+         */
+        domain_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}';
+};
+
+export type DomainSitesDeleteSiteDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesDeleteSiteDomainError = DomainSitesDeleteSiteDomainErrors[keyof DomainSitesDeleteSiteDomainErrors];
+
+export type DomainSitesDeleteSiteDomainResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteDomainDeleteOut;
+};
+
+export type DomainSitesDeleteSiteDomainResponse = DomainSitesDeleteSiteDomainResponses[keyof DomainSitesDeleteSiteDomainResponses];
+
+export type DomainSitesUpdateSiteDomainData = {
+    /**
+     * Update payload.
+     */
+    body: SiteDomainUpdateIn;
+    path: {
+        /**
+         * Domain Id
+         *
+         * Domain record id.
+         */
+        domain_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}';
+};
+
+export type DomainSitesUpdateSiteDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesUpdateSiteDomainError = DomainSitesUpdateSiteDomainErrors[keyof DomainSitesUpdateSiteDomainErrors];
+
+export type DomainSitesUpdateSiteDomainResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteDomainOut;
+};
+
+export type DomainSitesUpdateSiteDomainResponse = DomainSitesUpdateSiteDomainResponses[keyof DomainSitesUpdateSiteDomainResponses];
+
+export type DomainSitesVerifySiteDomainData = {
+    body?: never;
+    path: {
+        /**
+         * Domain Id
+         *
+         * Domain record id.
+         */
+        domain_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}/verify';
+};
+
+export type DomainSitesVerifySiteDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainSitesVerifySiteDomainError = DomainSitesVerifySiteDomainErrors[keyof DomainSitesVerifySiteDomainErrors];
+
+export type DomainSitesVerifySiteDomainResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteDomainVerifyOut;
+};
+
+export type DomainSitesVerifySiteDomainResponse = DomainSitesVerifySiteDomainResponses[keyof DomainSitesVerifySiteDomainResponses];
 
 export type DomainWorkspacesCreateWorkspaceSitePreviewTokenData = {
     /**

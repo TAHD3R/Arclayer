@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from src.common.utils.public_ids import encode_uuid
+from src.common.utils.public_ids import decode_public_id, encode_uuid
 from src.common.utils.slug import slugify
 from src.core.exceptions import Conflict
-from src.models.content._enums import ContentItemStatus, ContentItemVisibility, ContentVersionState
+from src.models.content._enums import (
+    ContentItemStatus,
+    ContentItemVisibility,
+    ContentVersionState,
+    ContentWorkflowStage,
+)
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
 from src.models.content.model_definition import ContentModelDefinitionRecord
@@ -19,6 +25,8 @@ from src.modules.workspaces.content.contracts.schema import (
     ContentContinuationRole,
     ContentContinuationSurface,
     ContentItemOut,
+    ContentItemPublishReadinessOut,
+    ContentItemWorkflowNoteOut,
     ContentOpenIntentOut,
     ContentPresentationKind,
     ContentPresentationOut,
@@ -48,6 +56,7 @@ DEFAULT_FORMLESS_SLUG = "draft"
 DEFAULT_DUPLICATE_TITLE = "Copy"
 MAX_SLUG_LENGTH = 256
 SLUG_SUFFIX_LENGTH = 8
+WORKFLOW_PUBLISH_BLOCKER_CODE = "WORKFLOW_STAGE_NOT_APPROVED"
 WORKBENCH_ROLE_PRESET_MAP = {
     "page": "page",
     "post": "article",
@@ -382,6 +391,17 @@ def to_item_out(
             else []
         ),
     )
+    workflow_notes_payload = item.workflow_notes if isinstance(item.workflow_notes, list) else []
+    workflow_notes = [
+        ContentItemWorkflowNoteOut(
+            body=str(note.get("body", "")).strip(),
+            created_at=note.get("createdAt") or item.updated_at,
+            actor_user_id=note.get("actorUserId"),
+        )
+        for note in workflow_notes_payload
+        if isinstance(note, dict) and str(note.get("body", "")).strip()
+    ]
+    readiness_blocker_codes = derive_item_publish_blocker_codes(item)
     return ContentItemOut(
         id=item.id,
         workspace_id=item.workspace_id,
@@ -418,6 +438,14 @@ def to_item_out(
         shape_state=cast(ContentShapeState, str(item.shape_state or "unshaped")),
         shape_reason_code=shape_reason_code,
         shape_reason_meta=shape_reason_meta,
+        workflow_stage=cast(Any, str(item.workflow_stage or ContentWorkflowStage.DRAFTING)),
+        workflow_assignee_user_id=item.workflow_assignee_user_id,
+        workflow_summary=item.workflow_summary,
+        workflow_notes=workflow_notes,
+        publish_readiness=ContentItemPublishReadinessOut(
+            ready=not readiness_blocker_codes,
+            blocker_codes=readiness_blocker_codes,
+        ),
         open_intent=open_intent,
         continuation_target=open_intent,
         draft_version=item.draft_version,
@@ -553,6 +581,46 @@ def status_by_published_version(*, published_version: int | None, fallback: Cont
     if published_version is not None:
         return str(ContentItemStatus.PUBLISHED)
     return str(fallback)
+
+
+def derive_item_publish_blocker_codes(item: ContentItemRecord) -> list[str]:
+    blockers: list[str] = []
+    if str(item.shape_state or "unshaped") != "ready":
+        blockers.append(str(item.shape_reason_code or CONTINUATION_TRUTH_MISSING_REASON_CODE))
+    if str(item.workflow_stage or ContentWorkflowStage.DRAFTING) != str(ContentWorkflowStage.APPROVED):
+        blockers.append(WORKFLOW_PUBLISH_BLOCKER_CODE)
+    return blockers
+
+
+def build_workflow_patch_fields(
+    *,
+    current_item: ContentItemRecord,
+    stage: str | None,
+    assignee_user_id: str | None,
+    summary: str | None,
+    note_body: str | None,
+    actor_user_id: UUID | None,
+) -> dict[str, Any]:
+    fields: dict[str, Any] = {}
+    if stage is not None:
+        fields["workflow_stage"] = stage
+    if assignee_user_id is not None:
+        fields["workflow_assignee_user_id"] = decode_public_id(assignee_user_id)
+    if summary is not None:
+        fields["workflow_summary"] = summary.strip() or None
+    if note_body is not None:
+        existing_notes = current_item.workflow_notes if isinstance(current_item.workflow_notes, list) else []
+        fields["workflow_notes"] = [
+            *existing_notes,
+            {
+                "body": note_body.strip(),
+                "createdAt": datetime.now(tz=UTC),
+                "actorUserId": str(actor_user_id) if actor_user_id is not None else None,
+            },
+        ]
+    if fields:
+        fields["updated_by_user_id"] = actor_user_id
+    return fields
 
 
 def item_fields_for_transition(

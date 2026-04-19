@@ -23,6 +23,7 @@ from src.modules.workspaces.content.items.canonical_service import (
 from src.modules.workspaces.content.items.input_schema import (
     ContentItemBootstrapShapeIn,
     ContentItemCreateIn,
+    ContentItemWorkflowPatchIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
@@ -372,6 +373,49 @@ async def apply_workspace_content_item_bootstrap_shape(
         properties={
             "bootstrap_preset_key": data.bootstrap_preset_key,
             "bootstrap_preset_state": str(data.bootstrap_preset_state),
+        },
+    )
+    return ApiResponse.success(data=data)
+
+
+@canonical_items_router.patch(
+    "/items/{item_id}/workflow",
+    response_model=ResponseModel[ContentItemOut],
+    response_model_exclude_none=True,
+    summary="Patch editorial workflow state for a content item (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
+)
+async def patch_workspace_content_item_workflow(
+    item_id: PublicUUID,
+    payload: Annotated[ContentItemWorkflowPatchIn, Body(description="Workflow patch payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemsService,
+        Depends(get_workspace_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentItemOut]:
+    data = await service.patch_workflow(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+        payload=payload,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.item.workflow.updated",
+        properties={
+            "workflow_stage": str(data.workflow_stage),
+            "workflow_assignee_user_id": str(data.workflow_assignee_user_id)
+            if data.workflow_assignee_user_id is not None
+            else None,
         },
     )
     return ApiResponse.success(data=data)

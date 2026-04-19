@@ -5,7 +5,7 @@ from uuid import UUID
 from tortoise.transactions import in_transaction
 
 from src.core.exceptions import Conflict
-from src.models.content._enums import ContentShapeState, PublishArtifactKind
+from src.models.content._enums import ContentShapeState, ContentWorkflowStage, PublishArtifactKind
 from src.models.content.component_binding import ComponentBindingRecord
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
@@ -17,14 +17,25 @@ from src.models.content.release import ContentReleaseRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.models.content.seo_profile import SEOProfileRecord
 from src.modules.workspaces.content.continuation import CONTINUATION_TRUTH_MISSING_REASON_CODE
-from src.modules.workspaces.content.items.domain_helpers import item_has_capability
-from src.modules.workspaces.publish.schema import PublishArtifactsOut, PublishBlockedItemOut, PublishImpactOut
+from src.modules.workspaces.content.items.domain_helpers import WORKFLOW_PUBLISH_BLOCKER_CODE, item_has_capability
+from src.modules.workspaces.publish.schema import (
+    PublishArtifactsOut,
+    PublishBlockedItemOut,
+    PublishImpactOut,
+    PublishReadinessSummaryOut,
+)
 
 _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST = frozenset({"seo", "slot_mapping"})
 
 
 def _empty_impact() -> PublishImpactOut:
-    return PublishImpactOut(missing_routes=[], unresolved_relations=[], unpublished_dependencies=[], blocked_items=[])
+    return PublishImpactOut(
+        missing_routes=[],
+        unresolved_relations=[],
+        unpublished_dependencies=[],
+        blocked_items=[],
+        readiness_summary=PublishReadinessSummaryOut(ready=True),
+    )
 
 
 def _has_blockers(impact: PublishImpactOut) -> bool:
@@ -47,7 +58,18 @@ def _append_blocked_item(
             shape_state=str(item.shape_state),
             surface=str(item.resolved_surface) if item.resolved_surface is not None else None,
             reason_meta=reason_meta,
+            workflow_stage=str(item.workflow_stage) if item.workflow_stage is not None else None,
         )
+    )
+
+
+def _refresh_readiness_summary(impact: PublishImpactOut, *, selected_item_count: int) -> None:
+    blocker_codes = sorted({blocked.reason_code for blocked in impact.blocked_items})
+    impact.readiness_summary = PublishReadinessSummaryOut(
+        ready=not _has_blockers(impact),
+        selected_item_count=selected_item_count,
+        blocked_item_count=len(impact.blocked_items),
+        blocker_codes=blocker_codes,
     )
 
 
@@ -145,6 +167,14 @@ class WorkspacePublishService:
                     reason_meta=item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None,
                 )
                 continue
+            if item.workflow_stage != ContentWorkflowStage.APPROVED:
+                _append_blocked_item(
+                    impact,
+                    item=item,
+                    reason_code=WORKFLOW_PUBLISH_BLOCKER_CODE,
+                    reason_meta={"workflowStage": str(item.workflow_stage)},
+                )
+                continue
             route_key = (item.id, item.locale)
             if _requires_route(item) and route_map.get(route_key) is None:
                 impact.missing_routes.append(item.id)
@@ -164,6 +194,7 @@ class WorkspacePublishService:
                     reason_code="PARENT_UNPUBLISHED",
                     reason_meta={"parentItemId": str(parent_item_id)},
                 )
+        _refresh_readiness_summary(impact, selected_item_count=len(items))
         return impact
 
     async def publish_release(
@@ -191,6 +222,17 @@ class WorkspacePublishService:
         component_binding_map = await _load_component_binding_map(version_ids=version_ids)
         component_manifest_map = await _load_component_manifest_map(version_ids=version_ids)
         async with in_transaction() as conn:
+            current_active_release = (
+                await ContentReleaseRecord
+                .filter(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    is_active=True,
+                )
+                .using_db(conn)
+                .order_by("-release_number")
+                .first()
+            )
             release = await ContentReleaseRecord.create(
                 using_db=conn,
                 workspace_id=workspace_id,
@@ -198,6 +240,8 @@ class WorkspacePublishService:
                 release_number=await _next_release_number(site_id=site_id, conn=conn),
                 is_active=True,
                 created_by_user_id=actor_user_id,
+                lineage_parent_release_id=current_active_release.id if current_active_release is not None else None,
+                selection_count=len(items),
             )
             rows: list[PublishedGraphRecord] = []
             artifact_rows: list[PublishArtifactRecord] = []
@@ -333,4 +377,4 @@ class WorkspacePublishService:
                 await PublishedGraphRecord.bulk_create(rows, using_db=conn)
             if artifact_rows:
                 await PublishArtifactRecord.bulk_create(artifact_rows, using_db=conn)
-        return release, PublishArtifactsOut(graph_nodes=len(rows), impact=impact)
+        return release, PublishArtifactsOut(graph_nodes=len(rows), impact=impact, selection_count=len(items))

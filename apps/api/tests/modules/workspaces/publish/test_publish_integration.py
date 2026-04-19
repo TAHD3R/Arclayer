@@ -109,6 +109,15 @@ async def _publish_item(client, workspace_id: str, item_id: str, title: str, *, 
     )
     assert draft_res.status_code == 201, draft_res.text
 
+    workflow_res = await client.patch(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/workflow",
+        json={
+            "stage": "approved",
+            "summary": f"{title} approved for publish",
+        },
+    )
+    assert workflow_res.status_code == 200, workflow_res.text
+
     publish_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
         json={},

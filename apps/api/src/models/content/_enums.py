@@ -74,6 +74,13 @@ class ContentShapeState(StrEnum):
     UNSHAPED = "unshaped"
 
 
+class ContentWorkflowStage(StrEnum):
+    DRAFTING = "drafting"
+    IN_REVIEW = "in_review"
+    CHANGES_REQUESTED = "changes_requested"
+    APPROVED = "approved"
+
+
 class ContentVersionState(StrEnum):
     DRAFT = "draft"
     PUBLISHED = "published"

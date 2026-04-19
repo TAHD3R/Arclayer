@@ -26,6 +26,8 @@ class ContentReleaseRecord(BaseModel):
     is_active = fields.BooleanField(default=True, db_index=True)
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
     activated_at = fields.DatetimeField(auto_now_add=True, db_index=True)
+    lineage_parent_release_id = fields.UUIDField(null=True, db_index=True)
+    selection_count = fields.IntField(default=0)
 
     if TYPE_CHECKING:
         workspace_id: UUID

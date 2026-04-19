@@ -7,6 +7,11 @@ import type {
   AdminContentModelImpactPreview,
   AdminContentSeoProfile,
   AdminContentVersion,
+  AdminRelease,
+  AdminReleaseDryRun,
+  AdminReleaseList,
+  AdminReleasePublishResult,
+  AdminReleaseRollbackResult,
   AdminPublishImpact,
   ApplyAdminContentBootstrapShapePayload,
   CreateAdminContentLibraryViewPayload,
@@ -18,6 +23,7 @@ import type {
   PatchAdminContentModelPayload,
   PatchAdminContentVersionPayload,
   PageData,
+  PatchAdminContentItemWorkflowPayload,
   PatchAdminContentLibraryViewPayload,
   SaveAdminContentDraftVersionPayload,
 } from "@/types/api";
@@ -211,6 +217,47 @@ export async function getContentSeoProfile(
 
 export async function getWorkspacePublishImpact(workspaceId: string): Promise<AdminPublishImpact> {
   return api.get<AdminPublishImpact>(workspacePath(workspaceId, "/publish/impact"));
+}
+
+export async function patchContentItemWorkflow(
+  workspaceId: string,
+  itemId: string,
+  payload: PatchAdminContentItemWorkflowPayload,
+): Promise<AdminContentItem> {
+  return api.patch<AdminContentItem>(
+    workspacePath(workspaceId, `/content/items/${itemId}/workflow`),
+    payload,
+  );
+}
+
+export async function listWorkspaceReleases(workspaceId: string): Promise<AdminReleaseList> {
+  return api.get<AdminReleaseList>(workspacePath(workspaceId, "/releases"));
+}
+
+export async function getWorkspaceReleaseDryRun(workspaceId: string): Promise<AdminReleaseDryRun> {
+  return api.get<AdminReleaseDryRun>(workspacePath(workspaceId, "/releases/dry-run"));
+}
+
+export async function publishWorkspaceRelease(
+  workspaceId: string,
+): Promise<AdminReleasePublishResult> {
+  return api.post<AdminReleasePublishResult>(workspacePath(workspaceId, "/releases/publish"));
+}
+
+export async function rollbackWorkspaceRelease(
+  workspaceId: string,
+  releaseId: string,
+): Promise<AdminReleaseRollbackResult> {
+  return api.post<AdminReleaseRollbackResult>(
+    workspacePath(workspaceId, `/releases/${releaseId}/rollback`),
+  );
+}
+
+export async function getWorkspaceRelease(
+  workspaceId: string,
+  releaseId: string,
+): Promise<AdminRelease> {
+  return api.get<AdminRelease>(workspacePath(workspaceId, `/releases/${releaseId}`));
 }
 
 export async function getContentLibraryViews(

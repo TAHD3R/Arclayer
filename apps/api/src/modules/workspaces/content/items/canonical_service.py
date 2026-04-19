@@ -13,6 +13,7 @@ from src.models.content._enums import (
     ContentItemStatus,
     ContentItemVisibility,
     ContentVersionState,
+    ContentWorkflowStage,
 )
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
@@ -29,6 +30,8 @@ from src.modules.workspaces.content.items.domain_helpers import (
     build_formless_draft_slug,
     build_patch_item_fields,
     build_patch_version_fields,
+    build_workflow_patch_fields,
+    derive_item_publish_blocker_codes,
     ensure_expected_version,
     extract_component_bindings,
     extract_seo_payload,
@@ -45,6 +48,7 @@ from src.modules.workspaces.content.items.domain_helpers import (
 from src.modules.workspaces.content.items.input_schema import (
     ContentItemBootstrapShapeIn,
     ContentItemCreateIn,
+    ContentItemWorkflowPatchIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
@@ -214,6 +218,35 @@ class WorkspaceContentCanonicalItemsService:
                 },
                 conn=conn,
             )
+            return to_item_out(item, item.model_definition)
+
+    async def patch_workflow(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        actor_user_id: UUID | None,
+        payload: ContentItemWorkflowPatchIn,
+    ) -> ContentItemOut:
+        async with in_transaction() as conn:
+            item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            fields = build_workflow_patch_fields(
+                current_item=item,
+                stage=payload.stage,
+                assignee_user_id=payload.assignee_user_id,
+                summary=payload.summary,
+                note_body=payload.note.body if payload.note is not None else None,
+                actor_user_id=actor_user_id,
+            )
+            if not fields:
+                return to_item_out(item, item.model_definition)
+            item = await self.repo.update_item_fields(item, fields=fields, conn=conn)
             return to_item_out(item, item.model_definition)
 
     async def duplicate_item(
@@ -434,6 +467,16 @@ class WorkspaceContentCanonicalItemsService:
                 raise Conflict("Invalid version transition", error="CONTENT_VERSION_TRANSITION_INVALID")
 
             if target_state == ContentVersionState.PUBLISHED:
+                blocker_codes = derive_item_publish_blocker_codes(item)
+                if blocker_codes:
+                    raise Conflict(
+                        "Content workflow gate blocked publish",
+                        error="CONTENT_WORKFLOW_GATE_FAILED",
+                        meta={
+                            "workflowStage": str(item.workflow_stage or ContentWorkflowStage.DRAFTING),
+                            "blockerCodes": blocker_codes,
+                        },
+                    )
                 presentation_rows = await self.repo.list_presentations(version_id=version.id, conn=conn)
                 presentations: PresentationPayload = [
                     (
