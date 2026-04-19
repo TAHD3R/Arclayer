@@ -97,6 +97,7 @@ interface AssetsViewOverlaysProps {
     purpose?: string;
     indexable?: boolean;
   }) => Promise<void>;
+  canManageAssets?: boolean;
 }
 
 export function AssetsSelectionToolbar(
@@ -111,8 +112,10 @@ export function AssetsSelectionToolbar(
     | "onOpenMove"
     | "onOpenEditAccess"
     | "onOpenBulkDelete"
+    | "canManageAssets"
   >,
 ) {
+  const canManageAssets = props.canManageAssets !== false;
   return (
     <AnimatePresence>
       {props.selectedCount > 0 ? (
@@ -139,7 +142,7 @@ export function AssetsSelectionToolbar(
                   variant="ghost"
                   size="sm"
                   onClick={props.onOpenMove}
-                  disabled={props.bulkMovePending}
+                  disabled={!canManageAssets || props.bulkMovePending}
                 >
                   <FolderInput size={16} />
                   {props.t("assets:ASSET_ACTION_MOVE")}
@@ -148,7 +151,7 @@ export function AssetsSelectionToolbar(
                   variant="ghost"
                   size="sm"
                   onClick={props.onOpenEditAccess}
-                  disabled={props.bulkUpdatePending}
+                  disabled={!canManageAssets || props.bulkUpdatePending}
                 >
                   <Settings2 size={16} />
                   {props.t("assets:ASSET_ACTION_EDIT_ACCESS")}
@@ -156,7 +159,7 @@ export function AssetsSelectionToolbar(
                 <Button
                   variant="destructive"
                   onClick={props.onOpenBulkDelete}
-                  disabled={props.bulkDeletePending}
+                  disabled={!canManageAssets || props.bulkDeletePending}
                 >
                   <Trash2 size={16} />
                   {props.t("assets:ASSET_ACTION_DELETE_SELECTED")}
@@ -182,6 +185,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         onSelectAsset={(asset) => props.setActive(asset)}
         onOpenEditAsset={props.onOpenEditAsset}
         onClose={() => props.setActive(null)}
+        canManageAssets={props.canManageAssets}
       />
       <MoveAssetsToFolderModal
         open={props.moveModalOpen}

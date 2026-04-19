@@ -217,6 +217,54 @@ async def test_content_model_locked_system_fields_are_rejected(
         )
         assert patch_response.status_code == 409, patch_response.text
         assert patch_response.json()["error"] == "CONTENT_MODEL_SYSTEM_FIELD_LOCKED"
+        assert patch_response.json()["meta"] == {
+            "fieldNames": ["name"],
+            "allowedFieldNames": [
+                "default_posture",
+                "default_role",
+                "default_surface",
+                "description",
+                "fields",
+                "relations",
+                "views",
+            ],
+            "protocolKey": "article",
+        }
+
+
+@pytest.mark.asyncio
+async def test_content_model_system_field_collision_is_rejected_during_preview(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        create_response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_blank_first_create_payload(),
+        )
+        assert create_response.status_code == 201, create_response.text
+        model_id = create_response.json()["data"]["id"]
+
+        preview_response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}/impact-preview",
+            json={
+                "fields": [
+                    {
+                        "key": "title",
+                        "label": "Custom Title",
+                        "scalar": "text",
+                        "required": False,
+                    }
+                ],
+            },
+        )
+
+        assert preview_response.status_code == 409, preview_response.text
+        assert preview_response.json()["error"] == "CONTENT_MODEL_SYSTEM_FIELD_COLLISION"
+        assert preview_response.json()["meta"] == {
+            "fieldKeys": ["title"],
+            "protocolKey": "article",
+        }
 
 
 @pytest.mark.asyncio

@@ -301,4 +301,36 @@ describe("content-library-row-actions", () => {
       expect(root).toHaveAttribute("data-visible", "false");
     });
   });
+
+  it("disables write-side menu actions when the row is read-only", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ContentLibraryRowActions
+        row={buildRow({ editWith: "canvas", role: "page" })}
+        canManageContent={false}
+        onOpen={vi.fn()}
+        onOpenPageSettings={vi.fn()}
+        onEditPermalink={vi.fn()}
+        onEditSeo={vi.fn()}
+        onEditVisibility={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onArchive={vi.fn()}
+        onUnarchive={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+
+    expect(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_PERMALINK" }),
+    ).toHaveAttribute("data-disabled");
+    expect(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_PAGE_SETTINGS" }),
+    ).toHaveAttribute("data-disabled");
+    expect(screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_DELETE" })).toHaveAttribute(
+      "data-disabled",
+    );
+  });
 });

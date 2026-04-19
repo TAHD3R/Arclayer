@@ -8,6 +8,7 @@ import {
   listAllContentModels,
   patchContentModel,
 } from "@/api/content";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError } from "@/lib/notifications";
 import {
@@ -298,6 +299,7 @@ function statusTone(status: "ready" | "review" | "blocked"): string {
 export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
   const { t } = useTranslation("content");
   const queryClient = useQueryClient();
+  const permissionAccess = useWorkspacePermissionAccess(props.workspaceId);
   const modelsQuery = useQuery({
     queryKey: buildContentModelsGovernanceQueryKey(props.workspaceId),
     queryFn: () => listAllContentModels(props.workspaceId),
@@ -385,6 +387,9 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
     preview !== null && previewPayloadKey !== null && previewPayloadKey === currentPayloadKey;
   const hasPendingChanges = Boolean(currentPayload && Object.keys(currentPayload).length > 0);
   const hasStalePreview = hasPendingChanges && !previewIsCurrent && preview !== null;
+  const canManageModels =
+    permissionAccess.hasAction("content:models:write") ||
+    permissionAccess.hasPermission("system:content:manage");
   const contractRegistry = selectedModel?.contractRegistry;
   const systemFields = contractRegistry?.boundaries?.systemFields ?? [];
   const customFields = contractRegistry?.boundaries?.customFields ?? [];
@@ -755,6 +760,12 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
             </div>
 
             <div className="space-y-6">
+              {!canManageModels ? (
+                <div className="rounded-[28px] border border-border/70 bg-muted/30 px-5 py-4 text-sm text-muted-foreground">
+                  {t("CONTENT_MODELS_NO_ACCESS_DESC")}
+                </div>
+              ) : null}
+
               <GovernancePanel
                 title={t("CONTENT_MODELS_SECTION_DEFAULTS_TITLE")}
                 description={t("CONTENT_MODELS_SECTION_EXTENSIONS_DESC")}
@@ -768,6 +779,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
                       aria-label={t("CONTENT_MODELS_FIELD_ROLE")}
                       className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
                       value={draft.defaultRole ?? ""}
+                      disabled={!canManageModels}
                       onChange={(event) =>
                         setDraft((current) =>
                           current
@@ -798,6 +810,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
                       aria-label={t("CONTENT_MODELS_FIELD_POSTURE")}
                       className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
                       value={draft.defaultPosture ?? ""}
+                      disabled={!canManageModels}
                       onChange={(event) =>
                         setDraft((current) =>
                           current
@@ -828,6 +841,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
                       aria-label={t("CONTENT_MODELS_FIELD_SURFACE")}
                       className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
                       value={draft.defaultSurface ?? ""}
+                      disabled={!canManageModels}
                       onChange={(event) =>
                         setDraft((current) =>
                           current
@@ -856,6 +870,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
                     </span>
                     <textarea
                       value={draft.starterPackPolicyText}
+                      disabled={!canManageModels}
                       onChange={(event) =>
                         setDraft((current) =>
                           current
@@ -1054,7 +1069,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
             <button
               type="button"
               className="h-11 rounded-xl border border-border/70 bg-background px-4 text-sm font-medium text-foreground disabled:opacity-60"
-              disabled={!hasPendingChanges || previewMutation.isPending}
+              disabled={!canManageModels || !hasPendingChanges || previewMutation.isPending}
               onClick={() => previewMutation.mutate()}
             >
               {previewMutation.isPending
@@ -1065,6 +1080,7 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
               type="button"
               className="h-11 rounded-xl bg-foreground px-4 text-sm font-medium text-background disabled:opacity-60"
               disabled={
+                !canManageModels ||
                 !hasPendingChanges ||
                 !previewIsCurrent ||
                 preview?.hasBlockingChanges === true ||

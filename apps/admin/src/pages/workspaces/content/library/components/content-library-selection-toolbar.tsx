@@ -7,6 +7,7 @@ import { Button } from "@arclayer/ui/button";
 type ContentLibrarySelectionToolbarProps = {
   t: (key: string, options?: Record<string, unknown>) => string;
   selectedCount: number;
+  canManageContent?: boolean;
   archivePending?: boolean;
   deletePending?: boolean;
   onClearSelection: () => void;
@@ -15,6 +16,8 @@ type ContentLibrarySelectionToolbarProps = {
 };
 
 export function ContentLibrarySelectionToolbar(props: ContentLibrarySelectionToolbarProps) {
+  const actionsDisabled = props.canManageContent === false;
+
   return (
     <AnimatePresence>
       {props.selectedCount > 0 ? (
@@ -43,7 +46,7 @@ export function ContentLibrarySelectionToolbar(props: ContentLibrarySelectionToo
                   variant="ghost"
                   size="sm"
                   onClick={props.onOpenArchive}
-                  disabled={props.archivePending}
+                  disabled={props.archivePending || actionsDisabled}
                 >
                   <Archive className="size-4" />
                   {props.t("content:CONTENT_LIBRARY_ACTION_ARCHIVE")}
@@ -52,7 +55,7 @@ export function ContentLibrarySelectionToolbar(props: ContentLibrarySelectionToo
                   variant="destructive"
                   size="sm"
                   onClick={props.onOpenDelete}
-                  disabled={props.deletePending}
+                  disabled={props.deletePending || actionsDisabled}
                 >
                   <Trash2 className="size-4" />
                   {props.t("content:CONTENT_LIBRARY_ACTION_DELETE")}

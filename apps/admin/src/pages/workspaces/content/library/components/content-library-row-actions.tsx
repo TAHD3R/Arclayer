@@ -29,6 +29,7 @@ import type { ContentLibraryTableRow } from "../types";
 
 export function ContentLibraryRowActions(props: {
   row: ContentLibraryTableRow;
+  canManageContent?: boolean;
   onOpen: (row: ContentLibraryTableRow) => void;
   onOpenFullEditor?: (row: ContentLibraryTableRow) => void;
   onEditPermalink?: (row: ContentLibraryTableRow) => void;
@@ -47,6 +48,7 @@ export function ContentLibraryRowActions(props: {
 }) {
   const { t } = useTranslation(["content", "common"]);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const canManageContent = props.canManageContent !== false;
   const openLabel = t("CONTENT_LIBRARY_ACTION_OPEN");
   const openTooltip = t("CONTENT_LIBRARY_ACTION_OPEN_ITEM");
   const showWritingActions = props.row.editWith === "writing" || props.row.role === "article";
@@ -124,28 +126,28 @@ export function ContentLibraryRowActions(props: {
             <>
               <DropdownMenuIconItem
                 icon={<ArrowUpRight className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onOpenFullEditor?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR")}
               </DropdownMenuIconItem>
               <DropdownMenuIconItem
                 icon={<Link2 className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onEditPermalink?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_PERMALINK")}
               </DropdownMenuIconItem>
               <DropdownMenuIconItem
                 icon={<Globe className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onEditSeo?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_SEO")}
               </DropdownMenuIconItem>
               <DropdownMenuIconItem
                 icon={<Eye className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onEditVisibility?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY")}
@@ -157,28 +159,28 @@ export function ContentLibraryRowActions(props: {
             <>
               <DropdownMenuIconItem
                 icon={<Link2 className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onEditPermalink?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_PERMALINK")}
               </DropdownMenuIconItem>
               <DropdownMenuIconItem
                 icon={<Globe className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onEditSeo?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_SEO")}
               </DropdownMenuIconItem>
               <DropdownMenuIconItem
                 icon={<Eye className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onEditVisibility?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY")}
               </DropdownMenuIconItem>
               <DropdownMenuIconItem
                 icon={<Settings2 className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onOpenPageSettings?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_PAGE_SETTINGS")}
@@ -191,7 +193,7 @@ export function ContentLibraryRowActions(props: {
               {props.onOpenFullEditor ? (
                 <DropdownMenuIconItem
                   icon={<ArrowUpRight className="size-4" />}
-                  disabled={props.pending}
+                  disabled={props.pending || !canManageContent}
                   onSelect={() => props.onOpenFullEditor?.(props.row)}
                 >
                   {t("CONTENT_LIBRARY_ACTION_OPEN_STRUCTURED_EDITOR")}
@@ -199,7 +201,7 @@ export function ContentLibraryRowActions(props: {
               ) : null}
               <DropdownMenuIconItem
                 icon={<Braces className="size-4" />}
-                disabled={props.pending}
+                disabled={props.pending || !canManageContent}
                 onSelect={() => props.onOpenStructuredFields?.(props.row)}
               >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_FIELDS")}
@@ -209,14 +211,14 @@ export function ContentLibraryRowActions(props: {
           ) : null}
           <DropdownMenuIconItem
             icon={<Copy className="size-4" />}
-            disabled={props.pending}
+            disabled={props.pending || !canManageContent}
             onSelect={() => props.onDuplicate(props.row)}
           >
             {t("CONTENT_LIBRARY_ACTION_DUPLICATE")}
           </DropdownMenuIconItem>
           <DropdownMenuIconItem
             icon={<Trash2 className="size-4" />}
-            disabled={props.pending}
+            disabled={props.pending || !canManageContent}
             onSelect={() => props.onDelete(props.row)}
           >
             {t("CONTENT_LIBRARY_ACTION_DELETE")}
@@ -224,7 +226,7 @@ export function ContentLibraryRowActions(props: {
           <DropdownMenuSeparator />
           <DropdownMenuIconItem
             icon={archiveAction.icon}
-            disabled={props.pending}
+            disabled={props.pending || !canManageContent}
             onSelect={archiveAction.onSelect}
           >
             {archiveAction.label}

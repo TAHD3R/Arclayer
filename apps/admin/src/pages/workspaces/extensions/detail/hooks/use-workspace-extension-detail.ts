@@ -3,13 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { getMyWorkspaceAuthz } from "@/api/workspaces";
 import {
   disableWorkspaceCapability,
   enableWorkspaceCapability,
   listWorkspaceCapabilities,
   listWorkspaceUIEmbeds,
 } from "@/api/workspace-extensions";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   workspaceCapabilitiesQueryKey,
@@ -43,20 +43,10 @@ function findCapability(
 }
 
 function useWorkspaceManageAccess(workspaceId: string) {
-  const authzQuery = useQuery({
-    queryKey: ["workspace", "authz", workspaceId],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => getMyWorkspaceAuthz(workspaceId),
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
+  const permissionAccess = useWorkspacePermissionAccess(workspaceId);
+  const canManage = permissionAccess.hasPermission("system:extensions:manage");
 
-  const canManage =
-    Boolean(authzQuery.data?.isSuperuser) ||
-    (authzQuery.data?.permissionCodes ?? []).includes("system:extensions:manage");
-
-  return { authzQuery, canManage };
+  return { authzQuery: permissionAccess.authzQuery, canManage };
 }
 
 function useWorkspaceCapabilities(workspaceId: string) {

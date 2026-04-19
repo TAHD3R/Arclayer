@@ -17,6 +17,8 @@ from src.modules.workspaces.api_keys.router import workspace_api_keys_router
 from src.modules.workspaces.content.items.router import canonical_items_router
 from src.modules.workspaces.content.models.router import canonical_models_router
 from src.modules.workspaces.content.routing.router import canonical_routing_router
+from src.modules.workspaces.permissions import get_permission_action_registry
+from src.modules.workspaces.rbac.router import router as workspace_rbac_router
 from src.modules.workspaces.releases.router import router as releases_router
 from src.modules.workspaces.site.router import router as site_router
 from src.modules.workspaces.themes.router import router as themes_router
@@ -115,6 +117,33 @@ def test_workspace_catalog_i18n_keys_exist_in_locale_files() -> None:
             assert key in zh_locale
 
 
+def test_workspace_action_catalog_includes_delivery_and_workspace_actions() -> None:
+    registry = get_permission_action_registry()
+
+    assert "system:content:read" in registry
+    assert registry["system:content:read"].permission_codes == ("system:content:read",)
+    assert "content:items:write" in registry
+    assert registry["content:items:write"].permission_codes == ("system:content:manage",)
+    assert "content:site-builder:write" in registry
+    assert registry["content:site-builder:write"].subject_kinds == (
+        "workspace_member",
+        "personal_api_key",
+        "workspace_api_key",
+    )
+    assert "content:routing:read" in registry
+    assert registry["content:routing:read"].permission_codes == ("system:content:read",)
+    assert "content:routing:write" in registry
+    assert registry["content:routing:write"].permission_codes == ("system:content:manage",)
+    assert "release:read" in registry
+    assert registry["release:read"].permission_codes == ("system:content:read",)
+    assert "release:publish" in registry
+    assert registry["release:publish"].permission_codes == ("system:content:publish",)
+    assert "release:rollback" in registry
+    assert registry["release:rollback"].permission_codes == ("system:content:publish",)
+    assert "delivery:graphql:read" in registry
+    assert registry["delivery:graphql:read"].subject_kinds == ("delivery_api_key",)
+
+
 def test_content_router_uses_granular_permissions() -> None:
     list_models = _route_permissions(
         canonical_models_router,
@@ -189,11 +218,17 @@ def test_workspace_api_key_router_uses_granular_permissions() -> None:
         path="/workspaces/{workspace_id}/api-keys/{key_id}/rotate",
         method="POST",
     )
+    list_actions = _route_permissions(
+        workspace_rbac_router,
+        path="/workspaces/{workspace_id}/rbac/actions",
+        method="GET",
+    )
 
     assert list_keys == {"system:keys:read"}
     assert create_key == {"system:keys:manage"}
     assert rotate_key == {"system:keys:manage"}
-    assert "admin:access" not in list_keys | create_key | rotate_key
+    assert list_actions == {"rbac:permissions:read"}
+    assert "admin:access" not in list_keys | create_key | rotate_key | list_actions
 
 
 def test_workspace_releases_router_uses_granular_permissions() -> None:
@@ -217,6 +252,35 @@ def test_workspace_releases_router_uses_granular_permissions() -> None:
     assert publish_release == {"system:content:read", "system:content:publish"}
     assert rollback_release == {"system:content:read", "system:content:publish"}
     assert "admin:access" not in list_releases | publish_release | rollback_release
+
+
+def test_workspace_routing_router_uses_granular_permissions() -> None:
+    list_bindings = _route_permissions(
+        canonical_routing_router,
+        path="/workspaces/{workspace_id}/content/routing/bindings",
+        method="GET",
+    )
+    upsert_binding = _route_permissions(
+        canonical_routing_router,
+        path="/workspaces/{workspace_id}/content/routing/bindings/{item_id}",
+        method="PUT",
+    )
+    list_hierarchy = _route_permissions(
+        canonical_routing_router,
+        path="/workspaces/{workspace_id}/content/routing/hierarchy",
+        method="GET",
+    )
+    upsert_hierarchy = _route_permissions(
+        canonical_routing_router,
+        path="/workspaces/{workspace_id}/content/routing/hierarchy/{item_id}",
+        method="PUT",
+    )
+
+    assert list_bindings == {"system:content:read"}
+    assert upsert_binding == {"system:content:read", "system:content:manage"}
+    assert list_hierarchy == {"system:content:read"}
+    assert upsert_hierarchy == {"system:content:read", "system:content:manage"}
+    assert "admin:access" not in list_bindings | upsert_binding | list_hierarchy | upsert_hierarchy
 
 
 def test_assets_domains_notifications_and_extensions_use_granular_permissions() -> None:

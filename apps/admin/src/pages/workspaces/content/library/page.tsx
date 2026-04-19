@@ -21,6 +21,7 @@ import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-
 import { PageMainRegion } from "@/layouts/page-shell/page-main-region";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type {
   AdminContentLibraryViewColumns,
@@ -102,17 +103,27 @@ import {
 
 function ContentLibraryPrimaryAction(props: {
   workspaceId: string | null;
+  canManageContent?: boolean;
   onNavigateCreate: () => void;
   onNavigateModels: () => void;
 }) {
   const { t } = useTranslation("content");
   if (!props.workspaceId) return null;
+  const canManageContent = props.canManageContent !== false;
   return (
     <div className="flex items-center gap-3">
-      <Button type="button" variant="outline" onClick={props.onNavigateModels}>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={props.onNavigateModels}
+        disabled={!canManageContent}
+      >
         {t("CONTENT_LIBRARY_ACTION_MANAGE_TYPES")}
       </Button>
-      <ContentLibraryNewContentButton onClick={props.onNavigateCreate} />
+      <ContentLibraryNewContentButton
+        onClick={props.onNavigateCreate}
+        disabled={!canManageContent}
+      />
     </div>
   );
 }
@@ -484,6 +495,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   const sidebar = useSidebar();
   const queryClient = useQueryClient();
   const dateTime = useWorkspaceDateTimeFormatter();
+  const permissionAccess = useWorkspacePermissionAccess(workspaceId);
   const autoCardMode = useContentLibraryCardMode();
   const [manualViewMode, setManualViewMode] = React.useState<ContentLibraryViewMode | null>(null);
   const [toolbarFilters, setToolbarFilters] = React.useState<ContentLibraryToolbarFilters>({});
@@ -521,6 +533,12 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   );
   const createDialogOpen = search.create === "1";
   const viewMode: ContentLibraryViewMode = manualViewMode ?? (autoCardMode ? "card" : "table");
+  const permissionReady = !workspaceId || permissionAccess.authzQuery.isFetched;
+  const canManageContent =
+    !workspaceId ||
+    !permissionReady ||
+    permissionAccess.hasAction("content:items:write") ||
+    permissionAccess.hasPermission("system:content:manage");
   const modelsQuery = useQuery({
     queryKey: buildContentLibraryModelsQueryKey(workspaceId ? String(workspaceId) : null),
     enabled: Boolean(workspaceId),
@@ -1009,6 +1027,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     onEditVisibility: openItemSettingsDialog("visibility"),
     onOpenPageSettings: openItemSettingsDialog("page-settings"),
     onOpenStructuredFields: openItemSettingsDialog("structured-fields"),
+    canManageContent,
     onDuplicate: setDuplicateRow,
     onDelete: setDeleteRow,
     onArchive: (row) => setArchiveDialog({ row, mode: "archive" }),
@@ -1380,6 +1399,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     <ContentLibrarySelectionToolbar
       t={t}
       selectedCount={selectedCount}
+      canManageContent={canManageContent}
       archivePending={archiveSelectionMutation.isPending}
       deletePending={deleteSelectionMutation.isPending}
       onClearSelection={() => {
@@ -1397,6 +1417,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
         action={
           <ContentLibraryPrimaryAction
             workspaceId={workspaceId ? String(workspaceId) : null}
+            canManageContent={canManageContent}
             onNavigateCreate={() => handleCreateDialogOpenChange(true)}
             onNavigateModels={() =>
               void navigate({ to: workspaceContentModelsPath(String(workspaceId)) })
@@ -1407,11 +1428,17 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
         contentClassName="min-h-0 flex flex-col"
       >
         <div className="flex min-h-0 flex-1 flex-col">
+          {!canManageContent ? (
+            <div className="mb-4 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+              {t("content:CONTENT_LIBRARY_NO_ACCESS_DESC")}
+            </div>
+          ) : null}
           {viewMode === "card" && (tableHook.pageData?.items.length ?? 0) > 0 ? (
             <div className="flex min-h-0 flex-col gap-4">
               <ContentLibraryCardList
                 rows={tableHook.pageData?.items ?? []}
                 previewRowId={previewRowId}
+                canManageContent={canManageContent}
                 onCardClick={handleOpenPreview}
                 onOpen={handleOpenPreview}
                 onOpenFullEditor={handleOpenFullEditor}
@@ -1519,6 +1546,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
                   className="min-h-0 w-full flex-1"
                   workspaceId={String(workspaceId)}
                   row={previewRow}
+                  readOnly={!canManageContent}
                   initialTitle={previewRow.title || previewRow.name}
                   initialSummary=""
                   onClose={handleClosePreview}
@@ -1552,6 +1580,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
           <ContentLibraryCreateContentDialog
             open={createDialogOpen}
             workspaceId={String(workspaceId)}
+            readOnly={!canManageContent}
             onOpenChange={handleCreateDialogOpenChange}
           />
         ) : null}
@@ -1720,6 +1749,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
         />
         <ContentLibraryItemSettingsDialogs
           state={itemSettingsDialog}
+          readOnly={!canManageContent}
           onClose={() => setItemSettingsDialog(null)}
         />
       </>

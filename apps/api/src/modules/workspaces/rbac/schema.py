@@ -22,6 +22,16 @@ class WorkspacePermissionOut(BaseOut):
     plugin_name: str | None = Field(default=None, description="Localized plugin name (if applicable).")
 
 
+class WorkspacePermissionActionOut(BaseSchema):
+    code: str = Field(..., description="Canonical action code.")
+    description: str | None = Field(default=None, description="Action description.")
+    subject_kinds: list[str] = Field(default_factory=list, description="Supported subject kinds.")
+    permission_codes: list[str] = Field(
+        default_factory=list,
+        description="Workspace permission codes that back this action.",
+    )
+
+
 class WorkspaceRBACMatrixPermissionRowOut(BaseSchema):
     code: str = Field(..., description="Permission code.")
     name: str = Field(..., description="Localized permission name.")

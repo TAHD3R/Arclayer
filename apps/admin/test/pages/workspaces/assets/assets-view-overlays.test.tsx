@@ -54,4 +54,31 @@ describe("AssetsViewOverlays", () => {
     expect(surface).toHaveClass("border-t");
     expect(surface).not.toHaveClass("border-b-0", "rounded-none");
   });
+
+  it("disables bulk write actions in read-only asset mode", () => {
+    const queryClient = createQueryClient();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AssetsSelectionToolbar
+          t={(key) => key}
+          selectedCount={1}
+          bulkMovePending={false}
+          bulkUpdatePending={false}
+          bulkDeletePending={false}
+          onClearSelection={() => undefined}
+          onOpenMove={() => undefined}
+          onOpenEditAccess={() => undefined}
+          onOpenBulkDelete={() => undefined}
+          canManageAssets={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_MOVE" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_EDIT_ACCESS" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "assets:ASSET_ACTION_DELETE_SELECTED" }),
+    ).toBeDisabled();
+  });
 });

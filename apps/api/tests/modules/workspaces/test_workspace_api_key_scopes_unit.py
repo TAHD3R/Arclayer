@@ -3,10 +3,13 @@ from __future__ import annotations
 from src.modules.workspaces.api_keys.scopes import (
     ApiKeyScope,
     build_api_key_access_profile,
+    evaluate_api_key_action,
+    resolve_actions_for_api_key_scopes,
     resolve_personal_management_permissions,
     resolve_workspace_service_permissions,
 )
 from src.modules.workspaces.authz.schema import AuthzSnapshot
+from src.modules.workspaces.permissions import PermissionSubjectKind
 
 
 def test_build_api_key_access_profile_maps_management_and_delivery_capabilities() -> None:
@@ -19,6 +22,7 @@ def test_build_api_key_access_profile_maps_management_and_delivery_capabilities(
 
     assert profile.delivery_read is True
     assert profile.graphql_read is True
+    assert profile.granted_actions == frozenset({"delivery:graphql:read", "delivery:read"})
     assert profile.management_permission_codes == frozenset({
         "system:content:read",
         "system:content:manage",
@@ -64,3 +68,22 @@ def test_resolve_workspace_service_permissions_uses_scope_profile_directly() -> 
     )
 
     assert effective == frozenset({"system:content:manage", "system:settings:read"})
+
+
+def test_resolve_actions_for_api_key_scopes_returns_delivery_actions() -> None:
+    effective = resolve_actions_for_api_key_scopes(
+        scopes=[ApiKeyScope.DELIVERY_READ, ApiKeyScope.GRAPHQL_READ],
+    )
+
+    assert effective == frozenset({"delivery:graphql:read", "delivery:read"})
+
+
+def test_evaluate_api_key_action_checks_delivery_action_grants() -> None:
+    decision = evaluate_api_key_action(
+        action="delivery:graphql:read",
+        subject_kind=PermissionSubjectKind.DELIVERY_API_KEY,
+        scopes=[ApiKeyScope.GRAPHQL_READ],
+    )
+
+    assert decision.allowed is True
+    assert decision.reason == "ACTION_GRANTED"

@@ -26,6 +26,8 @@ import { TooltipProvider } from "@arclayer/ui/tooltip";
 const mocked = vi.hoisted(() => ({
   loadContentLibraryArticleEditorSnapshot: vi.fn(),
   getCoreSettings: vi.fn(),
+  getMyWorkspaceAuthz: vi.fn(),
+  listWorkspacePermissionActions: vi.fn(),
   saveContentItemDraftVersion: vi.fn(),
   patchContentItemVersion: vi.fn(),
   publishContentItemVersion: vi.fn(),
@@ -94,6 +96,15 @@ vi.mock("@/api/settings", () => ({
   getCoreSettings: (...args: unknown[]) => mocked.getCoreSettings(...args),
 }));
 
+vi.mock("@/api/workspaces", () => ({
+  getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
+}));
+
+vi.mock("@/api/rbac", () => ({
+  listWorkspacePermissionActions: (...args: unknown[]) =>
+    mocked.listWorkspacePermissionActions(...args),
+}));
+
 vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
   AssetPickerDialog: () => null,
 }));
@@ -146,10 +157,12 @@ vi.mock(
   "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-page-toolbar",
   () => ({
     ContentLibraryArticleEditorPageToolbar: (props: {
+      canPublish?: boolean;
       saveState?: "hidden" | "saving" | "saved" | "error";
       isPublishing?: boolean;
       hasPublishableVersion?: boolean;
       onPublish?: () => void;
+      publishAccessHint?: string | null;
       slug: string;
       onSlugChange: (value: string) => void;
       visibility: "public" | "private";
@@ -187,8 +200,12 @@ vi.mock(
           <button
             type="button"
             disabled={
-              !props.hasPublishableVersion || props.isPublishing || props.saveState === "saving"
+              !props.canPublish ||
+              !props.hasPublishableVersion ||
+              props.isPublishing ||
+              props.saveState === "saving"
             }
+            title={props.publishAccessHint ?? undefined}
             onClick={props.onPublish}
           >
             CONTENT_LIBRARY_ACTION_PUBLISH
@@ -308,6 +325,8 @@ function buildEditorRuntime(
 
 describe("content-library-article-editor-page", () => {
   beforeEach(() => {
+    mocked.getMyWorkspaceAuthz.mockReset();
+    mocked.listWorkspacePermissionActions.mockReset();
     mocked.loadContentLibraryArticleEditorSnapshot.mockReset();
     mocked.getCoreSettings.mockReset();
     mocked.saveContentItemDraftVersion.mockReset();
@@ -315,6 +334,19 @@ describe("content-library-article-editor-page", () => {
     mocked.publishContentItemVersion.mockReset();
     renderStats.providerDocuments.length = 0;
     renderStats.toolbarRenders = 0;
+    mocked.getMyWorkspaceAuthz.mockResolvedValue({
+      workspaceId: "ws-1",
+      isSuperuser: false,
+      permissionCodes: ["system:content:manage", "system:content:publish"],
+    });
+    mocked.listWorkspacePermissionActions.mockResolvedValue([
+      {
+        code: "system:content:publish",
+        description: "Publish content entries through the shared lifecycle workflow.",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:content:publish"],
+      },
+    ]);
     mocked.getCoreSettings.mockResolvedValue({
       namespace: "core",
       value: {
@@ -614,6 +646,25 @@ describe("content-library-article-editor-page", () => {
       expect(mocked.patchContentItemVersion).toHaveBeenCalled();
       expect(mocked.publishContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 3);
     });
+  });
+
+  it("disables publish when the workspace lacks publish access", async () => {
+    mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
+    mocked.getMyWorkspaceAuthz.mockResolvedValueOnce({
+      workspaceId: "ws-1",
+      isSuperuser: false,
+      permissionCodes: ["system:content:manage"],
+    });
+
+    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+
+    const publishButton = await screen.findByRole("button", {
+      name: "CONTENT_LIBRARY_ACTION_PUBLISH",
+    });
+
+    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute("title", "CONTENT_LIBRARY_PUBLISH_NO_ACCESS_DESC");
+    expect(mocked.publishContentItemVersion).not.toHaveBeenCalled();
   });
 
   it("renders split toolbar actions with tooltips and handlers", async () => {

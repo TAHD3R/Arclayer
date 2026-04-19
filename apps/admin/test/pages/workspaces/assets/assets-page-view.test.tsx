@@ -7,6 +7,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { AssetsPageView } from "@/pages/workspaces/assets/components/assets-page-view";
 
+const mocked = vi.hoisted(() => ({
+  getWorkspaceDetail: vi.fn(),
+  getMyWorkspaceAuthz: vi.fn(),
+  listWorkspacePermissionActions: vi.fn(),
+}));
 const controllerState = { current: createControllerStub() };
 const tableControllerState = { current: createTableControllerStub() };
 
@@ -62,7 +67,9 @@ vi.mock("@/pages/workspaces/assets/components/assets-view-table-section", () => 
 }));
 
 vi.mock("@/pages/workspaces/assets/components/assets-folder-rail", () => ({
-  AssetsFolderRail: () => <div>folder-rail</div>,
+  AssetsFolderRail: ({ canManageAssets }: { canManageAssets?: boolean }) => (
+    <div data-can-manage-assets={String(canManageAssets)}>folder-rail</div>
+  ),
 }));
 
 vi.mock("@/pages/workspaces/assets/components/assets-view-dnd-surface", () => ({
@@ -97,24 +104,30 @@ vi.mock("@/pages/workspaces/assets/components/assets-view-overlays", () => ({
   AssetsSelectionToolbar: ({
     t,
     selectedCount,
+    canManageAssets,
   }: {
     t: (key: string) => string;
     selectedCount: number;
+    canManageAssets?: boolean;
   }) =>
-    selectedCount > 0 ? <button type="button">{t("assets:ASSET_CLEAR_SELECTION")}</button> : null,
-  AssetsViewOverlays: () => null,
+    selectedCount > 0 ? (
+      <button type="button" data-can-manage-assets={String(canManageAssets)}>
+        {t("assets:ASSET_CLEAR_SELECTION")}
+      </button>
+    ) : null,
+  AssetsViewOverlays: ({ canManageAssets }: { canManageAssets?: boolean }) => (
+    <div data-testid="assets-view-overlays" data-can-manage-assets={String(canManageAssets)} />
+  ),
 }));
 
 vi.mock("@/api/workspaces", () => ({
-  getWorkspaceDetail: vi.fn().mockResolvedValue({
-    id: "ws-1",
-    name: "Workspace Alpha",
-    iconMode: "initials",
-    iconColor: "#337ea9",
-    iconGlyph: null,
-    iconEmoji: null,
-    iconUrl: null,
-  }),
+  getWorkspaceDetail: (...args: unknown[]) => mocked.getWorkspaceDetail(...args),
+  getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
+}));
+
+vi.mock("@/api/rbac", () => ({
+  listWorkspacePermissionActions: (...args: unknown[]) =>
+    mocked.listWorkspacePermissionActions(...args),
 }));
 
 function renderWithQueryClient(component: React.ReactElement) {
@@ -263,6 +276,31 @@ describe("AssetsPageView", () => {
   beforeEach(() => {
     controllerState.current = createControllerStub();
     tableControllerState.current = createTableControllerStub();
+    mocked.getWorkspaceDetail.mockReset();
+    mocked.getMyWorkspaceAuthz.mockReset();
+    mocked.listWorkspacePermissionActions.mockReset();
+    mocked.getWorkspaceDetail.mockResolvedValue({
+      id: "ws-1",
+      name: "Workspace Alpha",
+      iconMode: "initials",
+      iconColor: "#337ea9",
+      iconGlyph: null,
+      iconEmoji: null,
+      iconUrl: null,
+    });
+    mocked.getMyWorkspaceAuthz.mockResolvedValue({
+      workspaceId: "ws-1",
+      isSuperuser: false,
+      permissionCodes: ["system:assets:read", "system:assets:manage"],
+    });
+    mocked.listWorkspacePermissionActions.mockResolvedValue([
+      {
+        code: "system:assets:manage",
+        description: "Manage asset library files and folders.",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:assets:manage"],
+      },
+    ]);
     window.localStorage.removeItem(STORAGE_KEYS.assetsFolderRailOpen);
   });
 
@@ -331,6 +369,34 @@ describe("AssetsPageView", () => {
     expect(
       screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }),
     ).toBeInTheDocument();
+  });
+
+  it("enters read-only mode when asset management access is missing", async () => {
+    controllerState.current = createControllerStub({
+      scope: { type: "workspace", id: "ws-1" },
+      selectedIds: new Set(["asset-1"]),
+    });
+    mocked.getMyWorkspaceAuthz.mockResolvedValue({
+      workspaceId: "ws-1",
+      isSuperuser: false,
+      permissionCodes: ["system:assets:read"],
+    });
+
+    renderWithQueryClient(<AssetsPageView />);
+
+    expect(await screen.findByTestId("assets-read-only-notice")).toHaveTextContent(
+      "assets:ASSET_LIBRARY_NO_ACCESS_DESC",
+    );
+    expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_UPLOAD" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" })).toHaveAttribute(
+      "data-can-manage-assets",
+      "false",
+    );
+    expect(screen.getByText("folder-rail")).toHaveAttribute("data-can-manage-assets", "false");
+    expect(screen.getByTestId("assets-view-overlays")).toHaveAttribute(
+      "data-can-manage-assets",
+      "false",
+    );
   });
 
   it("adds bottom breathing room to the assets content region", () => {

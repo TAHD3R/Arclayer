@@ -107,4 +107,37 @@ describe("AssetPreviewDialog", () => {
     expect(screen.getByText("May")).toBeInTheDocument();
     expect(screen.queryByText("Philip Cole · 2026-04-15")).not.toBeInTheDocument();
   });
+
+  it("disables preview write actions in read-only asset mode", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <AssetPreviewDialog
+        active={asset}
+        onClose={vi.fn()}
+        items={[asset]}
+        onSelectAsset={vi.fn()}
+        currentFolderPathLabel="Root"
+        folderBreadcrumbs={["Campaigns", "May"]}
+        workspaceBreadcrumb={{ name: "Philip Cole's Workspace 2" }}
+        onOpenEditAsset={vi.fn()}
+        canManageAssets={false}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "common:MORE" }));
+
+    expect(
+      (await screen.findByText("assets:ASSET_ACTION_EDIT")).closest('[role="menuitem"]'),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByText("assets:ASSET_ACTION_EDIT_ACCESS").closest('[role="menuitem"]'),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByText("assets:ASSET_ACTION_DELETE").closest('[role="menuitem"]'),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByText("assets:ASSET_ACTION_COPY_LINK").closest('[role="menuitem"]'),
+    ).not.toHaveAttribute("aria-disabled");
+  });
 });

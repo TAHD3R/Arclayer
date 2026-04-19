@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +11,23 @@ import {
   WorkspaceRolesSettingsPage,
 } from "@/pages/settings/context-settings-pages";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+
+vi.mock("@/api/rbac", () => ({
+  listWorkspacePermissionActions: vi.fn(async () => [
+    {
+      code: "system:content:read",
+      description: "Read content",
+      subjectKinds: ["workspace_member"],
+      permissionCodes: ["system:content:read"],
+    },
+    {
+      code: "delivery:graphql:read",
+      description: "Read GraphQL delivery",
+      subjectKinds: ["delivery_api_key"],
+      permissionCodes: [],
+    },
+  ]),
+}));
 
 vi.mock("@tanstack/react-router", () => ({
   useRouterState: ({
@@ -77,11 +94,16 @@ vi.mock("@/pages/workspaces/team/invitations/page", () => ({
 }));
 
 vi.mock("@/pages/workspaces/team/roles/page", () => ({
-  TeamRolesPage: (props: { workspaceIdOverride?: string | null; createOpen?: boolean }) => (
+  TeamRolesPage: (props: {
+    workspaceIdOverride?: string | null;
+    createOpen?: boolean;
+    onCreateOpenChange?: (open: boolean) => void;
+  }) => (
     <div
       data-testid="team-roles-page"
       data-workspace-id={props.workspaceIdOverride ?? ""}
       data-create-open={String(Boolean(props.createOpen))}
+      onClick={() => props.onCreateOpenChange?.(true)}
     />
   ),
 }));
@@ -197,12 +219,23 @@ describe("context settings pages", () => {
     );
   });
 
-  it("renders workspace roles with the header action in the context shell", () => {
+  it("renders workspace permissions governance view with action catalog and role matrix", async () => {
     renderWithQueryClient(<WorkspaceRolesSettingsPage workspaceId="ws-1" />);
 
     expect(screen.getByTestId("team-roles-page")).toHaveAttribute("data-workspace-id", "ws-1");
     expect(screen.getByTestId("context-settings-shell-action")).toHaveTextContent(
       "TEAM_ROLES_ADD_ROLE",
     );
+
+    const permissionsView = await screen.findByTestId("workspace-permissions-settings-view");
+    expect(
+      within(permissionsView).getByText("settings:SETTINGS_WORKSPACE_PERMISSIONS_CATALOG_TITLE"),
+    ).toBeInTheDocument();
+    expect((await within(permissionsView).findAllByText("system:content:read")).length).toBe(2);
+    expect(
+      within(permissionsView).getByText("delivery:graphql:read", {
+        selector: "div",
+      }),
+    ).toBeInTheDocument();
   });
 });

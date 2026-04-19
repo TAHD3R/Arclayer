@@ -15,11 +15,13 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_team_workspace_manage_access
+from src.modules.workspaces.permissions import get_permission_action_registry
 from src.modules.workspaces.rbac.schema import (
     PermissionRoleSetRequest,
     RoleCreateFromTemplateRequest,
     RolePermissionSetRequest,
     RoleUpdateRequest,
+    WorkspacePermissionActionOut,
     WorkspacePermissionOut,
     WorkspaceRBACMatrixOut,
     WorkspaceRBACMatrixPermissionRowOut,
@@ -129,6 +131,27 @@ async def list_permissions(
         )
     page = paginate_items(items, params=params)
     return ApiResponse.success(data=page)
+
+
+@router.get(
+    "/actions",
+    response_model=ResponseModel[list[WorkspacePermissionActionOut]],
+    summary="List canonical permission actions for current workspace",
+    dependencies=[require_workspace_permission("rbac:permissions:read")],
+)
+async def list_actions(
+    _ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+) -> ResponseModel[list[WorkspacePermissionActionOut]]:
+    items = [
+        WorkspacePermissionActionOut(
+            code=action,
+            description=definition.description,
+            subject_kinds=list(definition.subject_kinds),
+            permission_codes=list(definition.permission_codes),
+        )
+        for action, definition in sorted(get_permission_action_registry().items(), key=lambda entry: entry[0])
+    ]
+    return ApiResponse.success(data=items)
 
 
 @router.get(

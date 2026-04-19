@@ -25,6 +25,7 @@ function getLibraryGroupLabelKey(row: ContentLibraryTableRow) {
 type ContentLibraryCardListProps = {
   rows: ContentLibraryTableRow[];
   previewRowId?: string | null;
+  canManageContent?: boolean;
   onCardClick: (row: ContentLibraryTableRow) => void;
   onOpen: (row: ContentLibraryTableRow) => void;
   onOpenFullEditor?: (row: ContentLibraryTableRow) => void;
@@ -90,6 +91,7 @@ export function ContentLibraryCardList(props: ContentLibraryCardListProps) {
             >
               <ContentLibraryRowActions
                 row={row}
+                canManageContent={props.canManageContent}
                 pending={props.pending}
                 previewOpen={props.previewRowId === row.id}
                 onOpen={props.onOpen}

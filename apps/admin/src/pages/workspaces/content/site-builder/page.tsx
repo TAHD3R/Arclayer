@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { workspaceContentLibraryPath } from "@/lib/routing/workspace-content-routing";
 import type { AdminContentItem } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
@@ -30,6 +31,12 @@ export function ContentSiteBuilderPage(props: {
   item?: AdminContentItem | null;
 }) {
   const { t } = useTranslation("content");
+  const permissionAccess = useWorkspacePermissionAccess(props.workspaceId);
+  const permissionReady = permissionAccess.authzQuery.isFetched;
+  const canConfigureBuilder =
+    !permissionReady ||
+    permissionAccess.hasAction("content:site-builder:write") ||
+    permissionAccess.hasPermission("system:content:manage");
   const itemLabel =
     props.item?.title?.trim() || props.item?.slug || t("CONTENT_SITE_BUILDER_EMPTY_TITLE");
 
@@ -80,6 +87,14 @@ export function ContentSiteBuilderPage(props: {
               <CardDescription>{t("CONTENT_SITE_BUILDER_CANVAS_DESC")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {!canConfigureBuilder ? (
+                <div
+                  className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
+                  data-testid="content-site-builder-no-access"
+                >
+                  {t("CONTENT_SITE_BUILDER_NO_ACCESS_DESC")}
+                </div>
+              ) : null}
               {props.item ? (
                 <div
                   className="min-h-[360px] rounded-[28px] border border-dashed border-border/70 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_45%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6"
@@ -122,6 +137,14 @@ export function ContentSiteBuilderPage(props: {
               <div>{t("CONTENT_SITE_BUILDER_INSPECTOR_SECTIONS")}</div>
               <div>{t("CONTENT_SITE_BUILDER_INSPECTOR_LAYOUT")}</div>
               <div>{t("CONTENT_SITE_BUILDER_INSPECTOR_BINDINGS")}</div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!canConfigureBuilder}
+                data-testid="content-site-builder-open-item"
+              >
+                {t("CONTENT_SITE_BUILDER_ACTION_OPEN_ITEM")}
+              </Button>
             </CardContent>
           </Card>
         </div>

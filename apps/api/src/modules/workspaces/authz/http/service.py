@@ -9,8 +9,10 @@ from src.core.i18n import t
 from src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
 from src.models.workspaces.workspace import WorkspaceMembershipRole
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.authz.schema import AuthzSnapshot
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.permissions import PermissionContext, PermissionSubjectKind, PolicyEvaluationService
 
 
 async def _list_user_role_codes_in_workspace(*, user_id: UUID, workspace_id: UUID) -> list[str]:
@@ -26,6 +28,35 @@ async def _list_user_role_codes_in_workspace(*, user_id: UUID, workspace_id: UUI
         .all()
     )
     return [r.code for r in roles if r and r.code]
+
+
+async def _build_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) -> AuthzSnapshot:
+    role_codes = await _list_user_role_codes_in_workspace(user_id=user_id, workspace_id=workspace_id)
+    if not role_codes:
+        return AuthzSnapshot(user_id=user_id, role_codes=[], permission_codes=[], is_superuser=False)
+
+    is_superuser = await Role.filter(workspace_id=workspace_id, code__in=role_codes, is_superuser=True).exists()
+    if is_superuser:
+        perms = await Permission.filter(scope=PermissionScope.WORKSPACE).distinct().order_by("code").all()
+    else:
+        perms = (
+            await Permission
+            .filter(
+                scope=PermissionScope.WORKSPACE,
+                permission_roles__role__workspace_id=workspace_id,
+                permission_roles__role__code__in=role_codes,
+            )
+            .distinct()
+            .order_by("code")
+            .all()
+        )
+    permission_codes = [p.code for p in perms if p and p.code]
+    return AuthzSnapshot(
+        user_id=user_id,
+        role_codes=role_codes,
+        permission_codes=permission_codes,
+        is_superuser=is_superuser,
+    )
 
 
 async def _ensure_creator_admin_has_admin_role(*, ctx: WorkspaceContext, user_id: UUID) -> None:
@@ -66,23 +97,25 @@ async def ensure_workspace_permission_granted(
 
     await _ensure_creator_admin_has_admin_role(ctx=ctx, user_id=user_id)
 
-    role_codes = await _list_user_role_codes_in_workspace(user_id=user_id, workspace_id=ctx.workspace_id)
-    if not role_codes:
+    snapshot = await _build_workspace_authz_snapshot(user_id=user_id, workspace_id=ctx.workspace_id)
+    if not snapshot.role_codes:
         raise Forbidden(
             message=t("errors", "PERMISSION_DENIED"),
             error=error_code,
         )
 
-    if await Role.filter(workspace_id=ctx.workspace_id, code__in=role_codes, is_superuser=True).exists():
-        return
-
-    ok = await Permission.filter(
-        code=permission,
-        scope=PermissionScope.WORKSPACE,
-        permission_roles__role__workspace_id=ctx.workspace_id,
-        permission_roles__role__code__in=role_codes,
-    ).exists()
-    if not ok:
+    decision = PolicyEvaluationService().evaluate(
+        context=PermissionContext(
+            action=permission,
+            subject_kind=PermissionSubjectKind.WORKSPACE_MEMBER,
+            workspace_id=ctx.workspace_id,
+            user_id=user_id,
+            role_codes=snapshot.role_codes,
+            permission_codes=snapshot.permission_codes,
+            is_superuser=snapshot.is_superuser,
+        )
+    )
+    if not decision.allowed:
         raise Forbidden(
             message=t("errors", "PERMISSION_DENIED"),
             error=error_code,

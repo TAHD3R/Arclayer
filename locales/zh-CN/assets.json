@@ -28,6 +28,7 @@
   "ASSET_SORT_SIZE_SMALL": "文件最小",
   "ASSET_EMPTY": "暂无资源",
   "ASSET_EMPTY_DESC": "你还没有上传任何资源。点击下方按钮添加资源到资源库。",
+  "ASSET_LIBRARY_NO_ACCESS_DESC": "你可以查看和下载资源。需要上传、整理或删除文件时，请让工作空间管理员开启资源管理权限。",
   "ASSET_EMPTY_SEARCH_TITLE": "未找到匹配资源",
   "ASSET_EMPTY_SEARCH_DESC": "当前筛选或搜索条件下没有匹配的资源。你可以尝试修改关键词或重置筛选条件。",
   "ASSET_LIST_LOAD_FAILED_DESC": "资源列表加载失败，请稍后重试。",

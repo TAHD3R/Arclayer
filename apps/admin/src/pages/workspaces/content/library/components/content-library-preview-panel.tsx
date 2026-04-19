@@ -20,6 +20,7 @@ function ContentLibrarySummaryPreview(props: {
   row: ContentLibraryTableRow;
   title: string;
   description: string;
+  readOnly?: boolean;
   onEditPermalink?: () => void;
   onEditSeo?: () => void;
   onEditVisibility?: () => void;
@@ -97,27 +98,46 @@ function ContentLibrarySummaryPreview(props: {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             {props.onEditPermalink ? (
-              <Button type="button" variant="outline" onClick={props.onEditPermalink}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={props.onEditPermalink}
+                disabled={props.readOnly}
+              >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_PERMALINK")}
               </Button>
             ) : null}
             {props.onEditSeo ? (
-              <Button type="button" variant="outline" onClick={props.onEditSeo}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={props.onEditSeo}
+                disabled={props.readOnly}
+              >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_SEO")}
               </Button>
             ) : null}
             {props.onEditVisibility ? (
-              <Button type="button" variant="outline" onClick={props.onEditVisibility}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={props.onEditVisibility}
+                disabled={props.readOnly}
+              >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY")}
               </Button>
             ) : null}
             {props.icon === "page" && props.onOpenPageSettings ? (
-              <Button type="button" onClick={props.onOpenPageSettings}>
+              <Button type="button" onClick={props.onOpenPageSettings} disabled={props.readOnly}>
                 {t("CONTENT_LIBRARY_ACTION_PAGE_SETTINGS")}
               </Button>
             ) : null}
             {props.icon === "structured" && props.onOpenStructuredFields ? (
-              <Button type="button" onClick={props.onOpenStructuredFields}>
+              <Button
+                type="button"
+                onClick={props.onOpenStructuredFields}
+                disabled={props.readOnly}
+              >
                 {t("CONTENT_LIBRARY_ACTION_EDIT_FIELDS")}
               </Button>
             ) : null}
@@ -186,6 +206,7 @@ export function ContentLibraryPreviewPanel(props: {
   row: ContentLibraryTableRow;
   initialTitle?: string;
   initialSummary?: string;
+  readOnly?: boolean;
   onClose: () => void;
   onOpenPage: () => void;
   onEditPermalink?: () => void;
@@ -216,6 +237,7 @@ export function ContentLibraryPreviewPanel(props: {
         row={props.row}
         title={contentTypeTitle}
         description={contentTypeDescription}
+        readOnly={props.readOnly}
         onEditPermalink={props.onEditPermalink}
         onEditSeo={props.onEditSeo}
         onEditVisibility={props.onEditVisibility}
@@ -232,6 +254,7 @@ export function ContentLibraryPreviewPanel(props: {
         row={props.row}
         title={contentTypeTitle}
         description={contentTypeDescription}
+        readOnly={props.readOnly}
         onEditVisibility={props.onEditVisibility}
         onOpenStructuredFields={props.onOpenStructuredFields}
         className={props.className}

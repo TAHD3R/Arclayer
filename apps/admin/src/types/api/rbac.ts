@@ -30,3 +30,10 @@ export type RbacMatrix = {
   roles: Role[];
   permissions: RbacMatrixPermissionRow[];
 };
+
+export type WorkspacePermissionAction = {
+  code: string;
+  description: string | null;
+  subjectKinds: string[];
+  permissionCodes: string[];
+};

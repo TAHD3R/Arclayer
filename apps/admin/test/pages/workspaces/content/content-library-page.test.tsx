@@ -37,6 +37,8 @@ const mocked = vi.hoisted(() => ({
   sidebarState: "expanded" as "expanded" | "collapsed",
   sidebarIsMobile: false,
   routeSearch: { current: {} as Record<string, unknown> },
+  getMyWorkspaceAuthz: vi.fn(),
+  listWorkspacePermissionActions: vi.fn(),
 }));
 
 vi.mock("@/api/content", () => ({
@@ -61,6 +63,15 @@ vi.mock("@/api/content", () => ({
 
 vi.mock("@/api/settings", () => ({
   getCoreSettings: (...args: unknown[]) => mocked.getCoreSettings(...args),
+}));
+
+vi.mock("@/api/workspaces", () => ({
+  getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
+}));
+
+vi.mock("@/api/rbac", () => ({
+  listWorkspacePermissionActions: (...args: unknown[]) =>
+    mocked.listWorkspacePermissionActions(...args),
 }));
 
 vi.mock("@/pages/workspaces/content/library/article-editor/hooks/api", async (importOriginal) => {
@@ -459,8 +470,8 @@ vi.mock("@/pages/workspaces/content/library/components/content-library-action-di
 }));
 
 vi.mock("@/pages/workspaces/content/library/components/content-library-new-content-button", () => ({
-  ContentLibraryNewContentButton: (props: { onClick: () => void }) => (
-    <button type="button" onClick={props.onClick}>
+  ContentLibraryNewContentButton: (props: { onClick: () => void; disabled?: boolean }) => (
+    <button type="button" onClick={props.onClick} disabled={props.disabled}>
       CONTENT_LIBRARY_ACTION_NEW_CONTENT
     </button>
   ),
@@ -673,6 +684,25 @@ describe("ContentLibraryPage", () => {
     mocked.updateContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
     mocked.moveContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
     mocked.deleteContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
+    mocked.getMyWorkspaceAuthz.mockResolvedValue({
+      workspaceId: "ws-1",
+      isSuperuser: false,
+      permissionCodes: ["system:content:manage", "system:content:read"],
+    });
+    mocked.listWorkspacePermissionActions.mockResolvedValue([
+      {
+        code: "content:items:write",
+        description: "Allow mutating content items via management APIs.",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:content:manage"],
+      },
+      {
+        code: "content:site-builder:write",
+        description: "Allow configuring canvas and site builder workflows.",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:content:manage"],
+      },
+    ]);
     mocked.listAllContentModels.mockResolvedValue([
       {
         id: "model-page",
@@ -1441,6 +1471,30 @@ describe("ContentLibraryPage", () => {
       search: { create: "1" },
       replace: false,
     });
+  });
+
+  test("falls back to read-only actions when content management access is missing", async () => {
+    mocked.getMyWorkspaceAuthz.mockResolvedValue({
+      workspaceId: "ws-1",
+      isSuperuser: false,
+      permissionCodes: ["system:content:read"],
+    });
+
+    renderWithQuery(<ContentLibraryPage />, { focusItemId: "content-1" });
+
+    await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+
+    expect(screen.getByText("content:CONTENT_LIBRARY_NO_ACCESS_DESC")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("page-action")).getByRole("button", {
+        name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT",
+      }),
+    ).toBeDisabled();
+    expect(
+      within(screen.getByTestId("page-action")).getByRole("button", {
+        name: "CONTENT_LIBRARY_ACTION_MANAGE_TYPES",
+      }),
+    ).toBeDisabled();
   });
 
   test("renders only the official protocol choices when the create overlay is open", async () => {

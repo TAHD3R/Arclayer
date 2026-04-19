@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import {
   ChromeTabs,
@@ -66,6 +67,7 @@ export function GeneralSettingsShell({
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const projectIdFromStore = useWorkspaceStore((s) => s.currentProjectId);
   const workspaceId = workspaceIdOverride ?? workspaceIdFromStore;
+  const permissionAccess = useWorkspacePermissionAccess(workspaceId);
 
   const workspaceCoreQuery = useQuery({
     queryKey: ["settings", "workspace", "core", workspaceId],
@@ -115,7 +117,13 @@ export function GeneralSettingsShell({
     [saveWorkspaceMutation],
   );
 
-  const workspaceDisabled = workspaceCoreQuery.isFetching || saveWorkspaceMutation.isPending;
+  const permissionReady = permissionAccess.authzQuery.isFetched;
+  const canManageSiteSettings =
+    !permissionReady ||
+    permissionAccess.hasPermission("system:site:manage") ||
+    permissionAccess.hasAction("system:site:manage");
+  const workspaceDisabled =
+    workspaceCoreQuery.isFetching || saveWorkspaceMutation.isPending || !canManageSiteSettings;
   const loadError = useMemo(() => {
     if (workspaceCoreQuery.isError) return workspaceCoreQuery.error;
     if (!workspaceCoreQuery.isLoading && !workspaceCoreQuery.data) {
@@ -147,6 +155,14 @@ export function GeneralSettingsShell({
       error={loadError}
       onRetry={loadError ? () => void workspaceCoreQuery.refetch() : undefined}
     >
+      {!canManageSiteSettings ? (
+        <div
+          className="mb-6 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
+          data-testid="general-settings-read-only-notice"
+        >
+          {t("settings:SETTINGS_SITE_SETTINGS_READ_ONLY_DESC")}
+        </div>
+      ) : null}
       <Form {...form}>
         <ChromeTabsContent value="basics">
           <SiteSettingsTab

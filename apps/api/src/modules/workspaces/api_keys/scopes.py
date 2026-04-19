@@ -6,6 +6,12 @@ from enum import StrEnum
 from typing import Final
 
 from src.modules.workspaces.authz.schema import AuthzSnapshot
+from src.modules.workspaces.permissions import (
+    PermissionContext,
+    PermissionDecision,
+    PermissionSubjectKind,
+    PolicyEvaluationService,
+)
 
 
 class ApiKeyScope(StrEnum):
@@ -25,6 +31,7 @@ class ApiKeyScope(StrEnum):
 class ApiKeyAccessProfile:
     scopes: tuple[ApiKeyScope, ...]
     management_permission_codes: frozenset[str]
+    granted_actions: frozenset[str]
     delivery_read: bool
     graphql_read: bool
 
@@ -54,9 +61,13 @@ def build_api_key_access_profile(scopes: Iterable[str | ApiKeyScope]) -> ApiKeyA
     for scope in normalized_scopes:
         permission_codes.update(_SCOPE_TO_MANAGEMENT_PERMISSIONS[scope])
     normalized_scope_set = set(normalized_scopes)
+    granted_actions = {"delivery:read" for scope in normalized_scope_set if scope == ApiKeyScope.DELIVERY_READ} | {
+        "delivery:graphql:read" for scope in normalized_scope_set if scope == ApiKeyScope.GRAPHQL_READ
+    }
     return ApiKeyAccessProfile(
         scopes=normalized_scopes,
         management_permission_codes=frozenset(sorted(permission_codes)),
+        granted_actions=frozenset(sorted(granted_actions)),
         delivery_read=ApiKeyScope.DELIVERY_READ in normalized_scope_set,
         graphql_read=ApiKeyScope.GRAPHQL_READ in normalized_scope_set,
     )
@@ -75,3 +86,33 @@ def resolve_personal_management_permissions(
 
 def resolve_workspace_service_permissions(*, scopes: Iterable[str | ApiKeyScope]) -> frozenset[str]:
     return build_api_key_access_profile(scopes).management_permission_codes
+
+
+def resolve_actions_for_api_key_scopes(*, scopes: Iterable[str | ApiKeyScope]) -> frozenset[str]:
+    return build_api_key_access_profile(scopes).granted_actions
+
+
+def evaluate_api_key_action(
+    *,
+    action: str,
+    subject_kind: PermissionSubjectKind,
+    scopes: Iterable[str | ApiKeyScope],
+    authz_snapshot: AuthzSnapshot | None = None,
+) -> PermissionDecision:
+    profile = build_api_key_access_profile(scopes)
+    effective_permission_codes = (
+        list(resolve_personal_management_permissions(authz_snapshot=authz_snapshot, scopes=scopes))
+        if subject_kind == PermissionSubjectKind.PERSONAL_API_KEY and authz_snapshot is not None
+        else list(profile.management_permission_codes)
+    )
+    return PolicyEvaluationService().evaluate(
+        context=PermissionContext(
+            action=action,
+            subject_kind=subject_kind,
+            user_id=authz_snapshot.user_id if authz_snapshot is not None else None,
+            role_codes=authz_snapshot.role_codes if authz_snapshot is not None else [],
+            permission_codes=effective_permission_codes,
+            is_superuser=authz_snapshot.is_superuser if authz_snapshot is not None else False,
+            granted_actions=list(profile.granted_actions),
+        )
+    )

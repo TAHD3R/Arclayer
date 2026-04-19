@@ -7,12 +7,15 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.core.exceptions import APIError, Forbidden, ServiceUnavailable
+from src.core.exceptions import APIError, BadRequest, Forbidden, ServiceUnavailable
 from src.models.workspaces.api_key import ApiKeyFamily, DeliveryKeyPerspective
 from src.modules.sites.graphql.service import (
+    _MODEL_QUERY_RULES,
     AuthenticatedDeliveryKey,
+    GraphQLQueryRule,
     SiteGraphQLService,
     StructuredContentRecord,
+    _assert_query_fields_allowed,
     _build_custom_fields,
     _extract_system_field,
     _field_aliases,
@@ -111,6 +114,61 @@ def test_record_matches_all_supports_exact_and_contains_filters() -> None:
     )
     assert not _record_matches_all(record, exact_filters={"slug": "missing"}, contains_filters={})
     assert not _record_matches_all(record, exact_filters={}, contains_filters={"title": "absent"})
+
+
+def test_query_rules_cover_builtin_graphql_models() -> None:
+    assert _MODEL_QUERY_RULES == {
+        "article": GraphQLQueryRule(
+            exact_filter_fields=frozenset({"slug", "revision_state"}),
+            contains_filter_fields=frozenset({"title"}),
+            sort_fields=frozenset({"title", "slug", "revision"}),
+        ),
+        "page": GraphQLQueryRule(
+            exact_filter_fields=frozenset({"path", "revision_state"}),
+            contains_filter_fields=frozenset({"title"}),
+            sort_fields=frozenset({"title", "path", "revision"}),
+        ),
+        "reusable-section": GraphQLQueryRule(
+            exact_filter_fields=frozenset({"section_key", "revision_state"}),
+            contains_filter_fields=frozenset({"title"}),
+            sort_fields=frozenset({"title", "section_key", "revision"}),
+        ),
+        "category": GraphQLQueryRule(
+            exact_filter_fields=frozenset({"slug", "revision_state"}),
+            contains_filter_fields=frozenset({"name"}),
+            sort_fields=frozenset({"name", "slug", "revision"}),
+        ),
+    }
+
+
+def test_assert_query_fields_allowed_accepts_article_contract() -> None:
+    _assert_query_fields_allowed(
+        model_key="article",
+        exact_filters={"slug": "hello-graphql", "revision_state": "published"},
+        contains_filters={"title": "hello"},
+        sort_field="revision",
+    )
+
+
+def test_assert_query_fields_allowed_rejects_unknown_filter_and_sort_fields() -> None:
+    with pytest.raises(BadRequest) as exc:
+        _assert_query_fields_allowed(
+            model_key="article",
+            exact_filters={"path": "/pricing"},
+            contains_filters={"name": "hello"},
+            sort_field="path",
+        )
+
+    assert exc.value.error == "GRAPHQL_QUERY_FIELD_FORBIDDEN"
+    assert exc.value.meta == {
+        "modelKey": "article",
+        "invalidExactFilters": ["path"],
+        "invalidContainsFilters": ["name"],
+        "invalidSortField": "path",
+        "allowedExactFilters": ["revision_state", "slug"],
+        "allowedContainsFilters": ["title"],
+        "allowedSortFields": ["revision", "slug", "title"],
+    }
 
 
 def test_document_query_boundary_filters_by_model_status_and_route_metadata() -> None:
@@ -267,6 +325,7 @@ async def test_resolve_query_access_rejects_wrong_scope_for_published_key() -> N
     request = _request()
     api_key = AuthenticatedDeliveryKey(
         record=_api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED),
+        granted_actions=frozenset(),
         graphql_read=False,
     )
 
@@ -292,6 +351,7 @@ async def test_resolve_query_access_rejects_wrong_perspective_for_preview_key() 
     request = _request()
     api_key = AuthenticatedDeliveryKey(
         record=_api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED),
+        granted_actions=frozenset({"delivery:graphql:read"}),
         graphql_read=True,
     )
 

@@ -56,6 +56,7 @@ type AssetPreviewDialogProps = {
   folderBreadcrumbs: string[];
   workspaceBreadcrumb: AssetPreviewWorkspaceBreadcrumb | null;
   onOpenEditAsset: (asset: AssetMasonryItem) => void;
+  canManageAssets?: boolean;
 };
 
 export type AssetPreviewWorkspaceBreadcrumb = {
@@ -130,6 +131,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
   });
   const titleId = useId();
   const active = controller.active;
+  const canManageAssets = props.canManageAssets !== false;
   const currentIndex = useMemo(
     () => (active ? props.items.findIndex((item) => item.id === active.id) : -1),
     [active, props.items],
@@ -139,15 +141,30 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
     currentIndex >= 0 && currentIndex < props.items.length - 1
       ? props.items[currentIndex + 1]
       : null;
-  const moreMenuItems = useMemo(
-    () =>
-      buildAssetMoreMenuItems({
-        t: controller.t,
-        asset: active,
-        publicUrl: controller.publicAbsoluteUrl,
-      }),
-    [active, controller.publicAbsoluteUrl, controller.t],
-  );
+  const moreMenuItems = useMemo(() => {
+    const items = buildAssetMoreMenuItems({
+      t: controller.t,
+      asset: active,
+      publicUrl: controller.publicAbsoluteUrl,
+    });
+    return items.map((item) => {
+      if (item.type === "separator") return item;
+      if (
+        !canManageAssets &&
+        (item.key === "edit_asset" || item.key === "edit_access" || item.key === "delete")
+      ) {
+        return {
+          type: "item",
+          key: item.key,
+          label: item.label,
+          icon: item.icon,
+          disabled: true,
+          variant: item.variant,
+        };
+      }
+      return item;
+    });
+  }, [active, canManageAssets, controller.publicAbsoluteUrl, controller.t]);
 
   useEffect(() => {
     if (!active) return;
@@ -163,6 +180,9 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
 
   const handleMoreAction = (key: AssetMoreActionKey) => {
     if (!active) return;
+    if (!canManageAssets && (key === "edit_asset" || key === "edit_access" || key === "delete")) {
+      return;
+    }
     void handleAssetMoreAction({
       key,
       asset: active,
@@ -303,6 +323,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
         currentIndexable={Boolean(active?.indexable)}
         confirmLoading={controller.patchAccessMutation.isPending}
         onConfirm={async (value) => {
+          if (!canManageAssets) return;
           await controller.patchAccessMutation.mutateAsync(value);
         }}
       />
@@ -324,6 +345,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
             <AlertDialogActionPrimitive asChild>
               <Button
                 variant="destructive"
+                disabled={!canManageAssets}
                 loading={controller.deleteMutation.isPending}
                 onClick={() => controller.deleteMutation.mutate()}
               >

@@ -11,6 +11,7 @@ import { useContentBootstrapController } from "@/pages/workspaces/content/bootst
 export function ContentLibraryCreateContentDialog(props: {
   open: boolean;
   workspaceId: string;
+  readOnly?: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation(["content", "common"]);
@@ -38,7 +39,7 @@ export function ContentLibraryCreateContentDialog(props: {
           <Button
             type="button"
             variant="outline"
-            disabled={controller.busy}
+            disabled={controller.busy || props.readOnly}
             onClick={controller.navigateToModels}
           >
             {t("content:CONTENT_LIBRARY_ACTION_MANAGE_TYPES")}
@@ -47,9 +48,17 @@ export function ContentLibraryCreateContentDialog(props: {
             type="button"
             loading={!showModelSetupAction ? controller.createPending : false}
             disabled={
-              showModelSetupAction ? controller.busy : !controller.canCreate || controller.busy
+              props.readOnly ||
+              (showModelSetupAction ? controller.busy : !controller.canCreate || controller.busy)
             }
-            onClick={showModelSetupAction ? controller.navigateToModels : controller.createDraft}
+            onClick={() => {
+              if (props.readOnly) return;
+              if (showModelSetupAction) {
+                controller.navigateToModels();
+                return;
+              }
+              controller.createDraft();
+            }}
           >
             {showModelSetupAction
               ? t("content:CONTENT_BOOTSTRAP_FIELD_MODEL_EMPTY_ACTION")

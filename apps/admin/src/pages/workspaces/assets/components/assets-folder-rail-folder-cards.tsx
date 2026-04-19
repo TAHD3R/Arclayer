@@ -70,7 +70,9 @@ function FolderCardMenu(props: {
   onEditFolder: (folder: AdminAssetFolder) => void;
   onMoveFolder: (folder: AdminAssetFolder) => void;
   onDeleteFolder: (folder: AdminAssetFolder) => void;
+  canManageAssets?: boolean;
 }) {
+  const canManageAssets = props.canManageAssets !== false;
   return (
     <div className="absolute -top-1 -right-1 z-10" onClick={(event) => event.stopPropagation()}>
       <DropdownMenu>
@@ -82,12 +84,14 @@ function FolderCardMenu(props: {
         <DropdownMenuContent align="end">
           <DropdownMenuIconItem
             icon={<PencilLine className="size-4" />}
+            disabled={!canManageAssets}
             onSelect={() => props.onEditFolder(props.folder)}
           >
             {props.t("assets:ASSET_ACTION_EDIT_FOLDER")}
           </DropdownMenuIconItem>
           <DropdownMenuIconItem
             icon={<FolderClosed className="size-4" />}
+            disabled={!canManageAssets}
             onSelect={() => props.onMoveFolder(props.folder)}
           >
             {props.t("assets:ASSET_ACTION_MOVE_FOLDER")}
@@ -96,6 +100,7 @@ function FolderCardMenu(props: {
           <DropdownMenuIconItem
             icon={<Trash2 className="size-4" />}
             variant="destructive"
+            disabled={!canManageAssets}
             onSelect={() => props.onDeleteFolder(props.folder)}
           >
             {props.t("assets:ASSET_ACTION_DELETE_FOLDER")}
@@ -140,6 +145,7 @@ export function FolderAddCard(props: {
   onCreateFolder: (parentId: string | null) => void;
   isDraggingAssets?: boolean;
   layoutMode: FolderLayoutMode;
+  disabled?: boolean;
 }) {
   return (
     <CreateFolderDroppableProvider
@@ -150,12 +156,16 @@ export function FolderAddCard(props: {
           ref={setNodeRef}
           type="button"
           onClick={() =>
-            props.onCreateFolder(props.currentFolder ? String(props.currentFolder.id) : null)
+            props.disabled
+              ? undefined
+              : props.onCreateFolder(props.currentFolder ? String(props.currentFolder.id) : null)
           }
+          disabled={props.disabled}
           className={cn(
             folderCardBaseClassName,
             "border-dashed p-3 text-left xl:p-4",
             props.layoutMode === "single" ? "min-h-[6.5rem]" : "min-h-[10.75rem]",
+            props.disabled && "cursor-not-allowed opacity-60",
             isOver && props.isDraggingAssets
               ? "border-border bg-accent/40 ring-2 ring-black/5 ring-offset-2 ring-offset-background dark:border-white/18 dark:bg-[#171717] dark:ring-white/12"
               : "border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,250,0.98)_100%)] hover:border-border hover:bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(239,244,249,0.98)_100%)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(11,11,12,0.78)_0%,rgba(8,8,9,0.9)_100%)] dark:hover:border-white/18 dark:hover:bg-[linear-gradient(180deg,rgba(16,16,18,0.86)_0%,rgba(10,10,11,0.96)_100%)]",
@@ -212,6 +222,7 @@ export function FolderCard(props: {
   dropPulseNonce: number | null;
   tooltipDisabled?: boolean;
   layoutMode: FolderLayoutMode;
+  canManageAssets?: boolean;
 }) {
   const droppableId = toFolderDndId(String(props.folder.id));
   const metaLabel = props.isActive
@@ -256,6 +267,7 @@ export function FolderCard(props: {
                 onEditFolder={props.onEditFolder}
                 onMoveFolder={props.onMoveFolder}
                 onDeleteFolder={props.onDeleteFolder}
+                canManageAssets={props.canManageAssets}
               />
 
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

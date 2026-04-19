@@ -41,10 +41,12 @@ type AssetsFolderRailFolderSectionProps = {
   } | null;
   tooltipDisabled?: boolean;
   isDraggingAssets?: boolean;
+  canManageAssets?: boolean;
 };
 
 export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSectionProps) {
   const [layoutMode, setLayoutMode] = useState<"single" | "multi">("single");
+  const canManageAssets = props.canManageAssets !== false;
   const folderById = useMemo(() => buildFolderById(props.folders), [props.folders]);
   const orderedFolders = useMemo(() => flattenFoldersDepthFirst(props.folders), [props.folders]);
   const currentFolder = props.currentFolderId
@@ -79,6 +81,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
             <DropdownMenuSeparator />
             <DropdownMenuIconItem
               icon={<FolderPlus className="size-4" />}
+              disabled={!canManageAssets}
               onSelect={() => props.onCreateFolder(currentFolder ? String(currentFolder.id) : null)}
             >
               {props.t("assets:ASSET_ACTION_CREATE_FOLDER")}
@@ -116,6 +119,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
             onCreateFolder={props.onCreateFolder}
             isDraggingAssets={props.isDraggingAssets}
             layoutMode={layoutMode}
+            disabled={!canManageAssets}
           />
         </div>
       ) : null}
@@ -151,6 +155,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
                 }
                 tooltipDisabled={props.tooltipDisabled}
                 layoutMode={layoutMode}
+                canManageAssets={canManageAssets}
               />
             );
           })}
@@ -160,6 +165,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
             onCreateFolder={props.onCreateFolder}
             isDraggingAssets={props.isDraggingAssets}
             layoutMode={layoutMode}
+            disabled={!canManageAssets}
           />
         </div>
       ) : null}

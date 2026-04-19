@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { getMyOrganization } from "@/api/me";
-import { getMyWorkspaceAuthz } from "@/api/workspaces";
 import { listOrganizationCapabilities } from "@/api/org-extensions";
 import { listWorkspaceCapabilities } from "@/api/workspace-extensions";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import {
   organizationCapabilitiesQueryKey,
   workspaceCapabilitiesQueryKey,
@@ -36,18 +36,7 @@ function useExtensionsAccess(opts: {
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const isOrganizationScope = opts.scope === "organization";
-
-  const authzQuery = useQuery({
-    queryKey: ["workspace", "authz", workspaceId],
-    enabled: Boolean(accessToken && workspaceId && !isOrganizationScope),
-    queryFn: async () => {
-      if (!workspaceId) throw new Error("workspaceId is required");
-      return getMyWorkspaceAuthz(workspaceId);
-    },
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
+  const permissionAccess = useWorkspacePermissionAccess(isOrganizationScope ? null : workspaceId);
 
   const myOrganizationQuery = useQuery({
     queryKey: ["me", "organization", "extensions-center"],
@@ -63,14 +52,8 @@ function useExtensionsAccess(opts: {
       const role = myOrganizationQuery.data?.membership?.role;
       return role === "owner" || role === "admin";
     }
-    const codes = authzQuery.data?.permissionCodes ?? [];
-    return codes.includes("system:extensions:manage") || Boolean(authzQuery.data?.isSuperuser);
-  }, [
-    authzQuery.data?.isSuperuser,
-    authzQuery.data?.permissionCodes,
-    isOrganizationScope,
-    myOrganizationQuery.data?.membership?.role,
-  ]);
+    return permissionAccess.hasPermission("system:extensions:manage");
+  }, [isOrganizationScope, myOrganizationQuery.data?.membership?.role, permissionAccess]);
 
   const organizationId = useMemo(() => {
     if (!isOrganizationScope) return null;

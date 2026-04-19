@@ -30,6 +30,7 @@ type AssetsFolderRailProps = {
   onOpenAsset: (asset: AssetMasonryItem) => void;
   onRemoveRecentAsset: (key: string) => void;
   onClearRecentAssets: () => void;
+  canManageAssets?: boolean;
 };
 
 export function AssetsFolderRail(props: AssetsFolderRailProps) {
@@ -51,6 +52,7 @@ export function AssetsFolderRail(props: AssetsFolderRailProps) {
           dropSuccessPulse={props.dropSuccessPulse}
           tooltipDisabled={props.tooltipDisabled}
           isDraggingAssets={props.isDraggingAssets}
+          canManageAssets={props.canManageAssets}
         />
         <AssetsFolderRailRecentSection
           t={props.t}

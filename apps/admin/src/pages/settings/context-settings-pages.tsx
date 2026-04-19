@@ -10,10 +10,10 @@ import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { GeneralSiteSettingsPage } from "@/pages/workspaces/settings/site/basics/page";
 import { GeneralLocalizationSettingsPage } from "@/pages/workspaces/settings/site/localization/page";
+import { WorkspacePermissionsSettingsPage } from "@/pages/workspaces/settings/workspace/permissions/page";
 import { WorkspaceSettingsBasicsView } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view";
 import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
 import { TeamMembersView } from "@/pages/workspaces/team/members/components/team-members-view";
-import { TeamRolesPage } from "@/pages/workspaces/team/roles/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { ProjectMemberRole } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
@@ -141,11 +141,10 @@ export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
         </Button>
       }
     >
-      <TeamRolesPage
-        workspaceIdOverride={props.workspaceId}
+      <WorkspacePermissionsSettingsPage
+        workspaceId={props.workspaceId}
         createOpen={createOpen}
         onCreateOpenChange={setCreateOpen}
-        embedded
       />
     </ContextSettingsShell>
   );

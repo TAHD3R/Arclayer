@@ -28,6 +28,7 @@
   "ASSET_SORT_SIZE_SMALL": "Smallest",
   "ASSET_EMPTY": "No assets yet.",
   "ASSET_EMPTY_DESC": "You haven't uploaded any assets yet. Click the button below to add assets to your library.",
+  "ASSET_LIBRARY_NO_ACCESS_DESC": "You can review and download assets. Ask a workspace admin for asset management access to upload, organize, or delete files.",
   "ASSET_EMPTY_SEARCH_TITLE": "No results found",
   "ASSET_EMPTY_SEARCH_DESC": "No assets match your current search or filters. Try adjusting the keywords or reset the filters.",
   "ASSET_LIST_LOAD_FAILED_DESC": "Failed to load assets. Please try again later.",

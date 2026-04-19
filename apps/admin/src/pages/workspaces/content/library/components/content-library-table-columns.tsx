@@ -151,6 +151,7 @@ function ContentLibraryDiagnosticsCell(props: { row: ContentLibraryTableRow }) {
 export function useContentLibraryTableColumns(params: {
   formatDateTimeOrNull: (value: string | null | undefined) => string | null;
   actionPending: boolean;
+  canManageContent?: boolean;
   selectedRowIds: ReadonlySet<string>;
   onToggleVisibleRows: (rows: ContentLibraryTableRow[], selected: boolean) => void;
   onToggleRowSelection: (row: ContentLibraryTableRow) => void;
@@ -303,6 +304,7 @@ export function useContentLibraryTableColumns(params: {
           <DataTableActionsCell>
             <ContentLibraryRowActions
               row={row.original}
+              canManageContent={params.canManageContent}
               pending={params.actionPending}
               previewOpen={params.openPreviewRowId === row.original.id}
               onOpen={params.onOpen}
@@ -326,6 +328,7 @@ export function useContentLibraryTableColumns(params: {
     ],
     [
       params.actionPending,
+      params.canManageContent,
       params.onOpen,
       params.onOpenFullEditor,
       params.onEditPermalink,

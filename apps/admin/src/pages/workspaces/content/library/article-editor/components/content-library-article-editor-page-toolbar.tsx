@@ -393,6 +393,8 @@ function ToolbarScroller(props: { children: React.ReactNode }) {
 }
 
 export function ContentLibraryArticleEditorPageToolbar(props: {
+  canPublish?: boolean;
+  publishAccessHint?: string | null;
   hasPublishableVersion?: boolean;
   itemTitle: string;
   isPublishing?: boolean;
@@ -412,6 +414,7 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
   onSlugChange: (value: string) => void;
 }) {
   const { t } = useTranslation("content");
+  const canPublish = props.canPublish !== false;
 
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-card px-4 md:px-5">
@@ -540,8 +543,12 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
           variant="ghost"
           size="sm"
           disabled={
-            !props.hasPublishableVersion || props.isPublishing || props.saveState === "saving"
+            !canPublish ||
+            !props.hasPublishableVersion ||
+            props.isPublishing ||
+            props.saveState === "saving"
           }
+          title={props.publishAccessHint ?? undefined}
           onClick={props.onPublish}
         >
           <Upload className="size-4" />

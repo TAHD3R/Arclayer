@@ -2,6 +2,7 @@ import { api } from "@/lib/http";
 import { toQueryString, workspacePath } from "@/lib/api";
 
 import type { PageData, Permission, RbacMatrix, Role } from "@/types/api";
+import type { WorkspacePermissionAction } from "@/types/api/rbac";
 
 export async function listWorkspaceRoles(
   workspaceId: string,
@@ -27,6 +28,12 @@ export async function listWorkspacePermissions(
 
 export async function getWorkspaceRbacMatrix(workspaceId: string): Promise<RbacMatrix> {
   return api.get<RbacMatrix>(workspacePath(workspaceId, "/rbac/matrix"));
+}
+
+export async function listWorkspacePermissionActions(
+  workspaceId: string,
+): Promise<WorkspacePermissionAction[]> {
+  return api.get<WorkspacePermissionAction[]>(workspacePath(workspaceId, "/rbac/actions"));
 }
 
 export async function createWorkspaceRoleFromTemplate(input: {

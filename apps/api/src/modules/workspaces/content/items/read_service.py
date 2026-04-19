@@ -21,7 +21,7 @@ from src.modules.workspaces.content.contracts.schema import (
 from src.modules.workspaces.content.history import ContentHistoryService
 from src.modules.workspaces.content.items.domain_helpers import to_item_out
 from src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
-from src.modules.workspaces.content.runtime import DocumentFacade
+from src.modules.workspaces.content.runtime import DocumentFacade, DocumentRuntimeItemFields
 
 
 class WorkspaceContentCanonicalItemReadService:
@@ -63,10 +63,7 @@ class WorkspaceContentCanonicalItemReadService:
             to_item_out(
                 item,
                 item.model_definition,
-                title=active_fields.get(item.id).title if item.id in active_fields else None,
-                slug=active_fields.get(item.id).slug if item.id in active_fields else None,
-                summary=active_fields.get(item.id).summary if item.id in active_fields else None,
-                visibility=active_fields.get(item.id).visibility if item.id in active_fields else None,
+                **self._active_field_kwargs(active_fields.get(item.id)),
             )
             for item in items
         ]
@@ -90,11 +87,19 @@ class WorkspaceContentCanonicalItemReadService:
         return to_item_out(
             item,
             item.model_definition,
-            title=active_fields.get(item.id).title if item.id in active_fields else None,
-            slug=active_fields.get(item.id).slug if item.id in active_fields else None,
-            summary=active_fields.get(item.id).summary if item.id in active_fields else None,
-            visibility=active_fields.get(item.id).visibility if item.id in active_fields else None,
+            **self._active_field_kwargs(active_fields.get(item.id)),
         )
+
+    @staticmethod
+    def _active_field_kwargs(fields: DocumentRuntimeItemFields | None) -> dict[str, str | None]:
+        if fields is None:
+            return {"title": None, "slug": None, "summary": None, "visibility": None}
+        return {
+            "title": fields.title,
+            "slug": fields.slug,
+            "summary": fields.summary,
+            "visibility": fields.visibility,
+        }
 
     @staticmethod
     def _to_presentation_outs(

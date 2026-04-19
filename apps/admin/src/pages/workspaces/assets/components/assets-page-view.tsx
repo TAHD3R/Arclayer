@@ -5,6 +5,7 @@ import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { ColumnsPage } from "@/layouts/page-shell/columns-page";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { Button } from "@arclayer/ui/button";
 import { readStorageItem, writeStorageItem } from "@/lib/storage";
@@ -105,6 +106,14 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     openDeleteFolderDialog,
   } = controller;
   const tableView = useAssetsViewTableController(controller);
+  const workspaceId = scope?.type === "workspace" ? scope.id : null;
+  const permissionAccess = useWorkspacePermissionAccess(workspaceId);
+  const permissionReady = !workspaceId || permissionAccess.authzQuery.isFetched;
+  const canManageAssets =
+    !workspaceId ||
+    !permissionReady ||
+    permissionAccess.hasPermission("system:assets:manage") ||
+    permissionAccess.hasAction("system:assets:manage");
   const hydratedSearchRef = useRef<string | null>(null);
   const hydratedAssetIdRef = useRef<string | null>(null);
 
@@ -125,14 +134,9 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
   }, [controller.items, props.initialAssetId, setActive]);
 
   const workspaceDetailQuery = useQuery({
-    queryKey: [
-      "workspace",
-      "detail",
-      scope?.type === "workspace" ? scope.id : null,
-      sessionVersion,
-    ],
-    enabled: Boolean(accessToken && scope?.type === "workspace" && scope.id),
-    queryFn: async () => getWorkspaceDetail(String(scope?.type === "workspace" ? scope.id : "")),
+    queryKey: ["workspace", "detail", workspaceId, sessionVersion],
+    enabled: Boolean(accessToken && workspaceId),
+    queryFn: async () => getWorkspaceDetail(String(workspaceId || "")),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
@@ -210,19 +214,25 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
                 setActive(null);
               }}
               onCreateFolder={(parentId) => {
+                if (!canManageAssets) return;
                 setCreateFolderParentId(parentId);
                 setCreateFolderSeedAssetIds([]);
                 setCreateFolderDialogOpen(true);
               }}
               onEditFolder={(folder) => {
+                if (!canManageAssets) return;
                 setEditFolderTarget(folder);
                 setEditFolderOpen(true);
               }}
               onMoveFolder={(folder) => {
+                if (!canManageAssets) return;
                 setMoveFolderTarget(folder);
                 setMoveFolderOpen(true);
               }}
-              onDeleteFolder={openDeleteFolderDialog}
+              onDeleteFolder={(folder) => {
+                if (!canManageAssets) return;
+                openDeleteFolderDialog(folder);
+              }}
               dropSuccessPulse={controller.dropSuccessPulse}
               tooltipDisabled={
                 Boolean(controller.draggingFolderId) || controller.draggingAssetIds.length > 0
@@ -231,6 +241,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
               onOpenAsset={(asset) => setActive(asset)}
               onRemoveRecentAsset={removeRecentAsset}
               onClearRecentAssets={clearRecentAssets}
+              canManageAssets={canManageAssets}
             />
           ),
         },
@@ -253,20 +264,20 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
         {cardSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
         <span className="sr-only">{t("common:SIDEBAR_TOGGLE")}</span>
       </Button>
-      <Button onClick={() => setUploadOpen(true)}>
+      <Button onClick={() => setUploadOpen(true)} disabled={!canManageAssets}>
         <Plus size={16} />
         {t("assets:ASSET_ACTION_UPLOAD")}
       </Button>
     </div>
   ) : (
-    <Button onClick={() => setUploadOpen(true)}>
+    <Button onClick={() => setUploadOpen(true)} disabled={!canManageAssets}>
       <Plus size={16} />
       {t("assets:ASSET_ACTION_UPLOAD")}
     </Button>
   );
 
   return (
-    <AssetsViewDndSurface controller={controller}>
+    <AssetsViewDndSurface controller={controller} disabled={!canManageAssets}>
       <ColumnsPage
         title={t("nav:NAV_ASSETS")}
         footer={
@@ -282,6 +293,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             onOpenMove={() => setMoveModalOpen(true)}
             onOpenEditAccess={() => openEditAccessDialog()}
             onOpenBulkDelete={() => openBulkDeleteDialog()}
+            canManageAssets={canManageAssets}
           />
         }
         action={action}
@@ -312,6 +324,14 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
         sideSlots={sideSlots}
       >
         <div className="relative flex h-full min-h-0 min-w-0 w-full flex-col">
+          {!canManageAssets ? (
+            <div
+              className="mx-4 mt-4 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground sm:mx-6 lg:mx-8"
+              data-testid="assets-read-only-notice"
+            >
+              {t("assets:ASSET_LIBRARY_NO_ACCESS_DESC")}
+            </div>
+          ) : null}
           <AssetsViewOverlays
             t={t}
             active={active}
@@ -457,6 +477,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
                 ...value,
               });
             }}
+            canManageAssets={canManageAssets}
           />
 
           <div className="min-h-0 min-w-0 w-full flex-1 overflow-x-hidden overflow-y-auto pb-8 scrollbar-none">

@@ -167,6 +167,7 @@ function ContentLibraryItemSettingsDialogFooter(props: {
 export function ContentLibraryItemSettingsDialogs(props: {
   state: ContentLibraryItemSettingsDialogState;
   onClose: () => void;
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation(["content", "common"]);
   const queryClient = useQueryClient();
@@ -254,6 +255,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
   const title = props.state ? t(resolveDialogTitleKey(props.state.kind)) : "";
   const description = props.state ? t(resolveDialogDescriptionKey(props.state.kind)) : "";
   const canSave = Boolean(draft && row && draft.slug.trim() && draft.title.trim());
+  const saveDisabled = !canSave || props.readOnly === true;
 
   return (
     <SettingDialog
@@ -265,10 +267,13 @@ export function ContentLibraryItemSettingsDialogs(props: {
       description={description}
       footer={
         <ContentLibraryItemSettingsDialogFooter
-          confirmDisabled={!canSave}
+          confirmDisabled={saveDisabled}
           confirmPending={saveMutation.isPending}
           onCancel={props.onClose}
-          onConfirm={() => saveMutation.mutate()}
+          onConfirm={() => {
+            if (props.readOnly) return;
+            saveMutation.mutate();
+          }}
           t={t}
         />
       }
@@ -277,7 +282,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
         <div className="grid gap-4 py-2">
           <div className="text-body text-label-secondary">{t("common:LOADING")}</div>
         </div>
-      ) : (
+      ) : row ? (
         <div className="grid gap-5 py-2">
           <ContentLibraryDetailSummaryStrip
             row={{
@@ -296,6 +301,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
               >
                 <Input
                   value={draft.slug}
+                  disabled={props.readOnly}
                   onChange={(event) => setDraft({ ...draft, slug: event.target.value })}
                 />
               </SettingDialogField>
@@ -308,6 +314,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
               >
                 <Select
                   value={draft.visibility}
+                  disabled={props.readOnly}
                   onValueChange={(value) =>
                     setDraft({
                       ...draft,
@@ -336,6 +343,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
                 >
                   <Input
                     value={draft.seo.metaTitle}
+                    disabled={props.readOnly}
                     onChange={(event) =>
                       setDraft({
                         ...draft,
@@ -350,6 +358,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
                 >
                   <Textarea
                     value={draft.seo.metaDescription}
+                    disabled={props.readOnly}
                     onChange={(event) =>
                       setDraft({
                         ...draft,
@@ -364,6 +373,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
                 >
                   <Input
                     value={draft.seo.canonicalUrl}
+                    disabled={props.readOnly}
                     onChange={(event) =>
                       setDraft({
                         ...draft,
@@ -383,6 +393,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
                 >
                   <Input
                     value={draft.title}
+                    disabled={props.readOnly}
                     onChange={(event) => setDraft({ ...draft, title: event.target.value })}
                   />
                 </SettingDialogField>
@@ -392,6 +403,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
                 >
                   <Textarea
                     value={draft.summary}
+                    disabled={props.readOnly}
                     onChange={(event) => setDraft({ ...draft, summary: event.target.value })}
                   />
                 </SettingDialogField>
@@ -401,6 +413,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
                 >
                   <Select
                     value={draft.visibility}
+                    disabled={props.readOnly}
                     onValueChange={(value) =>
                       setDraft({
                         ...draft,
@@ -424,6 +437,10 @@ export function ContentLibraryItemSettingsDialogs(props: {
               </>
             ) : null}
           </SettingDialogFields>
+        </div>
+      ) : (
+        <div className="grid gap-4 py-2">
+          <div className="text-body text-label-secondary">{t("common:LOADING")}</div>
         </div>
       )}
     </SettingDialog>

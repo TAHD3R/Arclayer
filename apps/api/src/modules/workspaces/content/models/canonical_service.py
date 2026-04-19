@@ -98,18 +98,15 @@ def _capabilities(values: list[ContentModelCapability]) -> list[str]:
     return [str(value) for value in values]
 
 
-_SYSTEM_MANAGED_PATCH_FIELDS = frozenset({
-    "key",
-    "name",
-    "category",
-    "default_editor",
-    "capabilities",
-    "routing",
-    "presentation",
-    "seo",
-    "starter_pack_policy",
-    "surface_policy",
-    "workflow",
+_SYSTEM_MANAGED_MUTABLE_PATCH_FIELDS = frozenset({
+    "description",
+    "default_role",
+    "default_posture",
+    "default_surface",
+    "fields",
+    "relations",
+    "views",
+    "impact_preview_token",
 })
 
 
@@ -909,12 +906,22 @@ def _assert_system_patch_fields_are_not_mutated(
 ) -> None:
     if not record.is_system_managed:
         return
-    locked_fields = sorted(field_name for field_name in fields_set if field_name in _SYSTEM_MANAGED_PATCH_FIELDS)
+    locked_fields = sorted(
+        field_name for field_name in fields_set if field_name not in _SYSTEM_MANAGED_MUTABLE_PATCH_FIELDS
+    )
     if locked_fields:
         raise Conflict(
             "System managed model contract fields are locked",
             error="CONTENT_MODEL_SYSTEM_FIELD_LOCKED",
-            meta={"fieldNames": locked_fields, "protocolKey": record.protocol_key},
+            meta={
+                "fieldNames": locked_fields,
+                "allowedFieldNames": sorted(
+                    field_name
+                    for field_name in _SYSTEM_MANAGED_MUTABLE_PATCH_FIELDS
+                    if field_name != "impact_preview_token"
+                ),
+                "protocolKey": record.protocol_key,
+            },
         )
 
 

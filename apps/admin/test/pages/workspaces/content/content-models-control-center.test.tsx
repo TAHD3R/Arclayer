@@ -8,6 +8,8 @@ import { ContentModelsControlCenterPage } from "@/pages/workspaces/content/model
 const listAllContentModelsMock = vi.fn();
 const getContentModelImpactPreviewMock = vi.fn();
 const patchContentModelMock = vi.fn();
+const getMyWorkspaceAuthzMock = vi.fn();
+const listWorkspacePermissionActionsMock = vi.fn();
 
 vi.mock("@/api/content", () => ({
   buildContentModelsGovernanceQueryKey: (...args: unknown[]) => [
@@ -19,6 +21,15 @@ vi.mock("@/api/content", () => ({
   listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
   getContentModelImpactPreview: (...args: unknown[]) => getContentModelImpactPreviewMock(...args),
   patchContentModel: (...args: unknown[]) => patchContentModelMock(...args),
+}));
+
+vi.mock("@/api/workspaces", () => ({
+  getMyWorkspaceAuthz: (...args: unknown[]) => getMyWorkspaceAuthzMock(...args),
+}));
+
+vi.mock("@/api/rbac", () => ({
+  listWorkspacePermissionActions: (...args: unknown[]) =>
+    listWorkspacePermissionActionsMock(...args),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -205,6 +216,22 @@ describe("ContentModelsControlCenterPage", () => {
     listAllContentModelsMock.mockReset();
     getContentModelImpactPreviewMock.mockReset();
     patchContentModelMock.mockReset();
+    getMyWorkspaceAuthzMock.mockReset();
+    listWorkspacePermissionActionsMock.mockReset();
+    getMyWorkspaceAuthzMock.mockResolvedValue({
+      userId: "user-1",
+      roleCodes: ["admin"],
+      permissionCodes: ["system:content:manage"],
+      isSuperuser: false,
+    });
+    listWorkspacePermissionActionsMock.mockResolvedValue([
+      {
+        code: "content:models:write",
+        permissionCodes: ["system:content:manage"],
+        subjectKinds: ["workspace_member"],
+        description: "Allow mutating content models via management APIs.",
+      },
+    ]);
   });
 
   test("requires a fresh impact preview before save", async () => {
@@ -636,5 +663,30 @@ describe("ContentModelsControlCenterPage", () => {
     expect(screen.getByText("CONTENT_MODELS_FIELD_BOUNDARY_SYSTEM")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_MODELS_FIELD_BOUNDARY_CUSTOM")).toBeInTheDocument();
     expect(screen.getByText("hero_theme")).toBeInTheDocument();
+  });
+
+  test("disables model default editing when workspace action access is missing", async () => {
+    getMyWorkspaceAuthzMock.mockResolvedValue({
+      userId: "user-1",
+      roleCodes: ["viewer"],
+      permissionCodes: ["system:content:read"],
+      isSuperuser: false,
+    });
+    listAllContentModelsMock.mockResolvedValue([buildModel()]);
+
+    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getByText("CONTENT_MODELS_NO_ACCESS_DESC")).toBeInTheDocument();
+    expect(screen.getByLabelText("CONTENT_MODELS_FIELD_SURFACE")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "CONTENT_MODELS_PREVIEW_ACTION" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "CONTENT_MODELS_SAVE_ACTION" })).toBeDisabled();
+    expect(getContentModelImpactPreviewMock).not.toHaveBeenCalled();
+    expect(patchContentModelMock).not.toHaveBeenCalled();
   });
 });

@@ -17,9 +17,9 @@
 
 ## Context Recovery Block
 
-**Current milestone**: Milestone 4 — execute Epic 2 Document Runtime Platform
+**Current milestone**: Milestone 5 — execute Epic 3 Permission and Policy Platform
 - **Current status**: DONE
-- **Last completed**: Milestone 4 — execute Epic 2 Document Runtime Platform
+- **Last completed**: Epic3 #44 — Epic3 child task closed
 - **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
 - **Key context**:
   - Epic 0 is complete and its baseline docs now live under `docs/plan`.
@@ -27,9 +27,12 @@
   - Epic 1 now covers contract registry, schema change plan, and the Models governance operator workflow.
   - Epic 2 runtime slices are complete and the closure pass added workspace primary project hydration plus full `/api/v1/sites` route registration.
   - Epic 2 final backend aggregate verification is green with `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content tests/modules/workspaces/publish tests/modules/sites`.
+  - Epic 3 is complete across backend permission core, action catalog, governance UI, GraphQL query sanitization, system managed payload enforcement, frontend permission consumption, Assets gating, and release/routing action catalog closure.
+  - Epic3 backend fresh focused verification is green with `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/test_workspace_permission_policy_service_unit.py tests/modules/workspaces/test_workspace_api_key_scopes_unit.py tests/modules/workspaces/test_workspace_rbac_catalog_and_guards_unit.py tests/modules/sites/test_sites_graphql_service_unit.py` and 40 tests passed.
+  - Epic3 admin fresh focused verification is green with `timeout 60s pnpm -C apps/admin exec vitest run test/pages/settings/context-settings-pages.test.tsx test/pages/workspaces/content/content-models-control-center.test.tsx test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-site-builder-shell.test.tsx test/pages/workspaces/content/content-library-row-actions.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-editor-toolbar-ui.test.tsx test/pages/settings/general-settings-shell-permissions.test.tsx test/pages/workspaces/assets/assets-page-view.test.tsx test/pages/workspaces/assets/assets-view-overlays.test.tsx test/pages/workspaces/assets/asset-preview-dialog.test.tsx` and 83 tests passed.
 - **Known issues**:
   - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic1 slice.
-- **Next action**: Proceed to Epic 3 after Epic2 changes are committed.
+- **Next action**: Proceed to Epic 4 GraphQL Platformization.
 
 ---
 
@@ -171,3 +174,27 @@
   - `apps/admin/test/pages/workspaces/content/content-library-runtime.test.ts`
   - `apps/admin/test/pages/workspaces/content/content-library-preview-panel.test.tsx`
 - **Next step**: Proceed to Epic 3.
+
+---
+
+## Milestone 5: Execute Epic 3 Permission and Policy Platform
+
+- **Status**: DONE
+- **Started**: 2026-04-19
+- **Completed**: 2026-04-19
+- **What was done**:
+  - Activated child task `20260419-epic3-permission-and-policy-platform`.
+  - Added `apps/api/src/modules/workspaces/permissions/` as the backend action registry and route-independent policy evaluation boundary.
+  - Wired workspace authz guard, API key granted actions, and delivery GraphQL access through the shared decision model.
+  - Added registry-backed workspace permission action catalog API and a workspace permissions governance surface in settings.
+  - Added GraphQL query field allowlist enforcement and system managed model mutable payload policy enforcement.
+  - Added shared admin hook `useWorkspacePermissionAccess` to join authz snapshot and action catalog once per workspace surface.
+  - Wired Models, Extensions, Content Library, Site Builder, article publish, and site settings save surfaces into the shared permission consumption layer.
+  - Wired Assets upload, bulk actions, folder writes, preview writes, and DnD writes into the same shared permission consumption layer.
+  - Added release and routing action definitions for `content:routing:read`, `content:routing:write`, `release:read`, `release:publish`, and `release:rollback`.
+  - Added focused coverage for release and routing action catalog entries plus granular router permission contracts.
+- **Latest validation**:
+  - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/test_workspace_permission_policy_service_unit.py tests/modules/workspaces/test_workspace_api_key_scopes_unit.py tests/modules/workspaces/test_workspace_rbac_catalog_and_guards_unit.py tests/modules/sites/test_sites_graphql_service_unit.py` → passed with 40 tests
+  - `timeout 60s pnpm -C apps/admin exec vitest run test/pages/settings/context-settings-pages.test.tsx test/pages/workspaces/content/content-models-control-center.test.tsx test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-site-builder-shell.test.tsx test/pages/workspaces/content/content-library-row-actions.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-editor-toolbar-ui.test.tsx test/pages/settings/general-settings-shell-permissions.test.tsx test/pages/workspaces/assets/assets-page-view.test.tsx test/pages/workspaces/assets/assets-view-overlays.test.tsx test/pages/workspaces/assets/asset-preview-dialog.test.tsx` → passed with 11 files / 83 tests
+  - `pnpm -C apps/admin exec tsc --noEmit --pretty false --skipLibCheck` → blocked by pre-existing repo errors outside the Assets slice
+- **Next step**: Proceed to Epic 4.

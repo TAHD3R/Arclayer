@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useEditorScrollRef } from "platejs/react";
 
 import { deleteContentItem, duplicateContentItem } from "@/api/content";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import {
   workspaceContentLibraryItemPath,
   workspaceContentLibraryPath,
@@ -180,6 +181,7 @@ function ArticleEditorRuntimeSummary(props: { runtime: ContentLibraryArticleEdit
 
 function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
   const { t } = useTranslation(["content", "common"]);
+  const permissionAccess = useWorkspacePermissionAccess(props.workspaceId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isHydrated } = useContentLibraryArticleEditorDocumentState();
@@ -190,6 +192,12 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   const [updatesOpen, setUpdatesOpen] = React.useState(false);
   const showShellSkeleton = Boolean(props.isLoading);
   const showBodySkeleton = Boolean(props.isLoading) || !isHydrated;
+  const permissionReady = permissionAccess.authzQuery.isFetched;
+  const canPublish =
+    !permissionReady ||
+    permissionAccess.hasPermission("system:content:publish") ||
+    permissionAccess.hasAction("system:content:publish");
+  const publishAccessHint = canPublish ? null : t("CONTENT_LIBRARY_PUBLISH_NO_ACCESS_DESC");
   const textLaneClass = getContentLibraryArticleEditorTextLaneClass(props.mode);
   const coverImageUrl = React.useMemo(
     () => resolveAssetRefToPublicUrlPath(props.coverAssetId),
@@ -286,10 +294,12 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                 variant="ghost"
                 size="sm"
                 disabled={
+                  !canPublish ||
                   !props.runtime.hasPublishableVersion ||
                   props.runtime.isPublishing ||
                   props.runtime.saveState === "saving"
                 }
+                title={publishAccessHint ?? undefined}
                 onClick={props.onPublish}
               >
                 <Upload className="size-4" />
@@ -320,7 +330,9 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
 
         {props.mode === "page" ? (
           <ContentLibraryArticleEditorPageToolbar
+            canPublish={canPublish}
             itemTitle={props.title}
+            publishAccessHint={publishAccessHint}
             saveState={props.runtime.saveState}
             saveError={props.runtime.saveError}
             isPublishing={props.runtime.isPublishing}

@@ -7,7 +7,7 @@ import { AssetsExplorerFolderDragOverlay } from "./explorer/assets-explorer-fold
 import { AssetsDragOverlayCard, snapOverlayCenterToPointer } from "./assets-view-dnd";
 
 export function AssetsViewDndSurface(
-  props: PropsWithChildren<{ controller: AssetsViewController }>,
+  props: PropsWithChildren<{ controller: AssetsViewController; disabled?: boolean }>,
 ) {
   const { controller, children } = props;
   const {
@@ -30,8 +30,8 @@ export function AssetsViewDndSurface(
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      onDragStart={props.disabled ? undefined : onDragStart}
+      onDragEnd={props.disabled ? undefined : onDragEnd}
       onDragCancel={onDragCancel}
     >
       {children}
