@@ -17,8 +17,6 @@ import type { ExtensionScope, InstalledExtensionItem } from "../types";
 import { useExtensionsFilters } from "./use-extensions-filters";
 import { useExtensionsMenuActions } from "./use-extensions-menu-actions";
 
-const PAGE_SIZE = 12;
-
 type UseExtensionsAccess = {
   isOrganizationScope: boolean;
   workspaceId: string | null;
@@ -128,7 +126,7 @@ export function useExtensions({ scope = "workspace", organizationId }: UseExtens
   const { workspaceId, isOrganizationScope, canManage } = access;
   const { queryKey, listQuery, items } = useCapabilitiesQuery(access);
 
-  const filters = useExtensionsFilters({ items, t: (key) => t(key), pageSize: PAGE_SIZE });
+  const filters = useExtensionsFilters({ items, t: (key) => t(key) });
   const actions = useExtensionsMenuActions({
     scope,
     workspaceId,
@@ -157,15 +155,10 @@ export function useExtensions({ scope = "workspace", organizationId }: UseExtens
     explorePageItems: filters.explorePageItems,
     exploreTotal: filters.exploreTotal,
     filtered: filters.filtered,
-    page: filters.page,
-    setPage: filters.setPage,
-    pageSize: PAGE_SIZE,
 
     filteredInstalled: filters.filteredInstalled,
     installedPageItems: filters.installedPageItems,
     installedTotal: filters.installedTotal,
-    installedPage: filters.installedPage,
-    setInstalledPage: filters.setInstalledPage,
     buildConfigureHref: actions.buildConfigureHref,
     buildMenuItems: actions.buildMenuItems,
   };

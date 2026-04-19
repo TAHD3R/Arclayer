@@ -1451,13 +1451,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
               onRetry={() => {
                 void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
               }}
-              pageData={tableHook.pageData}
-              onPaginationChange={(nextPage, nextSize) => {
-                if (nextSize !== tableHook.table.getState().pagination.pageSize) {
-                  tableHook.table.setPageSize(nextSize);
-                }
-                tableHook.table.setPageIndex(Math.max(0, nextPage - 1));
-              }}
+              infiniteScroll={tableHook.infiniteScroll}
               t={t}
               rowHeight="medium"
               refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}

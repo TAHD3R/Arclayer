@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import type { ReactNode } from "react";
 import type { Row } from "@tanstack/react-table";
 
@@ -74,15 +73,6 @@ export function ProjectsContentSection(props: ProjectsContentSectionProps) {
   }
 
   const table = props.tableHook.table;
-  const handlePaginationChange = useCallback(
-    (nextPage: number, nextSize: number) => {
-      if (nextSize !== table.getState().pagination.pageSize) {
-        table.setPageSize(nextSize);
-      }
-      table.setPageIndex(Math.max(0, nextPage - 1));
-    },
-    [table],
-  );
 
   return (
     <AdminDataTableSection
@@ -94,8 +84,7 @@ export function ProjectsContentSection(props: ProjectsContentSectionProps) {
       loading={props.tableHook.isLoading}
       error={props.tableHook.error}
       onRetry={props.onRetry}
-      pageData={props.tableHook.pageData}
-      onPaginationChange={handlePaginationChange}
+      infiniteScroll={props.tableHook.infiniteScroll}
       t={props.t}
       rowHeight={props.rowHeight}
       wrapHeaders={props.wrapHeaders}

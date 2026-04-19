@@ -9,7 +9,7 @@ const TEAM_INVITATIONS_VIEW_PATH = resolve(
 );
 
 describe("team invitations layout", () => {
-  it("renders the invitations page as lightweight tabbed settings tables with page-header actions", () => {
+  it("renders the invitations page as lightweight tabbed settings tables with page-header actions and infinite loading", () => {
     const source = readFileSync(TEAM_INVITATIONS_VIEW_PATH, "utf8");
 
     expect(source).toContain("const currentToolbar =");
@@ -18,7 +18,7 @@ describe("team invitations layout", () => {
     expect(source).toContain("action={inviteAction}");
     expect(source).not.toContain("toolbar={");
     expect(source).toContain("<DataTableSearchInput");
-    expect(source).toContain("<DataPaginationControls");
+    expect(source).toContain("<DataTableInfiniteScrollFooter");
     expect(source).toContain('emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}');
     expect(source).toContain('emptyTitle={t("team:TEAM_INVITE_LINKS_EMPTY_TITLE")}');
     expect(source).toContain("<SettingsTableRefreshSkeleton />");

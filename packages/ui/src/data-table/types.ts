@@ -17,6 +17,15 @@ export type DataTableBaseQuery = {
   ordering?: string;
 };
 
+export type DataTableInfiniteScrollState = {
+  hasMore: boolean;
+  loadingMore: boolean;
+  loadMoreError?: unknown;
+  onLoadMore: () => void;
+  loadingMoreLabel?: string;
+  loadMoreErrorLabel?: string;
+};
+
 export type DataTableDensity = "compact" | "default" | "relaxed";
 export type DataTableRowHeight = "short" | "medium" | "tall" | "extraTall";
 

@@ -81,10 +81,6 @@ export function ExtensionsView({ scope = "workspace", organizationId }: Extensio
             onOfficialChange={ext.setOfficialChecked}
             onCommunityChange={ext.setCommunityChecked}
             items={ext.explorePageItems}
-            total={ext.exploreTotal}
-            page={ext.page}
-            pageSize={ext.pageSize}
-            onPageChange={ext.setPage}
             buildConfigureHref={ext.buildConfigureHref}
             isEmpty={ext.filtered.length === 0}
           />
@@ -93,10 +89,6 @@ export function ExtensionsView({ scope = "workspace", organizationId }: Extensio
         <ChromeTabsContent value="installed">
           <ExtensionsInstalledTab
             items={ext.installedPageItems}
-            total={ext.installedTotal}
-            page={ext.installedPage}
-            pageSize={ext.pageSize}
-            onPageChange={ext.setInstalledPage}
             buildConfigureHref={ext.buildConfigureHref}
             buildMenuItems={ext.buildMenuItems}
             isEmpty={ext.filteredInstalled.length === 0}

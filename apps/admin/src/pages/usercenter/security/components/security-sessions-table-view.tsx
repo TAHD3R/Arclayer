@@ -42,7 +42,7 @@ function SessionDeviceCell(props: { row: SessionRow; t: TranslateFn }) {
         <DeviceGlyph className="size-4" />
       </div>
       <div className="min-w-0">
-        <div className="truncate text-body text-label-primary">{props.row.device}</div>
+        <div className="truncate text-label-primary">{props.row.device}</div>
         {props.row.current ? (
           <div className="mt-1 text-footnote font-medium text-primary">
             {props.t("account:ME_SECURITY_SESSIONS_CURRENT")}

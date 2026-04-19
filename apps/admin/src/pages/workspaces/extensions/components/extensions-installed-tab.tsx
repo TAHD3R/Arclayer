@@ -1,7 +1,6 @@
 import { MoreVertical } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -17,10 +16,6 @@ import type { ExtensionMenuItem, InstalledExtensionItem } from "../types";
 
 type ExtensionsInstalledTabProps = {
   items: InstalledExtensionItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
   buildConfigureHref: (extension: InstalledExtensionItem) => string | null;
   buildMenuItems: (extension: InstalledExtensionItem) => ExtensionMenuItem[];
   isEmpty: boolean;
@@ -28,10 +23,6 @@ type ExtensionsInstalledTabProps = {
 
 export function ExtensionsInstalledTab({
   items,
-  total,
-  page,
-  pageSize,
-  onPageChange,
   buildConfigureHref,
   buildMenuItems,
   isEmpty,
@@ -87,19 +78,6 @@ export function ExtensionsInstalledTab({
           />
         ))}
       </div>
-
-      {total > pageSize ? (
-        <div className="mt-6 flex justify-end">
-          <DataPaginationControls
-            page={page}
-            size={pageSize}
-            total={total}
-            onChange={(nextPage) => onPageChange(nextPage)}
-            pageSizeOptions={[pageSize]}
-            t={t}
-          />
-        </div>
-      ) : null}
     </div>
   );
 }

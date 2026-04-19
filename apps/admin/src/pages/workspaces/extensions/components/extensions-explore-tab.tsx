@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 
-import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 
 import { ExtensionCard } from "./extension-card";
@@ -18,10 +17,6 @@ type ExtensionsExploreTabProps = {
   onOfficialChange: (checked: boolean) => void;
   onCommunityChange: (checked: boolean) => void;
   items: InstalledExtensionItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
   buildConfigureHref: (extension: InstalledExtensionItem) => string | null;
   isEmpty: boolean;
 };
@@ -37,10 +32,6 @@ export function ExtensionsExploreTab({
   onOfficialChange,
   onCommunityChange,
   items,
-  total,
-  page,
-  pageSize,
-  onPageChange,
   buildConfigureHref,
   isEmpty,
 }: ExtensionsExploreTabProps) {
@@ -82,19 +73,6 @@ export function ExtensionsExploreTab({
                 <ExtensionCard key={p.capabilityId} extension={p} href={buildConfigureHref(p)} />
               ))}
             </div>
-
-            {total > pageSize ? (
-              <div className="mt-6 flex justify-end">
-                <DataPaginationControls
-                  page={page}
-                  size={pageSize}
-                  total={total}
-                  onChange={(nextPage) => onPageChange(nextPage)}
-                  pageSizeOptions={[pageSize]}
-                  t={t}
-                />
-              </div>
-            ) : null}
           </>
         )}
       </div>

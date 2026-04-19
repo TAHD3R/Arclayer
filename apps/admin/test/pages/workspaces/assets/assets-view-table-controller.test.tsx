@@ -44,9 +44,15 @@ function createControllerStub(selectedIds: Set<string> = new Set()): AssetsViewC
     openEditAssetDialog,
     openAssetEditAccessDialog,
     openAssetDeleteDialog,
-    pagedAssetsQuery: {
+    assetsQuery: {
       isFetching: false,
       isLoading: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      isFetchNextPageError: false,
+      error: null,
+      fetchNextPage: vi.fn(),
+      refetch: vi.fn(),
     },
   } as unknown as AssetsViewController;
 }

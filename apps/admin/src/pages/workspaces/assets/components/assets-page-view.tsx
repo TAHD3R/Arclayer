@@ -303,11 +303,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             onRowHeightChange={tableView.setRowHeight}
             wrapHeaders={tableView.wrapHeaders}
             onWrapHeadersChange={tableView.setWrapHeaders}
-            onRefresh={() =>
-              void (viewMode === "table"
-                ? controller.pagedAssetsQuery.refetch()
-                : controller.assetsQuery.refetch())
-            }
+            onRefresh={() => void controller.assetsQuery.refetch()}
             refreshing={tableView.refreshing}
             onResetColumnVisibility={tableView.resetColumnVisibility}
             labels={tableView.toolsLabels}

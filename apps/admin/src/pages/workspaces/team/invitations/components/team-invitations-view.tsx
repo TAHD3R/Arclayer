@@ -2,7 +2,7 @@
 
 import { Link2Off, Plus, RotateCcw } from "lucide-react";
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { listWorkspaceRoles } from "@/api/rbac";
@@ -15,7 +15,7 @@ import {
   renewTeamInviteLink,
 } from "@/api/team";
 import { listMyWorkspaces } from "@/api/workspaces";
-import { DataPaginationControls } from "@/components/common/data-pagination-controls";
+import { DataTableInfiniteScrollFooter } from "@/components/common/data-table-infinite-scroll-footer";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { InvitationStatusTag } from "@/components/ui/tags";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
@@ -31,7 +31,7 @@ import { buildInvitationUserDetails } from "@/pages/workspaces/team/shared/compo
 import { SettingsTableRefreshSkeleton } from "@/pages/workspaces/team/shared/components/settings-table-refresh-skeleton";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { TeamInvitation, TeamInviteLink } from "@/types/api";
+import type { PageData, TeamInvitation, TeamInviteLink } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
 import {
   ChromeTabs,
@@ -102,18 +102,12 @@ export function TeamInvitationsView(
   const [tab, setTab] = React.useState<TabKey>("pending");
 
   const [pendingSearchInput, setPendingSearchInput] = React.useState("");
-  const [pendingPage, setPendingPage] = React.useState(1);
-  const [pendingPageSize, setPendingPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [pendingSort, setPendingSort] = React.useState<InvitationSort>(DEFAULT_PENDING_SORT);
 
   const [acceptedSearchInput, setAcceptedSearchInput] = React.useState("");
-  const [acceptedPage, setAcceptedPage] = React.useState(1);
-  const [acceptedPageSize, setAcceptedPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [acceptedSort, setAcceptedSort] = React.useState<InvitationSort>(DEFAULT_ACCEPTED_SORT);
 
   const [linksSearchInput, setLinksSearchInput] = React.useState("");
-  const [linksPage, setLinksPage] = React.useState(1);
-  const [linksPageSize, setLinksPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [linksSort, setLinksSort] = React.useState<InviteLinkSort>(DEFAULT_LINKS_SORT);
 
   const [uncontrolledInviteLinkOpen, setUncontrolledInviteLinkOpen] = React.useState(false);
@@ -129,18 +123,6 @@ export function TeamInvitationsView(
   const [renewExpiresInSeconds, setRenewExpiresInSeconds] = React.useState<RenewExpiresInSeconds>(
     7 * 24 * 60 * 60,
   );
-
-  React.useEffect(() => {
-    setPendingPage(1);
-  }, [pendingSearchInput, pendingSort]);
-
-  React.useEffect(() => {
-    setAcceptedPage(1);
-  }, [acceptedSearchInput, acceptedSort]);
-
-  React.useEffect(() => {
-    setLinksPage(1);
-  }, [linksSearchInput, linksSort]);
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", sessionVersion],
@@ -242,20 +224,16 @@ export function TeamInvitationsView(
     onError: (err) => notifyError(err),
   });
 
-  const pendingInvitationsQuery = useQuery({
-    queryKey: [
-      ...pendingInvitationsKey,
-      pendingSearchInput,
-      pendingSort,
-      pendingPage,
-      pendingPageSize,
-    ],
+  const pendingInvitationsQuery = useInfiniteQuery<PageData<TeamInvitation>>({
+    queryKey: [...pendingInvitationsKey, pendingSearchInput, pendingSort],
     enabled: Boolean(workspaceId) && tab === "pending",
-    queryFn: async () => {
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
+    queryFn: async ({ pageParam }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       return listTeamInvitations(String(workspaceId), {
-        page: pendingPage,
-        size: pendingPageSize,
+        page: typeof pageParam === "number" ? pageParam : 1,
+        size: DEFAULT_PAGE_SIZE,
         q: pendingSearchInput.trim() || undefined,
         ordering: pendingSort,
         status: "pending",
@@ -267,20 +245,16 @@ export function TeamInvitationsView(
     meta: { silent: true },
   });
 
-  const acceptedInvitationsQuery = useQuery({
-    queryKey: [
-      ...acceptedInvitationsKey,
-      acceptedSearchInput,
-      acceptedSort,
-      acceptedPage,
-      acceptedPageSize,
-    ],
+  const acceptedInvitationsQuery = useInfiniteQuery<PageData<TeamInvitation>>({
+    queryKey: [...acceptedInvitationsKey, acceptedSearchInput, acceptedSort],
     enabled: Boolean(workspaceId) && tab === "accepted",
-    queryFn: async () => {
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
+    queryFn: async ({ pageParam }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       return listTeamInvitations(String(workspaceId), {
-        page: acceptedPage,
-        size: acceptedPageSize,
+        page: typeof pageParam === "number" ? pageParam : 1,
+        size: DEFAULT_PAGE_SIZE,
         q: acceptedSearchInput.trim() || undefined,
         ordering: acceptedSort,
         status: "accepted",
@@ -292,14 +266,16 @@ export function TeamInvitationsView(
     meta: { silent: true },
   });
 
-  const inviteLinksQuery = useQuery({
-    queryKey: [...inviteLinksKey, linksSearchInput, linksSort, linksPage, linksPageSize],
+  const inviteLinksQuery = useInfiniteQuery<PageData<TeamInviteLink>>({
+    queryKey: [...inviteLinksKey, linksSearchInput, linksSort],
     enabled: Boolean(workspaceId) && tab === "links",
-    queryFn: async () => {
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
+    queryFn: async ({ pageParam }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       const data = await listTeamInviteLinks(String(workspaceId), {
-        page: linksPage,
-        size: linksPageSize,
+        page: typeof pageParam === "number" ? pageParam : 1,
+        size: DEFAULT_PAGE_SIZE,
         q: linksSearchInput.trim() || undefined,
         ordering: linksSort,
         mine: true,
@@ -313,6 +289,36 @@ export function TeamInvitationsView(
     retry: false,
     meta: { silent: true },
   });
+
+  const pendingInvitationRows =
+    pendingInvitationsQuery.data?.pages.flatMap((page) => page.items ?? []) ?? [];
+  const acceptedInvitationRows =
+    acceptedInvitationsQuery.data?.pages.flatMap((page) => page.items ?? []) ?? [];
+  const inviteLinkRows = inviteLinksQuery.data?.pages.flatMap((page) => page.items ?? []) ?? [];
+
+  const renderLoadMoreFooter = React.useCallback(
+    (query: {
+      data: unknown;
+      hasNextPage: boolean;
+      isFetchingNextPage: boolean;
+      isFetchNextPageError: boolean;
+      error: unknown;
+      fetchNextPage: () => Promise<unknown>;
+    }) => (
+      <DataTableInfiniteScrollFooter
+        hasMore={Boolean(query.hasNextPage)}
+        loadingMore={query.isFetchingNextPage}
+        error={query.isFetchNextPageError ? query.error : undefined}
+        onLoadMore={() => {
+          if (query.isFetchingNextPage || !query.hasNextPage) return;
+          query.fetchNextPage().catch(() => undefined);
+        }}
+        loadingLabel={t("common:DATA_TABLE_LOADING_MORE")}
+        errorLabel={t("common:DATA_TABLE_LOAD_MORE_ERROR")}
+      />
+    ),
+    [t],
+  );
 
   const renderInvitationStatus = React.useCallback(
     (status: TeamInvitation["status"] | null | undefined): string => {
@@ -726,7 +732,7 @@ export function TeamInvitationsView(
             empty={
               !pendingInvitationsQuery.isLoading &&
               !pendingInvitationsQuery.isError &&
-              (pendingInvitationsQuery.data?.items?.length ?? 0) === 0
+              pendingInvitationRows.length === 0
             }
             onRetry={() => {
               void pendingInvitationsQuery.refetch();
@@ -737,7 +743,9 @@ export function TeamInvitationsView(
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
             variant="compact"
           >
-            {pendingInvitationsQuery.isFetching && !pendingInvitationsQuery.isLoading ? (
+            {pendingInvitationsQuery.isFetching &&
+            !pendingInvitationsQuery.isLoading &&
+            !pendingInvitationsQuery.isFetchingNextPage ? (
               <SettingsTableRefreshSkeleton />
             ) : null}
             <div className="min-w-0 overflow-x-auto">
@@ -764,23 +772,12 @@ export function TeamInvitationsView(
                     />
                   </tr>
                 </thead>
-                <tbody>{(pendingInvitationsQuery.data?.items ?? []).map(renderPendingRow)}</tbody>
+                <tbody>{pendingInvitationRows.map(renderPendingRow)}</tbody>
               </table>
             </div>
-            {pendingInvitationsQuery.data ? (
-              <div className="border-t border-border/50 pt-3">
-                <DataPaginationControls
-                  page={pendingInvitationsQuery.data.page}
-                  size={pendingInvitationsQuery.data.size}
-                  total={pendingInvitationsQuery.data.total}
-                  onChange={(nextPage, nextSize) => {
-                    setPendingPage(nextPage);
-                    setPendingPageSize(nextSize);
-                  }}
-                  t={t}
-                />
-              </div>
-            ) : null}
+            {pendingInvitationsQuery.data && pendingInvitationRows.length > 0
+              ? renderLoadMoreFooter(pendingInvitationsQuery)
+              : null}
           </ContentGuard>
         </ChromeTabsContent>
 
@@ -791,7 +788,7 @@ export function TeamInvitationsView(
             empty={
               !acceptedInvitationsQuery.isLoading &&
               !acceptedInvitationsQuery.isError &&
-              (acceptedInvitationsQuery.data?.items?.length ?? 0) === 0
+              acceptedInvitationRows.length === 0
             }
             onRetry={() => {
               void acceptedInvitationsQuery.refetch();
@@ -802,7 +799,9 @@ export function TeamInvitationsView(
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
             variant="compact"
           >
-            {acceptedInvitationsQuery.isFetching && !acceptedInvitationsQuery.isLoading ? (
+            {acceptedInvitationsQuery.isFetching &&
+            !acceptedInvitationsQuery.isLoading &&
+            !acceptedInvitationsQuery.isFetchingNextPage ? (
               <SettingsTableRefreshSkeleton />
             ) : null}
             <div className="min-w-0 overflow-x-auto">
@@ -829,23 +828,12 @@ export function TeamInvitationsView(
                     </th>
                   </tr>
                 </thead>
-                <tbody>{(acceptedInvitationsQuery.data?.items ?? []).map(renderAcceptedRow)}</tbody>
+                <tbody>{acceptedInvitationRows.map(renderAcceptedRow)}</tbody>
               </table>
             </div>
-            {acceptedInvitationsQuery.data ? (
-              <div className="border-t border-border/50 pt-3">
-                <DataPaginationControls
-                  page={acceptedInvitationsQuery.data.page}
-                  size={acceptedInvitationsQuery.data.size}
-                  total={acceptedInvitationsQuery.data.total}
-                  onChange={(nextPage, nextSize) => {
-                    setAcceptedPage(nextPage);
-                    setAcceptedPageSize(nextSize);
-                  }}
-                  t={t}
-                />
-              </div>
-            ) : null}
+            {acceptedInvitationsQuery.data && acceptedInvitationRows.length > 0
+              ? renderLoadMoreFooter(acceptedInvitationsQuery)
+              : null}
           </ContentGuard>
         </ChromeTabsContent>
 
@@ -856,7 +844,7 @@ export function TeamInvitationsView(
             empty={
               !inviteLinksQuery.isLoading &&
               !inviteLinksQuery.isError &&
-              (inviteLinksQuery.data?.items?.length ?? 0) === 0
+              inviteLinkRows.length === 0
             }
             onRetry={() => {
               void inviteLinksQuery.refetch();
@@ -867,7 +855,9 @@ export function TeamInvitationsView(
             emptyDescription={t("team:TEAM_INVITE_LINKS_EMPTY_DESC")}
             variant="compact"
           >
-            {inviteLinksQuery.isFetching && !inviteLinksQuery.isLoading ? (
+            {inviteLinksQuery.isFetching &&
+            !inviteLinksQuery.isLoading &&
+            !inviteLinksQuery.isFetchingNextPage ? (
               <SettingsTableRefreshSkeleton />
             ) : null}
             <div className="min-w-0 overflow-x-auto">
@@ -894,23 +884,12 @@ export function TeamInvitationsView(
                     />
                   </tr>
                 </thead>
-                <tbody>{(inviteLinksQuery.data?.items ?? []).map(renderInviteLinkRow)}</tbody>
+                <tbody>{inviteLinkRows.map(renderInviteLinkRow)}</tbody>
               </table>
             </div>
-            {inviteLinksQuery.data ? (
-              <div className="border-t border-border/50 pt-3">
-                <DataPaginationControls
-                  page={inviteLinksQuery.data.page}
-                  size={inviteLinksQuery.data.size}
-                  total={inviteLinksQuery.data.total}
-                  onChange={(nextPage, nextSize) => {
-                    setLinksPage(nextPage);
-                    setLinksPageSize(nextSize);
-                  }}
-                  t={t}
-                />
-              </div>
-            ) : null}
+            {inviteLinksQuery.data && inviteLinkRows.length > 0
+              ? renderLoadMoreFooter(inviteLinksQuery)
+              : null}
           </ContentGuard>
         </ChromeTabsContent>
       </div>

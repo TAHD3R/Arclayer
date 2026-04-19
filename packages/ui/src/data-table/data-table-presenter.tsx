@@ -1,9 +1,10 @@
 "use client";
 
 import { type Header, type Table as ReactTable } from "@tanstack/react-table";
-import { type MouseEvent, useCallback, useRef, useState } from "react";
+import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
 
 import { DataTablePresenterBody } from "./data-table-presenter-body";
 import { DataTablePresenterHeader } from "./data-table-presenter-header";
@@ -12,7 +13,12 @@ import { DataTableScrollOverflowGradient } from "./data-table-scroll-overflow-gr
 import { useNormalizedDataTableColumnOrder } from "./data-table-column-settings-utils";
 import type { DataTableColumnHeaderFilterAction } from "./data-table-column-header-menu";
 import type { DataTableColumnMenuLabels } from "./data-table-tools.types";
-import { resolveDataTableRowHeight, type DataTableDensity, type DataTableRowHeight } from "./types";
+import {
+  resolveDataTableRowHeight,
+  type DataTableDensity,
+  type DataTableInfiniteScrollState,
+  type DataTableRowHeight,
+} from "./types";
 import { useScrollOverflow } from "./use-scroll-overflow";
 
 type DataTableToolbarSlots = {
@@ -30,6 +36,7 @@ type DataTablePresenterProps<TData> = {
   tableClassName?: string;
   toolbar?: DataTableToolbarSlots;
   footer?: React.ReactNode;
+  infiniteScroll?: DataTableInfiniteScrollState;
   surface?: DataTableSurface;
   rowHeight?: DataTableRowHeight;
   density?: DataTableDensity;
@@ -65,6 +72,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     tableClassName,
     toolbar,
     footer,
+    infiniteScroll,
     surface = "card",
     rowHeight,
     density,
@@ -88,9 +96,9 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
   const resolvedWrapContent = wrapContentControlled ? controlledWrapContent : internalWrapContent;
   const hasToolbarRow = Boolean(toolbar?.left || toolbar?.right);
   const hasToolbar = Boolean(toolbar?.fullWidth || hasToolbarRow);
-  const hasFooter = Boolean(footer);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const canScrollRight = useScrollOverflow(scrollRef);
 
   const rightPinnedWidth = table.getRightLeafColumns().reduce((sum, col) => sum + col.getSize(), 0);
@@ -112,6 +120,53 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
   const surfaceClassName =
     surface === "embedded" ? "rounded-none border-0 bg-transparent " : "rounded-lg bg-background ";
   const sectionPaddingClass = "px-0";
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    const target = loadMoreRef.current;
+    if (!root || !target || !infiniteScroll) return;
+    if (!infiniteScroll.hasMore || infiniteScroll.loadingMore) return;
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        infiniteScroll.onLoadMore();
+      },
+      {
+        root,
+        rootMargin: "160px 0px",
+      },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [infiniteScroll]);
+
+  const infiniteFooter = infiniteScroll ? (
+    <div
+      ref={loadMoreRef}
+      className="flex min-h-11 items-center justify-center border-t border-border/25 px-4 py-3 text-callout text-label-secondary"
+      data-slot="data-table-infinite-scroll-footer"
+    >
+      {infiniteScroll.loadMoreError ? (
+        <div className="flex items-center gap-3">
+          <span>{infiniteScroll.loadMoreErrorLabel ?? "Could not load more rows."}</span>
+          <Button size="sm" variant="ghost" onClick={infiniteScroll.onLoadMore}>
+            Retry
+          </Button>
+        </div>
+      ) : infiniteScroll.loadingMore ? (
+        <span>{infiniteScroll.loadingMoreLabel ?? "Loading more rows..."}</span>
+      ) : infiniteScroll.hasMore ? (
+        <button type="button" className="sr-only" onClick={infiniteScroll.onLoadMore}>
+          Load more rows
+        </button>
+      ) : null}
+    </div>
+  ) : null;
+
+  const hasFooter = Boolean(footer);
 
   return (
     <div className={cn("min-h-0 flex flex-col", className)}>
@@ -168,6 +223,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               cellClassName={cellClassName}
             />
           </table>
+          {infiniteFooter}
         </div>
 
         {hasFooter ? (

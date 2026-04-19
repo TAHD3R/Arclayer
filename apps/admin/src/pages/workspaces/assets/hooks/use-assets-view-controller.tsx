@@ -73,7 +73,7 @@ function triggerDropPulse(
   }, 300);
 }
 
-export function useAssetsViewController(viewMode: AssetsViewMode = "card") {
+export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -126,7 +126,7 @@ export function useAssetsViewController(viewMode: AssetsViewMode = "card") {
   } | null>(null);
   const explorer = useAssetsExplorerController({
     scope,
-    pagination: viewMode === "table" ? "paged" : "infinite",
+    pagination: "infinite",
     initialPageSize: 10,
     purpose: "library",
     // 默认只看 public：瀑布流需要 thumb/public url 才能稳定预览；

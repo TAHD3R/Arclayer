@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import type { ColumnDef, SortingState, Table, VisibilityState } from "@tanstack/react-table";
 import * as React from "react";
 
@@ -14,6 +14,7 @@ import {
 import type {
   DataTableBaseQuery,
   DataTableFeatureOptions,
+  DataTableInfiniteScrollState,
   MapColumnFiltersFn,
   PageData,
 } from "./types";
@@ -81,6 +82,7 @@ export type UseDataTableResult<TData, TExtraQuery extends Record<string, unknown
   items: TData[];
   total: number;
   pageCount: number;
+  infiniteScroll: DataTableInfiniteScrollState;
 
   // Sorting state.
   sorting: SortingState;
@@ -145,6 +147,9 @@ export function useDataTable<
 
   const [tableData, setTableData] = React.useState<TData[]>([]);
   const [pageCount, setPageCount] = React.useState<number>(0);
+  const [loadedPages, setLoadedPages] = React.useState<PageData<TData>[]>([]);
+  const [loadMorePage, setLoadMorePage] = React.useState<number | null>(null);
+  const [loadMoreError, setLoadMoreError] = React.useState<unknown>(null);
 
   const onColumnVisibilityChange = React.useCallback(
     (next: VisibilityState) => {
@@ -172,7 +177,7 @@ export function useDataTable<
     rowSelection: {
       enabled: rowSelection?.enabled,
       getRowId: rowSelection?.getRowId,
-      resetOnPaginationChange: true, // semantics A: selection is per-page
+      resetOnPaginationChange: false,
     },
     features,
     onSortingChange,
@@ -223,6 +228,11 @@ export function useDataTable<
     // (React Table uses 0-based; backend is 1-based.)
     core.table.setPageIndex(0);
     if (rowSelection?.enabled) core.table.resetRowSelection();
+    setLoadedPages([]);
+    setTableData([]);
+    setPageCount(0);
+    setLoadMorePage(null);
+    setLoadMoreError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     core.baseQuery.q,
@@ -241,22 +251,78 @@ export function useDataTable<
   const query = useQuery({
     queryKey,
     queryFn: () => fetcher(finalRequestParams),
-    placeholderData: keepPreviousData,
     ...queryOptions,
   });
 
   const pageData = query.data;
-  const items = pageData?.items ?? [];
-  const total = pageData?.total ?? 0;
-  const nextPageCount = pageData?.pages ?? 0;
 
   React.useEffect(() => {
     // Avoid an update loop when `pageData` is still undefined:
     // `items` would be a new `[]` on each render, causing setState on every effect run.
     if (!pageData) return;
-    setTableData(pageData.items ?? []);
+    setLoadedPages([pageData]);
     setPageCount(pageData.pages ?? 0);
   }, [pageData]);
+
+  React.useEffect(() => {
+    setTableData(loadedPages.flatMap((page) => page.items ?? []));
+  }, [loadedPages]);
+
+  const latestPageData = loadedPages.at(-1) ?? pageData;
+  const items = tableData;
+  const total = latestPageData?.total ?? pageData?.total ?? 0;
+  const nextPageCount = latestPageData?.pages ?? pageData?.pages ?? 0;
+  const hasMore = Boolean(latestPageData?.next);
+
+  const loadMoreParams = React.useMemo(() => {
+    if (!loadMorePage) return null;
+    return { ...finalRequestParams, page: loadMorePage };
+  }, [finalRequestParams, loadMorePage]);
+
+  const loadMoreQuery = useQuery({
+    queryKey: ["dataTable", tableId, "loadMore", loadMoreParams] as const,
+    queryFn: async () => {
+      if (!loadMoreParams) throw new Error("DATA_TABLE_LOAD_MORE_PAGE_MISSING");
+      return fetcher(loadMoreParams);
+    },
+    enabled: Boolean(loadMoreParams),
+    retry: false,
+  });
+
+  React.useEffect(() => {
+    const nextPage = loadMoreQuery.data;
+    if (!nextPage || nextPage.page !== loadMorePage) return;
+    setLoadedPages((prev) => {
+      if (prev.some((page) => page.page === nextPage.page)) return prev;
+      return [...prev, nextPage];
+    });
+    setPageCount(nextPage.pages ?? 0);
+    setLoadMorePage(null);
+    setLoadMoreError(null);
+  }, [loadMorePage, loadMoreQuery.data]);
+
+  React.useEffect(() => {
+    if (!loadMoreQuery.error) return;
+    setLoadMoreError(loadMoreQuery.error);
+    setLoadMorePage(null);
+  }, [loadMoreQuery.error]);
+
+  const handleLoadMore = React.useCallback(() => {
+    if (!latestPageData?.next) return;
+    if (loadMorePage) return;
+    setLoadMoreError(null);
+    setLoadMorePage(latestPageData.next);
+  }, [latestPageData?.next, loadMorePage]);
+
+  const infiniteScroll = React.useMemo<DataTableInfiniteScrollState>(
+    () => ({
+      hasMore,
+      loadingMore: loadMoreQuery.isFetching,
+      loadMoreError,
+      onLoadMore: handleLoadMore,
+    }),
+    [handleLoadMore, hasMore, loadMoreError, loadMoreQuery.isFetching],
+  );
 
   const resetColumnVisibility = React.useCallback(() => {
     clearVisibilityState(tableId, visibilityStorage);
@@ -273,6 +339,7 @@ export function useDataTable<
     items,
     total,
     pageCount: nextPageCount,
+    infiniteScroll,
     sorting: core.sorting,
     setSorting: core.setSorting,
     isLoading: query.isLoading,

@@ -243,10 +243,19 @@ vi.mock("@arclayer/ui/data-table", async () => {
       return {
         table: {
           getState: () => ({ columnVisibility, columnOrder }),
+          getRowModel: () => ({
+            rows: (pageData.items ?? []).map((item) => ({ original: item })),
+          }),
           setColumnVisibility,
           setColumnOrder,
         },
         pageData,
+        infiniteScroll: {
+          hasMore: false,
+          loadingMore: false,
+          loadMoreError: undefined,
+          onLoadMore: vi.fn(),
+        },
         searchInput,
         setSearchInput,
         sorting,
@@ -291,7 +300,8 @@ vi.mock("@/layouts/page-shell/page-main-region", () => ({
 vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
   AdminDataTableSection: (props: {
     toolbar?: ReactNode;
-    pageData?: { items?: Array<{ id: string; name: string }> };
+    infiniteScroll?: unknown;
+    table?: { getRowModel?: () => { rows?: Array<{ original: { id: string; name: string } }> } };
     footerSlot?: ReactNode;
     rowClassName?: (row: { original: { id: string; name: string } }, index: number) => string;
     onRowClick?: (row: { original: { id: string; name: string } }, index: number) => void;
@@ -299,19 +309,22 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
     <div>
       <div data-testid="content-library-toolbar-slot">{props.toolbar}</div>
       <div>
-        {(props.pageData?.items ?? []).map((row, index) => (
+        {(props.table?.getRowModel?.().rows ?? []).map((row, index) => (
           <button
-            key={row.id}
+            key={row.original.id}
             type="button"
-            aria-label={`row:${row.name}`}
-            className={props.rowClassName?.({ original: row }, index)}
-            onClick={() => props.onRowClick?.({ original: row }, index)}
+            aria-label={`row:${row.original.name}`}
+            className={props.rowClassName?.({ original: row.original }, index)}
+            onClick={() => props.onRowClick?.({ original: row.original }, index)}
           >
-            {row.name}
+            {row.original.name}
           </button>
         ))}
       </div>
       <div data-testid="content-library-footer-slot">{props.footerSlot}</div>
+      <div data-testid="content-library-infinite-scroll-slot">
+        {String(Boolean(props.infiniteScroll))}
+      </div>
     </div>
   ),
 }));

@@ -43,26 +43,14 @@ function filterBySearch(items: InstalledExtensionItem[], query: string): Install
   });
 }
 
-function pageSlice(
-  items: InstalledExtensionItem[],
-  page: number,
-  pageSize: number,
-): InstalledExtensionItem[] {
-  const start = (Math.max(1, page) - 1) * pageSize;
-  return items.slice(start, start + pageSize);
-}
-
 export function useExtensionsFilters(input: {
   items: InstalledExtensionItem[];
   t: (key: string) => string;
-  pageSize: number;
 }) {
   const [category, setCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [officialChecked, setOfficialChecked] = useState(true);
   const [communityChecked, setCommunityChecked] = useState(true);
-  const [page, setPage] = useState<number>(1);
-  const [installedPage, setInstalledPage] = useState<number>(1);
 
   const categoryTabs = useMemo(
     () => buildCategoryTabs(input.items, (key) => input.t(`plugin:${key}`)),
@@ -70,8 +58,7 @@ export function useExtensionsFilters(input: {
   );
 
   useEffect(() => {
-    setPage(1);
-    setInstalledPage(1);
+    // Filtering is local, so the visible list updates in place.
   }, [category, searchQuery, officialChecked, communityChecked]);
 
   useEffect(() => {
@@ -86,14 +73,6 @@ export function useExtensionsFilters(input: {
   }, [input.items, officialChecked, communityChecked, category, searchQuery]);
 
   const enabledItems = useMemo(() => filtered.filter((p) => Boolean(p.enabled)), [filtered]);
-  const explorePageItems = useMemo(
-    () => pageSlice(filtered, page, input.pageSize),
-    [filtered, page, input.pageSize],
-  );
-  const installedPageItems = useMemo(
-    () => pageSlice(enabledItems, installedPage, input.pageSize),
-    [enabledItems, installedPage, input.pageSize],
-  );
 
   return {
     categoryTabs,
@@ -105,15 +84,11 @@ export function useExtensionsFilters(input: {
     setOfficialChecked,
     communityChecked,
     setCommunityChecked,
-    explorePageItems,
+    explorePageItems: filtered,
     exploreTotal: filtered.length,
     filtered,
-    page,
-    setPage,
     filteredInstalled: enabledItems,
-    installedPageItems,
+    installedPageItems: enabledItems,
     installedTotal: enabledItems.length,
-    installedPage,
-    setInstalledPage,
   };
 }

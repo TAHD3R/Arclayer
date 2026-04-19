@@ -1,11 +1,11 @@
 import { MoreVertical, Plus, UserCheck, UserCog, UserX } from "lucide-react";
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import { listWorkspaceRoles } from "@/api/rbac";
-import { DataPaginationControls } from "@/components/common/data-pagination-controls";
+import { DataTableInfiniteScrollFooter } from "@/components/common/data-table-infinite-scroll-footer";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
@@ -22,7 +22,7 @@ import {
 import type { TeamMemberSort } from "@/pages/workspaces/team/shared/types";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { TeamMember } from "@/types/api";
+import type { PageData, TeamMember } from "@/types/api";
 import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
 import {
   disableTeamMember,
@@ -63,8 +63,6 @@ export function TeamMembersView(props: {
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
   const [sort, setSort] = React.useState<TeamMemberSort>(DEFAULT_TEAM_MEMBER_SORT);
   const [searchInput, setSearchInput] = React.useState("");
-  const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(DEFAULT_TEAM_MEMBER_PAGE_SIZE);
 
   const [uncontrolledInviteOpen, setUncontrolledInviteOpen] = React.useState(false);
   const inviteOpen = props.inviteOpen ?? uncontrolledInviteOpen;
@@ -171,13 +169,15 @@ export function TeamMembersView(props: {
   });
 
   const dateTime = useWorkspaceDateTimeFormatter();
-  const membersQuery = useQuery({
-    queryKey: [...membersSettingsQueryKeyPrefix, searchInput, sort, page, pageSize],
-    queryFn: async () => {
+  const membersQuery = useInfiniteQuery<PageData<TeamMember>>({
+    queryKey: [...membersSettingsQueryKeyPrefix, searchInput, sort],
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
+    queryFn: async ({ pageParam }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       return listTeamMembers(String(workspaceId), {
-        page,
-        size: pageSize,
+        page: typeof pageParam === "number" ? pageParam : 1,
+        size: DEFAULT_TEAM_MEMBER_PAGE_SIZE,
         q: searchInput.trim() || undefined,
         ordering: sort,
       });
@@ -187,7 +187,7 @@ export function TeamMembersView(props: {
     retry: false,
     meta: { silent: true },
   });
-  const rows = membersQuery.data?.items ?? [];
+  const rows = membersQuery.data?.pages.flatMap((page) => page.items ?? []) ?? [];
 
   React.useEffect(() => {
     const nextQuery = String(props.initialSearchQuery || "").trim();
@@ -195,10 +195,6 @@ export function TeamMembersView(props: {
     hydratedSearchRef.current = nextQuery;
     setSearchInput(nextQuery);
   }, [props.initialSearchQuery]);
-
-  React.useEffect(() => {
-    setPage(1);
-  }, [searchInput, sort]);
 
   const renderMemberActions = React.useCallback(
     (member: TeamMember) => {
@@ -295,7 +291,7 @@ export function TeamMembersView(props: {
         emptyDescription={t("team:TEAM_EMPTY_DESC")}
         variant="compact"
       >
-        {membersQuery.isFetching && !membersQuery.isLoading ? (
+        {membersQuery.isFetching && !membersQuery.isLoading && !membersQuery.isFetchingNextPage ? (
           <SettingsTableRefreshSkeleton />
         ) : null}
         <div className="min-w-0 overflow-x-auto">
@@ -370,7 +366,7 @@ export function TeamMembersView(props: {
                     <td className="px-4 py-4">
                       {member.roleCodes.length ? (
                         <div className="flex flex-wrap gap-1">
-                          {member.roleCodes.slice(0, 3).map((code) => (
+                          {member.roleCodes.slice(0, 3).map((code: string) => (
                             <TeamRoleTag
                               key={code}
                               className="mr-0!"
@@ -426,19 +422,18 @@ export function TeamMembersView(props: {
             </tbody>
           </table>
         </div>
-        {membersQuery.data ? (
-          <div className="border-t border-border/50 pt-3">
-            <DataPaginationControls
-              page={membersQuery.data.page}
-              size={membersQuery.data.size}
-              total={membersQuery.data.total}
-              onChange={(nextPage, nextSize) => {
-                setPage(nextPage);
-                setPageSize(nextSize);
-              }}
-              t={t}
-            />
-          </div>
+        {membersQuery.data && rows.length > 0 ? (
+          <DataTableInfiniteScrollFooter
+            hasMore={Boolean(membersQuery.hasNextPage)}
+            loadingMore={membersQuery.isFetchingNextPage}
+            error={membersQuery.isFetchNextPageError ? membersQuery.error : undefined}
+            onLoadMore={() => {
+              if (membersQuery.isFetchingNextPage || !membersQuery.hasNextPage) return;
+              membersQuery.fetchNextPage().catch(() => undefined);
+            }}
+            loadingLabel={t("common:DATA_TABLE_LOADING_MORE")}
+            errorLabel={t("common:DATA_TABLE_LOAD_MORE_ERROR")}
+          />
         ) : null}
       </ContentGuard>
 

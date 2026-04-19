@@ -78,7 +78,7 @@ export function AssetUploaderCell(props: {
         className="shrink-0"
       />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-body text-label-primary">{uploaderName}</div>
+        <div className="truncate text-label-primary">{uploaderName}</div>
       </div>
     </div>
   );

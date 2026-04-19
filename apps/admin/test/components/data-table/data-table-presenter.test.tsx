@@ -283,6 +283,61 @@ describe("DataTablePresenter", () => {
     expect(separators.length).toBe(0);
   });
 
+  it("renders shared infinite-scroll footer states", async () => {
+    const user = userEvent.setup();
+    const onLoadMore = vi.fn();
+
+    function InfiniteHarness(props: {
+      hasMore: boolean;
+      loadingMore: boolean;
+      loadMoreError?: unknown;
+    }) {
+      const data = [{ name: "Alice" }];
+      const columns = [{ accessorKey: "name", header: "Name" }];
+      const table = useReactTable({
+        data,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+      });
+
+      return (
+        <DataTablePresenter
+          table={table}
+          emptyText="empty"
+          infiniteScroll={{
+            hasMore: props.hasMore,
+            loadingMore: props.loadingMore,
+            loadMoreError: props.loadMoreError,
+            onLoadMore,
+            loadingMoreLabel: "Loading more",
+            loadMoreErrorLabel: "Load failed",
+            endLabel: "All loaded",
+          }}
+        />
+      );
+    }
+
+    const { rerender } = render(<InfiniteHarness hasMore loadingMore={false} />);
+
+    await user.click(screen.getByRole("button", { name: "Load more rows" }));
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+
+    rerender(<InfiniteHarness hasMore loadingMore />);
+    expect(screen.getByText("Loading more")).toBeInTheDocument();
+
+    rerender(<InfiniteHarness hasMore={false} loadingMore={false} />);
+    expect(
+      screen.queryByText("All loaded", {
+        selector: '[data-slot="data-table-infinite-scroll-footer"] *',
+      }),
+    ).not.toBeInTheDocument();
+
+    rerender(<InfiniteHarness hasMore loadingMore={false} loadMoreError={new Error("boom")} />);
+    expect(screen.getByText("Load failed")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onLoadMore).toHaveBeenCalledTimes(2);
+  });
+
   it("uses text-callout styling for header cells", () => {
     render(<SortableTableHarness />);
 

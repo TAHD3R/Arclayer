@@ -67,7 +67,6 @@ export function IllustEmptyContainer(props: IllustrationProps) {
         strokeWidth="0.5"
         strokeOpacity="0.3"
       />
-      <circle cx="100" cy="80" r="1.5" fill="currentColor" opacity="0.6" />
     </IllustrationWrapper>
   );
 }

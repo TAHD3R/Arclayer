@@ -3,12 +3,11 @@ import type { Header, Row, Table as ReactTable } from "@tanstack/react-table";
 
 import {
   DataTablePresenter,
-  type PageData,
+  type DataTableInfiniteScrollState,
   type DataTableRowHeight,
 } from "@arclayer/ui/data-table";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -21,8 +20,7 @@ export type AdminDataTableSectionProps<TData> = {
   loading: boolean;
   error: unknown;
   onRetry: () => void;
-  pageData?: PageData<TData> | null;
-  onPaginationChange?: (nextPage: number, nextSize: number) => void;
+  infiniteScroll?: DataTableInfiniteScrollState;
   t: TranslateFn;
   rowHeight: DataTableRowHeight;
   wrapHeaders?: boolean;
@@ -50,8 +48,7 @@ export function AdminDataTableSection<TData>({
   loading,
   error,
   onRetry,
-  pageData,
-  onPaginationChange,
+  infiniteScroll,
   t,
   rowHeight,
   wrapHeaders = false,
@@ -70,25 +67,13 @@ export function AdminDataTableSection<TData>({
         <div className="min-w-0">{toolbar}</div>
       </div>
     ) : null;
-  const paginationFooter =
-    pageData && onPaginationChange ? (
-      <DataPaginationControls
-        page={pageData.page}
-        size={pageData.size}
-        total={pageData.total}
-        onChange={onPaginationChange}
-        t={t}
-      />
-    ) : null;
-  const footer =
-    paginationFooter && footerSlot ? (
-      <div className="flex flex-col gap-3">
-        {paginationFooter}
-        {footerSlot}
-      </div>
-    ) : (
-      (paginationFooter ?? footerSlot)
-    );
+  const resolvedInfiniteScroll = infiniteScroll
+    ? {
+        loadingMoreLabel: t("common:DATA_TABLE_LOADING_MORE"),
+        loadMoreErrorLabel: t("common:DATA_TABLE_LOAD_MORE_ERROR"),
+        ...infiniteScroll,
+      }
+    : undefined;
 
   return (
     <div className="min-h-0 flex flex-col">
@@ -109,7 +94,8 @@ export function AdminDataTableSection<TData>({
           className="flex-1 min-h-0"
           emptyText={emptyText}
           toolbar={!empty && toolbar ? { fullWidth: toolbar } : undefined}
-          footer={footer}
+          footer={footerSlot}
+          infiniteScroll={resolvedInfiniteScroll}
           surface="card"
           rowHeight={rowHeight}
           wrapHeaders={wrapHeaders}

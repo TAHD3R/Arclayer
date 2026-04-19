@@ -1,6 +1,6 @@
 import { type Table } from "@tanstack/react-table";
 
-import type { DataTableRowHeight, PageData } from "@arclayer/ui/data-table";
+import type { DataTableInfiniteScrollState, DataTableRowHeight } from "@arclayer/ui/data-table";
 
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 
@@ -14,7 +14,7 @@ interface DataTableLike<TRow> {
   refetch: () => Promise<unknown> | void;
   resetColumnVisibility?: () => void;
   table: Table<TRow>;
-  pageData?: PageData<TRow> | null;
+  infiniteScroll: DataTableInfiniteScrollState;
   searchInput: string;
   setSearchInput: (value: string) => void;
 }
@@ -40,13 +40,7 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
       loading={tableHook.isLoading}
       error={tableHook.error}
       onRetry={() => void tableHook.refetch()}
-      pageData={tableHook.pageData ?? undefined}
-      onPaginationChange={(nextPage, nextSize) => {
-        if (nextSize !== tableHook.table.getState().pagination.pageSize) {
-          tableHook.table.setPageSize(nextSize);
-        }
-        tableHook.table.setPageIndex(Math.max(0, nextPage - 1));
-      }}
+      infiniteScroll={tableHook.infiniteScroll}
       t={t}
       rowHeight={rowHeight}
       wrapHeaders={wrapHeaders}

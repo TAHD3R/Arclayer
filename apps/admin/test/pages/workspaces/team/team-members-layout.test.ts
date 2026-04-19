@@ -9,7 +9,7 @@ const TEAM_MEMBERS_VIEW_PATH = resolve(
 );
 
 describe("team members layout", () => {
-  it("renders the members page as a settings table with search, sort, and pagination controls", () => {
+  it("renders the members page as a settings table with search, sort, and infinite loading", () => {
     const source = readFileSync(TEAM_MEMBERS_VIEW_PATH, "utf8");
 
     expect(source).toContain("const pageToolbar = (");
@@ -20,7 +20,7 @@ describe("team members layout", () => {
     expect(source).toContain(
       '<table className="min-w-[62rem] w-full table-fixed border-collapse">',
     );
-    expect(source).toContain("<DataPaginationControls");
+    expect(source).toContain("<DataTableInfiniteScrollFooter");
     expect(source).toContain(
       "empty={!membersQuery.isLoading && !membersQuery.isError && rows.length === 0}",
     );

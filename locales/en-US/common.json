@@ -87,6 +87,8 @@
   "DATA_TABLE_RESET_COLUMN_SIZE": "Reset column size",
   "DATA_TABLE_RESET_COLUMN_ORDER": "Reset column order",
   "DATA_TABLE_SELECTED_COUNT": "{{count}} selected",
+  "DATA_TABLE_LOADING_MORE": "Loading more results...",
+  "DATA_TABLE_LOAD_MORE_ERROR": "We couldn't load more results.",
   "DATA_TABLE_SHOWING_RESULTS": "Showing {{start}} - {{end}} of {{total}} results",
   "TOAST_TITLE_SUCCESS": "Success!",
   "TOAST_TITLE_ERROR": "Oops! Something went wrong.",

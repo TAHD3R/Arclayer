@@ -10,7 +10,6 @@ import {
 } from "@tanstack/react-table";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
@@ -401,7 +400,7 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
     setWrapHeaders,
     toolsLabels: buildDataTableToolsLabels(t),
     resetColumnVisibility,
-    refreshing: controller.pagedAssetsQuery.isFetching && !controller.pagedAssetsQuery.isLoading,
+    refreshing: controller.assetsQuery.isFetching && !controller.assetsQuery.isLoading,
     onRowClick: handleRowClick,
   };
 }
@@ -415,16 +414,15 @@ export function AssetsViewTableSection(props: {
   onRowClick: ReturnType<typeof useAssetsViewTableController>["onRowClick"];
 }) {
   const { controller, table } = props;
-  const pageData = controller.pagedAssetsQuery.data ?? null;
-  const isLoading = controller.pagedAssetsQuery.isLoading && !controller.pagedAssetsQuery.data;
+  const isLoading = controller.assetsQuery.isLoading && !controller.assetsQuery.data;
   const isEmpty = !isLoading && controller.items.length === 0;
 
   return (
     <ContentGuard
       loading={isLoading}
       loadingVariant="table"
-      error={controller.pagedAssetsQuery.isError ? controller.pagedAssetsQuery.error : null}
-      onRetry={() => void controller.pagedAssetsQuery.refetch()}
+      error={controller.assetsQuery.isError ? controller.assetsQuery.error : null}
+      onRetry={() => void controller.assetsQuery.refetch()}
       empty={isEmpty}
       emptyTitle={
         controller.explicitFilterActive
@@ -458,24 +456,24 @@ export function AssetsViewTableSection(props: {
           table={table}
           className="min-h-0 flex-1"
           emptyText={controller.t("common:EMPTY_DESC")}
-          footer={
-            pageData ? (
-              <DataPaginationControls
-                page={pageData.page}
-                size={pageData.size}
-                total={pageData.total}
-                onChange={(nextPage, nextSize) => {
-                  if (nextSize !== controller.pageSize) {
-                    controller.setPageSize(nextSize);
-                    controller.setPage(1);
-                    return;
-                  }
-                  controller.setPage(nextPage);
-                }}
-                t={controller.t}
-              />
-            ) : undefined
-          }
+          infiniteScroll={{
+            hasMore: Boolean(controller.assetsQuery.hasNextPage),
+            loadingMore: controller.assetsQuery.isFetchingNextPage,
+            loadMoreError: controller.assetsQuery.isFetchNextPageError
+              ? controller.assetsQuery.error
+              : undefined,
+            onLoadMore: () => {
+              if (
+                controller.assetsQuery.isFetchingNextPage ||
+                !controller.assetsQuery.hasNextPage
+              ) {
+                return;
+              }
+              controller.assetsQuery.fetchNextPage().catch(() => undefined);
+            },
+            loadingMoreLabel: controller.t("common:DATA_TABLE_LOADING_MORE"),
+            loadMoreErrorLabel: controller.t("common:DATA_TABLE_LOAD_MORE_ERROR"),
+          }}
           rowHeight={props.rowHeight}
           wrapHeaders={props.wrapHeaders}
           refreshing={props.refreshing}
