@@ -1,4 +1,4 @@
-import { Eye, MoreVertical } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { AssetMimeTag, AssetPurposeTag, AssetVisibilityTag } from "@/components/ui/tags/asset-tags";
@@ -130,13 +130,6 @@ export function AssetActionsCell(props: {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuIconItem
-          icon={<Eye size={16} />}
-          onSelect={() => props.onMoreAction("view_details", props.asset)}
-        >
-          {props.t("assets:ASSET_ACTION_VIEW_DETAILS")}
-        </DropdownMenuIconItem>
-        <DropdownMenuSeparator />
         {items.map((item, index) =>
           item.type === "separator" ? (
             <DropdownMenuSeparator key={`sep:${index}`} />

@@ -235,8 +235,8 @@ export const AssetMasonryTile = memo(
         {...props.dragHandle?.attributes}
         {...props.dragHandle?.listeners}
         className={cn(
-          "group relative w-full overflow-hidden border border-border/50 bg-card",
-          "rounded-lg",
+          "group relative w-full overflow-hidden bg-card",
+          "rounded-none",
           " transition-[box-shadow,opacity,transform] duration-200 ease-out hover:",
           "cursor-pointer outline-none select-none",
           "scale-100 opacity-100",
@@ -249,18 +249,20 @@ export const AssetMasonryTile = memo(
         data-selected={selected ? "true" : "false"}
         onKeyDown={onKeyDown}
         onClick={(event) => {
-          props.onSelect(event);
           // Selection updates can swap the tile subtree between the two clicks,
           // so rely on click.detail instead of native dblclick synthesis.
-          if (event.detail < 2) return;
-          event.preventDefault();
-          props.onOpen(props.asset);
+          if (event.detail >= 2) {
+            event.preventDefault();
+            props.onOpen(props.asset);
+            return;
+          }
+          props.onSelect(event);
         }}
       >
         <div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
           {selected ? (
             <div
-              className="pointer-events-none absolute inset-0 z-10 rounded-lg border-[3px] border-primary/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]"
+              className="pointer-events-none absolute inset-0 z-10 rounded-none border-[3px] border-primary/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]"
               aria-hidden="true"
             />
           ) : null}

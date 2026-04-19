@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
@@ -155,6 +155,7 @@ function createControllerStub(overrides: Record<string, unknown> = {}) {
     scopeKey: "workspace:ws-1",
     active: null,
     setActive: vi.fn(),
+    openAssetDetails: vi.fn(),
     setSelection: vi.fn(),
     selectedIds: new Set<string>(),
     uploadOpen: false,
@@ -405,5 +406,36 @@ describe("AssetsPageView", () => {
     expect(
       container.querySelector(".overflow-x-hidden.overflow-y-auto.pb-8.scrollbar-none"),
     ).not.toBeNull();
+  });
+
+  it("clears selection before opening the asset preview dialog", async () => {
+    const setSelection = vi.fn();
+    const setActive = vi.fn();
+    const openAssetDetails = vi.fn();
+    controllerState.current = createControllerStub({
+      items: [
+        {
+          id: "asset-1",
+          name: "Hero image",
+          previewUrl: "https://cdn.example.com/hero.png",
+        },
+      ],
+      selectedIds: new Set(["asset-1"]),
+      setSelection,
+      setActive,
+      openAssetDetails,
+    });
+
+    renderWithQueryClient(<AssetsPageView initialAssetId="asset-1" />);
+
+    await waitFor(() => {
+      expect(openAssetDetails).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "asset-1",
+        }),
+      );
+    });
+    expect(setSelection).not.toHaveBeenCalled();
+    expect(setActive).not.toHaveBeenCalled();
   });
 });

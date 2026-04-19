@@ -96,7 +96,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     orderedAssetIds,
     aspectRatioRef,
     forceLayoutTick,
-    setActive,
+    openAssetDetails,
     openEditAssetDialog,
     openAssetDeleteDialog,
     openAssetEditAccessDialog,
@@ -169,13 +169,13 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         asset,
         publicUrl: asset.publicUrl || null,
         t,
-        onOpenDetails: () => setActive(asset),
+        onOpenDetails: () => openAssetDetails(asset),
         onOpenEditAsset: () => openEditAssetDialog(asset),
         onOpenEditAccess: () => openAssetEditAccessDialog(asset),
         onOpenDelete: () => openAssetDeleteDialog(asset),
       });
     },
-    [openAssetDeleteDialog, openAssetEditAccessDialog, openEditAssetDialog, t],
+    [openAssetDeleteDialog, openAssetEditAccessDialog, openEditAssetDialog, openAssetDetails, t],
   );
   useEffect(() => {
     if (
@@ -227,7 +227,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         asset,
         publicUrl: asset.publicUrl || null,
       }),
-      onOpenAsset: setActive,
+      onOpenAsset: openAssetDetails,
       onSelectAsset: handleAssetSelect,
       onToggleSelected: handleAssetToggleSelected,
       onAspectRatio: handleAssetAspectRatio,
@@ -260,10 +260,10 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     handleTileMoreAction,
     items,
     openAssetDeleteDialog,
+    openAssetDetails,
     openEditAssetDialog,
     queuedNextPage,
     selectedIds,
-    setActive,
     t,
   ]);
   const masonryWidth = observedShellWidth;

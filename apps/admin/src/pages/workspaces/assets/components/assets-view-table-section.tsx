@@ -225,7 +225,7 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
   const orderedAssetIdsRef = useRef(controller.orderedAssetIds);
   const selectedIdsRef = useRef(controller.selectedIds);
   const actionsRef = useRef({
-    setActive: controller.setActive,
+    openAssetDetails: controller.openAssetDetails,
     openEditAssetDialog: controller.openEditAssetDialog,
     openAssetEditAccessDialog: controller.openAssetEditAccessDialog,
     openAssetDeleteDialog: controller.openAssetDeleteDialog,
@@ -235,7 +235,7 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
   orderedAssetIdsRef.current = controller.orderedAssetIds;
   selectedIdsRef.current = controller.selectedIds;
   actionsRef.current = {
-    setActive: controller.setActive,
+    openAssetDetails: controller.openAssetDetails,
     openEditAssetDialog: controller.openEditAssetDialog,
     openAssetEditAccessDialog: controller.openAssetEditAccessDialog,
     openAssetDeleteDialog: controller.openAssetDeleteDialog,
@@ -290,6 +290,11 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
   const handleRowClick = useCallback(
     (asset: AssetMasonryItem, event: MouseEvent<HTMLTableRowElement>) => {
       controller.setFocusedFolderId(null);
+      if (event.detail >= 2) {
+        event.preventDefault();
+        controller.openAssetDetails(asset);
+        return;
+      }
       if (event.shiftKey) {
         controller.setSelection((prev) => rangeSelect(prev, asset.id, orderedAssetIdsRef.current));
       } else if (event.metaKey || event.ctrlKey) {
@@ -297,12 +302,8 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
       } else {
         controller.setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, event.detail));
       }
-
-      if (event.detail < 2) return;
-      event.preventDefault();
-      controller.setActive(asset);
     },
-    [controller.setActive, controller.setFocusedFolderId, controller.setSelection],
+    [controller.openAssetDetails, controller.setFocusedFolderId, controller.setSelection],
   );
 
   const handleMoreAction = useCallback(
@@ -313,7 +314,7 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
         asset,
         publicUrl: asset.publicUrl || null,
         t,
-        onOpenDetails: () => nextActions.setActive(asset),
+        onOpenDetails: () => nextActions.openAssetDetails(asset),
         onOpenEditAsset: () => nextActions.openEditAssetDialog(asset),
         onOpenEditAccess: () => nextActions.openAssetEditAccessDialog(asset),
         onOpenDelete: () => nextActions.openAssetDeleteDialog(asset),

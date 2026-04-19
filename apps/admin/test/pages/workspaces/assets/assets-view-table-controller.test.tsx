@@ -10,6 +10,7 @@ const translate = (key: string) => key;
 const setSelection = vi.fn();
 const setFocusedFolderId = vi.fn();
 const setActive = vi.fn();
+const openAssetDetails = vi.fn();
 const openEditAssetDialog = vi.fn();
 const openAssetEditAccessDialog = vi.fn();
 const openAssetDeleteDialog = vi.fn();
@@ -41,6 +42,7 @@ function createControllerStub(selectedIds: Set<string> = new Set()): AssetsViewC
     setSelection,
     setFocusedFolderId,
     setActive,
+    openAssetDetails,
     openEditAssetDialog,
     openAssetEditAccessDialog,
     openAssetDeleteDialog,
@@ -104,7 +106,6 @@ describe("useAssetsViewTableController", () => {
       "select",
       "name",
       "uploadedBy",
-      "purpose",
       "createdAt",
       "actions",
     ]);
@@ -143,5 +144,34 @@ describe("useAssetsViewTableController", () => {
     expect(firstNameColumn?.columnDef.cell).toBe(nextNameColumn?.columnDef.cell);
     expect(firstSelectColumn?.columnDef.cell).toBe(nextSelectColumn?.columnDef.cell);
     expect(firstSelectColumn?.columnDef.header).toBe(nextSelectColumn?.columnDef.header);
+  });
+
+  it("opens details on row double click without writing selection", () => {
+    const controller = createControllerStub();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useAssetsViewTableController(controller), {
+      wrapper: ({ children }) => (
+        <StrictMode>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        </StrictMode>
+      ),
+    });
+
+    result.current.onRowClick(controller.items[0], {
+      detail: 2,
+      shiftKey: false,
+      metaKey: false,
+      ctrlKey: false,
+      preventDefault: vi.fn(),
+    } as unknown as React.MouseEvent<HTMLTableRowElement>);
+
+    expect(openAssetDetails).toHaveBeenCalledWith(controller.items[0]);
+    expect(setSelection).not.toHaveBeenCalled();
   });
 });

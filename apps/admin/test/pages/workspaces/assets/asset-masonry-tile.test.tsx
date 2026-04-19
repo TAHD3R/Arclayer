@@ -56,6 +56,7 @@ describe("AssetMasonryTile", () => {
 
   it("opens the asset on the second click even after selection rerender", () => {
     const onOpen = vi.fn();
+    const onSelect = vi.fn();
 
     function Harness() {
       const [selected, setSelected] = useState(false);
@@ -64,7 +65,10 @@ describe("AssetMasonryTile", () => {
         <AssetMasonryTile
           asset={asset}
           selected={selected}
-          onSelect={() => setSelected(true)}
+          onSelect={() => {
+            onSelect();
+            setSelected(true);
+          }}
           onOpen={onOpen}
           onToggleSelected={vi.fn()}
         />
@@ -83,6 +87,7 @@ describe("AssetMasonryTile", () => {
     fireEvent.click(rerenderedTile as HTMLElement, { detail: 2 });
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledWith(asset);
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
   it("binds drag activator listeners on the tile root instead of a separate handle", () => {
@@ -217,6 +222,24 @@ describe("AssetMasonryTile", () => {
           type: "item",
           key: "edit_asset",
           label: "assets:ASSET_ACTION_EDIT",
+        }),
+      ]),
+    );
+  });
+
+  it("includes view details in the more actions menu", () => {
+    const menuItems = buildAssetMoreMenuItems({
+      t: (key: string) => key,
+      asset,
+      publicUrl: "https://cdn.example.com/hero.png",
+    });
+
+    expect(menuItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "item",
+          key: "view_details",
+          label: "assets:ASSET_ACTION_VIEW_DETAILS",
         }),
       ]),
     );

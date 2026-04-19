@@ -1,4 +1,4 @@
-import { Download, ExternalLink, Pencil, Settings2, Trash2 } from "lucide-react";
+import { Download, Eye, ExternalLink, Pencil, Settings2, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { copyToClipboard } from "@/lib/clipboard";
@@ -35,6 +35,13 @@ export function buildAssetMoreMenuItems(params: {
   const { asset, publicUrl, t } = params;
 
   return [
+    {
+      type: "item",
+      key: "view_details",
+      label: t("assets:ASSET_ACTION_VIEW_DETAILS"),
+      icon: <Eye size={16} />,
+    },
+    { type: "separator" },
     {
       type: "item",
       key: "edit_asset",

@@ -500,6 +500,10 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
     setEditAssetTarget(asset);
     setEditAssetOpen(true);
   };
+  const openAssetDetails = (asset: AssetMasonryItem) => {
+    setSelection((prev) => clearSelection(prev));
+    setActive(asset);
+  };
   const openAssetDeleteDialog = (asset: AssetMasonryItem) => {
     setAssetDeleteTarget(asset);
     setAssetDeleteOpen(true);
@@ -723,6 +727,7 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
     updateFolderMutation,
     reorderFoldersMutation,
     deleteFolderMutation,
+    openAssetDetails,
     openEditAssetDialog,
     openAssetDeleteDialog,
     openAssetEditAccessDialog,

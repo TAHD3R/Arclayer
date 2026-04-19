@@ -38,7 +38,6 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     scopeKey,
     active,
     setActive,
-    setSelection,
     selectedIds,
     uploadOpen,
     setUploadOpen,
@@ -104,7 +103,15 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     createParentLabel,
     openBulkDeleteDialog,
     openDeleteFolderDialog,
+    openAssetDetails,
   } = controller;
+  const setActiveAsset = (next: Parameters<typeof setActive>[0]) => {
+    if (next) {
+      openAssetDetails(next);
+      return;
+    }
+    setActive(null);
+  };
   const tableView = useAssetsViewTableController(controller);
   const workspaceId = scope?.type === "workspace" ? scope.id : null;
   const permissionAccess = useWorkspacePermissionAccess(workspaceId);
@@ -130,8 +137,8 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     const matched = controller.items.find((item) => String(item.id) === nextAssetId) ?? null;
     if (!matched) return;
     hydratedAssetIdRef.current = nextAssetId;
-    setActive(matched);
-  }, [controller.items, props.initialAssetId, setActive]);
+    openAssetDetails(matched);
+  }, [controller.items, props.initialAssetId]);
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", workspaceId, sessionVersion],
@@ -210,8 +217,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
               onSelectFolder={(folderId) => {
                 setCurrentFolderId(folderId);
                 setFocusedFolderId(folderId);
-                setSelection((prev) => clearSelection(prev));
-                setActive(null);
+                setActiveAsset(null);
               }}
               onCreateFolder={(parentId) => {
                 if (!canManageAssets) return;
@@ -238,7 +244,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
                 Boolean(controller.draggingFolderId) || controller.draggingAssetIds.length > 0
               }
               isDraggingAssets={controller.draggingAssetIds.length > 0}
-              onOpenAsset={(asset) => setActive(asset)}
+              onOpenAsset={openAssetDetails}
               onRemoveRecentAsset={removeRecentAsset}
               onClearRecentAssets={clearRecentAssets}
               canManageAssets={canManageAssets}
@@ -335,7 +341,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
           <AssetsViewOverlays
             t={t}
             active={active}
-            setActive={setActive}
+            setActive={setActiveAsset}
             items={controller.items}
             currentFolderPathLabel={currentFolderPathLabel}
             folderBreadcrumbs={folderBreadcrumbs}
