@@ -5,7 +5,10 @@ import hashlib
 import json
 from pathlib import Path
 
+from src.modules.sites.graphql.hooks import graphql_hooks_manifest
+from src.modules.sites.graphql.registry import graphql_schema_registry_manifest
 from src.modules.sites.graphql.schema import get_graphql_schema_sdl
+from src.modules.sites.graphql.subscriptions import graphql_subscription_manifest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_ARTIFACTS_DIR = REPO_ROOT / "apps" / "api" / "src" / "modules" / "sites" / "graphql" / "artifacts" / "v1"
@@ -42,11 +45,14 @@ def _sha256(text: str) -> str:
 def build_manifest(*, schema_text: str, schema_path: Path) -> dict[str, object]:
     return {
         "artifactVersion": "1.0.0",
+        "hooks": graphql_hooks_manifest(),
+        "perspectives": ["published", "preview"],
+        "queryMode": "read-only",
+        "registry": graphql_schema_registry_manifest(),
         "schemaFamily": "delivery-graphql",
         "schemaFile": schema_path.name,
         "sha256": _sha256(schema_text),
-        "queryMode": "read-only",
-        "perspectives": ["published", "preview"],
+        "subscriptions": graphql_subscription_manifest(),
     }
 
 

@@ -1,14 +1,96 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createDeliverySdk } from "../src";
+import {
+  buildDeliveryGraphqlListQueryInput,
+  createDeliverySdk,
+  getDeliveryGraphqlListQueryContract,
+  getDeliveryGraphqlModel,
+  getDeliveryGraphqlSingleQueryContract,
+  listDeliveryGraphqlModels,
+  listDeliveryGraphqlSubscriptionEvents,
+} from "../src";
 
 describe("delivery-sdk", () => {
+  it("exposes schema-aware graphql manifest helpers", () => {
+    expect(listDeliveryGraphqlModels().map((model) => model.modelKey)).toEqual([
+      "article",
+      "category",
+      "page",
+      "reusable-section",
+    ]);
+    expect(getDeliveryGraphqlModel("article")).toMatchObject({
+      entryType: "ArticleEntry",
+      filterInput: {
+        fields: ["slug", "titleContains", "revisionState"],
+        name: "ArticleFilterInput",
+      },
+      listQueryName: "articles",
+      sdkDataType: "ArticleEntriesQueryData",
+      sdkVariablesType: "ArticleEntriesQueryVariables",
+    });
+    expect(getDeliveryGraphqlListQueryContract("reusableSections")?.modelKey).toBe(
+      "reusable-section",
+    );
+    expect(getDeliveryGraphqlSingleQueryContract("pageEntryByPath")?.singleQueryArgument).toBe(
+      "path",
+    );
+    expect(listDeliveryGraphqlSubscriptionEvents().map((event) => event.name)).toEqual([
+      "publish.release",
+      "preview.collaboration",
+    ]);
+  });
+
+  it("builds schema-aware graphql list query inputs", () => {
+    expect(
+      buildDeliveryGraphqlListQueryInput({
+        filter: {
+          revisionState: "  draft  ",
+          slug: "hello-world",
+          titleContains: "",
+        },
+        modelKey: "article",
+        pagination: {
+          limit: -1,
+          offset: 2,
+        },
+        perspective: "preview",
+        previewToken: "preview-token",
+        sort: {
+          direction: "desc",
+          field: "REVISION",
+        },
+      }),
+    ).toEqual({
+      filter: {
+        revisionState: "draft",
+        slug: "hello-world",
+      },
+      limit: 0,
+      offset: 2,
+      perspective: "PREVIEW",
+      previewToken: "preview-token",
+      sort: {
+        direction: "DESC",
+        field: "REVISION",
+      },
+    });
+
+    expect(() =>
+      buildDeliveryGraphqlListQueryInput({
+        filter: {
+          path: "/pricing",
+        },
+        modelKey: "article",
+      }),
+    ).toThrow("Unknown delivery GraphQL filter field for article: path");
+  });
+
   it("resolves pages through delivery REST", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       expect(input).toBeInstanceOf(Request);
       const request = input as Request;
       expect(request.url).toBe(
-        "https://api.arclayer.test/api/v1/sites/site_123/delivery/pages/resolve?path=%2Fblog%2Fhello-world&perspective=preview&token=preview_token",
+        "https://api.arclayer.test/api/v1/runtimes/site_123/delivery/pages/resolve?path=%2Fblog%2Fhello-world&perspective=preview&token=preview_token",
       );
       expect(request.headers.get("x-api-key")).toBe("delivery_key");
 
@@ -61,7 +143,7 @@ describe("delivery-sdk", () => {
       const request = input as Request;
       const url = new URL(request.url);
 
-      if (url.pathname.endsWith("/delivery/sections/header")) {
+      if (url.pathname.endsWith("/api/v1/runtimes/site_123/delivery/sections/header")) {
         expect(url.searchParams.get("perspective")).toBe("published");
         expect(url.searchParams.get("token")).toBeNull();
         return new Response(
@@ -90,7 +172,9 @@ describe("delivery-sdk", () => {
         );
       }
 
-      expect(url.pathname.endsWith("/delivery/global-sets/navigation")).toBe(true);
+      expect(
+        url.pathname.endsWith("/api/v1/runtimes/site_123/delivery/global-sets/navigation"),
+      ).toBe(true);
       expect(url.searchParams.get("perspective")).toBe("preview");
       expect(url.searchParams.get("token")).toBe("preview_token");
       return new Response(

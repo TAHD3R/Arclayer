@@ -1,11 +1,244 @@
 {
   "artifactVersion": "1.0.0",
+  "hooks": {
+    "queryPostProcessors": [],
+    "schemaFieldProviders": []
+  },
   "perspectives": [
     "published",
     "preview"
   ],
   "queryMode": "read-only",
+  "registry": {
+    "models": [
+      {
+        "customFieldsContainer": "customFields",
+        "entryType": "ArticleEntry",
+        "filterInput": {
+          "fields": [
+            "slug",
+            "titleContains",
+            "revisionState"
+          ],
+          "name": "ArticleFilterInput"
+        },
+        "listQueryName": "articles",
+        "modelKey": "article",
+        "sdkDataType": "ArticleEntriesQueryData",
+        "sdkVariablesType": "ArticleEntriesQueryVariables",
+        "singleQueryArgument": "slug",
+        "singleQueryName": "articleBySlug",
+        "sortInput": {
+          "fields": [
+            "TITLE",
+            "SLUG",
+            "REVISION"
+          ],
+          "name": "ArticleSortInput"
+        },
+        "systemFields": [
+          {
+            "fieldName": "title",
+            "required": true,
+            "scalar": "String",
+            "sourceKey": "title"
+          },
+          {
+            "fieldName": "slug",
+            "required": true,
+            "scalar": "String",
+            "sourceKey": "slug"
+          },
+          {
+            "fieldName": "summary",
+            "required": false,
+            "scalar": "String",
+            "sourceKey": "summary"
+          },
+          {
+            "fieldName": "content",
+            "required": false,
+            "scalar": "String",
+            "sourceKey": "content"
+          },
+          {
+            "fieldName": "publishedAt",
+            "required": false,
+            "scalar": "String",
+            "sourceKey": "published_at"
+          }
+        ]
+      },
+      {
+        "customFieldsContainer": "customFields",
+        "entryType": "CategoryEntry",
+        "filterInput": {
+          "fields": [
+            "slug",
+            "nameContains",
+            "revisionState"
+          ],
+          "name": "CategoryFilterInput"
+        },
+        "listQueryName": "categories",
+        "modelKey": "category",
+        "sdkDataType": "CategoryEntriesQueryData",
+        "sdkVariablesType": "CategoryEntriesQueryVariables",
+        "singleQueryArgument": "slug",
+        "singleQueryName": "categoryBySlug",
+        "sortInput": {
+          "fields": [
+            "NAME",
+            "SLUG",
+            "REVISION"
+          ],
+          "name": "CategorySortInput"
+        },
+        "systemFields": [
+          {
+            "fieldName": "name",
+            "required": true,
+            "scalar": "String",
+            "sourceKey": "name"
+          },
+          {
+            "fieldName": "slug",
+            "required": true,
+            "scalar": "String",
+            "sourceKey": "slug"
+          },
+          {
+            "fieldName": "description",
+            "required": false,
+            "scalar": "String",
+            "sourceKey": "description"
+          }
+        ]
+      },
+      {
+        "customFieldsContainer": "customFields",
+        "entryType": "PageEntry",
+        "filterInput": {
+          "fields": [
+            "path",
+            "titleContains",
+            "revisionState"
+          ],
+          "name": "PageFilterInput"
+        },
+        "listQueryName": "pages",
+        "modelKey": "page",
+        "sdkDataType": "PageEntriesQueryData",
+        "sdkVariablesType": "PageEntriesQueryVariables",
+        "singleQueryArgument": "path",
+        "singleQueryName": "pageEntryByPath",
+        "sortInput": {
+          "fields": [
+            "TITLE",
+            "PATH",
+            "REVISION"
+          ],
+          "name": "PageSortInput"
+        },
+        "systemFields": [
+          {
+            "fieldName": "title",
+            "required": true,
+            "scalar": "String",
+            "sourceKey": "title"
+          },
+          {
+            "fieldName": "path",
+            "required": true,
+            "scalar": "String",
+            "sourceKey": "path"
+          },
+          {
+            "fieldName": "routePattern",
+            "required": false,
+            "scalar": "String",
+            "sourceKey": "route_pattern"
+          }
+        ]
+      },
+      {
+        "customFieldsContainer": "customFields",
+        "entryType": "ReusableSectionEntry",
+        "filterInput": {
+          "fields": [
+            "sectionKey",
+            "titleContains",
+            "revisionState"
+          ],
+          "name": "ReusableSectionFilterInput"
+        },
+        "listQueryName": "reusableSections",
+        "modelKey": "reusable-section",
+        "sdkDataType": "ReusableSectionEntriesQueryData",
+        "sdkVariablesType": "ReusableSectionEntriesQueryVariables",
+        "singleQueryArgument": "alias",
+        "singleQueryName": "reusableSectionByAlias",
+        "sortInput": {
+          "fields": [
+            "TITLE",
+            "SECTION_KEY",
+            "REVISION"
+          ],
+          "name": "ReusableSectionSortInput"
+        },
+        "systemFields": [
+          {
+            "fieldName": "title",
+            "required": true,
+            "scalar": "String",
+            "sourceKey": "title"
+          },
+          {
+            "fieldName": "sectionKey",
+            "required": true,
+            "scalar": "String",
+            "sourceKey": "section_key"
+          },
+          {
+            "fieldName": "propsDefaults",
+            "required": false,
+            "scalar": "JSON",
+            "sourceKey": "props_defaults"
+          }
+        ]
+      }
+    ]
+  },
   "schemaFamily": "delivery-graphql",
   "schemaFile": "schema.graphql",
-  "sha256": "6e4becff8939ec98423431fbb9b3ee77218dd49fdab0185f235dc15cac9694ce"
+  "sha256": "6e4becff8939ec98423431fbb9b3ee77218dd49fdab0185f235dc15cac9694ce",
+  "subscriptions": {
+    "events": [
+      {
+        "description": "Raised when a site publish release becomes the active delivery graph.",
+        "name": "publish.release",
+        "payloadFields": [
+          "siteId",
+          "workspaceId",
+          "releaseId",
+          "releaseNumber"
+        ],
+        "topic": "sites.publish.release"
+      },
+      {
+        "description": "Raised when preview collaboration presence changes for a document.",
+        "name": "preview.collaboration",
+        "payloadFields": [
+          "siteId",
+          "docKey",
+          "clientId",
+          "actor",
+          "updatedAtMs"
+        ],
+        "topic": "sites.preview.collaboration"
+      }
+    ],
+    "mode": "contract-only",
+    "runtime": "deferred"
+  }
 }

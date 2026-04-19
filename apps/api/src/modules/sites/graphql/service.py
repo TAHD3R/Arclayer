@@ -9,7 +9,7 @@ from fastapi import Request
 from strawberry.fastapi import BaseContext
 
 from src.config import Settings
-from src.core.exceptions import APIError, BadRequest, Forbidden, ServiceUnavailable
+from src.core.exceptions import APIError, Forbidden, ServiceUnavailable
 from src.core.logging import get_logger
 from src.models.content.route_binding import RouteBindingRecord
 from src.models.workspaces.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
@@ -19,6 +19,12 @@ from src.modules.sites.delivery.schema import (
     DeliveryPageOut,
     DeliveryPerspective,
     DeliverySectionOut,
+)
+from src.modules.sites.graphql.hooks import apply_graphql_query_post_processors
+from src.modules.sites.graphql.planner import (
+    GraphQLQueryPlan,
+    GraphQLSortDirection,
+    build_graphql_query_plan,
 )
 from src.modules.sites.publishing.content_snapshot import CanonicalContentSnapshot, build_canonical_content_snapshot
 from src.modules.sites.repository import SitesRepository
@@ -67,40 +73,6 @@ class AuthenticatedDeliveryKey:
     record: ApiKeyRecord
     granted_actions: frozenset[str]
     graphql_read: bool
-
-
-GraphQLSortDirection = Literal["asc", "desc"]
-
-
-@dataclass(frozen=True, slots=True)
-class GraphQLQueryRule:
-    exact_filter_fields: frozenset[str]
-    contains_filter_fields: frozenset[str]
-    sort_fields: frozenset[str]
-
-
-_MODEL_QUERY_RULES: dict[str, GraphQLQueryRule] = {
-    "article": GraphQLQueryRule(
-        exact_filter_fields=frozenset({"slug", "revision_state"}),
-        contains_filter_fields=frozenset({"title"}),
-        sort_fields=frozenset({"title", "slug", "revision"}),
-    ),
-    "page": GraphQLQueryRule(
-        exact_filter_fields=frozenset({"path", "revision_state"}),
-        contains_filter_fields=frozenset({"title"}),
-        sort_fields=frozenset({"title", "path", "revision"}),
-    ),
-    "reusable-section": GraphQLQueryRule(
-        exact_filter_fields=frozenset({"section_key", "revision_state"}),
-        contains_filter_fields=frozenset({"title"}),
-        sort_fields=frozenset({"title", "section_key", "revision"}),
-    ),
-    "category": GraphQLQueryRule(
-        exact_filter_fields=frozenset({"slug", "revision_state"}),
-        contains_filter_fields=frozenset({"name"}),
-        sort_fields=frozenset({"name", "slug", "revision"}),
-    ),
-}
 
 
 def _normalize_json_value(value: Any) -> Any:
@@ -193,38 +165,6 @@ def _record_matches_all(
         if value is None or expected not in value.lower():
             return False
     return True
-
-
-def _assert_query_fields_allowed(
-    *,
-    model_key: str,
-    exact_filters: dict[str, str],
-    contains_filters: dict[str, str],
-    sort_field: str | None,
-) -> None:
-    rule = _MODEL_QUERY_RULES.get(model_key)
-    rejected_exact_filters = sorted(set(exact_filters) - (rule.exact_filter_fields if rule is not None else set()))
-    rejected_contains_filters = sorted(
-        set(contains_filters) - (rule.contains_filter_fields if rule is not None else set())
-    )
-    rejected_sort_field = (
-        sort_field if sort_field is not None and (rule is None or sort_field not in rule.sort_fields) else None
-    )
-    if not rejected_exact_filters and not rejected_contains_filters and rejected_sort_field is None:
-        return
-    raise BadRequest(
-        "GraphQL query field is not allowed for this model",
-        error="GRAPHQL_QUERY_FIELD_FORBIDDEN",
-        meta={
-            "modelKey": model_key,
-            "invalidExactFilters": rejected_exact_filters,
-            "invalidContainsFilters": rejected_contains_filters,
-            "invalidSortField": rejected_sort_field,
-            "allowedExactFilters": sorted(rule.exact_filter_fields) if rule is not None else [],
-            "allowedContainsFilters": sorted(rule.contains_filter_fields) if rule is not None else [],
-            "allowedSortFields": sorted(rule.sort_fields) if rule is not None else [],
-        },
-    )
 
 
 class SiteGraphQLService:
@@ -368,53 +308,60 @@ class SiteGraphQLService:
         limit: int | None = None,
         offset: int = 0,
     ) -> list[StructuredContentRecord]:
-        normalized_exact_filters = exact_filters or {}
-        normalized_contains_filters = contains_filters or {}
-        _assert_query_fields_allowed(
+        plan = build_graphql_query_plan(
+            site_id=site_id,
             model_key=model_key,
-            exact_filters=normalized_exact_filters,
-            contains_filters=normalized_contains_filters,
+            perspective=perspective,
+            exact_filters=exact_filters,
+            contains_filters=contains_filters,
             sort_field=sort_field,
+            sort_direction=sort_direction,
+            limit=limit,
+            offset=offset,
         )
-
-        query_records = (
-            await self._list_published_records(site_id=site_id, model_key=model_key)
-            if perspective == "published"
-            else await self._list_preview_records(site_id=site_id, model_key=model_key)
-        )
+        query_records = await self._list_plan_records(plan)
 
         boundary = self._document_facade.build_query_boundary(query_records)
         result = boundary.execute(
             DocumentQuery(
-                site_id=site_id,
-                model_key=model_key,
-                perspective=perspective,
+                site_id=plan.site_id,
+                model_key=plan.model_key,
+                perspective=plan.perspective,
             )
         )
 
-        structured_records = [self._to_structured_record(record) for record in result.records]
+        structured_records = [
+            cast(StructuredContentRecord, record)
+            for record in apply_graphql_query_post_processors(
+                plan=plan,
+                records=[self._to_structured_record(record) for record in result.records],
+            )
+        ]
         filtered = [
             record
             for record in structured_records
             if _record_matches_all(
                 record,
-                exact_filters=normalized_exact_filters,
-                contains_filters=normalized_contains_filters,
+                exact_filters=plan.exact_filters,
+                contains_filters=plan.contains_filters,
             )
         ]
 
-        if sort_field:
+        if plan.sort_field:
             filtered = sorted(
                 filtered,
-                key=lambda record: _record_sort_value(record, sort_field),
-                reverse=sort_direction == "desc",
+                key=lambda record: _record_sort_value(record, plan.sort_field),
+                reverse=plan.sort_direction == "desc",
             )
 
-        bounded_offset = max(offset, 0)
-        if limit is None:
-            return filtered[bounded_offset:]
-        bounded_limit = max(limit, 0)
-        return filtered[bounded_offset : bounded_offset + bounded_limit]
+        if plan.bounded_limit is None:
+            return filtered[plan.bounded_offset :]
+        return filtered[plan.bounded_offset : plan.bounded_offset + plan.bounded_limit]
+
+    async def _list_plan_records(self, plan: GraphQLQueryPlan) -> list[DocumentQueryRecord]:
+        if plan.perspective == "published":
+            return await self._list_published_records(site_id=plan.site_id, model_key=plan.model_key)
+        return await self._list_preview_records(site_id=plan.site_id, model_key=plan.model_key)
 
     async def get_record_by_slug(
         self,

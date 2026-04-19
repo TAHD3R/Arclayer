@@ -56,6 +56,16 @@ export {
   reusableSectionEntriesDocument,
   reusableSectionByAliasDocument,
 } from "./graphql-client";
+export {
+  deliveryGraphqlManifest,
+  getDeliveryGraphqlListQueryContract,
+  getDeliveryGraphqlManifest,
+  getDeliveryGraphqlModel,
+  getDeliveryGraphqlSingleQueryContract,
+  listDeliveryGraphqlModels,
+  listDeliveryGraphqlSubscriptionEvents,
+} from "./graphql-manifest";
+export { buildDeliveryGraphqlListQueryInput } from "./graphql-query-input";
 export { DeliveryRestClient } from "./rest-client";
 export type {
   ApiEnvelope,
@@ -108,3 +118,16 @@ export type {
   ReusableSectionEntry,
   TypedDocumentString,
 } from "./types";
+export type {
+  GraphQLManifestFieldDefinition,
+  GraphQLManifestHookDefinition,
+  GraphQLManifestModelDefinition,
+  GraphQLManifestQueryInput,
+  GraphQLManifestSubscriptionEventDefinition,
+  GraphQLSchemaManifest,
+} from "./graphql-manifest";
+export type {
+  DeliveryGraphqlQueryInput,
+  DeliveryGraphqlQueryPaginationInput,
+  DeliveryGraphqlQuerySortInput,
+} from "./graphql-query-input";

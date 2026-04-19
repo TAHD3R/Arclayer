@@ -9,13 +9,17 @@ import pytest
 
 from src.core.exceptions import APIError, BadRequest, Forbidden, ServiceUnavailable
 from src.models.workspaces.api_key import ApiKeyFamily, DeliveryKeyPerspective
-from src.modules.sites.graphql.service import (
+from src.modules.sites.graphql.planner import (
     _MODEL_QUERY_RULES,
-    AuthenticatedDeliveryKey,
+    GraphQLQueryPlan,
     GraphQLQueryRule,
+    _assert_query_fields_allowed,
+    build_graphql_query_plan,
+)
+from src.modules.sites.graphql.service import (
+    AuthenticatedDeliveryKey,
     SiteGraphQLService,
     StructuredContentRecord,
-    _assert_query_fields_allowed,
     _build_custom_fields,
     _extract_system_field,
     _field_aliases,
@@ -139,6 +143,163 @@ def test_query_rules_cover_builtin_graphql_models() -> None:
             sort_fields=frozenset({"name", "slug", "revision"}),
         ),
     }
+
+
+def test_build_graphql_query_plan_normalizes_and_bounds_query_inputs() -> None:
+    plan = build_graphql_query_plan(
+        site_id=UUID("00000000-0000-0000-0000-000000000111"),
+        model_key="article",
+        perspective="preview",
+        exact_filters={"slug": "hello-graphql"},
+        contains_filters={"title": "graphql"},
+        sort_field="revision",
+        sort_direction="desc",
+        limit=-2,
+        offset=-5,
+    )
+
+    assert plan == GraphQLQueryPlan(
+        site_id=UUID("00000000-0000-0000-0000-000000000111"),
+        model_key="article",
+        perspective="preview",
+        exact_filters={"slug": "hello-graphql"},
+        contains_filters={"title": "graphql"},
+        sort_field="revision",
+        sort_direction="desc",
+        limit=-2,
+        offset=-5,
+    )
+    assert plan.bounded_limit == 0
+    assert plan.bounded_offset == 0
+
+
+@pytest.mark.asyncio
+async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> None:
+    service = _service()
+    service._document_facade = SimpleNamespace(
+        build_query_boundary=lambda records: SimpleNamespace(execute=lambda query: SimpleNamespace(records=records))
+    )
+    records = [
+        DocumentQueryRecord(
+            item=SimpleNamespace(id=UUID("00000000-0000-0000-0000-000000000002")),
+            revision=2,
+            revision_state="published",
+            fields={"title": "Zulu", "slug": "zulu"},
+            metadata=DocumentRuntimeMetadata(),
+        ),
+        DocumentQueryRecord(
+            item=SimpleNamespace(id=UUID("00000000-0000-0000-0000-000000000001")),
+            revision=1,
+            revision_state="published",
+            fields={"title": "Alpha", "slug": "alpha"},
+            metadata=DocumentRuntimeMetadata(),
+        ),
+    ]
+
+    async def _list_plan_records(plan):  # type: ignore[no-untyped-def]
+        assert plan == GraphQLQueryPlan(
+            site_id=UUID("00000000-0000-0000-0000-000000000111"),
+            model_key="article",
+            perspective="published",
+            exact_filters={"revision_state": "published"},
+            contains_filters={"title": "a"},
+            sort_field="title",
+            sort_direction="asc",
+            limit=1,
+            offset=0,
+        )
+        return records
+
+    service._list_plan_records = _list_plan_records  # type: ignore[method-assign]
+    service._to_structured_record = lambda record: StructuredContentRecord(  # type: ignore[method-assign]
+        item_id=record.item.id,
+        model_key="article",
+        locale="en-US",
+        title=record.fields.get("title"),
+        slug=record.fields.get("slug"),
+        revision=record.revision,
+        revision_state=record.revision_state,
+        draft_revision=record.revision,
+        published_revision=record.revision,
+        fields=dict(record.fields),
+        custom_fields={},
+    )
+
+    result = await service.list_records(
+        site_id=UUID("00000000-0000-0000-0000-000000000111"),
+        model_key="article",
+        perspective="published",
+        exact_filters={"revision_state": "published"},
+        contains_filters={"title": "a"},
+        sort_field="title",
+        sort_direction="asc",
+        limit=1,
+        offset=0,
+    )
+
+    assert [record.title for record in result] == ["Alpha"]
+
+
+@pytest.mark.asyncio
+async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pytest.MonkeyPatch) -> None:
+    service = _service()
+    service._document_facade = SimpleNamespace(
+        build_query_boundary=lambda records: SimpleNamespace(execute=lambda query: SimpleNamespace(records=records))
+    )
+    records = [
+        DocumentQueryRecord(
+            item=SimpleNamespace(id=UUID("00000000-0000-0000-0000-000000000002")),
+            revision=2,
+            revision_state="published",
+            fields={"title": "Zulu", "slug": "zulu"},
+            metadata=DocumentRuntimeMetadata(),
+        ),
+        DocumentQueryRecord(
+            item=SimpleNamespace(id=UUID("00000000-0000-0000-0000-000000000001")),
+            revision=1,
+            revision_state="published",
+            fields={"title": "Alpha", "slug": "alpha"},
+            metadata=DocumentRuntimeMetadata(),
+        ),
+    ]
+
+    async def _list_plan_records(plan):  # type: ignore[no-untyped-def]
+        return records
+
+    service._list_plan_records = _list_plan_records  # type: ignore[method-assign]
+    service._to_structured_record = lambda record: StructuredContentRecord(  # type: ignore[method-assign]
+        item_id=record.item.id,
+        model_key="article",
+        locale="en-US",
+        title=record.fields.get("title"),
+        slug=record.fields.get("slug"),
+        revision=record.revision,
+        revision_state=record.revision_state,
+        draft_revision=record.revision,
+        published_revision=record.revision,
+        fields=dict(record.fields),
+        custom_fields={},
+    )
+
+    observed: list[tuple[str, list[str]]] = []
+
+    def _apply_graphql_query_post_processors(*, plan, records):  # type: ignore[no-untyped-def]
+        observed.append((plan.model_key, [record.title for record in records]))
+        return list(reversed(records))
+
+    monkeypatch.setattr(
+        "src.modules.sites.graphql.service.apply_graphql_query_post_processors",
+        _apply_graphql_query_post_processors,
+    )
+
+    result = await service.list_records(
+        site_id=UUID("00000000-0000-0000-0000-000000000111"),
+        model_key="article",
+        perspective="published",
+    )
+
+    assert observed == [("article", ["Zulu", "Alpha"])]
+    assert [record.title for record in result] == ["Alpha", "Zulu"]
 
 
 def test_assert_query_fields_allowed_accepts_article_contract() -> None:

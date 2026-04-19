@@ -17,10 +17,10 @@
 
 ## Context Recovery Block
 
-**Current milestone**: Milestone 5 — execute Epic 3 Permission and Policy Platform
+**Current milestone**: Milestone 6 — execute Epic 4 GraphQL Platformization
 - **Current status**: DONE
-- **Last completed**: Epic3 #44 — Epic3 child task closed
-- **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
+- **Last completed**: Epic4 complete
+- **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic4-graphql-platformization/TODO.csv`
 - **Key context**:
   - Epic 0 is complete and its baseline docs now live under `docs/plan`.
   - Epic 1 is complete and its dependency on Epic 0 is satisfied.
@@ -30,9 +30,16 @@
   - Epic 3 is complete across backend permission core, action catalog, governance UI, GraphQL query sanitization, system managed payload enforcement, frontend permission consumption, Assets gating, and release/routing action catalog closure.
   - Epic3 backend fresh focused verification is green with `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/test_workspace_permission_policy_service_unit.py tests/modules/workspaces/test_workspace_api_key_scopes_unit.py tests/modules/workspaces/test_workspace_rbac_catalog_and_guards_unit.py tests/modules/sites/test_sites_graphql_service_unit.py` and 40 tests passed.
   - Epic3 admin fresh focused verification is green with `timeout 60s pnpm -C apps/admin exec vitest run test/pages/settings/context-settings-pages.test.tsx test/pages/workspaces/content/content-models-control-center.test.tsx test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-site-builder-shell.test.tsx test/pages/workspaces/content/content-library-row-actions.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-editor-toolbar-ui.test.tsx test/pages/settings/general-settings-shell-permissions.test.tsx test/pages/workspaces/assets/assets-page-view.test.tsx test/pages/workspaces/assets/assets-view-overlays.test.tsx test/pages/workspaces/assets/asset-preview-dialog.test.tsx` and 83 tests passed.
+  - Epic4 has started with a schema builder/artifact slice: `sites/graphql/registry.py` now formalizes built-in model query contracts, and the committed GraphQL manifest is registry-backed.
+  - Epic4 now also has a dedicated query runtime slice: `sites/graphql/planner.py` formalizes `GraphQLQueryPlan`, built-in query rules, and bounded pagination, while `SiteGraphQLService.list_records` executes that plan.
+  - Epic4 also has explicit hook and subscription contracts in `sites/graphql/hooks.py` and `sites/graphql/subscriptions.py`, and the committed manifest now publishes hook/subscription metadata for future SDK and frontend consumers.
+  - Epic4 fresh focused verification is green with `pnpm -C apps/api graphql:schema:verify` and `pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_graphql_service_unit.py tests/modules/sites/test_sites_graphql_artifacts_unit.py tests/modules/sites/test_sites_graphql_subscriptions_unit.py`, covering 31 tests.
+  - Epic4 delivery SDK manifest helper slice is complete with `packages/delivery-sdk/src/graphql-manifest.ts`, and SDK verification is green with `pnpm --filter @arclayer/delivery-sdk test` plus `pnpm --filter @arclayer/delivery-sdk typecheck`.
+  - The SDK REST client now calls the current generated runtime delivery OpenAPI functions while preserving its existing `siteId` external input contract.
+  - Epic4 is now complete: frontend/shared query input helpers also landed in `packages/delivery-sdk/src/graphql-query-input.ts`, backend focused verification passed with 33 tests, and SDK focused verification passed with 9 tests plus typecheck.
 - **Known issues**:
   - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic1 slice.
-- **Next action**: Proceed to Epic 4 GraphQL Platformization.
+- **Next action**: Proceed to Epic 5 Editorial Workflow and Release Orchestration.
 
 ---
 

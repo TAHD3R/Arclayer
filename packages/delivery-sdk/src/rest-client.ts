@@ -84,11 +84,11 @@ export class DeliveryRestClient {
     siteId: string;
   }): Promise<DeliveryResult<openapi.DeliveryMenuOut>> {
     return this.invoke<openapi.DeliveryMenuOut>(
-      openapi.externalSitesDeliveryGetDeliveryMenu as OpenApiOperation<openapi.DeliveryMenuOut>,
+      openapi.externalRuntimesGetRuntimeDeliveryMenu as OpenApiOperation<openapi.DeliveryMenuOut>,
       {
         path: {
           menu_key: input.menuKey,
-          site_id: input.siteId,
+          runtime_id: input.siteId,
         },
       },
     );
@@ -96,10 +96,10 @@ export class DeliveryRestClient {
 
   async getStyle(input: { siteId: string }): Promise<DeliveryResult<openapi.DeliveryStyleOut>> {
     return this.invoke<openapi.DeliveryStyleOut>(
-      openapi.externalSitesDeliveryGetDeliveryStyle as OpenApiOperation<openapi.DeliveryStyleOut>,
+      openapi.externalRuntimesGetRuntimeDeliveryStyle as OpenApiOperation<openapi.DeliveryStyleOut>,
       {
         path: {
-          site_id: input.siteId,
+          runtime_id: input.siteId,
         },
       },
     );
@@ -113,10 +113,10 @@ export class DeliveryRestClient {
   }): Promise<DeliveryResult<DeliveryPageResolveOut>> {
     const perspective = input.perspective ?? "published";
     return this.invoke<DeliveryPageResolveOut>(
-      openapi.externalSitesDeliveryResolveDeliveryPage as OpenApiOperation<DeliveryPageResolveOut>,
+      openapi.externalRuntimesResolveRuntimeDeliveryPage as OpenApiOperation<DeliveryPageResolveOut>,
       {
         path: {
-          site_id: input.siteId,
+          runtime_id: input.siteId,
         },
         query: {
           path: input.path,
@@ -135,11 +135,11 @@ export class DeliveryRestClient {
   }): Promise<DeliveryResult<DeliveryPageResolveOut>> {
     const perspective = input.perspective ?? "published";
     return this.invoke<DeliveryPageResolveOut>(
-      openapi.externalSitesDeliveryGetDeliveryPageById as OpenApiOperation<DeliveryPageResolveOut>,
+      openapi.externalRuntimesGetRuntimeDeliveryPageById as OpenApiOperation<DeliveryPageResolveOut>,
       {
         path: {
           page_id: input.pageId,
-          site_id: input.siteId,
+          runtime_id: input.siteId,
         },
         query: {
           perspective,
@@ -157,11 +157,11 @@ export class DeliveryRestClient {
   }): Promise<DeliveryResult<DeliverySection>> {
     const perspective = input.perspective ?? "published";
     return this.invoke<DeliverySection>(
-      openapi.externalSitesDeliveryGetDeliverySectionByAlias as OpenApiOperation<DeliverySection>,
+      openapi.externalRuntimesGetRuntimeDeliverySectionByAlias as OpenApiOperation<DeliverySection>,
       {
         path: {
           alias: input.alias,
-          site_id: input.siteId,
+          runtime_id: input.siteId,
         },
         query: {
           perspective,
@@ -179,11 +179,11 @@ export class DeliveryRestClient {
   }): Promise<DeliveryResult<DeliveryGlobalSet>> {
     const perspective = input.perspective ?? "published";
     return this.invoke<DeliveryGlobalSet>(
-      openapi.externalSitesDeliveryResolveDeliveryGlobalSet as OpenApiOperation<DeliveryGlobalSet>,
+      openapi.externalRuntimesResolveRuntimeDeliveryGlobalSet as OpenApiOperation<DeliveryGlobalSet>,
       {
         path: {
           key: input.key,
-          site_id: input.siteId,
+          runtime_id: input.siteId,
         },
         query: {
           perspective,
