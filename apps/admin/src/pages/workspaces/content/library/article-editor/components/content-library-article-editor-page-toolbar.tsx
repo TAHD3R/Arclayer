@@ -529,9 +529,11 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
 
       <div className="flex shrink-0 items-center gap-2 border-l border-border/60 pl-3">
         <ContentLibraryArticleEditorSaveIndicator
-          state={props.saveState ?? "hidden"}
-          isPublishing={props.isPublishing}
-          error={props.saveError}
+          runtime={{
+            saveState: props.saveState ?? "hidden",
+            isPublishing: Boolean(props.isPublishing),
+            saveError: props.saveError,
+          }}
         />
         <Button
           type="button"

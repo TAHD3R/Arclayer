@@ -40,10 +40,7 @@ export function ContentLibraryArticleEditorPage(props: { workspaceId: string; it
           bodyDocument={editor.bodyDocument}
           onBodyDocumentChange={editor.setBodyDocument}
           isLoading={editor.isLoading}
-          saveState={editor.saveState}
-          saveError={editor.saveError}
-          isPublishing={editor.isPublishing}
-          hasPublishableVersion={Boolean(editor.draftVersionNumber)}
+          runtime={editor.runtime}
           onPublish={editor.publish}
           className="min-h-0 flex-1"
         />

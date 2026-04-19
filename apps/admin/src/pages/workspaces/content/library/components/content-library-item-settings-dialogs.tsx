@@ -4,7 +4,10 @@ import { useTranslation } from "react-i18next";
 
 import { patchContentItemVersion, saveContentItemDraftVersion } from "@/api/content";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { buildContentItemsQueryKey } from "@/pages/workspaces/content/library/utils";
+import {
+  buildContentLibraryItemQueryKey,
+  buildContentLibraryItemsQueryKey,
+} from "@/pages/workspaces/content/library/runtime";
 import type {
   AdminContentItemVisibility,
   AdminContentPresentation,
@@ -17,6 +20,7 @@ import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
 import { Button } from "@arclayer/ui/button";
 
+import { ContentLibraryDetailSummaryStrip } from "./content-library-detail-summary-strip";
 import { loadContentLibraryArticleEditorSnapshot } from "../article-editor/hooks/api";
 import type { ContentLibraryTableRow } from "../types";
 
@@ -232,12 +236,14 @@ export function ContentLibraryItemSettingsDialogs(props: {
       if (!row || !props.state) return;
       notifySuccessText(t(resolveSaveSuccessKey(props.state.kind)));
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: buildContentItemsQueryKey(row.workspaceId) }),
+        queryClient.invalidateQueries({
+          queryKey: buildContentLibraryItemsQueryKey(row.workspaceId),
+        }),
         queryClient.invalidateQueries({
           queryKey: ["content-library-item-settings", row.workspaceId, row.id],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["content-item-resolver", row.workspaceId, row.id],
+          queryKey: buildContentLibraryItemQueryKey(row.workspaceId, row.id),
         }),
       ]);
       props.onClose();
@@ -272,114 +278,33 @@ export function ContentLibraryItemSettingsDialogs(props: {
           <div className="text-body text-label-secondary">{t("common:LOADING")}</div>
         </div>
       ) : (
-        <SettingDialogFields className="py-2">
-          {props.state?.kind === "permalink" ? (
-            <SettingDialogField
-              title={t("CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK")}
-              description={t("CONTENT_LIBRARY_DIALOG_PERMALINK_HELP")}
-            >
-              <Input
-                value={draft.slug}
-                onChange={(event) => setDraft({ ...draft, slug: event.target.value })}
-              />
-            </SettingDialogField>
-          ) : null}
-
-          {props.state?.kind === "visibility" ? (
-            <SettingDialogField
-              title={t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
-              description={t("CONTENT_LIBRARY_DIALOG_VISIBILITY_HELP")}
-            >
-              <Select
-                value={draft.visibility}
-                onValueChange={(value) =>
-                  setDraft({
-                    ...draft,
-                    visibility: value === "private" ? "private" : "public",
-                  })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper" align="start">
-                  <SelectItem value="public">{t("CONTENT_LIBRARY_VISIBILITY_PUBLIC")}</SelectItem>
-                  <SelectItem value="private">{t("CONTENT_LIBRARY_VISIBILITY_PRIVATE")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingDialogField>
-          ) : null}
-
-          {props.state?.kind === "seo" ? (
-            <>
+        <div className="grid gap-5 py-2">
+          <ContentLibraryDetailSummaryStrip
+            row={{
+              ...row,
+              name: draft.title.trim() || row.name,
+              slug: draft.slug.trim() || row.slug,
+              summary: draft.summary.trim() || row.summary || "",
+              visibility: draft.visibility,
+            }}
+          />
+          <SettingDialogFields>
+            {props.state?.kind === "permalink" ? (
               <SettingDialogField
-                title={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_TITLE")}
-                description={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_TITLE_HELP")}
+                title={t("CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK")}
+                description={t("CONTENT_LIBRARY_DIALOG_PERMALINK_HELP")}
               >
                 <Input
-                  value={draft.seo.metaTitle}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      seo: { ...draft.seo, metaTitle: event.target.value },
-                    })
-                  }
+                  value={draft.slug}
+                  onChange={(event) => setDraft({ ...draft, slug: event.target.value })}
                 />
               </SettingDialogField>
-              <SettingDialogField
-                title={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_DESCRIPTION")}
-                description={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_DESCRIPTION_HELP")}
-              >
-                <Textarea
-                  value={draft.seo.metaDescription}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      seo: { ...draft.seo, metaDescription: event.target.value },
-                    })
-                  }
-                />
-              </SettingDialogField>
-              <SettingDialogField
-                title={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_CANONICAL")}
-                description={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_CANONICAL_HELP")}
-              >
-                <Input
-                  value={draft.seo.canonicalUrl}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      seo: { ...draft.seo, canonicalUrl: event.target.value },
-                    })
-                  }
-                />
-              </SettingDialogField>
-            </>
-          ) : null}
+            ) : null}
 
-          {props.state?.kind === "page-settings" || props.state?.kind === "structured-fields" ? (
-            <>
-              <SettingDialogField
-                title={t("CONTENT_LIBRARY_DIALOG_FIELD_TITLE")}
-                description={t("CONTENT_LIBRARY_DIALOG_FIELD_TITLE_HELP")}
-              >
-                <Input
-                  value={draft.title}
-                  onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                />
-              </SettingDialogField>
-              <SettingDialogField
-                title={t("CONTENT_LIBRARY_DIALOG_FIELD_SUMMARY")}
-                description={t("CONTENT_LIBRARY_DIALOG_FIELD_SUMMARY_HELP")}
-              >
-                <Textarea
-                  value={draft.summary}
-                  onChange={(event) => setDraft({ ...draft, summary: event.target.value })}
-                />
-              </SettingDialogField>
+            {props.state?.kind === "visibility" ? (
               <SettingDialogField
                 title={t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
-                description={t("CONTENT_LIBRARY_DIALOG_FIELD_VISIBILITY_HELP")}
+                description={t("CONTENT_LIBRARY_DIALOG_VISIBILITY_HELP")}
               >
                 <Select
                   value={draft.visibility}
@@ -401,9 +326,105 @@ export function ContentLibraryItemSettingsDialogs(props: {
                   </SelectContent>
                 </Select>
               </SettingDialogField>
-            </>
-          ) : null}
-        </SettingDialogFields>
+            ) : null}
+
+            {props.state?.kind === "seo" ? (
+              <>
+                <SettingDialogField
+                  title={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_TITLE")}
+                  description={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_TITLE_HELP")}
+                >
+                  <Input
+                    value={draft.seo.metaTitle}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        seo: { ...draft.seo, metaTitle: event.target.value },
+                      })
+                    }
+                  />
+                </SettingDialogField>
+                <SettingDialogField
+                  title={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_DESCRIPTION")}
+                  description={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_DESCRIPTION_HELP")}
+                >
+                  <Textarea
+                    value={draft.seo.metaDescription}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        seo: { ...draft.seo, metaDescription: event.target.value },
+                      })
+                    }
+                  />
+                </SettingDialogField>
+                <SettingDialogField
+                  title={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_CANONICAL")}
+                  description={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_CANONICAL_HELP")}
+                >
+                  <Input
+                    value={draft.seo.canonicalUrl}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        seo: { ...draft.seo, canonicalUrl: event.target.value },
+                      })
+                    }
+                  />
+                </SettingDialogField>
+              </>
+            ) : null}
+
+            {props.state?.kind === "page-settings" || props.state?.kind === "structured-fields" ? (
+              <>
+                <SettingDialogField
+                  title={t("CONTENT_LIBRARY_DIALOG_FIELD_TITLE")}
+                  description={t("CONTENT_LIBRARY_DIALOG_FIELD_TITLE_HELP")}
+                >
+                  <Input
+                    value={draft.title}
+                    onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                  />
+                </SettingDialogField>
+                <SettingDialogField
+                  title={t("CONTENT_LIBRARY_DIALOG_FIELD_SUMMARY")}
+                  description={t("CONTENT_LIBRARY_DIALOG_FIELD_SUMMARY_HELP")}
+                >
+                  <Textarea
+                    value={draft.summary}
+                    onChange={(event) => setDraft({ ...draft, summary: event.target.value })}
+                  />
+                </SettingDialogField>
+                <SettingDialogField
+                  title={t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
+                  description={t("CONTENT_LIBRARY_DIALOG_FIELD_VISIBILITY_HELP")}
+                >
+                  <Select
+                    value={draft.visibility}
+                    onValueChange={(value) =>
+                      setDraft({
+                        ...draft,
+                        visibility: value === "private" ? "private" : "public",
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      <SelectItem value="public">
+                        {t("CONTENT_LIBRARY_VISIBILITY_PUBLIC")}
+                      </SelectItem>
+                      <SelectItem value="private">
+                        {t("CONTENT_LIBRARY_VISIBILITY_PRIVATE")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingDialogField>
+              </>
+            ) : null}
+          </SettingDialogFields>
+        </div>
       )}
     </SettingDialog>
   );

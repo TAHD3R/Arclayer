@@ -24,6 +24,12 @@ from src.modules.sites.graphql.service import (
     _record_text_field,
     graphql_error_extensions,
 )
+from src.modules.workspaces.content.runtime import (
+    DocumentQuery,
+    DocumentQueryBoundary,
+    DocumentQueryRecord,
+    DocumentRuntimeMetadata,
+)
 
 
 def _article_record(**overrides) -> StructuredContentRecord:
@@ -105,6 +111,51 @@ def test_record_matches_all_supports_exact_and_contains_filters() -> None:
     )
     assert not _record_matches_all(record, exact_filters={"slug": "missing"}, contains_filters={})
     assert not _record_matches_all(record, exact_filters={}, contains_filters={"title": "absent"})
+
+
+def test_document_query_boundary_filters_by_model_status_and_route_metadata() -> None:
+    article_item = SimpleNamespace(
+        id=UUID("00000000-0000-0000-0000-000000000010"),
+        site_id=UUID("00000000-0000-0000-0000-000000000111"),
+        model_definition=SimpleNamespace(key="article"),
+    )
+    page_item = SimpleNamespace(
+        id=UUID("00000000-0000-0000-0000-000000000020"),
+        site_id=UUID("00000000-0000-0000-0000-000000000111"),
+        model_definition=SimpleNamespace(key="page"),
+    )
+    boundary = DocumentQueryBoundary(
+        records=[
+            DocumentQueryRecord(
+                item=article_item,
+                revision=3,
+                revision_state="draft",
+                fields={"title": "Article"},
+                metadata=DocumentRuntimeMetadata(protocol_key="article", route_path="/article"),
+            ),
+            DocumentQueryRecord(
+                item=page_item,
+                revision=5,
+                revision_state="published",
+                fields={"title": "Page"},
+                metadata=DocumentRuntimeMetadata(protocol_key="page", route_path="/pricing"),
+            ),
+        ]
+    )
+
+    result = boundary.execute(
+        DocumentQuery(
+            site_id=UUID("00000000-0000-0000-0000-000000000111"),
+            model_key="page",
+            perspective="published",
+            protocol_key="page",
+            status="published",
+            route_path="/pricing",
+        )
+    )
+
+    assert len(result.records) == 1
+    assert result.records[0].item.id == page_item.id
 
 
 def test_graphql_error_extensions_normalize_details_and_meta() -> None:
@@ -342,14 +393,18 @@ async def test_load_preview_snapshot_and_build_structured_record_edges() -> None
     revision, state, snapshot = snapshot_meta
     assert (revision, state) == (2, "published")
 
-    record = service._build_structured_record(
+    query_record = service._build_query_record(
         item=item,
         revision=revision,
         revision_state=state,
         snapshot=snapshot,
-        route_path="/article/fallback-slug",
-        route_contract={"kind": "static"},
+        metadata=DocumentRuntimeMetadata(
+            route_path="/article/fallback-slug",
+            route_contract={"kind": "static"},
+            protocol_key="article",
+        ),
     )
+    record = service._to_structured_record(query_record)
 
     assert record.title == "Fallback title"
     assert record.slug == "fallback-slug"

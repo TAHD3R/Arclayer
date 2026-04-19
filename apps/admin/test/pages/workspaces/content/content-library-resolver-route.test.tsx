@@ -120,6 +120,7 @@ describe("ContentLibraryItemResolverPage", () => {
     await waitFor(() => {
       expect(screen.getByTestId("content-item-continuation-state")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("content-library-detail-summary-strip")).toBeInTheDocument();
     expect(screen.getByText("UNSHAPED_ITEM")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Reshape" })).toHaveAttribute(
       "href",

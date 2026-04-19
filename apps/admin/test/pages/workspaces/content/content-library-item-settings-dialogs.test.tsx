@@ -171,6 +171,7 @@ describe("content-library-item-settings-dialogs", () => {
       expect(screen.getByText("CONTENT_LIBRARY_DIALOG_SEO_FIELD_TITLE_HELP")).toBeInTheDocument();
     });
 
+    expect(screen.getByTestId("content-library-detail-summary-strip")).toBeInTheDocument();
     expect(
       screen.getByText("CONTENT_LIBRARY_DIALOG_SEO_FIELD_DESCRIPTION_HELP"),
     ).toBeInTheDocument();

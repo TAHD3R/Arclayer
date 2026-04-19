@@ -2,8 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { HistoryIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { listContentItemVersions } from "@/api/content";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
+import {
+  buildContentLibraryVersionHistoryQueryKey,
+  loadContentLibraryVersionHistory,
+} from "@/pages/workspaces/content/library/runtime";
 import type { AdminContentVersion } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -96,9 +99,9 @@ export function ContentLibraryArticleEditorVersionHistorySurface(props: {
 }) {
   const { t } = useTranslation(["content", "common"]);
   const versionsQuery = useQuery({
-    queryKey: ["content", "item", props.itemId, "versions"],
+    queryKey: buildContentLibraryVersionHistoryQueryKey(props.workspaceId, props.itemId),
     enabled: props.open,
-    queryFn: () => listContentItemVersions(props.workspaceId, props.itemId, { page: 1, size: 30 }),
+    queryFn: () => loadContentLibraryVersionHistory(props.workspaceId, props.itemId),
     staleTime: 15_000,
   });
   const body = (

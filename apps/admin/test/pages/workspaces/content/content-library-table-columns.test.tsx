@@ -174,6 +174,7 @@ describe("content-library-table-columns", () => {
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_CONTENT_TYPE")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_LIBRARY_GROUP")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_STATUS")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_DIAGNOSTICS")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_UPDATED")).toBeInTheDocument();
     expect(screen.queryByText("CONTENT_LIBRARY_TABLE_COL_LOCALE")).not.toBeInTheDocument();
   });

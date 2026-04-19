@@ -13,7 +13,10 @@ import {
   getContentLibraryRoleIcon,
   getContentLibraryRoleLabelKey,
 } from "./content-library-role-tag";
-import { ContentLibraryStatusTag } from "./content-library-status-tag";
+import {
+  ContentLibraryRuntimeBadgeList,
+  ContentLibraryRuntimeDiagnosticList,
+} from "./content-library-runtime-badges";
 import { ContentLibraryRowActions } from "./content-library-row-actions";
 import type { ContentLibraryTableRow } from "../types";
 import { contentHasAddress } from "../utils";
@@ -137,6 +140,14 @@ function ContentLibraryGroupCell(props: { row: ContentLibraryTableRow; label: st
   return <BaseTag color="blue">{props.label}</BaseTag>;
 }
 
+function ContentLibraryDiagnosticsCell(props: { row: ContentLibraryTableRow }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <ContentLibraryRuntimeDiagnosticList row={props.row} />
+    </div>
+  );
+}
+
 export function useContentLibraryTableColumns(params: {
   formatDateTimeOrNull: (value: string | null | undefined) => string | null;
   actionPending: boolean;
@@ -247,10 +258,21 @@ export function useContentLibraryTableColumns(params: {
           kind: "status",
         },
         header: t("CONTENT_LIBRARY_TABLE_COL_STATUS"),
-        cell: ({ row }) => <ContentLibraryStatusTag status={row.original.derivedStatus} />,
-        size: 140,
-        minSize: 140,
-        maxSize: 140,
+        cell: ({ row }) => <ContentLibraryRuntimeBadgeList row={row.original} />,
+        size: 250,
+        minSize: 220,
+      },
+      {
+        id: "diagnostics",
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_DIAGNOSTICS"),
+          kind: "meta",
+          defaultHidden: true,
+        },
+        header: t("CONTENT_LIBRARY_TABLE_COL_DIAGNOSTICS"),
+        cell: ({ row }) => <ContentLibraryDiagnosticsCell row={row.original} />,
+        size: 260,
+        minSize: 220,
       },
       {
         accessorKey: "updatedAt",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from fastapi import Request
@@ -11,6 +11,7 @@ from strawberry.fastapi import BaseContext
 from src.config import Settings
 from src.core.exceptions import APIError, Forbidden, ServiceUnavailable
 from src.core.logging import get_logger
+from src.models.content.route_binding import RouteBindingRecord
 from src.models.workspaces.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
 from src.modules.sites.content.service import SiteContentService
 from src.modules.sites.delivery.schema import (
@@ -26,6 +27,12 @@ from src.modules.workspaces.api_keys.repository import WorkspaceApiKeysRepositor
 from src.modules.workspaces.api_keys.scopes import build_api_key_access_profile
 from src.modules.workspaces.api_keys.security import split_api_key_token, verify_api_key_token
 from src.modules.workspaces.content.models.protocol_registry import get_official_model_protocol
+from src.modules.workspaces.content.runtime import (
+    DocumentFacade,
+    DocumentQuery,
+    DocumentQueryRecord,
+    DocumentRuntimeMetadata,
+)
 from src.platform.cache.valkey import ValkeyClientLike
 from src.settings.crypto import ensure_master_key, master_key_exists
 
@@ -162,6 +169,7 @@ class SiteGraphQLService:
         self._content_service = SiteContentService(settings, repo=self._repo)
         self._site_service = SiteService(settings, valkey=valkey, repo=self._repo)
         self._api_keys_repo = WorkspaceApiKeysRepository()
+        self._document_facade = DocumentFacade.for_items_repo(self._repo)
 
     async def resolve_query_access(
         self,
@@ -278,14 +286,25 @@ class SiteGraphQLService:
         limit: int | None = None,
         offset: int = 0,
     ) -> list[StructuredContentRecord]:
-        if perspective == "published":
-            records = await self._list_published_records(site_id=site_id, model_key=model_key)
-        else:
-            records = await self._list_preview_records(site_id=site_id, model_key=model_key)
+        query_records = (
+            await self._list_published_records(site_id=site_id, model_key=model_key)
+            if perspective == "published"
+            else await self._list_preview_records(site_id=site_id, model_key=model_key)
+        )
 
+        boundary = self._document_facade.build_query_boundary(query_records)
+        result = boundary.execute(
+            DocumentQuery(
+                site_id=site_id,
+                model_key=model_key,
+                perspective=perspective,
+            )
+        )
+
+        structured_records = [self._to_structured_record(record) for record in result.records]
         filtered = [
             record
-            for record in records
+            for record in structured_records
             if _record_matches_all(
                 record,
                 exact_filters=exact_filters or {},
@@ -363,14 +382,17 @@ class SiteGraphQLService:
                 return record
         return None
 
-    async def _list_preview_records(self, *, site_id: UUID, model_key: str) -> list[StructuredContentRecord]:
+    async def _list_preview_records(self, *, site_id: UUID, model_key: str) -> list[DocumentQueryRecord]:
         items = await self._repo.list_content_entries_by_model_key(site_id=site_id, model_key=model_key)
-        route_bindings = (
-            {binding.item_id: binding for binding in await self._repo.list_content_route_bindings(site_id=site_id)}
+        route_bindings: dict[UUID, RouteBindingRecord] = (
+            {
+                binding.item_id: binding
+                for binding in await self._repo.list_content_route_bindings(site_id=site_id)
+            }
             if model_key == "page"
             else {}
         )
-        records: list[StructuredContentRecord] = []
+        records: list[DocumentQueryRecord] = []
         for item in items:
             snapshot_meta = await self._load_preview_snapshot(item)
             if snapshot_meta is None:
@@ -380,35 +402,58 @@ class SiteGraphQLService:
             route_contract = binding.route_contract if binding and isinstance(binding.route_contract, dict) else None
             route_path = binding.path if binding is not None else None
             records.append(
-                self._build_structured_record(
+                self._build_query_record(
                     item=item,
                     revision=revision,
                     revision_state=revision_state,
                     snapshot=snapshot,
-                    route_path=route_path,
-                    route_contract=route_contract,
+                    metadata=DocumentRuntimeMetadata(
+                        route_path=route_path,
+                        route_contract=route_contract,
+                        binding_key=None,
+                        protocol_key=(
+                            str(item.model_definition.protocol_key)
+                            if item.model_definition is not None and item.model_definition.protocol_key is not None
+                            else None
+                        ),
+                    ),
                 )
             )
         return sorted(
-            records, key=lambda record: (record.revision_state != "draft", record.revision, record.item_id.hex)
+            records,
+            key=lambda record: (
+                record.revision_state != "draft",
+                record.revision,
+                record.item.id.hex,
+            ),
         )
 
-    async def _list_published_records(self, *, site_id: UUID, model_key: str) -> list[StructuredContentRecord]:
+    async def _list_published_records(self, *, site_id: UUID, model_key: str) -> list[DocumentQueryRecord]:
         graph_nodes = await self._repo.list_active_release_nodes_by_model_key(site_id=site_id, model_key=model_key)
-        records: list[StructuredContentRecord] = []
+        records: list[DocumentQueryRecord] = []
         for graph_node in graph_nodes:
             snapshot = await self._build_snapshot(item=graph_node.item, version=graph_node.version)
             records.append(
-                self._build_structured_record(
+                self._build_query_record(
                     item=graph_node.item,
                     revision=int(graph_node.version.version),
                     revision_state="published",
                     snapshot=snapshot,
-                    route_path=graph_node.route_path,
-                    route_contract=graph_node.route_contract if isinstance(graph_node.route_contract, dict) else None,
+                    metadata=DocumentRuntimeMetadata(
+                        route_path=graph_node.route_path,
+                        route_contract=(
+                            graph_node.route_contract if isinstance(graph_node.route_contract, dict) else None
+                        ),
+                        protocol_key=(
+                            str(graph_node.item.model_definition.protocol_key)
+                            if graph_node.item.model_definition is not None
+                            and graph_node.item.model_definition.protocol_key is not None
+                            else None
+                        ),
+                    ),
                 )
             )
-        return sorted(records, key=lambda record: (record.revision, record.item_id.hex), reverse=True)
+        return sorted(records, key=lambda record: (record.revision, record.item.id.hex), reverse=True)
 
     async def _load_preview_snapshot(
         self,
@@ -436,34 +481,43 @@ class SiteGraphQLService:
             seo_profile=seo_profile,
         )
 
-    def _build_structured_record(
+    def _build_query_record(
         self,
         *,
         item,
         revision: int,
         revision_state: Literal["draft", "published"],
         snapshot: CanonicalContentSnapshot,
-        route_path: str | None,
-        route_contract: dict[str, Any] | None,
-    ) -> StructuredContentRecord:
-        model_key = str(item.model_definition.key if item.model_definition is not None else "")
+        metadata: DocumentRuntimeMetadata,
+    ) -> DocumentQueryRecord:
         fields = snapshot.fields if isinstance(snapshot.fields, dict) else {}
-        title = _extract_system_field(model_key=model_key, fields=fields, field_key="title")
-        slug = _extract_system_field(model_key=model_key, fields=fields, field_key="slug")
+        return DocumentQueryRecord(
+            item=item,
+            revision=revision,
+            revision_state=revision_state,
+            fields={str(key): _normalize_json_value(value) for key, value in fields.items()},
+            metadata=metadata,
+        )
+
+    def _to_structured_record(self, record: DocumentQueryRecord) -> StructuredContentRecord:
+        item = record.item
+        model_key = str(item.model_definition.key if item.model_definition is not None else "")
+        title = _extract_system_field(model_key=model_key, fields=record.fields, field_key="title")
+        slug = _extract_system_field(model_key=model_key, fields=record.fields, field_key="slug")
         return StructuredContentRecord(
             item_id=UUID(str(item.id)),
             model_key=model_key,
             locale=str(item.locale or ""),
             title=title if isinstance(title, str) else item.title,
             slug=slug if isinstance(slug, str) else item.slug,
-            revision=revision,
-            revision_state=revision_state,
+            revision=record.revision,
+            revision_state=cast(Literal["draft", "published"], record.revision_state),
             draft_revision=int(item.draft_version or 0),
             published_revision=int(item.published_version or 0) or None,
-            fields={str(key): _normalize_json_value(value) for key, value in fields.items()},
-            custom_fields=_build_custom_fields(model_key=model_key, fields=fields),
-            route_path=route_path,
-            route_contract=route_contract,
+            fields=record.fields,
+            custom_fields=_build_custom_fields(model_key=model_key, fields=record.fields),
+            route_path=record.metadata.route_path,
+            route_contract=record.metadata.route_contract,
         )
 
     async def _authenticate_delivery_key(

@@ -9,18 +9,11 @@ import {
   getContentTypeLabel,
 } from "@/pages/workspaces/content/content-type-presentation";
 
+import { ContentLibraryRuntimeDiagnosticList } from "./content-library-runtime-badges";
+import { ContentLibraryDetailSummaryStrip } from "./content-library-detail-summary-strip";
 import type { ContentLibraryTableRow } from "../types";
 import { ContentLibraryArticleEditorShell } from "../article-editor/components/content-library-article-editor-shell";
 import { useContentLibraryArticleEditor } from "../article-editor/hooks/use-content-library-article-editor";
-
-function PreviewFact(props: { label: string; value: string }) {
-  return (
-    <div className="grid gap-1.5">
-      <div className="text-footnote text-label-secondary">{props.label}</div>
-      <div className="text-body text-label-primary">{props.value}</div>
-    </div>
-  );
-}
 
 function ContentLibrarySummaryPreview(props: {
   icon: "page" | "structured";
@@ -59,28 +52,33 @@ function ContentLibrarySummaryPreview(props: {
       </div>
 
       <div className="grid gap-4 p-4 md:p-5">
+        <ContentLibraryDetailSummaryStrip
+          row={{
+            ...props.row,
+            summary,
+          }}
+        />
+
         <Card>
           <CardHeader>
-            <CardTitle>{props.row.name}</CardTitle>
-            <CardDescription>{summary}</CardDescription>
+            <CardTitle>{t("CONTENT_LIBRARY_PREVIEW_DIAGNOSTICS_TITLE")}</CardTitle>
+            <CardDescription>{t("CONTENT_LIBRARY_PREVIEW_DIAGNOSTICS_DESC")}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            <PreviewFact
-              label={t("CONTENT_LIBRARY_PREVIEW_FIELD_CONTENT_TYPE")}
-              value={props.title}
-            />
-            <PreviewFact
-              label={t("CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK")}
-              value={`/${props.row.slug}`}
-            />
-            <PreviewFact
-              label={t("CONTENT_LIBRARY_PREVIEW_FIELD_STATUS")}
-              value={t(`CONTENT_LIBRARY_STATUS_${props.row.derivedStatus.toUpperCase()}`)}
-            />
-            <PreviewFact
-              label={t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
-              value={t(`CONTENT_LIBRARY_VISIBILITY_${props.row.visibility.toUpperCase()}`)}
-            />
+            <div className="grid gap-1.5">
+              <div className="text-footnote text-label-secondary">
+                {t("CONTENT_LIBRARY_PREVIEW_FIELD_CONTENT_TYPE")}
+              </div>
+              <div className="text-body text-label-primary">{props.title}</div>
+            </div>
+            <div className="grid gap-1.5 md:col-span-2">
+              <div className="text-footnote text-label-secondary">
+                {t("CONTENT_LIBRARY_PREVIEW_FIELD_DIAGNOSTICS")}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <ContentLibraryRuntimeDiagnosticList row={props.row} />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -173,10 +171,7 @@ function ContentLibraryArticlePreview(props: {
         bodyDocument={editor.bodyDocument}
         onBodyDocumentChange={editor.setBodyDocument}
         isLoading={editor.isLoading}
-        saveState={editor.saveState}
-        saveError={editor.saveError}
-        isPublishing={editor.isPublishing}
-        hasPublishableVersion={Boolean(editor.draftVersionNumber)}
+        runtime={editor.runtime}
         onPublish={editor.publish}
         onClose={props.onClose}
         onOpenPage={props.onOpenPage}

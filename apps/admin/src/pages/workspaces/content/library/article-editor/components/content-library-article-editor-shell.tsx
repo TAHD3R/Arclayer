@@ -11,10 +11,11 @@ import {
   workspaceContentLibraryPath,
 } from "@/lib/routing/workspace-content-routing";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { buildContentItemsQueryKey } from "@/pages/workspaces/content/library/utils";
+import { buildContentLibraryItemsQueryKey } from "@/pages/workspaces/content/library/runtime";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-image";
 import { Button } from "@arclayer/ui/button";
+import { Badge } from "@arclayer/ui/badge";
 import { Skeleton } from "@arclayer/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
@@ -34,6 +35,7 @@ import { ContentLibraryArticleEditorTocSidebar } from "./content-library-article
 import { ContentLibraryArticleEditorDateLocalizationProvider } from "./content-library-article-editor-date-localization-provider";
 import { ContentLibraryArticleEditorUpdatesPanel } from "./content-library-article-editor-updates-panel";
 import { ContentLibraryArticleEditorVersionHistorySurface } from "./content-library-article-editor-version-history-surface";
+import type { ContentLibraryArticleEditorRuntimeState } from "@/pages/workspaces/content/library/runtime";
 
 const ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY = "content-library-article-editor:pending-panel";
 
@@ -67,10 +69,7 @@ type ContentLibraryArticleEditorShellProps = {
   bodyDocument?: Record<string, unknown>;
   onBodyDocumentChange?: (value: Record<string, unknown>) => void;
   isLoading?: boolean;
-  saveState?: "hidden" | "saving" | "saved" | "error";
-  saveError?: unknown;
-  isPublishing?: boolean;
-  hasPublishableVersion?: boolean;
+  runtime: ContentLibraryArticleEditorRuntimeState;
   onPublish?: () => void;
   onClose?: () => void;
   onOpenPage?: () => void;
@@ -149,6 +148,36 @@ function HeaderActionButton(props: { icon: React.ReactNode; label: string; onCli
   );
 }
 
+function ArticleEditorRuntimeSummary(props: { runtime: ContentLibraryArticleEditorRuntimeState }) {
+  const { t } = useTranslation("content");
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-footnote text-label-secondary">
+      <Badge variant="outline" className="h-7 rounded-full px-2.5">
+        {t(`CONTENT_LIBRARY_STATUS_${props.runtime.currentView.toUpperCase()}`)}
+      </Badge>
+      {props.runtime.version.draftNumber ? (
+        <span>
+          {t("CONTENT_LIBRARY_EDITOR_VERSION_HISTORY_VERSION", {
+            version: props.runtime.version.draftNumber,
+          })}
+        </span>
+      ) : null}
+      {props.runtime.version.publishedNumber ? (
+        <span>
+          {t("CONTENT_LIBRARY_STATUS_PUBLISHED")} v{props.runtime.version.publishedNumber}
+        </span>
+      ) : null}
+      {props.runtime.hasUnsavedChanges ? (
+        <span>{t("CONTENT_LIBRARY_DIAGNOSTIC_HAS_DRAFT")}</span>
+      ) : null}
+      {props.runtime.diagnostics.map((diagnostic) => (
+        <span key={diagnostic.id}>{t(diagnostic.labelKey)}</span>
+      ))}
+    </div>
+  );
+}
+
 function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
   const { t } = useTranslation(["content", "common"]);
   const navigate = useNavigate();
@@ -178,7 +207,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
     onSuccess: async (nextItem) => {
       notifySuccessText(t("content:CONTENT_LIBRARY_DUPLICATE_SUCCESS"));
       await queryClient.invalidateQueries({
-        queryKey: buildContentItemsQueryKey(props.workspaceId),
+        queryKey: buildContentLibraryItemsQueryKey(props.workspaceId),
       });
       await navigate({
         to: workspaceContentLibraryItemPath(props.workspaceId, nextItem.id),
@@ -193,7 +222,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
     onSuccess: async () => {
       notifySuccessText(t("content:CONTENT_LIBRARY_DELETE_SUCCESS"));
       await queryClient.invalidateQueries({
-        queryKey: buildContentItemsQueryKey(props.workspaceId),
+        queryKey: buildContentLibraryItemsQueryKey(props.workspaceId),
       });
       if (props.mode === "split") {
         props.onClose?.();
@@ -251,17 +280,15 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
             </div>
 
             <div className="flex items-center gap-2">
-              <ContentLibraryArticleEditorSaveIndicator
-                state={props.saveState ?? "hidden"}
-                isPublishing={props.isPublishing}
-                error={props.saveError}
-              />
+              <ContentLibraryArticleEditorSaveIndicator runtime={props.runtime} />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 disabled={
-                  !props.hasPublishableVersion || props.isPublishing || props.saveState === "saving"
+                  !props.runtime.hasPublishableVersion ||
+                  props.runtime.isPublishing ||
+                  props.runtime.saveState === "saving"
                 }
                 onClick={props.onPublish}
               >
@@ -294,10 +321,10 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         {props.mode === "page" ? (
           <ContentLibraryArticleEditorPageToolbar
             itemTitle={props.title}
-            saveState={props.saveState}
-            saveError={props.saveError}
-            isPublishing={props.isPublishing}
-            hasPublishableVersion={props.hasPublishableVersion}
+            saveState={props.runtime.saveState}
+            saveError={props.runtime.saveError}
+            isPublishing={props.runtime.isPublishing}
+            hasPublishableVersion={props.runtime.hasPublishableVersion}
             onDelete={() => deleteMutation.mutate()}
             onDuplicate={() => duplicateMutation.mutate()}
             onImportDocument={(value) => props.onBodyDocumentChange?.(value)}
@@ -370,6 +397,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                 >
                   <div className="min-w-0 flex-1">
                     <div className={cn("group/header", textLaneClass, "pt-4", "space-y-3")}>
+                      <ArticleEditorRuntimeSummary runtime={props.runtime} />
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
@@ -442,6 +470,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                         "space-y-3",
                       )}
                     >
+                      <ArticleEditorRuntimeSummary runtime={props.runtime} />
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
@@ -529,6 +558,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
           itemId={props.itemId}
           open={updatesOpen}
           onOpenChange={setUpdatesOpen}
+          runtime={props.runtime}
           workspaceId={props.workspaceId}
         />
       ) : null}

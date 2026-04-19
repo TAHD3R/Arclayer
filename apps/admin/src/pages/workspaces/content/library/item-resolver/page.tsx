@@ -1,13 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { getContentItem } from "@/api/content";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import {
   resolveContentItemContinuationRoute,
   resolveContentItemContinuationTarget,
   workspaceContentLibraryPath,
 } from "@/lib/routing/workspace-content-routing";
+import {
+  buildContentLibraryItemQueryKey,
+  loadContentLibraryItemRuntime,
+} from "@/pages/workspaces/content/library/runtime";
 import type {
   AdminContentItem,
   AdminContentOpenIntent,
@@ -23,6 +26,7 @@ import {
   CardTitle,
 } from "@arclayer/ui/card";
 
+import { ContentLibraryDetailSummaryStrip } from "../components/content-library-detail-summary-strip";
 import { ContentLibraryArticleEditorPage } from "../article-editor/page";
 import { ContentSiteBuilderPage } from "../../site-builder/page";
 import { ContentStructuredSurfacePage } from "../../structured/page";
@@ -103,6 +107,19 @@ function ContinuationStatePage(props: {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <ContentLibraryDetailSummaryStrip
+            row={{
+              bootstrapPresetState: props.item.bootstrapPresetState ?? "none",
+              derivedStatus: props.item.derivedStatus ?? "draft",
+              draftVersion: props.item.draftVersion,
+              name: itemLabel,
+              publishedVersion: props.item.publishedVersion ?? null,
+              shapeState: props.item.shapeState,
+              slug: props.item.slug,
+              summary: t("content:CONTENT_ITEM_CONTINUATION_SURFACE_UNAVAILABLE_DESC", { surface }),
+              visibility: props.item.visibility,
+            }}
+          />
           <dl className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <dt className="text-footnote text-label-secondary">
@@ -114,21 +131,13 @@ function ContinuationStatePage(props: {
             </div>
             <div className="space-y-1">
               <dt className="text-footnote text-label-secondary">
-                {t("content:CONTENT_ITEM_CONTINUATION_FIELD_SHAPE_STATE")}
-              </dt>
-              <dd className="text-body text-label-primary">
-                <code>{props.item.shapeState}</code>
-              </dd>
-            </div>
-            <div className="space-y-1">
-              <dt className="text-footnote text-label-secondary">
                 {t("content:CONTENT_ITEM_CONTINUATION_FIELD_REASON_CODE")}
               </dt>
               <dd className="text-body text-label-primary">
                 <code>{reasonCode}</code>
               </dd>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 sm:col-span-2">
               <dt className="text-footnote text-label-secondary">
                 {t("content:CONTENT_ITEM_CONTINUATION_FIELD_ROUTE")}
               </dt>
@@ -191,8 +200,8 @@ function ContinuationLoadingPage() {
 
 export function ContentLibraryItemResolverPage(props: { workspaceId: string; itemId: string }) {
   const itemQuery = useQuery({
-    queryKey: ["content-item-resolver", props.workspaceId, props.itemId],
-    queryFn: () => getContentItem(props.workspaceId, props.itemId),
+    queryKey: buildContentLibraryItemQueryKey(props.workspaceId, props.itemId),
+    queryFn: () => loadContentLibraryItemRuntime(props.workspaceId, props.itemId),
     retry: false,
     meta: { silent: true },
   });

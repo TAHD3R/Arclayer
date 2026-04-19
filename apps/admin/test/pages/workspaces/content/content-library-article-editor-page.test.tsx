@@ -20,6 +20,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 
 import { ContentLibraryArticleEditorPage } from "@/pages/workspaces/content/library/article-editor/page";
 import { ContentLibraryArticleEditorShell } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-shell";
+import type { ContentLibraryArticleEditorRuntimeState } from "@/pages/workspaces/content/library/runtime";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const mocked = vi.hoisted(() => ({
@@ -272,6 +273,39 @@ function buildSnapshot(options?: {
   };
 }
 
+function buildEditorRuntime(
+  overrides?: Partial<ContentLibraryArticleEditorRuntimeState>,
+): ContentLibraryArticleEditorRuntimeState {
+  return {
+    currentView: "draft",
+    saveState: "hidden",
+    saveError: null,
+    isLoading: false,
+    isPublishing: false,
+    hasUnsavedChanges: false,
+    hasPublishableVersion: true,
+    autosave: {
+      enabled: true,
+      intervalSec: 1,
+      saveOnBlur: true,
+    },
+    version: {
+      draftNumber: 3,
+      draftState: "draft",
+      publishedNumber: 2,
+    },
+    status: {
+      itemStatus: "draft",
+      visibility: "public",
+      shapeState: "ready",
+      bootstrapPresetState: "selected",
+    },
+    badges: [],
+    diagnostics: [],
+    ...overrides,
+  };
+}
+
 describe("content-library-article-editor-page", () => {
   beforeEach(() => {
     mocked.loadContentLibraryArticleEditorSnapshot.mockReset();
@@ -326,6 +360,10 @@ describe("content-library-article-editor-page", () => {
       expect(screen.getByTestId("content-library-article-editor-body")).toBeInTheDocument();
       expect(screen.getByDisplayValue("Launch memo")).toBeInTheDocument();
       expect(screen.getByDisplayValue("Loaded summary")).toBeInTheDocument();
+      expect(screen.getAllByText("CONTENT_LIBRARY_STATUS_DRAFT").length).toBeGreaterThan(0);
+      expect(
+        screen.getByText("CONTENT_LIBRARY_EDITOR_VERSION_HISTORY_VERSION"),
+      ).toBeInTheDocument();
     });
   });
 
@@ -606,9 +644,7 @@ describe("content-library-article-editor-page", () => {
           robotsDirective: "",
         }}
         onSeoChange={vi.fn()}
-        saveState="hidden"
-        isPublishing={false}
-        hasPublishableVersion
+        runtime={buildEditorRuntime()}
         onPublish={vi.fn()}
         onClose={onClose}
         onOpenPage={onOpenPage}

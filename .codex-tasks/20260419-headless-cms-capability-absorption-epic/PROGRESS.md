@@ -25,10 +25,11 @@
   - Epic 0 is complete and its baseline docs now live under `docs/plan`.
   - Epic 1 is complete and its dependency on Epic 0 is satisfied.
   - Epic 1 now covers contract registry, schema change plan, and the Models governance operator workflow.
-  - Epic 2 is now active and is being expanded from scaffold child rows into Module 2A~2G execution slices.
+  - Epic 2 is active and now has three backend runtime slices landed under `apps/api/src/modules/workspaces/content/runtime/`, `apps/api/src/modules/workspaces/content/history/`, and `apps/api/src/modules/sites/graphql/service.py`.
+  - Epic 2 Module 2E is complete: admin Content Library now has a shared runtime query layer plus shared runtime badges and diagnostics surfaces across list, table, preview, resolver, and settings invalidation paths.
 - **Known issues**:
   - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic1 slice.
-- **Next action**: Continue Epic 2 child task by finishing Module 2A facade mapping and then implement the first backend runtime slice.
+- **Next action**: Continue Epic 2 child task by aligning article editor runtime surfaces to the new facade and history objects.
 
 ---
 
@@ -128,11 +129,36 @@
   - Mapped current backend runtime entry points across `content/items`, `workspaces/publish`, `sites/publishing`, and `sites/graphql`.
   - Mapped current frontend consumer surfaces across `Content Library`, `article editor`, and `item resolver`.
   - Expanded the child `TODO.csv` from 3 scaffold rows into 6 module-aligned execution rows tied to live repo files.
+  - Added the first backend runtime slice with `DocumentFacade`, `DocumentReadContext`, `DocumentMutationContext`, and `DocumentRuntimeItemFields`.
+  - Routed `WorkspaceContentCanonicalItemReadService` through the new facade for active item field aggregation.
+  - Added focused unit coverage for the facade and the read-service integration path.
+  - Added the second backend runtime slice with published/preview read models and the new `content/history` system-object boundary.
+  - Routed the read-service version/history path through `ContentHistoryService`.
+  - Added the third backend runtime slice with `DocumentQuery`, `DocumentQueryBoundary`, `DocumentQueryRecord`, and `DocumentRuntimeMetadata`.
+  - Routed GraphQL preview/published listing through the shared query boundary while preserving outward GraphQL contracts.
+  - Completed Module 2E by adding an admin shared runtime query layer for Content Library items, models, views, item detail, version history, and article editor snapshot loading.
+  - Unified list/card/preview state presentation behind shared runtime badges and diagnostics derived from document truth fields.
 - **Validation**:
   - `rg -n "Epic 2|Module 2A|Module 2B|Module 2C|Module 2D|Module 2E|Module 2F|Module 2G" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md` → passed
+  - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_document_runtime_unit.py` → passed
+  - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_graphql_service_unit.py tests/modules/workspaces/content/test_document_runtime_unit.py` → passed
+  - `timeout 60s pnpm -C apps/admin exec vitest run --config vitest.config.ts test/pages/workspaces/content/content-library-runtime.test.ts test/api/content-editor.test.ts test/pages/workspaces/content/content-library-preview-panel.test.tsx test/pages/workspaces/content/content-library-table-columns.test.tsx` → passed
+  - `timeout 60s pnpm -C apps/admin exec vitest run --config vitest.config.ts test/pages/workspaces/content/content-library-resolver-route.test.tsx test/pages/workspaces/content/content-library-item-settings-dialogs.test.tsx test/pages/workspaces/content/content-library-page.test.tsx` → passed
 - **Files changed**:
   - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
   - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/PROGRESS.md`
   - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic2-document-runtime-platform/TODO.csv`
   - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic2-document-runtime-platform/PROGRESS.md`
-- **Next step**: Complete the first executable Epic2 slice around Module 2A Document Facade.
+  - `apps/api/src/modules/workspaces/content/runtime/__init__.py`
+  - `apps/api/src/modules/workspaces/content/runtime/facade.py`
+  - `apps/api/src/modules/workspaces/content/history/__init__.py`
+  - `apps/api/src/modules/workspaces/content/history/service.py`
+  - `apps/api/src/modules/workspaces/content/items/read_service.py`
+  - `apps/api/src/modules/sites/graphql/service.py`
+  - `apps/api/tests/modules/workspaces/content/test_document_runtime_unit.py`
+  - `apps/api/tests/modules/sites/test_sites_graphql_service_unit.py`
+  - `apps/admin/src/pages/workspaces/content/library/runtime/index.ts`
+  - `apps/admin/src/pages/workspaces/content/library/components/content-library-runtime-badges.tsx`
+  - `apps/admin/test/pages/workspaces/content/content-library-runtime.test.ts`
+  - `apps/admin/test/pages/workspaces/content/content-library-preview-panel.test.tsx`
+- **Next step**: Execute Module 2F by aligning article editor history, diagnostics, and lane state to the runtime facade.

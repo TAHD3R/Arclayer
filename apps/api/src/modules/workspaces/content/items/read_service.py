@@ -18,54 +18,21 @@ from src.modules.workspaces.content.contracts.schema import (
     ContentSeoProfileOut,
     ContentVersionOut,
 )
-from src.modules.workspaces.content.items.domain_helpers import (
-    read_slug_field,
-    read_summary_field,
-    read_title_field,
-    read_visibility_field,
-    to_item_out,
-    to_version_out,
-)
+from src.modules.workspaces.content.history import ContentHistoryService
+from src.modules.workspaces.content.items.domain_helpers import to_item_out
 from src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
-
-ActiveItemFields = dict[str, str | None]
+from src.modules.workspaces.content.runtime import DocumentFacade
 
 
 class WorkspaceContentCanonicalItemReadService:
-    def __init__(self, repo: WorkspaceContentItemsRepository) -> None:
-        self.repo = repo
-
-    async def _build_active_item_fields(
+    def __init__(
         self,
-        items,
-    ) -> dict[UUID, ActiveItemFields]:
-        active_versions: dict[UUID, int] = {}
-        for item in items:
-            active_version = item.draft_version or item.published_version
-            if active_version:
-                active_versions[item.id] = active_version
-
-        if not active_versions:
-            return {}
-
-        versions = await self.repo.list_versions_for_items(
-            item_ids=list(active_versions.keys()),
-            version_numbers=list(set(active_versions.values())),
-        )
-        fields_by_version = {
-            (version.item_id, version.version): {
-                "title": read_title_field(version.fields_snapshot),
-                "summary": read_summary_field(version.fields_snapshot),
-                "slug": read_slug_field(version.fields_snapshot),
-                "visibility": read_visibility_field(version.fields_snapshot),
-            }
-            for version in versions
-        }
-
-        return {
-            item_id: fields_by_version.get((item_id, version_number), {})
-            for item_id, version_number in active_versions.items()
-        }
+        repo: WorkspaceContentItemsRepository,
+        facade: DocumentFacade | None = None,
+    ) -> None:
+        self.repo = repo
+        self.facade = facade or DocumentFacade.for_items_repo(repo)
+        self.history = ContentHistoryService(repo=repo)
 
     async def list_items_paginated(
         self,
@@ -91,15 +58,15 @@ class WorkspaceContentCanonicalItemReadService:
             site_id=site_id,
             model_definition_id=model_definition_id,
         )
-        active_fields = await self._build_active_item_fields(items)
+        active_fields = await self.facade.resolve_active_item_fields(items)
         rows = [
             to_item_out(
                 item,
                 item.model_definition,
-                title=active_fields.get(item.id, {}).get("title"),
-                slug=active_fields.get(item.id, {}).get("slug"),
-                summary=active_fields.get(item.id, {}).get("summary"),
-                visibility=active_fields.get(item.id, {}).get("visibility"),
+                title=active_fields.get(item.id).title if item.id in active_fields else None,
+                slug=active_fields.get(item.id).slug if item.id in active_fields else None,
+                summary=active_fields.get(item.id).summary if item.id in active_fields else None,
+                visibility=active_fields.get(item.id).visibility if item.id in active_fields else None,
             )
             for item in items
         ]
@@ -119,14 +86,14 @@ class WorkspaceContentCanonicalItemReadService:
         )
         if item is None:
             raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
-        active_fields = await self._build_active_item_fields([item])
+        active_fields = await self.facade.resolve_active_item_fields([item])
         return to_item_out(
             item,
             item.model_definition,
-            title=active_fields.get(item.id, {}).get("title"),
-            slug=active_fields.get(item.id, {}).get("slug"),
-            summary=active_fields.get(item.id, {}).get("summary"),
-            visibility=active_fields.get(item.id, {}).get("visibility"),
+            title=active_fields.get(item.id).title if item.id in active_fields else None,
+            slug=active_fields.get(item.id).slug if item.id in active_fields else None,
+            summary=active_fields.get(item.id).summary if item.id in active_fields else None,
+            visibility=active_fields.get(item.id).visibility if item.id in active_fields else None,
         )
 
     @staticmethod
@@ -162,18 +129,8 @@ class WorkspaceContentCanonicalItemReadService:
         version: ContentVersionRecord,
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentVersionOut:
-        presentations = await self.repo.list_presentations(version_id=version.id, conn=conn)
-        normalized = cast(
-            list[tuple[ContentPresentationKind, dict[str, Any] | None]],
-            [
-                (
-                    presentation.kind,
-                    presentation.payload if isinstance(presentation.payload, dict) else None,
-                )
-                for presentation in presentations
-            ],
-        )
-        return to_version_out(version, normalized)
+        system_object = await self.history.build_version_system_object(version=version, conn=conn)
+        return system_object.to_contract()
 
     async def _get_item_version(
         self,
@@ -183,17 +140,13 @@ class WorkspaceContentCanonicalItemReadService:
         item_id: UUID,
         version_number: int,
     ) -> ContentVersionRecord:
-        item = await self.repo.get_item_with_model(
+        system_object = await self.history.get_version_or_raise(
             workspace_id=workspace_id,
             site_id=site_id,
             item_id=item_id,
+            version_number=version_number,
         )
-        if item is None:
-            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
-        version = await self.repo.get_version_by_number(item_id=item.id, version_number=version_number)
-        if version is None:
-            raise NotFound("Content version not found", error="CONTENT_ITEM_VERSION_NOT_FOUND")
-        return version
+        return system_object.version
 
     async def get_version(
         self,
@@ -219,19 +172,12 @@ class WorkspaceContentCanonicalItemReadService:
         item_id: UUID,
         params: PageParams,
     ) -> PageData[ContentVersionOut]:
-        item = await self.repo.get_item_with_model(
+        system_objects = await self.history.list_versions(
             workspace_id=workspace_id,
             site_id=site_id,
             item_id=item_id,
         )
-        if item is None:
-            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
-
-        versions = await self.repo.list_versions_for_item(item_id=item.id)
-        rows: list[ContentVersionOut] = []
-        for version in versions:
-            rows.append(await self.build_version_out(version=version))
-        return paginate_items(rows, params=params)
+        return system_objects.to_contract_page(params=params)
 
     async def list_presentations(
         self,

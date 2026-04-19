@@ -9,12 +9,19 @@ import {
 import { getCoreSettings } from "@/api/settings";
 import { readWorkspaceContentStrategy } from "@/lib/settings/workspace-content-strategy";
 import type {
+  AdminContentBootstrapPresetState,
   AdminContentItemStatus,
   AdminContentItemVisibility,
   AdminContentPresentation,
+  AdminContentShapeState,
+  AdminContentWorkbenchDerivedStatus,
   AdminContentVersion,
   AdminContentVersionState,
 } from "@/types/api";
+import {
+  buildContentLibraryArticleEditorRuntimeState,
+  type ContentLibraryArticleEditorSaveState,
+} from "@/pages/workspaces/content/library/runtime";
 
 import { findArticleEditorPresentation, loadContentLibraryArticleEditorSnapshot } from "./api";
 
@@ -49,7 +56,14 @@ type ContentLibraryArticleEditorDraft = {
   seo: ContentLibraryArticleEditorSeoDraft;
 };
 
-type ContentLibraryArticleEditorSaveState = "hidden" | "saving" | "saved" | "error";
+type ContentLibraryArticleEditorItemRuntime = {
+  bootstrapPresetState: AdminContentBootstrapPresetState;
+  derivedStatus: AdminContentWorkbenchDerivedStatus;
+  publishedVersion: number | null;
+  shapeState: AdminContentShapeState;
+  status: AdminContentItemStatus;
+  visibility: AdminContentItemVisibility;
+};
 
 function readStringField(source: Record<string, unknown>, key: string): string {
   const value = source[key];
@@ -266,6 +280,14 @@ export function useContentLibraryArticleEditor(params: {
     coverAssetId: "",
     bodyDocument: { ...EMPTY_ARTICLE_DOCUMENT },
     seo: normalizeSeoDraft(null),
+  });
+  const [itemRuntime, setItemRuntime] = React.useState<ContentLibraryArticleEditorItemRuntime>({
+    bootstrapPresetState: "none",
+    derivedStatus: "draft",
+    publishedVersion: null,
+    shapeState: "unshaped",
+    status: "draft",
+    visibility: "public",
   });
   const [currentVersionNumber, setCurrentVersionNumber] = React.useState<number | null>(null);
   const [currentVersionState, setCurrentVersionState] =
@@ -511,6 +533,14 @@ export function useContentLibraryArticleEditor(params: {
         lastSavedDraftRef.current = cloneDraft(nextDraft);
         liveBodyDocumentRef.current = normalizeDocument(nextDraft.bodyDocument);
         setDraft(nextDraft);
+        setItemRuntime({
+          bootstrapPresetState: snapshot.item.bootstrapPresetState ?? "none",
+          derivedStatus: snapshot.item.derivedStatus,
+          publishedVersion: snapshot.item.publishedVersion,
+          shapeState: snapshot.item.shapeState ?? "unshaped",
+          status: snapshot.item.status,
+          visibility: snapshot.item.visibility,
+        });
         setCurrentVersionNumber(snapshot.draftVersion?.versionNumber ?? null);
         setCurrentVersionState(snapshot.draftVersion?.state ?? null);
         setPublishedVersionNumber(snapshot.publishedVersion?.versionNumber ?? null);
@@ -625,6 +655,12 @@ export function useContentLibraryArticleEditor(params: {
       );
 
       applyPersistedVersion(publishedVersion, nextDraft, publishedVersion.versionNumber);
+      setItemRuntime((current) => ({
+        ...current,
+        derivedStatus: "published",
+        publishedVersion: publishedVersion.versionNumber,
+        status: "published",
+      }));
     } catch (nextError) {
       setSaveError(nextError);
       setSaveState("error");
@@ -640,6 +676,35 @@ export function useContentLibraryArticleEditor(params: {
     persistDraft,
     readCurrentDraft,
   ]);
+
+  const hasUnsavedChanges = !areDraftsEqual(readCurrentDraft(), lastSavedDraftRef.current);
+  const runtime = React.useMemo(
+    () =>
+      buildContentLibraryArticleEditorRuntimeState({
+        autosave: contentStrategy.autosave,
+        draftVersionNumber: currentVersionNumber,
+        draftVersionState: currentVersionState,
+        hasUnsavedChanges,
+        isLoading,
+        isPublishing,
+        item: itemRuntime,
+        publishedVersionNumber,
+        saveError,
+        saveState,
+      }),
+    [
+      contentStrategy.autosave,
+      currentVersionNumber,
+      currentVersionState,
+      hasUnsavedChanges,
+      isLoading,
+      isPublishing,
+      itemRuntime,
+      publishedVersionNumber,
+      saveError,
+      saveState,
+    ],
+  );
 
   return {
     isLoading,
@@ -685,8 +750,9 @@ export function useContentLibraryArticleEditor(params: {
     draftVersionNumber: currentVersionNumber,
     draftVersionState: currentVersionState,
     publishedVersionNumber,
-    hasUnsavedChanges: !areDraftsEqual(readCurrentDraft(), lastSavedDraftRef.current),
+    hasUnsavedChanges,
     autosaveStrategy: contentStrategy.autosave,
     publish,
+    runtime,
   };
 }

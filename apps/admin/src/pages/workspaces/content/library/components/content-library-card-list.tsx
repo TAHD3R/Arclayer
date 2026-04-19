@@ -5,7 +5,10 @@ import { BaseTag } from "@/components/ui/tags";
 import { cn } from "@arclayer/lib/utils";
 
 import { ContentLibraryEditWithTag } from "./content-library-edit-with-tag";
-import { ContentLibraryStatusTag } from "./content-library-status-tag";
+import {
+  ContentLibraryRuntimeBadgeList,
+  ContentLibraryRuntimeDiagnosticList,
+} from "./content-library-runtime-badges";
 import { ContentLibraryRoleTag } from "./content-library-role-tag";
 import { ContentLibraryRowActions } from "./content-library-row-actions";
 import type { ContentLibraryTableRow } from "../types";
@@ -106,8 +109,11 @@ export function ContentLibraryCardList(props: ContentLibraryCardListProps) {
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <ContentLibraryStatusTag status={row.derivedStatus} />
+              <ContentLibraryRuntimeBadgeList row={row} />
               <BaseTag color="blue">{t(getLibraryGroupLabelKey(row))}</BaseTag>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ContentLibraryRuntimeDiagnosticList row={row} />
             </div>
             <div className="text-footnote text-label-secondary">
               {t("CONTENT_LIBRARY_FIELD_UPDATED")}:{" "}

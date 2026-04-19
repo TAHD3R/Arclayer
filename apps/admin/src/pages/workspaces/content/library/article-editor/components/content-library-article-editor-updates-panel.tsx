@@ -5,6 +5,10 @@ import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { listWorkspaceActivity } from "@/api/activity";
+import type {
+  ContentLibraryArticleEditorRuntimeState,
+  ContentLibraryRuntimeDiagnostic,
+} from "@/pages/workspaces/content/library/runtime";
 import { ActivityTimeline } from "@/pages/workspaces/shared/activity/components/activity-timeline";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -13,13 +17,34 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@arclayer/ui/chrome-tabs";
+import { cn } from "@arclayer/lib/utils";
 
 const CONTENT_ITEM_ACTIVITY_ENTITY_TYPE = "content_item";
+
+function UpdatesDiagnosticBadge(props: { diagnostic: ContentLibraryRuntimeDiagnostic }) {
+  const { t } = useTranslation("content");
+
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2.5 py-1 text-caption font-medium",
+        props.diagnostic.tone === "green" && "bg-emerald-500/10 text-emerald-700",
+        props.diagnostic.tone === "blue" && "bg-blue-500/10 text-blue-700",
+        props.diagnostic.tone === "gold" && "bg-amber-500/10 text-amber-700",
+        props.diagnostic.tone === "red" && "bg-destructive/10 text-destructive",
+        props.diagnostic.tone === "default" && "bg-muted text-label-secondary",
+      )}
+    >
+      {t(props.diagnostic.labelKey)}
+    </span>
+  );
+}
 
 export function ContentLibraryArticleEditorUpdatesPanel(props: {
   itemId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  runtime: Pick<ContentLibraryArticleEditorRuntimeState, "currentView" | "diagnostics">;
   workspaceId: string;
 }) {
   const { t } = useTranslation(["content", "common"]);
@@ -60,11 +85,19 @@ export function ContentLibraryArticleEditorUpdatesPanel(props: {
     <aside className="absolute inset-y-12 right-0 z-30 flex w-[28rem] flex-col border-l border-border/70 bg-card">
       <ChromeTabs value="updates" className="flex min-h-0 flex-1 flex-col">
         <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
-          <ChromeTabsList className="w-auto">
-            <ChromeTabsTrigger value="updates">
-              {t("CONTENT_LIBRARY_EDITOR_MENU_ALL_UPDATES")}
-            </ChromeTabsTrigger>
-          </ChromeTabsList>
+          <div className="space-y-2">
+            <ChromeTabsList className="w-auto">
+              <ChromeTabsTrigger value="updates">
+                {t("CONTENT_LIBRARY_EDITOR_MENU_ALL_UPDATES")}
+              </ChromeTabsTrigger>
+            </ChromeTabsList>
+            <div className="flex flex-wrap items-center gap-2 text-footnote text-label-secondary">
+              <span>{t(`CONTENT_LIBRARY_STATUS_${props.runtime.currentView.toUpperCase()}`)}</span>
+              {props.runtime.diagnostics.map((diagnostic) => (
+                <UpdatesDiagnosticBadge key={diagnostic.id} diagnostic={diagnostic} />
+              ))}
+            </div>
+          </div>
           <Button
             type="button"
             variant="ghost"

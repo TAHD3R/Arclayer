@@ -11,9 +11,6 @@ import {
   deleteContentLibraryView,
   deleteContentItem,
   duplicateContentItem,
-  getContentLibraryViews,
-  listAllContentItems,
-  listAllContentModels,
   moveContentLibraryView,
   updateContentLibraryView,
   unarchiveContentItem,
@@ -81,12 +78,18 @@ import {
   type AssetSelectionState,
 } from "@/lib/assets/asset-selection";
 import {
+  buildContentLibraryItemsQueryKey,
+  buildContentLibraryModelsQueryKey,
+  buildContentLibraryViewsQueryKey,
+  loadContentLibraryItems,
+  loadContentLibraryModels,
+  loadContentLibraryViewsState,
+} from "./runtime";
+import {
   areContentLibraryToolbarFiltersEqual,
-  buildContentItemsQueryKey,
   buildContentLibraryPageData,
   buildContentLibrarySystemViews,
   buildContentLibraryRows,
-  buildContentModelsQueryKey,
   CONTENT_LIBRARY_DEFAULT_VIEW_STATE,
   contentLibraryTableId,
   findContentLibrarySavedView,
@@ -519,29 +522,29 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   const createDialogOpen = search.create === "1";
   const viewMode: ContentLibraryViewMode = manualViewMode ?? (autoCardMode ? "card" : "table");
   const modelsQuery = useQuery({
-    queryKey: buildContentModelsQueryKey(workspaceId ? String(workspaceId) : null),
+    queryKey: buildContentLibraryModelsQueryKey(workspaceId ? String(workspaceId) : null),
     enabled: Boolean(workspaceId),
-    queryFn: async () => listAllContentModels(String(workspaceId)),
+    queryFn: async () => loadContentLibraryModels(String(workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
   });
   const itemsQuery = useQuery({
-    queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+    queryKey: buildContentLibraryItemsQueryKey(workspaceId ? String(workspaceId) : null),
     enabled: Boolean(workspaceId),
-    queryFn: async () => listAllContentItems(String(workspaceId)),
+    queryFn: async () => loadContentLibraryItems(String(workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
   });
   const viewsQueryKey = React.useMemo(
-    () => ["content-library", "views", workspaceId ? String(workspaceId) : "none"],
+    () => buildContentLibraryViewsQueryKey(workspaceId ? String(workspaceId) : null),
     [workspaceId],
   );
   const viewsQuery = useQuery({
     queryKey: viewsQueryKey,
     enabled: Boolean(workspaceId),
-    queryFn: async () => getContentLibraryViews(String(workspaceId)),
+    queryFn: async () => loadContentLibraryViewsState(String(workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
@@ -731,7 +734,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       );
       setArchiveDialog(null);
       await queryClient.invalidateQueries({
-        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+        queryKey: buildContentLibraryItemsQueryKey(workspaceId ? String(workspaceId) : null),
       });
     },
     onError: (error) => notifyError(error),
@@ -745,7 +748,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       notifySuccessText(t("content:CONTENT_LIBRARY_DUPLICATE_SUCCESS"));
       setDuplicateRow(null);
       await queryClient.invalidateQueries({
-        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+        queryKey: buildContentLibraryItemsQueryKey(workspaceId ? String(workspaceId) : null),
       });
     },
     onError: (error) => notifyError(error),
@@ -759,7 +762,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       notifySuccessText(t("content:CONTENT_LIBRARY_DELETE_SUCCESS"));
       setDeleteRow(null);
       await queryClient.invalidateQueries({
-        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+        queryKey: buildContentLibraryItemsQueryKey(workspaceId ? String(workspaceId) : null),
       });
     },
     onError: (error) => notifyError(error),
@@ -774,7 +777,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       setPendingBulkAction(null);
       setSelection((prev) => clearSelection(prev));
       await queryClient.invalidateQueries({
-        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+        queryKey: buildContentLibraryItemsQueryKey(workspaceId ? String(workspaceId) : null),
       });
     },
     onError: (error) => notifyError(error),
@@ -790,7 +793,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       setSelection((prev) => clearSelection(prev));
       setPreviewRowId((prev) => (prev && rowIds.includes(prev) ? null : prev));
       await queryClient.invalidateQueries({
-        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+        queryKey: buildContentLibraryItemsQueryKey(workspaceId ? String(workspaceId) : null),
       });
     },
     onError: (error) => notifyError(error),
