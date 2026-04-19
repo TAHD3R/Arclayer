@@ -1,6 +1,11 @@
-import { UserAvatar } from "@/components/common/entity-avatar";
+import { useState, type MouseEvent } from "react";
+import { Star } from "lucide-react";
+
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
 import { cn } from "@arclayer/lib/utils";
+import { useFavoritesStore } from "@/stores/use-favorites-store";
+import { Button } from "@arclayer/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 import type {
   ProjectMenuItem,
@@ -14,9 +19,15 @@ import { ProjectMembersPopover } from "./project-members-popover";
 
 const PROJECT_NAME_MAX_LENGTH = 128;
 const PROJECT_DESCRIPTION_MAX_LENGTH = 256;
+const PROJECT_CARD_ACTION_BUTTON_CLASSNAME =
+  "size-6 shrink-0 text-label-secondary transition-colors hover:text-label-primary";
 
 function normalizeProjectDescriptionPreview(value?: string | null) {
   return (value ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();
+}
+
+function buildProjectOverviewPath(projectId: string) {
+  return `/projects/${projectId}`;
 }
 
 interface ProjectCardProps {
@@ -55,6 +66,20 @@ export function ProjectCard({
   className,
 }: ProjectCardProps) {
   const descriptionPreview = normalizeProjectDescriptionPreview(project.description);
+  const favoritePath = buildProjectOverviewPath(project.projectId);
+  const favoritePaths = useFavoritesStore((state) => state.paths);
+  const toggleFavorite = useFavoritesStore((state) => state.toggle);
+  const isFavorited = favoritePaths.includes(favoritePath);
+  const [favoriteHovered, setFavoriteHovered] = useState(false);
+
+  const handleFavoriteClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    toggleFavorite(favoritePath);
+  };
+
+  const handleFavoritePointerDown = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+  };
 
   return (
     <div
@@ -76,7 +101,42 @@ export function ProjectCard({
             {...projectAvatarPropsFromIdentity(project)}
           />
         </div>
-        <ProjectActionsDropdown menuItems={menuItems} onPrepareMenu={onPrepareMenu} />
+        <div className="flex shrink-0 items-center gap-1">
+          <Tooltip side="bottom">
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
+                aria-label={isFavorited ? t("common:FAVORITE_REMOVE") : t("common:FAVORITE_ADD")}
+                className={cn(
+                  PROJECT_CARD_ACTION_BUTTON_CLASSNAME,
+                  isFavorited &&
+                    "text-amber-500 hover:text-amber-500 dark:text-amber-300 dark:hover:text-amber-300",
+                )}
+                onClick={handleFavoriteClick}
+                onMouseDown={handleFavoritePointerDown}
+                onMouseEnter={() => setFavoriteHovered(true)}
+                onMouseLeave={() => setFavoriteHovered(false)}
+              >
+                <span className="inline-flex items-center justify-center">
+                  <Star
+                    size={16}
+                    strokeWidth={2}
+                    className={cn(
+                      "transition-colors",
+                      favoriteHovered || isFavorited ? "fill-current" : "fill-transparent",
+                    )}
+                  />
+                </span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isFavorited ? t("common:FAVORITE_REMOVE_TOOLTIP") : t("common:FAVORITE_ADD_TOOLTIP")}
+            </TooltipContent>
+          </Tooltip>
+          <ProjectActionsDropdown menuItems={menuItems} onPrepareMenu={onPrepareMenu} />
+        </div>
       </div>
 
       {/* Title + description */}
@@ -109,25 +169,8 @@ export function ProjectCard({
         />
       </div>
 
-      {/* Footer: member avatars + clickable count */}
+      {/* Footer: member summary */}
       <div className="mt-auto flex items-center gap-2 pt-4">
-        {project.membersPreview.length > 0 && (
-          <div className="flex -space-x-2">
-            {project.membersPreview.slice(0, 3).map((member) => (
-              <UserAvatar
-                key={member.userId}
-                name={member.displayName || member.username || "U"}
-                assetRef={member.avatarUrl}
-                size={24}
-              />
-            ))}
-            {project.membersPreview.length > 3 ? (
-              <div className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-caption font-semibold text-primary-foreground ring-2 ring-background">
-                +{project.membersPreview.length - 3}
-              </div>
-            ) : null}
-          </div>
-        )}
         <div onClick={(e) => e.stopPropagation()}>
           <ProjectMembersPopover project={project} t={t} />
         </div>

@@ -38,6 +38,14 @@ type ProjectDangerCapabilityState =
   | { status: "loading"; data: null }
   | { status: "ready"; data: ProjectDangerCapabilities };
 
+type ProjectDangerActionState = {
+  archiveDisabled: boolean;
+  deleteDisabled: boolean;
+};
+
+const projectDangerCapabilitiesKey = (projectId: string) =>
+  ["project", "danger-capabilities", projectId] as const;
+
 const EDIT_NAVIGATION_SUPPRESSION_MS = 240;
 
 function normalizeProjectDescription(value?: string | null) {
@@ -69,6 +77,26 @@ function buildProjectIconPatch(values: ProjectIconDialogValues) {
     iconEmoji: values.iconMode === "emoji" ? values.iconEmoji : null,
     iconUrl: values.iconMode === "image" ? values.iconUrl : null,
   } as const;
+}
+
+function resolveProjectDangerActionState(
+  projectId: string,
+  queryClient: ReturnType<typeof useQueryClient>,
+  projectDangerCapabilities: Record<string, ProjectDangerCapabilityState | undefined>,
+): ProjectDangerActionState {
+  const queryState = queryClient.getQueryState(projectDangerCapabilitiesKey(projectId));
+  const danger =
+    queryClient.getQueryData<ProjectDangerCapabilities>(projectDangerCapabilitiesKey(projectId)) ??
+    projectDangerCapabilities[projectId]?.data ??
+    null;
+  const dangerLoading =
+    queryState?.fetchStatus === "fetching" ||
+    projectDangerCapabilities[projectId]?.status === "loading";
+
+  return {
+    archiveDisabled: dangerLoading || Boolean(danger && !danger.archiveAction.enabled),
+    deleteDisabled: dangerLoading || Boolean(danger && !danger.deleteAction.enabled),
+  };
 }
 
 export function useProjectMenuActions({
@@ -121,19 +149,27 @@ export function useProjectMenuActions({
   const fetchProjectDangerCapabilities = useCallback(
     async (projectId: string) =>
       queryClient.fetchQuery({
-        queryKey: ["project", "danger-capabilities", projectId],
+        queryKey: projectDangerCapabilitiesKey(projectId),
         queryFn: async () => getProjectDangerCapabilities(projectId),
       }),
     [queryClient],
   );
 
+  const prepareProjectDangerCapabilities = useCallback(
+    (projectId: string) => {
+      void queryClient.ensureQueryData({
+        queryKey: projectDangerCapabilitiesKey(projectId),
+        queryFn: async () => getProjectDangerCapabilities(projectId),
+      });
+    },
+    [queryClient],
+  );
+
   const prefetchProjectDangerCapabilities = useCallback(
     async (projectId: string) => {
-      const cached = queryClient.getQueryData<ProjectDangerCapabilities>([
-        "project",
-        "danger-capabilities",
-        projectId,
-      ]);
+      const cached = queryClient.getQueryData<ProjectDangerCapabilities>(
+        projectDangerCapabilitiesKey(projectId),
+      );
       if (cached) {
         setProjectDangerCapabilities((prev) => ({
           ...prev,
@@ -334,11 +370,11 @@ export function useProjectMenuActions({
 
   const buildMenuItems = useCallback(
     (project: UserCenterProjectListItem): ProjectMenuItem[] => {
-      const dangerState = projectDangerCapabilities[project.projectId];
-      const danger = dangerState?.data ?? null;
-      const dangerLoading = dangerState?.status === "loading";
-      const archiveDisabled = dangerLoading || Boolean(danger && !danger.archiveAction.enabled);
-      const deleteDisabled = dangerLoading || Boolean(danger && !danger.deleteAction.enabled);
+      const { archiveDisabled, deleteDisabled } = resolveProjectDangerActionState(
+        project.projectId,
+        queryClient,
+        projectDangerCapabilities,
+      );
 
       if (project.isArchived) {
         return [
@@ -437,6 +473,7 @@ export function useProjectMenuActions({
       onManageProject,
       openIconDialog,
       projectDangerCapabilities,
+      queryClient,
       requestArchiveProject,
       requestDeleteProject,
       startEditProjectDescription,
@@ -461,6 +498,7 @@ export function useProjectMenuActions({
     cancelProjectEdit,
     commitProjectEdit,
     prefetchProjectDangerCapabilities,
+    prepareProjectDangerCapabilities,
     iconDialog: {
       project: iconDialogProject,
       setProject: setIconDialogProject,

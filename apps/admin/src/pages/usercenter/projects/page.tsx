@@ -103,13 +103,17 @@ export function ProjectsPage() {
     onEnterProject: handleEnterProject,
     onManageProject: handleManageProject,
   });
+  const handlePrepareProjectMenu = useCallback(
+    (projectId: string) => {
+      projectMenuActions.prepareProjectDangerCapabilities(projectId);
+    },
+    [projectMenuActions.prepareProjectDangerCapabilities],
+  );
 
   const columns = useUserCenterProjectsColumns({
     t: projectT,
     buildMenuItems: projectMenuActions.buildMenuItems,
-    onPrepareProjectMenu: (projectId) => {
-      void projectMenuActions.prefetchProjectDangerCapabilities(projectId);
-    },
+    onPrepareProjectMenu: handlePrepareProjectMenu,
     editingProjectId: projectMenuActions.editingProjectId,
     editingProjectField: projectMenuActions.editingProjectField,
     editingProjectName: projectMenuActions.editingProjectName,
@@ -221,9 +225,7 @@ export function ProjectsPage() {
               archived={false}
               searchInput={activeTableHook.searchInput}
               buildMenuItems={projectMenuActions.buildMenuItems}
-              onPrepareProjectMenu={(projectId) => {
-                void projectMenuActions.prefetchProjectDangerCapabilities(projectId);
-              }}
+              onPrepareProjectMenu={handlePrepareProjectMenu}
               editingProjectId={projectMenuActions.editingProjectId}
               editingProjectField={projectMenuActions.editingProjectField}
               editingProjectName={projectMenuActions.editingProjectName}
@@ -252,9 +254,7 @@ export function ProjectsPage() {
               archived
               searchInput={archivedTableHook.searchInput}
               buildMenuItems={projectMenuActions.buildMenuItems}
-              onPrepareProjectMenu={(projectId) => {
-                void projectMenuActions.prefetchProjectDangerCapabilities(projectId);
-              }}
+              onPrepareProjectMenu={handlePrepareProjectMenu}
               editingProjectId={projectMenuActions.editingProjectId}
               editingProjectField={projectMenuActions.editingProjectField}
               editingProjectName={projectMenuActions.editingProjectName}

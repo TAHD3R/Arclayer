@@ -8,6 +8,7 @@ import { listProjectMembers } from "@/api/project-members";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import type { ProjectMember } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
+import { AvatarGroup, AvatarGroupCount } from "@arclayer/ui/avatar";
 import {
   InputGroup,
   InputGroupAddon,
@@ -16,6 +17,7 @@ import {
 } from "@arclayer/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { Spinner } from "@arclayer/ui/spinner";
+import { cn } from "@arclayer/lib/utils";
 import type { UserCenterProjectsTranslateFn } from "../types";
 import type { UserCenterProjectListItem } from "../project-list-items";
 
@@ -23,14 +25,19 @@ function normalizeQuery(input: string): string {
   return String(input || "").trim();
 }
 
-type ProjectMembersPopoverProject = Pick<UserCenterProjectListItem, "projectId" | "memberCount">;
+type ProjectMembersPopoverProject = Pick<
+  UserCenterProjectListItem,
+  "projectId" | "memberCount" | "membersPreview"
+>;
 
 export function ProjectMembersPopover({
   project,
   t: tOverride,
+  triggerClassName,
 }: {
   project: ProjectMembersPopoverProject;
   t?: UserCenterProjectsTranslateFn;
+  triggerClassName?: string;
 }) {
   const { t: defaultT } = useTranslation(["common"]);
   const t = tOverride ?? defaultT;
@@ -78,6 +85,9 @@ export function ProjectMembersPopover({
   };
 
   const totalPages = membersQuery.data?.pages || 0;
+  const memberCount = Math.max(0, project.memberCount);
+  const visibleMembers = project.membersPreview.slice(0, 3);
+  const hiddenMemberCount = Math.max(0, memberCount - visibleMembers.length);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -85,20 +95,43 @@ export function ProjectMembersPopover({
         <Button
           variant="ghost"
           size="sm"
-          className="h-auto px-2 py-1 font-medium text-label-primary hover:bg-accent"
+          className={cn(
+            "h-auto min-h-6 gap-2 py-1 pl-0 font-medium text-label-primary hover:bg-transparent",
+            triggerClassName,
+          )}
         >
-          {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: project.memberCount })}
+          {visibleMembers.length > 0 ? (
+            <AvatarGroup aria-hidden="true" className="shrink-0">
+              {visibleMembers.map((member) => (
+                <UserAvatar
+                  key={member.userId}
+                  name={member.displayName || member.username || "U"}
+                  assetRef={member.avatarUrl}
+                  size={24}
+                />
+              ))}
+              {hiddenMemberCount > 0 ? (
+                <AvatarGroupCount className="size-6 bg-muted text-caption text-label-secondary">
+                  +{hiddenMemberCount}
+                </AvatarGroupCount>
+              ) : null}
+            </AvatarGroup>
+          ) : null}
+          <span className="leading-none">
+            {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: memberCount })}
+          </span>
         </Button>
       </PopoverTrigger>
 
       <PopoverContent
         align="start"
         sideOffset={8}
-        className="w-80 max-w-[90vw] p-3"
+        collisionPadding={16}
+        className="flex w-80 max-w-[90vw] max-h-(--radix-popover-content-available-height) flex-col overflow-hidden p-3"
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
-        <div className="space-y-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="font-semibold">{t("account:ACCOUNT_PROJECTS_MEMBERS_POPOVER_TITLE")}</div>
 
           <InputGroup>
@@ -123,7 +156,7 @@ export function ProjectMembersPopover({
             ) : null}
           </InputGroup>
 
-          <div className="max-h-105 overflow-auto pr-1">
+          <div className="min-h-0 flex-1 overflow-auto">
             {membersQuery.isLoading ? (
               <div className="flex justify-center py-8">
                 <Spinner className="size-4 text-label-secondary" />
@@ -145,7 +178,7 @@ export function ProjectMembersPopover({
                 {(membersQuery.data?.items?.length ?? 0) > 0 ? (
                   <ul>{(membersQuery.data?.items ?? []).map(renderMember)}</ul>
                 ) : (
-                  <div className="rounded-md border border-dashed p-4 text-center text-label-secondary">
+                  <div className="rounded-md p-4 text-center text-label-secondary">
                     {t("common:EMPTY_DESC")}
                   </div>
                 )}

@@ -148,6 +148,46 @@ describe("useProjectMenuActions", () => {
     });
   });
 
+  it("prepares danger capabilities through query cache without rerendering the menu hook", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const wrapper = createWrapper(queryClient);
+
+    let renderCount = 0;
+    const { result } = renderHook(
+      () => {
+        renderCount += 1;
+        return useProjectMenuActions({
+          t: ((key: string) => key) as never,
+          onEnterProject: vi.fn(),
+          onManageProject: vi.fn(),
+        });
+      },
+      { wrapper },
+    );
+    const renderCountBeforePrepare = renderCount;
+
+    await act(async () => {
+      result.current.prepareProjectDangerCapabilities("project-1");
+      await vi.waitFor(() =>
+        expect(getProjectDangerCapabilities).toHaveBeenCalledWith("project-1"),
+      );
+    });
+
+    expect(renderCount).toBe(renderCountBeforePrepare);
+    expect(queryClient.getQueryData(["project", "danger-capabilities", "project-1"])).toMatchObject(
+      {
+        projectId: "project-1",
+        archiveAction: { enabled: true },
+        deleteAction: { enabled: true },
+      },
+    );
+  });
+
   it("opens archive and delete dialogs for active projects", async () => {
     const queryClient = new QueryClient({
       defaultOptions: {
