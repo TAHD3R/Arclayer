@@ -18,18 +18,18 @@
 ## Context Recovery Block
 
 **Current milestone**: Milestone 4 — execute Epic 2 Document Runtime Platform
-- **Current status**: IN_PROGRESS
-- **Last completed**: Milestone 3 — execute Epic 1 Model Lifecycle Platform
+- **Current status**: DONE
+- **Last completed**: Milestone 4 — execute Epic 2 Document Runtime Platform
 - **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
 - **Key context**:
   - Epic 0 is complete and its baseline docs now live under `docs/plan`.
   - Epic 1 is complete and its dependency on Epic 0 is satisfied.
   - Epic 1 now covers contract registry, schema change plan, and the Models governance operator workflow.
-  - Epic 2 is active and now has three backend runtime slices landed under `apps/api/src/modules/workspaces/content/runtime/`, `apps/api/src/modules/workspaces/content/history/`, and `apps/api/src/modules/sites/graphql/service.py`.
-  - Epic 2 Module 2E is complete: admin Content Library now has a shared runtime query layer plus shared runtime badges and diagnostics surfaces across list, table, preview, resolver, and settings invalidation paths.
+  - Epic 2 runtime slices are complete and the closure pass added workspace primary project hydration plus full `/api/v1/sites` route registration.
+  - Epic 2 final backend aggregate verification is green with `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content tests/modules/workspaces/publish tests/modules/sites`.
 - **Known issues**:
   - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic1 slice.
-- **Next action**: Continue Epic 2 child task by aligning article editor runtime surfaces to the new facade and history objects.
+- **Next action**: Proceed to Epic 3 after Epic2 changes are committed.
 
 ---
 
@@ -120,9 +120,9 @@
 
 ## Milestone 4: Execute Epic 2 Document Runtime Platform
 
-- **Status**: IN_PROGRESS
+- **Status**: DONE
 - **Started**: 2026-04-19
-- **Completed**: In progress
+- **Completed**: 2026-04-19
 - **What was done**:
   - Activated child task `20260419-epic2-document-runtime-platform`.
   - Recovered live Epic2 scope from the implementation plan section covering Module 2A through 2G.
@@ -138,12 +138,17 @@
   - Routed GraphQL preview/published listing through the shared query boundary while preserving outward GraphQL contracts.
   - Completed Module 2E by adding an admin shared runtime query layer for Content Library items, models, views, item detail, version history, and article editor snapshot loading.
   - Unified list/card/preview state presentation behind shared runtime badges and diagnostics derived from document truth fields.
+  - Completed verification closure by hydrating workspace primary project bindings in workspace creation/detail flows and by restoring the full site/public route registration surface under `/api/v1/sites`.
 - **Validation**:
   - `rg -n "Epic 2|Module 2A|Module 2B|Module 2C|Module 2D|Module 2E|Module 2F|Module 2G" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md` → passed
   - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_document_runtime_unit.py` → passed
   - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_graphql_service_unit.py tests/modules/workspaces/content/test_document_runtime_unit.py` → passed
   - `timeout 60s pnpm -C apps/admin exec vitest run --config vitest.config.ts test/pages/workspaces/content/content-library-runtime.test.ts test/api/content-editor.test.ts test/pages/workspaces/content/content-library-preview-panel.test.tsx test/pages/workspaces/content/content-library-table-columns.test.tsx` → passed
   - `timeout 60s pnpm -C apps/admin exec vitest run --config vitest.config.ts test/pages/workspaces/content/content-library-resolver-route.test.tsx test/pages/workspaces/content/content-library-item-settings-dialogs.test.tsx test/pages/workspaces/content/content-library-page.test.tsx` → passed
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/projects/test_project_runtime_routes_integration.py::test_runtime_routes_resolve_same_delivery_and_runtime_contract_as_project_primary_runtime tests/modules/sites/test_sites_delivery_integration.py::test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_draft -vv -s` → passed
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_benchmark_baselines_integration.py::test_headless_cms_benchmark_baselines tests/modules/sites/test_sites_canonical_content_runtime_integration.py tests/modules/sites/test_sites_delivery_integration.py tests/modules/sites/test_sites_graphql_integration.py` → passed
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_portal_protocol_integration.py::test_sites_public_preview_draft_publish_flow -vv -s` → passed
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content tests/modules/workspaces/publish tests/modules/sites` → passed
 - **Files changed**:
   - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
   - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/PROGRESS.md`
@@ -153,6 +158,10 @@
   - `apps/api/src/modules/workspaces/content/runtime/facade.py`
   - `apps/api/src/modules/workspaces/content/history/__init__.py`
   - `apps/api/src/modules/workspaces/content/history/service.py`
+  - `apps/api/src/modules/organization/workspaces/service.py`
+  - `apps/api/src/modules/workspaces/service.py`
+  - `apps/api/src/core/routes.py`
+  - `apps/api/src/modules/sites/router.py`
   - `apps/api/src/modules/workspaces/content/items/read_service.py`
   - `apps/api/src/modules/sites/graphql/service.py`
   - `apps/api/tests/modules/workspaces/content/test_document_runtime_unit.py`
@@ -161,4 +170,4 @@
   - `apps/admin/src/pages/workspaces/content/library/components/content-library-runtime-badges.tsx`
   - `apps/admin/test/pages/workspaces/content/content-library-runtime.test.ts`
   - `apps/admin/test/pages/workspaces/content/content-library-preview-panel.test.tsx`
-- **Next step**: Execute Module 2F by aligning article editor history, diagnostics, and lane state to the runtime facade.
+- **Next step**: Proceed to Epic 3.

@@ -281,6 +281,10 @@ class OrganizationWorkspaceService(BaseService):
             workspace_id=UUID(str(ws.id)),
             actor_user_id=user_id,
         )
+        project = await self.project_repo.get_or_create_primary_project_for_workspace(
+            workspace_id=UUID(str(ws.id)),
+            actor_user_id=user_id,
+        )
 
         # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
         settings_service = WorkspaceSettingsService(self.settings)
@@ -326,7 +330,7 @@ class OrganizationWorkspaceService(BaseService):
             member_count=1 if preview else 0,
             members_preview=preview,
             enterable=True,
-            project_id=None,
+            project_id=UUID(str(project.id)),
         )
 
     async def check_slug_availability(self, *, slug: str) -> OrganizationWorkspaceSlugAvailabilityOut:

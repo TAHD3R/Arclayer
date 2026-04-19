@@ -34,7 +34,7 @@
 - **Known issues**:
   - `pnpm -C apps/admin typecheck` 仍有仓库既有错误，当前不适合作为 Epic2 milestone #1 的 focused validation。
   - GitNexus 对 runtime 入口面检索结果有限，当前以 implementation plan + live repo truth 为主。
-- **Next action**: Keep Epic2 open until backend aggregate verification has a passing, non-timeout run under the repo's 60-second verification rule.
+- **Next action**: Epic2 verification closure is complete; sync parent epic truth and commit the slice.
 
 ---
 
@@ -217,21 +217,27 @@
 
 ## Verification Sweep
 
-- **Status**: PARTIAL
+- **Status**: DONE
 - **What was done**:
   - Ran the full Epic2 admin focused verification sweep covering runtime layer, preview panel, table columns, resolver route, item settings dialogs, content-library page, article editor page, and toolbar UI.
   - Attempted the parent Epic2 backend verification command from `SUBTASKS.csv`.
   - Broke the backend verification into split commands to diagnose whether the blocker came from `content`, `publish`, or `sites`.
   - Re-ran `tests/modules/workspaces/content` serially to remove the false failures caused by parallel test processes sharing the same Postgres schema and Tortoise global context.
+  - Fixed the real backend blockers by restoring workspace primary project bindings and by registering the full site/public route surface under `/api/v1/sites`.
+  - Re-ran the focused backend and full aggregate verification suite without the 60-second timeout after the user explicitly lifted that constraint for Docker-backed Postgres.
 - **Validation**:
   - `timeout 60s pnpm -C apps/admin exec vitest run --config vitest.config.ts test/pages/workspaces/content/content-library-runtime.test.ts test/api/content-editor.test.ts test/pages/workspaces/content/content-library-preview-panel.test.tsx test/pages/workspaces/content/content-library-table-columns.test.tsx test/pages/workspaces/content/content-library-resolver-route.test.tsx test/pages/workspaces/content/content-library-item-settings-dialogs.test.tsx test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-editor-toolbar-ui.test.tsx` → passed (`9` files, `61` tests)
   - `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content tests/modules/workspaces/publish tests/modules/sites` → timed out with exit code `124`
   - `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content` → timed out with exit code `124`
   - `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/publish` → passed
   - `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites` → failed when run in parallel with other backend groups because the shared Postgres schema and Tortoise global context collided during setup; this run is not a reliable product regression signal
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/projects/test_project_runtime_routes_integration.py::test_runtime_routes_resolve_same_delivery_and_runtime_contract_as_project_primary_runtime tests/modules/sites/test_sites_delivery_integration.py::test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_draft -vv -s` → passed
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_benchmark_baselines_integration.py::test_headless_cms_benchmark_baselines tests/modules/sites/test_sites_canonical_content_runtime_integration.py tests/modules/sites/test_sites_delivery_integration.py tests/modules/sites/test_sites_graphql_integration.py` → passed
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_portal_protocol_integration.py::test_sites_public_preview_draft_publish_flow -vv -s` → passed
+  - `env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content tests/modules/workspaces/publish tests/modules/sites` → passed
 - **Current conclusion**:
   - Epic2 frontend consumer verification is green.
-  - Epic2 backend aggregate verification does not yet have a passing run inside the repository's 60-second rule, so the child task stays open for verification closure.
+  - Epic2 backend aggregate verification is green in the user-approved non-timeout mode, so the child task is ready to close.
 
 ---
 
@@ -250,3 +256,4 @@
   - Query boundary work can stay low-risk when the shared layer owns only query input and runtime metadata, while surface-specific formatting remains in the consumer.
 - **Recommendations for future tasks**:
   - Grow the facade through one consumer at a time and keep focused pytest coverage alongside each new runtime boundary.
+  - Keep `/api/v1/sites` registration centralized through the aggregated sites router so site-scoped delivery and portal protocol contracts move together.
