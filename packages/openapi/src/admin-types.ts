@@ -327,6 +327,30 @@ export type AdminReleaseList = Generated.ReleaseListOut;
 export type AdminReleasePublishResult = Generated.ReleasePublishOut;
 export type AdminReleaseRollbackResult = Generated.ReleaseRollbackOut;
 export type AdminReleaseDryRun = Generated.ReleaseDryRunOut;
+export type AdminAutomationCatalog = Generated.AutomationCatalogOut;
+export type AdminAutomationTrigger = Generated.AutomationTriggerOut;
+export type AdminAutomationOperationKind = Generated.AutomationOperationKindOut;
+export type AdminAutomationOperationInput = Generated.AutomationOperationIn;
+export type AdminAutomationOperation = Generated.AutomationOperationOut;
+export type AdminAutomationFlow = Omit<Generated.AutomationFlowOut, "operations"> & {
+  operations: Generated.AutomationOperationOut[];
+};
+export type AdminAutomationFlowList = Omit<Generated.AutomationFlowListOut, "items"> & {
+  items: AdminAutomationFlow[];
+};
+export type CreateAdminAutomationFlowPayload = Generated.AutomationFlowCreateIn;
+export type PatchAdminAutomationFlowPayload = Generated.AutomationFlowPatchIn;
+export type AdminAutomationRunLog = Generated.AutomationRunLogOut;
+export type AdminAutomationRun = Omit<Generated.AutomationRunOut, "logs"> & {
+  logs: Generated.AutomationRunLogOut[];
+};
+export type AdminAutomationRunList = Omit<Generated.AutomationRunListOut, "items"> & {
+  items: AdminAutomationRun[];
+};
+export type AdminAutomationFlowStatus = Generated.AutomationFlowStatus;
+export type AdminAutomationOperationKindValue = Generated.AutomationOperationKind;
+export type AdminAutomationRunStatus = Generated.AutomationRunStatus;
+export type AdminAutomationTriggerKind = Generated.AutomationTriggerKind;
 export type ListAdminContentModelsParams =
   QueryOf<Generated.DomainWorkspacesListWorkspaceContentModelsCanonicalData>;
 export type ListAdminContentItemsParams =

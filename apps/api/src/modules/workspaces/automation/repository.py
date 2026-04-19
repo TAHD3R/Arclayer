@@ -1,0 +1,183 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any
+from uuid import UUID
+
+from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.transactions import in_transaction
+
+from src.models.automation.flow import (
+    AutomationFlowRecord,
+    AutomationFlowStatus,
+    AutomationOperationKind,
+    AutomationOperationRecord,
+    AutomationRunLogLevel,
+    AutomationRunLogRecord,
+    AutomationRunRecord,
+    AutomationRunStatus,
+    AutomationTriggerKind,
+)
+
+
+class AutomationRepository:
+    async def list_flows(self, *, workspace_id: UUID) -> list[AutomationFlowRecord]:
+        return await AutomationFlowRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").all()
+
+    async def list_enabled_flows_for_event(self, *, workspace_id: UUID, event_name: str) -> list[AutomationFlowRecord]:
+        return (
+            await AutomationFlowRecord
+            .filter(
+                workspace_id=workspace_id,
+                trigger_event=event_name,
+                status=AutomationFlowStatus.ACTIVE,
+            )
+            .order_by("created_at", "id")
+            .all()
+        )
+
+    async def get_flow(self, *, workspace_id: UUID, flow_id: UUID) -> AutomationFlowRecord | None:
+        return await AutomationFlowRecord.filter(id=flow_id, workspace_id=workspace_id).first()
+
+    async def create_flow(
+        self,
+        *,
+        workspace_id: UUID,
+        name: str,
+        description: str | None,
+        status: AutomationFlowStatus,
+        trigger_kind: AutomationTriggerKind,
+        trigger_event: str,
+        retry_limit: int,
+        dead_letter_enabled: bool,
+        credential_binding: dict[str, Any] | None,
+        created_by_user_id: UUID | None,
+        operations: list[tuple[str, AutomationOperationKind, dict[str, Any] | None, int]],
+    ) -> AutomationFlowRecord:
+        async with in_transaction() as conn:
+            flow = await AutomationFlowRecord.create(
+                workspace_id=workspace_id,
+                name=name,
+                description=description,
+                status=status,
+                trigger_kind=trigger_kind,
+                trigger_event=trigger_event,
+                retry_limit=retry_limit,
+                dead_letter_enabled=dead_letter_enabled,
+                credential_binding=credential_binding,
+                created_by_user_id=created_by_user_id,
+                updated_by_user_id=created_by_user_id,
+                using_db=conn,
+            )
+            await self.replace_operations(flow_id=flow.id, operations=operations, conn=conn)
+            return flow
+
+    async def update_flow(
+        self,
+        flow: AutomationFlowRecord,
+        *,
+        fields: dict[str, Any],
+        operations: list[tuple[str, AutomationOperationKind, dict[str, Any] | None, int]] | None,
+    ) -> AutomationFlowRecord:
+        async with in_transaction() as conn:
+            if fields:
+                for key, value in fields.items():
+                    setattr(flow, key, value)
+                await flow.save(update_fields=[*fields.keys(), "updated_at"], using_db=conn)
+            if operations is not None:
+                await self.replace_operations(flow_id=flow.id, operations=operations, conn=conn)
+            return flow
+
+    async def delete_flow(self, *, workspace_id: UUID, flow_id: UUID) -> int:
+        return int(await AutomationFlowRecord.filter(id=flow_id, workspace_id=workspace_id).delete())
+
+    async def list_operations(self, *, flow_id: UUID) -> list[AutomationOperationRecord]:
+        return await AutomationOperationRecord.filter(flow_id=flow_id).order_by("sort_order", "created_at", "id").all()
+
+    async def replace_operations(
+        self,
+        *,
+        flow_id: UUID,
+        operations: list[tuple[str, AutomationOperationKind, dict[str, Any] | None, int]],
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        await AutomationOperationRecord.filter(flow_id=flow_id).using_db(conn).delete()
+        for index, (name, kind, config, sort_order) in enumerate(operations):
+            await AutomationOperationRecord.create(
+                flow_id=flow_id,
+                name=name,
+                kind=kind,
+                config=config,
+                sort_order=sort_order if sort_order is not None else index,
+                using_db=conn,
+            )
+
+    async def create_run(
+        self,
+        *,
+        workspace_id: UUID,
+        flow_id: UUID,
+        trigger_event: str,
+        event_payload: dict[str, Any],
+        max_attempts: int,
+    ) -> AutomationRunRecord:
+        return await AutomationRunRecord.create(
+            workspace_id=workspace_id,
+            flow_id=flow_id,
+            trigger_event=trigger_event,
+            status=AutomationRunStatus.QUEUED,
+            attempt=1,
+            max_attempts=max_attempts,
+            event_payload=event_payload,
+        )
+
+    async def update_run(
+        self,
+        run: AutomationRunRecord,
+        *,
+        status: AutomationRunStatus,
+        result_payload: dict[str, Any] | None = None,
+        error: str | None = None,
+        started_at: datetime | None = None,
+        completed_at: datetime | None = None,
+    ) -> AutomationRunRecord:
+        run.status = status
+        run.result_payload = result_payload
+        run.error = error
+        if started_at is not None:
+            run.started_at = started_at
+        if completed_at is not None:
+            run.completed_at = completed_at
+        await run.save(update_fields=["status", "result_payload", "error", "started_at", "completed_at", "updated_at"])
+        return run
+
+    async def create_log(
+        self,
+        *,
+        workspace_id: UUID,
+        run_id: UUID,
+        operation_id: UUID | None,
+        level: AutomationRunLogLevel,
+        message: str,
+        payload: dict[str, Any] | None = None,
+    ) -> AutomationRunLogRecord:
+        return await AutomationRunLogRecord.create(
+            workspace_id=workspace_id,
+            run_id=run_id,
+            operation_id=operation_id,
+            level=level,
+            message=message,
+            payload=payload,
+        )
+
+    async def list_runs(self, *, workspace_id: UUID, limit: int) -> list[AutomationRunRecord]:
+        safe_limit = max(1, min(int(limit or 0), 100))
+        return await AutomationRunRecord.filter(workspace_id=workspace_id).order_by("-created_at").limit(safe_limit)
+
+    async def get_run(self, *, workspace_id: UUID, run_id: UUID) -> AutomationRunRecord | None:
+        return await AutomationRunRecord.filter(id=run_id, workspace_id=workspace_id).first()
+
+    async def list_run_logs(self, *, workspace_id: UUID, run_id: UUID) -> list[AutomationRunLogRecord]:
+        return await AutomationRunLogRecord.filter(workspace_id=workspace_id, run_id=run_id).order_by(
+            "created_at", "id"
+        )

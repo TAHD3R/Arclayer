@@ -1350,6 +1350,390 @@ export type AuthzSnapshot = {
 };
 
 /**
+ * AutomationCatalogOut
+ */
+export type AutomationCatalogOut = {
+    /**
+     * Operations
+     */
+    operations?: Array<AutomationOperationKindOut>;
+    /**
+     * Triggers
+     */
+    triggers?: Array<AutomationTriggerOut>;
+};
+
+/**
+ * AutomationFlowCreateIn
+ */
+export type AutomationFlowCreateIn = {
+    /**
+     * Credentialbinding
+     */
+    credentialBinding?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Deadletterenabled
+     */
+    deadLetterEnabled?: boolean;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Operations
+     */
+    operations?: Array<AutomationOperationIn>;
+    /**
+     * Retrylimit
+     */
+    retryLimit?: number;
+    status?: AutomationFlowStatus;
+    triggerKind: AutomationTriggerKind;
+};
+
+/**
+ * AutomationFlowListOut
+ */
+export type AutomationFlowListOut = {
+    /**
+     * Items
+     */
+    items?: Array<AutomationFlowOut>;
+};
+
+/**
+ * AutomationFlowOut
+ */
+export type AutomationFlowOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     */
+    createdByUserId?: string | null;
+    /**
+     * Credentialbinding
+     */
+    credentialBinding?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Deadletterenabled
+     */
+    deadLetterEnabled: boolean;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Operations
+     */
+    operations?: Array<AutomationOperationOut>;
+    /**
+     * Retrylimit
+     */
+    retryLimit: number;
+    status: AutomationFlowStatus;
+    /**
+     * Triggerevent
+     */
+    triggerEvent: string;
+    triggerKind: AutomationTriggerKind;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     */
+    updatedByUserId?: string | null;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * AutomationFlowPatchIn
+ */
+export type AutomationFlowPatchIn = {
+    /**
+     * Credentialbinding
+     */
+    credentialBinding?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Deadletterenabled
+     */
+    deadLetterEnabled?: boolean | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Operations
+     */
+    operations?: Array<AutomationOperationIn> | null;
+    /**
+     * Retrylimit
+     */
+    retryLimit?: number | null;
+    status?: AutomationFlowStatus | null;
+};
+
+/**
+ * AutomationFlowStatus
+ */
+export type AutomationFlowStatus = 'active' | 'disabled';
+
+/**
+ * AutomationOperationIn
+ */
+export type AutomationOperationIn = {
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    kind: AutomationOperationKind;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Sortorder
+     */
+    sortOrder?: number;
+};
+
+/**
+ * AutomationOperationKind
+ */
+export type AutomationOperationKind = 'webhook' | 'http_request' | 'content_read' | 'content_update' | 'release_publish' | 'notification';
+
+/**
+ * AutomationOperationKindOut
+ */
+export type AutomationOperationKindOut = {
+    /**
+     * Description
+     */
+    description: string;
+    kind: AutomationOperationKind;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Requiredfields
+     */
+    requiredFields?: Array<string>;
+};
+
+/**
+ * AutomationOperationOut
+ */
+export type AutomationOperationOut = {
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Flowid
+     */
+    flowId: string;
+    /**
+     * Id
+     */
+    id: string;
+    kind: AutomationOperationKind;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Sortorder
+     */
+    sortOrder: number;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+};
+
+/**
+ * AutomationRunListOut
+ */
+export type AutomationRunListOut = {
+    /**
+     * Items
+     */
+    items?: Array<AutomationRunOut>;
+};
+
+/**
+ * AutomationRunLogLevel
+ */
+export type AutomationRunLogLevel = 'info' | 'error';
+
+/**
+ * AutomationRunLogOut
+ */
+export type AutomationRunLogOut = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Id
+     */
+    id: string;
+    level: AutomationRunLogLevel;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Operationid
+     */
+    operationId?: string | null;
+    /**
+     * Payload
+     */
+    payload?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Runid
+     */
+    runId: string;
+};
+
+/**
+ * AutomationRunOut
+ */
+export type AutomationRunOut = {
+    /**
+     * Attempt
+     */
+    attempt: number;
+    /**
+     * Completedat
+     */
+    completedAt?: string | null;
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Eventpayload
+     */
+    eventPayload?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Flowid
+     */
+    flowId: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Logs
+     */
+    logs?: Array<AutomationRunLogOut>;
+    /**
+     * Maxattempts
+     */
+    maxAttempts: number;
+    /**
+     * Resultpayload
+     */
+    resultPayload?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Startedat
+     */
+    startedAt?: string | null;
+    status: AutomationRunStatus;
+    /**
+     * Triggerevent
+     */
+    triggerEvent: string;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     */
+    workspaceId: string;
+};
+
+/**
+ * AutomationRunStatus
+ */
+export type AutomationRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'dead_letter';
+
+/**
+ * AutomationTriggerKind
+ */
+export type AutomationTriggerKind = 'publish_completed' | 'content_transitioned' | 'api_key_rotated' | 'preview_token_created';
+
+/**
+ * AutomationTriggerOut
+ */
+export type AutomationTriggerOut = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Eventname
+     */
+    eventName: string;
+    kind: AutomationTriggerKind;
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
  * AvatarUploadInitRequest
  *
  * Initialize avatar upload (current user only).
@@ -9601,6 +9985,131 @@ export type ResponseModelAuthSessionRevokeOthersOut = {
  */
 export type ResponseModelAuthzSnapshot = {
     data?: AuthzSnapshot | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AutomationCatalogOut]
+ */
+export type ResponseModelAutomationCatalogOut = {
+    data?: AutomationCatalogOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AutomationFlowListOut]
+ */
+export type ResponseModelAutomationFlowListOut = {
+    data?: AutomationFlowListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AutomationFlowOut]
+ */
+export type ResponseModelAutomationFlowOut = {
+    data?: AutomationFlowOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AutomationRunListOut]
+ */
+export type ResponseModelAutomationRunListOut = {
+    data?: AutomationRunListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[AutomationRunOut]
+ */
+export type ResponseModelAutomationRunOut = {
+    data?: AutomationRunOut | null;
     /**
      * Error
      */
@@ -24569,6 +25078,247 @@ export type DomainWorkspacesListAssetUsagesResponses = {
 };
 
 export type DomainWorkspacesListAssetUsagesResponse = DomainWorkspacesListAssetUsagesResponses[keyof DomainWorkspacesListAssetUsagesResponses];
+
+export type DomainWorkspacesGetWorkspaceAutomationCatalogData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/automation/catalog';
+};
+
+export type DomainWorkspacesGetWorkspaceAutomationCatalogErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceAutomationCatalogError = DomainWorkspacesGetWorkspaceAutomationCatalogErrors[keyof DomainWorkspacesGetWorkspaceAutomationCatalogErrors];
+
+export type DomainWorkspacesGetWorkspaceAutomationCatalogResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationCatalogOut;
+};
+
+export type DomainWorkspacesGetWorkspaceAutomationCatalogResponse = DomainWorkspacesGetWorkspaceAutomationCatalogResponses[keyof DomainWorkspacesGetWorkspaceAutomationCatalogResponses];
+
+export type DomainWorkspacesListWorkspaceAutomationFlowsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/automation/flows';
+};
+
+export type DomainWorkspacesListWorkspaceAutomationFlowsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceAutomationFlowsError = DomainWorkspacesListWorkspaceAutomationFlowsErrors[keyof DomainWorkspacesListWorkspaceAutomationFlowsErrors];
+
+export type DomainWorkspacesListWorkspaceAutomationFlowsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationFlowListOut;
+};
+
+export type DomainWorkspacesListWorkspaceAutomationFlowsResponse = DomainWorkspacesListWorkspaceAutomationFlowsResponses[keyof DomainWorkspacesListWorkspaceAutomationFlowsResponses];
+
+export type DomainWorkspacesCreateWorkspaceAutomationFlowData = {
+    body: AutomationFlowCreateIn;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/automation/flows';
+};
+
+export type DomainWorkspacesCreateWorkspaceAutomationFlowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceAutomationFlowError = DomainWorkspacesCreateWorkspaceAutomationFlowErrors[keyof DomainWorkspacesCreateWorkspaceAutomationFlowErrors];
+
+export type DomainWorkspacesCreateWorkspaceAutomationFlowResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelAutomationFlowOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceAutomationFlowResponse = DomainWorkspacesCreateWorkspaceAutomationFlowResponses[keyof DomainWorkspacesCreateWorkspaceAutomationFlowResponses];
+
+export type DomainWorkspacesDeleteWorkspaceAutomationFlowData = {
+    body?: never;
+    path: {
+        /**
+         * Flow Id
+         */
+        flow_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/automation/flows/{flow_id}';
+};
+
+export type DomainWorkspacesDeleteWorkspaceAutomationFlowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesDeleteWorkspaceAutomationFlowError = DomainWorkspacesDeleteWorkspaceAutomationFlowErrors[keyof DomainWorkspacesDeleteWorkspaceAutomationFlowErrors];
+
+export type DomainWorkspacesDeleteWorkspaceAutomationFlowResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainWorkspacesDeleteWorkspaceAutomationFlowResponse = DomainWorkspacesDeleteWorkspaceAutomationFlowResponses[keyof DomainWorkspacesDeleteWorkspaceAutomationFlowResponses];
+
+export type DomainWorkspacesUpdateWorkspaceAutomationFlowData = {
+    body: AutomationFlowPatchIn;
+    path: {
+        /**
+         * Flow Id
+         */
+        flow_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/automation/flows/{flow_id}';
+};
+
+export type DomainWorkspacesUpdateWorkspaceAutomationFlowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesUpdateWorkspaceAutomationFlowError = DomainWorkspacesUpdateWorkspaceAutomationFlowErrors[keyof DomainWorkspacesUpdateWorkspaceAutomationFlowErrors];
+
+export type DomainWorkspacesUpdateWorkspaceAutomationFlowResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationFlowOut;
+};
+
+export type DomainWorkspacesUpdateWorkspaceAutomationFlowResponse = DomainWorkspacesUpdateWorkspaceAutomationFlowResponses[keyof DomainWorkspacesUpdateWorkspaceAutomationFlowResponses];
+
+export type DomainWorkspacesListWorkspaceAutomationRunsData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/automation/runs';
+};
+
+export type DomainWorkspacesListWorkspaceAutomationRunsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspaceAutomationRunsError = DomainWorkspacesListWorkspaceAutomationRunsErrors[keyof DomainWorkspacesListWorkspaceAutomationRunsErrors];
+
+export type DomainWorkspacesListWorkspaceAutomationRunsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationRunListOut;
+};
+
+export type DomainWorkspacesListWorkspaceAutomationRunsResponse = DomainWorkspacesListWorkspaceAutomationRunsResponses[keyof DomainWorkspacesListWorkspaceAutomationRunsResponses];
+
+export type DomainWorkspacesGetWorkspaceAutomationRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/automation/runs/{run_id}';
+};
+
+export type DomainWorkspacesGetWorkspaceAutomationRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetWorkspaceAutomationRunError = DomainWorkspacesGetWorkspaceAutomationRunErrors[keyof DomainWorkspacesGetWorkspaceAutomationRunErrors];
+
+export type DomainWorkspacesGetWorkspaceAutomationRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationRunOut;
+};
+
+export type DomainWorkspacesGetWorkspaceAutomationRunResponse = DomainWorkspacesGetWorkspaceAutomationRunResponses[keyof DomainWorkspacesGetWorkspaceAutomationRunResponses];
 
 export type DomainWorkspacesListWorkspaceContentItemsCanonicalData = {
     body?: never;

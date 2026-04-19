@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LibraryBig,
   Settings2,
+  Zap,
 } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -63,6 +64,13 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
         labelKey: "nav:NAV_CONTENT_RELEASES",
         to: "/content/releases",
         icon: History,
+      },
+      {
+        key: "content.automation",
+        label: "Automations",
+        labelKey: "nav:NAV_CONTENT_AUTOMATION",
+        to: "/content/automation",
+        icon: Zap,
       },
       {
         key: "settings.site",

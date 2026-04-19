@@ -184,6 +184,25 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description_i18n="rbac:RBAC_PERM_NOTIFICATIONS_MANAGE_DESC",
         default_roles=["owner", "admin"],
     ),
+    # Automation flows and operations.
+    PermissionTemplate(
+        code="system:automation:read",
+        scope="workspace",
+        name="Read automation",
+        description="Allow viewing automation flows, runs, and diagnostics.",
+        name_i18n="rbac:RBAC_PERM_AUTOMATION_READ_NAME",
+        description_i18n="rbac:RBAC_PERM_AUTOMATION_READ_DESC",
+        default_roles=["owner", "admin", "editor", "designer", "viewer"],
+    ),
+    PermissionTemplate(
+        code="system:automation:manage",
+        scope="workspace",
+        name="Manage automation",
+        description="Allow creating, updating, deleting, and operating automation flows.",
+        name_i18n="rbac:RBAC_PERM_AUTOMATION_MANAGE_NAME",
+        description_i18n="rbac:RBAC_PERM_AUTOMATION_MANAGE_DESC",
+        default_roles=["owner", "admin"],
+    ),
     # Workspace RBAC management (custom roles + assignments).
     PermissionTemplate(
         code="rbac:roles:read",

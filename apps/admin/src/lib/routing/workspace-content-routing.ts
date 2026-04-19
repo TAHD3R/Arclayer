@@ -42,6 +42,14 @@ export function workspaceContentReleasesPath(workspaceId: string): string {
   return `/projects/${encodeURIComponent(projectId)}/content/releases`;
 }
 
+export function workspaceContentAutomationPath(workspaceId: string): string {
+  const projectId =
+    useWorkspaceStore.getState().currentProjectId ??
+    useWorkspaceStore.getState().lastProjectId ??
+    workspaceId;
+  return `/projects/${encodeURIComponent(projectId)}/content/automation`;
+}
+
 export function workspaceContentCreatePath(workspaceId: string): string {
   const projectId =
     useWorkspaceStore.getState().currentProjectId ??

@@ -20,6 +20,7 @@ from src.modules.workspaces.api_keys.router import (
 )
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.authz.router import router as workspace_authz_router
+from src.modules.workspaces.automation.router import router as workspace_automation_router
 from src.modules.workspaces.content.bindings.router import (
     bindings_router as workspace_content_bindings_router,
 )
@@ -85,6 +86,7 @@ router.include_router(workspace_publish_router)
 router.include_router(workspace_site_router)
 router.include_router(workspace_activity_router)
 router.include_router(workspace_extensions_router)
+router.include_router(workspace_automation_router)
 
 
 @router.get(

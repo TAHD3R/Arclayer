@@ -51,6 +51,7 @@ import { Route as ProjectsProjectIdContentReleasesIndexRouteImport } from "./rou
 import { Route as ProjectsProjectIdContentModelsIndexRouteImport } from "./routes/projects/$projectId/content/models/index";
 import { Route as ProjectsProjectIdContentLibraryIndexRouteImport } from "./routes/projects/$projectId/content/library/index";
 import { Route as ProjectsProjectIdContentCreateIndexRouteImport } from "./routes/projects/$projectId/content/create/index";
+import { Route as ProjectsProjectIdContentAutomationIndexRouteImport } from "./routes/projects/$projectId/content/automation/index";
 import { Route as ProjectsProjectIdContentLibraryItemIdIndexRouteImport } from "./routes/projects/$projectId/content/library/$itemId/index";
 
 const SystemRoute = SystemRouteImport.update({
@@ -294,6 +295,14 @@ const ProjectsProjectIdContentCreateIndexRoute =
   } as any).lazy(() =>
     import("./routes/projects/$projectId/content/create/index.lazy").then((d) => d.Route),
   );
+const ProjectsProjectIdContentAutomationIndexRoute =
+  ProjectsProjectIdContentAutomationIndexRouteImport.update({
+    id: "/content/automation/",
+    path: "/content/automation/",
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import("./routes/projects/$projectId/content/automation/index.lazy").then((d) => d.Route),
+  );
 const ProjectsProjectIdContentLibraryItemIdIndexRoute =
   ProjectsProjectIdContentLibraryItemIdIndexRouteImport.update({
     id: "/content/library/$itemId/",
@@ -333,6 +342,7 @@ export interface FileRoutesByFullPath {
   "/settings/workspace/invitations/": typeof SettingsWorkspaceInvitationsIndexRoute;
   "/settings/workspace/members/": typeof SettingsWorkspaceMembersIndexRoute;
   "/settings/workspace/roles/": typeof SettingsWorkspaceRolesIndexRoute;
+  "/projects/$projectId/content/automation/": typeof ProjectsProjectIdContentAutomationIndexRoute;
   "/projects/$projectId/content/create/": typeof ProjectsProjectIdContentCreateIndexRoute;
   "/projects/$projectId/content/library/": typeof ProjectsProjectIdContentLibraryIndexRoute;
   "/projects/$projectId/content/models/": typeof ProjectsProjectIdContentModelsIndexRoute;
@@ -376,6 +386,7 @@ export interface FileRoutesByTo {
   "/settings/workspace/invitations": typeof SettingsWorkspaceInvitationsIndexRoute;
   "/settings/workspace/members": typeof SettingsWorkspaceMembersIndexRoute;
   "/settings/workspace/roles": typeof SettingsWorkspaceRolesIndexRoute;
+  "/projects/$projectId/content/automation": typeof ProjectsProjectIdContentAutomationIndexRoute;
   "/projects/$projectId/content/create": typeof ProjectsProjectIdContentCreateIndexRoute;
   "/projects/$projectId/content/library": typeof ProjectsProjectIdContentLibraryIndexRoute;
   "/projects/$projectId/content/models": typeof ProjectsProjectIdContentModelsIndexRoute;
@@ -422,6 +433,7 @@ export interface FileRoutesById {
   "/settings/workspace/invitations/": typeof SettingsWorkspaceInvitationsIndexRoute;
   "/settings/workspace/members/": typeof SettingsWorkspaceMembersIndexRoute;
   "/settings/workspace/roles/": typeof SettingsWorkspaceRolesIndexRoute;
+  "/projects/$projectId/content/automation/": typeof ProjectsProjectIdContentAutomationIndexRoute;
   "/projects/$projectId/content/create/": typeof ProjectsProjectIdContentCreateIndexRoute;
   "/projects/$projectId/content/library/": typeof ProjectsProjectIdContentLibraryIndexRoute;
   "/projects/$projectId/content/models/": typeof ProjectsProjectIdContentModelsIndexRoute;
@@ -469,6 +481,7 @@ export interface FileRouteTypes {
     | "/settings/workspace/invitations/"
     | "/settings/workspace/members/"
     | "/settings/workspace/roles/"
+    | "/projects/$projectId/content/automation/"
     | "/projects/$projectId/content/create/"
     | "/projects/$projectId/content/library/"
     | "/projects/$projectId/content/models/"
@@ -512,6 +525,7 @@ export interface FileRouteTypes {
     | "/settings/workspace/invitations"
     | "/settings/workspace/members"
     | "/settings/workspace/roles"
+    | "/projects/$projectId/content/automation"
     | "/projects/$projectId/content/create"
     | "/projects/$projectId/content/library"
     | "/projects/$projectId/content/models"
@@ -557,6 +571,7 @@ export interface FileRouteTypes {
     | "/settings/workspace/invitations/"
     | "/settings/workspace/members/"
     | "/settings/workspace/roles/"
+    | "/projects/$projectId/content/automation/"
     | "/projects/$projectId/content/create/"
     | "/projects/$projectId/content/library/"
     | "/projects/$projectId/content/models/"
@@ -881,6 +896,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ProjectsProjectIdContentCreateIndexRouteImport;
       parentRoute: typeof ProjectsProjectIdRoute;
     };
+    "/projects/$projectId/content/automation/": {
+      id: "/projects/$projectId/content/automation/";
+      path: "/content/automation";
+      fullPath: "/projects/$projectId/content/automation/";
+      preLoaderRoute: typeof ProjectsProjectIdContentAutomationIndexRouteImport;
+      parentRoute: typeof ProjectsProjectIdRoute;
+    };
     "/projects/$projectId/content/library/$itemId/": {
       id: "/projects/$projectId/content/library/$itemId/";
       path: "/content/library/$itemId";
@@ -943,6 +965,7 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdAssetsIndexRoute: typeof ProjectsProjectIdAssetsIndexRoute;
   ProjectsProjectIdExtensionsIndexRoute: typeof ProjectsProjectIdExtensionsIndexRoute;
   ProjectsProjectIdSettingsIndexRoute: typeof ProjectsProjectIdSettingsIndexRoute;
+  ProjectsProjectIdContentAutomationIndexRoute: typeof ProjectsProjectIdContentAutomationIndexRoute;
   ProjectsProjectIdContentCreateIndexRoute: typeof ProjectsProjectIdContentCreateIndexRoute;
   ProjectsProjectIdContentLibraryIndexRoute: typeof ProjectsProjectIdContentLibraryIndexRoute;
   ProjectsProjectIdContentModelsIndexRoute: typeof ProjectsProjectIdContentModelsIndexRoute;
@@ -965,6 +988,7 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdAssetsIndexRoute: ProjectsProjectIdAssetsIndexRoute,
   ProjectsProjectIdExtensionsIndexRoute: ProjectsProjectIdExtensionsIndexRoute,
   ProjectsProjectIdSettingsIndexRoute: ProjectsProjectIdSettingsIndexRoute,
+  ProjectsProjectIdContentAutomationIndexRoute: ProjectsProjectIdContentAutomationIndexRoute,
   ProjectsProjectIdContentCreateIndexRoute: ProjectsProjectIdContentCreateIndexRoute,
   ProjectsProjectIdContentLibraryIndexRoute: ProjectsProjectIdContentLibraryIndexRoute,
   ProjectsProjectIdContentModelsIndexRoute: ProjectsProjectIdContentModelsIndexRoute,

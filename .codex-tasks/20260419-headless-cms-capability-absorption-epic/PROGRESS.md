@@ -17,10 +17,10 @@
 
 ## Context Recovery Block
 
-**Current milestone**: Milestone 7 — execute Epic 5 Editorial Workflow and Release Orchestration
-- **Current status**: DONE
-- **Last completed**: Epic5 complete
-- **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic5-editorial-workflow-and-release-orchestration/TODO.csv`
+**Current milestone**: Milestone 9 — execute Epic 7 Extension and Admin Surface Platform
+- **Current status**: READY
+- **Last completed**: Epic6 complete
+- **Current artifact**: `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic7-extension-and-admin-surface-platform/TODO.csv`
 - **Key context**:
   - Epic 0 is complete and its baseline docs now live under `docs/plan`.
   - Epic 1 is complete and its dependency on Epic 0 is satisfied.
@@ -41,9 +41,13 @@
   - Epic5 admin workflow consumption is also live: Content Library columns render workflow status, article editor exposes the workflow lane and runtime refresh, and Release Center ships with readiness, blocker, lineage, publish, and rollback UI.
   - Epic5 backend focused verification passed with `env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/publish tests/modules/workspaces/releases`.
   - Epic5 admin focused verification passed with `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-library-table-columns.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-release-center-page.test.tsx` plus `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-library-runtime.test.ts`.
+  - Epic6 is complete: automation flow/operation/run/log domain objects, trigger and operation catalog, synchronous executor, event bus subscriptions, workspace automation API, OpenAPI/management SDK/admin API contracts, and Admin automation builder/diagnostics page are live.
+  - Epic6 backend focused verification passed with `timeout 180s env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/automation tests/modules/workspaces/publish tests/modules/workspaces/releases` and 24 tests passed.
+  - Epic6 frontend/SDK verification passed with `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-automation-page.test.tsx`, `pnpm -C apps/admin exec vitest run test/routes/route-title-registry.test.ts`, `pnpm --filter @arclayer/management-sdk typecheck`, `pnpm --filter @arclayer/openapi typecheck`, `pnpm -C apps/api openapi:sync`, and `pnpm -C apps/admin build`.
 - **Known issues**:
-  - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic5 slice, including localization options, workspace list items, workspace basics localization, roles view, asset preview dialog, and older test fixtures.
-- **Next action**: Proceed to Epic 6 Automation Flows and Operations Platform.
+  - `pnpm -C apps/admin typecheck` remains blocked by pre-existing repo errors outside the Epic6 slice, including localization options, workspace list items, workspace basics localization, roles view, asset preview dialog, and older test fixtures.
+  - Full side-nav smoke still has existing IA expectation failures around older global nav labels and active branch assumptions; `route-title-registry.test.ts` passes.
+- **Next action**: Proceed to Epic 7.
 
 ---
 
@@ -295,3 +299,77 @@
   - `locales/en-US/nav.json`
   - `locales/zh-CN/nav.json`
 - **Next step**: Proceed to Epic 6.
+
+---
+
+## Milestone 8: Execute Epic 6 Automation Flows and Operations Platform
+
+- **Status**: DONE
+- **Started**: 2026-04-19
+- **Completed**: 2026-04-19
+- **What was done**:
+  - Activated child task `20260419-epic6-automation-flows-and-operations-platform`.
+  - Added automation flow, operation, run, and run-log models with migration `0014_automation_flows.py`.
+  - Added automation trigger and operation catalogs for publish completed, content workflow transitioned, API key rotated, preview token created, webhook, HTTP request, content read, content update, release publish, and notification operations.
+  - Added automation repository, service, runtime subscriber, and workspace router for catalog, flow CRUD, run list, run detail, and run-log inspection.
+  - Wired automation events into runtime init, publish, content workflow, workspace/project API key rotation, and preview token creation.
+  - Added RBAC/action catalog entries and locale labels for the new automation capability.
+  - Synced generated OpenAPI artifacts and added admin type aliases plus management SDK automation helpers.
+  - Added Admin automation API helpers, workspace content route helper, menu entry, route files, generated route tree entry, i18n labels, and the automation builder/diagnostics page.
+  - Added focused backend and frontend tests for automation service, event runtime, router contract, and Admin builder behavior.
+- **Validation**:
+  - `git diff --check` → passed
+  - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/automation` → passed with 12 tests
+  - `timeout 180s env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/automation tests/modules/workspaces/publish tests/modules/workspaces/releases` → passed with 24 tests
+  - `pnpm -C apps/api openapi:sync` → passed, schema unchanged
+  - `pnpm --filter @arclayer/management-sdk typecheck` → passed
+  - `pnpm --filter @arclayer/openapi typecheck` → passed
+  - `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-automation-page.test.tsx` → passed with 3 tests
+  - `pnpm -C apps/admin exec vitest run test/routes/route-title-registry.test.ts` → passed with 1 test
+  - `pnpm -C apps/admin build` → passed with existing CSS optimizer, browser externalization, and chunk-size warnings
+- **Known remaining repo issues**:
+  - `pnpm -C apps/admin typecheck` remains blocked by pre-existing unrelated errors outside Epic6.
+  - Full side-nav smoke still has existing IA expectation failures in `test/components/layout/admin-side-nav.test.tsx`; route-title registry coverage passes.
+- **Files changed**:
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/SUBTASKS.csv`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/PROGRESS.md`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic6-automation-flows-and-operations-platform/TODO.csv`
+  - `.codex-tasks/20260419-headless-cms-capability-absorption-epic/tasks/20260419-epic6-automation-flows-and-operations-platform/PROGRESS.md`
+  - `apps/api/src/models/automation/flow.py`
+  - `apps/api/src/migrations/0014_automation_flows.py`
+  - `apps/api/src/modules/workspaces/automation/catalog.py`
+  - `apps/api/src/modules/workspaces/automation/schema.py`
+  - `apps/api/src/modules/workspaces/automation/repository.py`
+  - `apps/api/src/modules/workspaces/automation/service.py`
+  - `apps/api/src/modules/workspaces/automation/runtime.py`
+  - `apps/api/src/modules/workspaces/automation/router.py`
+  - `apps/api/src/core/runtime_init.py`
+  - `apps/api/src/modules/workspaces/router.py`
+  - `apps/api/src/modules/workspaces/site/router.py`
+  - `apps/api/src/modules/projects/facade/router.py`
+  - `apps/api/src/modules/system/rbac/catalog/service.py`
+  - `apps/api/src/modules/workspaces/permissions/registry.py`
+  - `apps/api/tests/modules/workspaces/automation/test_automation_service_unit.py`
+  - `apps/api/tests/modules/workspaces/automation/test_automation_event_runtime_unit.py`
+  - `apps/api/tests/modules/workspaces/automation/test_automation_router_contract_unit.py`
+  - `packages/openapi/src/admin-types.ts`
+  - `packages/openapi/src/generated/index.ts`
+  - `packages/openapi/src/generated/sdk.gen.ts`
+  - `packages/openapi/src/generated/types.gen.ts`
+  - `packages/management-sdk/src/client.ts`
+  - `apps/admin/src/api/automation.ts`
+  - `apps/admin/src/pages/workspaces/content/automation/page.tsx`
+  - `apps/admin/src/routes/projects/$projectId/content/automation/index.tsx`
+  - `apps/admin/src/routes/projects/$projectId/content/automation/index.lazy.tsx`
+  - `apps/admin/src/routeTree.gen.ts`
+  - `apps/admin/src/constants/menu/workspaces.ts`
+  - `apps/admin/src/lib/routing/workspace-content-routing.ts`
+  - `apps/admin/src/types/api/content.ts`
+  - `apps/admin/test/pages/workspaces/content/content-automation-page.test.tsx`
+  - `locales/en-US/content.json`
+  - `locales/zh-CN/content.json`
+  - `locales/en-US/nav.json`
+  - `locales/zh-CN/nav.json`
+  - `locales/en-US/rbac.json`
+  - `locales/zh-CN/rbac.json`
+- **Next step**: Proceed to Epic 7.

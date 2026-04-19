@@ -24,6 +24,32 @@ type OpenApiResponse<T> = {
 type OpenApiOperation<T> = (options: Record<string, unknown>) => Promise<OpenApiResponse<T>>;
 
 export interface ManagementSdk {
+  readonly automation: {
+    createFlow(input: {
+      body: openapi.AutomationFlowCreateIn;
+      workspaceId: string;
+    }): Promise<ManagementResult<openapi.AutomationFlowOut>>;
+    deleteFlow(input: { flowId: string; workspaceId: string }): Promise<ManagementResult<null>>;
+    getCatalog(input: {
+      workspaceId: string;
+    }): Promise<ManagementResult<openapi.AutomationCatalogOut>>;
+    getRun(input: {
+      runId: string;
+      workspaceId: string;
+    }): Promise<ManagementResult<openapi.AutomationRunOut>>;
+    listFlows(input: {
+      workspaceId: string;
+    }): Promise<ManagementResult<openapi.AutomationFlowListOut>>;
+    listRuns(input: {
+      limit?: number;
+      workspaceId: string;
+    }): Promise<ManagementResult<openapi.AutomationRunListOut>>;
+    updateFlow(input: {
+      body: openapi.AutomationFlowPatchIn;
+      flowId: string;
+      workspaceId: string;
+    }): Promise<ManagementResult<openapi.AutomationFlowOut>>;
+  };
   readonly apiKeys: {
     readonly personal: {
       create(input: {
@@ -223,6 +249,43 @@ export const createManagementSdk = (options: ManagementSdkOptions): ManagementSd
 
   return {
     rawClient,
+    automation: {
+      getCatalog: ({ workspaceId }) =>
+        invoke<openapi.AutomationCatalogOut>(
+          openapi.domainWorkspacesGetWorkspaceAutomationCatalog as OpenApiOperation<openapi.AutomationCatalogOut>,
+          { path: { workspace_id: workspaceId } },
+        ),
+      listFlows: ({ workspaceId }) =>
+        invoke<openapi.AutomationFlowListOut>(
+          openapi.domainWorkspacesListWorkspaceAutomationFlows as OpenApiOperation<openapi.AutomationFlowListOut>,
+          { path: { workspace_id: workspaceId } },
+        ),
+      createFlow: ({ workspaceId, body }) =>
+        invoke<openapi.AutomationFlowOut>(
+          openapi.domainWorkspacesCreateWorkspaceAutomationFlow as OpenApiOperation<openapi.AutomationFlowOut>,
+          { body, path: { workspace_id: workspaceId } },
+        ),
+      updateFlow: ({ workspaceId, flowId, body }) =>
+        invoke<openapi.AutomationFlowOut>(
+          openapi.domainWorkspacesUpdateWorkspaceAutomationFlow as OpenApiOperation<openapi.AutomationFlowOut>,
+          { body, path: { flow_id: flowId, workspace_id: workspaceId } },
+        ),
+      deleteFlow: ({ workspaceId, flowId }) =>
+        invoke<null>(
+          openapi.domainWorkspacesDeleteWorkspaceAutomationFlow as OpenApiOperation<null>,
+          { path: { flow_id: flowId, workspace_id: workspaceId } },
+        ),
+      listRuns: ({ workspaceId, limit }) =>
+        invoke<openapi.AutomationRunListOut>(
+          openapi.domainWorkspacesListWorkspaceAutomationRuns as OpenApiOperation<openapi.AutomationRunListOut>,
+          { path: { workspace_id: workspaceId }, query: { limit } },
+        ),
+      getRun: ({ workspaceId, runId }) =>
+        invoke<openapi.AutomationRunOut>(
+          openapi.domainWorkspacesGetWorkspaceAutomationRun as OpenApiOperation<openapi.AutomationRunOut>,
+          { path: { run_id: runId, workspace_id: workspaceId } },
+        ),
+    },
     apiKeys: {
       personal: {
         list: () =>

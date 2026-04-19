@@ -69,6 +69,18 @@ def _build_core_registry() -> dict[str, PermissionActionDefinition]:
             subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
             description="Allow rolling back a workspace to a historical release.",
         ),
+        "automation:read": PermissionActionDefinition(
+            action="automation:read",
+            permission_codes=("system:automation:read",),
+            subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
+            description="Allow reading automation flows, runs, and diagnostics.",
+        ),
+        "automation:manage": PermissionActionDefinition(
+            action="automation:manage",
+            permission_codes=("system:automation:manage",),
+            subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
+            description="Allow managing automation flows and operations.",
+        ),
         "delivery:read": PermissionActionDefinition(
             action="delivery:read",
             subject_kinds=("delivery_api_key", "public"),

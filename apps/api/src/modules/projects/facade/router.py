@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 from uuid import UUID
 
+from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Body, Depends, Request, status
 
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
+from src.core.events import Event, events
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.logging import get_logger
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.facade.service import ProjectFacadeService
 from src.modules.projects.http.schema import ProjectRequestContext
@@ -33,6 +37,13 @@ from src.modules.workspaces.site.schema import WorkspaceSiteOut
 from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["domain.projects.facade"])
+logger = get_logger(__name__)
+_FATAL_PROJECT_EVENT_ERRORS = (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit)
+
+
+def _raise_if_fatal(exc: BaseException) -> None:
+    if isinstance(exc, _FATAL_PROJECT_EVENT_ERRORS):
+        raise exc
 
 
 def get_project_facade_service(settings: Settings = Depends(get_settings)) -> ProjectFacadeService:
@@ -124,6 +135,36 @@ async def create_project_site_preview_token(
 ) -> ResponseModel[SitePreviewTokenOut]:
     facade = await facade_service.get_context(project_id=ctx.project_id, actor_user_id=actor_user_id)
     data = await site_service.create_preview_token(site_id=facade.site_id, ttl_seconds=payload.ttl_seconds)
+    try:
+        await events.publish_and_wait(
+            Event(
+                name="workspace.preview_token.created",
+                payload={
+                    "entity_id": str(facade.site_id),
+                    "entity_type": "preview_token",
+                    "expires_at_ms": data.expires_at_ms,
+                    "organization_id": str(ctx.organization_id),
+                    "project_id": str(ctx.project_id),
+                    "site_id": str(facade.site_id),
+                    "ttl_seconds": payload.ttl_seconds,
+                    "workspace_id": str(facade.workspace_id),
+                },
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(actor_user_id),
+            ),
+            timeout=1.0,
+        )
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning(
+            "Project preview token event publish failed",
+            actor_user_id=str(actor_user_id),
+            event_name="workspace.preview_token.created",
+            project_id=str(ctx.project_id),
+            site_id=str(facade.site_id),
+            error=str(exc),
+        )
     return ApiResponse.success(data=data)
 
 
