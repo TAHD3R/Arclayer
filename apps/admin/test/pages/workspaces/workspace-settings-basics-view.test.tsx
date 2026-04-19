@@ -70,4 +70,10 @@ describe("WorkspaceSettingsBasicsView", () => {
       screen.getByTestId("content-guard"),
     );
   });
+
+  it("does not render a separate danger tab in workspace settings tabs", () => {
+    render(<WorkspaceSettingsBasicsView workspaceId="ws-1" />);
+
+    expect(screen.queryByText("settings:SETTINGS_WORKSPACE_TAB_DANGER")).not.toBeInTheDocument();
+  });
 });

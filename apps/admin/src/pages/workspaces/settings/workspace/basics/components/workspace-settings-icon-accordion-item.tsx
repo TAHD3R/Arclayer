@@ -268,7 +268,7 @@ export function WorkspaceSettingsIconAccordionItem(props: {
             </code>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="icon-sm"
               disabled={!workspace?.workspaceId}
               aria-label={t("common:DUPLICATE")}
@@ -295,7 +295,7 @@ export function WorkspaceSettingsIconAccordionItem(props: {
             </code>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="icon-sm"
               disabled={!c.currentWorkspaceSlug}
               aria-label={t("common:DUPLICATE")}

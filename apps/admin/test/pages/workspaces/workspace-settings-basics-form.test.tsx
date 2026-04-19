@@ -22,6 +22,13 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-danger-section",
+  () => ({
+    WorkspaceSettingsDangerSection: () => <div data-testid="workspace-settings-danger-section" />,
+  }),
+);
+
 function createController() {
   return {
     form: {},
@@ -35,5 +42,6 @@ describe("WorkspaceSettingsBasicsForm", () => {
 
     expect(screen.getByTestId("workspace-settings-core-panels")).toBeInTheDocument();
     expect(screen.getByTestId("workspace-settings-access-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-settings-danger-section")).toBeInTheDocument();
   });
 });

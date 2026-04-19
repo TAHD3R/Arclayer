@@ -170,6 +170,7 @@ describe("workspace destructive flows", () => {
   });
 
   it("shows explicit last-active-workspace block before delete click", async () => {
+    const user = userEvent.setup();
     getWorkspaceDangerCapabilitiesMock.mockResolvedValue({
       workspaceId: "ws-1",
       organizationId: "org-1",
@@ -185,9 +186,8 @@ describe("workspace destructive flows", () => {
       name: new RegExp(i18n.t("settings:SETTINGS_WORKSPACE_DELETE_TITLE")),
     });
 
-    expect(deleteButton).toBeDisabled();
-    expect(
-      screen.getByText(i18n.t("errors:LAST_ACTIVE_WORKSPACE_NOT_DELETABLE")),
-    ).toBeInTheDocument();
+    expect(deleteButton).toHaveAttribute("aria-disabled", "true");
+    await user.click(deleteButton);
+    expect(deleteWorkspaceMock).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import { WorkspaceSettingsDangerView } from "./components/workspace-settings-danger-view";
+import { redirect } from "@tanstack/react-router";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export function WorkspaceSettingsDangerPage() {
@@ -7,5 +7,5 @@ export function WorkspaceSettingsDangerPage() {
   if (!workspaceId) {
     throw new Error("WORKSPACE_NOT_SELECTED");
   }
-  return <WorkspaceSettingsDangerView workspaceId={workspaceId} />;
+  throw redirect({ to: "/settings/workspace/general", replace: true });
 }

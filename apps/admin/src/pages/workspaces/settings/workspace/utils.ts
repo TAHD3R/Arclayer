@@ -16,12 +16,6 @@ export function resolveWorkspaceSettingsTabNavigation(
       ...(search ? { search } : {}),
     };
   }
-  if (tab === "danger") {
-    return {
-      to: "/settings/workspace/general",
-      ...(search ? { search } : {}),
-    };
-  }
   return {
     to: "/settings/workspace/general",
     ...(search ? { search } : {}),

@@ -3,6 +3,7 @@ import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/userce
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
 import { WorkspaceSettingsBasicsAccessPanel } from "./workspace-settings-basics-access-panel";
 import { WorkspaceSettingsBasicsCorePanels } from "./workspace-settings-basics-core-panels";
+import { WorkspaceSettingsDangerSection } from "./workspace-settings-danger-section";
 
 export function WorkspaceSettingsBasicsForm(props: {
   controller: WorkspaceSettingsBasicsController;
@@ -14,6 +15,7 @@ export function WorkspaceSettingsBasicsForm(props: {
       <UserCenterSettingsSectionStack mode="dialog">
         <WorkspaceSettingsBasicsCorePanels controller={c} />
         <WorkspaceSettingsBasicsAccessPanel controller={c} />
+        <WorkspaceSettingsDangerSection workspaceId={c.workspaceId} />
       </UserCenterSettingsSectionStack>
     </Form>
   );
