@@ -177,12 +177,7 @@ class ProjectService(BaseService):
         )
 
     async def archive_project(self, *, project_id: UUID) -> ProjectArchiveResult:
-        project = await self.repo.get_project_by_id(project_id=project_id)
-        blocked_reason = await self._get_archive_blocked_reason(
-            project_id=project_id,
-            workspace_id=UUID(str(project.workspace_id)),
-            can_manage_settings=True,
-        )
+        blocked_reason = self._get_archive_blocked_reason(can_manage_settings=True)
         if blocked_reason is not None:
             raise BadRequest("Project archive is blocked", error=blocked_reason)
         project = await self.repo.set_project_active(project_id=project_id, is_active=False)
@@ -193,12 +188,7 @@ class ProjectService(BaseService):
         return ProjectArchiveResult(project_id=project.id, is_active=project.is_active)
 
     async def delete_project(self, *, project_id: UUID) -> ProjectDeleteResult:
-        project = await self.repo.get_project_by_id(project_id=project_id)
-        blocked_reason = await self._get_delete_blocked_reason(
-            project_id=project_id,
-            workspace_id=UUID(str(project.workspace_id)),
-            can_manage_settings=True,
-        )
+        blocked_reason = self._get_delete_blocked_reason(can_manage_settings=True)
         if blocked_reason is not None:
             raise BadRequest("Project delete is blocked", error=blocked_reason)
         deleted = await self.repo.delete_project(project_id=project_id)
@@ -211,16 +201,8 @@ class ProjectService(BaseService):
         can_manage_settings: bool,
     ) -> ProjectDangerCapabilitiesOut:
         project, workspace = await self.repo.get_project_with_workspace(project_id=project_id)
-        archive_blocked_reason = await self._get_archive_blocked_reason(
-            project_id=project.id,
-            workspace_id=UUID(str(project.workspace_id)),
-            can_manage_settings=can_manage_settings,
-        )
-        delete_blocked_reason = await self._get_delete_blocked_reason(
-            project_id=project.id,
-            workspace_id=UUID(str(project.workspace_id)),
-            can_manage_settings=can_manage_settings,
-        )
+        archive_blocked_reason = self._get_archive_blocked_reason(can_manage_settings=can_manage_settings)
+        delete_blocked_reason = self._get_delete_blocked_reason(can_manage_settings=can_manage_settings)
         return ProjectDangerCapabilitiesOut(
             project_id=project.id,
             workspace_id=project.workspace_id,
@@ -293,39 +275,12 @@ class ProjectService(BaseService):
             avatar_url=user.avatar_url,
         )
 
-    async def _get_archive_blocked_reason(
-        self,
-        *,
-        project_id: UUID,
-        workspace_id: UUID,
-        can_manage_settings: bool,
-    ) -> str | None:
+    def _get_archive_blocked_reason(self, *, can_manage_settings: bool) -> str | None:
         if not can_manage_settings:
             return "WORKSPACE_SETTINGS_MANAGE_REQUIRED"
-        project = await self.repo.get_project_by_id(project_id=project_id)
-        if not bool(project.is_active):
-            return None
-        active_count = await self.repo.count_active_projects_in_workspace(workspace_id=workspace_id)
-        if active_count <= 1:
-            return "LAST_ACTIVE_PROJECT_NOT_ARCHIVABLE"
         return None
 
-    async def _get_delete_blocked_reason(
-        self,
-        *,
-        project_id: UUID,
-        workspace_id: UUID,
-        can_manage_settings: bool,
-    ) -> str | None:
+    def _get_delete_blocked_reason(self, *, can_manage_settings: bool) -> str | None:
         if not can_manage_settings:
             return "WORKSPACE_SETTINGS_MANAGE_REQUIRED"
-        project = await self.repo.get_project_by_id(project_id=project_id)
-        if not bool(project.is_active):
-            return None
-        active_count = await self.repo.count_active_projects_in_workspace(
-            workspace_id=workspace_id,
-            exclude_project_id=project_id,
-        )
-        if active_count <= 0:
-            return "LAST_ACTIVE_PROJECT_NOT_DELETABLE"
         return None

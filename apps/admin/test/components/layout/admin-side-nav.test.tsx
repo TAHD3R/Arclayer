@@ -548,6 +548,27 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(screen.queryByRole("button", { name: "Invitations" })).not.toBeInTheDocument();
   });
 
+  it("opens configured groups by default and still allows manual collapse", async () => {
+    const user = userEvent.setup();
+    const defaultExpandedItems: AdminNavItem[] = treeItems.map((item) =>
+      item.key === "content" ? { ...item, defaultExpanded: true } : item,
+    );
+
+    renderTreeNav({
+      items: defaultExpandedItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Content" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    });
+  });
+
   it("toggles top-level groups independently without accordion behavior", async () => {
     const user = userEvent.setup();
     renderTreeNav({

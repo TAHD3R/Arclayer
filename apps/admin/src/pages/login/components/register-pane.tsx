@@ -364,12 +364,15 @@ export function RegisterPane(props: RegisterPaneProps) {
           </Button>
         </motion.div>
       </form>
-      <motion.div variants={variants} className="pt-1.5 empty:hidden">
-        <AuthOauthButtons
-          disabled={props.emailCheckLoading || props.loading}
-          redirect={props.redirect}
-        />
-      </motion.div>
+      {step === "email" ? (
+        <motion.div variants={variants} className="pt-1.5 empty:hidden">
+          <AuthOauthButtons
+            disabled={props.emailCheckLoading || props.loading}
+            redirect={props.redirect}
+            dividerLabelKey="auth:REGISTER_EMAIL_STEP_DIVIDER"
+          />
+        </motion.div>
+      ) : null}
       <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
         <div>
           <span>{t("auth:HAVE_ACCOUNT")} </span>

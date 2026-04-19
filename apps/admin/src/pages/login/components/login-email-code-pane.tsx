@@ -1,11 +1,10 @@
-import { Lock, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { ApiError } from "@/lib/http";
 import { notifySuccessText } from "@/lib/notifications";
 import { zodResolver } from "@/lib/forms/zod-resolver";
@@ -22,13 +21,11 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
-  AUTH_PANE_META_CLASS,
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
   AuthInlineNotice,
   AuthOtpInput,
   AuthPaneHeader,
-  AuthPaneLegal,
   AuthPaneTitleRow,
 } from "./auth-pane-primitives";
 
@@ -159,6 +156,8 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
       );
     }
   });
+  const codeValue = form.watch("code");
+  const canSubmitVerification = codeValue.trim().length === OTP_LENGTH;
 
   return (
     <div className={AUTH_PANE_STACK_CLASS}>
@@ -221,7 +220,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
               <FieldContent className="gap-2">
                 <AuthPaneTitleRow title={t("auth:LOGIN_EMAIL_CODE_FIELD_LABEL")} />
                 <AuthOtpInput
-                  value={form.watch("code")}
+                  value={codeValue}
                   onChange={(value) => {
                     form.setValue("code", value, { shouldValidate: false });
                     if (form.formState.errors.code) {
@@ -250,6 +249,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
             type="submit"
             size="lg"
             loading={step === "request" ? props.requestLoading : props.verifyLoading}
+            disabled={step === "verify" ? !canSubmitVerification : undefined}
           >
             <AuthButtonLabel>
               {step === "request" ? t("auth:LOGIN_EMAIL_CODE_SEND_BUTTON") : t("auth:LOGIN_BUTTON")}
@@ -257,45 +257,36 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
           </Button>
         </motion.div>
         {step === "verify" ? (
-          <motion.div
-            variants={variants}
-            className="text-center text-footnote text-label-secondary"
-          >
-            <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")} </span>
-            <AuthLinkButton
-              disabled={props.requestLoading || retryAfter > 0}
-              onClick={() => void requestEmailCode()}
-              type="button"
-            >
-              {retryAfter > 0
-                ? t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", { countdown: formatCountdown(retryAfter) })
-                : t("auth:LOGIN_EMAIL_CODE_RESEND_ACTION")}
-            </AuthLinkButton>
+          <motion.div variants={variants} className="grid gap-2 text-center text-footnote">
+            <div className="text-label-secondary">
+              <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")} </span>
+              <AuthLinkButton
+                disabled={props.requestLoading || retryAfter > 0}
+                onClick={() => void requestEmailCode()}
+                type="button"
+              >
+                {retryAfter > 0
+                  ? t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", {
+                      countdown: formatCountdown(retryAfter),
+                    })
+                  : t("auth:LOGIN_EMAIL_CODE_RESEND_ACTION")}
+              </AuthLinkButton>
+            </div>
+            {props.seed?.passwordLoginAvailable === false ? null : (
+              <div className="text-label-secondary">
+                <span>{t("auth:LOGIN_PASSWORD_ALTERNATIVE_LABEL")} </span>
+                <AuthLinkButton
+                  disabled={props.verifyLoading}
+                  onClick={() => props.onBackToPassword(form.getValues("email"))}
+                  type="button"
+                >
+                  {t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD_INLINE")}
+                </AuthLinkButton>
+              </div>
+            )}
           </motion.div>
         ) : null}
-        <motion.div variants={variants} className="pt-1.5 empty:hidden">
-          <AuthOauthButtons
-            disabled={props.requestLoading || props.verifyLoading}
-            leadingActions={
-              props.seed?.passwordLoginAvailable === false
-                ? []
-                : [
-                    {
-                      key: "password-login",
-                      label: t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD"),
-                      icon: <Lock size={14} />,
-                      onClick: () => props.onBackToPassword(form.getValues("email")),
-                    },
-                  ]
-            }
-          />
-        </motion.div>
       </form>
-      <AuthPaneLegal
-        i18nKey="auth:LEGAL_LOGIN"
-        variants={variants}
-        className={AUTH_PANE_META_CLASS}
-      />
     </div>
   );
 }

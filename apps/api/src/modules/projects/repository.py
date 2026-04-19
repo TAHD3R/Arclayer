@@ -270,17 +270,6 @@ class ProjectRepository(BaseRepository):
             await project.save(update_fields=["is_active", "updated_at"])
         return await self.get_project_by_id(project_id=project_id)
 
-    async def count_active_projects_in_workspace(
-        self,
-        *,
-        workspace_id: UUID,
-        exclude_project_id: UUID | None = None,
-    ) -> int:
-        qs = ProjectRecord.filter(workspace_id=workspace_id, is_active=True)
-        if exclude_project_id is not None:
-            qs = qs.exclude(id=exclude_project_id)
-        return int(await qs.count())
-
     async def delete_project(self, *, project_id: UUID) -> bool:
         project = await self.get_project_by_id(project_id=project_id)
         deleted_count = await project.delete()

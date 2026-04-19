@@ -21,6 +21,7 @@ import { cn } from "@arclayer/lib/utils";
 export interface AuthOauthButtonsProps {
   disabled?: boolean;
   redirect?: string | undefined;
+  dividerLabelKey?: string;
   leadingActions?: Array<{
     key: string;
     label: string;
@@ -87,6 +88,7 @@ function resolveProviderMeta(
 export function AuthOauthButtons({
   disabled = false,
   redirect,
+  dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
   leadingActions = [],
 }: AuthOauthButtonsProps) {
   const { t } = useTranslation();
@@ -154,14 +156,17 @@ export function AuthOauthButtons({
   const providerGridClassName =
     providerCount === 3 ? "grid-cols-3" : providerCount >= 4 ? "grid-cols-4" : "";
   const lastUsedLabel = t("auth:OAUTH_LAST_USED");
+  const divider = (
+    <div className="flex items-center gap-3 py-1 text-footnote text-label-secondary">
+      <Separator className="flex-1" />
+      <span className="shrink-0">{t(dividerLabelKey)}</span>
+      <Separator className="flex-1" />
+    </div>
+  );
 
   return (
     <div className="grid gap-2.5">
-      <div className="flex items-center gap-3 py-1 text-footnote text-label-secondary">
-        <Separator className="flex-1" />
-        <span className="shrink-0">{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
-        <Separator className="flex-1" />
-      </div>
+      {divider}
       {fullWidthLeadingActions.length > 0 ? (
         <div className="grid gap-2.5">
           {fullWidthLeadingActions.map((action) => (

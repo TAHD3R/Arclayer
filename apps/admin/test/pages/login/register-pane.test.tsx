@@ -19,7 +19,9 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/components/ui/oauth-buttons", () => ({
-  AuthOauthButtons: () => null,
+  AuthOauthButtons: ({ dividerLabelKey }: { dividerLabelKey?: string }) => (
+    <div data-testid="oauth-section">{dividerLabelKey ?? "oauth-section"}</div>
+  ),
 }));
 
 vi.mock("@/api/auth", () => ({
@@ -66,7 +68,15 @@ describe("RegisterPane oauth section", () => {
 
     const oauthWrapper = container.querySelector(".pt-1\\.5");
     expect(oauthWrapper).toHaveClass("empty:hidden");
-    expect(oauthWrapper).toBeEmptyDOMElement();
+    expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
+    expect(screen.getByText("auth:REGISTER_EMAIL_STEP_DIVIDER")).toBeInTheDocument();
+  });
+
+  it("hides oauth after advancing to the details step", () => {
+    renderPane({ registerSeed: { email: "founder@example.com", step: "details" } });
+
+    expect(screen.queryByTestId("oauth-section")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:AUTH_CHANGE_EMAIL" })).toBeInTheDocument();
   });
 
   it("shows username availability feedback and blocks submit when the name is unavailable", async () => {

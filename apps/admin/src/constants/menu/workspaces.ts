@@ -33,6 +33,7 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_GROUP_WEBSITE",
     icon: Globe,
     dividerBefore: true,
+    defaultExpanded: true,
     children: [
       {
         key: "assets",

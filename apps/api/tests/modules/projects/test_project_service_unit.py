@@ -33,6 +33,38 @@ class _FakeWorkspace:
         self.organization_id = uuid4()
 
 
+class _FakeProjectRepository:
+    def __init__(
+        self,
+        *,
+        project: _FakeProject,
+        workspace: _FakeWorkspace,
+    ) -> None:
+        self.project = project
+        self.workspace = workspace
+        self.archived_project_id = None
+        self.deleted_project_id = None
+
+    async def get_project_by_id(self, *, project_id):
+        assert project_id == self.project.id
+        return self.project
+
+    async def get_project_with_workspace(self, *, project_id):
+        assert project_id == self.project.id
+        return self.project, self.workspace
+
+    async def set_project_active(self, *, project_id, is_active):
+        assert project_id == self.project.id
+        self.archived_project_id = project_id
+        self.project.is_active = is_active
+        return self.project
+
+    async def delete_project(self, *, project_id):
+        assert project_id == self.project.id
+        self.deleted_project_id = project_id
+        return True
+
+
 class _FakeMembership:
     def __init__(self) -> None:
         self.project_id = uuid4()
@@ -109,3 +141,55 @@ async def test_create_project_bootstraps_memberships_and_returns_member_count(mo
     assert out.id == project.id
     assert out.member_count == 1
     assert len(out.members_preview) == 1
+
+
+@pytest.mark.asyncio
+async def test_project_danger_capabilities_allow_last_active_project(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = ProjectService(settings)
+
+    workspace_id = uuid4()
+    project = _FakeProject(workspace_id=workspace_id)
+    workspace = _FakeWorkspace(workspace_id=workspace_id)
+    service.repo = _FakeProjectRepository(project=project, workspace=workspace)
+
+    out = await service.get_danger_capabilities(
+        project_id=project.id,
+        can_manage_settings=True,
+    )
+
+    assert out.archive_action.enabled is True
+    assert out.archive_action.blocked_reason is None
+    assert out.delete_action.enabled is True
+    assert out.delete_action.blocked_reason is None
+
+
+@pytest.mark.asyncio
+async def test_project_archive_and_delete_allow_last_active_project(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    settings = get_settings()
+    workspace_id = uuid4()
+    workspace = _FakeWorkspace(workspace_id=workspace_id)
+
+    archive_service = ProjectService(settings)
+    archive_project = _FakeProject(workspace_id=workspace_id)
+    archive_repo = _FakeProjectRepository(project=archive_project, workspace=workspace)
+    archive_service.repo = archive_repo
+
+    archive_out = await archive_service.archive_project(project_id=archive_project.id)
+
+    assert archive_out.project_id == archive_project.id
+    assert archive_out.is_active is False
+    assert archive_repo.archived_project_id == archive_project.id
+
+    delete_service = ProjectService(settings)
+    delete_project = _FakeProject(workspace_id=workspace_id)
+    delete_repo = _FakeProjectRepository(project=delete_project, workspace=workspace)
+    delete_service.repo = delete_repo
+
+    delete_out = await delete_service.delete_project(project_id=delete_project.id)
+
+    assert delete_out.project_id == delete_project.id
+    assert delete_out.deleted is True
+    assert delete_repo.deleted_project_id == delete_project.id

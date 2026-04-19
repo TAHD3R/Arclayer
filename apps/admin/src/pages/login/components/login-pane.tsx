@@ -21,9 +21,7 @@ import {
   AUTH_PANE_META_CLASS,
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
-  AuthInlineNotice,
   AuthPaneHeader,
-  AuthPaneLegal,
   AuthPaneTitleRow,
 } from "./auth-pane-primitives";
 
@@ -94,6 +92,7 @@ export function LoginPane(props: LoginPaneProps) {
   const emailError = form.formState.errors.email?.message;
   const passwordError = form.formState.errors.password?.message;
   const keepSession = Boolean(form.watch("keepSession"));
+  const emailFieldError = emailError ? String(emailError) : null;
 
   const submitPassword = form.handleSubmit(async (values) => {
     setEmailMissing(false);
@@ -141,18 +140,6 @@ export function LoginPane(props: LoginPaneProps) {
         subtitleKey="auth:LOGIN_PAGE_SUBTITLE"
         variants={variants}
       />
-      {emailMissing ? (
-        <AuthInlineNotice variants={variants}>
-          <span className="text-callout">{t("auth:LOGIN_EMAIL_NOT_FOUND_MESSAGE")} </span>
-          <AuthLinkButton
-            disabled={props.emailCheckLoading || props.loading}
-            onClick={() => props.onSwitchToRegister(form.getValues("email"), "details")}
-            type="button"
-          >
-            {t("auth:LOGIN_EMAIL_NOT_FOUND_ACTION")}
-          </AuthLinkButton>
-        </AuthInlineNotice>
-      ) : null}
       <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
@@ -184,7 +171,19 @@ export function LoginPane(props: LoginPaneProps) {
                 spellCheck={false}
                 {...form.register("email")}
               />
-              <FieldError>{emailError ? String(emailError) : undefined}</FieldError>
+              <FieldError>{emailFieldError ?? undefined}</FieldError>
+              {emailMissing && !emailError ? (
+                <div className="text-footnote text-label-secondary">
+                  <span>{t("auth:LOGIN_EMAIL_NOT_FOUND_MESSAGE")} </span>
+                  <AuthLinkButton
+                    disabled={props.emailCheckLoading || props.loading}
+                    onClick={() => props.onSwitchToRegister(form.getValues("email"), "details")}
+                    type="button"
+                  >
+                    {t("auth:LOGIN_EMAIL_NOT_FOUND_ACTION")}
+                  </AuthLinkButton>
+                </div>
+              ) : null}
             </FieldContent>
           </Field>
         </motion.div>
@@ -196,13 +195,24 @@ export function LoginPane(props: LoginPaneProps) {
                 <AuthPaneTitleRow
                   title={t("auth:FIELD_PASSWORD_LABEL")}
                   action={
-                    <AuthLinkButton
-                      disabled={props.emailCheckLoading || props.loading}
-                      onClick={() => props.onForgotPassword(form.getValues("email"))}
-                      type="button"
-                    >
-                      {t("auth:FORGOT_PASSWORD")}
-                    </AuthLinkButton>
+                    <div className="flex items-center gap-3 text-footnote">
+                      <AuthLinkButton
+                        disabled={props.emailCheckLoading || props.loading}
+                        onClick={() =>
+                          props.onSwitchToEmailCode(form.getValues("email"), keepSession)
+                        }
+                        type="button"
+                      >
+                        {t("auth:LOGIN_PASSWORD_ALTERNATIVE_ACTION")}
+                      </AuthLinkButton>
+                      <AuthLinkButton
+                        disabled={props.emailCheckLoading || props.loading}
+                        onClick={() => props.onForgotPassword(form.getValues("email"))}
+                        type="button"
+                      >
+                        {t("auth:FORGOT_PASSWORD")}
+                      </AuthLinkButton>
+                    </div>
                   }
                 />
                 <AuthPasswordControl
@@ -224,13 +234,15 @@ export function LoginPane(props: LoginPaneProps) {
 
         {step === "password" ? (
           <motion.div variants={variants} className="my-2">
-            <label className="flex cursor-pointer items-center gap-2">
-              <Checkbox
-                checked={keepSession}
-                onCheckedChange={(value) => form.setValue("keepSession", Boolean(value))}
-              />
-              <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
-            </label>
+            <div className="grid gap-1.5">
+              <label className="flex cursor-pointer items-center gap-2">
+                <Checkbox
+                  checked={keepSession}
+                  onCheckedChange={(value) => form.setValue("keepSession", Boolean(value))}
+                />
+                <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
+              </label>
+            </div>
           </motion.div>
         ) : null}
 
@@ -247,24 +259,15 @@ export function LoginPane(props: LoginPaneProps) {
           </Button>
         </motion.div>
       </form>
-      <motion.div variants={variants} className="pt-1.5 empty:hidden">
-        <AuthOauthButtons
-          disabled={props.emailCheckLoading || props.loading}
-          redirect={props.redirect}
-          leadingActions={
-            step === "password"
-              ? [
-                  {
-                    key: "email-code",
-                    label: t("auth:LOGIN_EMAIL_CODE_ACTION"),
-                    icon: <Mail size={14} />,
-                    onClick: () => props.onSwitchToEmailCode(form.getValues("email"), keepSession),
-                  },
-                ]
-              : []
-          }
-        />
-      </motion.div>
+      {step === "email" ? (
+        <motion.div variants={variants} className="pt-1.5 empty:hidden">
+          <AuthOauthButtons
+            disabled={props.emailCheckLoading || props.loading}
+            redirect={props.redirect}
+            dividerLabelKey="auth:LOGIN_EMAIL_STEP_DIVIDER"
+          />
+        </motion.div>
+      ) : null}
       <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
         {props.publicRegisterEnabled ? (
           <div>
@@ -278,7 +281,6 @@ export function LoginPane(props: LoginPaneProps) {
             </AuthLinkButton>
           </div>
         ) : null}
-        <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={variants} />
       </motion.div>
     </div>
   );

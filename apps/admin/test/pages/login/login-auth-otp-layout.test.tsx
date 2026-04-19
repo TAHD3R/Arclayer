@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LoginEmailCodePane } from "@/pages/login/components/login-email-code-pane";
@@ -126,6 +126,35 @@ describe("Login auth otp layouts", () => {
     expect(mockedNotifications.notifySuccessText).toHaveBeenCalledWith("auth:LOGIN_CODE_SENT");
   });
 
+  it("disables verify until the full code is entered and keeps only inline recovery links", async () => {
+    render(
+      <LoginEmailCodePane
+        seed={{ email: "demo@example.com", autoRequest: true, keepSession: true }}
+        requestLoading={false}
+        verifyLoading={false}
+        onRequestCode={async () => ({ expiresIn: 600, retryAfter: 0 })}
+        onSubmit={async () => undefined}
+        onBackToPassword={() => undefined}
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    const verifyButton = await screen.findByRole("button", { name: "auth:LOGIN_BUTTON" });
+    expect(verifyButton).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD_INLINE" }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL"), {
+      target: { value: "123456" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" })).toBeEnabled();
+    });
+  });
+
   it("renders a full-width otp grid for two-factor verification", () => {
     const { container } = render(
       <LoginTwoFactorPane
@@ -152,7 +181,7 @@ describe("Login auth otp layouts", () => {
     expect(otpSlots?.[0]).toHaveClass("h-10", "rounded-md", "bg-card");
   });
 
-  it("keeps legal copy on email-code and omits it on two-factor", async () => {
+  it("omits legal copy on email-code and two-factor login recovery panes", async () => {
     const { rerender } = render(
       <LoginEmailCodePane
         seed={{ email: "demo@example.com", autoRequest: false, keepSession: true }}
@@ -166,7 +195,7 @@ describe("Login auth otp layouts", () => {
       />,
     );
 
-    expect(screen.getByText("auth:LEGAL_LOGIN")).toBeInTheDocument();
+    expect(screen.queryByText("auth:LEGAL_LOGIN")).not.toBeInTheDocument();
     expect(screen.queryByText("auth:FOOTER_COPYRIGHT")).not.toBeInTheDocument();
 
     rerender(

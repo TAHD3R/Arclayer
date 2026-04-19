@@ -60,6 +60,27 @@ describe("AuthOauthButtons", () => {
     );
   });
 
+  it("renders the divider before oauth providers by default", async () => {
+    listSSOProvidersMock.mockResolvedValueOnce({
+      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google" }],
+    });
+
+    renderButtons({
+      dividerLabelKey: "auth:LOGIN_EMAIL_STEP_DIVIDER",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
+      expect(screen.getByText("auth:LOGIN_EMAIL_STEP_DIVIDER")).toBeInTheDocument();
+    });
+
+    const dividerLabel = screen.getByText("auth:LOGIN_EMAIL_STEP_DIVIDER");
+    const providerButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    expect(
+      dividerLabel.compareDocumentPosition(providerButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("renders leading auth actions before oauth providers", async () => {
     listSSOProvidersMock.mockResolvedValueOnce({
       providers: [{ provider: "google", label: "Google", start_url: "/oauth/google" }],

@@ -13,6 +13,7 @@ export type AdminNavItem = {
   renderLabel?: (item: AdminNavItem) => ReactNode;
   to?: string;
   groupBehavior?: "preferred-child" | "navigate-self-and-expand";
+  defaultExpanded?: boolean;
   activeMatchPaths?: string[];
   search?: NavSearch;
   icon: LucideIcon;

@@ -133,10 +133,24 @@ function collectGroupKeys(items: readonly AdminNavItem[]): Set<string> {
   return groupKeys;
 }
 
+function collectDefaultExpandedGroupKeys(items: readonly AdminNavItem[]): Set<string> {
+  const groupKeys = new Set<string>();
+  const walk = (nodes: readonly AdminNavItem[]) => {
+    for (const node of nodes) {
+      if (!node.children?.length) continue;
+      if (node.defaultExpanded) groupKeys.add(node.key);
+      walk(node.children);
+    }
+  };
+  walk(items);
+  return groupKeys;
+}
+
 export type OpenGroupKeys = ReadonlySet<string>;
 
 export {
   buildNavIndex,
+  collectDefaultExpandedGroupKeys,
   collectGroupKeys,
   findActiveTrail,
   findPreferredGroupTarget,

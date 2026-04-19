@@ -323,7 +323,9 @@ describe("LoginPage two-factor challenge flow", () => {
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
     expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
+    await user.click(
+      screen.getByRole("button", { name: "auth:LOGIN_PASSWORD_ALTERNATIVE_ACTION" }),
+    );
     expect(await screen.findByText("auth:LOGIN_EMAIL_CODE_VERIFY_TITLE")).toBeInTheDocument();
 
     await waitFor(() => {

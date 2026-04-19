@@ -83,6 +83,7 @@ export function ResetPasswordView({
     mode: "onSubmit",
   });
   const newPasswordValue = form.watch("newPassword");
+  const showResetTokenField = !initialToken;
 
   return (
     <motion.div
@@ -105,28 +106,34 @@ export function ResetPasswordView({
             await onSubmit({ reset_token: values.resetToken, new_password: values.newPassword });
           })}
         >
-          <ResetPasswordField
-            title={t("auth:FIELD_RESET_TOKEN_LABEL")}
-            error={
-              form.formState.errors.resetToken?.message
-                ? String(form.formState.errors.resetToken.message)
-                : undefined
-            }
-            variants={variants}
-          >
-            <AuthInputControl
-              autoComplete="one-time-code"
-              aria-label={t("auth:FIELD_RESET_TOKEN_LABEL")}
-              aria-invalid={form.formState.errors.resetToken ? true : undefined}
-              className={AUTH_INPUT_GROUP_CLASS}
-              inputClassName={AUTH_INPUT_CLASS}
-              placeholder={t("auth:FIELD_RESET_TOKEN_PLACEHOLDER")}
-              startIcon={<KeyRound size={16} />}
-              disabled={loading}
-              spellCheck={false}
-              {...form.register("resetToken")}
-            />
-          </ResetPasswordField>
+          {showResetTokenField ? (
+            <ResetPasswordField
+              title={t("auth:FIELD_RESET_TOKEN_LABEL")}
+              error={
+                form.formState.errors.resetToken?.message
+                  ? String(form.formState.errors.resetToken.message)
+                  : undefined
+              }
+              variants={variants}
+            >
+              <AuthInputControl
+                autoComplete="one-time-code"
+                aria-label={t("auth:FIELD_RESET_TOKEN_LABEL")}
+                aria-invalid={form.formState.errors.resetToken ? true : undefined}
+                className={AUTH_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_INPUT_CLASS}
+                placeholder={t("auth:FIELD_RESET_TOKEN_PLACEHOLDER")}
+                startIcon={<KeyRound size={16} />}
+                disabled={loading}
+                spellCheck={false}
+                {...form.register("resetToken")}
+              />
+            </ResetPasswordField>
+          ) : (
+            <motion.div variants={variants} className="text-footnote text-label-secondary">
+              {t("auth:FIELD_RESET_TOKEN_HELP")}
+            </motion.div>
+          )}
 
           <ResetPasswordField
             title={t("auth:FIELD_NEW_PASSWORD_LABEL")}

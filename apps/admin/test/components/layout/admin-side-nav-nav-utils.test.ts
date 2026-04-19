@@ -2,7 +2,10 @@ import { Folder, Home, Settings } from "lucide-react";
 import { describe, expect, it } from "vitest";
 
 import type { AdminNavItem } from "@/types/admin-nav";
-import { findPreferredGroupTarget } from "@/components/layout/admin-side-nav/nav-utils";
+import {
+  collectDefaultExpandedGroupKeys,
+  findPreferredGroupTarget,
+} from "@/components/layout/admin-side-nav/nav-utils";
 
 function makeItem(key: string, to?: string, children?: AdminNavItem[]): AdminNavItem {
   return {
@@ -46,5 +49,34 @@ describe("findPreferredGroupTarget", () => {
   it("returns null when the group has no routable descendants", () => {
     const item = makeItem("group", undefined, [makeItem("placeholder")]);
     expect(findPreferredGroupTarget(item, new Set(["group"]))).toBeNull();
+  });
+});
+
+describe("collectDefaultExpandedGroupKeys", () => {
+  it("collects configured groups with children", () => {
+    const navItems = [
+      makeItem("overview", "/w/ws-1/overview"),
+      {
+        ...makeItem("content", undefined, [makeItem("content.assets", "/w/ws-1/assets")]),
+        defaultExpanded: true,
+      },
+      {
+        ...makeItem("team", undefined, [
+          makeItem("team.members", "/w/ws-1/team/members"),
+          {
+            ...makeItem("team.roles", undefined, [
+              makeItem("team.roles.admins", "/w/ws-1/team/roles/admins"),
+            ]),
+            defaultExpanded: true,
+          },
+        ]),
+      },
+      {
+        ...makeItem("leaf-config", "/w/ws-1/leaf-config"),
+        defaultExpanded: true,
+      },
+    ] satisfies AdminNavItem[];
+
+    expect([...collectDefaultExpandedGroupKeys(navItems)]).toEqual(["content", "team.roles"]);
   });
 });

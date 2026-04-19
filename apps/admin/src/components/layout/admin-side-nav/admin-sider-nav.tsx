@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 import { Star } from "lucide-react";
@@ -16,6 +16,7 @@ import {
 } from "@arclayer/ui/sidebar";
 import {
   buildNavIndex,
+  collectDefaultExpandedGroupKeys,
   collectGroupKeys,
   findActiveTrail,
   isExactMatch,
@@ -150,8 +151,12 @@ function injectStarredItem(
 
 function useOpenChain(items: readonly AdminNavItem[]) {
   const allGroupKeys = useMemo(() => collectGroupKeys(items), [items]);
+  const defaultExpandedGroupKeys = useMemo(() => collectDefaultExpandedGroupKeys(items), [items]);
   const navIndex = useMemo(() => buildNavIndex(items), [items]);
-  const [openGroupKeys, setOpenGroupKeys] = useState<Set<string>>(() => new Set());
+  const initializedDefaultGroupKeysRef = useRef<Set<string>>(new Set(defaultExpandedGroupKeys));
+  const [openGroupKeys, setOpenGroupKeys] = useState<Set<string>>(
+    () => new Set(defaultExpandedGroupKeys),
+  );
 
   useEffect(() => {
     setOpenGroupKeys((prev) => {
@@ -159,6 +164,17 @@ function useOpenChain(items: readonly AdminNavItem[]) {
       for (const key of prev) {
         if (allGroupKeys.has(key)) next.add(key);
       }
+      for (const key of defaultExpandedGroupKeys) {
+        if (initializedDefaultGroupKeysRef.current.has(key)) continue;
+        next.add(key);
+      }
+
+      initializedDefaultGroupKeysRef.current = new Set(
+        [...initializedDefaultGroupKeysRef.current, ...defaultExpandedGroupKeys].filter((key) =>
+          allGroupKeys.has(key),
+        ),
+      );
+
       if (next.size === prev.size) {
         let changed = false;
         for (const key of prev) {
@@ -171,7 +187,7 @@ function useOpenChain(items: readonly AdminNavItem[]) {
       }
       return next;
     });
-  }, [allGroupKeys]);
+  }, [allGroupKeys, defaultExpandedGroupKeys]);
 
   const openChainForKey = useCallback(
     (key: string) => {
