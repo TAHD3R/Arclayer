@@ -1,4 +1,3 @@
-import { FolderInput } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -125,7 +124,6 @@ export function MoveAssetsToFolderModal(props: MoveAssetsToFolderModalProps) {
                 props.onOpenChange(false);
               }}
             >
-              <FolderInput className="size-4" aria-hidden="true" />
               {t("assets:ASSET_BULK_MOVE_CONFIRM")}
             </Button>
           </AlertDialogActionPrimitive>
