@@ -22,6 +22,8 @@ export interface AuthOauthButtonsProps {
   disabled?: boolean;
   redirect?: string | undefined;
   dividerLabelKey?: string;
+  loadingProvider?: string | null;
+  onProviderStart?: (input: { provider: string; startUrl: string }) => void;
   leadingActions?: Array<{
     key: string;
     label: string;
@@ -89,6 +91,8 @@ export function AuthOauthButtons({
   disabled = false,
   redirect,
   dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
+  loadingProvider = null,
+  onProviderStart,
   leadingActions = [],
 }: AuthOauthButtonsProps) {
   const { t } = useTranslation();
@@ -131,6 +135,7 @@ export function AuthOauthButtons({
     shortLabel: provider.shortLabel,
     icon: provider.icon,
     isLastUsed: provider.provider === lastUsedProvider,
+    isLoading: provider.provider === loadingProvider,
     onClick: () => {
       if (!provider.startUrl) {
         notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
@@ -138,6 +143,10 @@ export function AuthOauthButtons({
       }
       writeStorageItem(STORAGE_KEYS.authLastSsoProvider, provider.provider);
       setLastUsedProvider(provider.provider);
+      if (onProviderStart) {
+        onProviderStart({ provider: provider.provider, startUrl: provider.startUrl });
+        return;
+      }
       window.location.assign(provider.startUrl);
     },
   }));
@@ -163,6 +172,31 @@ export function AuthOauthButtons({
       <Separator className="flex-1" />
     </div>
   );
+
+  function renderProviderContent(action: (typeof providerActions)[number], label: string) {
+    if (action.isLoading) return null;
+
+    return (
+      <>
+        {action.isLastUsed ? (
+          <Badge
+            variant="outline"
+            className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
+          >
+            {lastUsedLabel}
+          </Badge>
+        ) : null}
+        {action.icon ? (
+          <span className="inline-flex shrink-0 items-center justify-center self-center">
+            {action.icon}
+          </span>
+        ) : null}
+        <span className="inline-flex min-w-0 items-center justify-center truncate text-center">
+          {label}
+        </span>
+      </>
+    );
+  }
 
   return (
     <div className="grid gap-2.5">
@@ -232,26 +266,12 @@ export function AuthOauthButtons({
               className="relative h-10 w-full justify-center rounded-md border-border/80 bg-card/80 px-4 transition-colors hover:bg-accent/35"
               variant="outline"
               size="lg"
-              disabled={isBusy}
+              disabled={isBusy || action.isLoading}
+              loading={action.isLoading}
               aria-label={action.fullLabel}
               onClick={action.onClick}
             >
-              {action.isLastUsed ? (
-                <Badge
-                  variant="outline"
-                  className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
-                >
-                  {lastUsedLabel}
-                </Badge>
-              ) : null}
-              {action.icon ? (
-                <span className="inline-flex shrink-0 items-center justify-center self-center">
-                  {action.icon}
-                </span>
-              ) : null}
-              <span className="inline-flex min-w-0 items-center justify-center truncate text-center">
-                {action.fullLabel}
-              </span>
+              {renderProviderContent(action, action.fullLabel)}
             </Button>
           ))}
         </div>
@@ -263,26 +283,12 @@ export function AuthOauthButtons({
               key={action.key}
               className="relative h-10 w-full justify-center rounded-md border-border/80 bg-card/80 px-3 text-footnote transition-colors hover:bg-accent/35"
               variant="outline"
-              disabled={isBusy}
+              disabled={isBusy || action.isLoading}
+              loading={action.isLoading}
               aria-label={action.fullLabel}
               onClick={action.onClick}
             >
-              {action.isLastUsed ? (
-                <Badge
-                  variant="outline"
-                  className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
-                >
-                  {lastUsedLabel}
-                </Badge>
-              ) : null}
-              {action.icon ? (
-                <span className="inline-flex shrink-0 items-center justify-center self-center">
-                  {action.icon}
-                </span>
-              ) : null}
-              <span className="inline-flex min-w-0 items-center justify-center truncate text-center">
-                {action.shortLabel}
-              </span>
+              {renderProviderContent(action, action.shortLabel)}
             </Button>
           ))}
         </div>
@@ -296,11 +302,12 @@ export function AuthOauthButtons({
                   <Button
                     className="relative h-11 w-full justify-center rounded-md border-border/80 bg-card/80 px-0 transition-colors hover:bg-accent/35"
                     variant="outline"
-                    disabled={isBusy}
+                    disabled={isBusy || action.isLoading}
+                    loading={action.isLoading}
                     aria-label={action.fullLabel}
                     onClick={action.onClick}
                   >
-                    {action.isLastUsed ? (
+                    {!action.isLoading && action.isLastUsed ? (
                       <Badge
                         variant="outline"
                         className="pointer-events-none absolute -top-2 right-1.5 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
@@ -308,9 +315,11 @@ export function AuthOauthButtons({
                         {lastUsedLabel}
                       </Badge>
                     ) : null}
-                    <span className="inline-flex shrink-0 items-center justify-center self-center">
-                      {action.icon}
-                    </span>
+                    {!action.isLoading ? (
+                      <span className="inline-flex shrink-0 items-center justify-center self-center">
+                        {action.icon}
+                      </span>
+                    ) : null}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{action.shortLabel}</TooltipContent>

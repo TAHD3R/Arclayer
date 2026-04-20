@@ -67,12 +67,12 @@ body {
   --popover: hsl(0 0% 100%);
   --popover-foreground: var(--foreground);
 
-  --primary: hsl(211 100% 45.9%);
-  --primary-hover: hsl(209 100% 36.3%);
-  --primary-selected: hsl(211 100% 90%);
-  --primary-selected-hover: hsl(211 92.9% 83.5%);
-  --primary-highlighted: hsl(212 100% 97.1%);
-  --primary-surface: hsl(225 46.2% 94.9%);
+  --primary: hsl(215.5 92.5% 52.7%);
+  --primary-hover: hsl(216 88% 45%);
+  --primary-selected: hsl(216 92% 91%);
+  --primary-selected-hover: hsl(216 88% 84%);
+  --primary-highlighted: hsl(216 92% 97%);
+  --primary-surface: hsl(216 56% 94%);
   --primary-foreground: hsl(0 0% 100%);
 
   --secondary: hsl(230 5.7% 20.8%);
@@ -105,8 +105,8 @@ body {
   --input: hsl(229 16.5% 79.8%);
   --ui-border: hsl(229 16.5% 79.8%);
   --layout-border: hsl(210 10% 82%);
-  --ring: hsl(211 100% 45.9%);
-  --link: hsl(208 72.4% 44.1%);
+  --ring: hsl(215.5 92.5% 52.7%);
+  --link: hsl(216 88% 43%);
 
   --chart-1: var(--primary);
   --chart-2: hsl(155 100% 39.2%);
@@ -205,12 +205,12 @@ body {
   --card: hsl(220 15% 8%);
   --popover: hsl(220 15% 8%);
 
-  --primary: hsl(211 100% 60%);
-  --primary-hover: hsl(211 100% 70%);
-  --primary-selected: hsl(211 60% 20%);
-  --primary-selected-hover: hsl(211 60% 26%);
-  --primary-highlighted: hsl(211 50% 14%);
-  --primary-surface: hsl(211 40% 12%);
+  --primary: hsl(215.5 92.5% 58%);
+  --primary-hover: hsl(216 92% 66%);
+  --primary-selected: hsl(216 64% 20%);
+  --primary-selected-hover: hsl(216 64% 27%);
+  --primary-highlighted: hsl(216 54% 14%);
+  --primary-surface: hsl(216 42% 12%);
   --primary-foreground: hsl(0 0% 100%);
 
   --secondary: hsl(220 10% 85%);
@@ -235,8 +235,8 @@ body {
   --input: hsl(220 10% 22%);
   --ui-border: hsl(220 10% 30%);
   --layout-border: hsl(210 10% 14%);
-  --ring: hsl(211 100% 60%);
-  --link: hsl(210 90% 65%);
+  --ring: hsl(215.5 92.5% 58%);
+  --link: hsl(216 92% 68%);
 
   --sidebar: var(--background);
   --sidebar-foreground: var(--foreground);

@@ -1,5 +1,6 @@
 import type { LoginMode } from "@/lib/auth/auth-mode";
 import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
+import type { PendingOAuthProvider } from "@/types/auth/oauth-popup";
 
 export interface BootstrapFormValues {
   displayName: string;
@@ -84,6 +85,8 @@ export interface LoginViewProps {
   loginEmailCodeVerifyLoading?: boolean;
   initialKeepSession?: boolean;
   redirect?: string | undefined;
+  pendingOAuthProvider?: PendingOAuthProvider | null;
+  onStartOAuth?: (input: { provider: string; startUrl: string; keepSession: boolean }) => void;
   onForgotPasswordSubmit: (email: string) => Promise<void>;
   forgotPasswordInitialEmail?: string;
   forgotPasswordLoading?: boolean;

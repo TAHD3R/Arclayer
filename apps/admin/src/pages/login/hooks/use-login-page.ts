@@ -10,6 +10,8 @@ import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolveLoginMode } from "@/lib/auth/auth-mode";
 import type { LoginMode } from "@/lib/auth/auth-mode";
 import { ApiError } from "@/lib/http";
+import { readStorageJson, removeStorageItem, writeStorageJson } from "@/lib/storage";
+import { STORAGE_KEYS } from "@/constants/storage";
 import {
   notifyError,
   notifyErrorText,
@@ -27,6 +29,7 @@ import {
 } from "@/stores/use-auth-challenge-store";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { OAuthPopupResult, PendingOAuthState } from "@/types/auth/oauth-popup";
 
 import type {
   BootstrapFormValues,
@@ -57,6 +60,9 @@ type TwoFactorChallengeMeta = {
 };
 
 const OAUTH_SEARCH_CONSUME_DEDUPE_WINDOW_MS = 2_000;
+const OAUTH_POPUP_WIDTH = 560;
+const OAUTH_POPUP_HEIGHT = 720;
+const OAUTH_PENDING_TIMEOUT_MS = 5 * 60_000;
 const oauthSearchFlagHandledAt = new Map<string, number>();
 
 function shouldHandleOAuthSearchFlag(flag: "oauth_code" | "oauth_error", value: string): boolean {
@@ -75,6 +81,69 @@ function consumeLoginSearchFlag(flag: "oauth_code" | "oauth_error", value: strin
   const nextSearch = params.toString();
   const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
   window.history.replaceState(window.history.state, "", nextUrl);
+}
+
+function readPendingOAuthState(): PendingOAuthState | null {
+  return readStorageJson<PendingOAuthState>(STORAGE_KEYS.authPendingOauth);
+}
+
+function readPopupPendingOAuthState(): PendingOAuthState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEYS.authPendingOauth);
+    return raw ? (JSON.parse(raw) as PendingOAuthState) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingOAuthState(state: PendingOAuthState): void {
+  writeStorageJson(STORAGE_KEYS.authPendingOauth, state);
+}
+
+function clearPendingOAuthState(): void {
+  removeStorageItem(STORAGE_KEYS.authPendingOauth);
+}
+
+function writeOAuthPopupResult(result: OAuthPopupResult): void {
+  writeStorageJson(STORAGE_KEYS.authOauthResult, result);
+}
+
+function clearOAuthPopupResult(): void {
+  removeStorageItem(STORAGE_KEYS.authOauthResult);
+}
+
+function readOAuthPopupResult(): OAuthPopupResult | null {
+  return readStorageJson<OAuthPopupResult>(STORAGE_KEYS.authOauthResult);
+}
+
+function isPopupWindow(): boolean {
+  return readPopupPendingOAuthState() !== null;
+}
+
+function isPendingOAuthStateFresh(state: PendingOAuthState | null, now = Date.now()): boolean {
+  if (!state) return false;
+  return now - state.startedAt <= OAUTH_PENDING_TIMEOUT_MS;
+}
+
+function resolvePopupFeatures(): string {
+  const dualScreenLeft =
+    window.screenLeft !== undefined ? window.screenLeft : (window.screenX ?? 0);
+  const dualScreenTop = window.screenTop !== undefined ? window.screenTop : (window.screenY ?? 0);
+  const width = window.innerWidth || document.documentElement.clientWidth || screen.width;
+  const height = window.innerHeight || document.documentElement.clientHeight || screen.height;
+  const left = Math.max(0, dualScreenLeft + Math.round((width - OAUTH_POPUP_WIDTH) / 2));
+  const top = Math.max(0, dualScreenTop + Math.round((height - OAUTH_POPUP_HEIGHT) / 2));
+
+  return [
+    "popup=yes",
+    `width=${OAUTH_POPUP_WIDTH}`,
+    `height=${OAUTH_POPUP_HEIGHT}`,
+    `left=${left}`,
+    `top=${top}`,
+    "resizable=yes",
+    "scrollbars=yes",
+  ].join(",");
 }
 
 function normalizeEditorRedirectPath(redirectTo: string): string {
@@ -147,6 +216,7 @@ export function useLoginPage(): LoginPageState {
   const [loginEmailCodeSeed, setLoginEmailCodeSeed] = useState<LoginEmailCodePaneSeed | null>(null);
   const [registerSeed, setRegisterSeed] = useState<RegisterPaneSeed | null>(null);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState<string | undefined>(undefined);
+  const [pendingOAuth, setPendingOAuth] = useState<PendingOAuthState | null>(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const runtime = useSystemRuntime();
@@ -243,6 +313,97 @@ export function useLoginPage(): LoginPageState {
     [lastWorkspaceId, navigate, redirectTo, setCurrentProjectId, setCurrentWorkspaceId],
   );
 
+  const clearPendingOAuthFlow = useCallback(() => {
+    setPendingOAuth(null);
+    clearPendingOAuthState();
+    clearOAuthPopupResult();
+  }, []);
+
+  const completePopupOAuth = useCallback(
+    async (result: OAuthPopupResult) => {
+      const pending = readPendingOAuthState();
+      if (pending && pending.provider !== result.provider) {
+        clearOAuthPopupResult();
+        return;
+      }
+      clearPendingOAuthFlow();
+      if (result.challenge) {
+        setChallenge({
+          twoFactorToken: result.challenge.twoFactorToken,
+          expiresAt: result.challenge.expiresAt,
+          keepSession: result.challenge.keepSession,
+          redirect: result.challenge.redirect,
+          source: "sso",
+        });
+        return;
+      }
+      await useAuthStore.persist.rehydrate();
+      if (result.status === "success") {
+        useAuthStore.setState((state) => ({ sessionVersion: state.sessionVersion + 1 }));
+        await navigateAfterAuth(result.redirect);
+        return;
+      }
+      if (result.status === "closed") {
+        return;
+      }
+      if (result.status === "error") {
+        notifyErrorText(resolveOAuthErrorMessage(result.error || "oauth_failed", t));
+      }
+    },
+    [clearPendingOAuthFlow, navigateAfterAuth, t],
+  );
+
+  const startOAuthPopup = useCallback(
+    ({
+      provider,
+      startUrl,
+      keepSession,
+    }: {
+      provider: string;
+      startUrl: string;
+      keepSession: boolean;
+    }) => {
+      const nextPending: PendingOAuthState = {
+        provider,
+        redirect: redirectTo ?? null,
+        keepSession,
+        startedAt: Date.now(),
+        popupId: crypto.randomUUID(),
+      };
+      writePendingOAuthState(nextPending);
+      setPendingOAuth(nextPending);
+      clearOAuthPopupResult();
+      const popup = window.open(
+        "about:blank",
+        `arclayer-auth-oauth:${nextPending.popupId}`,
+        resolvePopupFeatures(),
+      );
+      if (!popup) {
+        clearPendingOAuthFlow();
+        notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
+        return;
+      }
+      try {
+        popup.sessionStorage.setItem(STORAGE_KEYS.authPendingOauth, JSON.stringify(nextPending));
+        popup.location.assign(startUrl);
+      } catch {
+        popup.close();
+        clearPendingOAuthFlow();
+        notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
+        return;
+      }
+
+      const closedCheck = window.setInterval(() => {
+        if (!popup.closed) return;
+        window.clearInterval(closedCheck);
+        const latestPending = readPendingOAuthState();
+        if (!latestPending || latestPending.provider !== provider) return;
+        clearPendingOAuthFlow();
+      }, 400);
+    },
+    [clearPendingOAuthFlow, redirectTo, t],
+  );
+
   const startTwoFactorChallenge = useCallback(
     (
       error: unknown,
@@ -274,6 +435,31 @@ export function useLoginPage(): LoginPageState {
   }, [challengeExpiresAt, challengeTwoFactorToken, clearChallenge]);
 
   useEffect(() => {
+    const currentPending = readPendingOAuthState();
+    if (isPopupWindow()) {
+      if (currentPending && !isPendingOAuthStateFresh(currentPending)) {
+        clearPendingOAuthFlow();
+      }
+      return;
+    }
+    if (!currentPending) return;
+    clearPendingOAuthState();
+  }, [clearPendingOAuthFlow]);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEYS.authOauthResult) {
+        const result = readOAuthPopupResult();
+        if (!result) return;
+        void completePopupOAuth(result);
+      }
+    };
+
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [completePopupOAuth]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rawRedirect = params.get("redirect");
     if (!rawRedirect) return;
@@ -299,16 +485,70 @@ export function useLoginPage(): LoginPageState {
     consumeLoginSearchFlag("oauth_code", oauthCode);
     const run = async () => {
       try {
+        const activePending = readPopupPendingOAuthState() ?? readPendingOAuthState();
+        const keepSessionForSso = activePending?.keepSession ?? keepSession;
         const tokens = await ssoExchangeMutation.mutateAsync(oauthCode);
         clearChallenge();
-        applyLogin(tokens, { keepSession });
+        applyLogin(tokens, { keepSession: keepSessionForSso });
         void queryClient.cancelQueries();
         queryClient.clear();
-        await navigateAfterAuth();
-      } catch (error) {
-        if (startTwoFactorChallenge(error, { keepSession, redirect: redirectTo, source: "sso" })) {
+        if (isPopupWindow()) {
+          window.sessionStorage.removeItem(STORAGE_KEYS.authPendingOauth);
+          writeOAuthPopupResult({
+            provider: activePending?.provider ?? "unknown",
+            status: "success",
+            redirect: activePending?.redirect ?? redirectTo ?? null,
+            completedAt: Date.now(),
+          });
+          window.close();
           return;
         }
+        clearPendingOAuthFlow();
+        await navigateAfterAuth();
+      } catch (error) {
+        const activePending = readPopupPendingOAuthState() ?? readPendingOAuthState();
+        const keepSessionForSso = activePending?.keepSession ?? keepSession;
+        if (
+          startTwoFactorChallenge(error, {
+            keepSession: keepSessionForSso,
+            redirect: redirectTo,
+            source: "sso",
+          })
+        ) {
+          if (isPopupWindow()) {
+            const challenge = getActiveAuthChallenge(useAuthChallengeStore.getState());
+            window.sessionStorage.removeItem(STORAGE_KEYS.authPendingOauth);
+            writeOAuthPopupResult({
+              provider: activePending?.provider ?? "unknown",
+              status: "success",
+              redirect: activePending?.redirect ?? redirectTo ?? null,
+              challenge: challenge
+                ? {
+                    twoFactorToken: challenge.twoFactorToken,
+                    expiresAt: challenge.expiresAt,
+                    keepSession: challenge.keepSession,
+                    redirect: challenge.redirect,
+                  }
+                : undefined,
+              completedAt: Date.now(),
+            });
+            window.close();
+          }
+          return;
+        }
+        if (isPopupWindow()) {
+          window.sessionStorage.removeItem(STORAGE_KEYS.authPendingOauth);
+          writeOAuthPopupResult({
+            provider: activePending?.provider ?? "unknown",
+            status: "error",
+            redirect: activePending?.redirect ?? redirectTo ?? null,
+            error: error instanceof ApiError ? (error.error ?? "oauth_failed") : "oauth_failed",
+            completedAt: Date.now(),
+          });
+          window.close();
+          return;
+        }
+        clearPendingOAuthFlow();
         notifyError(error);
         void navigate({
           to: "/login",
@@ -329,19 +569,34 @@ export function useLoginPage(): LoginPageState {
     navigateAfterAuth,
     ssoExchangeMutation,
     startTwoFactorChallenge,
+    clearPendingOAuthFlow,
   ]);
 
   useEffect(() => {
     if (!oauthError) return;
     if (!shouldHandleOAuthSearchFlag("oauth_error", oauthError)) return;
     consumeLoginSearchFlag("oauth_error", oauthError);
+    const activePending = readPopupPendingOAuthState() ?? readPendingOAuthState();
+    if (isPopupWindow()) {
+      window.sessionStorage.removeItem(STORAGE_KEYS.authPendingOauth);
+      writeOAuthPopupResult({
+        provider: activePending?.provider ?? "unknown",
+        status: "error",
+        redirect: activePending?.redirect ?? redirectTo ?? null,
+        error: oauthError,
+        completedAt: Date.now(),
+      });
+      window.close();
+      return;
+    }
+    clearPendingOAuthFlow();
     notifyErrorText(resolveOAuthErrorMessage(oauthError, t));
     void navigate({
       to: "/login",
       search: { redirect: redirectTo, mode: effectiveMode },
       replace: true,
     });
-  }, [effectiveMode, navigate, oauthError, redirectTo, t]);
+  }, [clearPendingOAuthFlow, effectiveMode, navigate, oauthError, redirectTo, t]);
 
   const onModeChange = (next: LoginMode, options?: LoginModeChangeOptions) => {
     const nextMode = resolveLoginMode(next, publicRegisterEnabled);
@@ -563,6 +818,8 @@ export function useLoginPage(): LoginPageState {
       loginEmailCodeVerifyLoading: loginEmailCodeVerifyMutation.isPending,
       initialKeepSession: keepSession,
       redirect: redirectTo,
+      pendingOAuthProvider: pendingOAuth?.provider ?? null,
+      onStartOAuth: startOAuthPopup,
       onForgotPasswordSubmit: onForgotPassword,
       forgotPasswordInitialEmail: forgotPasswordEmail,
       forgotPasswordLoading: forgotPasswordMutation.isPending,

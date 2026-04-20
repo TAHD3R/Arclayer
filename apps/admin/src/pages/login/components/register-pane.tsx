@@ -41,6 +41,8 @@ type RegisterPaneProps = {
   loading: boolean;
   redirect?: string;
   registerSeed?: RegisterPaneSeed | null;
+  pendingOAuthProvider?: string | null;
+  onStartOAuth?: (input: { provider: string; startUrl: string; keepSession: boolean }) => void;
   onSwitchToLogin: (email?: string, step?: "password") => void;
   reducedMotion: boolean;
   itemVariants: Variants;
@@ -369,6 +371,13 @@ export function RegisterPane(props: RegisterPaneProps) {
           <AuthOauthButtons
             disabled={props.emailCheckLoading || props.loading}
             redirect={props.redirect}
+            loadingProvider={props.pendingOAuthProvider}
+            onProviderStart={
+              props.onStartOAuth
+                ? ({ provider, startUrl }) =>
+                    props.onStartOAuth?.({ provider, startUrl, keepSession: true })
+                : undefined
+            }
             dividerLabelKey="auth:REGISTER_EMAIL_STEP_DIVIDER"
           />
         </motion.div>

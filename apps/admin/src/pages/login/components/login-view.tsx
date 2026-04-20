@@ -28,6 +28,8 @@ export function LoginView({
   loginEmailCodeVerifyLoading = false,
   initialKeepSession = false,
   redirect,
+  pendingOAuthProvider = null,
+  onStartOAuth,
   onForgotPasswordSubmit,
   forgotPasswordInitialEmail,
   forgotPasswordLoading = false,
@@ -126,6 +128,8 @@ export function LoginView({
                   }
                   onSwitchToRegister={(email, step) => onModeChange("register", { email, step })}
                   publicRegisterEnabled={publicRegisterEnabled}
+                  pendingOAuthProvider={pendingOAuthProvider}
+                  onStartOAuth={onStartOAuth}
                   reducedMotion={reducedMotion}
                   itemVariants={itemVariants}
                 />
@@ -155,6 +159,8 @@ export function LoginView({
                   loading={registerLoading}
                   registerSeed={registerSeed}
                   redirect={redirect}
+                  pendingOAuthProvider={pendingOAuthProvider}
+                  onStartOAuth={onStartOAuth}
                   onSwitchToLogin={(email, step) => onModeChange("login", { email, step })}
                   reducedMotion={reducedMotion}
                   itemVariants={itemVariants}

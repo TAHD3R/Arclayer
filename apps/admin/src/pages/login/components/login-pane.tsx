@@ -38,6 +38,8 @@ type LoginPaneProps = {
   initialKeepSession: boolean;
   loginSeed?: LoginPaneSeed | null;
   redirect?: string;
+  pendingOAuthProvider?: string | null;
+  onStartOAuth?: (input: { provider: string; startUrl: string; keepSession: boolean }) => void;
   onForgotPassword: (email?: string) => void;
   onSwitchToEmailCode: (
     email?: string,
@@ -264,6 +266,13 @@ export function LoginPane(props: LoginPaneProps) {
           <AuthOauthButtons
             disabled={props.emailCheckLoading || props.loading}
             redirect={props.redirect}
+            loadingProvider={props.pendingOAuthProvider}
+            onProviderStart={
+              props.onStartOAuth
+                ? ({ provider, startUrl }) =>
+                    props.onStartOAuth?.({ provider, startUrl, keepSession })
+                : undefined
+            }
             dividerLabelKey="auth:LOGIN_EMAIL_STEP_DIVIDER"
           />
         </motion.div>

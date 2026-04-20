@@ -120,6 +120,20 @@ describe("AuthOauthButtons", () => {
     expect(screen.getByText("auth:OAUTH_GOOGLE")).toBeInTheDocument();
   });
 
+  it("keeps a single oauth provider disabled and busy while that provider is loading", async () => {
+    listSSOProvidersMock.mockResolvedValueOnce({
+      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google" }],
+    });
+
+    renderButtons({ loadingProvider: "google" });
+
+    const button = await screen.findByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText("auth:OAUTH_GOOGLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("Google")).not.toBeInTheDocument();
+  });
+
   it("renders two oauth providers in a compact two-column grid", async () => {
     listSSOProvidersMock.mockResolvedValueOnce({
       providers: [
