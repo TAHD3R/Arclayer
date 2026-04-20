@@ -874,11 +874,8 @@ class AuthInvitationAcceptanceService(BaseService):
 
         project_id = None
         if workspace_id is not None:
-            project = await self.project_repo.get_or_create_primary_project_for_workspace(
-                workspace_id=workspace_id,
-                actor_user_id=user.id,
-            )
-            project_id = project.id
+            project = await self.project_repo.get_first_project_by_workspace_id(workspace_id=workspace_id)
+            project_id = project.id if project is not None else None
 
         return AcceptExistingInvitationResult(
             organization_id=organization_id,

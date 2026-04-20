@@ -27,23 +27,6 @@ class RuntimeRepositoryMixin:
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
         return site
 
-    async def get_site_by_workspace_slug(self, *, workspace_slug: str) -> SiteRecord | None:
-        raw = (workspace_slug or "").strip().lower()
-        if not raw:
-            return None
-
-        # Single-site workspace model: deterministic select (should be at most 1).
-        return (
-            await SiteRecord
-            .filter(
-                workspace__slug=raw,
-                workspace__is_active=True,
-                is_active=True,
-            )
-            .order_by("created_at", "id")
-            .first()
-        )
-
     async def get_site_by_custom_hostname(self, *, hostname: str) -> SiteRecord | None:
         """
         Resolve a site by a custom hostname binding.

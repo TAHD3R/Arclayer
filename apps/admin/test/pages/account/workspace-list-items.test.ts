@@ -10,7 +10,6 @@ describe("workspace-list-items", () => {
       projectId: null,
       project: null,
       organizationId: "org-1",
-      slug: "team-space",
       name: "Team Space",
       description: null,
       iconMode: "glyph",

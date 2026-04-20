@@ -41,7 +41,6 @@ async def test_core_domain_short_paths(prepared_db) -> None:
         await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=user.id,
@@ -69,7 +68,6 @@ async def test_core_domain_short_paths(prepared_db) -> None:
             detail = resp.json()["data"]
             assert detail["id"] == workspace_id
             assert detail["name"] == "Site"
-            assert detail["slug"] == ws.slug
 
             # RBAC roles (workspace-scoped read)
             resp = await client.get(f"/api/v1/workspaces/{workspace_id}/rbac/roles?page=1&size=10")

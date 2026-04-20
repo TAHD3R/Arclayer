@@ -22,8 +22,7 @@ import {
 } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import { buildUsercenterOverlayNavigate } from "@/lib/routing/usercenter-overlay";
-import { projectsHomePath, switchWorkspacePath } from "@/lib/routing/workspace-routing";
-import { createNameSeedWorkspaceSlugState } from "@/lib/workspace-slug";
+import { projectsHomePath } from "@/lib/routing/workspace-routing";
 import {
   WorkspaceCreateDialog,
   type CreateWorkspaceFormValues,
@@ -323,7 +322,7 @@ function WorkspaceMemberMeta(props: { workspace: MyWorkspace }) {
 }
 
 function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: boolean }) {
-  const title = props.workspace.name || props.workspace.slug || props.workspace.workspaceId;
+  const title = props.workspace.name || props.workspace.workspaceId;
 
   return (
     <>
@@ -500,17 +499,7 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
                 onSelect={(workspace) => {
                   closeFloatingPanel();
                   setCurrentWorkspaceId(workspace.workspaceId);
-                  setCurrentProjectId(workspace.projectId ?? null);
-                  if (!workspace.projectId) {
-                    void navigate({ to: projectsHomePath() as never });
-                    return;
-                  }
-                  const nextPath = switchWorkspacePath({
-                    pathname,
-                    currentProjectId,
-                    nextProjectId: workspace.projectId,
-                  });
-                  void navigate({ to: nextPath as never });
+                  setCurrentProjectId(null);
                 }}
               />
             ) : null}
@@ -689,14 +678,9 @@ export function AdminWorkspaceSwitcher({
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
   const [createOpen, setCreateOpen] = useState(false);
-  const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>(() => {
-    const initialSlugState = createNameSeedWorkspaceSlugState("");
-    return {
-      name: "",
-      slug: initialSlugState.value,
-      slugSource: initialSlugState.source,
-      description: "",
-    };
+  const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>({
+    name: "",
+    description: "",
   });
   const { toggleSidebar } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -759,11 +743,8 @@ export function AdminWorkspaceSwitcher({
             onSubmit: async (values) => {
               await mutations.createMutation.mutateAsync(values);
               setCreateOpen(false);
-              const resetSlugState = createNameSeedWorkspaceSlugState("");
               setCreateValues({
                 name: "",
-                slug: resetSlugState.value,
-                slugSource: resetSlugState.source,
                 description: "",
               });
             },
@@ -832,11 +813,8 @@ export function AdminWorkspaceSwitcher({
           onSubmit: async (values) => {
             await mutations.createMutation.mutateAsync(values);
             setCreateOpen(false);
-            const resetSlugState = createNameSeedWorkspaceSlugState("");
             setCreateValues({
               name: "",
-              slug: resetSlugState.value,
-              slugSource: resetSlugState.source,
               description: "",
             });
           },

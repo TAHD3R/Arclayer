@@ -17,10 +17,9 @@ async def _resolve_site_id(
     settings: Settings = Depends(get_settings),
 ) -> UUID:
     repo = ProjectRepository()
-    project = await repo.get_or_create_primary_project_for_workspace(
-        workspace_id=ctx.workspace_id,
-        actor_user_id=None,
-    )
+    project = await repo.get_first_project_by_workspace_id(workspace_id=ctx.workspace_id)
+    if project is None:
+        raise NotFound("Project not found", error="PROJECT_NOT_FOUND")
     runtime = await repo.get_primary_runtime(project_id=project.id)
     if runtime is None:
         raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")

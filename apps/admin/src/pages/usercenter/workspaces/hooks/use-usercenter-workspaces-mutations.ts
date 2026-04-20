@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   archiveOrganizationWorkspace,
-  checkOrganizationWorkspaceSlugAvailability,
   createOrganizationWorkspace,
   deleteOrganizationWorkspace,
   unarchiveOrganizationWorkspace,
@@ -15,7 +14,6 @@ import type { UserCenterWorkspacesTranslateFn } from "../types";
 
 export type CreateWorkspacePayload = {
   name: string;
-  slug: string;
   description?: string;
 };
 
@@ -69,32 +67,13 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
   const createMutation = useMutation({
     mutationFn: async (payload: CreateWorkspacePayload) => {
       const nextName = payload.name.trim();
-      const nextSlug = payload.slug.trim();
 
       if (!nextName) {
         throw new Error("WORKSPACE_NAME_REQUIRED");
       }
-      if (!nextSlug) {
-        throw new Error("WORKSPACE_SLUG_REQUIRED");
-      }
-
-      const availability = await checkOrganizationWorkspaceSlugAvailability(
-        organizationId,
-        nextSlug,
-      );
-      if (!availability.available || !availability.normalizedSlug) {
-        if (availability.reason === "reserved") {
-          throw new Error("WORKSPACE_SLUG_RESERVED");
-        }
-        if (availability.reason === "exists") {
-          throw new Error("WORKSPACE_SLUG_EXISTS");
-        }
-        throw new Error("WORKSPACE_SLUG_INVALID");
-      }
 
       return createOrganizationWorkspace(organizationId, {
         name: nextName,
-        slug: availability.normalizedSlug,
         description: payload.description,
         template: "blank",
       });
@@ -177,18 +156,6 @@ function resolveWorkspaceCreateErrorMessage(
   if (!errorCode) return null;
   if (errorCode === "WORKSPACE_NAME_REQUIRED") {
     return t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED");
-  }
-  if (errorCode === "WORKSPACE_SLUG_REQUIRED") {
-    return t("common:ORG_WORKSPACES_FIELD_SLUG_REQUIRED");
-  }
-  if (errorCode === "WORKSPACE_SLUG_RESERVED") {
-    return t("common:ORG_WORKSPACES_FIELD_SLUG_RESERVED");
-  }
-  if (errorCode === "WORKSPACE_SLUG_EXISTS") {
-    return t("common:ORG_WORKSPACES_FIELD_SLUG_EXISTS");
-  }
-  if (errorCode === "WORKSPACE_SLUG_INVALID") {
-    return t("common:ORG_WORKSPACES_FIELD_SLUG_INVALID");
   }
   return null;
 }

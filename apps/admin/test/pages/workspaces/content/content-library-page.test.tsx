@@ -38,7 +38,9 @@ const mocked = vi.hoisted(() => ({
   sidebarIsMobile: false,
   routeSearch: { current: {} as Record<string, unknown> },
   getMyWorkspaceAuthz: vi.fn(),
+  getMyProjectAuthz: vi.fn(),
   listWorkspacePermissionActions: vi.fn(),
+  lockHoverPreview: vi.fn(),
 }));
 
 vi.mock("@/api/content", () => ({
@@ -67,6 +69,7 @@ vi.mock("@/api/settings", () => ({
 
 vi.mock("@/api/workspaces", () => ({
   getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
+  getMyProjectAuthz: (...args: unknown[]) => mocked.getMyProjectAuthz(...args),
 }));
 
 vi.mock("@/api/rbac", () => ({
@@ -102,6 +105,9 @@ vi.mock("@arclayer/ui/sidebar", () => ({
     layoutState: mocked.sidebarState,
     isMobile: mocked.sidebarIsMobile,
     setOpen: mocked.setSidebarOpen,
+  }),
+  useSidebarHoverPreviewLock: () => ({
+    lockHoverPreview: mocked.lockHoverPreview,
   }),
 }));
 
@@ -691,6 +697,11 @@ describe("ContentLibraryPage", () => {
     mocked.deleteContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
     mocked.getMyWorkspaceAuthz.mockResolvedValue({
       workspaceId: "project-1",
+      isSuperuser: false,
+      permissionCodes: ["system:content:manage", "system:content:read"],
+    });
+    mocked.getMyProjectAuthz.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage", "system:content:read"],
     });
@@ -1479,8 +1490,8 @@ describe("ContentLibraryPage", () => {
   });
 
   test("falls back to read-only actions when content management access is missing", async () => {
-    mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "project-1",
+    mocked.getMyProjectAuthz.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:read"],
     });
@@ -1727,5 +1738,22 @@ describe("ContentLibraryPage", () => {
     expect(await screen.findByTestId("page-main-region")).toBeInTheDocument();
     expect(screen.getByTestId("admin-route-container")).toBeInTheDocument();
     expect(await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).toBeInTheDocument();
+  });
+
+  test("prefers route project id over workspace context when loading library data", async () => {
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "ws-1",
+      currentProjectId: "project-from-store",
+      lastWorkspaceId: "ws-1",
+      lastProjectId: "project-from-store",
+    });
+
+    renderWithQuery(<ContentLibraryPage projectId="project-from-route" />);
+
+    await waitFor(() => {
+      expect(mocked.listAllContentModels).toHaveBeenCalledWith("project-from-route");
+      expect(mocked.listAllContentItems).toHaveBeenCalledWith("project-from-route");
+      expect(mocked.getContentLibraryViews).toHaveBeenCalledWith("project-from-route");
+    });
   });
 });

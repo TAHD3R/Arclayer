@@ -33,7 +33,6 @@ export type {
   OrganizationWorkspaceCreateInput,
   OrganizationWorkspaceMember,
   OrganizationWorkspaceMemberPreview,
-  OrganizationWorkspaceSlugAvailability,
   OrganizationWorkspaceTemplate,
 } from "./organization-workspaces";
 export type {
@@ -52,7 +51,6 @@ export type {
   WorkspaceFirstOnboarding,
   WorkspaceFirstOnboardingStatus,
   WorkspaceRolePolicy,
-  WorkspaceSlugAvailability,
   WorkspaceSwitcher,
 } from "./workspaces";
 export type {

@@ -45,10 +45,6 @@ async def test_project_runtime_service_creates_runtime_scoped_site(monkeypatch) 
         assert project_id == project.id
         return project
 
-    async def fake_get_unassigned_site_by_workspace_id(*, workspace_id):
-        assert workspace_id == project.workspace_id
-        return None
-
     async def fake_create_site(**kwargs):
         created_calls.append(kwargs)
         return SimpleNamespace(
@@ -62,12 +58,7 @@ async def test_project_runtime_service_creates_runtime_scoped_site(monkeypatch) 
 
     monkeypatch.setattr(service.project_repo, "get_runtime_site", fake_get_runtime_site)
     monkeypatch.setattr(service.project_repo, "get_project_by_id", fake_get_project_by_id)
-    monkeypatch.setattr(
-        service.workspace_site_service.repo,
-        "get_unassigned_site_by_workspace_id",
-        fake_get_unassigned_site_by_workspace_id,
-    )
-    monkeypatch.setattr(service.workspace_site_service.repo, "create_site", fake_create_site)
+    monkeypatch.setattr(service.runtime_site_service.repo, "create_site", fake_create_site)
 
     context = await service._build_context(runtime=runtime, workspace_id=workspace_id, actor_user_id=None)
 
@@ -120,7 +111,7 @@ async def test_project_runtime_service_reuses_attached_runtime_site(monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_project_runtime_service_adopts_legacy_workspace_site(monkeypatch) -> None:
+async def test_project_runtime_service_does_not_adopt_workspace_level_site(monkeypatch) -> None:
     runtime_id = uuid4()
     project_id = uuid4()
     workspace_id = uuid4()
@@ -129,15 +120,7 @@ async def test_project_runtime_service_adopts_legacy_workspace_site(monkeypatch)
     service = ProjectRuntimeService(settings=SimpleNamespace())
     runtime = _FakeRuntime(runtime_id=runtime_id, project_id=project_id)
     project = _FakeProject(project_id=project_id, workspace_id=workspace_id)
-    legacy_site = SimpleNamespace(
-        id=site_id,
-        slug="workspace-alpha",
-        name="Workspace Alpha Site",
-        default_locale="zh-CN",
-        fallback_locale="en-US",
-        is_active=True,
-    )
-    attached_calls: list[dict[str, object]] = []
+    created_calls: list[dict[str, object]] = []
 
     async def fake_get_runtime_site(*, runtime_id):
         assert runtime_id == runtime.id
@@ -147,38 +130,33 @@ async def test_project_runtime_service_adopts_legacy_workspace_site(monkeypatch)
         assert project_id == project.id
         return project
 
-    async def fake_get_unassigned_site_by_workspace_id(*, workspace_id):
-        assert workspace_id == project.workspace_id
-        return legacy_site
-
-    async def fake_attach_site_to_runtime(*, site, project_id, runtime_id):
-        attached_calls.append({
-            "site": site,
-            "project_id": project_id,
-            "runtime_id": runtime_id,
-        })
-        return site
+    async def fake_create_site(**kwargs):
+        created_calls.append(kwargs)
+        return SimpleNamespace(
+            id=site_id,
+            slug=kwargs["slug"],
+            name=kwargs["name"],
+            default_locale=kwargs["default_locale"],
+            fallback_locale=kwargs["fallback_locale"],
+            is_active=True,
+        )
 
     monkeypatch.setattr(service.project_repo, "get_runtime_site", fake_get_runtime_site)
     monkeypatch.setattr(service.project_repo, "get_project_by_id", fake_get_project_by_id)
-    monkeypatch.setattr(
-        service.workspace_site_service.repo,
-        "get_unassigned_site_by_workspace_id",
-        fake_get_unassigned_site_by_workspace_id,
-    )
-    monkeypatch.setattr(
-        service.workspace_site_service.repo,
-        "attach_site_to_runtime",
-        fake_attach_site_to_runtime,
-    )
+    monkeypatch.setattr(service.runtime_site_service.repo, "create_site", fake_create_site)
 
     context = await service._build_context(runtime=runtime, workspace_id=workspace_id, actor_user_id=None)
 
-    assert attached_calls == [
+    assert created_calls == [
         {
-            "site": legacy_site,
+            "workspace_id": workspace_id,
             "project_id": project_id,
             "runtime_id": runtime_id,
+            "slug": project.slug,
+            "name": f"{project.name} Site",
+            "default_locale": "zh-CN",
+            "fallback_locale": "en-US",
+            "created_by_user_id": None,
         }
     ]
     assert context.site_id == site_id

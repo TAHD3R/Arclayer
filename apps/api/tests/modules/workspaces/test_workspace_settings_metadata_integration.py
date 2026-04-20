@@ -27,6 +27,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
 
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
+        from src.models.projects.project import ProjectRecord
         from src.models.workspaces.workspace import Workspace
         from src.modules.auth.repository import UserRepository
         from src.modules.auth.tokens.service import hash_password
@@ -45,7 +46,6 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug="default",
             name="Default",
             is_active=True,
             created_by_user_id=owner.id,
@@ -78,16 +78,31 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             assert resp.status_code == 200
             data = resp.json()["data"]
             assert data["id"] == ws_pid
+            assert data["project"] is None
             assert data["organizationId"] == encode_uuid(org.id)
             assert data["kind"] == "team"
             assert data["name"] == "Default"
-            assert data["slug"] == "default"
             assert data["description"] is None
             assert data["iconMode"] == "glyph"
             assert data["iconColor"] == "#2563eb"
             assert data["iconGlyph"] == "rocket"
             assert data["iconEmoji"] is None
             assert data["iconUrl"] is None
+
+            assert await ProjectRecord.filter(workspace_id=ws.id).count() == 0
+
+            legacy_api_key_resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/api-keys",
+                json={
+                    "family": "delivery",
+                    "name": "Legacy key",
+                    "scopes": ["delivery.read"],
+                    "deliveryPerspective": "published",
+                },
+            )
+            assert legacy_api_key_resp.status_code == 404, legacy_api_key_resp.text
+            assert legacy_api_key_resp.json().get("error") == "PROJECT_NOT_FOUND"
+            assert await ProjectRecord.filter(workspace_id=ws.id).count() == 0
 
             resp = await client.patch(
                 f"/api/v1/workspaces/{ws_pid}",
@@ -103,21 +118,8 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             data = resp.json()["data"]
             assert data["kind"] == "team"
             assert data["name"] == "My Blog"
-            assert data["slug"] == "default"
             assert data["description"] == "Launch content and workspace docs."
             assert data["iconMode"] == "emoji"
             assert data["iconColor"] == "#ff3366"
             assert data["iconEmoji"] == "🚀"
             assert data["iconGlyph"] == "rocket"
-
-            # Workspace slug is updatable in the current metadata API.
-            resp = await client.patch(
-                f"/api/v1/workspaces/{ws_pid}",
-                json={"slug": "my-blog"},
-            )
-            assert resp.status_code == 200
-            data = resp.json()["data"]
-            assert data["kind"] == "team"
-            assert data["slug"] == "my-blog"
-            assert data["iconMode"] == "emoji"
-            assert data["iconColor"] == "#ff3366"

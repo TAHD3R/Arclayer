@@ -11,6 +11,7 @@ from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
+from src.models.projects.project import ProjectRecord
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace import (
     Workspace,
@@ -63,7 +64,6 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
 
         default_workspace = await Workspace.create(
             organization_id=org.id,
-            slug="default",
             name="Default",
             is_active=True,
             created_by_user_id=owner.id,
@@ -117,33 +117,12 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert search_resp.status_code == 200, search_resp.text
             assert search_resp.json()["data"]["total"] == 1
 
-            availability_resp = await client.get(
-                "/api/v1/organizations/me/workspaces/slug-availability",
-                params={"slug": "blog-team"},
-            )
-            assert availability_resp.status_code == 200, availability_resp.text
-            availability_payload = availability_resp.json()["data"]
-            assert availability_payload["normalizedSlug"] == "blog-team"
-            assert availability_payload["available"] is True
-            assert availability_payload["reason"] is None
-
-            reserved_slug_resp = await client.get(
-                "/api/v1/organizations/me/workspaces/slug-availability",
-                params={"slug": "api"},
-            )
-            assert reserved_slug_resp.status_code == 200, reserved_slug_resp.text
-            reserved_slug_payload = reserved_slug_resp.json()["data"]
-            assert reserved_slug_payload["normalizedSlug"] == "api"
-            assert reserved_slug_payload["available"] is False
-            assert reserved_slug_payload["reason"] == "reserved"
-
             await default_workspace.delete()
 
             create_resp = await client.post(
                 "/api/v1/organizations/me/workspaces",
                 json={
                     "name": "Blog Team",
-                    "slug": "blog-team",
                     "description": "Marketing and content",
                     "template": "blog",
                 },
@@ -151,24 +130,15 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert create_resp.status_code == 200, create_resp.text
             created = create_resp.json()["data"]
             created_workspace_id = created["workspaceId"]
+            assert created["projectId"] is None
+            assert created["project"] is None
             assert created["name"] == "Blog Team"
-            assert created["slug"] == "blog-team"
             assert created["description"] == "Marketing and content"
-            created_workspace = await Workspace.get(organization_id=org.id, slug="blog-team")
-
-            taken_slug_resp = await client.get(
-                "/api/v1/organizations/me/workspaces/slug-availability",
-                params={"slug": "blog-team"},
-            )
-            assert taken_slug_resp.status_code == 200, taken_slug_resp.text
-            taken_slug_payload = taken_slug_resp.json()["data"]
-            assert taken_slug_payload["normalizedSlug"] == "blog-team"
-            assert taken_slug_payload["available"] is False
-            assert taken_slug_payload["reason"] == "exists"
+            created_workspace = await Workspace.get(organization_id=org.id, name="Blog Team")
+            assert await ProjectRecord.filter(workspace_id=created_workspace.id).count() == 0
 
             support_workspace = await Workspace.create(
                 organization_id=org.id,
-                slug="support-team",
                 name="Support Team",
                 is_active=True,
                 created_by_user_id=owner.id,
@@ -316,7 +286,6 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
 
         ws = await Workspace.create(
             organization_id=org.id,
-            slug="default",
             name="Default",
             is_active=True,
             created_by_user_id=owner.id,

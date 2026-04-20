@@ -207,7 +207,7 @@ class AuthInvitationService(BaseService):
                 ws_inv = inv
                 if isinstance(ws_inv, WorkspaceEmailInvite):
                     ws = ws_inv.workspace
-                    ws_out = MyInvitationWorkspaceOut(id=ws.id, name=ws.name, slug=ws.slug)
+                    ws_out = MyInvitationWorkspaceOut(id=ws.id, name=ws.name)
 
             inviter = inviter_map.get(UUID(str(inv.created_by_user_id))) if inv.created_by_user_id is not None else None
 
@@ -435,7 +435,6 @@ class AuthInvitationService(BaseService):
                 InvitationPreviewWorkspaceOut(
                     id=ws.id,
                     name=ws.name,
-                    slug=ws.slug,
                 )
                 if ws is not None
                 else None

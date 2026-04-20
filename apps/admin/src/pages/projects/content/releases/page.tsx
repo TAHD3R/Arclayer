@@ -8,7 +8,7 @@ import {
   rollbackProjectRelease,
 } from "@/api/content";
 import { BaseTag } from "@/components/ui/tags";
-import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { buildContentLibraryItemsQueryKey } from "@/pages/projects/content/library/runtime";
@@ -163,7 +163,7 @@ function ReleaseHistoryRow(props: {
 export function ContentReleaseCenterPage(props: { projectId: string }) {
   const { t } = useTranslation("content");
   const queryClient = useQueryClient();
-  const permissionAccess = useWorkspacePermissionAccess(props.projectId);
+  const permissionAccess = useProjectPermissionAccess(props.projectId);
   const canPublish =
     !permissionAccess.authzQuery.isFetched ||
     permissionAccess.hasPermission("system:content:publish") ||

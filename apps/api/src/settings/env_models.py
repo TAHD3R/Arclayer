@@ -233,7 +233,7 @@ class SaasSettings(BaseSettings):
 
     base_domain: str = Field(
         default="arclayer.app",
-        description="Base domain for tenant subdomains (e.g. {workspace_slug}.arclayer.app).",
+        description="Base domain for published site hostnames and platform-managed subdomains.",
     )
     admin_url: str = Field(
         default="https://admin.arclayer.app",

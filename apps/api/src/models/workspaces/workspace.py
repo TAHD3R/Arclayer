@@ -42,8 +42,6 @@ class Workspace(BaseModel):
         related_name="workspaces",
         on_delete=fields.CASCADE,
     )
-    # workspaceSlug is the public portal identifier; keep it globally unique.
-    slug = fields.CharField(max_length=64, unique=True)
     name = fields.CharField(max_length=128)
     kind = fields.CharEnumField(WorkspaceKind, default=WorkspaceKind.TEAM, db_index=True)
     owner_user_id = fields.UUIDField(null=True, db_index=True)

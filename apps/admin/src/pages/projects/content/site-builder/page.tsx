@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { projectContentLibraryPath } from "@/lib/routing/project-content-routing";
 import type { AdminContentItem } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
@@ -31,7 +31,7 @@ export function ContentSiteBuilderPage(props: {
   item?: AdminContentItem | null;
 }) {
   const { t } = useTranslation("content");
-  const permissionAccess = useWorkspacePermissionAccess(props.projectId);
+  const permissionAccess = useProjectPermissionAccess(props.projectId);
   const permissionReady = permissionAccess.authzQuery.isFetched;
   const canConfigureBuilder =
     !permissionReady ||

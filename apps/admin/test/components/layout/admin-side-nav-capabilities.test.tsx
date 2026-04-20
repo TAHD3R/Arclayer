@@ -190,7 +190,6 @@ describe("AdminSiderNav capability nodes", () => {
       id: "ws-1",
       project: { projectId: "project-1" },
       organizationId: "org-1",
-      slug: "workspace-one",
       name: "Workspace One",
       kind: "team",
       iconMode: "initials",

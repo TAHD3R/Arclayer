@@ -29,7 +29,6 @@ function buildWorkspaceListItem(
     workspaceId: detail.id,
     projectId: detail.project?.projectId ?? detail.id,
     organizationId: detail.organizationId,
-    slug: detail.slug,
     name: detail.name,
     kind: "team",
     description: detail.description ?? null,
@@ -274,33 +273,6 @@ export function WorkspaceSettingsIconAccordionItem(props: {
               aria-label={t("common:DUPLICATE")}
               onClick={() =>
                 void handleCopy(workspace?.workspaceId, "settings:SETTINGS_WORKSPACE_ID_COPIED")
-              }
-            >
-              <Copy className="size-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="text-body font-medium text-label-primary">
-              {t("settings:SETTINGS_WORKSPACE_SLUG_LABEL")}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <code className="max-w-[20rem] truncate font-mono text-callout text-label-secondary">
-              {c.currentWorkspaceSlug || "-"}
-            </code>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              disabled={!c.currentWorkspaceSlug}
-              aria-label={t("common:DUPLICATE")}
-              onClick={() =>
-                void handleCopy(c.currentWorkspaceSlug, "settings:SETTINGS_WORKSPACE_SLUG_COPIED")
               }
             >
               <Copy className="size-4" />

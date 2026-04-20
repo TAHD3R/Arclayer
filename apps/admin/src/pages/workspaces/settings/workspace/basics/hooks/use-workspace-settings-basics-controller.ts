@@ -41,7 +41,6 @@ function getBrowserTimeZone(): string {
 const DEFAULT_FORM_VALUES: WorkspaceSettingsFormValues = {
   name: "",
   description: "",
-  slug: "",
   locale: DEFAULT_LOCALE,
   timezone: DEFAULT_TIMEZONE,
   useBrowserTimeZone: true,
@@ -125,9 +124,6 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     if (!form.getFieldState("description").isDirty) {
       form.setValue("description", detailQuery.data.description ?? "", { shouldDirty: false });
     }
-    if (!form.getFieldState("slug").isDirty) {
-      form.setValue("slug", detailQuery.data.slug, { shouldDirty: false });
-    }
   }, [detailQuery.data, form]);
 
   useEffect(() => {
@@ -204,11 +200,6 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const currentWorkspaceDescription =
     useWatch({ control: form.control, name: "description" }) ?? initialWorkspaceDescription;
 
-  const initialWorkspaceSlug = detailQuery.data?.slug ?? "";
-  const persistedWorkspaceSlug = String(initialWorkspaceSlug || "").trim();
-  const currentWorkspaceSlug =
-    useWatch({ control: form.control, name: "slug" }) ?? initialWorkspaceSlug;
-
   const initialWorkspaceLocale = normalizeLocale(
     pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
   );
@@ -277,7 +268,6 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const isWorkspaceNameDirty = (currentWorkspaceName || "") !== (initialWorkspaceName || "");
   const isWorkspaceDescriptionDirty =
     (currentWorkspaceDescription || "") !== (initialWorkspaceDescription || "");
-  const isWorkspaceSlugDirty = (currentWorkspaceSlug || "") !== (initialWorkspaceSlug || "");
   const isWorkspaceLocaleDirty = (workspaceLocale || "") !== String(initialWorkspaceLocale);
   const isWorkspaceTimezoneDirty =
     (workspaceTimezone || "") !== (initialWorkspaceTimezone || "") ||
@@ -314,9 +304,6 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     initialWorkspaceDescription,
     persistedWorkspaceDescription,
     currentWorkspaceDescription,
-    initialWorkspaceSlug,
-    persistedWorkspaceSlug,
-    currentWorkspaceSlug,
     initialWorkspaceLocale,
     initialWorkspaceTimezone,
     initialWorkspaceUseBrowserTimeZone,
@@ -346,7 +333,6 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     assignRoleDescription,
     isWorkspaceNameDirty,
     isWorkspaceDescriptionDirty,
-    isWorkspaceSlugDirty,
     isWorkspaceLocaleDirty,
     isWorkspaceTimezoneDirty,
     isWorkspaceDateFormatDirty,

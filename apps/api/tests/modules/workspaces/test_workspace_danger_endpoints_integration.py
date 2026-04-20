@@ -70,14 +70,12 @@ async def test_workspace_leave_and_delete_endpoints(prepared_db, integration_val
 
         target_workspace = await Workspace.create(
             organization_id=org.id,
-            slug="target",
             name="Target Workspace",
             is_active=True,
             created_by_user_id=owner1.id,
         )
         await Workspace.create(
             organization_id=org.id,
-            slug="spare",
             name="Spare Workspace",
             is_active=True,
             created_by_user_id=owner2.id,
@@ -193,14 +191,12 @@ async def test_workspace_danger_capabilities_report_constraints(prepared_db, int
 
         target_workspace = await Workspace.create(
             organization_id=org.id,
-            slug="target",
             name="Target Workspace",
             is_active=True,
             created_by_user_id=owner1.id,
         )
         spare_workspace = await Workspace.create(
             organization_id=org.id,
-            slug="spare",
             name="Spare Workspace",
             is_active=True,
             created_by_user_id=owner2.id,

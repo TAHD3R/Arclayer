@@ -15,7 +15,6 @@ from src.models.projects.project import ProjectRecord
 from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
 from src.models.sites.site import SiteRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
-from src.modules.workspaces.slug.service import parse_explicit_workspace_slug
 
 
 class ProjectRepository(BaseRepository):
@@ -128,10 +127,21 @@ class ProjectRepository(BaseRepository):
         slug: str,
         exclude_project_id: UUID | None = None,
     ) -> tuple[str | None, str | None]:
-        normalized_slug, err = parse_explicit_workspace_slug(slug)
-        if err == "invalid" or normalized_slug is None:
+        normalized_slug = slugify(slug)[:64]
+        if not normalized_slug or normalized_slug == "asset":
             return None, "invalid"
-        if err == "reserved":
+        if normalized_slug in {
+            "admin",
+            "api",
+            "www",
+            "studio",
+            "preview",
+            "editor",
+            "debug",
+            "assets",
+            "static",
+            "system",
+        }:
             return normalized_slug, "reserved"
         exists = await self.slug_exists(
             workspace_id=workspace_id,
@@ -308,7 +318,7 @@ class ProjectRepository(BaseRepository):
 
         return await ProjectRecord.create(
             workspace_id=workspace_id,
-            slug=(workspace.slug or "project")[:64],
+            slug=await self._next_available_slug(workspace_id=workspace_id, name=workspace.name or "Project"),
             name=(workspace.name or "Project")[:128],
             description=workspace.description,
             icon_mode=workspace.icon_mode,

@@ -8,7 +8,6 @@ import { WorkspaceFirstOnboardingPage } from "@/pages/onboarding/workspace-first
 const {
   navigateMock,
   listMyWorkspacesMock,
-  checkSlugMock,
   createMyOnboardingWorkspaceMock,
   meMock,
   patchCoreSettingsMock,
@@ -18,7 +17,6 @@ const {
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   listMyWorkspacesMock: vi.fn(),
-  checkSlugMock: vi.fn(),
   createMyOnboardingWorkspaceMock: vi.fn(),
   meMock: vi.fn(),
   patchCoreSettingsMock: vi.fn(),
@@ -47,7 +45,6 @@ const translations: Record<string, string> = {
   "onboarding:WORKSPACE_NAME_LABEL": "Workspace name",
   "onboarding:WORKSPACE_NAME_HELP": "Choose the name people see when they enter this workspace.",
   "onboarding:WORKSPACE_NAME_PLACEHOLDER": "e.g. Product studio",
-  "onboarding:WORKSPACE_SLUG_LABEL": "Workspace address",
   "onboarding:PREFERENCES_STEP_TITLE": "Set workspace preferences",
   "settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE":
     "Use relative datetime by default",
@@ -67,7 +64,6 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/api/workspaces", () => ({
   listMyWorkspaces: (...args: unknown[]) => listMyWorkspacesMock(...args),
-  checkMyOnboardingWorkspaceSlugAvailability: (...args: unknown[]) => checkSlugMock(...args),
   createMyOnboardingWorkspace: (...args: unknown[]) => createMyOnboardingWorkspaceMock(...args),
 }));
 
@@ -116,7 +112,6 @@ function renderPage() {
 beforeEach(() => {
   navigateMock.mockReset();
   listMyWorkspacesMock.mockReset();
-  checkSlugMock.mockReset();
   createMyOnboardingWorkspaceMock.mockReset();
   meMock.mockReset();
   patchCoreSettingsMock.mockReset();
@@ -127,11 +122,6 @@ beforeEach(() => {
   i18nState.resolvedLanguage = "en-US";
   i18nState.language = "en-US";
 
-  checkSlugMock.mockImplementation(async (slug: string) => ({
-    normalizedSlug: slug,
-    available: true,
-    reason: null,
-  }));
   meMock.mockResolvedValue({
     id: "user-1",
     username: "founder-team",
@@ -159,7 +149,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
         {
           workspaceId: "ws-team",
           organizationId: "org-team",
-          slug: "founder",
           name: "Founder Workspace",
           kind: "team",
           visibleOnly: false,
@@ -172,7 +161,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
           {
             workspaceId: "ws-team",
             organizationId: "org-team",
-            slug: "founder",
             name: "Founder Workspace",
             kind: "team",
             visibleOnly: false,
@@ -209,7 +197,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
           {
             workspaceId: "ws-1",
             organizationId: "org-1",
-            slug: "founder-team",
             name: "Studio Team",
             kind: "team",
             visibleOnly: false,
@@ -222,7 +209,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
             {
               workspaceId: "ws-1",
               organizationId: "org-1",
-              slug: "founder-team",
               name: "Studio Team",
               kind: "team",
               visibleOnly: false,
@@ -239,7 +225,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
           {
             workspaceId: "ws-1",
             organizationId: "org-1",
-            slug: "founder-team",
             name: "Studio Team",
             kind: "team",
             visibleOnly: false,
@@ -252,7 +237,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
             {
               workspaceId: "ws-1",
               organizationId: "org-1",
-              slug: "founder-team",
               name: "Studio Team",
               kind: "team",
               visibleOnly: false,
@@ -269,7 +253,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
           {
             workspaceId: "ws-1",
             organizationId: "org-1",
-            slug: "founder-team",
             name: "Studio Team",
             kind: "team",
             visibleOnly: false,
@@ -282,7 +265,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
             {
               workspaceId: "ws-1",
               organizationId: "org-1",
-              slug: "founder-team",
               name: "Studio Team",
               kind: "team",
               visibleOnly: false,
@@ -300,9 +282,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
 
     await screen.findByText("Set up your workspace");
     const nameInput = screen.getByLabelText("Workspace name");
-    const slugInput = screen.getByLabelText("Workspace address");
-
-    await waitFor(() => expect(slugInput).toHaveValue("founder-team"));
     await waitFor(() => expect(nameInput).toHaveValue("Founder's Workspace"));
 
     await user.clear(nameInput);
@@ -314,7 +293,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
     await waitFor(() => {
       expect(createMyOnboardingWorkspaceMock).toHaveBeenCalledWith({
         name: "Studio Team",
-        slug: "founder-team",
       });
     });
 
@@ -378,7 +356,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
         {
           workspaceId: "ws-1",
           organizationId: "org-1",
-          slug: "founder-team",
           name: "Studio Team",
           kind: "team",
           visibleOnly: false,
@@ -391,7 +368,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
           {
             workspaceId: "ws-1",
             organizationId: "org-1",
-            slug: "founder-team",
             name: "Studio Team",
             kind: "team",
             visibleOnly: false,

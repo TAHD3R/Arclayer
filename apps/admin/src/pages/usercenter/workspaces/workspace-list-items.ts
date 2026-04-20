@@ -12,9 +12,8 @@ export type UserCenterWorkspaceListItemMemberPreview = {
 export type UserCenterWorkspaceListItem = {
   id: string;
   workspaceId: string;
-  projectId: string;
+  projectId: string | null;
   organizationId: string;
-  slug: string;
   name: string;
   kind: "team";
   description: string | null;
@@ -37,6 +36,7 @@ export function mapOrganizationWorkspaceToListItem(
 ): UserCenterWorkspaceListItem {
   return {
     ...workspace,
+    projectId: workspace.projectId ?? null,
     kind: "team",
     membersPreview: workspace.membersPreview.map((member) => ({
       userId: member.userId,
@@ -54,7 +54,7 @@ export function matchesWorkspaceSearch(item: UserCenterWorkspaceListItem, search
     .toLowerCase();
   if (!normalizedQuery) return true;
 
-  return [item.name, item.slug, item.description]
+  return [item.name, item.description]
     .filter((value): value is string => Boolean(value))
     .some((value) => value.toLowerCase().includes(normalizedQuery));
 }

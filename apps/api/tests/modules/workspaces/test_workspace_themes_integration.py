@@ -129,7 +129,6 @@ async def test_workspace_theme_import_and_site_runtime_output(
 
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Workspace",
             is_active=True,
             created_by_user_id=owner.id,

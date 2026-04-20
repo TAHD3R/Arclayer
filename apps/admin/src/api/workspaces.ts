@@ -6,7 +6,6 @@ import type {
   MyWorkspaceListResult,
   OnboardingWorkspaceCreatePayload,
   OnboardingWorkspaceCreateResult,
-  WorkspaceSlugAvailability,
   WorkspaceAssignRoleResult,
   WorkspaceDangerCapabilities,
   WorkspaceDeleteResult,
@@ -16,14 +15,6 @@ import type {
 
 export async function listMyWorkspaces(): Promise<MyWorkspaceListResult> {
   return api.get<MyWorkspaceListResult>("/me/workspaces");
-}
-
-export async function checkMyOnboardingWorkspaceSlugAvailability(
-  slug: string,
-): Promise<WorkspaceSlugAvailability> {
-  return api.get<WorkspaceSlugAvailability>(
-    `/me/workspaces/onboarding/slug-availability${toQueryString({ slug })}`,
-  );
 }
 
 export async function createMyOnboardingWorkspace(
@@ -49,7 +40,6 @@ export async function patchWorkspaceDetail(
   payload: {
     name?: string;
     description?: string | null;
-    slug?: string;
     iconMode?: "initials" | "glyph" | "emoji" | "image";
     iconColor?: string | null;
     iconGlyph?: string | null;

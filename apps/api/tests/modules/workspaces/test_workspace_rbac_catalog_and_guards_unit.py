@@ -20,7 +20,6 @@ from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.workspaces.api_keys.router import workspace_api_keys_router
 from src.modules.workspaces.permissions import get_permission_action_registry
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
-from src.modules.workspaces.site.router import router as site_router
 
 
 def _route_permissions(router: APIRouter, *, path: str, method: str) -> set[str]:
@@ -178,11 +177,15 @@ def test_content_router_uses_granular_permissions() -> None:
 
 
 def test_site_router_uses_granular_permissions() -> None:
-    site_read = _route_permissions(site_router, path="/workspaces/{workspace_id}/site", method="GET")
-    site_preview = _route_permissions(site_router, path="/workspaces/{workspace_id}/site/preview-tokens", method="POST")
+    site_read = _route_permissions(project_facade_router, path="/projects/{project_id}/site", method="GET")
+    site_preview = _route_permissions(
+        project_facade_router,
+        path="/projects/{project_id}/site/preview-tokens",
+        method="POST",
+    )
 
     assert site_read == {"system:site:read"}
-    assert site_preview == {"system:site:read", "system:site:manage"}
+    assert site_preview == {"system:site:manage"}
     assert "admin:access" not in site_read | site_preview
 
 

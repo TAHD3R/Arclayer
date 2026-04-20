@@ -48,7 +48,6 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
     await OrgMembership.create(organization_id=org.id, user_id=admin.id, role=OrgRole.OWNER, status="active")
     ws = await Workspace.create(
         organization_id=org.id,
-        slug=f"ws_{uuid4().hex[:8]}",
         name="Site",
         is_active=True,
         created_by_user_id=admin.id,

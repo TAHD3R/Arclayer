@@ -39,7 +39,6 @@ class OrganizationWorkspaceOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     project_id: PublicUUID | None = Field(default=None, description="Primary project id when available.")
     organization_id: PublicUUID = Field(..., description="Organization id.")
-    slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
     description: str | None = Field(default=None, description="Workspace description.")
     icon_mode: WorkspaceIconMode = Field(
@@ -71,7 +70,6 @@ class OrganizationWorkspaceOut(BaseOut):
 
 class OrganizationWorkspaceCreateRequest(BaseSchema):
     name: str = Field(..., min_length=1, max_length=128, description="Workspace name.")
-    slug: str | None = Field(default=None, min_length=1, max_length=64, description="Workspace slug (optional).")
     description: str | None = Field(default=None, max_length=256, description="Workspace description.")
     template: OrganizationWorkspaceTemplate = Field(
         default=OrganizationWorkspaceTemplate.BLANK,
@@ -80,15 +78,6 @@ class OrganizationWorkspaceCreateRequest(BaseSchema):
     locale: str | None = Field(default=None, description="Default locale (optional).")
     timezone: str | None = Field(default=None, description="Default timezone (optional).")
     date_format: str | None = Field(default=None, description="Default date format (optional).")
-
-
-class OrganizationWorkspaceSlugAvailabilityOut(BaseSchema):
-    normalized_slug: str | None = Field(default=None, description="Normalized workspace slug if parseable.")
-    available: bool = Field(default=False, description="Whether the slug is currently available.")
-    reason: str | None = Field(
-        default=None,
-        description="Explicit reason code when unavailable: invalid, reserved, or exists.",
-    )
 
 
 class OrganizationWorkspaceArchiveResult(BaseSchema):

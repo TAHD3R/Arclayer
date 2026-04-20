@@ -4,13 +4,11 @@ from collections import defaultdict
 from typing import TypedDict, cast
 from uuid import UUID
 
-from tortoise.exceptions import IntegrityError
-
 from src.common.constants.assets import ASSET_SCOPE_WORKSPACE
 from src.common.protocols.tortoise import HasOrganizationId, HasUserId, HasWorkspaceId
 from src.common.services import BaseService
 from src.config import Settings
-from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
+from src.core.exceptions import BadRequest, Forbidden, NotFound
 from src.core.i18n import t
 from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgMembership, OrgRole
@@ -49,7 +47,6 @@ from src.modules.workspaces.schema import (
     WorkspaceSwitcherOut,
     WorkspaceUpdateRequest,
 )
-from src.modules.workspaces.slug.service import parse_explicit_workspace_slug
 
 
 def _resolve_organization_id(value: object) -> UUID:
@@ -101,7 +98,6 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
                 workspace_id=ws.id,
                 project_id=None,
                 organization_id=_resolve_organization_id(ws),
-                slug=ws.slug,
                 name=ws.name,
                 kind=ws.kind,
                 description=ws.description,
@@ -179,7 +175,6 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                     workspace_id=ws.id,
                     project_id=None,
                     organization_id=org_id,
-                    slug=ws.slug,
                     name=ws.name,
                     kind=ws.kind,
                     description=ws.description,
@@ -376,19 +371,8 @@ class WorkspaceService(BaseService):
             )
 
         workspace_name = str(payload.name or "").strip()
-        workspace_slug = str(payload.slug or "").strip()
         if not workspace_name:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
-        if not workspace_slug:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_REQUIRED")
-
-        normalized_slug, slug_error = parse_explicit_workspace_slug(workspace_slug)
-        if slug_error == "invalid" or normalized_slug is None:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_INVALID")
-        if slug_error == "reserved":
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_RESERVED")
-        if await self.repo.slug_exists(slug=normalized_slug):
-            raise Conflict(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_EXISTS")
 
         organization = await self._ensure_onboarding_team_organization(
             user_id=user_id,
@@ -400,7 +384,6 @@ class WorkspaceService(BaseService):
             org_role=OrgRole.OWNER,
             payload=OrganizationWorkspaceCreateRequest(
                 name=workspace_name,
-                slug=normalized_slug,
                 template="blank",
             ),
         )
@@ -421,16 +404,12 @@ class WorkspaceService(BaseService):
         )
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        project = await self.project_repo.get_or_create_primary_project_for_workspace(
-            workspace_id=workspace_id,
-            actor_user_id=None,
-        )
+        project = await self.project_repo.get_first_project_by_workspace_id(workspace_id=workspace_id)
         return WorkspaceDetailOut(
             id=ws.id,
-            project=WorkspacePrimaryProjectOut(project_id=UUID(str(project.id))),
+            project=WorkspacePrimaryProjectOut(project_id=UUID(str(project.id))) if project is not None else None,
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             kind=ws.kind,
-            slug=ws.slug,
             name=ws.name,
             description=ws.description,
             icon_mode=ws.icon_mode,
@@ -567,23 +546,6 @@ class WorkspaceService(BaseService):
                 )
             updates["description"] = description
 
-        if payload.slug is not None:
-            desired = str(payload.slug).strip()
-            normalized, err = parse_explicit_workspace_slug(desired)
-            if err == "invalid" or normalized is None:
-                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_INVALID")
-            if err == "reserved":
-                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_RESERVED")
-
-            if ws.slug != normalized:
-                exists = await Workspace.filter(slug=normalized).exclude(id=ws.id).exists()
-                if exists:
-                    raise Conflict(
-                        message=t("errors", "BAD_REQUEST"),
-                        error="WORKSPACE_SLUG_EXISTS",
-                    )
-                updates["slug"] = normalized
-
         if payload.icon_url is not None:
             raw = str(payload.icon_url).strip()
             icon_url = raw or None
@@ -635,19 +597,12 @@ class WorkspaceService(BaseService):
         if updates:
             for k, v in updates.items():
                 setattr(ws, k, v)
-            try:
-                await ws.save(update_fields=list(updates.keys()) + ["updated_at"])
-            except IntegrityError as exc:
-                raise Conflict(
-                    message=t("errors", "BAD_REQUEST"),
-                    error="WORKSPACE_SLUG_EXISTS",
-                ) from exc
+            await ws.save(update_fields=list(updates.keys()) + ["updated_at"])
 
         return WorkspaceDetailOut(
             id=ws.id,
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             kind=ws.kind,
-            slug=ws.slug,
             name=ws.name,
             description=ws.description,
             icon_mode=ws.icon_mode,

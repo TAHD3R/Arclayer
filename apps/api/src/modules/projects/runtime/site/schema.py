@@ -6,16 +6,12 @@ from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 
 
-class WorkspaceSiteOut(BaseSchema):
+class ProjectRuntimeSiteOut(BaseSchema):
     """
-    Workspace-scoped site metadata.
-
-    Notes:
-    - Single-site workspace model: each workspace maps to exactly one site.
-    - Admin UI uses this endpoint to discover `site_id` for Portal editor URLs.
+    Project runtime site metadata.
     """
 
-    site_id: PublicUUID = Field(..., alias="siteId", description="Resolved site id for the workspace.")
+    site_id: PublicUUID = Field(..., alias="siteId", description="Resolved site id for the runtime.")
     workspace_id: PublicUUID = Field(..., alias="workspaceId", description="Workspace id.")
 
     slug: str = Field(..., description="Site slug (kept for compatibility/future).")

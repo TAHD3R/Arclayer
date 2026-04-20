@@ -127,7 +127,6 @@ async def _workspace_client(prepared_db, integration_valkey_settings):
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         workspace = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Workspace",
             is_active=True,
             created_by_user_id=owner.id,

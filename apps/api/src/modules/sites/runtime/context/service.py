@@ -18,26 +18,6 @@ class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):
     settings: Settings
     _repo: SitesRepository
 
-    def _extract_workspace_slug_from_host(self, host: str) -> str | None:
-        base_domain = (self.settings.saas.base_domain or "").strip().lower().rstrip(".")
-        if not base_domain:
-            return None
-
-        raw = normalize_request_host(host)
-        if not raw:
-            return None
-
-        suffix = f".{base_domain}"
-        if raw == base_domain:
-            return None
-        if not raw.endswith(suffix):
-            return None
-
-        sub = raw[: -len(suffix)]
-        if not sub or "." in sub:
-            return None
-        return sub
-
     def _normalize_host_for_custom_domain(self, host: str) -> str | None:
         raw = normalize_request_host(host)
         if not raw:
@@ -71,28 +51,16 @@ class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):
             return None
         return await self._to_site_resolve_out(site=site)
 
-    async def resolve_site(
-        self, *, host: str | None = None, workspace_slug: str | None = None
-    ) -> sites_schema.SiteResolveOut:
+    async def resolve_site(self, *, host: str | None = None) -> sites_schema.SiteResolveOut:
         if not self.settings.database.enabled:
             raise Conflict("Site resolution requires database storage", error="SITE_RESOLVE_DB_REQUIRED")
 
-        ws_slug = (workspace_slug or "").strip().lower() or None
-        if ws_slug is None and host is not None:
-            ws_slug = self._extract_workspace_slug_from_host(host)
-
-        if ws_slug is None and host is not None:
+        if host is not None:
             resolved = await self._resolve_site_by_custom_domain(host=host)
             if resolved is not None:
                 return resolved
 
-        if ws_slug is None:
-            raise NotFound("Site not found", error="SITE_NOT_FOUND")
-
-        site = await self._repo.get_site_by_workspace_slug(workspace_slug=ws_slug)
-        if site is None:
-            raise NotFound("Site not found", error="SITE_NOT_FOUND")
-        return await self._to_site_resolve_out(site=site)
+        raise NotFound("Site not found", error="SITE_NOT_FOUND")
 
     async def get_site_context(self, *, site_id: UUID) -> sites_schema.SiteResolveOut:
         if not self.settings.database.enabled:

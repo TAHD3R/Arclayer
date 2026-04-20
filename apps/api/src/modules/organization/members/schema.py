@@ -13,7 +13,6 @@ from src.models.organization.user import UserStatus
 class OrganizationMemberWorkspaceOut(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     workspace_name: str = Field(..., description="Workspace name.")
-    workspace_slug: str = Field(..., description="Workspace slug.")
     icon_url: str | None = Field(default=None, description="Workspace icon URL.")
     membership_status: str = Field(..., description="Workspace membership status.")
     role_codes: list[str] = Field(default_factory=list, description="Workspace role codes for this member.")

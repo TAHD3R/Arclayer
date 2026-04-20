@@ -13,13 +13,14 @@ from src.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from src.models.organization.org_plan import OrgPlan
 from src.models.sites.site_domain import SiteDomainRecord
 from src.models.workspaces.workspace import Workspace
+from src.modules.projects.repository import ProjectRepository
+from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
 from src.modules.sites.domains.repository import SiteDomainsRepository
 from src.modules.sites.domains.schema import (
     SiteDomainDnsInstructionOut,
     _normalize_hostname,
     domain_datetime_to_ms,
 )
-from src.modules.workspaces.site.service import WorkspaceSiteService
 from src.platform.cache.valkey import ValkeyClientLike
 
 _CACHE_KEY_PREFIX = "site:resolve:host"
@@ -38,7 +39,8 @@ class SiteDomainsService(BaseService):
     def __init__(self, settings, *, valkey: ValkeyClientLike | None = None) -> None:
         super().__init__(settings)
         self._repo = SiteDomainsRepository()
-        self._workspace_site = WorkspaceSiteService(settings)
+        self._project_repo = ProjectRepository()
+        self._runtime_site = ProjectRuntimeSiteService(settings)
         self._valkey = valkey
 
     def _cache_key_for_host(self, host: str) -> str:
@@ -132,8 +134,18 @@ class SiteDomainsService(BaseService):
                 error="SITE_DOMAIN_PLAN_CUSTOM_DOMAIN_DISABLED",
             )
 
-        site = await self._workspace_site.get_or_create_site_for_workspace(
+        project = await self._project_repo.get_first_project_by_workspace_id(workspace_id=workspace_id)
+        if project is None:
+            raise NotFound("Project not found", error="PROJECT_NOT_FOUND")
+        runtime = await self._project_repo.get_primary_runtime(project_id=project.id)
+        if runtime is None:
+            raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")
+        site = await self._runtime_site.get_or_create_site_for_project_runtime(
             workspace_id=workspace_id,
+            project_id=project.id,
+            runtime_id=runtime.id,
+            project_slug=str(project.slug),
+            project_name=str(project.name),
             actor_user_id=actor_user_id,
         )
         return UUID(str(site.id))

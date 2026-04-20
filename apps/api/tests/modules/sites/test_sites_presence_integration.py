@@ -54,7 +54,6 @@ async def test_sites_presence_heartbeat_and_list(prepared_schema) -> None:
         await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug="ws",
             name="Workspace",
             is_active=True,
             created_by_user_id=user.id,

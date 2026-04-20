@@ -86,7 +86,6 @@ async def test_organization_settings_assign_leave_and_delete(
 
         ws = await Workspace.create(
             organization_id=org.id,
-            slug="default",
             name="Default",
             is_active=True,
             created_by_user_id=owner.id,
@@ -309,7 +308,6 @@ async def test_organization_danger_capabilities_and_explicit_scope_routes(
 
         secondary_ws = await Workspace.create(
             organization_id=secondary_org.id,
-            slug="secondary",
             name="Secondary Workspace",
             is_active=True,
             created_by_user_id=owner.id,

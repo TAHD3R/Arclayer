@@ -59,7 +59,6 @@ async def test_uploads_resumable_flow(prepared_db, tmp_path: Path, monkeypatch) 
         await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=user.id,

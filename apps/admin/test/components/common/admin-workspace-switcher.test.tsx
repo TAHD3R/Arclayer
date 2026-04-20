@@ -52,7 +52,6 @@ const workspaceFixtures: MyWorkspace[] = [
     workspaceId: "ws-alpha",
     projectId: "project-alpha",
     organizationId: "org-1",
-    slug: "alpha",
     name: "Workspace Alpha",
     kind: "team",
     iconMode: "image",
@@ -89,7 +88,6 @@ const workspaceFixtures: MyWorkspace[] = [
     workspaceId: "ws-beta",
     projectId: "project-beta",
     organizationId: "org-1",
-    slug: "beta",
     name: "Workspace Beta",
     kind: "team",
     iconMode: "initials",
@@ -206,7 +204,6 @@ beforeEach(() => {
     id: "ws-alpha",
     project: null,
     organizationId: "org-1",
-    slug: "alpha",
     name: "Workspace Alpha",
     kind: "team",
     iconMode: "initials",
@@ -252,7 +249,6 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       id: "ws-alpha",
       project: null,
       organizationId: "org-1",
-      slug: "alpha",
       name: "Workspace Alpha",
       kind: "team",
       iconMode: "image",
@@ -281,7 +277,6 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       id: "ws-alpha",
       project: null,
       organizationId: "org-1",
-      slug: "alpha",
       name: "Workspace Alpha",
       kind: "team",
       iconMode: "glyph",
@@ -438,7 +433,6 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     const extendedWorkspaces = Array.from({ length: 6 }, (_, index) => ({
       ...workspaceFixtures[index % workspaceFixtures.length],
       workspaceId: `ws-${index + 1}`,
-      slug: `workspace-${index + 1}`,
       name: `Workspace ${index + 1}`,
     }));
 
@@ -554,7 +548,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     });
   });
 
-  it("workspace scope: selecting a workspace navigates and updates store", async () => {
+  it("workspace scope: selecting a workspace switches context without navigation", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
@@ -571,8 +565,9 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     await user.click(workspaceBetaButton);
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-beta/assets" });
+      expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
+      expect(useWorkspaceStore.getState().currentProjectId).toBeNull();
     });
-    expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
+    expect(navigateMock).not.toHaveBeenCalledWith({ to: "/projects/project-beta/assets" });
   });
 });

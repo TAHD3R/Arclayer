@@ -16,6 +16,7 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.facade.service import ProjectFacadeService
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
+from src.modules.projects.runtime.site.schema import ProjectRuntimeSiteOut
 from src.modules.sites.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
 from src.modules.sites.service import SiteService
 from src.modules.workspaces.api_keys.router import _publish_api_key_event
@@ -44,7 +45,6 @@ from src.modules.workspaces.releases.schema import (
 from src.modules.workspaces.releases.service import WorkspaceReleasesService
 from src.modules.workspaces.settings.schema import WorkspaceSettingsDetail, WorkspaceSettingsPatch
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
-from src.modules.workspaces.site.schema import WorkspaceSiteOut
 from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["domain.projects.facade"])
@@ -182,17 +182,18 @@ async def patch_project_core_settings(
 
 @router.get(
     "/site",
-    response_model=ResponseModel[WorkspaceSiteOut],
+    response_model=ResponseModel[ProjectRuntimeSiteOut],
     response_model_exclude_none=True,
     summary="Get project site bridge",
+    dependencies=[require_project_workspace_permission("system:site:read")],
 )
 async def get_project_site(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ProjectFacadeService, Depends(get_project_facade_service)],
-) -> ResponseModel[WorkspaceSiteOut]:
+) -> ResponseModel[ProjectRuntimeSiteOut]:
     facade = await service.get_context(project_id=ctx.project_id, actor_user_id=actor_user_id)
-    out = WorkspaceSiteOut.model_validate({
+    out = ProjectRuntimeSiteOut.model_validate({
         "siteId": facade.site_id,
         "workspaceId": facade.workspace_id,
         "slug": facade.site_slug,
@@ -210,6 +211,7 @@ async def get_project_site(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Issue a preview token for a project site",
+    dependencies=[require_project_workspace_permission("system:site:manage")],
 )
 async def create_project_site_preview_token(
     payload: Annotated[SitePreviewTokenCreateIn, Body(description="Preview token request.")],

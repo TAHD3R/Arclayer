@@ -42,7 +42,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description_i18n="rbac:RBAC_PERM_SETTINGS_MANAGE_DESC",
         default_roles=["owner", "admin"],
     ),
-    # Site administration (single-site workspace model).
+    # Site administration for the current project's runtime site.
     PermissionTemplate(
         code="system:site:read",
         scope="workspace",

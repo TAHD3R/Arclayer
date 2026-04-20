@@ -19,7 +19,6 @@ export type MyWorkspace = {
   workspaceId: string;
   projectId?: string | null;
   organizationId: string;
-  slug: string;
   name: string;
   kind: "team";
   description?: string | null;
@@ -56,16 +55,8 @@ export type WorkspaceFirstOnboarding = {
   workspace_id?: string | null;
 };
 
-export type WorkspaceSlugAvailability = {
-  normalizedSlug: string | null;
-  available: boolean;
-  reason: "invalid" | "reserved" | "exists" | null;
-  normalized_slug?: string | null;
-};
-
 export type OnboardingWorkspaceCreatePayload = {
   name?: string;
-  slug?: string;
 };
 
 export type OnboardingWorkspaceCreateResult = {
@@ -93,7 +84,6 @@ export type WorkspaceDetail = {
     projectId: string;
   } | null;
   organizationId: string;
-  slug: string;
   name: string;
   description?: string | null;
   kind?: "team";

@@ -9,8 +9,8 @@ from src.core.exceptions import NotFound
 from src.models.projects.runtime import ProjectRuntimeRecord
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.runtime.schema import ProjectRuntimeBridgeOut, RuntimePreviewTokenOut
+from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
 from src.modules.sites.preview.tokens.schema import SitePreviewTokenOut
-from src.modules.workspaces.site.service import WorkspaceSiteService
 
 
 @dataclass(slots=True)
@@ -30,7 +30,7 @@ class ProjectRuntimeContext:
 class ProjectRuntimeService:
     def __init__(self, settings) -> None:
         self.project_repo = ProjectRepository()
-        self.workspace_site_service = WorkspaceSiteService(settings)
+        self.runtime_site_service = ProjectRuntimeSiteService(settings)
 
     async def get_context_by_project(
         self,
@@ -76,26 +76,16 @@ class ProjectRuntimeService:
         if site is None:
             project_id = UUID(str(cast(HasProjectId, runtime).project_id))
             project = await self.project_repo.get_project_by_id(project_id=project_id)
-            legacy_site = await self.workspace_site_service.repo.get_unassigned_site_by_workspace_id(
+            site = await self.runtime_site_service.repo.create_site(
                 workspace_id=workspace_id,
+                project_id=project_id,
+                runtime_id=runtime.id,
+                slug=str(project.slug),
+                name=f"{project.name} Site",
+                default_locale="zh-CN",
+                fallback_locale="en-US",
+                created_by_user_id=actor_user_id,
             )
-            if legacy_site is not None:
-                site = await self.workspace_site_service.repo.attach_site_to_runtime(
-                    site=legacy_site,
-                    project_id=project_id,
-                    runtime_id=runtime.id,
-                )
-            else:
-                site = await self.workspace_site_service.repo.create_site(
-                    workspace_id=workspace_id,
-                    project_id=project_id,
-                    runtime_id=runtime.id,
-                    slug=str(project.slug),
-                    name=f"{project.name} Site",
-                    default_locale="zh-CN",
-                    fallback_locale="en-US",
-                    created_by_user_id=actor_user_id,
-                )
         if site is None:
             raise NotFound("Project runtime site bridge not found", error="PROJECT_RUNTIME_SITE_NOT_FOUND")
         return ProjectRuntimeContext(

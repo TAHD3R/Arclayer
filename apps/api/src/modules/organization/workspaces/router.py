@@ -21,7 +21,6 @@ from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceDeleteResult,
     OrganizationWorkspaceMemberOut,
     OrganizationWorkspaceOut,
-    OrganizationWorkspaceSlugAvailabilityOut,
 )
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 
@@ -96,16 +95,6 @@ async def _create_workspace(
     return ApiResponse.success(data=out)
 
 
-async def _check_slug_availability(
-    *,
-    slug: str,
-    settings: Settings,
-) -> ResponseModel[OrganizationWorkspaceSlugAvailabilityOut]:
-    service = OrganizationWorkspaceService(settings)
-    out = await service.check_slug_availability(slug=slug)
-    return ApiResponse.success(data=out)
-
-
 async def _archive_workspace(
     *,
     workspace_id: PublicUUID,
@@ -167,7 +156,7 @@ async def list_organization_workspaces_me(
         require_org_permission("org.workspaces.read", error_code="ORG_WORKSPACES_READ_REQUIRED"),
     ],
     params: PageParams = DependsPagination,
-    q: str | None = Query(default=None, description="Search query by workspace name or slug."),
+    q: str | None = Query(default=None, description="Search query by workspace name."),
     ordering: str | None = Query(default=None, description="Ordering fields, e.g. -created_at, name."),
     archived: bool | None = Query(default=None, description="Filter archived status when provided."),
     enterable_only: bool = Query(default=False, description="Only include enterable workspaces."),
@@ -200,7 +189,7 @@ async def list_organization_workspaces_by_org(
         ),
     ],
     params: PageParams = DependsPagination,
-    q: str | None = Query(default=None, description="Search query by workspace name or slug."),
+    q: str | None = Query(default=None, description="Search query by workspace name."),
     ordering: str | None = Query(default=None, description="Ordering fields, e.g. -created_at, name."),
     archived: bool | None = Query(default=None, description="Filter archived status when provided."),
     enterable_only: bool = Query(default=False, description="Only include enterable workspaces."),
@@ -289,24 +278,6 @@ async def create_organization_workspace_me(
     return await _create_workspace(payload=payload, orgm=orgm, settings=settings)
 
 
-@router.get(
-    "/organizations/me/workspaces/slug-availability",
-    response_model=ResponseModel[OrganizationWorkspaceSlugAvailabilityOut],
-    summary="Check organization workspace slug availability",
-)
-async def check_organization_workspace_slug_availability_me(
-    orgm: Annotated[
-        OrgMembership,
-        require_org_permission("org.workspaces.manage", error_code="ORG_ADMIN_REQUIRED"),
-    ],
-    slug: str = Query(..., min_length=1, max_length=128, description="Desired workspace slug."),
-    settings: Settings = Depends(get_settings),
-) -> ResponseModel[OrganizationWorkspaceSlugAvailabilityOut]:
-    """Check organization workspace slug availability."""
-    _ = orgm
-    return await _check_slug_availability(slug=slug, settings=settings)
-
-
 @router.post(
     "/organizations/{organization_id}/workspaces",
     response_model=ResponseModel[OrganizationWorkspaceOut],
@@ -326,28 +297,6 @@ async def create_organization_workspace_by_org(
 ) -> ResponseModel[OrganizationWorkspaceOut]:
     """Create organization workspace by organization id."""
     return await _create_workspace(payload=payload, orgm=orgm, settings=settings)
-
-
-@router.get(
-    "/organizations/{organization_id}/workspaces/slug-availability",
-    response_model=ResponseModel[OrganizationWorkspaceSlugAvailabilityOut],
-    summary="Check organization workspace slug availability by organization id",
-)
-async def check_organization_workspace_slug_availability_by_org(
-    orgm: Annotated[
-        OrgMembership,
-        require_org_permission(
-            "org.workspaces.manage",
-            error_code="ORG_ADMIN_REQUIRED",
-            membership_dependency=get_org_membership_for_organization,
-        ),
-    ],
-    slug: str = Query(..., min_length=1, max_length=128, description="Desired workspace slug."),
-    settings: Settings = Depends(get_settings),
-) -> ResponseModel[OrganizationWorkspaceSlugAvailabilityOut]:
-    """Check organization workspace slug availability by organization id."""
-    _ = orgm
-    return await _check_slug_availability(slug=slug, settings=settings)
 
 
 @router.post(

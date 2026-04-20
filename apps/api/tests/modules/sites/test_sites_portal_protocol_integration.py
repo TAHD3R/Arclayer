@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 
 from src.common.utils.public_ids import decode_public_id
+from src.models.sites.site_domain import SiteDomainRecord
 from src.models.system.setting import SettingRecord
-from src.models.workspaces.workspace import Workspace
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from src.settings.scopes import SCOPE_TYPE_SITE, SCOPE_TYPE_WORKSPACE
 from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
@@ -201,7 +201,6 @@ async def test_sites_public_preview_draft_publish_flow(
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         workspace_uuid = decode_public_id(workspace_id)
-        workspace = await Workspace.get(id=workspace_uuid)
         await SettingRecord.create(
             scope_type=SCOPE_TYPE_WORKSPACE,
             scope_id=workspace_uuid,
@@ -214,6 +213,14 @@ async def test_sites_public_preview_draft_publish_flow(
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
         site_uuid = decode_public_id(site_id)
+        await SiteDomainRecord.create(
+            site_id=site_uuid,
+            hostname="example.test",
+            is_verified=True,
+            is_active=True,
+            verification_token="test-token",
+            created_by_user_id=None,
+        )
 
         await SettingRecord.create(
             scope_type=SCOPE_TYPE_SITE,
@@ -257,7 +264,7 @@ async def test_sites_public_preview_draft_publish_flow(
         await _publish_version(client, project_id, item_id=world_item_id, version_number=1)
         await _bind_route(client, project_id, item_id=world_item_id, path="/blog/world")
 
-        resp = await client.get("/api/v1/sites/resolve", params={"workspaceSlug": workspace.slug})
+        resp = await client.get("/api/v1/sites/resolve", params={"host": "example.test"})
         assert resp.status_code == 200
         assert resp.json()["data"]["siteId"] == site_id
 

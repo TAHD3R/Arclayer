@@ -443,7 +443,6 @@ class InvitationPreviewWorkspaceOut(BaseSchema):
 
     id: PublicUUID = Field(..., description="Workspace id.")
     name: str = Field(..., description="Workspace name.")
-    slug: str = Field(..., description="Workspace slug.")
 
 
 class InvitationPreviewInviterOut(BaseSchema):
@@ -491,7 +490,6 @@ class MyInvitationWorkspaceOut(BaseSchema):
 
     id: PublicUUID = Field(..., description="Workspace id.")
     name: str = Field(..., description="Workspace name.")
-    slug: str = Field(..., description="Workspace slug.")
 
 
 class MyInvitationInviterOut(BaseSchema):

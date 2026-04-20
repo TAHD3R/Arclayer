@@ -109,6 +109,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
+        from src.models.projects.project import ProjectRecord
         from src.models.system.notification import NotificationRecord
         from src.models.workspaces.workspace import Workspace
         from src.models.workspaces.workspace_invite import WorkspaceEmailInvite
@@ -129,7 +130,6 @@ async def test_workspace_email_invite_pending_unique_and_accept(
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=owner.id,
@@ -206,6 +206,9 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             current_user = invitee
             resp = await client.post("/api/v1/auth/invitations/accept-existing", json={"token": token1})
             assert resp.status_code == 200
+            data = resp.json()["data"]
+            assert data["projectId"] is None
+            assert await ProjectRecord.filter(workspace_id=ws.id).count() == 0
 
             # Accepted list should include it.
             current_user = owner
@@ -287,7 +290,6 @@ async def test_workspace_email_invite_email_mismatch_rejected(
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=owner.id,
@@ -364,7 +366,6 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=owner.id,
@@ -481,7 +482,6 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
 
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=owner.id,

@@ -9,7 +9,7 @@ from uuid import UUID
 from src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
 from src.common.services import BaseService
 from src.config import Settings
-from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
 from src.models.organization.org_membership import OrgRole
@@ -24,7 +24,6 @@ from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceMemberOut,
     OrganizationWorkspaceMemberPreviewOut,
     OrganizationWorkspaceOut,
-    OrganizationWorkspaceSlugAvailabilityOut,
 )
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import WorkspacePrimaryProjectOut
@@ -32,10 +31,8 @@ from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.system.rbac.service import RBACService
 from src.modules.workspaces.danger_service import WorkspaceDangerService
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
-from src.modules.workspaces.site.service import WorkspaceSiteService
-from src.modules.workspaces.slug.service import next_available_workspace_slug, parse_explicit_workspace_slug
 
-_ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "slug", "created_at", "archived_at"})
+_ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "created_at", "archived_at"})
 MAX_WORKSPACE_NAME_LENGTH = 128
 
 
@@ -58,7 +55,6 @@ class OrganizationWorkspaceService(BaseService):
         super().__init__(settings)
         self.repo = OrganizationWorkspaceRepository()
         self.project_repo = ProjectRepository()
-        self.site_service = WorkspaceSiteService(settings)
 
     async def list_workspaces(
         self,
@@ -83,11 +79,7 @@ class OrganizationWorkspaceService(BaseService):
         needle = str(q or "").strip().lower()
         if needle:
             rows = [
-                ws
-                for ws in rows
-                if needle in str(ws.name or "").lower()
-                or needle in str(ws.slug or "").lower()
-                or needle in str(ws.description or "").lower()
+                ws for ws in rows if needle in str(ws.name or "").lower() or needle in str(ws.description or "").lower()
             ]
 
         if archived is True:
@@ -244,28 +236,8 @@ class OrganizationWorkspaceService(BaseService):
 
         description = str(payload.description or "").strip() or None
 
-        requested_slug = str(payload.slug or "").strip()
-        if requested_slug:
-            normalized_slug, err = parse_explicit_workspace_slug(requested_slug)
-            if err == "invalid" or normalized_slug is None:
-                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_INVALID")
-            if err == "reserved":
-                raise BadRequest(
-                    message=t("errors", "BAD_REQUEST"),
-                    error="WORKSPACE_SLUG_RESERVED",
-                )
-            if await self.repo.slug_exists(slug=normalized_slug):
-                raise Conflict(
-                    message=t("errors", "CONFLICT"),
-                    error="WORKSPACE_SLUG_EXISTS",
-                )
-            slug = normalized_slug
-        else:
-            slug = await self._next_available_workspace_slug(base_slug=name)
-
         ws = await self.repo.create_workspace(
             organization_id=organization_id,
-            slug=slug,
             name=name,
             description=description,
             created_by_user_id=user_id,
@@ -276,14 +248,6 @@ class OrganizationWorkspaceService(BaseService):
             workspace_id=UUID(str(ws.id)),
             membership_id=UUID(str(membership.id)),
             org_role=org_role,
-        )
-        await self.site_service.get_or_create_site_for_workspace(
-            workspace_id=UUID(str(ws.id)),
-            actor_user_id=user_id,
-        )
-        project = await self.project_repo.get_or_create_primary_project_for_workspace(
-            workspace_id=UUID(str(ws.id)),
-            actor_user_id=user_id,
         )
 
         # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
@@ -330,39 +294,7 @@ class OrganizationWorkspaceService(BaseService):
             member_count=1 if preview else 0,
             members_preview=preview,
             enterable=True,
-            project_id=UUID(str(project.id)),
-        )
-
-    async def check_slug_availability(self, *, slug: str) -> OrganizationWorkspaceSlugAvailabilityOut:
-        normalized_slug, err = parse_explicit_workspace_slug(slug)
-        if err == "invalid":
-            return OrganizationWorkspaceSlugAvailabilityOut(
-                normalized_slug=None,
-                available=False,
-                reason="invalid",
-            )
-        if normalized_slug is None:
-            return OrganizationWorkspaceSlugAvailabilityOut(
-                normalized_slug=None,
-                available=False,
-                reason="invalid",
-            )
-        if err == "reserved":
-            return OrganizationWorkspaceSlugAvailabilityOut(
-                normalized_slug=normalized_slug,
-                available=False,
-                reason="reserved",
-            )
-        if await self.repo.slug_exists(slug=normalized_slug):
-            return OrganizationWorkspaceSlugAvailabilityOut(
-                normalized_slug=normalized_slug,
-                available=False,
-                reason="exists",
-            )
-        return OrganizationWorkspaceSlugAvailabilityOut(
-            normalized_slug=normalized_slug,
-            available=True,
-            reason=None,
+            project_id=None,
         )
 
     async def archive_workspace(
@@ -505,12 +437,6 @@ class OrganizationWorkspaceService(BaseService):
             error=str(guard.blocked_reason or "BAD_REQUEST"),
         )
 
-    async def _next_available_workspace_slug(self, *, base_slug: str) -> str:
-        return await next_available_workspace_slug(
-            base_slug=base_slug,
-            exists_fn=lambda slug: self.repo.slug_exists(slug=slug),
-        )
-
     async def _ensure_operator_role_binding(
         self,
         *,
@@ -541,7 +467,6 @@ class OrganizationWorkspaceService(BaseService):
             workspace_id=workspace.id,
             project_id=project_id,
             organization_id=organization_id,
-            slug=workspace.slug,
             name=workspace.name,
             description=workspace.description,
             icon_mode=workspace.icon_mode,
@@ -580,8 +505,6 @@ class OrganizationWorkspaceService(BaseService):
     def _workspace_sort_key(self, *, workspace: Workspace, field: str) -> tuple[int, Any]:
         if field == "name":
             return self._normalize_sort_value(workspace.name)
-        if field == "slug":
-            return self._normalize_sort_value(workspace.slug)
         if field == "archived_at":
             return self._normalize_sort_value(workspace.archived_at)
         return self._normalize_sort_value(workspace.created_at)

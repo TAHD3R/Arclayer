@@ -159,7 +159,7 @@ function ContinuationStatePage(props: {
         </CardContent>
         <CardFooter className="flex flex-wrap gap-3">
           <Button asChild type="button">
-            <a href={projectContentLibraryPath(props.item.workspaceId)}>
+            <a href={projectContentLibraryPath(props.projectId)}>
               {t("content:CONTENT_ITEM_CONTINUATION_ACTION_BACK_TO_LIBRARY")}
             </a>
           </Button>
@@ -213,7 +213,7 @@ export function ContentLibraryItemResolverPage(props: { projectId: string; itemI
   if (itemQuery.isError || !itemQuery.data) {
     const emptyItem: AdminContentItem = {
       id: props.itemId,
-      workspaceId: props.projectId,
+      workspaceId: "",
       siteId: "",
       slug: props.itemId,
       status: "draft",

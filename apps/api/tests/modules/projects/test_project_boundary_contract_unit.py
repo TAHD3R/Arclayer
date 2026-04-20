@@ -13,7 +13,6 @@ PROJECT_OWNED_WORKSPACE_ROUTERS = {
     "apps/api/src/modules/workspaces/content/seo/router.py": 'prefix="/workspaces/{workspace_id}/content"',
     "apps/api/src/modules/workspaces/publish/router.py": 'prefix="/workspaces/{workspace_id}/publish"',
     "apps/api/src/modules/workspaces/releases/router.py": 'prefix="/workspaces/{workspace_id}/releases"',
-    "apps/api/src/modules/sites/domains/router.py": 'prefix="/workspaces/{workspace_id}/site/domains"',
     "apps/api/src/modules/workspaces/themes/router.py": 'prefix="/workspaces/{workspace_id}"',
 }
 
@@ -25,14 +24,11 @@ PROJECT_ONLY_DRIFT_MARKERS = {
 
 WORKSPACE_SINGLE_SITE_MARKERS = {
     "apps/api/src/models/sites/site.py": [
-        "Single-site workspace model",
         'unique_together = (("workspace_id",),)',
     ],
-    "apps/api/src/modules/workspaces/content/shared/router.py": [
-        "get_or_create_site_for_workspace",
-    ],
     "apps/api/src/modules/projects/runtime/service.py": [
-        "get_or_create_site_for_workspace",
+        "get_unassigned_site_by_workspace_id",
+        "Workspace site constraint violated",
     ],
 }
 

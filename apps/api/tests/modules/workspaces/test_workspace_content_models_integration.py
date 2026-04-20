@@ -48,7 +48,6 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Workspace",
             is_active=True,
             created_by_user_id=owner.id,
@@ -158,7 +157,6 @@ async def test_workspace_content_models_rejects_non_official_custom_model_creati
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Workspace",
             is_active=True,
             created_by_user_id=owner.id,

@@ -54,13 +54,6 @@ class PublishingSitemapService(BaseService):
                 if "://" not in candidate:
                     candidate = f"http://{candidate}"
                 base = candidate
-            else:
-                from src.models.workspaces.workspace import Workspace
-
-                ws = await Workspace.get_or_none(id=ws_id)
-                base_domain = (self.settings.saas.base_domain or "").strip().rstrip(".")
-                if ws is not None and str(ws.slug).strip() and base_domain:
-                    base = f"https://{str(ws.slug).strip()}.{base_domain}".rstrip("/")
         paths = await self._repo.list_public_sitemap_paths(site_id=site_id)
 
         lines: list[str] = [

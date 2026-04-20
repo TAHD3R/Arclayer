@@ -26,7 +26,6 @@ export type OrganizationWorkspace = {
     projectId: string;
   } | null;
   organizationId: string;
-  slug: string;
   name: string;
   description: string | null;
   iconMode: "initials" | "glyph" | "emoji" | "image";
@@ -52,16 +51,9 @@ export type OrganizationWorkspaceArchiveResult = {
 
 export type OrganizationWorkspaceCreateInput = {
   name: string;
-  slug?: string;
   description?: string;
   template: OrganizationWorkspaceTemplate;
   locale?: string;
   timezone?: string;
   dateFormat?: string;
-};
-
-export type OrganizationWorkspaceSlugAvailability = {
-  normalizedSlug: string | null;
-  available: boolean;
-  reason: "invalid" | "reserved" | "exists" | null;
 };

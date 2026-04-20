@@ -848,7 +848,6 @@ class OrganizationMemberService(BaseService):
                 OrganizationMemberWorkspaceOut(
                     workspace_id=UUID(str(workspace.id)),
                     workspace_name=workspace.name,
-                    workspace_slug=workspace.slug,
                     icon_url=workspace.icon_url,
                     membership_status=str(membership.status),
                     role_codes=role_codes,

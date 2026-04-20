@@ -11,7 +11,6 @@ class _FakeWorkspace:
     def __init__(self) -> None:
         self.id = uuid4()
         self.organization_id = uuid4()
-        self.slug = "workspace-slug"
         self.name = "Workspace Name"
         self.kind = "team"
         self.description = None

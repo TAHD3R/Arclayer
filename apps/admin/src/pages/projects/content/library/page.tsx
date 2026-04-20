@@ -21,7 +21,7 @@ import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-
 import { PageMainRegion } from "@/layouts/page-shell/page-main-region";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type {
   AdminContentLibraryViewColumns,
@@ -475,6 +475,7 @@ function buildViewDiffItems(
 }
 
 type ContentLibraryPageProps = {
+  projectId?: string;
   search?: {
     view?: string;
     focusItemId?: string;
@@ -491,11 +492,12 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     from: props.routeBase ?? "/projects/$projectId/content/library/",
   });
   const search = props.search ?? {};
-  const projectId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const projectIdFromStore = useWorkspaceStore((state) => state.currentProjectId);
+  const projectId = props.projectId ?? projectIdFromStore;
   const sidebar = useSidebar();
   const queryClient = useQueryClient();
   const dateTime = useWorkspaceDateTimeFormatter();
-  const permissionAccess = useWorkspacePermissionAccess(projectId);
+  const permissionAccess = useProjectPermissionAccess(projectId);
   const autoCardMode = useContentLibraryCardMode();
   const [manualViewMode, setManualViewMode] = React.useState<ContentLibraryViewMode | null>(null);
   const [toolbarFilters, setToolbarFilters] = React.useState<ContentLibraryToolbarFilters>({});

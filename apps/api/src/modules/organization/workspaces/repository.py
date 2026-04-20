@@ -55,15 +55,10 @@ class OrganizationWorkspaceRepository(BaseRepository):
             ).count()
         )
 
-    async def slug_exists(self, *, slug: str) -> bool:
-        # workspaceSlug is globally unique (public portal identifier).
-        return await Workspace.filter(slug=slug).exists()
-
     async def create_workspace(
         self,
         *,
         organization_id: UUID,
-        slug: str,
         name: str,
         description: str | None,
         created_by_user_id: UUID,
@@ -72,7 +67,6 @@ class OrganizationWorkspaceRepository(BaseRepository):
     ) -> Workspace:
         return await Workspace.create(
             organization_id=organization_id,
-            slug=slug,
             name=name,
             kind=kind,
             owner_user_id=owner_user_id,

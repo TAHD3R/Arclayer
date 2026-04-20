@@ -15,7 +15,6 @@ export type InvitationPreviewOrganization = {
 export type InvitationPreviewWorkspace = {
   id: string;
   name: string;
-  slug: string;
 };
 
 export type InvitationPreviewInviter = {
@@ -57,7 +56,6 @@ export type MyInvitationOrganization = {
 export type MyInvitationWorkspace = {
   id: string;
   name: string;
-  slug: string;
 };
 
 export type MyInvitationInviter = {

@@ -8,7 +8,7 @@ import {
   listAllContentModels,
   patchContentModel,
 } from "@/api/content";
-import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError } from "@/lib/notifications";
 import {
@@ -299,7 +299,7 @@ function statusTone(status: "ready" | "review" | "blocked"): string {
 export function ContentModelsControlCenterPage(props: { projectId: string }) {
   const { t } = useTranslation("content");
   const queryClient = useQueryClient();
-  const permissionAccess = useWorkspacePermissionAccess(props.projectId);
+  const permissionAccess = useProjectPermissionAccess(props.projectId);
   const modelsQuery = useQuery({
     queryKey: buildContentModelsGovernanceQueryKey(props.projectId),
     queryFn: () => listAllContentModels(props.projectId),

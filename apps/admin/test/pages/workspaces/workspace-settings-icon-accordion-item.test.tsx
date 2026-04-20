@@ -99,8 +99,6 @@ function createController() {
           "settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER": "例如：品牌官网",
           "settings:SETTINGS_WORKSPACE_ID_TITLE": "工作空间 ID",
           "settings:SETTINGS_WORKSPACE_ID_COPIED": "工作空间 ID 已复制",
-          "settings:SETTINGS_WORKSPACE_SLUG_LABEL": "工作空间标识（Slug）",
-          "settings:SETTINGS_WORKSPACE_SLUG_COPIED": "工作空间标识已复制",
           "settings:SETTINGS_SAVE": "保存",
           "settings:SETTINGS_WORKSPACE_DESCRIPTION_TOO_LONG": "介绍过长（最多 256 字符）",
           "common:ORG_WORKSPACES_FIELD_DESCRIPTION": "介绍",
@@ -113,13 +111,11 @@ function createController() {
     savingKey: null,
     currentWorkspaceName: "Workspace Alpha",
     currentWorkspaceDescription: "Brand system and marketing operations.",
-    currentWorkspaceSlug: "alpha",
     detailQuery: {
       data: {
         id: "ws-1",
         project: null,
         organizationId: "org-1",
-        slug: "alpha",
         name: "Workspace Alpha",
         description: "Brand system and marketing operations.",
         kind: "team",
@@ -139,7 +135,7 @@ function createController() {
 }
 
 describe("WorkspaceSettingsIconAccordionItem", () => {
-  it("renders the inline basics card with workspace id and slug rows", () => {
+  it("renders the inline basics card with workspace id row", () => {
     render(<WorkspaceSettingsIconAccordionItem controller={createController() as never} />);
 
     expect(screen.getByTestId("workspace-basics-card")).toBeInTheDocument();
@@ -147,8 +143,6 @@ describe("WorkspaceSettingsIconAccordionItem", () => {
     expect(screen.getByDisplayValue("Brand system and marketing operations.")).toBeInTheDocument();
     expect(screen.getByText("工作空间 ID")).toBeInTheDocument();
     expect(screen.getByText("ws-1")).toBeInTheDocument();
-    expect(screen.getByText("工作空间标识（Slug）")).toBeInTheDocument();
-    expect(screen.getByText("alpha")).toBeInTheDocument();
   });
 
   it("saves name inline", async () => {

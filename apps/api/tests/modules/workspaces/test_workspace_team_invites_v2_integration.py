@@ -101,7 +101,6 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
 
         ws1 = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Blog",
             icon_url="/assets/ws-blog-icon",
             is_active=True,
@@ -109,7 +108,6 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
         )
         ws2 = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Commerce",
             is_active=True,
             created_by_user_id=other.id,
@@ -180,6 +178,7 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
 
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
+        from src.models.projects.project import ProjectRecord
         from src.models.system.rbac import Role
         from src.models.workspaces.workspace import Workspace
         from src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
@@ -203,7 +202,6 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
 
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Blog",
             is_active=True,
             created_by_user_id=owner.id,
@@ -268,6 +266,8 @@ async def test_workspace_invite_link_accept_existing_creates_use_event(
             data = resp.json()["data"]
             assert data["organizationId"] == encode_uuid(org.id)
             assert data["workspaceId"] == ws_pid
+            assert data["projectId"] is None
+            assert await ProjectRecord.filter(workspace_id=ws.id).count() == 0
 
             # Workspace invitation role should never overwrite organization-level role code.
             orgm = await OrgMembership.get_or_none(organization_id=org.id, user_id=invitee.id)
@@ -329,7 +329,6 @@ async def test_workspace_invite_link_max_uses_enforced(prepared_db, integration_
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=owner.id,
@@ -428,7 +427,6 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
 
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Blog",
             is_active=True,
             created_by_user_id=owner.id,
@@ -511,7 +509,6 @@ async def test_workspace_invite_link_domain_restriction_enforced(prepared_db, in
         await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=owner.id,
@@ -594,7 +591,6 @@ async def test_a2_single_org_enforced_on_accept_existing(prepared_db, integratio
         await OrgMembership.create(organization_id=org1.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
         ws = await Workspace.create(
             organization_id=org1.id,
-            slug=f"ws_{uuid4().hex[:8]}",
             name="Site",
             is_active=True,
             created_by_user_id=owner.id,

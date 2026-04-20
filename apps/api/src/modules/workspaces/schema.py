@@ -28,7 +28,6 @@ class MyWorkspaceOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     project_id: PublicUUID | None = Field(default=None, description="Primary project id when available.")
     organization_id: PublicUUID = Field(..., description="Organization id.")
-    slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
     kind: WorkspaceKind = Field(default=WorkspaceKind.TEAM, description="Workspace kind.")
     description: str | None = Field(default=None, description="Workspace description.")
@@ -84,9 +83,6 @@ class OnboardingWorkspaceCreateRequest(BaseSchema):
     name: str | None = Field(
         default=None, min_length=1, max_length=128, description="Workspace name chosen during onboarding."
     )
-    slug: str | None = Field(
-        default=None, min_length=1, max_length=64, description="Workspace slug chosen during onboarding."
-    )
 
 
 class OnboardingWorkspaceCreateOut(BaseSchema):
@@ -111,7 +107,6 @@ class WorkspaceDetailOut(BaseOut):
     )
     organization_id: PublicUUID = Field(..., description="Organization id.")
     kind: WorkspaceKind = Field(..., description="Workspace kind.")
-    slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
     description: str | None = Field(default=None, description="Workspace description.")
     icon_mode: WorkspaceIconMode = Field(
@@ -135,7 +130,6 @@ class WorkspaceUpdateRequest(BaseSchema):
         max_length=256,
         description="Workspace description.",
     )
-    slug: str | None = Field(default=None, min_length=1, max_length=64, description="Workspace slug.")
     icon_mode: WorkspaceIconMode | None = Field(
         default=None,
         description="Workspace icon presentation mode.",

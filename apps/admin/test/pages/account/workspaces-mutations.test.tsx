@@ -4,14 +4,10 @@ import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useUserCenterWorkspacesMutations } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations";
-import {
-  checkOrganizationWorkspaceSlugAvailability,
-  createOrganizationWorkspace,
-} from "@/api/organization-workspaces";
+import { createOrganizationWorkspace } from "@/api/organization-workspaces";
 import { patchWorkspaceDetail } from "@/api/workspaces";
 
 vi.mock("@/api/organization-workspaces", () => ({
-  checkOrganizationWorkspaceSlugAvailability: vi.fn(),
   createOrganizationWorkspace: vi.fn(),
   archiveOrganizationWorkspace: vi.fn(),
   unarchiveOrganizationWorkspace: vi.fn(),
@@ -37,11 +33,6 @@ function createWrapper(queryClient: QueryClient) {
 describe("useUserCenterWorkspacesMutations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(checkOrganizationWorkspaceSlugAvailability).mockResolvedValue({
-      normalizedSlug: "new-workspace",
-      available: true,
-      reason: null,
-    });
     vi.mocked(createOrganizationWorkspace).mockResolvedValue({
       workspaceId: "ws-new",
       name: "New Workspace",
@@ -50,7 +41,6 @@ describe("useUserCenterWorkspacesMutations", () => {
       id: "ws-new",
       project: { projectId: "project-new" },
       organizationId: "org-1",
-      slug: "new-workspace",
       name: "New Workspace",
       description: null,
       kind: "team",
@@ -87,19 +77,13 @@ describe("useUserCenterWorkspacesMutations", () => {
     await act(async () => {
       await result.current.createMutation.mutateAsync({
         name: "New Workspace",
-        slug: "new-workspace",
         description: "Fresh workspace",
       });
     });
 
     await waitFor(() => {
-      expect(checkOrganizationWorkspaceSlugAvailability).toHaveBeenCalledWith(
-        undefined,
-        "new-workspace",
-      );
       expect(createOrganizationWorkspace).toHaveBeenCalledWith(undefined, {
         name: "New Workspace",
-        slug: "new-workspace",
         description: "Fresh workspace",
         template: "blank",
       });

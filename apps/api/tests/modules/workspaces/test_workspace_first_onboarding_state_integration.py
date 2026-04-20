@@ -41,7 +41,6 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
             email = f"{username}@example.com"
             password = "onboarding_pass_123"
             workspace_name = "Founder Team"
-            workspace_slug = f"founder-team-{suffix}"
 
             register_response = await client.post(
                 "/api/v1/auth/register",
@@ -75,7 +74,6 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
                 "/api/v1/me/workspaces/onboarding",
                 json={
                     "name": workspace_name,
-                    "slug": workspace_slug,
                 },
                 headers=headers,
             )
@@ -92,7 +90,6 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
             assert team_workspace["workspaceId"] == workspace_id
             assert team_workspace["kind"] == "team"
             assert team_workspace["name"] == workspace_name
-            assert team_workspace["slug"] == workspace_slug
             assert post_create_payload["onboarding"]["status"] == "pending_workspace_defaults"
             assert post_create_payload["onboarding"]["workspaceId"] == workspace_id
             assert post_create_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
@@ -144,7 +141,6 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             username = f"onboarding-team-{suffix}"
             email = f"{username}@example.com"
             password = "onboarding_pass_123"
-            workspace_slug = f"blog-team-{suffix}"
 
             register_response = await client.post(
                 "/api/v1/auth/register",
@@ -169,7 +165,6 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
                 "/api/v1/me/workspaces/onboarding",
                 json={
                     "name": "Blog Team",
-                    "slug": workspace_slug,
                 },
                 headers=headers,
             )
@@ -185,7 +180,6 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             team_workspace = post_create_payload["items"][0]
             assert team_workspace["workspaceId"] == workspace_id
             assert team_workspace["kind"] == "team"
-            assert team_workspace["slug"] == workspace_slug
             assert post_create_payload["onboarding"]["status"] == "pending_workspace_defaults"
             assert post_create_payload["onboarding"]["workspaceId"] == workspace_id
             assert post_create_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
@@ -283,7 +277,6 @@ async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_o
             )
             await Workspace.create(
                 organization_id=team_org.id,
-                slug=f"preexisting-{suffix}",
                 name="Preexisting Workspace",
                 is_active=True,
                 created_by_user_id=user.id,
@@ -291,10 +284,7 @@ async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_o
 
             create_workspace_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
-                json={
-                    "name": "Founder Team",
-                    "slug": f"founder-team-{suffix}",
-                },
+                json={"name": "Founder Team"},
                 headers=headers,
             )
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text

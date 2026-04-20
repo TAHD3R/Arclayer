@@ -35,13 +35,21 @@ describe("ProjectCard", () => {
     render(
       <ProjectCard
         project={{
+          id: "project-1",
           projectId: "project-1",
+          organizationId: "org-1",
           workspaceId: "workspace-1",
-          workspaceSlug: "workspace-1",
+          slug: "launchpad",
           name: "Launchpad",
           description: "Project overview",
-          archived: false,
+          iconMode: "initials",
+          iconColor: "#337ea9",
+          iconGlyph: null,
+          iconEmoji: null,
+          iconUrl: null,
+          isArchived: false,
           archivedAt: null,
+          archivedByUserId: null,
           createdAt: "2026-04-19T00:00:00Z",
           memberCount: 1,
           membersPreview: [
@@ -53,9 +61,8 @@ describe("ProjectCard", () => {
               email: "jackson@example.com",
             },
           ],
-          iconAssetRef: null,
-          colorToken: null,
           enterable: true,
+          primaryRuntime: null,
         }}
         menuItems={[]}
         t={(key, options) => {

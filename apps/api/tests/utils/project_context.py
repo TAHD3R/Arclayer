@@ -2,9 +2,22 @@ from __future__ import annotations
 
 
 async def project_context_ids(client, workspace_id: str) -> tuple[str, str]:
-    workspace_res = await client.get(f"/api/v1/workspaces/{workspace_id}")
-    assert workspace_res.status_code == 200, workspace_res.text
-    project_id = workspace_res.json()["data"]["project"]["projectId"]
+    list_res = await client.get("/api/v1/projects", params={"workspaceId": workspace_id})
+    assert list_res.status_code == 200, list_res.text
+    items = list_res.json()["data"]["items"]
+    if items:
+        project_id = items[0]["id"]
+    else:
+        create_res = await client.post(
+            "/api/v1/projects",
+            json={
+                "workspaceId": workspace_id,
+                "name": "Test Project",
+                "slug": "test-project",
+            },
+        )
+        assert create_res.status_code == 201, create_res.text
+        project_id = create_res.json()["data"]["id"]
 
     project_res = await client.get(f"/api/v1/projects/{project_id}")
     assert project_res.status_code == 200, project_res.text
