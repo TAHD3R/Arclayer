@@ -42,6 +42,7 @@ import {
 import type { AdminNavItem } from "@/types/admin-nav";
 import { iconSlot } from "./nav-icon-slot";
 import type { ResolvedChildItem } from "./node-collapsed-group";
+import { useSidebarAnimatedOpen } from "./use-sidebar-animated-open";
 
 const COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "pt-1.5 overflow-hidden",
@@ -291,6 +292,7 @@ export function NodeExpandedGroupSub({
   onToggle,
   children,
 }: NodeExpandedGroupSubProps) {
+  const visibleOpen = useSidebarAnimatedOpen(isOpen);
   const buttonClassName = cn(
     "relative z-10",
     NAV_ITEM_HEIGHT_CLASSNAME,
@@ -308,7 +310,7 @@ export function NodeExpandedGroupSub({
   );
 
   return (
-    <Collapsible open={isOpen}>
+    <Collapsible open={visibleOpen}>
       <SidebarMenuSubItem className="group/nav-item">
         <WithBlockedTooltip tooltip={blockedTooltip}>
           <SidebarMenuSubButton
@@ -372,6 +374,7 @@ export function NodeExpandedGroupRoot({
   onToggle,
   children,
 }: NodeExpandedGroupRootProps) {
+  const visibleOpen = useSidebarAnimatedOpen(isOpen);
   const dropdownEnabled = isCollapsed && hoverDropdown !== null;
   const dropdownOpen = dropdownEnabled ? hoverDropdown.isOpen(item.key) : false;
   const expandedRowClassName = cn(
@@ -388,7 +391,7 @@ export function NodeExpandedGroupRoot({
 
   if (!isCollapsed) {
     return (
-      <Collapsible open={isOpen}>
+      <Collapsible open={visibleOpen}>
         <SidebarMenuItem className="group/nav-item">
           <WithBlockedTooltip tooltip={blockedTooltip}>
             <div data-active={isTrailActive ? "true" : "false"} className={expandedRowClassName}>
@@ -432,7 +435,7 @@ export function NodeExpandedGroupRoot({
   }
 
   return (
-    <Collapsible open={dropdownEnabled ? false : isOpen}>
+    <Collapsible open={dropdownEnabled ? false : visibleOpen}>
       <SidebarMenuItem
         className="group/nav-item"
         onPointerEnter={() => {

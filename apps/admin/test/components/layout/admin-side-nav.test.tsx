@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { createRef } from "react";
+import { createRef, useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { Activity, Home, LayoutGrid, Settings, UserPlus, Users } from "lucide-react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -94,6 +94,21 @@ function renderTreeNav(args: {
         />
       </Sidebar>
     </SidebarProvider>,
+  );
+}
+
+function ControlledSidebarNav(props: { items: readonly AdminNavItem[] }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <SidebarProvider open={open} onOpenChange={setOpen} className="h-screen">
+      <button type="button" onClick={() => setOpen((current) => !current)}>
+        Toggle sidebar
+      </button>
+      <Sidebar collapsible="icon" animateOnHover={false}>
+        <AdminSiderNav items={props.items} showFavorites />
+      </Sidebar>
+    </SidebarProvider>
   );
 }
 
@@ -1159,6 +1174,23 @@ describe("AdminSiderNav collapsed groups", () => {
     await user.click(screen.getByRole("button", { name: "Team" }));
 
     expect(screen.getByRole("button", { name: "Members" })).toHaveAttribute("data-active", "true");
+  });
+
+  it("drives expanded group content through the closing animation when the sidebar collapses", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<ControlledSidebarNav items={items} />);
+
+    await user.click(screen.getByRole("button", { name: "Team" }));
+    const membersButton = screen.getByRole("button", { name: "Members" });
+    const subTree = membersButton.closest('[data-slot="sidebar-menu-sub"]');
+    const collapsibleContent = subTree?.closest("[data-state]");
+
+    expect(collapsibleContent).toHaveAttribute("data-state", "open");
+
+    await user.click(screen.getByRole("button", { name: "Toggle sidebar" }));
+
+    expect(collapsibleContent).toHaveAttribute("data-state", "closed");
   });
 
   it("marks Content -> Contents active for the content create route alias", async () => {

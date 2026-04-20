@@ -88,6 +88,7 @@ import {
   normalizePath,
 } from "./nav-utils";
 import { iconSlot } from "./nav-icon-slot";
+import { useSidebarAnimatedOpen } from "./use-sidebar-animated-open";
 
 type FavoritesNodeProps = {
   item: AdminNavItem;
@@ -923,6 +924,46 @@ function FavoriteNodeTree(props: {
   );
 }
 
+function FavoriteFolderBranch(
+  props: React.ComponentProps<typeof FavoriteSiblingList> & {
+    node: FavoriteDisplayFolder;
+  },
+) {
+  const visibleExpanded = useSidebarAnimatedOpen(props.node.expanded);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <FavoriteFolderRow
+        row={props.node}
+        editingFolderId={props.editingFolderId}
+        draftName={props.draftName}
+        onDraftChange={props.onDraftChange}
+        onCommitRename={props.onCommitRename}
+        onCancelRename={props.onCancelRename}
+        onToggle={() => props.onToggleFolder(props.node.folderId, !props.node.expanded)}
+        onRename={() => props.onRenameFolder(props.node)}
+        onDelete={() => props.onDeleteFolder(props.node.folderId)}
+        isFolderDropTarget={props.dragContext?.folderDropTargetId === props.node.folderId}
+      />
+      {props.node.children.length > 0 ? (
+        <Collapsible open={visibleExpanded}>
+          <CollapsibleContent className={FAVORITES_COLLAPSIBLE_CONTENT_CLASSNAME}>
+            <div className={NAV_SUBTREE_GUIDE_CLASSNAME}>
+              <div className="flex flex-col">
+                <FavoriteSiblingList
+                  {...props}
+                  nodes={props.node.children}
+                  parentId={props.node.folderId}
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      ) : null}
+    </div>
+  );
+}
+
 function FavoriteSiblingList(
   props: React.ComponentProps<typeof FavoriteNodeTree> & {
     parentId: string | null;
@@ -951,35 +992,7 @@ function FavoriteSiblingList(
                 onRemove={() => props.onRemoveItem(node.path)}
               />
             ) : (
-              <div className="flex flex-col gap-1">
-                <FavoriteFolderRow
-                  row={node}
-                  editingFolderId={props.editingFolderId}
-                  draftName={props.draftName}
-                  onDraftChange={props.onDraftChange}
-                  onCommitRename={props.onCommitRename}
-                  onCancelRename={props.onCancelRename}
-                  onToggle={() => props.onToggleFolder(node.folderId, !node.expanded)}
-                  onRename={() => props.onRenameFolder(node)}
-                  onDelete={() => props.onDeleteFolder(node.folderId)}
-                  isFolderDropTarget={props.dragContext?.folderDropTargetId === node.folderId}
-                />
-                {node.children.length > 0 ? (
-                  <Collapsible open={node.expanded}>
-                    <CollapsibleContent className={FAVORITES_COLLAPSIBLE_CONTENT_CLASSNAME}>
-                      <div className={NAV_SUBTREE_GUIDE_CLASSNAME}>
-                        <div className="flex flex-col">
-                          <FavoriteSiblingList
-                            {...props}
-                            nodes={node.children}
-                            parentId={node.folderId}
-                          />
-                        </div>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ) : null}
-              </div>
+              <FavoriteFolderBranch {...props} node={node} />
             )}
             {props.parentId === null && props.dragging ? (
               <FavoriteRootInsertionTarget index={index + 1} />
@@ -1168,6 +1181,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
     [folderStateMap, props.activeKeys, props.item.children, props.suppressedKeys],
   );
   const effectiveExpanded = sectionExpanded;
+  const visibleExpanded = useSidebarAnimatedOpen(effectiveExpanded);
   const overlayWorkspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", overlayWorkspaceId, sessionVersion, "favorite-overlay"],
     enabled: Boolean(overlayWorkspaceId && overlayEntry),
@@ -1340,7 +1354,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
                 </span>
               </div>
             </div>
-            <Collapsible open={effectiveExpanded}>
+            <Collapsible open={visibleExpanded}>
               <CollapsibleContent className={FAVORITES_COLLAPSIBLE_CONTENT_CLASSNAME}>
                 {panelContent}
               </CollapsibleContent>
