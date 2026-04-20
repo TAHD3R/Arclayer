@@ -224,11 +224,15 @@ describe("AdminSiderNav capability nodes", () => {
     const emptyDescription = screen.getByText(
       "Add your boards, docs, or dashboards for quick access.",
     );
+    const emptyCard = emptyTitle.closest(".overflow-hidden");
+    const emptyContentRow = emptyTitle.closest(".min-w-\\[11\\.5rem\\]");
 
     expect(emptyTitle).toBeVisible();
     expect(emptyTitle).toHaveClass("text-callout");
     expect(emptyDescription).toBeVisible();
     expect(emptyDescription).toHaveClass("text-caption");
+    expect(emptyCard).toHaveClass("overflow-hidden");
+    expect(emptyContentRow).toHaveClass("min-w-[11.5rem]");
     expect(screen.getByTestId("favorites-empty-illustration")).toBeVisible();
     expect(screen.getByRole("button", { name: "Favorites actions" })).toBeVisible();
   });
