@@ -30,8 +30,6 @@ function resolveLegacyOrganizationTarget(
     return settingsTarget({ screen: "workspace.invitations", section: "pending-invitations" });
   if (/^\/o\/[^/]+\/team\/roles\/?$/.test(targetTo))
     return settingsTarget({ screen: "workspace.roles", section: "roles-table" });
-  if (/^\/o\/[^/]+\/extensions(?:\/|$)/.test(targetTo))
-    return navigateTarget(`/projects/${workspaceId}/settings/general`);
   if (/^\/o\/[^/]+\/(?:activity|settings\/activity)\/?$/.test(targetTo)) {
     return navigateTarget(`/projects/${workspaceId}/activity`);
   }

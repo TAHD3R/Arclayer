@@ -6,14 +6,14 @@ import {
   projectContentLibraryPath,
 } from "@/lib/routing/project-content-routing";
 
-describe("workspace-content-routing", () => {
+describe("project-content-routing", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/projects/project-1/content/create?step=2#shape");
   });
 
-  test("builds workspace content library and create paths", () => {
-    expect(projectContentLibraryPath("ws 1")).toBe("/projects/ws%201/content/library");
-    expect(projectContentCreatePath("ws 1")).toBe("/projects/ws%201/content/create");
+  test("builds project content library and create paths", () => {
+    expect(projectContentLibraryPath("project 1")).toBe("/projects/project%201/content/library");
+    expect(projectContentCreatePath("project 1")).toBe("/projects/project%201/content/create");
   });
 
   test("builds editor handoff url with explicit safe returnTo", () => {

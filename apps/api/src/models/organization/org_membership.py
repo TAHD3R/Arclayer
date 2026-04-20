@@ -25,7 +25,7 @@ class OrgMembership(BaseModel):
 
     Notes:
     - A user can belong to multiple organizations.
-    - `role` is used for organization-level governance (e.g. plugin management).
+    - `role` is used for organization-level governance (e.g. admin management).
     """
 
     organization = fields.ForeignKeyField(

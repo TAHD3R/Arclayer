@@ -21,7 +21,7 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.mark.asyncio
-async def test_workspace_content_models_list_maps_legacy_types_to_model_contracts(
+async def test_project_content_models_list_maps_legacy_types_to_model_contracts(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -130,7 +130,7 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
 
 
 @pytest.mark.asyncio
-async def test_workspace_content_models_rejects_non_official_custom_model_creation(
+async def test_project_content_models_rejects_non_official_custom_model_creation(
     prepared_db,
     integration_valkey_settings,
 ) -> None:

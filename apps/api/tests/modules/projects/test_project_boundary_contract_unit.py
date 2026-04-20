@@ -33,12 +33,12 @@ WORKSPACE_SINGLE_SITE_MARKERS = {
 }
 
 PROJECT_OWNED_WORKSPACE_MOUNTS = {
-    "workspace_content_models_router",
-    "workspace_content_items_router",
-    "workspace_content_presentations_router",
-    "workspace_content_seo_router",
-    "workspace_content_bindings_router",
-    "workspace_content_routing_router",
+    "project_content_models_router",
+    "project_content_items_router",
+    "project_content_presentations_router",
+    "project_content_seo_router",
+    "project_content_bindings_router",
+    "project_content_routing_router",
     "workspace_releases_router",
     "workspace_publish_router",
     "workspace_themes_router",

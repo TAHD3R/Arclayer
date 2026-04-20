@@ -77,15 +77,6 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     setCurrentWorkspaceId(workspaceId);
   }, [setCurrentWorkspaceId, workspaceId]);
 
-  const onTabChange = useCallback(
-    (next: WorkspaceSettingsTabKey) => {
-      void navigate({
-        ...resolveWorkspaceSettingsTabNavigation(workspaceId, next, searchStr),
-      });
-    },
-    [navigate, searchStr, workspaceId],
-  );
-
   const closeAssignRoleDialog = useCallback(() => {
     assignRoleDialogForm.reset();
     setAssignRoleDialogOpen(false);
@@ -115,6 +106,24 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     retry: false,
     meta: { silent: true },
   });
+
+  const onTabChange = useCallback(
+    (next: WorkspaceSettingsTabKey) => {
+      const projectId = String(
+        detailQuery.data?.project?.projectId ||
+          useWorkspaceStore.getState().currentProjectId ||
+          useWorkspaceStore.getState().lastProjectId ||
+          "",
+      ).trim();
+      if (!projectId) {
+        throw new Error("PROJECT_NOT_SELECTED");
+      }
+      void navigate({
+        ...resolveWorkspaceSettingsTabNavigation(projectId, next, searchStr),
+      });
+    },
+    [detailQuery.data?.project?.projectId, navigate, searchStr],
+  );
 
   useEffect(() => {
     if (!detailQuery.data) return;

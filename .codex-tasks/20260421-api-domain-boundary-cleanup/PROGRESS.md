@@ -4,8 +4,8 @@
 
 - 任务: 根因修复 Workspace/Project/Site API 模块边界，删除 extension platform 和 workspace themes 废弃设计，并复查 `apps/api/src/modules` 旧设计。
 - 形态: epic
-- 进度: 6/6
-- 当前: Epic validation and final stale-design review completed.
+- 进度: 7/7
+- 当前: Post-merge boundary drift cleanup completed; full Admin gate remains blocked by merged baseline debt.
 - 文件: `.codex-tasks/20260421-api-domain-boundary-cleanup/SUBTASKS.csv`
 
 ## Log
@@ -101,3 +101,35 @@
   - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/core/test_i18n.py::test_hardcoded_api_error_codes_exist_in_errors_locale tests/core/test_i18n.py::test_backend_product_code_does_not_embed_hardcoded_user_messages tests/modules/projects/test_project_boundary_contract_unit.py tests/modules/workspaces/test_workspace_rbac_catalog_and_guards_unit.py tests/modules/workspaces/content/test_document_runtime_unit.py tests/modules/sites/test_sites_graphql_service_unit.py` -> 46 passed.
   - `pnpm -C apps/admin exec vitest run test/pages/workspaces/team/roles/team-roles-view.test.tsx test/components/common/admin-workspace-switcher.test.tsx test/lib/post-auth-routing.test.ts test/lib/admin-nav-utils.test.ts test/lib/project-boundary-contract.test.ts` -> 5 files passed, 51 tests passed.
   - `pnpm api:check` -> 4 tasks successful; API test result `386 passed, 131 skipped, 26 warnings`.
+- 2026-04-21 05:44: Continued after user merged refactor branch commits. `git diff --name-status 3b4454c6..HEAD` shows 91 changed files concentrated in Admin shell/settings/sidebar, shared UI sidebar/tooltip, loading screen, and common locale copy.
+- 2026-04-21 05:44: Post-merge boundary grep found no `apps/api/src/modules` facade/theme/extensions directories. Remaining stale markers are concentrated in `apps/api/src/models/organization/org_membership.py`, `apps/admin/test/lib/workspace-content-routing.test.ts`, `apps/admin/src/pages/projects/content/library/utils.ts`, and `apps/admin/src/lib/settings/workspace-content-strategy.ts` plus its consumers.
+- 2026-04-21 05:43: Established targeted baseline before post-merge cleanup:
+  - `pnpm -C apps/admin exec vitest run test/lib/workspace-content-routing.test.ts test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-page.test.tsx` -> 3 files passed, 46 tests passed.
+  - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/core/test_i18n.py::test_hardcoded_api_error_codes_exist_in_errors_locale tests/core/test_i18n.py::test_backend_product_code_does_not_embed_hardcoded_user_messages` -> 2 passed.
+- 2026-04-21 06:02: Completed post-merge boundary drift cleanup:
+  - renamed Admin content strategy helper from `workspace-content-strategy` to `project-content-strategy` and updated content editor/settings consumers.
+  - changed project content library local storage/table/query identifiers from `workspace-content-library` wording to `project-content-library` wording.
+  - fixed workspace settings tab navigation so `/projects/$projectId/settings/general` receives an explicit project id from project detail or the workspace store rather than the workspace id.
+  - fixed workspace deletion handoff to require `nextWorkspace.projectId`, set workspace/project context together, and navigate to `/projects/{projectId}/settings/general`.
+  - removed the legacy `/o/:org/extensions` notification target mapping and added regression coverage for deleted extension targets.
+  - cleaned stale `plugin management` comment wording in `apps/api/src/models/organization/org_membership.py`.
+- 2026-04-21 06:02: Fresh validation already performed for the post-merge cleanup:
+  - `pnpm -C apps/admin exec vitest run test/lib/project-content-routing.test.ts test/lib/routing/notification-target.test.ts test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/workspace-settings-utils.test.ts test/pages/workspaces/workspace-settings-danger-section.test.tsx test/pages/destructive-flows/organization-workspace-danger.test.tsx test/lib/routing/inbox-source.test.ts test/lib/project-boundary-contract.test.ts` -> 9 files passed, 63 tests passed.
+  - `timeout 60s env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/projects/test_project_boundary_contract_unit.py tests/modules/workspaces/test_workspace_content_models_integration.py tests/core/test_i18n.py::test_hardcoded_api_error_codes_exist_in_errors_locale tests/core/test_i18n.py::test_backend_product_code_does_not_embed_hardcoded_user_messages` -> 8 passed.
+  - boundary grep for explicit stale markers returned no matches.
+  - `find apps/api/src/modules -type d | rg "(facade|themes|extensions)$"` returned no matches.
+  - `git diff --check` passed.
+  - `pnpm api:check` passed: 4 tasks successful, API tests `386 passed, 131 skipped, 26 warnings`.
+  - `pnpm admin:check` failed on merged Admin baseline debt outside this cleanup surface: lint passed, typecheck reports existing errors in global layout/usercenter/assets/team roles/preference store/tests, and the full test run includes existing unrelated failures plus Vitest heap OOM.
+- 2026-04-21 06:09: Removed the dead `apps/admin/src/pages/workspaces/settings/workspace/content` surface after local review confirmed it had no route or settings-nav entry. Also removed unused `SETTINGS_WORKSPACE_CONTENT_*` locale keys and added a project-boundary contract assertion that this directory stays absent.
+- 2026-04-21 06:09: Re-ran post-delete validation:
+  - `node -e "JSON.parse(require('fs').readFileSync('locales/en-US/settings.json','utf8')); JSON.parse(require('fs').readFileSync('locales/zh-CN/settings.json','utf8'));"` passed.
+  - stale marker grep for workspace content, extension platform, project facade, workspace themes, and deleted module markers returned no matches.
+  - `test ! -e apps/admin/src/pages/workspaces/settings/workspace/content` passed.
+  - `find apps/api/src/modules -type d | rg "(facade|themes|extensions)$"` returned no matches.
+  - `git diff --check` passed.
+  - `pnpm -C apps/admin exec vitest run test/lib/project-content-routing.test.ts test/lib/routing/notification-target.test.ts test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/workspace-settings-utils.test.ts test/pages/workspaces/workspace-settings-danger-section.test.tsx test/pages/destructive-flows/organization-workspace-danger.test.tsx test/lib/routing/inbox-source.test.ts test/lib/project-boundary-contract.test.ts` -> 9 files passed, 63 tests passed.
+  - `timeout 60s env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/projects/test_project_boundary_contract_unit.py tests/modules/workspaces/test_workspace_content_models_integration.py tests/core/test_i18n.py::test_hardcoded_api_error_codes_exist_in_errors_locale tests/core/test_i18n.py::test_backend_product_code_does_not_embed_hardcoded_user_messages` -> 8 passed.
+
+- 2026-04-21 06:10: Final API gate passed again after the dead surface deletion:
+  - `pnpm api:check` -> 4 tasks successful; API tests `386 passed, 131 skipped, 26 warnings`.

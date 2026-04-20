@@ -120,6 +120,7 @@ describe("workspace destructive flows", () => {
       items: [
         {
           workspaceId: "ws-2",
+          projectId: "project-2",
           organizationId: "org-2",
           slug: "beta",
           name: "Beta",
@@ -132,6 +133,7 @@ describe("workspace destructive flows", () => {
         teams: [
           {
             workspaceId: "ws-2",
+            projectId: "project-2",
             organizationId: "org-2",
             slug: "beta",
             name: "Beta",
@@ -163,11 +165,12 @@ describe("workspace destructive flows", () => {
     await waitFor(() => {
       expect(deleteWorkspaceMock).toHaveBeenCalledWith("ws-1", "Workspace Alpha");
       expect(navigateMock).toHaveBeenCalledWith({
-        to: "/projects/undefined/settings/general",
+        to: "/projects/project-2/settings/general",
         replace: true,
       });
     });
     expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-2");
+    expect(useWorkspaceStore.getState().currentProjectId).toBe("project-2");
   });
 
   it("shows explicit last-active-workspace block before delete click", async () => {

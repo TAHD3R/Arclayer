@@ -7,7 +7,7 @@ import {
   saveContentItemDraftVersion,
 } from "@/api/content";
 import { getCoreSettings } from "@/api/settings";
-import { readWorkspaceContentStrategy } from "@/lib/settings/workspace-content-strategy";
+import { readProjectContentStrategy } from "@/lib/settings/project-content-strategy";
 import type {
   AdminContentBootstrapPresetState,
   AdminContentItemStatus,
@@ -312,7 +312,7 @@ export function useContentLibraryArticleEditor(params: {
     meta: { silent: true },
   });
   const contentStrategy = React.useMemo(
-    () => readWorkspaceContentStrategy(contentStrategyQuery.data?.value),
+    () => readProjectContentStrategy(contentStrategyQuery.data?.value),
     [contentStrategyQuery.data?.value],
   );
 

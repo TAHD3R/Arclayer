@@ -36,6 +36,7 @@ describe("project boundary contract", () => {
     const workspaceProjectPageFolders = [
       "apps/admin/src/pages/workspaces/content",
       "apps/admin/src/pages/workspaces/settings/site",
+      "apps/admin/src/pages/workspaces/settings/workspace/content",
     ];
 
     const violations = workspaceProjectPageFolders.filter((relativePath) =>

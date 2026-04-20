@@ -1,21 +1,21 @@
 import { pickBool, pickNumber } from "./general/utils";
 
-export type WorkspaceContentAutosaveStrategy = {
+export type ProjectContentAutosaveStrategy = {
   enabled: boolean;
   intervalSec: number;
   saveOnBlur: boolean;
 };
 
-export type WorkspaceContentRetentionStrategy = {
+export type ProjectContentRetentionStrategy = {
   draftMaxRevisions: number;
 };
 
-export type WorkspaceContentStrategy = {
-  autosave: WorkspaceContentAutosaveStrategy;
-  retention: WorkspaceContentRetentionStrategy;
+export type ProjectContentStrategy = {
+  autosave: ProjectContentAutosaveStrategy;
+  retention: ProjectContentRetentionStrategy;
 };
 
-export const DEFAULT_WORKSPACE_CONTENT_STRATEGY: WorkspaceContentStrategy = {
+export const DEFAULT_PROJECT_CONTENT_STRATEGY: ProjectContentStrategy = {
   autosave: {
     enabled: true,
     intervalSec: 30,
@@ -32,44 +32,44 @@ function sanitizePositiveInteger(value: number | undefined, fallback: number) {
   return normalized;
 }
 
-export function readWorkspaceContentStrategy(source: unknown): WorkspaceContentStrategy {
+export function readProjectContentStrategy(source: unknown): ProjectContentStrategy {
   return {
     autosave: {
       enabled:
         pickBool(source, ["content_strategy", "autosave", "enabled"]) ??
-        DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.enabled,
+        DEFAULT_PROJECT_CONTENT_STRATEGY.autosave.enabled,
       intervalSec: sanitizePositiveInteger(
         pickNumber(source, ["content_strategy", "autosave", "interval_sec"]),
-        DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.intervalSec,
+        DEFAULT_PROJECT_CONTENT_STRATEGY.autosave.intervalSec,
       ),
       saveOnBlur:
         pickBool(source, ["content_strategy", "autosave", "save_on_blur"]) ??
-        DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.saveOnBlur,
+        DEFAULT_PROJECT_CONTENT_STRATEGY.autosave.saveOnBlur,
     },
     retention: {
       draftMaxRevisions: sanitizePositiveInteger(
         pickNumber(source, ["content_strategy", "retention", "draft_max_revisions"]),
-        DEFAULT_WORKSPACE_CONTENT_STRATEGY.retention.draftMaxRevisions,
+        DEFAULT_PROJECT_CONTENT_STRATEGY.retention.draftMaxRevisions,
       ),
     },
   };
 }
 
-export function buildWorkspaceContentStrategyPatch(strategy: WorkspaceContentStrategy) {
+export function buildProjectContentStrategyPatch(strategy: ProjectContentStrategy) {
   return {
     content_strategy: {
       autosave: {
         enabled: Boolean(strategy.autosave.enabled),
         interval_sec: sanitizePositiveInteger(
           strategy.autosave.intervalSec,
-          DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.intervalSec,
+          DEFAULT_PROJECT_CONTENT_STRATEGY.autosave.intervalSec,
         ),
         save_on_blur: Boolean(strategy.autosave.saveOnBlur),
       },
       retention: {
         draft_max_revisions: sanitizePositiveInteger(
           strategy.retention.draftMaxRevisions,
-          DEFAULT_WORKSPACE_CONTENT_STRATEGY.retention.draftMaxRevisions,
+          DEFAULT_PROJECT_CONTENT_STRATEGY.retention.draftMaxRevisions,
         ),
       },
     },

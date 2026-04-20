@@ -25,8 +25,8 @@ export const CONTENT_LIBRARY_DEFAULT_VIEW_STATE: ContentLibraryViewState = {
   kind: "system",
   viewId: "all",
 };
-const CONTENT_LIBRARY_VIEW_STORAGE_PREFIX = "workspace-content-library:view";
-const CONTENT_LIBRARY_SAVED_VIEWS_STORAGE_PREFIX = "workspace-content-library:saved-views";
+const CONTENT_LIBRARY_VIEW_STORAGE_PREFIX = "project-content-library:view";
+const CONTENT_LIBRARY_SAVED_VIEWS_STORAGE_PREFIX = "project-content-library:saved-views";
 const CONTENT_LIBRARY_ROLES = [
   "page",
   "article",
@@ -607,16 +607,16 @@ export function buildContentLibraryPageData(
   };
 }
 
-export function contentLibraryTableId(workspaceId: string | null): string {
-  return `workspace-content-library:${workspaceId || "unknown"}`;
+export function contentLibraryTableId(projectId: string | null): string {
+  return `project-content-library:${projectId || "unknown"}`;
 }
 
-export function buildContentItemsQueryKey(workspaceId: string | null) {
-  return ["content", "items", "all", workspaceId] as const;
+export function buildContentItemsQueryKey(projectId: string | null) {
+  return ["content", "items", "all", projectId] as const;
 }
 
-export function buildContentModelsQueryKey(workspaceId: string | null) {
-  return ["content", "models", "all", workspaceId] as const;
+export function buildContentModelsQueryKey(projectId: string | null) {
+  return ["content", "models", "all", projectId] as const;
 }
 
 export function isTypeScopeActive(scopeId: ContentLibraryScopeId, modelKey: string): boolean {

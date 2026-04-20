@@ -40,7 +40,7 @@ export function WorkspaceSettingsDangerSection(props: { workspaceId: string }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const clearWorkspace = useWorkspaceStore((state) => state.clearWorkspace);
-  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentContext = useWorkspaceStore((state) => state.setCurrentContext);
   const { savingKey, withSavingKey } = useSavingKey();
   const form = useForm<DeleteWorkspaceDialogValues>({
     defaultValues: { confirmName: "" },
@@ -84,7 +84,13 @@ export function WorkspaceSettingsDangerSection(props: { workspaceId: string }) {
       await navigate({ to: "/", replace: true });
       return;
     }
-    setCurrentWorkspaceId(nextWorkspace.workspaceId);
+    if (!nextWorkspace.projectId) {
+      throw new Error("PROJECT_NOT_SELECTED");
+    }
+    setCurrentContext({
+      workspaceId: nextWorkspace.workspaceId,
+      projectId: nextWorkspace.projectId,
+    });
     await navigate({ to: `/projects/${nextWorkspace.projectId}/settings/general`, replace: true });
   };
 
