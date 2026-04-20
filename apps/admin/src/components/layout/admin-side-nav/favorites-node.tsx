@@ -479,9 +479,9 @@ function EmptyFavoritesCard() {
 
   return (
     <div className="overflow-hidden p-2">
-      <div className="flex min-w-[11.5rem] items-start gap-3">
+      <div className="flex w-[11.5rem] items-start gap-3">
         <FavoritesEmptyStateIllustration />
-        <div className="min-w-0 flex-1">
+        <div className="w-[8.5rem] shrink-0">
           <div className="text-callout font-semibold text-label-primary">
             {t("NAV_FAVORITES_EMPTY_TITLE")}
           </div>
