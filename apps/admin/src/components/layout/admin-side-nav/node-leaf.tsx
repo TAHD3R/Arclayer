@@ -86,29 +86,31 @@ function NodeLeafSub({
               : "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent",
           )}
         >
-          <ButtonPrimitive
-            type="button"
-            tapScale={1}
-            aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
-            onClick={() => {
-              onSelect(item.to);
-              openChainForKey(item.key);
-              if (!item.to || item.disabled) return;
-              if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
-              onNavigate(item.to, item.search);
-            }}
-            className="flex w-full items-center justify-start gap-2 text-left"
-          >
-            {labelContent}
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <ButtonPrimitive
+              type="button"
+              tapScale={1}
+              data-active={isSelected ? "true" : "false"}
+              aria-disabled={item.disabled ? "true" : undefined}
+              aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
+              onClick={() => {
+                onSelect(item.to);
+                openChainForKey(item.key);
+                if (!item.to || item.disabled) return;
+                if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
+                onNavigate(item.to, item.search);
+              }}
+              className={cn(
+                "flex min-w-0 flex-1 items-center justify-start gap-2 rounded-[inherit] text-left outline-none hover:bg-transparent",
+                item.disabled ? "hover:cursor-pointer" : "hover:cursor-pointer",
+              )}
+            >
+              {labelContent}
+            </ButtonPrimitive>
             {showAction && item.actionRenderer ? (
-              <span
-                className={NAV_TRAILING_RAIL_CLASSNAME}
-                onClick={(event) => event.stopPropagation()}
-              >
-                {item.actionRenderer(item)}
-              </span>
+              <div className={NAV_TRAILING_RAIL_CLASSNAME}>{item.actionRenderer(item)}</div>
             ) : null}
-          </ButtonPrimitive>
+          </div>
         </SidebarMenuSubButton>
       </WithBlockedTooltip>
     </SidebarMenuSubItem>

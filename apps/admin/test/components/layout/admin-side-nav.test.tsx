@@ -308,6 +308,29 @@ const globalItems: AdminNavItem[] = [
   },
 ];
 
+const subItemActionItems: AdminNavItem[] = [
+  {
+    key: "global.projects",
+    label: "Projects",
+    icon: Users,
+    defaultExpanded: true,
+    children: [
+      {
+        key: "global.projects.project-alpha",
+        label: "Project Alpha",
+        icon: Home,
+        to: "/projects/project-alpha",
+        renderLabel: () => <span className="min-w-0 flex-1 truncate">Project Alpha</span>,
+        actionRenderer: () => (
+          <button type="button" aria-label="Open project actions" className="size-6 rounded-sm">
+            Actions
+          </button>
+        ),
+      },
+    ],
+  },
+];
+
 describe("AdminSiderNav collapsed groups", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
@@ -496,6 +519,23 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-slot",
       "sidebar-menu-button",
     );
+  });
+
+  it("keeps expanded sub items with action buttons on a valid DOM structure", () => {
+    renderTreeNav({
+      items: subItemActionItems,
+      favoriteWorkspaceBase: "/projects",
+      pathnameOverride: "/projects/project-alpha",
+    });
+
+    const actionButton = screen.getByRole("button", { name: "Open project actions" });
+    const subItem = actionButton.closest('[data-slot="sidebar-menu-sub-item"]');
+
+    expect(subItem).not.toBeNull();
+    if (!subItem) throw new Error("Missing sidebar menu sub item");
+
+    expect(within(subItem).getByRole("button", { name: "Project Alpha" })).toBeInTheDocument();
+    expect(subItem.querySelector("button button")).toBeNull();
   });
 
   it("switches to expanded-tree behavior when the collapsed sidebar is hover-expanded", async () => {
