@@ -1,7 +1,7 @@
 import { cn } from "@arclayer/lib/utils";
 
 export const INTERACTIVE_TRANSITION_CLASSNAME = cn(
-  "transition-[color,background-color,box-shadow,border-color,padding,gap] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)]",
+  "transition-[color,background-color,box-shadow,border-color,padding,gap] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
   "motion-reduce:transition-none",
 );
 
@@ -19,10 +19,17 @@ export const NAV_ITEM_INTERACTIVE_BG_CLASSNAME = cn(
 export const NAV_ITEM_COLLAPSE_HIDE_CLASSNAME = cn(
   "max-w-full overflow-hidden whitespace-nowrap",
   "origin-left transform-gpu will-change-[max-width,opacity,transform]",
-  "transition-[max-width,opacity,transform] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)]",
-  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
-  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:opacity-0",
-  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:pointer-events-none",
+  "transition-[max-width,opacity,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:opacity-0",
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:pointer-events-none",
+  "[[data-motion-phase=collapsing]_&]:opacity-0",
+  "[[data-motion-phase=collapsing]_&]:-translate-x-1",
+  "[[data-motion-phase=expanding]_&]:opacity-0",
+  "[[data-motion-phase=expanding]_&]:translate-x-1",
+  "[[data-motion-phase=expanding]_&]:delay-[170ms]",
+  "[[data-motion-phase=expanding]_&]:duration-[110ms]",
+  "[[data-motion-phase=collapsing]_&]:duration-[120ms]",
 );
 
 export const DISABLED_ITEM_CLASSNAME = cn(

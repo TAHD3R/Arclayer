@@ -69,7 +69,7 @@ function NavGroupMarker(props: { label: string }) {
       data-slot="admin-side-nav-group-marker"
       className={cn(
         "relative overflow-hidden py-3",
-        "transition-[padding] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none",
+        "transition-[padding] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
         "group-data-[state=expanded]:px-3",
         "group-data-[state=expanded]:pt-4",
         "group-data-[state=expanded]:pb-2",
@@ -80,7 +80,7 @@ function NavGroupMarker(props: { label: string }) {
         data-slot="admin-side-nav-group-marker-divider"
         className={cn(
           "border-b border-sidebar-border origin-left transform-gpu",
-          "transition-[opacity,transform] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none",
+          "transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
           "group-data-[state=expanded]:scale-x-95 group-data-[state=expanded]:opacity-0",
         )}
       />
@@ -88,7 +88,7 @@ function NavGroupMarker(props: { label: string }) {
         data-slot="admin-side-nav-group-label"
         className={cn(
           "pointer-events-none absolute inset-x-3 top-1.5 h-auto px-0 py-0 text-xs font-semibold text-label-tertiary truncate",
-          "origin-left transform-gpu transition-[opacity,transform] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none",
+          "origin-left transform-gpu transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
           "-translate-y-1 opacity-0",
           "group-data-[state=expanded]:translate-y-0 group-data-[state=expanded]:opacity-100",
         )}

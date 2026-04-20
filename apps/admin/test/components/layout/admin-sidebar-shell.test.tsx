@@ -185,6 +185,7 @@ describe("AdminSidebarShell", () => {
       expect(sidebarInner).not.toBeNull();
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-motion-phase", "idle");
       expect(sidebar).toHaveAttribute("data-collapsible", "icon");
       expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
       expect(sidebar?.className).toContain("w-(--sidebar-width)");
@@ -199,12 +200,14 @@ describe("AdminSidebarShell", () => {
         vi.advanceTimersByTime(50);
       });
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-motion-phase", "idle");
 
       act(() => {
         vi.advanceTimersByTime(20);
       });
       expect(sidebar).toHaveAttribute("data-state", "expanded");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-motion-phase", "expanding");
       expect(sidebar).toHaveAttribute("data-hover-preview", "true");
       expect(sidebar).toHaveAttribute("data-collapsible", "");
       expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
@@ -222,21 +225,35 @@ describe("AdminSidebarShell", () => {
       });
       expect(sidebar).toHaveAttribute("data-state", "expanded");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-motion-phase", "expanding");
       expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
       expect(sidebar).toHaveAttribute("data-hover-preview", "true");
 
       act(() => {
-        vi.advanceTimersByTime(40);
+        vi.advanceTimersByTime(39);
+      });
+      expect(sidebar).toHaveAttribute("data-hover-preview", "true");
+
+      act(() => {
+        vi.advanceTimersByTime(1);
       });
       expect(sidebar).toHaveAttribute("data-state", "expanded");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-hover-preview", "");
+      expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
       expect(sidebar).toHaveAttribute("data-collapsible", "");
 
       act(() => {
-        vi.advanceTimersByTime(249);
+        vi.advanceTimersByTime(140);
       });
       expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
+
+      act(() => {
+        vi.advanceTimersByTime(139);
+      });
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
 
       act(() => {
         vi.advanceTimersByTime(1);
@@ -245,6 +262,11 @@ describe("AdminSidebarShell", () => {
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-collapsible", "icon");
       expect(sidebarContent).not.toHaveAttribute("inert");
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(sidebar).toHaveAttribute("data-motion-phase", "idle");
     } finally {
       vi.useRealTimers();
     }

@@ -31,11 +31,13 @@ const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_HOVER_OPEN_DELAY_MS = 70;
 const SIDEBAR_HOVER_CLOSE_DELAY_MS = 180;
-const SIDEBAR_COLLAPSE_VISUAL_DELAY_MS = 250;
+const SIDEBAR_EXPAND_TRANSITION_MS = 280;
+const SIDEBAR_LABEL_ENTER_DELAY_MS = 170;
+const SIDEBAR_COLLAPSE_VISUAL_DELAY_MS = SIDEBAR_EXPAND_TRANSITION_MS;
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
-const SIDEBAR_EXPAND_TRANSITION_CLASSNAME = "duration-250 ease-[cubic-bezier(0.77,0,0.175,1)]";
+const SIDEBAR_EXPAND_TRANSITION_CLASSNAME = "duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]";
 const SIDEBAR_DEFAULT_WIDTH_PX = 220;
 const SIDEBAR_MIN_WIDTH_PX = 180;
 const SIDEBAR_MAX_WIDTH_PX = 320;
@@ -47,6 +49,7 @@ function clampSidebarWidthPx(value: number): number {
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
   layoutState: "expanded" | "collapsed";
+  motionPhase: "idle" | "expanding" | "collapsing";
   open: boolean;
   setOpen: (open: boolean) => void;
   widthPx: number;
@@ -100,10 +103,12 @@ function SidebarProvider({
   const [hoverOpen, setHoverOpen] = React.useState(false);
   const [hoverIntent, setHoverIntent] = React.useState(false);
   const [collapseVisualHold, setCollapseVisualHold] = React.useState(false);
+  const [motionPhase, setMotionPhase] = React.useState<"idle" | "expanding" | "collapsing">("idle");
   const [hoverPreviewLockCount, setHoverPreviewLockCount] = React.useState(0);
   const hoverOpenTimerRef = React.useRef<number | null>(null);
   const hoverCloseTimerRef = React.useRef<number | null>(null);
   const collapseVisualTimerRef = React.useRef<number | null>(null);
+  const motionPhaseTimerRef = React.useRef<number | null>(null);
   const previousOpenRef = React.useRef(openProp ?? defaultOpen);
   const previousHoverOpenRef = React.useRef(false);
   const previousHoverPreviewLockCountRef = React.useRef(0);
@@ -161,6 +166,12 @@ function SidebarProvider({
     collapseVisualTimerRef.current = null;
   }, []);
 
+  const clearMotionPhaseTimer = React.useCallback(() => {
+    if (motionPhaseTimerRef.current === null) return;
+    window.clearTimeout(motionPhaseTimerRef.current);
+    motionPhaseTimerRef.current = null;
+  }, []);
+
   const startCollapseVisualHold = React.useCallback(() => {
     setCollapseVisualHold(true);
     clearCollapseVisualTimer();
@@ -169,6 +180,18 @@ function SidebarProvider({
       collapseVisualTimerRef.current = null;
     }, SIDEBAR_COLLAPSE_VISUAL_DELAY_MS);
   }, [clearCollapseVisualTimer]);
+
+  const startMotionPhase = React.useCallback(
+    (phase: "expanding" | "collapsing", durationMs: number) => {
+      setMotionPhase(phase);
+      clearMotionPhaseTimer();
+      motionPhaseTimerRef.current = window.setTimeout(() => {
+        setMotionPhase("idle");
+        motionPhaseTimerRef.current = null;
+      }, durationMs);
+    },
+    [clearMotionPhaseTimer],
+  );
 
   const scheduleHoverPreviewClose = React.useCallback(() => {
     clearHoverOpenTimer();
@@ -239,27 +262,44 @@ function SidebarProvider({
     setHoverIntent(false);
     setHoverOpen(false);
     setCollapseVisualHold(false);
+    setMotionPhase("idle");
     clearHoverOpenTimer();
     clearHoverCloseTimer();
     clearCollapseVisualTimer();
-  }, [clearCollapseVisualTimer, clearHoverCloseTimer, clearHoverOpenTimer, isMobile]);
+    clearMotionPhaseTimer();
+  }, [
+    clearCollapseVisualTimer,
+    clearHoverCloseTimer,
+    clearHoverOpenTimer,
+    clearMotionPhaseTimer,
+    isMobile,
+  ]);
 
   React.useEffect(() => {
     const wasOpen = previousOpenRef.current;
     previousOpenRef.current = open;
 
     if (isMobile) return;
-    if (open) return;
+    if (open) {
+      if (!wasOpen) {
+        startMotionPhase("expanding", SIDEBAR_LABEL_ENTER_DELAY_MS);
+      }
+      return;
+    }
     if (!wasOpen) return;
 
     startCollapseVisualHold();
-  }, [isMobile, open, startCollapseVisualHold]);
+    startMotionPhase("collapsing", SIDEBAR_EXPAND_TRANSITION_MS);
+  }, [isMobile, open, startCollapseVisualHold, startMotionPhase]);
 
   React.useEffect(() => {
     const wasHoverOpen = previousHoverOpenRef.current;
     previousHoverOpenRef.current = hoverOpen;
 
     if (hoverOpen) {
+      if (!wasHoverOpen && !open) {
+        startMotionPhase("expanding", SIDEBAR_LABEL_ENTER_DELAY_MS);
+      }
       setCollapseVisualHold(false);
       clearCollapseVisualTimer();
       return;
@@ -268,7 +308,15 @@ function SidebarProvider({
     if (!wasHoverOpen) return;
 
     startCollapseVisualHold();
-  }, [clearCollapseVisualTimer, hoverOpen, isMobile, open, startCollapseVisualHold]);
+    startMotionPhase("collapsing", SIDEBAR_EXPAND_TRANSITION_MS);
+  }, [
+    clearCollapseVisualTimer,
+    hoverOpen,
+    isMobile,
+    open,
+    startCollapseVisualHold,
+    startMotionPhase,
+  ]);
 
   React.useEffect(() => {
     const previousLockCount = previousHoverPreviewLockCountRef.current;
@@ -300,8 +348,9 @@ function SidebarProvider({
       clearHoverOpenTimer();
       clearHoverCloseTimer();
       clearCollapseVisualTimer();
+      clearMotionPhaseTimer();
     };
-  }, [clearCollapseVisualTimer, clearHoverCloseTimer, clearHoverOpenTimer]);
+  }, [clearCollapseVisualTimer, clearHoverCloseTimer, clearHoverOpenTimer, clearMotionPhaseTimer]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -326,6 +375,7 @@ function SidebarProvider({
     () => ({
       state: visualState,
       layoutState,
+      motionPhase,
       open,
       setOpen,
       widthPx,
@@ -342,6 +392,7 @@ function SidebarProvider({
     [
       visualState,
       layoutState,
+      motionPhase,
       open,
       setOpen,
       widthPx,
@@ -408,6 +459,7 @@ function Sidebar({
     isMobile,
     state,
     layoutState,
+    motionPhase,
     open,
     hoverOpen,
     openMobile,
@@ -490,6 +542,7 @@ function Sidebar({
       )}
       data-state={state}
       data-layout-state={layoutState}
+      data-motion-phase={motionPhase}
       data-hover-preview={isHoverPreviewExpanded ? "true" : ""}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-layout-collapsible={layoutState === "collapsed" ? collapsible : ""}

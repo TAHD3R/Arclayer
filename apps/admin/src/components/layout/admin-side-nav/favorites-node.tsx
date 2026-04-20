@@ -166,6 +166,9 @@ const FAVORITES_COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
 );
 
+const FAVORITES_CHEVRON_CLASSNAME =
+  "shrink-0 text-label-secondary transform-gpu transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
+
 const FAVORITES_ACTION_BUTTON_CLASSNAME =
   "inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-label-secondary transition-colors hover:bg-accent/70 hover:text-label-primary";
 
@@ -1274,10 +1277,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
   const chevronIndicator = (
     <ChevronRight
       size={16}
-      className={cn(
-        "shrink-0 text-label-secondary transition-transform duration-200",
-        effectiveExpanded && "rotate-90",
-      )}
+      className={cn(FAVORITES_CHEVRON_CLASSNAME, effectiveExpanded && "rotate-90")}
       aria-hidden="true"
     />
   );

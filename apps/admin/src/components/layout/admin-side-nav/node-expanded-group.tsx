@@ -51,6 +51,9 @@ const COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
 );
 
+const NAV_CHEVRON_CLASSNAME =
+  "shrink-0 text-label-secondary transform-gpu transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
+
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
   "relative z-10 h-9 rounded-md text-callout text-label-secondary",
   "transition-[color,background-color] duration-200 ease-out",
@@ -168,10 +171,7 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
         >
           <ChevronRight
             size={16}
-            className={cn(
-              "shrink-0 text-label-secondary transition-transform duration-200",
-              isOpen && "rotate-90",
-            )}
+            className={cn(NAV_CHEVRON_CLASSNAME, isOpen && "rotate-90")}
             aria-hidden="true"
           />
         </span>
@@ -329,10 +329,7 @@ export function NodeExpandedGroupSub({
               <span className={cn(NAV_TRAILING_RAIL_CLASSNAME, NAV_TRAILING_ICON_SLOT_CLASSNAME)}>
                 <ChevronRight
                   size={16}
-                  className={cn(
-                    "shrink-0 text-label-secondary transition-transform duration-200",
-                    isOpen && "rotate-90",
-                  )}
+                  className={cn(NAV_CHEVRON_CLASSNAME, isOpen && "rotate-90")}
                   aria-hidden="true"
                 />
               </span>
@@ -418,10 +415,7 @@ export function NodeExpandedGroupRoot({
                 <span className={NAV_TRAILING_ICON_SLOT_CLASSNAME}>
                   <ChevronRight
                     size={16}
-                    className={cn(
-                      "shrink-0 text-label-secondary transition-transform duration-200",
-                      isOpen && "rotate-90",
-                    )}
+                    className={cn(NAV_CHEVRON_CLASSNAME, isOpen && "rotate-90")}
                     aria-hidden="true"
                   />
                 </span>

@@ -1193,6 +1193,28 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(collapsibleContent).toHaveAttribute("data-state", "closed");
   });
 
+  it("keeps root labels rendered during the sidebar transition phase and hides them at steady collapsed state", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<ControlledSidebarNav items={items} />);
+
+    const overviewLabel = screen.getByText("Overview");
+    const labelContainer = overviewLabel.closest(".overflow-hidden");
+    const sidebar = document.querySelector<HTMLElement>('[data-slot="sidebar"]');
+
+    expect(sidebar).not.toBeNull();
+    expect(labelContainer).not.toBeNull();
+    if (!sidebar || !labelContainer) throw new Error("Missing sidebar label container");
+
+    await user.click(screen.getByRole("button", { name: "Toggle sidebar" }));
+
+    expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
+    expect(labelContainer.className).toContain("[[data-motion-phase=collapsing]_&]:opacity-0");
+    expect(labelContainer.className).toContain(
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
+    );
+  });
+
   it("marks Content -> Contents active for the content create route alias", async () => {
     const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/projects/ws-1");
 

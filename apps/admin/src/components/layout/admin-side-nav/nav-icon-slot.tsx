@@ -8,7 +8,7 @@ export function iconSlot(
 ) {
   const collapseMotionClassName =
     opts?.collapseMotion === "shift"
-      ? "transform-gpu transition-[color,transform] duration-250 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none"
+      ? "transform-gpu transition-[color,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none"
       : null;
 
   if (depth === 0 && Icon) {
