@@ -1,4 +1,0 @@
-id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
-1,细化 shared SDK core 与 schema-driven types 任务,TODO,transport/auth/error/types/helpers 任务齐备,"rg -n ""Module 9A|Module 9B|SDK Productization 2.0"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
-2,细化 realtime foundation 与 recipes 任务,TODO,publish events、preview events、recipes、smoke bundle 任务齐备,"rg -n ""Module 9C|Module 9D|Realtime Foundation"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,
-3,细化 frontend integration layer 任务,TODO,shared query hooks、mutation hooks、stable client layer 任务齐备,"rg -n ""Module 9E|Frontend Integration Layer"" docs/plans/2026-04-19-headless-cms-capability-absorption-implementation-plan.md",,0,

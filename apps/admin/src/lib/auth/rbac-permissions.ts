@@ -16,8 +16,6 @@ const PERMISSION_NAME_I18N_KEY_BY_CODE: Record<string, string> = {
   "system:content:read": "rbac:RBAC_PERM_CONTENT_READ_NAME",
   "system:content:manage": "rbac:RBAC_PERM_CONTENT_MANAGE_NAME",
   "system:content:publish": "rbac:RBAC_PERM_CONTENT_PUBLISH_NAME",
-  "system:themes:read": "rbac:RBAC_PERM_THEMES_READ_NAME",
-  "system:themes:manage": "rbac:RBAC_PERM_THEMES_MANAGE_NAME",
   "system:assets:read": "rbac:RBAC_PERM_ASSETS_READ_NAME",
   "system:assets:manage": "rbac:RBAC_PERM_ASSETS_MANAGE_NAME",
   "system:domains:read": "rbac:RBAC_PERM_DOMAINS_READ_NAME",
@@ -40,9 +38,6 @@ const PERMISSION_NAME_I18N_KEY_BY_CODE: Record<string, string> = {
   "team:members:reset-password": "rbac:RBAC_PERM_TEAM_MEMBERS_RESET_PW_NAME",
   "team:invitations:manage": "rbac:RBAC_PERM_TEAM_INVITES_MANAGE_NAME",
   "team:invite-links:manage": "rbac:RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_NAME",
-
-  "system:extensions:read": "rbac:RBAC_PERM_EXTENSIONS_READ_NAME",
-  "system:extensions:manage": "rbac:RBAC_PERM_EXTENSIONS_MANAGE_NAME",
 };
 
 export function resolvePermissionNameI18nKey(permissionCode: string): string | null {

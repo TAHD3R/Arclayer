@@ -10,14 +10,16 @@ from fastapi.routing import APIRoute
 from src.modules.assets.admin.assets.router import router as assets_router
 from src.modules.assets.admin.uploads.router import router as uploads_router
 from src.modules.assets.admin.usages.router import router as usages_router
+from src.modules.projects.api_keys.router import router as project_api_keys_router
 from src.modules.projects.content.items.router import router as project_items_router
 from src.modules.projects.content.models.router import router as project_models_router
 from src.modules.projects.content.routing.router import router as project_routing_router
 from src.modules.projects.domains.router import router as project_domains_router
-from src.modules.projects.facade.router import router as project_facade_router
+from src.modules.projects.publish.router import router as project_publish_router
+from src.modules.projects.releases.router import router as project_releases_router
+from src.modules.projects.runtime_bridge.router import router as project_runtime_bridge_router
 from src.modules.system.admin.notifications.router import router as notifications_router
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
-from src.modules.workspaces.api_keys.router import workspace_api_keys_router
 from src.modules.workspaces.permissions import get_permission_action_registry
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
 
@@ -73,7 +75,7 @@ def _project_root() -> Path:
     return Path(__file__).resolve().parents[5]
 
 
-def test_workspace_catalog_includes_content_site_theme_permissions_with_defaults() -> None:
+def test_workspace_catalog_includes_content_site_permissions_with_defaults() -> None:
     templates = {tpl.code: tpl for tpl in CORE_PERMISSION_TEMPLATES}
     expected_defaults = {
         "system:site:read": {"owner", "admin", "editor", "designer", "viewer"},
@@ -83,8 +85,6 @@ def test_workspace_catalog_includes_content_site_theme_permissions_with_defaults
         "system:content:publish": {"owner", "admin", "editor"},
         "system:keys:read": {"owner", "admin"},
         "system:keys:manage": {"owner", "admin"},
-        "system:themes:read": {"owner", "admin", "editor", "designer", "viewer"},
-        "system:themes:manage": {"owner", "admin", "designer"},
         "system:assets:read": {"owner", "admin", "editor", "designer", "viewer"},
         "system:assets:manage": {"owner", "admin", "editor", "designer"},
         "system:domains:read": {"owner", "admin", "editor", "designer", "viewer"},
@@ -177,9 +177,9 @@ def test_content_router_uses_granular_permissions() -> None:
 
 
 def test_site_router_uses_granular_permissions() -> None:
-    site_read = _route_permissions(project_facade_router, path="/projects/{project_id}/site", method="GET")
+    site_read = _route_permissions(project_runtime_bridge_router, path="/projects/{project_id}/site", method="GET")
     site_preview = _route_permissions(
-        project_facade_router,
+        project_runtime_bridge_router,
         path="/projects/{project_id}/site/preview-tokens",
         method="POST",
     )
@@ -189,20 +189,20 @@ def test_site_router_uses_granular_permissions() -> None:
     assert "admin:access" not in site_read | site_preview
 
 
-def test_workspace_api_key_router_uses_granular_permissions() -> None:
+def test_project_api_key_router_uses_granular_permissions() -> None:
     list_keys = _route_permissions(
-        workspace_api_keys_router,
-        path="/workspaces/{workspace_id}/api-keys",
+        project_api_keys_router,
+        path="/projects/{project_id}/api-keys",
         method="GET",
     )
     create_key = _route_permissions(
-        workspace_api_keys_router,
-        path="/workspaces/{workspace_id}/api-keys",
+        project_api_keys_router,
+        path="/projects/{project_id}/api-keys",
         method="POST",
     )
     rotate_key = _route_permissions(
-        workspace_api_keys_router,
-        path="/workspaces/{workspace_id}/api-keys/{key_id}/rotate",
+        project_api_keys_router,
+        path="/projects/{project_id}/api-keys/{key_id}/rotate",
         method="POST",
     )
     list_actions = _route_permissions(
@@ -218,19 +218,19 @@ def test_workspace_api_key_router_uses_granular_permissions() -> None:
     assert "admin:access" not in list_keys | create_key | rotate_key | list_actions
 
 
-def test_workspace_releases_router_uses_granular_permissions() -> None:
+def test_project_releases_router_uses_granular_permissions() -> None:
     list_releases = _route_permissions(
-        project_facade_router,
+        project_releases_router,
         path="/projects/{project_id}/releases",
         method="GET",
     )
     publish_release = _route_permissions(
-        project_facade_router,
+        project_releases_router,
         path="/projects/{project_id}/releases/publish",
         method="POST",
     )
     rollback_release = _route_permissions(
-        project_facade_router,
+        project_releases_router,
         path="/projects/{project_id}/releases/{release_id}/rollback",
         method="POST",
     )
@@ -241,7 +241,24 @@ def test_workspace_releases_router_uses_granular_permissions() -> None:
     assert "admin:access" not in list_releases | publish_release | rollback_release
 
 
-def test_workspace_routing_router_uses_granular_permissions() -> None:
+def test_project_publish_router_uses_granular_permissions() -> None:
+    impact_permissions = _route_permissions(
+        project_publish_router,
+        path="/projects/{project_id}/publish/impact",
+        method="GET",
+    )
+    preview_contract_permissions = _route_permissions(
+        project_publish_router,
+        path="/projects/{project_id}/publish/preview-contract",
+        method="GET",
+    )
+
+    assert impact_permissions == {"system:content:read"}
+    assert preview_contract_permissions == {"system:content:read"}
+    assert "admin:access" not in impact_permissions | preview_contract_permissions
+
+
+def test_project_content_routing_router_uses_granular_permissions() -> None:
     list_bindings_calls = _route_dependency_call_names(
         project_routing_router,
         path="/projects/{project_id}/content/routing/bindings",
@@ -269,7 +286,7 @@ def test_workspace_routing_router_uses_granular_permissions() -> None:
     assert "require_project_content_manage_context" in upsert_hierarchy_calls
 
 
-def test_assets_domains_notifications_and_extensions_use_granular_permissions() -> None:
+def test_assets_domains_and_notifications_use_granular_permissions() -> None:
     assets_list = _route_permissions(assets_router, path="/workspaces/{workspace_id}/assets", method="GET")
     assets_update = _route_permissions(
         assets_router,

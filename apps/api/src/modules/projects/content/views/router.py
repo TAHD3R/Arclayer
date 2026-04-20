@@ -12,15 +12,17 @@ from src.modules.projects.content.shared.router import (
     require_project_content_manage_context,
     require_project_content_read_context,
 )
-from src.modules.workspaces.content.views.router import (
+from src.modules.projects.content.views.router_helpers import (
+    get_content_library_views_service,
+    resolve_can_manage_project_views,
+)
+from src.modules.projects.content.views.schema import (
     ContentLibraryViewCreateIn,
     ContentLibraryViewMoveIn,
     ContentLibraryViewPatchIn,
-    ContentLibraryViewsService,
     ContentLibraryViewsStateOut,
-    _resolve_can_manage_workspace_views,
-    get_content_library_views_service,
 )
+from src.modules.projects.content.views.service import ContentLibraryViewsService
 
 router = APIRouter(
     prefix="/projects/{project_id}/content/library",
@@ -53,7 +55,7 @@ async def create_project_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx.workspace_ctx)
+    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.workspace_ctx)
     return ApiResponse.success(
         data=await service.create_view(
             workspace_id=ctx.workspace_id,
@@ -76,7 +78,7 @@ async def patch_project_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx.workspace_ctx)
+    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.workspace_ctx)
     return ApiResponse.success(
         data=await service.update_view(
             workspace_id=ctx.workspace_id,
@@ -100,7 +102,7 @@ async def move_project_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx.workspace_ctx)
+    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.workspace_ctx)
     return ApiResponse.success(
         data=await service.move_view(
             workspace_id=ctx.workspace_id,
@@ -123,7 +125,7 @@ async def delete_project_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx.workspace_ctx)
+    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.workspace_ctx)
     return ApiResponse.success(
         data=await service.delete_view(
             workspace_id=ctx.workspace_id,

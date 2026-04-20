@@ -23,14 +23,14 @@ class RBACCatalogSyncMixin:
         updated = 0
 
         templates: dict[str, tuple[str, PermissionTemplate]] = {}
-        for plugin_id, tpl in self._iter_permission_entries():
+        for owner_key, tpl in self._iter_permission_entries():
             code = tpl.code
             if not code or code in templates:
                 continue
-            templates[code] = (plugin_id, tpl)
+            templates[code] = (owner_key, tpl)
 
         for code in sorted(templates.keys()):
-            plugin_id, tpl = templates[code]
+            owner_key, tpl = templates[code]
 
             raw_scope = (getattr(tpl, "scope", None) or "workspace").strip().lower()
             scope = PermissionScope.ORG if raw_scope == "org" else PermissionScope.WORKSPACE
@@ -42,7 +42,7 @@ class RBACCatalogSyncMixin:
                 description=tpl.description,
                 name_i18n=tpl.name_i18n,
                 description_i18n=tpl.description_i18n,
-                plugin_id=plugin_id,
+                owner_key=owner_key,
             )
             if is_created:
                 created += 1
@@ -54,7 +54,7 @@ class RBACCatalogSyncMixin:
                     description=tpl.description,
                     name_i18n=tpl.name_i18n,
                     description_i18n=tpl.description_i18n,
-                    plugin_id=plugin_id,
+                    owner_key=owner_key,
                 ):
                     updated += 1
 

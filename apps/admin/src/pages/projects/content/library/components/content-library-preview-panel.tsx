@@ -149,7 +149,7 @@ function ContentLibrarySummaryPreview(props: {
 }
 
 function ContentLibraryArticlePreview(props: {
-  workspaceId: string;
+  projectId: string;
   row: ContentLibraryTableRow;
   initialTitle?: string;
   initialSummary?: string;
@@ -159,7 +159,7 @@ function ContentLibraryArticlePreview(props: {
 }) {
   const { t } = useTranslation("content");
   const editor = useContentLibraryArticleEditor({
-    workspaceId: props.workspaceId,
+    workspaceId: props.projectId,
     itemId: props.row.id,
     initialTitle: props.initialTitle,
     initialSummary: props.initialSummary,
@@ -172,7 +172,7 @@ function ContentLibraryArticlePreview(props: {
       aria-label={t("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")}
     >
       <ContentLibraryArticleEditorShell
-        workspaceId={props.workspaceId}
+        workspaceId={props.projectId}
         itemId={props.row.id}
         mode="split"
         title={editor.title}
@@ -202,7 +202,7 @@ function ContentLibraryArticlePreview(props: {
 }
 
 export function ContentLibraryPreviewPanel(props: {
-  workspaceId: string;
+  projectId: string;
   row: ContentLibraryTableRow;
   initialTitle?: string;
   initialSummary?: string;

@@ -77,7 +77,7 @@ class RBACRepository(BaseRepository):
         description: str | None,
         name_i18n: str | None,
         description_i18n: str | None,
-        plugin_id: str | None,
+        owner_key: str | None,
     ) -> tuple[Permission, bool]:
         return await Permission.get_or_create(
             code=code,
@@ -87,7 +87,7 @@ class RBACRepository(BaseRepository):
                 "description": description,
                 "name_i18n": name_i18n,
                 "description_i18n": description_i18n,
-                "plugin_id": plugin_id,
+                "owner_key": owner_key,
             },
         )
 
@@ -100,7 +100,7 @@ class RBACRepository(BaseRepository):
         description: str | None,
         name_i18n: str | None,
         description_i18n: str | None,
-        plugin_id: str | None,
+        owner_key: str | None,
     ) -> bool:
         perm_like = cast(PermissionMutableFields, permission)
         changed = False
@@ -119,8 +119,8 @@ class RBACRepository(BaseRepository):
         if permission.description_i18n != description_i18n:
             perm_like.description_i18n = description_i18n
             changed = True
-        if permission.plugin_id != plugin_id:
-            perm_like.plugin_id = plugin_id
+        if permission.owner_key != owner_key:
+            perm_like.owner_key = owner_key
             changed = True
         if changed:
             await permission.save()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.modules.workspaces.api_keys.scopes import (
+from src.modules.projects.api_keys.scopes import (
     ApiKeyScope,
     build_api_key_access_profile,
     evaluate_api_key_action,

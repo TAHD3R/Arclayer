@@ -7,14 +7,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from src.common.protocols.tortoise import HasOrganizationId, SiteDomainRecordView
+from src.common.protocols.tortoise import SiteDomainRecordView
 from src.common.services import BaseService
-from src.core.exceptions import Conflict, NotFound, ServiceUnavailable
-from src.models.organization.org_plan import OrgPlan
+from src.core.exceptions import Conflict, ServiceUnavailable
 from src.models.sites.site_domain import SiteDomainRecord
-from src.models.workspaces.workspace import Workspace
-from src.modules.projects.repository import ProjectRepository
-from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
 from src.modules.sites.domains.repository import SiteDomainsRepository
 from src.modules.sites.domains.schema import (
     SiteDomainDnsInstructionOut,
@@ -39,8 +35,6 @@ class SiteDomainsService(BaseService):
     def __init__(self, settings, *, valkey: ValkeyClientLike | None = None) -> None:
         super().__init__(settings)
         self._repo = SiteDomainsRepository()
-        self._project_repo = ProjectRepository()
-        self._runtime_site = ProjectRuntimeSiteService(settings)
         self._valkey = valkey
 
     def _cache_key_for_host(self, host: str) -> str:
@@ -113,70 +107,8 @@ class SiteDomainsService(BaseService):
 
         return raw
 
-    async def _resolve_site_id_for_workspace(self, *, workspace_id: UUID, actor_user_id: UUID | None) -> UUID:
-        if not self.settings.database.enabled:
-            raise Conflict("Custom domains require database storage", error="SITE_DOMAINS_DB_REQUIRED")
-
-        ws = await Workspace.get_or_none(id=workspace_id)
-        if ws is None or not ws.is_active:
-            raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
-
-        ws_with_org = cast(HasOrganizationId, ws)
-        plan = (
-            await OrgPlan
-            .filter(organization_id=ws_with_org.organization_id, is_active=True)
-            .order_by("-created_at", "id")
-            .first()
-        )
-        if plan is None or not plan.custom_domain_enabled:
-            raise Conflict(
-                "Custom domains are not enabled for this organization plan",
-                error="SITE_DOMAIN_PLAN_CUSTOM_DOMAIN_DISABLED",
-            )
-
-        project = await self._project_repo.get_first_project_by_workspace_id(workspace_id=workspace_id)
-        if project is None:
-            raise NotFound("Project not found", error="PROJECT_NOT_FOUND")
-        runtime = await self._project_repo.get_primary_runtime(project_id=project.id)
-        if runtime is None:
-            raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")
-        site = await self._runtime_site.get_or_create_site_for_project_runtime(
-            workspace_id=workspace_id,
-            project_id=project.id,
-            runtime_id=runtime.id,
-            project_slug=str(project.slug),
-            project_name=str(project.name),
-            actor_user_id=actor_user_id,
-        )
-        return UUID(str(site.id))
-
-    async def list_domains(self, *, workspace_id: UUID, actor_user_id: UUID | None) -> list[SiteDomainRecord]:
-        site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
-        return await self._repo.list_domains_for_site(site_id=site_id)
-
     async def list_domains_for_site(self, *, site_id: UUID) -> list[SiteDomainRecord]:
         return await self._repo.list_domains_for_site(site_id=site_id)
-
-    async def create_domain(
-        self,
-        *,
-        workspace_id: UUID,
-        hostname: str,
-        actor_user_id: UUID | None,
-    ) -> tuple[SiteDomainRecord, SiteDomainDnsInstructionOut]:
-        site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
-
-        normalized = self._validate_custom_hostname(hostname=hostname)
-        token = secrets.token_urlsafe(24)
-
-        rec = await self._repo.create_domain(
-            site_id=site_id,
-            hostname=normalized,
-            verification_token=token,
-            created_by_user_id=actor_user_id,
-        )
-        await self._invalidate_resolve_cache_best_effort(hostname=normalized)
-        return rec, self.build_dns_instruction(hostname=normalized, token=token)
 
     async def create_domain_for_site(
         self,
@@ -196,24 +128,6 @@ class SiteDomainsService(BaseService):
         await self._invalidate_resolve_cache_best_effort(hostname=normalized)
         return rec, self.build_dns_instruction(hostname=normalized, token=token)
 
-    async def set_domain_active(
-        self,
-        *,
-        workspace_id: UUID,
-        domain_id: UUID,
-        is_active: bool,
-        actor_user_id: UUID | None,
-    ) -> SiteDomainRecord:
-        site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
-        rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
-        rec_view = cast(SiteDomainRecordView, rec)
-        if bool(is_active) and not rec_view.is_verified:
-            raise Conflict("Domain must be verified before activation", error="SITE_DOMAIN_NOT_VERIFIED")
-        updated = await self._repo.set_domain_active(site_id=site_id, domain_id=domain_id, is_active=bool(is_active))
-        updated_view = cast(SiteDomainRecordView, updated)
-        await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
-        return updated
-
     async def set_domain_active_for_site(
         self,
         *,
@@ -229,19 +143,6 @@ class SiteDomainsService(BaseService):
         updated_view = cast(SiteDomainRecordView, updated)
         await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
         return updated
-
-    async def delete_domain(
-        self,
-        *,
-        workspace_id: UUID,
-        domain_id: UUID,
-        actor_user_id: UUID | None,
-    ) -> None:
-        site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
-        rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
-        await self._repo.delete_domain(site_id=site_id, domain_id=domain_id)
-        rec_view = cast(SiteDomainRecordView, rec)
-        await self._invalidate_resolve_cache_best_effort(hostname=str(rec_view.hostname))
 
     async def delete_domain_for_site(self, *, site_id: UUID, domain_id: UUID) -> None:
         rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
@@ -302,32 +203,6 @@ class SiteDomainsService(BaseService):
         # Keep response payload small and stable.
         observed = observed[:20]
         return _DnsTxtLookupResult(ok=True, observed=observed)
-
-    async def verify_domain(
-        self,
-        *,
-        workspace_id: UUID,
-        domain_id: UUID,
-        actor_user_id: UUID | None,
-    ) -> tuple[SiteDomainRecord, SiteDomainDnsInstructionOut, list[str]]:
-        site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
-        rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
-        rec_view = cast(SiteDomainRecordView, rec)
-
-        dns = self.build_dns_instruction(hostname=str(rec_view.hostname), token=str(rec_view.verification_token))
-        txt_name = dns.txt_record_name
-        expected_value = dns.txt_record_value
-
-        lookup = await self._lookup_dns_txt_async(txt_name=txt_name)
-        observed = lookup.observed
-
-        if expected_value in observed:
-            updated = await self._repo.mark_domain_verified(site_id=site_id, domain_id=domain_id)
-            updated_view = cast(SiteDomainRecordView, updated)
-            await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
-            return updated, dns, observed
-
-        return rec, dns, observed
 
     async def verify_domain_for_site(
         self,

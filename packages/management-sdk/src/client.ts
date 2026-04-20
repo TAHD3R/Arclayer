@@ -27,27 +27,27 @@ export interface ManagementSdk {
   readonly automation: {
     createFlow(input: {
       body: openapi.AutomationFlowCreateIn;
-      workspaceId: string;
+      projectId: string;
     }): Promise<ManagementResult<openapi.AutomationFlowOut>>;
-    deleteFlow(input: { flowId: string; workspaceId: string }): Promise<ManagementResult<null>>;
+    deleteFlow(input: { flowId: string; projectId: string }): Promise<ManagementResult<null>>;
     getCatalog(input: {
-      workspaceId: string;
+      projectId: string;
     }): Promise<ManagementResult<openapi.AutomationCatalogOut>>;
     getRun(input: {
+      projectId: string;
       runId: string;
-      workspaceId: string;
     }): Promise<ManagementResult<openapi.AutomationRunOut>>;
     listFlows(input: {
-      workspaceId: string;
+      projectId: string;
     }): Promise<ManagementResult<openapi.AutomationFlowListOut>>;
     listRuns(input: {
       limit?: number;
-      workspaceId: string;
+      projectId: string;
     }): Promise<ManagementResult<openapi.AutomationRunListOut>>;
     updateFlow(input: {
       body: openapi.AutomationFlowPatchIn;
       flowId: string;
-      workspaceId: string;
+      projectId: string;
     }): Promise<ManagementResult<openapi.AutomationFlowOut>>;
   };
   readonly apiKeys: {
@@ -60,23 +60,23 @@ export interface ManagementSdk {
       revoke(input: { keyId: string }): Promise<ManagementResult<openapi.ApiKeyOut>>;
       rotate(input: { keyId: string }): Promise<ManagementResult<openapi.ApiKeyCreateOut>>;
     };
-    readonly workspace: {
+    readonly project: {
       create(input: {
-        body: openapi.WorkspaceApiKeyCreateIn;
-        workspaceId: string;
+        body: openapi.ProjectApiKeyCreateIn;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ApiKeyCreateOut>>;
       get(input: {
         keyId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ApiKeyOut>>;
-      list(input: { workspaceId: string }): Promise<ManagementResult<openapi.ApiKeyListOut>>;
+      list(input: { projectId: string }): Promise<ManagementResult<openapi.ApiKeyListOut>>;
       revoke(input: {
         keyId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ApiKeyOut>>;
       rotate(input: {
         keyId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ApiKeyCreateOut>>;
     };
   };
@@ -85,124 +85,124 @@ export interface ManagementSdk {
       applyBootstrapShape(input: {
         body: openapi.ContentItemBootstrapShapeIn;
         itemId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentItemOut>>;
       archive(input: {
         itemId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentItemOut>>;
       create(input: {
         body: openapi.ContentItemCreateIn;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentItemOut>>;
       delete(input: {
         itemId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentItemOut>>;
       duplicate(input: {
         itemId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentItemOut>>;
       get(input: {
         itemId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentItemOut>>;
       list(input: {
         modelKey?: string | null;
         page?: number;
+        projectId: string;
         size?: number;
-        workspaceId: string;
       }): Promise<ManagementPage<openapi.ContentItemOut>>;
       readonly versions: {
         get(input: {
           itemId: string;
+          projectId: string;
           versionNumber: number;
-          workspaceId: string;
         }): Promise<ManagementResult<openapi.ContentVersionOut>>;
         list(input: {
           itemId: string;
-          workspaceId: string;
+          projectId: string;
         }): Promise<ManagementPage<openapi.ContentVersionOut>>;
         patch(input: {
           body: openapi.ContentVersionPatchIn;
           itemId: string;
+          projectId: string;
           versionNumber: number;
-          workspaceId: string;
         }): Promise<ManagementResult<openapi.ContentVersionOut>>;
         publish(input: {
           body?: Record<string, never>;
           itemId: string;
+          projectId: string;
           versionNumber: number;
-          workspaceId: string;
         }): Promise<ManagementResult<openapi.ContentVersionOut>>;
         saveDraft(input: {
           body: openapi.ContentVersionDraftSaveIn;
           itemId: string;
-          workspaceId: string;
+          projectId: string;
         }): Promise<ManagementResult<openapi.ContentVersionOut>>;
       };
       unarchive(input: {
         itemId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentItemOut>>;
     };
     readonly models: {
       create(input: {
         body: openapi.ContentModelDefinitionContract;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentModelMutationOut>>;
       list(input: {
         page?: number;
+        projectId: string;
         size?: number;
-        workspaceId: string;
       }): Promise<ManagementPage<openapi.ContentModelOut>>;
       previewUpdate(input: {
         body: openapi.ContentModelDefinitionPatchContract;
         modelId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentModelImpactPreviewOut>>;
       update(input: {
         body: openapi.ContentModelDefinitionPatchContract;
         modelId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.ContentModelMutationOut>>;
     };
     readonly routing: {
       listBindings(input: {
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.RouteBindingOut[]>>;
       upsertBinding(input: {
         body: openapi.RouteBindingUpsertIn;
         itemId: string;
-        workspaceId: string;
+        projectId: string;
       }): Promise<ManagementResult<openapi.RouteBindingOut>>;
     };
   };
   readonly rawClient: openapi.ApiClient;
   readonly releases: {
     get(input: {
+      projectId: string;
       releaseId: string;
-      workspaceId: string;
     }): Promise<ManagementResult<openapi.ReleaseOut>>;
-    list(input: { workspaceId: string }): Promise<ManagementResult<openapi.ReleaseListOut>>;
-    publish(input: { workspaceId: string }): Promise<ManagementResult<openapi.ReleasePublishOut>>;
+    list(input: { projectId: string }): Promise<ManagementResult<openapi.ReleaseListOut>>;
+    publish(input: { projectId: string }): Promise<ManagementResult<openapi.ReleasePublishOut>>;
     rollback(input: {
+      projectId: string;
       releaseId: string;
-      workspaceId: string;
     }): Promise<ManagementResult<openapi.ReleaseRollbackOut>>;
   };
   readonly site: {
     createPreviewToken(input: {
       body: openapi.SitePreviewTokenCreateIn;
-      workspaceId: string;
+      projectId: string;
     }): Promise<ManagementResult<openapi.SitePreviewTokenOut>>;
-    get(input: { workspaceId: string }): Promise<ManagementResult<openapi.WorkspaceSiteOut>>;
+    get(input: { projectId: string }): Promise<ManagementResult<openapi.ProjectRuntimeSiteOut>>;
     getCoreSettings(input: {
-      workspaceId: string;
+      projectId: string;
     }): Promise<ManagementResult<openapi.WorkspaceSettingsDetail>>;
     patchCoreSettings(input: {
       body: openapi.WorkspaceSettingsPatch;
-      workspaceId: string;
+      projectId: string;
     }): Promise<ManagementResult<openapi.WorkspaceSettingsDetail>>;
   };
 }
@@ -250,40 +250,39 @@ export const createManagementSdk = (options: ManagementSdkOptions): ManagementSd
   return {
     rawClient,
     automation: {
-      getCatalog: ({ workspaceId }) =>
+      getCatalog: ({ projectId }) =>
         invoke<openapi.AutomationCatalogOut>(
-          openapi.domainWorkspacesGetWorkspaceAutomationCatalog as OpenApiOperation<openapi.AutomationCatalogOut>,
-          { path: { workspace_id: workspaceId } },
+          openapi.domainProjectsListProjectAutomationCatalog as OpenApiOperation<openapi.AutomationCatalogOut>,
+          { path: { project_id: projectId } },
         ),
-      listFlows: ({ workspaceId }) =>
+      listFlows: ({ projectId }) =>
         invoke<openapi.AutomationFlowListOut>(
-          openapi.domainWorkspacesListWorkspaceAutomationFlows as OpenApiOperation<openapi.AutomationFlowListOut>,
-          { path: { workspace_id: workspaceId } },
+          openapi.domainProjectsListProjectAutomationFlows as OpenApiOperation<openapi.AutomationFlowListOut>,
+          { path: { project_id: projectId } },
         ),
-      createFlow: ({ workspaceId, body }) =>
+      createFlow: ({ projectId, body }) =>
         invoke<openapi.AutomationFlowOut>(
-          openapi.domainWorkspacesCreateWorkspaceAutomationFlow as OpenApiOperation<openapi.AutomationFlowOut>,
-          { body, path: { workspace_id: workspaceId } },
+          openapi.domainProjectsCreateProjectAutomationFlow as OpenApiOperation<openapi.AutomationFlowOut>,
+          { body, path: { project_id: projectId } },
         ),
-      updateFlow: ({ workspaceId, flowId, body }) =>
+      updateFlow: ({ projectId, flowId, body }) =>
         invoke<openapi.AutomationFlowOut>(
-          openapi.domainWorkspacesUpdateWorkspaceAutomationFlow as OpenApiOperation<openapi.AutomationFlowOut>,
-          { body, path: { flow_id: flowId, workspace_id: workspaceId } },
+          openapi.domainProjectsUpdateProjectAutomationFlow as OpenApiOperation<openapi.AutomationFlowOut>,
+          { body, path: { flow_id: flowId, project_id: projectId } },
         ),
-      deleteFlow: ({ workspaceId, flowId }) =>
-        invoke<null>(
-          openapi.domainWorkspacesDeleteWorkspaceAutomationFlow as OpenApiOperation<null>,
-          { path: { flow_id: flowId, workspace_id: workspaceId } },
-        ),
-      listRuns: ({ workspaceId, limit }) =>
+      deleteFlow: ({ projectId, flowId }) =>
+        invoke<null>(openapi.domainProjectsDeleteProjectAutomationFlow as OpenApiOperation<null>, {
+          path: { flow_id: flowId, project_id: projectId },
+        }),
+      listRuns: ({ projectId, limit }) =>
         invoke<openapi.AutomationRunListOut>(
-          openapi.domainWorkspacesListWorkspaceAutomationRuns as OpenApiOperation<openapi.AutomationRunListOut>,
-          { path: { workspace_id: workspaceId }, query: { limit } },
+          openapi.domainProjectsListProjectAutomationRuns as OpenApiOperation<openapi.AutomationRunListOut>,
+          { path: { project_id: projectId }, query: { limit } },
         ),
-      getRun: ({ workspaceId, runId }) =>
+      getRun: ({ projectId, runId }) =>
         invoke<openapi.AutomationRunOut>(
-          openapi.domainWorkspacesGetWorkspaceAutomationRun as OpenApiOperation<openapi.AutomationRunOut>,
-          { path: { run_id: runId, workspace_id: workspaceId } },
+          openapi.domainProjectsGetProjectAutomationRun as OpenApiOperation<openapi.AutomationRunOut>,
+          { path: { project_id: projectId, run_id: runId } },
         ),
     },
     apiKeys: {
@@ -314,200 +313,200 @@ export const createManagementSdk = (options: ManagementSdkOptions): ManagementSd
             { path: { key_id: keyId } },
           ),
       },
-      workspace: {
-        list: ({ workspaceId }) =>
+      project: {
+        list: ({ projectId }) =>
           invoke<openapi.ApiKeyListOut>(
-            openapi.domainWorkspacesListWorkspaceApiKeys as OpenApiOperation<openapi.ApiKeyListOut>,
-            { path: { workspace_id: workspaceId } },
+            openapi.domainProjectsListProjectApiKeys as OpenApiOperation<openapi.ApiKeyListOut>,
+            { path: { project_id: projectId } },
           ),
-        create: ({ workspaceId, body }) =>
+        create: ({ projectId, body }) =>
           invoke<openapi.ApiKeyCreateOut>(
-            openapi.domainWorkspacesCreateWorkspaceApiKey as OpenApiOperation<openapi.ApiKeyCreateOut>,
-            { body, path: { workspace_id: workspaceId } },
+            openapi.domainProjectsCreateProjectApiKey as OpenApiOperation<openapi.ApiKeyCreateOut>,
+            { body, path: { project_id: projectId } },
           ),
-        get: ({ workspaceId, keyId }) =>
+        get: ({ projectId, keyId }) =>
           invoke<openapi.ApiKeyOut>(
-            openapi.domainWorkspacesGetWorkspaceApiKey as OpenApiOperation<openapi.ApiKeyOut>,
-            { path: { key_id: keyId, workspace_id: workspaceId } },
+            openapi.domainProjectsGetProjectApiKey as OpenApiOperation<openapi.ApiKeyOut>,
+            { path: { key_id: keyId, project_id: projectId } },
           ),
-        revoke: ({ workspaceId, keyId }) =>
+        revoke: ({ projectId, keyId }) =>
           invoke<openapi.ApiKeyOut>(
-            openapi.domainWorkspacesRevokeWorkspaceApiKey as OpenApiOperation<openapi.ApiKeyOut>,
-            { path: { key_id: keyId, workspace_id: workspaceId } },
+            openapi.domainProjectsRevokeProjectApiKey as OpenApiOperation<openapi.ApiKeyOut>,
+            { path: { key_id: keyId, project_id: projectId } },
           ),
-        rotate: ({ workspaceId, keyId }) =>
+        rotate: ({ projectId, keyId }) =>
           invoke<openapi.ApiKeyCreateOut>(
-            openapi.domainWorkspacesRotateWorkspaceApiKey as OpenApiOperation<openapi.ApiKeyCreateOut>,
-            { path: { key_id: keyId, workspace_id: workspaceId } },
+            openapi.domainProjectsRotateProjectApiKey as OpenApiOperation<openapi.ApiKeyCreateOut>,
+            { path: { key_id: keyId, project_id: projectId } },
           ),
       },
     },
     content: {
       items: {
-        list: ({ workspaceId, modelKey, page, size }) =>
+        list: ({ projectId, modelKey, page, size }) =>
           invokePage<openapi.ContentItemOut, PagePayload<openapi.ContentItemOut>>(
-            openapi.domainWorkspacesListWorkspaceContentItemsCanonical as OpenApiOperation<
+            openapi.domainProjectsListProjectContentItems as OpenApiOperation<
               PagePayload<openapi.ContentItemOut>
             >,
             {
-              path: { workspace_id: workspaceId },
+              path: { project_id: projectId },
               query: { modelKey, page, size },
             },
           ),
-        create: ({ workspaceId, body }) =>
+        create: ({ projectId, body }) =>
           invoke<openapi.ContentItemOut>(
-            openapi.domainWorkspacesCreateWorkspaceContentItemCanonical as OpenApiOperation<openapi.ContentItemOut>,
-            { body, path: { workspace_id: workspaceId } },
+            openapi.domainProjectsCreateProjectContentItem as OpenApiOperation<openapi.ContentItemOut>,
+            { body, path: { project_id: projectId } },
           ),
-        get: ({ workspaceId, itemId }) =>
+        get: ({ projectId, itemId }) =>
           invoke<openapi.ContentItemOut>(
-            openapi.domainWorkspacesGetWorkspaceContentItemCanonical as OpenApiOperation<openapi.ContentItemOut>,
-            { path: { item_id: itemId, workspace_id: workspaceId } },
+            openapi.domainProjectsGetProjectContentItem as OpenApiOperation<openapi.ContentItemOut>,
+            { path: { item_id: itemId, project_id: projectId } },
           ),
-        delete: ({ workspaceId, itemId }) =>
+        delete: ({ projectId, itemId }) =>
           invoke<openapi.ContentItemOut>(
-            openapi.domainWorkspacesDeleteWorkspaceContentItemCanonical as OpenApiOperation<openapi.ContentItemOut>,
-            { path: { item_id: itemId, workspace_id: workspaceId } },
+            openapi.domainProjectsDeleteProjectContentItem as OpenApiOperation<openapi.ContentItemOut>,
+            { path: { item_id: itemId, project_id: projectId } },
           ),
-        archive: ({ workspaceId, itemId }) =>
+        archive: ({ projectId, itemId }) =>
           invoke<openapi.ContentItemOut>(
-            openapi.domainWorkspacesArchiveWorkspaceContentItemCanonical as OpenApiOperation<openapi.ContentItemOut>,
-            { path: { item_id: itemId, workspace_id: workspaceId } },
+            openapi.domainProjectsArchiveProjectContentItem as OpenApiOperation<openapi.ContentItemOut>,
+            { path: { item_id: itemId, project_id: projectId } },
           ),
-        applyBootstrapShape: ({ workspaceId, itemId, body }) =>
+        applyBootstrapShape: ({ projectId, itemId, body }) =>
           invoke<openapi.ContentItemOut>(
-            openapi.domainWorkspacesApplyWorkspaceContentItemBootstrapShape as OpenApiOperation<openapi.ContentItemOut>,
-            { body, path: { item_id: itemId, workspace_id: workspaceId } },
+            openapi.domainProjectsApplyProjectContentItemBootstrapShape as OpenApiOperation<openapi.ContentItemOut>,
+            { body, path: { item_id: itemId, project_id: projectId } },
           ),
-        duplicate: ({ workspaceId, itemId }) =>
+        duplicate: ({ projectId, itemId }) =>
           invoke<openapi.ContentItemOut>(
-            openapi.domainWorkspacesDuplicateWorkspaceContentItemCanonical as OpenApiOperation<openapi.ContentItemOut>,
-            { path: { item_id: itemId, workspace_id: workspaceId } },
+            openapi.domainProjectsDuplicateProjectContentItem as OpenApiOperation<openapi.ContentItemOut>,
+            { path: { item_id: itemId, project_id: projectId } },
           ),
-        unarchive: ({ workspaceId, itemId }) =>
+        unarchive: ({ projectId, itemId }) =>
           invoke<openapi.ContentItemOut>(
-            openapi.domainWorkspacesUnarchiveWorkspaceContentItemCanonical as OpenApiOperation<openapi.ContentItemOut>,
-            { path: { item_id: itemId, workspace_id: workspaceId } },
+            openapi.domainProjectsUnarchiveProjectContentItem as OpenApiOperation<openapi.ContentItemOut>,
+            { path: { item_id: itemId, project_id: projectId } },
           ),
         versions: {
-          list: ({ workspaceId, itemId }) =>
+          list: ({ projectId, itemId }) =>
             invokePage<openapi.ContentVersionOut, PagePayload<openapi.ContentVersionOut>>(
-              openapi.domainWorkspacesListWorkspaceContentItemVersionsCanonical as OpenApiOperation<
+              openapi.domainProjectsListProjectContentItemVersions as OpenApiOperation<
                 PagePayload<openapi.ContentVersionOut>
               >,
-              { path: { item_id: itemId, workspace_id: workspaceId } },
+              { path: { item_id: itemId, project_id: projectId } },
             ),
-          saveDraft: ({ workspaceId, itemId, body }) =>
+          saveDraft: ({ projectId, itemId, body }) =>
             invoke<openapi.ContentVersionOut>(
-              openapi.domainWorkspacesSaveWorkspaceContentItemDraftVersionCanonical as OpenApiOperation<openapi.ContentVersionOut>,
-              { body, path: { item_id: itemId, workspace_id: workspaceId } },
+              openapi.domainProjectsSaveProjectContentItemDraftVersion as OpenApiOperation<openapi.ContentVersionOut>,
+              { body, path: { item_id: itemId, project_id: projectId } },
             ),
-          get: ({ workspaceId, itemId, versionNumber }) =>
+          get: ({ projectId, itemId, versionNumber }) =>
             invoke<openapi.ContentVersionOut>(
-              openapi.domainWorkspacesGetWorkspaceContentItemVersionCanonical as OpenApiOperation<openapi.ContentVersionOut>,
+              openapi.domainProjectsGetProjectContentItemVersion as OpenApiOperation<openapi.ContentVersionOut>,
               {
-                path: { item_id: itemId, version_number: versionNumber, workspace_id: workspaceId },
+                path: { item_id: itemId, project_id: projectId, version_number: versionNumber },
               },
             ),
-          patch: ({ workspaceId, itemId, versionNumber, body }) =>
+          patch: ({ projectId, itemId, versionNumber, body }) =>
             invoke<openapi.ContentVersionOut>(
-              openapi.domainWorkspacesPatchWorkspaceContentItemVersionCanonical as OpenApiOperation<openapi.ContentVersionOut>,
+              openapi.domainProjectsPatchProjectContentItemVersion as OpenApiOperation<openapi.ContentVersionOut>,
               {
                 body,
-                path: { item_id: itemId, version_number: versionNumber, workspace_id: workspaceId },
+                path: { item_id: itemId, project_id: projectId, version_number: versionNumber },
               },
             ),
-          publish: ({ workspaceId, itemId, versionNumber, body = {} }) =>
+          publish: ({ projectId, itemId, versionNumber, body = {} }) =>
             invoke<openapi.ContentVersionOut>(
-              openapi.domainWorkspacesPublishWorkspaceContentItemVersionCanonical as OpenApiOperation<openapi.ContentVersionOut>,
+              openapi.domainProjectsPublishProjectContentItemVersion as OpenApiOperation<openapi.ContentVersionOut>,
               {
                 body,
-                path: { item_id: itemId, version_number: versionNumber, workspace_id: workspaceId },
+                path: { item_id: itemId, project_id: projectId, version_number: versionNumber },
               },
             ),
         },
       },
       models: {
-        list: ({ workspaceId, page, size }) =>
+        list: ({ projectId, page, size }) =>
           invokePage<openapi.ContentModelOut, PagePayload<openapi.ContentModelOut>>(
-            openapi.domainWorkspacesListWorkspaceContentModelsCanonical as OpenApiOperation<
+            openapi.domainProjectsListProjectContentModels as OpenApiOperation<
               PagePayload<openapi.ContentModelOut>
             >,
-            { path: { workspace_id: workspaceId }, query: { page, size } },
+            { path: { project_id: projectId }, query: { page, size } },
           ),
-        create: ({ workspaceId, body }) =>
+        create: ({ projectId, body }) =>
           invoke<openapi.ContentModelMutationOut>(
-            openapi.domainWorkspacesCreateWorkspaceContentModel as OpenApiOperation<openapi.ContentModelMutationOut>,
-            { body, path: { workspace_id: workspaceId } },
+            openapi.domainProjectsCreateProjectContentModel as OpenApiOperation<openapi.ContentModelMutationOut>,
+            { body, path: { project_id: projectId } },
           ),
-        update: ({ workspaceId, modelId, body }) =>
+        update: ({ projectId, modelId, body }) =>
           invoke<openapi.ContentModelMutationOut>(
-            openapi.domainWorkspacesUpdateWorkspaceContentModel as OpenApiOperation<openapi.ContentModelMutationOut>,
-            { body, path: { model_id: modelId, workspace_id: workspaceId } },
+            openapi.domainProjectsUpdateProjectContentModel as OpenApiOperation<openapi.ContentModelMutationOut>,
+            { body, path: { model_id: modelId, project_id: projectId } },
           ),
-        previewUpdate: ({ workspaceId, modelId, body }) =>
+        previewUpdate: ({ projectId, modelId, body }) =>
           invoke<openapi.ContentModelImpactPreviewOut>(
-            openapi.domainWorkspacesPreviewWorkspaceContentModelUpdate as OpenApiOperation<openapi.ContentModelImpactPreviewOut>,
-            { body, path: { model_id: modelId, workspace_id: workspaceId } },
+            openapi.domainProjectsPreviewProjectContentModelUpdate as OpenApiOperation<openapi.ContentModelImpactPreviewOut>,
+            { body, path: { model_id: modelId, project_id: projectId } },
           ),
       },
       routing: {
-        listBindings: ({ workspaceId }) =>
+        listBindings: ({ projectId }) =>
           invoke<openapi.RouteBindingOut[]>(
-            openapi.domainWorkspacesListWorkspaceContentRouteBindingsCanonical as OpenApiOperation<
+            openapi.domainProjectsListProjectContentRouteBindings as OpenApiOperation<
               openapi.RouteBindingOut[]
             >,
-            { path: { workspace_id: workspaceId } },
+            { path: { project_id: projectId } },
           ),
-        upsertBinding: ({ workspaceId, itemId, body }) =>
+        upsertBinding: ({ projectId, itemId, body }) =>
           invoke<openapi.RouteBindingOut>(
-            openapi.domainWorkspacesUpsertWorkspaceContentRouteBindingCanonical as OpenApiOperation<openapi.RouteBindingOut>,
-            { body, path: { item_id: itemId, workspace_id: workspaceId } },
+            openapi.domainProjectsUpsertProjectContentRouteBinding as OpenApiOperation<openapi.RouteBindingOut>,
+            { body, path: { item_id: itemId, project_id: projectId } },
           ),
       },
     },
     releases: {
-      list: ({ workspaceId }) =>
+      list: ({ projectId }) =>
         invoke<openapi.ReleaseListOut>(
-          openapi.domainWorkspacesListWorkspaceReleases as OpenApiOperation<openapi.ReleaseListOut>,
-          { path: { workspace_id: workspaceId } },
+          openapi.domainProjectsListProjectReleases as OpenApiOperation<openapi.ReleaseListOut>,
+          { path: { project_id: projectId } },
         ),
-      publish: ({ workspaceId }) =>
+      publish: ({ projectId }) =>
         invoke<openapi.ReleasePublishOut>(
-          openapi.domainWorkspacesPublishWorkspaceRelease as OpenApiOperation<openapi.ReleasePublishOut>,
-          { path: { workspace_id: workspaceId } },
+          openapi.domainProjectsPublishProjectRelease as OpenApiOperation<openapi.ReleasePublishOut>,
+          { path: { project_id: projectId } },
         ),
-      get: ({ workspaceId, releaseId }) =>
+      get: ({ projectId, releaseId }) =>
         invoke<openapi.ReleaseOut>(
-          openapi.domainWorkspacesGetWorkspaceRelease as OpenApiOperation<openapi.ReleaseOut>,
-          { path: { release_id: releaseId, workspace_id: workspaceId } },
+          openapi.domainProjectsGetProjectRelease as OpenApiOperation<openapi.ReleaseOut>,
+          { path: { project_id: projectId, release_id: releaseId } },
         ),
-      rollback: ({ workspaceId, releaseId }) =>
+      rollback: ({ projectId, releaseId }) =>
         invoke<openapi.ReleaseRollbackOut>(
-          openapi.domainWorkspacesRollbackWorkspaceRelease as OpenApiOperation<openapi.ReleaseRollbackOut>,
-          { path: { release_id: releaseId, workspace_id: workspaceId } },
+          openapi.domainProjectsRollbackProjectRelease as OpenApiOperation<openapi.ReleaseRollbackOut>,
+          { path: { project_id: projectId, release_id: releaseId } },
         ),
     },
     site: {
-      get: ({ workspaceId }) =>
-        invoke<openapi.WorkspaceSiteOut>(
-          openapi.domainWorkspacesGetWorkspaceSite as OpenApiOperation<openapi.WorkspaceSiteOut>,
-          { path: { workspace_id: workspaceId } },
+      get: ({ projectId }) =>
+        invoke<openapi.ProjectRuntimeSiteOut>(
+          openapi.domainProjectsGetProjectSite as OpenApiOperation<openapi.ProjectRuntimeSiteOut>,
+          { path: { project_id: projectId } },
         ),
-      getCoreSettings: ({ workspaceId }) =>
+      getCoreSettings: ({ projectId }) =>
         invoke<openapi.WorkspaceSettingsDetail>(
-          openapi.domainWorkspacesGetWorkspaceCoreSettings as OpenApiOperation<openapi.WorkspaceSettingsDetail>,
-          { path: { workspace_id: workspaceId } },
+          openapi.domainProjectsGetProjectCoreSettings as OpenApiOperation<openapi.WorkspaceSettingsDetail>,
+          { path: { project_id: projectId } },
         ),
-      patchCoreSettings: ({ workspaceId, body }) =>
+      patchCoreSettings: ({ projectId, body }) =>
         invoke<openapi.WorkspaceSettingsDetail>(
-          openapi.domainWorkspacesPatchWorkspaceCoreSettings as OpenApiOperation<openapi.WorkspaceSettingsDetail>,
-          { body, path: { workspace_id: workspaceId } },
+          openapi.domainProjectsPatchProjectCoreSettings as OpenApiOperation<openapi.WorkspaceSettingsDetail>,
+          { body, path: { project_id: projectId } },
         ),
-      createPreviewToken: ({ workspaceId, body }) =>
+      createPreviewToken: ({ projectId, body }) =>
         invoke<openapi.SitePreviewTokenOut>(
-          openapi.domainWorkspacesCreateWorkspaceSitePreviewToken as OpenApiOperation<openapi.SitePreviewTokenOut>,
-          { body, path: { workspace_id: workspaceId } },
+          openapi.domainProjectsCreateProjectSitePreviewToken as OpenApiOperation<openapi.SitePreviewTokenOut>,
+          { body, path: { project_id: projectId } },
         ),
     },
   };

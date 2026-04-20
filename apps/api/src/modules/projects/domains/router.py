@@ -10,10 +10,10 @@ from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
-from src.modules.projects.facade.service import ProjectFacadeService
+from src.modules.projects.http.router_helpers import get_project_runtime_bridge_service
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
-from src.modules.sites.domains.router import get_site_domains_service
+from src.modules.projects.runtime_bridge.service import ProjectRuntimeBridgeService
 from src.modules.sites.domains.schema import (
     SiteDomainCreateIn,
     SiteDomainCreateOut,
@@ -29,8 +29,8 @@ from src.modules.workspaces.http.schema import WorkspaceContext
 router = APIRouter(prefix="/projects/{project_id}/domains", tags=["domain.projects.domains"])
 
 
-def get_project_facade_service(settings: Settings = Depends(get_settings)) -> ProjectFacadeService:
-    return ProjectFacadeService(settings)
+def get_site_domains_service(settings: Settings = Depends(get_settings)) -> SiteDomainsService:
+    return SiteDomainsService(settings)
 
 
 def _workspace_context_from_project(ctx: ProjectRequestContext) -> WorkspaceContext:
@@ -65,10 +65,10 @@ async def _get_project_site_id(
     *,
     ctx: ProjectRequestContext,
     actor_user_id: UUID,
-    facade_service: ProjectFacadeService,
+    runtime_bridge_service: ProjectRuntimeBridgeService,
 ) -> UUID:
-    facade = await facade_service.get_context(project_id=ctx.project_id, actor_user_id=actor_user_id)
-    return facade.site_id
+    runtime_context = await runtime_bridge_service.get_context(project_id=ctx.project_id, actor_user_id=actor_user_id)
+    return runtime_context.site_id
 
 
 @router.get(
@@ -82,10 +82,14 @@ async def list_project_domains(
     params: PageParams = Depends(get_page_params),
     ctx: ProjectRequestContext = Depends(get_project_context),
     actor_user_id: UUID = Depends(get_current_user_id),
-    facade_service: ProjectFacadeService = Depends(get_project_facade_service),
+    runtime_bridge_service: ProjectRuntimeBridgeService = Depends(get_project_runtime_bridge_service),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[PageData[SiteDomainOut]]:
-    site_id = await _get_project_site_id(ctx=ctx, actor_user_id=actor_user_id, facade_service=facade_service)
+    site_id = await _get_project_site_id(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_bridge_service=runtime_bridge_service,
+    )
     domains = await service.list_domains_for_site(site_id=site_id)
     items = [SiteDomainOut.model_validate(service.to_out(domain)) for domain in domains]
     return ApiResponse.success(data=paginate_items(items, params=params))
@@ -103,10 +107,14 @@ async def create_project_domain(
     payload: Annotated[SiteDomainCreateIn, Body(description="Project custom domain binding request.")],
     ctx: ProjectRequestContext = Depends(get_project_context),
     actor_user_id: UUID = Depends(get_current_user_id),
-    facade_service: ProjectFacadeService = Depends(get_project_facade_service),
+    runtime_bridge_service: ProjectRuntimeBridgeService = Depends(get_project_runtime_bridge_service),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[SiteDomainCreateOut]:
-    site_id = await _get_project_site_id(ctx=ctx, actor_user_id=actor_user_id, facade_service=facade_service)
+    site_id = await _get_project_site_id(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_bridge_service=runtime_bridge_service,
+    )
     record, dns = await service.create_domain_for_site(
         site_id=site_id,
         hostname=payload.hostname,
@@ -128,10 +136,14 @@ async def verify_project_domain(
     domain_id: Annotated[PublicUUID, Path(..., description="Domain record id.")],
     ctx: ProjectRequestContext = Depends(get_project_context),
     actor_user_id: UUID = Depends(get_current_user_id),
-    facade_service: ProjectFacadeService = Depends(get_project_facade_service),
+    runtime_bridge_service: ProjectRuntimeBridgeService = Depends(get_project_runtime_bridge_service),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[SiteDomainVerifyOut]:
-    site_id = await _get_project_site_id(ctx=ctx, actor_user_id=actor_user_id, facade_service=facade_service)
+    site_id = await _get_project_site_id(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_bridge_service=runtime_bridge_service,
+    )
     record, dns, observed = await service.verify_domain_for_site(
         site_id=site_id,
         domain_id=UUID(str(domain_id)),
@@ -157,10 +169,14 @@ async def update_project_domain(
     payload: Annotated[SiteDomainUpdateIn, Body(description="Update payload.")],
     ctx: ProjectRequestContext = Depends(get_project_context),
     actor_user_id: UUID = Depends(get_current_user_id),
-    facade_service: ProjectFacadeService = Depends(get_project_facade_service),
+    runtime_bridge_service: ProjectRuntimeBridgeService = Depends(get_project_runtime_bridge_service),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[SiteDomainOut]:
-    site_id = await _get_project_site_id(ctx=ctx, actor_user_id=actor_user_id, facade_service=facade_service)
+    site_id = await _get_project_site_id(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_bridge_service=runtime_bridge_service,
+    )
     record = await service.set_domain_active_for_site(
         site_id=site_id,
         domain_id=UUID(str(domain_id)),
@@ -180,9 +196,13 @@ async def delete_project_domain(
     domain_id: Annotated[PublicUUID, Path(..., description="Domain record id.")],
     ctx: ProjectRequestContext = Depends(get_project_context),
     actor_user_id: UUID = Depends(get_current_user_id),
-    facade_service: ProjectFacadeService = Depends(get_project_facade_service),
+    runtime_bridge_service: ProjectRuntimeBridgeService = Depends(get_project_runtime_bridge_service),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[SiteDomainDeleteOut]:
-    site_id = await _get_project_site_id(ctx=ctx, actor_user_id=actor_user_id, facade_service=facade_service)
+    site_id = await _get_project_site_id(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_bridge_service=runtime_bridge_service,
+    )
     await service.delete_domain_for_site(site_id=site_id, domain_id=UUID(str(domain_id)))
     return ApiResponse.success(data=SiteDomainDeleteOut(domainId=domain_id))

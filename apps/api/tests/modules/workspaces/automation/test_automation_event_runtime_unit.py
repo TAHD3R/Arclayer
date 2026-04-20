@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from src.core.events import Event, EventBus
-from src.modules.workspaces.automation.runtime import AutomationRuntime
+from src.modules.projects.automation.runtime import AutomationRuntime
 
 
 class _FakeSettings:
@@ -19,10 +19,10 @@ async def test_automation_runtime_subscribes_all_trigger_events() -> None:
     snapshot = await bus.snapshot()
 
     assert "project.release.published" in snapshot
-    assert "workspace.content.item.workflow.updated" in snapshot
+    assert "project.content.item.workflow.updated" in snapshot
     assert "project.api_key.rotated" in snapshot
     assert "project.preview_token.created" in snapshot
-    assert all(entry["subscriber_id"] == "workspace.automation" for entries in snapshot.values() for entry in entries)
+    assert all(entry["subscriber_id"] == "project.automation" for entries in snapshot.values() for entry in entries)
 
 
 @pytest.mark.asyncio

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from src.modules.workspaces.content.models.protocol_registry import (
+from src.modules.projects.content.models.protocol_registry import (
     OfficialModelProtocol,
     list_official_model_protocols,
 )

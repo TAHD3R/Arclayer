@@ -6,14 +6,14 @@ from fastapi import APIRouter, Depends
 
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
+from src.modules.projects.content.seo.router_helpers import (
+    ContentSeoProfileOut,
+    ProjectContentCanonicalItemReadService,
+    get_project_content_seo_service,
+)
 from src.modules.projects.content.shared.router import (
     ProjectContentRouteContext,
     require_project_content_read_context,
-)
-from src.modules.workspaces.content.contracts.schema import ContentSeoProfileOut
-from src.modules.workspaces.content.seo.router import (
-    WorkspaceContentCanonicalItemReadService,
-    get_workspace_content_seo_service,
 )
 
 router = APIRouter(
@@ -33,8 +33,8 @@ async def get_project_content_seo_profile(
     version_number: int,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
     service: Annotated[
-        WorkspaceContentCanonicalItemReadService,
-        Depends(get_workspace_content_seo_service),
+        ProjectContentCanonicalItemReadService,
+        Depends(get_project_content_seo_service),
     ],
 ) -> ResponseModel[ContentSeoProfileOut]:
     data = await service.get_seo_profile(

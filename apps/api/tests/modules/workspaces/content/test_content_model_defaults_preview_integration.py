@@ -286,7 +286,7 @@ async def test_content_model_patch_emits_model_contract_audit_event(
             project_id=project_id,
             model_id=model_id,
             payload={
-                "description": "Article extensions",
+                "description": "Article custom fields",
                 "fields": [
                     {
                         "key": "reading_time_minutes",
@@ -300,7 +300,7 @@ async def test_content_model_patch_emits_model_contract_audit_event(
         patch_response = await client.patch(
             f"/api/v1/projects/{project_id}/content/models/{model_id}",
             json={
-                "description": "Article extensions",
+                "description": "Article custom fields",
                 "fields": [
                     {
                         "key": "reading_time_minutes",
@@ -315,7 +315,7 @@ async def test_content_model_patch_emits_model_contract_audit_event(
         assert patch_response.status_code == 200, patch_response.text
 
         event = await _wait_latest_workspace_audit_event(
-            event_name="workspace.content.model.updated",
+            event_name="project.content.model.updated",
             workspace_id=workspace_uuid,
             entity_id=model_uuid,
         )

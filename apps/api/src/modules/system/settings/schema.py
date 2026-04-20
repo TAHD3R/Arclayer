@@ -37,11 +37,9 @@ class SettingsSchemaItem(BaseSchema):
 
 class SettingsNamespaceSummary(BaseSchema):
     namespace: str = Field(..., description="Settings namespace.")
-    kind: Literal["core", "theme", "plugin"] = Field(..., description="Namespace kind.")
+    kind: Literal["core"] = Field(..., description="Namespace kind.")
     title: str = Field(..., description="Display title.")
     description: str | None = Field(default=None, description="Optional description.")
-    plugin_id: str | None = Field(default=None, description="Plugin id if kind=plugin.")
-    plugin_slug: str | None = Field(default=None, description="Plugin slug if kind=plugin.")
 
 
 class SettingsDetail(BaseSchema):

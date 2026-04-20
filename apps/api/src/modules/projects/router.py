@@ -11,14 +11,18 @@ from src.core.exceptions import BadRequest, Forbidden
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.projects.api_keys.router import router as projects_api_keys_router
 from src.modules.projects.automation.router import router as projects_automation_router
 from src.modules.projects.content.router import router as projects_content_router
 from src.modules.projects.domains.router import router as projects_domains_router
-from src.modules.projects.facade.router import router as projects_facade_router
+from src.modules.projects.governance.router import router as projects_governance_router
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.projects.members_schema import ProjectMemberOut, ProjectMemberRoleUpdateRequest
 from src.modules.projects.members_service import ProjectMembersService
+from src.modules.projects.publish.router import router as projects_publish_router
+from src.modules.projects.releases.router import router as projects_releases_router
+from src.modules.projects.runtime_bridge.router import router as projects_runtime_bridge_router
 from src.modules.projects.schema import (
     ProjectArchiveResult,
     ProjectCreateRequest,
@@ -36,7 +40,11 @@ from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access, resolve_workspace_context_by_id
 
 router = APIRouter(tags=["domain.projects"])
-router.include_router(projects_facade_router)
+router.include_router(projects_governance_router)
+router.include_router(projects_runtime_bridge_router)
+router.include_router(projects_api_keys_router)
+router.include_router(projects_releases_router)
+router.include_router(projects_publish_router)
 router.include_router(projects_content_router)
 router.include_router(projects_automation_router)
 router.include_router(projects_domains_router)

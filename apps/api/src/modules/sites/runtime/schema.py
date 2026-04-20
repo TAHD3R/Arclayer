@@ -22,27 +22,6 @@ class SiteResolveOut(BaseSchema):
     )
 
 
-class SiteThemeOut(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    css_vars: dict[str, str] = Field(
-        default_factory=dict,
-        description="Theme tokens as CSS variables (e.g. {'--color-primary': '#1677ff'}).",
-    )
-    theme_id: str | None = Field(default=None, description="Active theme id (npm-like).")
-    version: str | None = Field(default=None, description="Active theme package version (semver).")
-    tokens_css_url: str | None = Field(
-        default=None,
-        description="Theme tokens CSS URL (typically a public asset URL).",
-    )
-    base_css_url: str | None = Field(
-        default=None,
-        description="Optional theme base CSS URL (typically a public asset URL).",
-    )
-    preset_id: str | None = Field(default=None, description="Optional active preset id (theme-scoped).")
-    config: dict[str, Any] | None = Field(default=None, description="Optional theme config (site-scoped, JSON).")
-
-
 class SiteFontSourceOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -104,7 +83,6 @@ class SiteRuntimeOut(BaseSchema):
 
     site_id: PublicUUID = Field(..., description="Site id.")
     mode: Literal["public", "preview"] = Field(..., description="Runtime mode.")
-    theme: SiteThemeOut = Field(..., description="Theme configuration.")
     fonts: list[SiteFontOut] = Field(default_factory=list, description="Runtime fonts.")
     site: SiteIdentityOut | None = Field(default=None, description="Site identity (public-safe).")
     site_localization: SiteLocalizationOut | None = Field(
@@ -125,7 +103,7 @@ class SiteRouteMatchOut(BaseSchema):
     entry_id: PublicUUID | None = Field(default=None, description="Matched entry id (kind=route_template only).")
     variant_id: str | None = Field(
         default=None,
-        description="Optional theme variant id used by the resolved revision (if any).",
+        description="Optional design variant id used by the resolved revision (if any).",
     )
     revision: int | None = Field(
         default=None,

@@ -56,7 +56,7 @@ def _personal_payload() -> dict:
     }
 
 
-def _workspace_payload() -> dict:
+def _project_api_key_payload() -> dict:
     return {
         "family": "workspace_service",
         "name": "Deploy Worker",
@@ -122,16 +122,14 @@ async def test_personal_api_key_management_flow(
 
 
 @pytest.mark.asyncio
-async def test_workspace_api_key_management_flow(
-    monkeypatch, tmp_path, prepared_db, integration_valkey_settings
-) -> None:
+async def test_project_api_key_management_flow(monkeypatch, tmp_path, prepared_db, integration_valkey_settings) -> None:
     monkeypatch.setenv("SECURITY__MASTER_KEY_PATH", str(tmp_path / "master.key"))
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         workspace_uuid = decode_public_id(workspace_id)
-        create_res = await client.post(f"/api/v1/projects/{project_id}/api-keys", json=_workspace_payload())
+        create_res = await client.post(f"/api/v1/projects/{project_id}/api-keys", json=_project_api_key_payload())
         assert create_res.status_code == 200, create_res.text
         created = create_res.json()["data"]
         key_id = created["key"]["id"]

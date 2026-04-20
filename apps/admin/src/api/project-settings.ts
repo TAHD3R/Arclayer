@@ -4,11 +4,11 @@ import type {
   ApiKeyCreateOut,
   ApiKeyListOut,
   ApiKeyOut,
+  ProjectApiKeyCreateIn,
   SiteDomainCreateOut,
   SiteDomainDeleteOut,
   SiteDomainOut,
   SiteDomainVerifyOut,
-  WorkspaceApiKeyCreateIn,
 } from "@arclayer/openapi";
 
 export async function listProjectDomains(projectId: string): Promise<SiteDomainOut[]> {
@@ -62,7 +62,7 @@ export async function listProjectApiKeys(projectId: string): Promise<ApiKeyOut[]
 
 export async function createProjectApiKey(
   projectId: string,
-  payload: WorkspaceApiKeyCreateIn,
+  payload: ProjectApiKeyCreateIn,
 ): Promise<ApiKeyCreateOut> {
   return api.post<ApiKeyCreateOut>(projectPath(projectId, "/api-keys"), payload);
 }

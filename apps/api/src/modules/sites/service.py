@@ -10,11 +10,11 @@ from src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
 from src.models.sites.site import SiteRecord
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.content.service import SiteContentService
-from src.modules.sites.facade.service import SiteContentPublishingFacadeMixin
 from src.modules.sites.publishing.service import SitePublishingService
 from src.modules.sites.repository import SitesRepository
 from src.modules.sites.runtime.config.service import SiteRuntimeConfigMixin
 from src.modules.sites.runtime.context.service import SiteRuntimeContextMixin
+from src.modules.sites.runtime_access.service import SiteContentPublishingAccessMixin
 from src.modules.sites.settings.service import SiteSettingsMixin
 from src.modules.sites.stores.service import PresenceStore, PreviewTokenStore
 from src.platform.cache.valkey import ValkeyClientLike
@@ -28,7 +28,7 @@ class SiteService(
     SiteRuntimeContextMixin,
     SiteRuntimeConfigMixin,
     SiteSettingsMixin,
-    SiteContentPublishingFacadeMixin,
+    SiteContentPublishingAccessMixin,
 ):
     """
     Sites service (Portal consumption + editor/management APIs).

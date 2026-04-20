@@ -6,15 +6,11 @@ from uuid import UUID
 from pydantic import ValidationError
 
 from src.common.protocols.tortoise import HasWorkspaceId
-from src.common.utils.public_ids import encode_uuid
 from src.core.exceptions import Conflict
 from src.models.system.setting import SettingRecord
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.namespaces.service import (
     RUNTIME_SETTING_NAMESPACE,
-    THEME_ACTIVE_NAMESPACE,
-    THEME_CONFIG_NAMESPACE,
-    THEME_VARS_NAMESPACE,
 )
 from src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
@@ -148,99 +144,6 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
             date_format=self._pick_str(loc_section, "date_format"),
         )
 
-    @staticmethod
-    def _parse_theme_active(value: object) -> tuple[str | None, str | None, str | None]:
-        if not isinstance(value, dict):
-            return None, None, None
-        theme_id = str(value.get("themeId") or "").strip() or None
-        version = str(value.get("version") or "").strip() or None
-        preset_id = str(value.get("presetId") or "").strip() or None
-        return theme_id, version, preset_id
-
-    async def _resolve_theme_assets(
-        self, *, workspace_id: UUID, theme_id: str, version: str
-    ) -> tuple[str | None, str | None]:
-        from src.models.workspaces.theme_package import ThemePackageRecord
-
-        theme_pkg = await ThemePackageRecord.get_or_none(workspace_id=workspace_id, theme_id=theme_id, version=version)
-        if theme_pkg is None:
-            return None, None
-
-        from src.models.assets.asset import AssetRecord
-
-        tokens_css_url: str | None = None
-        base_css_url: str | None = None
-
-        tokens_asset = await AssetRecord.get_or_none(
-            id=theme_pkg.tokens_css_asset_id,
-            workspace_id=workspace_id,
-            deleted_at=None,
-        )
-        if tokens_asset is not None:
-            slug = (tokens_asset.slug or "asset").strip() or "asset"
-            ext = (tokens_asset.ext or "css").lstrip(".").lower() or "css"
-            tokens_css_url = f"/assets/{encode_uuid(UUID(str(tokens_asset.id)))}/{slug}.{ext}"
-
-        if theme_pkg.base_css_asset_id:
-            base_asset = await AssetRecord.get_or_none(
-                id=theme_pkg.base_css_asset_id,
-                workspace_id=workspace_id,
-                deleted_at=None,
-            )
-            if base_asset is not None:
-                slug = (base_asset.slug or "asset").strip() or "asset"
-                ext = (base_asset.ext or "css").lstrip(".").lower() or "css"
-                base_css_url = f"/assets/{encode_uuid(UUID(str(base_asset.id)))}/{slug}.{ext}"
-
-        return tokens_css_url, base_css_url
-
-    async def _resolve_css_vars(self, *, site_id: UUID, theme_vars: object) -> dict[str, str]:
-        css_vars: dict[str, str] = dict(DEFAULT_CSS_VARS)
-        if isinstance(theme_vars, dict) and isinstance(theme_vars.get("cssVars"), dict):
-            css_vars.update(self._parse_css_vars(theme_vars.get("cssVars")))
-            return css_vars
-
-        setting = await self._repo.get_site_setting(site_id=site_id, namespace=RUNTIME_SETTING_NAMESPACE)
-        if setting and isinstance(setting.value, dict):
-            raw_theme = setting.value.get("theme")
-            if isinstance(raw_theme, dict) and isinstance(raw_theme.get("cssVars"), dict):
-                css_vars.update(self._parse_css_vars(raw_theme.get("cssVars")))
-        return css_vars
-
-    async def _get_theme_out(
-        self, *, site_id: UUID, workspace_id: UUID, mode: Literal["public", "preview"]
-    ) -> sites_schema.SiteThemeOut:
-        theme_active = await self._repo.get_site_setting(site_id=site_id, namespace=THEME_ACTIVE_NAMESPACE)
-        theme_vars = await self._repo.get_site_setting(site_id=site_id, namespace=THEME_VARS_NAMESPACE)
-        theme_config = await self._repo.get_site_setting(site_id=site_id, namespace=THEME_CONFIG_NAMESPACE)
-
-        theme_id, version, preset_id = self._parse_theme_active(theme_active.value if theme_active else None)
-        css_vars = await self._resolve_css_vars(site_id=site_id, theme_vars=theme_vars.value if theme_vars else None)
-
-        tokens_css_url: str | None = None
-        base_css_url: str | None = None
-        if theme_id and version:
-            tokens_css_url, base_css_url = await self._resolve_theme_assets(
-                workspace_id=workspace_id,
-                theme_id=theme_id,
-                version=version,
-            )
-
-        config_out = (
-            cast(dict[str, object], theme_config.value)
-            if mode == "preview" and theme_config and isinstance(theme_config.value, dict)
-            else None
-        )
-        return sites_schema.SiteThemeOut(
-            css_vars=css_vars,
-            theme_id=theme_id,
-            version=version,
-            tokens_css_url=tokens_css_url,
-            base_css_url=base_css_url,
-            preset_id=preset_id,
-            config=config_out,
-        )
-
     async def _get_fonts_out(self, *, site_id: UUID) -> list[sites_schema.SiteFontOut]:
         fonts_setting = await self._repo.get_site_setting(site_id=site_id, namespace=RUNTIME_SETTING_NAMESPACE)
         raw_fonts = (
@@ -295,13 +198,11 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
             fallback_locale=fallback_locale,
             supported_locales=supported_locales,
         )
-        theme_out = await self._get_theme_out(site_id=site_id, workspace_id=workspace_id, mode=mode)
         fonts_out = await self._get_fonts_out(site_id=site_id)
 
         return sites_schema.SiteRuntimeOut(
             site_id=site_id,
             mode=mode,
-            theme=theme_out,
             fonts=fonts_out,
             site=site_identity,
             site_localization=site_localization,

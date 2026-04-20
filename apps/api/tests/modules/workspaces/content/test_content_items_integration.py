@@ -740,7 +740,7 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         item_uuid = decode_public_id(item_id)
 
         await _wait_latest_workspace_audit_event(
-            event_name="workspace.content.item.created",
+            event_name="project.content.item.created",
             workspace_id=workspace_uuid,
             entity_id=item_uuid,
         )
@@ -751,7 +751,7 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         )
         assert shape_res.status_code == 200, shape_res.text
         await _wait_latest_workspace_audit_event(
-            event_name="workspace.content.item.bootstrap.applied",
+            event_name="project.content.item.bootstrap.applied",
             workspace_id=workspace_uuid,
             entity_id=item_uuid,
         )
@@ -762,7 +762,7 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         )
         assert draft_res.status_code == 201, draft_res.text
         await _wait_latest_workspace_audit_event(
-            event_name="workspace.content.version.saved",
+            event_name="project.content.version.saved",
             workspace_id=workspace_uuid,
             entity_id=item_uuid,
         )
@@ -774,7 +774,7 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         )
         assert publish_res.status_code == 200, publish_res.text
         await _wait_latest_workspace_audit_event(
-            event_name="workspace.content.version.published",
+            event_name="project.content.version.published",
             workspace_id=workspace_uuid,
             entity_id=item_uuid,
         )
@@ -785,11 +785,11 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         assert activity_res.status_code == 200, activity_res.text
         items = activity_res.json()["data"]["items"]
         assert [entry["eventName"] for entry in items[:5]] == [
-            "workspace.content.version.published",
-            "workspace.content.item.workflow.updated",
-            "workspace.content.version.saved",
-            "workspace.content.item.bootstrap.applied",
-            "workspace.content.item.created",
+            "project.content.version.published",
+            "project.content.item.workflow.updated",
+            "project.content.version.saved",
+            "project.content.item.bootstrap.applied",
+            "project.content.item.created",
         ]
 
 

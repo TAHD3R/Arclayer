@@ -8,8 +8,8 @@ class WorkspaceRBACService(RBACService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
 
-    async def _get_plugin_name_map(self, *, plugin_ids: set[str]) -> dict[str, str]:
+    async def _get_owner_name_map(self, *, owner_keys: set[str]) -> dict[str, str]:
         return {}
 
-    async def get_plugin_name_map(self, *, plugin_ids: set[str]) -> dict[str, str]:
-        return await self._get_plugin_name_map(plugin_ids=plugin_ids)
+    async def get_owner_name_map(self, *, owner_keys: set[str]) -> dict[str, str]:
+        return await self._get_owner_name_map(owner_keys=owner_keys)

@@ -436,10 +436,10 @@ export function TeamRolesView(
                             {perm.description}
                           </div>
                         ) : null}
-                        {perm.pluginId && perm.pluginId !== "core" ? (
+                        {perm.ownerKey && perm.ownerKey !== "core" ? (
                           <div className="mt-1 rounded-md border border-border bg-card p-1 text-caption text-label-secondary select-none">
                             {t("team:TEAM_ROLES_PERMISSION_PROVIDED_BY", {
-                              pluginName: perm.pluginName || perm.pluginId,
+                              ownerName: perm.ownerName || perm.ownerKey,
                             })}
                           </div>
                         ) : null}

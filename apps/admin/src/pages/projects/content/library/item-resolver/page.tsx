@@ -69,6 +69,7 @@ function RecoveryActionButton(props: { action: AdminContentRecoveryAction }) {
 }
 
 function ContinuationStatePage(props: {
+  projectId: string;
   item: AdminContentItem;
   intent: AdminContentOpenIntent | null;
   mode: "blocked" | "boundary" | "error";
@@ -234,6 +235,7 @@ export function ContentLibraryItemResolverPage(props: { projectId: string; itemI
 
     return (
       <ContinuationStatePage
+        projectId={props.projectId}
         item={emptyItem}
         intent={null}
         mode="error"
@@ -246,20 +248,34 @@ export function ContentLibraryItemResolverPage(props: { projectId: string; itemI
   const intent = resolveContentItemContinuationTarget(item);
 
   if (intent?.blocked || item.shapeState !== "ready") {
-    return <ContinuationStatePage item={item} intent={intent} mode="blocked" />;
+    return (
+      <ContinuationStatePage
+        projectId={props.projectId}
+        item={item}
+        intent={intent}
+        mode="blocked"
+      />
+    );
   }
 
   if (intent?.surface === "writing") {
-    return <ContentLibraryArticleEditorPage workspaceId={props.projectId} itemId={props.itemId} />;
+    return <ContentLibraryArticleEditorPage projectId={props.projectId} itemId={props.itemId} />;
   }
 
   if (intent?.surface === "structured") {
-    return <ContentStructuredSurfacePage workspaceId={props.projectId} item={item} />;
+    return <ContentStructuredSurfacePage projectId={props.projectId} item={item} />;
   }
 
   if (intent?.surface === "canvas") {
     return <ContentSiteBuilderPage projectId={props.projectId} item={item} />;
   }
 
-  return <ContinuationStatePage item={item} intent={intent} mode="boundary" />;
+  return (
+    <ContinuationStatePage
+      projectId={props.projectId}
+      item={item}
+      intent={intent}
+      mode="boundary"
+    />
+  );
 }

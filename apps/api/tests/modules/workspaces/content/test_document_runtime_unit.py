@@ -8,18 +8,18 @@ from uuid import uuid4
 import pytest
 
 from src.core.http.pagination import PageParams
-from src.modules.workspaces.content.history import ContentHistoryService
-from src.modules.workspaces.content.items.read_service import (
-    WorkspaceContentCanonicalItemReadService,
+from src.modules.projects.content.history import ContentHistoryService
+from src.modules.projects.content.items.read_service import (
+    ProjectContentCanonicalItemReadService,
 )
-from src.modules.workspaces.content.runtime import (
-    DocumentFacade,
+from src.modules.projects.content.runtime import (
     DocumentMutationContext,
     DocumentPreviewDiagnosticsReadModel,
     DocumentPublishedReadModel,
     DocumentReadContext,
+    DocumentRuntimeBoundary,
+    DocumentRuntimeItemFields,
 )
-from src.modules.workspaces.content.runtime.facade import DocumentRuntimeItemFields
 
 
 def _build_item(*, title: str = "Stored Title", slug: str = "stored-slug") -> SimpleNamespace:
@@ -113,16 +113,16 @@ async def test_document_read_context_resolves_published_and_preview_models() -> 
 
 
 @pytest.mark.asyncio
-async def test_read_service_list_items_paginated_uses_document_facade_fields() -> None:
+async def test_read_service_list_items_paginated_uses_document_runtime_boundary_fields() -> None:
     item = _build_item(title="Stored Title", slug="stored-slug")
     resolve_active_item_fields = cast(
         Any,
         AsyncMock(
             return_value={
                 item.id: DocumentRuntimeItemFields(
-                    title="Facade Title",
-                    slug="facade-slug",
-                    summary="Facade Summary",
+                    title="Boundary Title",
+                    slug="boundary-slug",
+                    summary="Boundary Summary",
                     visibility="private",
                 )
             }
@@ -132,11 +132,11 @@ async def test_read_service_list_items_paginated_uses_document_facade_fields() -
         get_model_definition_by_key=AsyncMock(return_value=None),
         list_items=AsyncMock(return_value=[item]),
     )
-    facade = DocumentFacade(
+    runtime_boundary = DocumentRuntimeBoundary(
         reads=cast(Any, SimpleNamespace(resolve_active_item_fields=resolve_active_item_fields)),
         mutations=DocumentMutationContext(repo=repo),
     )
-    service = WorkspaceContentCanonicalItemReadService(repo=repo, facade=facade)
+    service = ProjectContentCanonicalItemReadService(repo=repo, runtime_boundary=runtime_boundary)
 
     page = await service.list_items_paginated(
         workspace_id=item.workspace_id,
@@ -146,9 +146,9 @@ async def test_read_service_list_items_paginated_uses_document_facade_fields() -
     )
 
     assert len(page.items) == 1
-    assert page.items[0].title == "Facade Title"
-    assert page.items[0].slug == "facade-slug"
-    assert page.items[0].summary == "Facade Summary"
+    assert page.items[0].title == "Boundary Title"
+    assert page.items[0].slug == "boundary-slug"
+    assert page.items[0].summary == "Boundary Summary"
     assert page.items[0].visibility == "private"
     resolve_active_item_fields.assert_awaited_once_with([item])
     repo.list_items.assert_awaited_once()
@@ -191,16 +191,16 @@ async def test_content_history_service_lists_version_system_objects() -> None:
 
 
 @pytest.mark.asyncio
-async def test_read_service_get_item_uses_document_facade_fields() -> None:
+async def test_read_service_get_item_uses_document_runtime_boundary_fields() -> None:
     item = _build_item(title="Stored Title", slug="stored-slug")
     resolve_active_item_fields = cast(
         Any,
         AsyncMock(
             return_value={
                 item.id: DocumentRuntimeItemFields(
-                    title="Facade Detail Title",
-                    slug="facade-detail-slug",
-                    summary="Facade Detail Summary",
+                    title="Boundary Detail Title",
+                    slug="boundary-detail-slug",
+                    summary="Boundary Detail Summary",
                     visibility="public",
                 )
             }
@@ -209,12 +209,12 @@ async def test_read_service_get_item_uses_document_facade_fields() -> None:
     repo = SimpleNamespace(
         get_item_with_model=AsyncMock(return_value=item),
     )
-    facade = DocumentFacade.for_items_repo(repo)
-    facade = DocumentFacade(
+    runtime_boundary = DocumentRuntimeBoundary.for_items_repo(repo)
+    runtime_boundary = DocumentRuntimeBoundary(
         reads=cast(Any, SimpleNamespace(resolve_active_item_fields=resolve_active_item_fields)),
-        mutations=facade.mutations,
+        mutations=runtime_boundary.mutations,
     )
-    service = WorkspaceContentCanonicalItemReadService(repo=repo, facade=facade)
+    service = ProjectContentCanonicalItemReadService(repo=repo, runtime_boundary=runtime_boundary)
 
     out = await service.get_item(
         workspace_id=item.workspace_id,
@@ -222,9 +222,9 @@ async def test_read_service_get_item_uses_document_facade_fields() -> None:
         item_id=item.id,
     )
 
-    assert out.title == "Facade Detail Title"
-    assert out.slug == "facade-detail-slug"
-    assert out.summary == "Facade Detail Summary"
+    assert out.title == "Boundary Detail Title"
+    assert out.slug == "boundary-detail-slug"
+    assert out.summary == "Boundary Detail Summary"
     assert out.visibility == "public"
     resolve_active_item_fields.assert_awaited_once_with([item])
     repo.get_item_with_model.assert_awaited_once()
@@ -249,7 +249,7 @@ async def test_read_service_list_versions_paginated_uses_history_service() -> No
         list_versions_for_item=AsyncMock(return_value=[version]),
         list_presentations=AsyncMock(return_value=[]),
     )
-    service = WorkspaceContentCanonicalItemReadService(repo=repo)
+    service = ProjectContentCanonicalItemReadService(repo=repo)
 
     page = await service.list_versions_paginated(
         workspace_id=item.workspace_id,

@@ -54,10 +54,6 @@ class MyWorkspaceOut(BaseOut):
         default=False,
         description="If true, current user is org owner and workspace creator; has implicit admin management rights.",
     )
-    is_legacy: bool = Field(
-        default=False,
-        description="Whether the underlying organization is in legacy multi-workspace compatibility mode.",
-    )
 
 
 class InstanceSetupStateOut(BaseSchema):

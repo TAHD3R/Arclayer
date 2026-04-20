@@ -8,7 +8,6 @@ import zhCommand from "@locales/zh-CN/command.json";
 import zhAssets from "@locales/zh-CN/assets.json";
 import zhErrors from "@locales/zh-CN/errors.json";
 import zhAuth from "@locales/zh-CN/auth.json";
-import zhPlugin from "@locales/zh-CN/plugin.json";
 import zhInvite from "@locales/zh-CN/invite.json";
 import zhOnboarding from "@locales/zh-CN/onboarding.json";
 import zhTeam from "@locales/zh-CN/team.json";
@@ -28,7 +27,6 @@ import enCommand from "@locales/en-US/command.json";
 import enAssets from "@locales/en-US/assets.json";
 import enErrors from "@locales/en-US/errors.json";
 import enAuth from "@locales/en-US/auth.json";
-import enPlugin from "@locales/en-US/plugin.json";
 import enInvite from "@locales/en-US/invite.json";
 import enOnboarding from "@locales/en-US/onboarding.json";
 import enTeam from "@locales/en-US/team.json";
@@ -59,7 +57,6 @@ export const I18N_NAMESPACES = [
   "content",
   "errors",
   "auth",
-  "plugin",
 ] as const;
 
 export const i18nResources = {
@@ -82,7 +79,6 @@ export const i18nResources = {
     content: zhContent,
     errors: zhErrors,
     auth: zhAuth,
-    plugin: zhPlugin,
   },
   "en-US": {
     common: enCommon,
@@ -103,7 +99,6 @@ export const i18nResources = {
     content: enContent,
     errors: enErrors,
     auth: enAuth,
-    plugin: enPlugin,
   },
 } as const;
 

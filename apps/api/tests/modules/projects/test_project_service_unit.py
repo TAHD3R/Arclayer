@@ -82,7 +82,9 @@ class _FakeMembership:
 
 
 @pytest.mark.asyncio
-async def test_create_project_bootstraps_memberships_and_returns_member_count(monkeypatch) -> None:
+async def test_create_project_bootstraps_memberships_provisions_runtime_site_and_returns_member_count(
+    monkeypatch,
+) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = ProjectService(settings)
@@ -94,6 +96,18 @@ async def test_create_project_bootstraps_memberships_and_returns_member_count(mo
     membership = _FakeMembership()
     membership.project_id = project.id
     bootstrap_calls: list[tuple] = []
+    provision_calls: list[dict[str, object]] = []
+    runtime = type(
+        "RuntimeRef",
+        (),
+        {
+            "id": uuid4(),
+            "project_id": project.id,
+            "kind": "primary",
+            "name": "Primary",
+            "is_active": True,
+        },
+    )()
 
     async def fake_require_workspace(*, workspace_id):
         return None
@@ -110,13 +124,22 @@ async def test_create_project_bootstraps_memberships_and_returns_member_count(mo
 
     async def fake_get_primary_runtime(*, project_id):
         assert project_id == project.id
-        return None
+        return runtime
+
+    async def fake_get_or_create_site_for_project_runtime(**kwargs):
+        provision_calls.append(kwargs)
+        return type("SiteRef", (), {"id": uuid4()})()
 
     monkeypatch.setattr(service, "_require_workspace", fake_require_workspace)
     monkeypatch.setattr(service.repo, "create_project", fake_create_project)
     monkeypatch.setattr(service.repo, "bootstrap_project_memberships", fake_bootstrap_project_memberships)
     monkeypatch.setattr(service.repo, "list_project_memberships", fake_list_project_memberships)
     monkeypatch.setattr(service.repo, "get_primary_runtime", fake_get_primary_runtime)
+    monkeypatch.setattr(
+        service.runtime_site_service,
+        "get_or_create_site_for_project_runtime",
+        fake_get_or_create_site_for_project_runtime,
+    )
 
     class _WorkspaceModel:
         @classmethod
@@ -138,6 +161,16 @@ async def test_create_project_bootstraps_memberships_and_returns_member_count(mo
     )
 
     assert bootstrap_calls == [(project.id, workspace_id, actor_user_id)]
+    assert provision_calls == [
+        {
+            "workspace_id": workspace_id,
+            "project_id": project.id,
+            "runtime_id": runtime.id,
+            "project_slug": project.slug,
+            "project_name": project.name,
+            "actor_user_id": actor_user_id,
+        }
+    ]
     assert out.id == project.id
     assert out.member_count == 1
     assert len(out.members_preview) == 1

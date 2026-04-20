@@ -40,10 +40,7 @@ function ItemFact(props: { label: string; value: string }) {
   );
 }
 
-export function ContentStructuredSurfacePage(props: {
-  workspaceId: string;
-  item: AdminContentItem;
-}) {
+export function ContentStructuredSurfacePage(props: { projectId: string; item: AdminContentItem }) {
   const { t } = useTranslation("content");
   const itemLabel = props.item.title?.trim() || props.item.slug;
   const contentTypeLabel = getContentTypeLabel({
@@ -57,7 +54,7 @@ export function ContentStructuredSurfacePage(props: {
       modelKey: props.item.modelKey,
       t,
     }) ?? t("CONTENT_TYPE_CATEGORY_DESC");
-  const libraryHref = projectContentLibraryFocusedItemHref(props.workspaceId, props.item.id);
+  const libraryHref = projectContentLibraryFocusedItemHref(props.projectId, props.item.id);
   const missingCapabilities = getMissingStructuredCapabilities(props.item);
 
   return (
@@ -124,7 +121,7 @@ export function ContentStructuredSurfacePage(props: {
             <CardContent className="grid gap-4 md:grid-cols-2">
               <ItemFact
                 label={t("CONTENT_STRUCTURED_SURFACE_FIELD_WORKSPACE")}
-                value={props.workspaceId}
+                value={props.projectId}
               />
               <ItemFact
                 label={t("CONTENT_STRUCTURED_SURFACE_BOUNDARY_MISSING_LABEL")}
@@ -148,7 +145,7 @@ export function ContentStructuredSurfacePage(props: {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <ItemFact
               label={t("CONTENT_STRUCTURED_SURFACE_FIELD_WORKSPACE")}
-              value={props.workspaceId}
+              value={props.projectId}
             />
             <ItemFact
               label={t("CONTENT_STRUCTURED_SURFACE_FIELD_ENTRY_POINT")}

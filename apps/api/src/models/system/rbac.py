@@ -60,7 +60,7 @@ class Permission(BaseModel):
 
     Notes:
     - `code` is the stable identifier, typically namespaced (e.g. "admin:access").
-    - `plugin_id` is used for traceability and grouping (core uses "core").
+    - `owner_key` groups permissions by catalog owner (core uses "core").
     - `scope` controls where the permission can be granted/checked (org vs workspace).
     """
 
@@ -70,7 +70,7 @@ class Permission(BaseModel):
     description = fields.TextField(null=True)
     name_i18n = fields.CharField(max_length=200, null=True)
     description_i18n = fields.CharField(max_length=200, null=True)
-    plugin_id = fields.CharField(max_length=128, null=True, db_index=True)
+    owner_key = fields.CharField(max_length=128, null=True, db_index=True, source_field="plugin_id")
 
     class Meta(BaseModel.Meta):
         table = "internal_permissions"

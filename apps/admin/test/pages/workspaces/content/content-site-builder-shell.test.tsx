@@ -55,7 +55,7 @@ describe("ContentSiteBuilderPage", () => {
 
     renderWithQuery(
       <ContentSiteBuilderPage
-        workspaceId="ws-1"
+        projectId="project-1"
         item={{
           id: "item-1",
           workspaceId: "ws-1",
@@ -104,7 +104,7 @@ describe("ContentSiteBuilderPage", () => {
       },
     ]);
 
-    renderWithQuery(<ContentSiteBuilderPage workspaceId="ws-1" />);
+    renderWithQuery(<ContentSiteBuilderPage projectId="project-1" />);
 
     expect(screen.getByTestId("content-site-builder-shell")).toBeInTheDocument();
     expect(screen.getByTestId("content-site-builder-empty-state")).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe("ContentSiteBuilderPage", () => {
 
     renderWithQuery(
       <ContentSiteBuilderPage
-        workspaceId="ws-1"
+        projectId="project-1"
         item={{
           id: "item-1",
           workspaceId: "ws-1",

@@ -385,7 +385,7 @@ describe("content-library-article-editor-page", () => {
   it("renders the page mode shell inside the immersive route container", async () => {
     mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
 
-    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+    renderWithQuery(<ContentLibraryArticleEditorPage projectId="project-1" itemId="content-1" />);
 
     expect(screen.getByTestId("admin-route-container")).toBeInTheDocument();
     expect(screen.getByTestId("admin-route-container-inner")).toBeInTheDocument();
@@ -444,7 +444,7 @@ describe("content-library-article-editor-page", () => {
       }),
     );
 
-    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+    renderWithQuery(<ContentLibraryArticleEditorPage projectId="project-1" itemId="content-1" />);
 
     const summary = await screen.findByDisplayValue("Loaded summary");
     fireEvent.change(summary, { target: { value: "Updated summary" } });
@@ -474,7 +474,7 @@ describe("content-library-article-editor-page", () => {
     });
 
     await waitFor(() => {
-      expect(mocked.patchContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 3, {
+      expect(mocked.patchContentItemVersion).toHaveBeenCalledWith("project-1", "content-1", 3, {
         changeSummary: "Update article draft",
         fieldsSnapshot: {
           title: "Launch memo",
@@ -524,7 +524,7 @@ describe("content-library-article-editor-page", () => {
       changeSummary: null,
     });
 
-    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+    renderWithQuery(<ContentLibraryArticleEditorPage projectId="project-1" itemId="content-1" />);
 
     const summary = await screen.findByDisplayValue("Loaded summary");
     await user.clear(summary);
@@ -535,7 +535,7 @@ describe("content-library-article-editor-page", () => {
     });
 
     await waitFor(() => {
-      expect(mocked.saveContentItemDraftVersion).toHaveBeenCalledWith("ws-1", "content-1", {
+      expect(mocked.saveContentItemDraftVersion).toHaveBeenCalledWith("project-1", "content-1", {
         expectedVersion: 5,
         changeSummary: "Update article draft",
         fieldsSnapshot: {
@@ -577,7 +577,7 @@ describe("content-library-article-editor-page", () => {
       changeSummary: null,
     });
 
-    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+    renderWithQuery(<ContentLibraryArticleEditorPage projectId="project-1" itemId="content-1" />);
 
     await screen.findByDisplayValue("Launch memo");
     const toolbarRendersBeforeBodyChange = renderStats.toolbarRenders;
@@ -591,7 +591,7 @@ describe("content-library-article-editor-page", () => {
     });
 
     await waitFor(() => {
-      expect(mocked.patchContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 3, {
+      expect(mocked.patchContentItemVersion).toHaveBeenCalledWith("project-1", "content-1", 3, {
         changeSummary: "Update article draft",
         fieldsSnapshot: {
           title: "Launch memo",
@@ -648,7 +648,7 @@ describe("content-library-article-editor-page", () => {
       changeSummary: null,
     });
 
-    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+    renderWithQuery(<ContentLibraryArticleEditorPage projectId="project-1" itemId="content-1" />);
 
     const title = await screen.findByDisplayValue("Launch memo");
     await user.clear(title);
@@ -658,7 +658,7 @@ describe("content-library-article-editor-page", () => {
 
     await waitFor(() => {
       expect(mocked.patchContentItemVersion).toHaveBeenCalled();
-      expect(mocked.publishContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 3);
+      expect(mocked.publishContentItemVersion).toHaveBeenCalledWith("project-1", "content-1", 3);
     });
   });
 
@@ -670,7 +670,7 @@ describe("content-library-article-editor-page", () => {
       permissionCodes: ["system:content:manage"],
     });
 
-    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+    renderWithQuery(<ContentLibraryArticleEditorPage projectId="project-1" itemId="content-1" />);
 
     const publishButton = await screen.findByRole("button", {
       name: "CONTENT_LIBRARY_ACTION_PUBLISH",

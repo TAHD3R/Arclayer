@@ -3,7 +3,6 @@ export * from "./asset-tags";
 export * from "./content-runtime-tag";
 export * from "./count-tags";
 export * from "./debug-tags";
-export * from "./extension-tags";
 export * from "./input-tags";
 export * from "./invitation-tags";
 export * from "./locale-tags";

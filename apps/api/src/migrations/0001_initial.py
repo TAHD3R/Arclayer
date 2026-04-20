@@ -6,7 +6,6 @@ from src.common.utils.ids import uuid7
 from src.models.assets.asset import AssetPurpose, AssetVisibility
 from src.models.assets.upload import UploadStatus
 from src.models.content._enums import ContentBootstrapPresetState, ContentContinuationPosture, ContentContinuationRole, ContentContinuationSurface, ContentItemStatus, ContentItemVisibility, ContentModelFieldType, ContentModelRelationType, ContentModelViewType, ContentPresentationKind, ContentShapeState, ContentVersionState, PublishArtifactKind
-from src.models.extensions.app import AppStatus
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.organization import OrganizationKind
 from src.models.organization.user import UserStatus
@@ -153,24 +152,6 @@ class Migration(migrations.Migration):
             bases=['BaseModel'],
         ),
         ops.CreateModel(
-            name='ExtensionApp',
-            fields=[
-                ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
-                ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
-                ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
-                ('app_id', fields.CharField(unique=True, db_index=True, max_length=128)),
-                ('provider', fields.CharField(default='community', max_length=32)),
-                ('status', fields.CharEnumField(default=AppStatus.INSTALLED, db_index=True, description='INSTALLED: installed\nDISABLED: disabled\nFAILED: failed', enum_type=AppStatus, max_length=9)),
-                ('name', fields.CharField(max_length=200)),
-                ('description', fields.TextField(null=True, unique=False)),
-                ('version', fields.CharField(null=True, max_length=64)),
-                ('manifest', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
-                ('base_url', fields.CharField(null=True, max_length=512)),
-            ],
-            options={'table': 'domain_extension_apps', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for extension apps.'},
-            bases=['BaseModel'],
-        ),
-        ops.CreateModel(
             name='NotificationRecord',
             fields=[
                 ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
@@ -237,20 +218,6 @@ class Migration(migrations.Migration):
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
             ],
             options={'table': 'domain_org_plans', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organization plans.'},
-            bases=['BaseModel'],
-        ),
-        ops.CreateModel(
-            name='OrganizationCapabilityState',
-            fields=[
-                ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
-                ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
-                ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
-                ('organization', fields.ForeignKeyField('models.Organization', source_field='organization_id', db_constraint=True, to_field='id', related_name='capability_states', on_delete=OnDelete.CASCADE)),
-                ('capability_id', fields.CharField(db_index=True, max_length=128)),
-                ('enabled', fields.BooleanField(default=False, db_index=True)),
-                ('config', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
-            ],
-            options={'table': 'domain_organization_capabilities', 'app': 'models', 'unique_together': (('organization_id', 'capability_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for organization capability states.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -414,31 +381,6 @@ class Migration(migrations.Migration):
                 ('activated_by', fields.UUIDField(null=True, db_index=True)),
             ],
             options={'table': 'internal_sys_config_active', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Internal model for active system configuration pointers.'},
-            bases=['BaseModel'],
-        ),
-        ops.CreateModel(
-            name='ThemePackageRecord',
-            fields=[
-                ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
-                ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
-                ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
-                ('workspace_id', fields.UUIDField(db_index=True)),
-                ('theme_id', fields.CharField(db_index=True, max_length=214)),
-                ('version', fields.CharField(db_index=True, max_length=64)),
-                ('name', fields.CharField(null=True, max_length=128)),
-                ('description', fields.CharField(null=True, max_length=512)),
-                ('author', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
-                ('manifest', fields.JSONField(encoder=JSON_DUMPS, decoder=loads)),
-                ('artifact_hash', fields.CharField(null=True, db_index=True, max_length=64)),
-                ('artifact_asset_id', fields.UUIDField(null=True)),
-                ('tokens_css_asset_id', fields.UUIDField()),
-                ('base_css_asset_id', fields.UUIDField(null=True)),
-                ('preview_image_asset_id', fields.UUIDField(null=True)),
-                ('presets', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
-                ('variants', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
-                ('created_by', fields.UUIDField(null=True, db_index=True)),
-            ],
-            options={'table': 'domain_theme_packages', 'app': 'models', 'unique_together': (('workspace_id', 'theme_id', 'version'),), 'indexes': [Index(fields=['workspace_id', 'theme_id'])], 'pk_attr': 'id', 'table_description': 'Domain model for theme package records.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -949,20 +891,6 @@ class Migration(migrations.Migration):
                 ('duration_ms', fields.IntField(null=True)),
             ],
             options={'table': 'domain_webhook_deliveries', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for webhook deliveries.'},
-            bases=['BaseModel'],
-        ),
-        ops.CreateModel(
-            name='WorkspaceCapabilityState',
-            fields=[
-                ('id', fields.UUIDField(primary_key=True, default=uuid7, unique=True, db_index=True)),
-                ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
-                ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
-                ('workspace', fields.ForeignKeyField('models.Workspace', source_field='workspace_id', db_constraint=True, to_field='id', related_name='capability_states', on_delete=OnDelete.CASCADE)),
-                ('capability_id', fields.CharField(db_index=True, max_length=128)),
-                ('enabled', fields.BooleanField(default=False, db_index=True)),
-                ('config', fields.JSONField(null=True, encoder=JSON_DUMPS, decoder=loads)),
-            ],
-            options={'table': 'domain_workspace_capabilities', 'app': 'models', 'unique_together': (('workspace_id', 'capability_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for workspace capability states.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(

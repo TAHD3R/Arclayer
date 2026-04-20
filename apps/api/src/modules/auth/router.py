@@ -1177,5 +1177,5 @@ async def accept_existing_invitation(
     )
 
 
-# Social login / SSO extensions (provided by plugins).
+# Social login / SSO routes.
 router.include_router(auth_sso_router)

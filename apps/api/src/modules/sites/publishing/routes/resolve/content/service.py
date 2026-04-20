@@ -7,6 +7,7 @@ from uuid import UUID
 from src.common.services import BaseService
 from src.core.exceptions import Conflict, NotFound
 from src.core.exceptions.types import InternalServerError
+from src.modules.projects.content.routing.service import match_route_binding, route_sort_key
 from src.modules.sites.design.schema import PageBlueprint
 from src.modules.sites.publishing.content_snapshot import CanonicalContentSnapshot, build_canonical_content_snapshot
 from src.modules.sites.publishing.includes.service import PublishingIncludesService
@@ -21,7 +22,6 @@ from src.modules.sites.schema import (
     SiteRouteMatchOut,
     SiteRouteResolveOut,
 )
-from src.modules.workspaces.content.routing.service import match_route_binding, route_sort_key
 
 
 @dataclass(frozen=True, slots=True)

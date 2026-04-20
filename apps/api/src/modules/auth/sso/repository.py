@@ -56,7 +56,7 @@ async def issue_exchange_code(
     """
     Issue a one-time SSO exchange code.
 
-    Plugins should call this after completing an OAuth/SSO flow and resolving a local user.
+    OAuth/SSO handlers should call this after resolving a local user.
     """
 
     ttl = ttl_seconds if ttl_seconds and ttl_seconds > 0 else SSO_EXCHANGE_TTL_SECONDS

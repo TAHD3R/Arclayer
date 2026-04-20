@@ -48,13 +48,6 @@ export type ListActivityParams = QueryOf<Generated.InternalSystemListActivityDat
 
 export type SystemRuntime = Generated.SystemRuntimeOut;
 
-export type CapabilitySummary = Generated.CapabilitySummaryOut;
-export type CapabilityListOut = Generated.CapabilityListOut;
-export type UIEmbedDescriptor = Generated.UiEmbedDescriptorOut;
-export type UIEmbedListOut = Omit<Generated.UiEmbedListOut, "items"> & {
-  items: UIEmbedDescriptor[];
-};
-
 export type SettingsDetail = Generated.SettingsDetail;
 export type SettingsOptionItem = Generated.SettingsOptionItem;
 export type SettingsSchemaItem = Generated.SettingsSchemaItem;
@@ -136,9 +129,10 @@ export type WorkspaceAssignRoleResult = Generated.WorkspaceAssignRoleToMembersRe
 export type LeaveWorkspaceResult = Generated.LeaveWorkspaceResult;
 export type WorkspaceDeleteResult = Generated.WorkspaceDeleteResult;
 export type WorkspaceDangerCapabilities = Generated.WorkspaceDangerCapabilitiesOut;
-export type AdminWorkspaceSite = Generated.WorkspaceSiteOut;
+export type AdminWorkspaceSite = Generated.ProjectRuntimeSiteOut;
 export type CreateAdminSitePreviewTokenPayload = Generated.SitePreviewTokenCreateIn;
 export type AdminSitePreviewToken = Generated.SitePreviewTokenOut;
+export type ProjectApiKeyCreateIn = Generated.ProjectApiKeyCreateIn;
 
 export type OrganizationSettingsCore = Generated.OrganizationSettingsCoreOut;
 export type OrganizationAssignDefaultRoleResult = Generated.OrganizationAssignDefaultRoleResult;
@@ -352,11 +346,11 @@ export type AdminAutomationOperationKindValue = Generated.AutomationOperationKin
 export type AdminAutomationRunStatus = Generated.AutomationRunStatus;
 export type AdminAutomationTriggerKind = Generated.AutomationTriggerKind;
 export type ListAdminContentModelsParams =
-  QueryOf<Generated.DomainWorkspacesListWorkspaceContentModelsCanonicalData>;
+  QueryOf<Generated.DomainProjectsListProjectContentModelsData>;
 export type ListAdminContentItemsParams =
-  QueryOf<Generated.DomainWorkspacesListWorkspaceContentItemsCanonicalData>;
+  QueryOf<Generated.DomainProjectsListProjectContentItemsData>;
 export type ListAdminContentVersionsParams =
-  QueryOf<Generated.DomainWorkspacesListWorkspaceContentItemVersionsCanonicalData>;
+  QueryOf<Generated.DomainProjectsListProjectContentItemVersionsData>;
 export type AdminContentLibraryViewStatus = NonNullable<
   Generated.ContentLibraryViewFiltersSchema["status"]
 >;
@@ -506,6 +500,3 @@ export type RbacMatrix = Omit<Generated.WorkspaceRbacMatrixOut, "permissions" | 
   permissions: RbacMatrixPermissionRow[];
   roles: Role[];
 };
-
-export type WorkspaceThemeItem = Generated.WorkspaceThemeOut;
-export type WorkspaceThemeListOut = Generated.WorkspaceThemeListOut;

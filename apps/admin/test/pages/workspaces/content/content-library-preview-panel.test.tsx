@@ -60,7 +60,7 @@ function buildRow(): ContentLibraryTableRow {
     modelKey: "article",
     modelName: "Article",
     modelDescription: "Editorial content",
-    modelCategory: "content",
+    modelCategory: "content_library",
     modelCapabilities: ["publishable"],
     slug: "launch-note",
     title: "Launch note",
@@ -88,7 +88,7 @@ describe("content-library-preview-panel", () => {
   test("renders shared runtime badges and diagnostics for summary previews", () => {
     render(
       <ContentLibraryPreviewPanel
-        workspaceId="ws-1"
+        projectId="project-1"
         row={buildRow()}
         onClose={vi.fn()}
         onOpenPage={vi.fn()}

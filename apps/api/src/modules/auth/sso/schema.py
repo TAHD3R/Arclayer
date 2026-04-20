@@ -32,7 +32,7 @@ class AuthSSOExchangePayload(BaseSchema):
     One-time exchange payload stored in Valkey and consumed by the host.
 
     Notes:
-    - This is a host-level contract that plugins can reuse.
+    - This is a host-level contract for built-in SSO providers.
     """
 
     user_id: UUID = Field(..., description="Resolved local user id.")

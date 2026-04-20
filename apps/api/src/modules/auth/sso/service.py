@@ -108,7 +108,7 @@ class AuthSSOService(BaseService):
 
     async def _list_core_oauth_providers(self) -> list[dict[str, Any]]:
         """
-        List built-in OAuth providers controlled by sys config (non-plugin).
+        List built-in OAuth providers controlled by sys config.
         """
 
         core = await get_core_settings_value_cached(self.settings, ttl_seconds=2.0)
@@ -156,7 +156,7 @@ class AuthSSOService(BaseService):
         if payload is None:
             raise BadRequest(message=_ta("SSO_CODE_INVALID", "登录码无效"), error="SSO_CODE_INVALID")
 
-        # Keep defensive parsing: plugin implementations may still pass string IDs.
+        # Keep defensive parsing because exchange payloads cross a cache boundary.
         try:
             user_uuid = UUID(str(payload.user_id))
         except (TypeError, ValueError):

@@ -106,7 +106,7 @@ def build_upload_policy(
             forced_indexable=False,
         )
 
-    # Default policy for resource library and plugin-defined purposes.
+    # Default policy for resource library and custom upload purposes.
     return UploadPolicy(
         allowed_exts=(_IMAGE_EXTS | _ARCHIVE_EXTS | _DOC_EXTS | _VIDEO_EXTS | _FONT_EXTS),
         max_size_bytes=global_max_size_bytes,

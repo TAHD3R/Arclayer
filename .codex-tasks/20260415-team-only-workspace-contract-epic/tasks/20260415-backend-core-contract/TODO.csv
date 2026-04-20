@@ -1,5 +1,0 @@
-id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
-1,Recover Child 1 context and confirm backend root files,IN_PROGRESS,The new epic and child task files exist and the backend contract hot spots are identified,test -f .codex-tasks/20260415-team-only-workspace-contract-epic/tasks/20260415-backend-core-contract/TODO.csv,,0,Confirmed WorkspaceKind schema service router and personal_space service as root deletion points
-2,Implement Team-only backend contract cleanup,TODO,WorkspaceKind onboarding and /me/workspaces payload no longer model personal,test -f apps/api/src/modules/workspaces/service.py,,0,
-3,Rewrite focused backend tests for the Team-only contract,TODO,Focused backend tests assert Team-only onboarding and workspace payload behavior,test -f apps/api/tests/modules/workspaces/test_workspace_switcher_contract_integration.py,,0,
-4,Run focused backend validation,TODO,Focused pytest batch and api typecheck pass,echo pending,,0,

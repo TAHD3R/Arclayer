@@ -179,7 +179,7 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventCatalogEntry> =
     level: "info",
   },
 
-  // System / Plugin / Asset / Settings
+  // System / Asset / Settings
   "system.setup.completed": {
     titleKey: "ACTIVITY_EVENT_SYSTEM_SETUP_COMPLETED_TITLE",
     descriptionKey: "ACTIVITY_EVENT_SYSTEM_SETUP_COMPLETED_DESC",

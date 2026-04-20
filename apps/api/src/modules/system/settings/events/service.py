@@ -50,8 +50,6 @@ class SettingsEventsMixin:
         namespace: str,
         schema: ConfigSchema,
         patch: dict[str, object],
-        plugin_id: str | None,
-        plugin_slug: str | None,
         actor_user_id: str | None,
     ) -> None:
         try:
@@ -63,8 +61,6 @@ class SettingsEventsMixin:
                     name=SETTINGS_UPDATED,
                     payload={
                         "namespace": namespace,
-                        "plugin_id": plugin_id,
-                        "plugin_slug": plugin_slug,
                         "paths": changed_paths,
                         "contains_secrets": contains_secrets,
                     },
@@ -78,7 +74,6 @@ class SettingsEventsMixin:
                 "Settings updated event publish failed",
                 action="emit_settings_updated_event",
                 namespace=namespace,
-                plugin_id=plugin_id,
                 event_name=SETTINGS_UPDATED,
                 error=str(exc),
             )

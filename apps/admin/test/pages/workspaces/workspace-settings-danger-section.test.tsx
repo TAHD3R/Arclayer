@@ -82,7 +82,6 @@ describe("WorkspaceSettingsDangerSection", () => {
           kind: "team",
           visibleOnly: false,
           isCreatorAdmin: true,
-          isLegacy: false,
         },
       ],
       switcher: {
@@ -95,7 +94,6 @@ describe("WorkspaceSettingsDangerSection", () => {
             kind: "team",
             visibleOnly: false,
             isCreatorAdmin: true,
-            isLegacy: false,
           },
         ],
       },

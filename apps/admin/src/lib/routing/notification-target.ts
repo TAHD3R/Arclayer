@@ -8,8 +8,6 @@ function resolveLegacyOrganizationTarget(targetTo: string, workspaceId: string):
   if (/^\/o\/[^/]+\/team\/members\/?$/.test(targetTo)) return "/settings/workspace/members";
   if (/^\/o\/[^/]+\/team\/invitations\/?$/.test(targetTo)) return "/settings/workspace/invitations";
   if (/^\/o\/[^/]+\/team\/roles\/?$/.test(targetTo)) return "/settings/workspace/roles";
-  if (/^\/o\/[^/]+\/extensions(?:\/|$)/.test(targetTo))
-    return `/projects/${workspaceId}/settings/general`;
   if (/^\/o\/[^/]+\/(?:activity|settings\/activity)\/?$/.test(targetTo)) {
     return `/projects/${workspaceId}/activity`;
   }

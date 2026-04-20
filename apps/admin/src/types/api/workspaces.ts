@@ -32,7 +32,6 @@ export type MyWorkspace = {
   createdAt?: string | null;
   visibleOnly: boolean;
   isCreatorAdmin: boolean;
-  isLegacy: boolean;
 };
 
 export type InstanceSetupState = {

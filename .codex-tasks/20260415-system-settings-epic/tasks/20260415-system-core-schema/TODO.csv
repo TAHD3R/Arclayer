@@ -1,3 +1,0 @@
-id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
-1,Add auth oauth and notifications sections,DONE,"`core_schema.py` declares the new editable sections","rg -n 'id=\"notifications\"|id=\"auth\"|id=\"oauth_google\"|id=\"oauth_github\"|id=\"oauth_provisioning\"' apps/api/src/settings/core_schema.py",2026-04-15T02:53:24+08:00,0,"The schema now matches the live consumers."
-2,Drop stale storage operator fields from the schema,DONE,"`public_base_url`, `public_delivery_mode`, and upload-policy fields are absent from the storage section","rg -n 'public_base_url|public_delivery_mode|upload_chunk_size_mb|upload_max_file_size_mb' apps/api/src/settings/core_schema.py",2026-04-15T02:53:24+08:00,0,"Storage is now provider + connection only."

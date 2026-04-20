@@ -13,16 +13,16 @@ export type Permission = {
   code: string;
   name: string;
   description: string | null;
-  pluginId: string | null;
-  pluginName?: string | null;
+  ownerKey: string | null;
+  ownerName?: string | null;
 };
 
 export type RbacMatrixPermissionRow = {
   code: string;
   name: string;
   description: string | null;
-  pluginId: string | null;
-  pluginName?: string | null;
+  ownerKey: string | null;
+  ownerName?: string | null;
   grantedRoleCodes: string[];
 };
 

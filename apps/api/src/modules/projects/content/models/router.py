@@ -11,27 +11,27 @@ from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
-from src.modules.projects.content.shared.router import (
-    ProjectContentRouteContext,
-    require_project_content_manage_context,
-    require_project_content_read_context,
-)
-from src.modules.workspaces.content.contracts.schema import (
+from src.modules.projects.content.contracts.schema import (
     ContentModelDefinitionContract,
     ContentModelImpactPreviewOut,
     ContentModelOut,
 )
-from src.modules.workspaces.content.models.canonical_service import (
+from src.modules.projects.content.models.canonical_service import (
     ContentModelDefinitionPatchContract,
-    WorkspaceContentCanonicalModelsService,
+    ProjectContentCanonicalModelsService,
 )
-from src.modules.workspaces.content.models.router import (
+from src.modules.projects.content.models.router_helpers import (
     ContentModelMutationOut,
-    _publish_content_model_activity_event,
-    _to_mutation_out,
-    _to_preview_out,
     get_event_bus,
-    get_workspace_content_canonical_models_service,
+    get_project_content_canonical_models_service,
+    publish_content_model_activity_event,
+    to_mutation_out,
+    to_preview_out,
+)
+from src.modules.projects.content.shared.router import (
+    ProjectContentRouteContext,
+    require_project_content_manage_context,
+    require_project_content_read_context,
 )
 
 router = APIRouter(
@@ -51,8 +51,8 @@ async def create_project_content_model(
     payload: Annotated[ContentModelDefinitionContract, Body(description="Create model contract payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
     service: Annotated[
-        WorkspaceContentCanonicalModelsService,
-        Depends(get_workspace_content_canonical_models_service),
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
     ],
 ) -> ResponseModel[ContentModelMutationOut]:
     record = await service.create_model(
@@ -60,7 +60,7 @@ async def create_project_content_model(
         site_id=ctx.site_id,
         payload=payload,
     )
-    return ApiResponse.success(data=_to_mutation_out(record))
+    return ApiResponse.success(data=to_mutation_out(record))
 
 
 @router.get(
@@ -72,8 +72,8 @@ async def create_project_content_model(
 async def list_project_content_models(
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
     service: Annotated[
-        WorkspaceContentCanonicalModelsService,
-        Depends(get_workspace_content_canonical_models_service),
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
     ],
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[ContentModelOut]]:
@@ -96,8 +96,8 @@ async def preview_project_content_model_update(
     payload: Annotated[ContentModelDefinitionPatchContract, Body(description="Patch model contract payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
     service: Annotated[
-        WorkspaceContentCanonicalModelsService,
-        Depends(get_workspace_content_canonical_models_service),
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
     ],
 ) -> ResponseModel[ContentModelImpactPreviewOut]:
     result = await service.preview_model_update(
@@ -108,7 +108,7 @@ async def preview_project_content_model_update(
     )
     if result is None:
         raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
-    return ApiResponse.success(data=_to_preview_out(result))
+    return ApiResponse.success(data=to_preview_out(result))
 
 
 @router.patch(
@@ -124,8 +124,8 @@ async def update_project_content_model(
     actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalModelsService,
-        Depends(get_workspace_content_canonical_models_service),
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
     ],
 ) -> ResponseModel[ContentModelMutationOut]:
     record = await service.update_model(
@@ -136,11 +136,11 @@ async def update_project_content_model(
     )
     if record is None:
         raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
-    await _publish_content_model_activity_event(
+    await publish_content_model_activity_event(
         actor_user_id=actor_user_id,
         ctx=ctx.workspace_ctx,
         entity_id=UUID(str(record.record.id)),
         event_bus=event_bus,
         result=record,
     )
-    return ApiResponse.success(data=_to_mutation_out(record))
+    return ApiResponse.success(data=to_mutation_out(record))

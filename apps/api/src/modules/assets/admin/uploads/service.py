@@ -528,7 +528,7 @@ class UploadsService(BaseService):
                 )
             raise
 
-        # Emit post-upload event for plugin processors (best-effort).
+        # Emit post-upload event for asynchronous processors.
         payload = {
             "scope_type": str(scope.type),
             "scope_id": str(scope.id),

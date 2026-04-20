@@ -5,11 +5,12 @@ from uuid import UUID
 
 from src.common.services.base import BaseService
 from src.config import Settings
-from src.core.exceptions import BadRequest
+from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageParams, paginate_items
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
 from src.modules.projects.repository import ProjectRepository
+from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
 from src.modules.projects.schema import (
     ProjectArchiveResult,
     ProjectCreateRequest,
@@ -31,6 +32,7 @@ class ProjectService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.repo = ProjectRepository()
+        self.runtime_site_service = ProjectRuntimeSiteService(settings)
 
     async def get_project_detail(self, *, project_id: UUID) -> ProjectDetailOut:
         project, workspace = await self.repo.get_project_with_workspace(project_id=project_id)
@@ -115,11 +117,21 @@ class ProjectService(BaseService):
         )
         workspace = await Workspace.get(id=workspace_id)
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
+        if runtime is None:
+            raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")
+        await self.runtime_site_service.get_or_create_site_for_project_runtime(
+            workspace_id=workspace_id,
+            project_id=UUID(str(project.id)),
+            runtime_id=UUID(str(runtime.id)),
+            project_slug=str(project.slug),
+            project_name=str(project.name),
+            actor_user_id=actor_user_id,
+        )
         memberships = await self.repo.list_project_memberships(project_ids=[UUID(str(project.id))])
         members_preview = [self._build_member_preview(user=membership.user) for membership in memberships[:3]]
         return ProjectListItemOut(
             **self._build_project_out(project=project, workspace=workspace).model_dump(),
-            primary_runtime=ProjectRuntimeOut.model_validate(runtime) if runtime is not None else None,
+            primary_runtime=ProjectRuntimeOut.model_validate(runtime),
             member_count=len(memberships),
             members_preview=members_preview,
             archived_at=None,

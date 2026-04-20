@@ -19,17 +19,17 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/pages/projects/content/library/article-editor/page", () => ({
-  ContentLibraryArticleEditorPage: (props: { workspaceId: string; itemId: string }) => (
+  ContentLibraryArticleEditorPage: (props: { projectId: string; itemId: string }) => (
     <div data-testid="content-library-article-editor-page">
-      {props.workspaceId}:{props.itemId}
+      {props.projectId}:{props.itemId}
     </div>
   ),
 }));
 
 vi.mock("@/pages/projects/content/site-builder/page", () => ({
-  ContentSiteBuilderPage: (props: { workspaceId: string; item?: { id: string } | null }) => (
+  ContentSiteBuilderPage: (props: { projectId: string; item?: { id: string } | null }) => (
     <div data-testid="content-site-builder-page">
-      {props.workspaceId}:{props.item?.id ?? "none"}
+      {props.projectId}:{props.item?.id ?? "none"}
     </div>
   ),
 }));
@@ -77,7 +77,7 @@ describe("ContentLibraryItemResolverPage", () => {
       },
     });
 
-    render(<ContentLibraryItemResolverPage workspaceId="ws-1" itemId="item-1" />, {
+    render(<ContentLibraryItemResolverPage projectId="project-1" itemId="item-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -113,7 +113,7 @@ describe("ContentLibraryItemResolverPage", () => {
       },
     });
 
-    render(<ContentLibraryItemResolverPage workspaceId="ws-1" itemId="item-2" />, {
+    render(<ContentLibraryItemResolverPage projectId="project-1" itemId="item-2" />, {
       wrapper: createWrapper(),
     });
 
@@ -157,14 +157,14 @@ describe("ContentLibraryItemResolverPage", () => {
       },
     });
 
-    render(<ContentLibraryItemResolverPage workspaceId="ws-1" itemId="item-3" />, {
+    render(<ContentLibraryItemResolverPage projectId="project-1" itemId="item-3" />, {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => {
       expect(screen.getByTestId("content-site-builder-page")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("content-site-builder-page")).toHaveTextContent("ws-1:item-3");
+    expect(screen.getByTestId("content-site-builder-page")).toHaveTextContent("project-1:item-3");
     expect(screen.queryByTestId("content-library-article-editor-page")).not.toBeInTheDocument();
     expect(screen.queryByTestId("content-item-continuation-state")).not.toBeInTheDocument();
   });

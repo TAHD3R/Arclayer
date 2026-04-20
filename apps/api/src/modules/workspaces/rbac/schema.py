@@ -18,8 +18,8 @@ class WorkspacePermissionOut(BaseOut):
     code: str = Field(..., description="Permission code.")
     name: str = Field(..., description="Localized permission name.")
     description: str | None = Field(default=None, description="Localized permission description.")
-    plugin_id: str | None = Field(default=None, description="Owning plugin id.")
-    plugin_name: str | None = Field(default=None, description="Localized plugin name (if applicable).")
+    owner_key: str | None = Field(default=None, description="Permission catalog owner key.")
+    owner_name: str | None = Field(default=None, description="Localized owner name (if applicable).")
 
 
 class WorkspacePermissionActionOut(BaseSchema):
@@ -36,8 +36,8 @@ class WorkspaceRBACMatrixPermissionRowOut(BaseSchema):
     code: str = Field(..., description="Permission code.")
     name: str = Field(..., description="Localized permission name.")
     description: str | None = Field(default=None, description="Localized permission description.")
-    plugin_id: str | None = Field(default=None, description="Owning plugin id.")
-    plugin_name: str | None = Field(default=None, description="Localized plugin name (if applicable).")
+    owner_key: str | None = Field(default=None, description="Permission catalog owner key.")
+    owner_name: str | None = Field(default=None, description="Localized owner name (if applicable).")
     granted_role_codes: list[str] = Field(default_factory=list, description="Granted role codes in this workspace.")
 
 

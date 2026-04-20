@@ -8,7 +8,7 @@ describe("management-sdk", () => {
       expect(input).toBeInstanceOf(Request);
       const request = input as Request;
       expect(request.url).toBe(
-        "https://api.arclayer.test/api/v1/workspaces/ws_123/content/models?page=2&size=5",
+        "https://api.arclayer.test/api/v1/projects/project_123/content/models?page=2&size=5",
       );
       const headers = request.headers;
       expect(headers.get("authorization")).toBe("Bearer mgmt_token");
@@ -44,8 +44,8 @@ describe("management-sdk", () => {
 
     const result = await sdk.content.models.list({
       page: 2,
+      projectId: "project_123",
       size: 5,
-      workspaceId: "ws_123",
     });
 
     expect(result.items).toHaveLength(1);
@@ -89,7 +89,7 @@ describe("management-sdk", () => {
           key: "article",
           name: "Article",
         },
-        workspaceId: "ws_123",
+        projectId: "project_123",
       }),
     ).rejects.toMatchObject({
       code: "CONTENT_MODEL_LOCKED",

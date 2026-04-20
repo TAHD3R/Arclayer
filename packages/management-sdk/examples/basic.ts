@@ -7,13 +7,13 @@ const sdk = createManagementSdk({
 
 async function run() {
   const models = await sdk.content.models.list({
-    workspaceId: "workspace_public_id",
     page: 1,
+    projectId: "project_public_id",
     size: 20,
   });
 
   const published = await sdk.releases.publish({
-    workspaceId: "workspace_public_id",
+    projectId: "project_public_id",
   });
 
   console.log(models.items.length, published.requestId);

@@ -10,8 +10,8 @@ from src.config import Settings
 from src.core.events import Event, EventBus
 from src.core.logging import get_logger
 from src.modules.analytics.ingest.service import ActivityIngestor
+from src.modules.projects.automation.runtime import AutomationRuntime
 from src.modules.system.rbac.service import RBACService
-from src.modules.workspaces.automation.runtime import AutomationRuntime
 from src.platform.jobs.assets_thumbnails import generate_asset_thumbnails
 from src.platform.jobs.client import is_taskiq_enabled, try_dedupe_enqueue, try_enqueue_task
 from src.platform.jobs.tasks import task_generate_asset_thumbnails

@@ -443,12 +443,6 @@ class WorkspaceService(BaseService):
         user_id: UUID,
         items: list[MyWorkspaceOut],
     ) -> MyWorkspaceListResult:
-        legacy_by_org_id = await self._load_legacy_org_flags(
-            organization_ids=[UUID(str(item.organization_id)) for item in items],
-        )
-        for item in items:
-            item.is_legacy = legacy_by_org_id.get(UUID(str(item.organization_id)), False)
-
         setup_state = await self.instance_setup_service.get_state()
         onboarding_state = await self.onboarding_service.get_state(user_id=user_id)
 
@@ -503,12 +497,6 @@ class WorkspaceService(BaseService):
             role=OrgRole.OWNER,
         )
         return organization
-
-    async def _load_legacy_org_flags(self, *, organization_ids: list[UUID]) -> dict[UUID, bool]:
-        out: dict[UUID, bool] = {}
-        for organization_id in dict.fromkeys(organization_ids):
-            out[organization_id] = await self.repo.count_active_workspaces(organization_id=organization_id) > 1
-        return out
 
     async def update_workspace(
         self,

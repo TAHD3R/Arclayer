@@ -24,7 +24,7 @@
   "TEAM_ROLES_EDIT_ROLE_DIALOG_DESC": "更新这个自定义角色的名称与描述。",
   "TEAM_ROLES_DELETE_TITLE": "删除角色？",
   "TEAM_ROLES_DELETE_DESC": "删除后将从所有成员解绑，且无法恢复。目标：{{roleName}}",
-  "TEAM_ROLES_PERMISSION_PROVIDED_BY": "由 {{pluginName}} 提供",
+  "TEAM_ROLES_PERMISSION_PROVIDED_BY": "由 {{ownerName}} 提供",
   "TEAM_ROLES_COL_PERMISSION": "权限",
   "TEAM_ROLES_PERMISSION_COUNT": "{{count}} 个权限",
   "TEAM_ROLES_EMPTY_SEARCH": "未找到匹配的权限或角色",

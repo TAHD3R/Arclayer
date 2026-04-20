@@ -5,7 +5,6 @@ export {
   organizationPath,
   organizationWorkspacesBasePath,
   organizationWorkspacePath,
-  orgExtensionPath,
   orgInvitationPath,
   orgInviteLinkPath,
   orgMemberPath,

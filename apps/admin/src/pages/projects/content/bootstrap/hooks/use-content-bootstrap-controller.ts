@@ -11,7 +11,7 @@ import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { DEFAULT_LOCALE, type AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import {
-  buildWorkspaceContentLibraryFocusSearch,
+  buildProjectContentLibraryFocusSearch,
   projectContentLibraryPath,
   projectContentModelsPath,
 } from "@/lib/routing/project-content-routing";
@@ -216,7 +216,7 @@ export function useContentBootstrapController(projectId: string) {
     (item: AdminContentItem) => {
       void navigate({
         to: projectContentLibraryPath(projectId),
-        search: buildWorkspaceContentLibraryFocusSearch(item.id),
+        search: buildProjectContentLibraryFocusSearch(item.id),
       });
     },
     [navigate, projectId],

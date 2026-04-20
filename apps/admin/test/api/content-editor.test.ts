@@ -81,31 +81,34 @@ describe("api/content editor version wrappers", () => {
     vi.mocked(api.patch).mockResolvedValueOnce({ itemId: "item-1", versionNumber: 3 });
     vi.mocked(api.post).mockResolvedValueOnce({ itemId: "item-1", versionNumber: 3 });
 
-    await getContentItem("ws-1", "item-1");
-    await getContentItemVersion("ws-1", "item-1", 2);
-    await listContentItemVersions("ws-1", "item-1", { page: 2, size: 10 });
-    await saveContentItemDraftVersion("ws-1", "item-1", savePayload);
-    await patchContentItemVersion("ws-1", "item-1", 3, patchPayload);
-    await publishContentItemVersion("ws-1", "item-1", 3);
+    await getContentItem("project-1", "item-1");
+    await getContentItemVersion("project-1", "item-1", 2);
+    await listContentItemVersions("project-1", "item-1", { page: 2, size: 10 });
+    await saveContentItemDraftVersion("project-1", "item-1", savePayload);
+    await patchContentItemVersion("project-1", "item-1", 3, patchPayload);
+    await publishContentItemVersion("project-1", "item-1", 3);
 
-    expect(api.get).toHaveBeenNthCalledWith(1, "/workspaces/ws-1/content/items/item-1");
-    expect(api.get).toHaveBeenNthCalledWith(2, "/workspaces/ws-1/content/items/item-1/versions/2");
+    expect(api.get).toHaveBeenNthCalledWith(1, "/projects/project-1/content/items/item-1");
+    expect(api.get).toHaveBeenNthCalledWith(
+      2,
+      "/projects/project-1/content/items/item-1/versions/2",
+    );
     expect(api.get).toHaveBeenNthCalledWith(
       3,
-      "/workspaces/ws-1/content/items/item-1/versions?page=2&size=10",
+      "/projects/project-1/content/items/item-1/versions?page=2&size=10",
     );
     expect(api.post).toHaveBeenNthCalledWith(
       1,
-      "/workspaces/ws-1/content/items/item-1/versions/draft",
+      "/projects/project-1/content/items/item-1/versions/draft",
       savePayload,
     );
     expect(api.patch).toHaveBeenCalledWith(
-      "/workspaces/ws-1/content/items/item-1/versions/3",
+      "/projects/project-1/content/items/item-1/versions/3",
       patchPayload,
     );
     expect(api.post).toHaveBeenNthCalledWith(
       2,
-      "/workspaces/ws-1/content/items/item-1/versions/3/publish",
+      "/projects/project-1/content/items/item-1/versions/3/publish",
     );
   });
 
@@ -164,7 +167,7 @@ describe("api/content editor version wrappers", () => {
       .mockResolvedValueOnce(draftVersion)
       .mockResolvedValueOnce(publishedVersion);
 
-    const snapshot = await loadContentLibraryArticleEditorSnapshot("ws-1", "item-1");
+    const snapshot = await loadContentLibraryArticleEditorSnapshot("project-1", "item-1");
 
     expect(snapshot.item).toEqual(item);
     expect(snapshot.draftVersion).toEqual(draftVersion);

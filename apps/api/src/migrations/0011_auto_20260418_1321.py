@@ -14,7 +14,7 @@ from tortoise.migrations.operations import (
 from src.common.utils.ids import uuid7
 from src.models.projects.membership import ProjectMemberRole
 from src.models.projects.runtime import ProjectRuntimeKind
-from src.models.workspaces.api_key import ApiKeyFamily, DeliveryKeyPerspective
+from src.models.projects.api_key import ApiKeyFamily, DeliveryKeyPerspective
 
 
 class StateOnly(TortoiseOperation):

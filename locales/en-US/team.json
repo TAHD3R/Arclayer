@@ -24,7 +24,7 @@
   "TEAM_ROLES_EDIT_ROLE_DIALOG_DESC": "Update the name and description for this custom role.",
   "TEAM_ROLES_DELETE_TITLE": "Delete role?",
   "TEAM_ROLES_DELETE_DESC": "This will unbind the role from all members and cannot be undone. Target: {{roleName}}",
-  "TEAM_ROLES_PERMISSION_PROVIDED_BY": "Provided by {{pluginName}}",
+  "TEAM_ROLES_PERMISSION_PROVIDED_BY": "Provided by {{ownerName}}",
   "TEAM_ROLES_COL_PERMISSION": "Permissions",
   "TEAM_ROLES_PERMISSION_COUNT": "{{count}} permissions",
   "TEAM_ROLES_EMPTY_SEARCH": "No matching permissions or roles found",

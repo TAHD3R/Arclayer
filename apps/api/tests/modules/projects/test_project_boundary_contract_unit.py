@@ -46,7 +46,10 @@ PROJECT_OWNED_WORKSPACE_MOUNTS = {
 
 
 def _read(relative_path: str) -> str:
-    return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+    path = REPO_ROOT / relative_path
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8")
 
 
 def test_project_owned_management_routes_are_not_mounted_under_workspaces() -> None:

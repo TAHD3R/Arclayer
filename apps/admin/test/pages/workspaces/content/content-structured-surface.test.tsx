@@ -18,7 +18,7 @@ describe("ContentStructuredSurfacePage", () => {
   test("renders the structured continuation surface with item context", () => {
     render(
       <ContentStructuredSurfacePage
-        workspaceId="ws-1"
+        projectId="project-1"
         item={{
           id: "item-1",
           workspaceId: "ws-1",
@@ -62,7 +62,7 @@ describe("ContentStructuredSurfacePage", () => {
   test("renders an in-surface boundary when structured capabilities are incomplete", () => {
     render(
       <ContentStructuredSurfacePage
-        workspaceId="ws-1"
+        projectId="project-1"
         item={{
           id: "item-2",
           workspaceId: "ws-1",

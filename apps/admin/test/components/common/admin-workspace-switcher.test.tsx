@@ -82,7 +82,6 @@ const workspaceFixtures: MyWorkspace[] = [
     ],
     visibleOnly: false,
     isCreatorAdmin: true,
-    isLegacy: false,
   },
   {
     workspaceId: "ws-beta",
@@ -106,7 +105,6 @@ const workspaceFixtures: MyWorkspace[] = [
     ],
     visibleOnly: false,
     isCreatorAdmin: true,
-    isLegacy: false,
   },
 ];
 

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.models.workspaces.api_key import ApiKeyFamily
-from src.modules.workspaces.api_keys.security import (
+from src.models.projects.api_key import ApiKeyFamily
+from src.modules.projects.api_keys.security import (
     get_api_key_prefix,
     mask_api_key_token,
     mint_api_key,

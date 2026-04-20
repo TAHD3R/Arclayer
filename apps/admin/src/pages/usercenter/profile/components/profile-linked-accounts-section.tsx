@@ -189,8 +189,8 @@ export function UserLinkedAccountsSection(props: UserLinkedAccountsSectionProps)
 
   const loading = providersQuery.isLoading || identitiesQuery.isLoading;
   const rawError = providersQuery.error ?? identitiesQuery.error;
-  // In self-host / plugin-disabled environments, the linked-identity endpoint may not exist yet.
-  // Treat that as "no linked accounts feature available" rather than a page-level 404.
+  // In self-host environments, the linked-identity endpoint may not exist yet.
+  // Treat that as an unavailable linked-accounts feature rather than a page-level 404.
   const error = rawError instanceof ApiError && rawError.status === 404 ? null : rawError;
   const empty = !loading && !error && providerRows.length === 0;
   const selectedDisconnectRow =

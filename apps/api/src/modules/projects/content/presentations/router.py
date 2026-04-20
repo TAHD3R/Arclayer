@@ -6,14 +6,14 @@ from fastapi import APIRouter, Depends
 
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
+from src.modules.projects.content.presentations.router_helpers import (
+    ContentPresentationListOut,
+    ProjectContentCanonicalItemReadService,
+    get_project_content_presentations_service,
+)
 from src.modules.projects.content.shared.router import (
     ProjectContentRouteContext,
     require_project_content_read_context,
-)
-from src.modules.workspaces.content.contracts.schema import ContentPresentationListOut
-from src.modules.workspaces.content.presentations.router import (
-    WorkspaceContentCanonicalItemReadService,
-    get_workspace_content_presentations_service,
 )
 
 router = APIRouter(
@@ -33,8 +33,8 @@ async def list_project_content_presentations(
     version_number: int,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
     service: Annotated[
-        WorkspaceContentCanonicalItemReadService,
-        Depends(get_workspace_content_presentations_service),
+        ProjectContentCanonicalItemReadService,
+        Depends(get_project_content_presentations_service),
     ],
 ) -> ResponseModel[ContentPresentationListOut]:
     items = await service.list_presentations(

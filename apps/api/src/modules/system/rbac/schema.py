@@ -11,7 +11,7 @@ class PermissionOut(BaseOut):
     scope: str = Field(..., description="Permission scope (org/workspace).")
     name: str = Field(..., description="Localized permission name.")
     description: str | None = Field(default=None, description="Localized permission description.")
-    plugin_id: str | None = Field(default=None, description="Owning plugin id.")
+    owner_key: str | None = Field(default=None, description="Permission catalog owner key.")
 
 
 class PermissionTemplate(BaseSchema):

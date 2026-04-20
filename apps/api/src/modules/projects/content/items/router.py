@@ -11,27 +11,27 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.models.content._enums import ContentVersionState
 from src.modules.auth.http.service import get_current_user_id
-from src.modules.projects.content.shared.router import (
-    ProjectContentRouteContext,
-    require_project_content_manage_context,
-    require_project_content_publish_context,
-    require_project_content_read_context,
-)
-from src.modules.workspaces.content.contracts.schema import ContentItemOut, ContentVersionOut
-from src.modules.workspaces.content.items.canonical_service import WorkspaceContentCanonicalItemsService
-from src.modules.workspaces.content.items.input_schema import (
+from src.modules.projects.content.contracts.schema import ContentItemOut, ContentVersionOut
+from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
+from src.modules.projects.content.items.input_schema import (
     ContentItemBootstrapShapeIn,
     ContentItemCreateIn,
     ContentItemWorkflowPatchIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
-from src.modules.workspaces.content.items.read_service import WorkspaceContentCanonicalItemReadService
-from src.modules.workspaces.content.items.router import (
-    _publish_content_activity_event,
+from src.modules.projects.content.items.read_service import ProjectContentCanonicalItemReadService
+from src.modules.projects.content.items.router_helpers import (
     get_event_bus,
-    get_workspace_content_canonical_item_reads,
-    get_workspace_content_canonical_items_service,
+    get_project_content_canonical_item_reads,
+    get_project_content_canonical_items_service,
+    publish_content_activity_event,
+)
+from src.modules.projects.content.shared.router import (
+    ProjectContentRouteContext,
+    require_project_content_manage_context,
+    require_project_content_publish_context,
+    require_project_content_read_context,
 )
 
 router = APIRouter(
@@ -50,7 +50,7 @@ async def _publish_project_content_activity_event(
     event_name: str,
     properties: dict[str, object | None] | None = None,
 ) -> None:
-    await _publish_content_activity_event(
+    await publish_content_activity_event(
         actor_user_id=actor_user_id,
         ctx=ctx.workspace_ctx,
         entity_id=entity_id,
@@ -75,8 +75,8 @@ async def _publish_project_content_activity_event(
 async def list_project_content_items(
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
     service: Annotated[
-        WorkspaceContentCanonicalItemReadService,
-        Depends(get_workspace_content_canonical_item_reads),
+        ProjectContentCanonicalItemReadService,
+        Depends(get_project_content_canonical_item_reads),
     ],
     params: PageParams = Depends(get_page_params),
     model_key: Annotated[str | None, Query(alias="modelKey", description="Optional content model key filter.")] = None,
@@ -100,8 +100,8 @@ async def get_project_content_item(
     item_id: PublicUUID,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
     service: Annotated[
-        WorkspaceContentCanonicalItemReadService,
-        Depends(get_workspace_content_canonical_item_reads),
+        ProjectContentCanonicalItemReadService,
+        Depends(get_project_content_canonical_item_reads),
     ],
 ) -> ResponseModel[ContentItemOut]:
     data = await service.get_item(
@@ -125,8 +125,8 @@ async def create_project_content_item(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
     data = await service.create_item(
@@ -141,7 +141,7 @@ async def create_project_content_item(
         entity_id=data.id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.item.created",
+        event_name="project.content.item.created",
         properties={
             "item_title": data.title,
             "item_slug": data.slug,
@@ -163,8 +163,8 @@ async def duplicate_project_content_item(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
     data = await service.duplicate_item(
@@ -179,7 +179,7 @@ async def duplicate_project_content_item(
         entity_id=item_id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.item.duplicated",
+        event_name="project.content.item.duplicated",
         properties={
             "duplicated_item_id": str(data.id),
             "duplicated_item_title": data.title,
@@ -200,8 +200,8 @@ async def delete_project_content_item(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[None]:
     await service.delete_item(
@@ -215,7 +215,7 @@ async def delete_project_content_item(
         entity_id=item_id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.item.deleted",
+        event_name="project.content.item.deleted",
     )
     return ApiResponse.success()
 
@@ -232,8 +232,8 @@ async def archive_project_content_item(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
     data = await service.archive_item(
@@ -248,7 +248,7 @@ async def archive_project_content_item(
         entity_id=data.id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.item.archived",
+        event_name="project.content.item.archived",
         properties={"item_status": str(data.status)},
     )
     return ApiResponse.success(data=data)
@@ -266,8 +266,8 @@ async def unarchive_project_content_item(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
     data = await service.unarchive_item(
@@ -282,7 +282,7 @@ async def unarchive_project_content_item(
         entity_id=data.id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.item.unarchived",
+        event_name="project.content.item.unarchived",
         properties={"item_status": str(data.status)},
     )
     return ApiResponse.success(data=data)
@@ -301,8 +301,8 @@ async def apply_project_content_item_bootstrap_shape(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
     data = await service.apply_bootstrap_shape(
@@ -318,7 +318,7 @@ async def apply_project_content_item_bootstrap_shape(
         entity_id=data.id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.item.bootstrap.applied",
+        event_name="project.content.item.bootstrap.applied",
         properties={
             "bootstrap_preset_key": data.bootstrap_preset_key,
             "bootstrap_preset_state": str(data.bootstrap_preset_state),
@@ -340,8 +340,8 @@ async def patch_project_content_item_workflow(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
     data = await service.patch_workflow(
@@ -357,7 +357,7 @@ async def patch_project_content_item_workflow(
         entity_id=item_id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.item.workflow.updated",
+        event_name="project.content.item.workflow.updated",
         properties={
             "workflow_stage": str(data.workflow_stage),
             "workflow_assignee_user_id": str(data.workflow_assignee_user_id)
@@ -382,8 +382,8 @@ async def save_project_content_item_draft_version(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
     data = await service.save_draft_version(
@@ -399,7 +399,7 @@ async def save_project_content_item_draft_version(
         entity_id=item_id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.version.saved",
+        event_name="project.content.version.saved",
         properties={
             "version_number": data.version_number,
             "version_state": str(data.state),
@@ -419,8 +419,8 @@ async def list_project_content_item_versions(
     item_id: PublicUUID,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
     service: Annotated[
-        WorkspaceContentCanonicalItemReadService,
-        Depends(get_workspace_content_canonical_item_reads),
+        ProjectContentCanonicalItemReadService,
+        Depends(get_project_content_canonical_item_reads),
     ],
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[ContentVersionOut]]:
@@ -444,8 +444,8 @@ async def get_project_content_item_version(
     version_number: int,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
     service: Annotated[
-        WorkspaceContentCanonicalItemReadService,
-        Depends(get_workspace_content_canonical_item_reads),
+        ProjectContentCanonicalItemReadService,
+        Depends(get_project_content_canonical_item_reads),
     ],
 ) -> ResponseModel[ContentVersionOut]:
     data = await service.get_version(
@@ -470,8 +470,8 @@ async def publish_project_content_item_version(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
     data = await service.transition_version(
@@ -488,7 +488,7 @@ async def publish_project_content_item_version(
         entity_id=item_id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.version.published",
+        event_name="project.content.version.published",
         properties={
             "version_number": data.version_number,
             "version_state": str(data.state),
@@ -511,8 +511,8 @@ async def schedule_project_content_item_version(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
     data = await service.transition_version(
@@ -529,7 +529,7 @@ async def schedule_project_content_item_version(
         entity_id=item_id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.version.scheduled",
+        event_name="project.content.version.scheduled",
         properties={
             "version_number": data.version_number,
             "version_state": str(data.state),
@@ -552,8 +552,8 @@ async def archive_project_content_item_version(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
     data = await service.transition_version(
@@ -570,7 +570,7 @@ async def archive_project_content_item_version(
         entity_id=item_id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.version.archived",
+        event_name="project.content.version.archived",
         properties={
             "version_number": data.version_number,
             "version_state": str(data.state),
@@ -594,8 +594,8 @@ async def patch_project_content_item_version(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
-        WorkspaceContentCanonicalItemsService,
-        Depends(get_workspace_content_canonical_items_service),
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
     data = await service.patch_version(
@@ -612,7 +612,7 @@ async def patch_project_content_item_version(
         entity_id=item_id,
         entity_type="content_item",
         event_bus=event_bus,
-        event_name="workspace.content.version.patched",
+        event_name="project.content.version.patched",
         properties={
             "version_number": data.version_number,
             "version_state": str(data.state),

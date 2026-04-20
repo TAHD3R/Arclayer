@@ -8,7 +8,13 @@ from uuid import UUID, uuid4
 import pytest
 
 from src.core.exceptions import APIError, BadRequest, Forbidden, ServiceUnavailable
-from src.models.workspaces.api_key import ApiKeyFamily, DeliveryKeyPerspective
+from src.models.projects.api_key import ApiKeyFamily, DeliveryKeyPerspective
+from src.modules.projects.content.runtime import (
+    DocumentQuery,
+    DocumentQueryBoundary,
+    DocumentQueryRecord,
+    DocumentRuntimeMetadata,
+)
 from src.modules.sites.graphql.planner import (
     _MODEL_QUERY_RULES,
     GraphQLQueryPlan,
@@ -30,12 +36,6 @@ from src.modules.sites.graphql.service import (
     _record_sort_value,
     _record_text_field,
     graphql_error_extensions,
-)
-from src.modules.workspaces.content.runtime import (
-    DocumentQuery,
-    DocumentQueryBoundary,
-    DocumentQueryRecord,
-    DocumentRuntimeMetadata,
 )
 
 
@@ -176,7 +176,7 @@ def test_build_graphql_query_plan_normalizes_and_bounds_query_inputs() -> None:
 @pytest.mark.asyncio
 async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> None:
     service = _service()
-    service._document_facade = SimpleNamespace(
+    service._document_runtime_boundary = SimpleNamespace(
         build_query_boundary=lambda records: SimpleNamespace(execute=lambda query: SimpleNamespace(records=records))
     )
     records = [
@@ -243,7 +243,7 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
 @pytest.mark.asyncio
 async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pytest.MonkeyPatch) -> None:
     service = _service()
-    service._document_facade = SimpleNamespace(
+    service._document_runtime_boundary = SimpleNamespace(
         build_query_boundary=lambda records: SimpleNamespace(execute=lambda query: SimpleNamespace(records=records))
     )
     records = [

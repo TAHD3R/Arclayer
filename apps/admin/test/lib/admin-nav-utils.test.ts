@@ -80,7 +80,7 @@ const makeItem = (key: string, to?: string, children?: AdminNavItem[]): AdminNav
   disabled: false,
   blockedReason: null,
   requiredPermission: null,
-  ownerPluginId: null,
+  ownerKey: null,
   ...(to ? { to } : {}),
   ...(children?.length ? { children } : {}),
 });

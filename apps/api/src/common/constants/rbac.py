@@ -9,7 +9,5 @@ ROLE_EDITOR = "editor"
 ROLE_DESIGNER = "designer"
 ROLE_VIEWER = "viewer"
 
-# Synthetic owner id for core permission templates registered into the plugin registry.
+# Synthetic owner id for core permission templates registered into the RBAC catalog.
 CORE_PERMISSION_OWNER = "core"
-
-RBAC_ROLE_RESOLVER_EXTENSION_POINT = "rbac-role-resolver"

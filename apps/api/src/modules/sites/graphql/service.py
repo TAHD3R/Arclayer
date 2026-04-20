@@ -12,7 +12,17 @@ from src.config import Settings
 from src.core.exceptions import APIError, Forbidden, ServiceUnavailable
 from src.core.logging import get_logger
 from src.models.content.route_binding import RouteBindingRecord
-from src.models.workspaces.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
+from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
+from src.modules.projects.api_keys.repository import ProjectApiKeysRepository
+from src.modules.projects.api_keys.scopes import build_api_key_access_profile
+from src.modules.projects.api_keys.security import split_api_key_token, verify_api_key_token
+from src.modules.projects.content.models.protocol_registry import get_official_model_protocol
+from src.modules.projects.content.runtime import (
+    DocumentQuery,
+    DocumentQueryRecord,
+    DocumentRuntimeBoundary,
+    DocumentRuntimeMetadata,
+)
 from src.modules.sites.content.service import SiteContentService
 from src.modules.sites.delivery.schema import (
     DeliveryGlobalSetOut,
@@ -29,16 +39,6 @@ from src.modules.sites.graphql.planner import (
 from src.modules.sites.publishing.content_snapshot import CanonicalContentSnapshot, build_canonical_content_snapshot
 from src.modules.sites.repository import SitesRepository
 from src.modules.sites.service import SiteService
-from src.modules.workspaces.api_keys.repository import WorkspaceApiKeysRepository
-from src.modules.workspaces.api_keys.scopes import build_api_key_access_profile
-from src.modules.workspaces.api_keys.security import split_api_key_token, verify_api_key_token
-from src.modules.workspaces.content.models.protocol_registry import get_official_model_protocol
-from src.modules.workspaces.content.runtime import (
-    DocumentFacade,
-    DocumentQuery,
-    DocumentQueryRecord,
-    DocumentRuntimeMetadata,
-)
 from src.modules.workspaces.permissions import PermissionContext, PermissionSubjectKind, PolicyEvaluationService
 from src.platform.cache.valkey import ValkeyClientLike
 from src.settings.crypto import ensure_master_key, master_key_exists
@@ -173,8 +173,8 @@ class SiteGraphQLService:
         self._repo = SitesRepository()
         self._content_service = SiteContentService(settings, repo=self._repo)
         self._site_service = SiteService(settings, valkey=valkey, repo=self._repo)
-        self._api_keys_repo = WorkspaceApiKeysRepository()
-        self._document_facade = DocumentFacade.for_items_repo(self._repo)
+        self._api_keys_repo = ProjectApiKeysRepository()
+        self._document_runtime_boundary = DocumentRuntimeBoundary.for_items_repo(self._repo)
 
     async def resolve_query_access(
         self,
@@ -321,7 +321,7 @@ class SiteGraphQLService:
         )
         query_records = await self._list_plan_records(plan)
 
-        boundary = self._document_facade.build_query_boundary(query_records)
+        boundary = self._document_runtime_boundary.build_query_boundary(query_records)
         result = boundary.execute(
             DocumentQuery(
                 site_id=plan.site_id,

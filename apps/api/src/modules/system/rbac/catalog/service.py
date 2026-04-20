@@ -10,8 +10,7 @@ Notes:
 
 from src.modules.system.rbac.schema import PermissionTemplate
 
-# Core permission templates must live outside the plugin system, because RBAC is a core capability.
-# These templates are registered into the plugin registry at startup so RBAC can sync them into DB.
+# Core permission templates are registered as catalog-owned permission records during startup sync.
 CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
     # Admin access gate (required for all /admin/** routes).
     PermissionTemplate(
@@ -28,7 +27,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         code="system:settings:read",
         scope="workspace",
         name="Read settings",
-        description="Allow reading system settings and plugin settings.",
+        description="Allow reading system settings.",
         name_i18n="rbac:RBAC_PERM_SETTINGS_READ_NAME",
         description_i18n="rbac:RBAC_PERM_SETTINGS_READ_DESC",
         default_roles=["owner", "admin", "editor", "designer", "viewer"],
@@ -37,7 +36,7 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         code="system:settings:manage",
         scope="workspace",
         name="Manage settings",
-        description="Allow updating system settings and plugin settings.",
+        description="Allow updating system settings.",
         name_i18n="rbac:RBAC_PERM_SETTINGS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_SETTINGS_MANAGE_DESC",
         default_roles=["owner", "admin"],
@@ -107,25 +106,6 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         name_i18n="rbac:RBAC_PERM_KEYS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_KEYS_MANAGE_DESC",
         default_roles=["owner", "admin"],
-    ),
-    # Themes.
-    PermissionTemplate(
-        code="system:themes:read",
-        scope="workspace",
-        name="Read themes",
-        description="Allow viewing installed themes and theme package details.",
-        name_i18n="rbac:RBAC_PERM_THEMES_READ_NAME",
-        description_i18n="rbac:RBAC_PERM_THEMES_READ_DESC",
-        default_roles=["owner", "admin", "editor", "designer", "viewer"],
-    ),
-    PermissionTemplate(
-        code="system:themes:manage",
-        scope="workspace",
-        name="Manage themes",
-        description="Allow importing and uninstalling workspace themes.",
-        name_i18n="rbac:RBAC_PERM_THEMES_MANAGE_NAME",
-        description_i18n="rbac:RBAC_PERM_THEMES_MANAGE_DESC",
-        default_roles=["owner", "admin", "designer"],
     ),
     # Asset library and uploads.
     PermissionTemplate(
@@ -321,31 +301,6 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description="Allow managing reusable invite links in current workspace.",
         name_i18n="rbac:RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_NAME",
         description_i18n="rbac:RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_DESC",
-        default_roles=["owner", "admin"],
-    ),
-    # Extensions/Integrations management entry points in admin console.
-    #
-    # Note:
-    # - v2 uses workspace as the governance boundary for admin UI authorization.
-    # - Some system-level manager endpoints are still guarded by org membership role,
-    #   but the *Admin UI visibility* and workspace console features should be controlled
-    #   by workspace-scoped permissions.
-    PermissionTemplate(
-        code="system:extensions:read",
-        scope="workspace",
-        name="Read extensions",
-        description="Allow listing extensions/integrations and reading their details.",
-        name_i18n="rbac:RBAC_PERM_EXTENSIONS_READ_NAME",
-        description_i18n="rbac:RBAC_PERM_EXTENSIONS_READ_DESC",
-        default_roles=["owner", "admin"],
-    ),
-    PermissionTemplate(
-        code="system:extensions:manage",
-        scope="workspace",
-        name="Manage extensions",
-        description="Allow enabling, disabling and configuring extensions/integrations.",
-        name_i18n="rbac:RBAC_PERM_EXTENSIONS_MANAGE_NAME",
-        description_i18n="rbac:RBAC_PERM_EXTENSIONS_MANAGE_DESC",
         default_roles=["owner", "admin"],
     ),
 ]

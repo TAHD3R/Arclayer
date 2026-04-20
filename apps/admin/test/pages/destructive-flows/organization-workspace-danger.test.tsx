@@ -123,7 +123,6 @@ describe("workspace destructive flows", () => {
           kind: "team",
           visibleOnly: false,
           isCreatorAdmin: true,
-          isLegacy: false,
         },
       ],
       switcher: {
@@ -136,7 +135,6 @@ describe("workspace destructive flows", () => {
             kind: "team",
             visibleOnly: false,
             isCreatorAdmin: true,
-            isLegacy: false,
           },
         ],
       },

@@ -8,14 +8,14 @@ const sdk = createManagementSdk({
 async function run() {
   try {
     const release = await sdk.releases.publish({
-      workspaceId: "workspace_public_id",
+      projectId: "project_public_id",
     });
 
     const previewToken = await sdk.site.createPreviewToken({
       body: {
         ttlSeconds: 900,
       },
-      workspaceId: "workspace_public_id",
+      projectId: "project_public_id",
     });
 
     console.log(release.data.release.releaseNumber, previewToken.data.token);

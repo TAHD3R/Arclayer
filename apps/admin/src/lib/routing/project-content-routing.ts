@@ -37,7 +37,7 @@ export function projectContentCreatePath(projectId: string): string {
   return `/projects/${encodeURIComponent(projectId)}/content/create`;
 }
 
-export function buildWorkspaceContentLibraryFocusSearch(itemId: string): {
+export function buildProjectContentLibraryFocusSearch(itemId: string): {
   view: "draft";
   focusItemId: string;
 } {
@@ -48,7 +48,7 @@ export function buildWorkspaceContentLibraryFocusSearch(itemId: string): {
 }
 
 export function projectContentLibraryFocusedItemHref(projectId: string, itemId: string): string {
-  const search = new URLSearchParams(buildWorkspaceContentLibraryFocusSearch(itemId));
+  const search = new URLSearchParams(buildProjectContentLibraryFocusSearch(itemId));
   return `${projectContentLibraryPath(projectId)}?${search.toString()}`;
 }
 

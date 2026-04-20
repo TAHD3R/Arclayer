@@ -27,13 +27,13 @@ from src.models.content.model_view import ContentModelViewRecord
 from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.route_binding import RouteBindingRecord
-from src.modules.workspaces.content.contracts import schema as contracts_schema
-from src.modules.workspaces.content.items.domain_helpers import (
+from src.modules.projects.content.contracts import schema as contracts_schema
+from src.modules.projects.content.items.domain_helpers import (
     item_has_capability,
     read_summary_field,
     read_title_field,
 )
-from src.modules.workspaces.content.models.protocol_registry import list_official_model_protocols
+from src.modules.projects.content.models.protocol_registry import list_official_model_protocols
 
 REPO_ROOT = Path(__file__).resolve().parents[6]
 MIGRATION_BASELINE = REPO_ROOT / "apps/api/src/migrations/0001_initial.py"

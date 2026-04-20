@@ -80,8 +80,6 @@ class SettingsService(
                 namespace=CORE_SETTINGS_NAMESPACE,
                 schema=schema,
                 patch=patch,
-                plugin_id=None,
-                plugin_slug=None,
                 actor_user_id=str(updated_by) if updated_by is not None else None,
             )
             masked, secrets = self._mask_secrets(schema, merged)

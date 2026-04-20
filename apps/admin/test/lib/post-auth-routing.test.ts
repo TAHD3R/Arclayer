@@ -41,7 +41,6 @@ describe("post-auth-routing", () => {
       kind: "team" as const,
       visibleOnly: false,
       isCreatorAdmin: true,
-      isLegacy: false,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({
@@ -70,7 +69,6 @@ describe("post-auth-routing", () => {
       kind: "team" as const,
       visibleOnly: false,
       isCreatorAdmin: true,
-      isLegacy: false,
     };
     const secondWorkspace = {
       workspaceId: "w-team",
@@ -81,7 +79,6 @@ describe("post-auth-routing", () => {
       kind: "team" as const,
       visibleOnly: false,
       isCreatorAdmin: true,
-      isLegacy: false,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({
@@ -125,7 +122,6 @@ describe("post-auth-routing", () => {
       kind: "team" as const,
       visibleOnly: false,
       isCreatorAdmin: true,
-      isLegacy: false,
     };
 
     mocked.listMyWorkspaces.mockResolvedValue({

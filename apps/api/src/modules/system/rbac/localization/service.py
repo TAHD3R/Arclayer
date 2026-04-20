@@ -59,5 +59,5 @@ class RBACLocalizationMixin:
             "scope": perm.scope.value,
             "name": name,
             "description": desc or None,
-            "plugin_id": perm.plugin_id,
+            "owner_key": perm.owner_key,
         }

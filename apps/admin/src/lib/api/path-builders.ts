@@ -44,12 +44,6 @@ export function organizationWorkspacesBasePath(organizationId?: string): string 
   return `/organizations/${id}/workspaces`;
 }
 
-/** Build the path for organization-extension endpoints. */
-export function orgExtensionPath(capabilityId?: string): string {
-  if (!capabilityId) return "/organizations/current/extensions";
-  return `/organizations/current/extensions/${encodeURIComponent(capabilityId)}`;
-}
-
 /** Build path for a specific workspace under organization-workspaces. */
 export function organizationWorkspacePath(
   organizationId: string | undefined,

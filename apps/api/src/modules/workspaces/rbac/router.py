@@ -110,13 +110,13 @@ async def list_permissions(
 ) -> ResponseModel[PageData[WorkspacePermissionOut]]:
     """List permissions (workspace scope)."""
     perms = await service.repo.list_permissions(scope=PermissionScope.WORKSPACE)
-    plugin_ids = {str(p.plugin_id) for p in perms if p.plugin_id and str(p.plugin_id) != "core"}
-    plugin_names = await service.get_plugin_name_map(plugin_ids=plugin_ids)
+    owner_keys = {str(p.owner_key) for p in perms if p.owner_key and str(p.owner_key) != "core"}
+    owner_names = await service.get_owner_name_map(owner_keys=owner_keys)
     items: list[WorkspacePermissionOut] = []
     for p in perms:
         lp = service.localize_permission(p)
-        pid_raw = lp.get("plugin_id")
-        pid = pid_raw if isinstance(pid_raw, str) else None
+        owner_key_raw = lp.get("owner_key")
+        owner_key = owner_key_raw if isinstance(owner_key_raw, str) else None
         desc_raw = lp.get("description")
         description = desc_raw if isinstance(desc_raw, str) else None
         items.append(
@@ -125,8 +125,8 @@ async def list_permissions(
                 code=str(lp["code"]),
                 name=str(lp["name"]),
                 description=description,
-                plugin_id=pid,
-                plugin_name=plugin_names.get(str(pid)) if pid else None,
+                owner_key=owner_key,
+                owner_name=owner_names.get(str(owner_key)) if owner_key else None,
             )
         )
     page = paginate_items(items, params=params)
@@ -173,14 +173,14 @@ async def get_matrix(
     # Localize outputs.
     locale = get_current_locale()
     localized_roles = [WorkspaceRoleOut.model_validate(service.localize_role(r, locale=locale)) for r in roles]
-    plugin_ids = {str(p.plugin_id) for p in permissions if p.plugin_id and str(p.plugin_id) != "core"}
-    plugin_names = await service.get_plugin_name_map(plugin_ids=plugin_ids)
+    owner_keys = {str(p.owner_key) for p in permissions if p.owner_key and str(p.owner_key) != "core"}
+    owner_names = await service.get_owner_name_map(owner_keys=owner_keys)
     localized_perm_rows: list[WorkspaceRBACMatrixPermissionRowOut] = []
     for p in permissions:
         lp = service.localize_permission(p)
         granted = grants.get(p.code, [])
-        pid_raw = lp.get("plugin_id")
-        pid = pid_raw if isinstance(pid_raw, str) else None
+        owner_key_raw = lp.get("owner_key")
+        owner_key = owner_key_raw if isinstance(owner_key_raw, str) else None
         desc_raw = lp.get("description")
         description = desc_raw if isinstance(desc_raw, str) else None
         localized_perm_rows.append(
@@ -188,8 +188,8 @@ async def get_matrix(
                 code=p.code,
                 name=str(lp.get("name") or ""),
                 description=description,
-                plugin_id=pid,
-                plugin_name=plugin_names.get(str(pid)) if pid else None,
+                owner_key=owner_key,
+                owner_name=owner_names.get(str(owner_key)) if owner_key else None,
                 granted_role_codes=granted,
             )
         )

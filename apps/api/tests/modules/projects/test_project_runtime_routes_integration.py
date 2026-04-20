@@ -19,7 +19,9 @@ from tests.modules.workspaces.content.test_content_presentations_integration imp
 from tests.modules.workspaces.content.test_content_presentations_integration import (
     _item_payload as _page_item_payload,
 )
-from tests.modules.workspaces.test_workspace_api_keys_management_integration import _workspace_payload
+from tests.modules.workspaces.test_workspace_api_keys_management_integration import (
+    _project_api_key_payload,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -133,7 +135,7 @@ async def test_runtime_routes_resolve_same_delivery_and_runtime_contract_as_proj
 
 
 @pytest.mark.asyncio
-async def test_project_facade_publish_and_preview_contract_resolve_through_runtime_context(
+async def test_project_runtime_publish_and_preview_contract_resolve_through_runtime_context(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -175,7 +177,10 @@ async def test_project_api_keys_bind_to_runtime_site_bridge(
         preview_runtime_id, _preview_token = await _site_id_and_preview_token(client, project_id)
         project_site_id = await _project_site_id(client, project_id)
 
-        create_res = await client.post(f"/api/v1/projects/{project_id}/api-keys", json=_workspace_payload())
+        create_res = await client.post(
+            f"/api/v1/projects/{project_id}/api-keys",
+            json=_project_api_key_payload(),
+        )
         assert create_res.status_code == 200, create_res.text
         created = create_res.json()["data"]
         key_id = created["key"]["id"]

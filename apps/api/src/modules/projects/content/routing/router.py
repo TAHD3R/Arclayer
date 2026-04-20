@@ -6,18 +6,18 @@ from fastapi import APIRouter, Body, Depends
 
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
+from src.modules.projects.content.routing.router_helpers import (
+    HierarchyNodeOut,
+    HierarchyNodeUpsertIn,
+    ProjectContentRoutingService,
+    RouteBindingOut,
+    RouteBindingUpsertIn,
+    get_project_content_routing_service,
+)
 from src.modules.projects.content.shared.router import (
     ProjectContentRouteContext,
     require_project_content_manage_context,
     require_project_content_read_context,
-)
-from src.modules.workspaces.content.routing.router import (
-    HierarchyNodeOut,
-    HierarchyNodeUpsertIn,
-    RouteBindingOut,
-    RouteBindingUpsertIn,
-    WorkspaceContentRoutingService,
-    get_workspace_content_routing_service,
 )
 
 router = APIRouter(
@@ -34,7 +34,7 @@ router = APIRouter(
 )
 async def list_project_content_route_bindings(
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
-    service: Annotated[WorkspaceContentRoutingService, Depends(get_workspace_content_routing_service)],
+    service: Annotated[ProjectContentRoutingService, Depends(get_project_content_routing_service)],
 ) -> ResponseModel[list[RouteBindingOut]]:
     data = await service.list_route_bindings(workspace_id=ctx.workspace_id, site_id=ctx.site_id)
     return ApiResponse.success(data=data)
@@ -50,7 +50,7 @@ async def upsert_project_content_route_binding(
     item_id: PublicUUID,
     payload: Annotated[RouteBindingUpsertIn, Body(description="Route binding upsert payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
-    service: Annotated[WorkspaceContentRoutingService, Depends(get_workspace_content_routing_service)],
+    service: Annotated[ProjectContentRoutingService, Depends(get_project_content_routing_service)],
 ) -> ResponseModel[RouteBindingOut]:
     data = await service.upsert_route_binding(
         workspace_id=ctx.workspace_id,
@@ -69,7 +69,7 @@ async def upsert_project_content_route_binding(
 )
 async def list_project_content_hierarchy_nodes(
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
-    service: Annotated[WorkspaceContentRoutingService, Depends(get_workspace_content_routing_service)],
+    service: Annotated[ProjectContentRoutingService, Depends(get_project_content_routing_service)],
 ) -> ResponseModel[list[HierarchyNodeOut]]:
     data = await service.list_hierarchy_nodes(workspace_id=ctx.workspace_id, site_id=ctx.site_id)
     return ApiResponse.success(data=data)
@@ -85,7 +85,7 @@ async def upsert_project_content_hierarchy_node(
     item_id: PublicUUID,
     payload: Annotated[HierarchyNodeUpsertIn, Body(description="Hierarchy node upsert payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
-    service: Annotated[WorkspaceContentRoutingService, Depends(get_workspace_content_routing_service)],
+    service: Annotated[ProjectContentRoutingService, Depends(get_project_content_routing_service)],
 ) -> ResponseModel[HierarchyNodeOut]:
     data = await service.upsert_hierarchy_node(
         workspace_id=ctx.workspace_id,

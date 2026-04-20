@@ -1016,21 +1016,6 @@ export type ApiKeyOut = {
 export type ApiKeyScope = 'content.read' | 'content.write' | 'models.read' | 'models.write' | 'delivery.read' | 'graphql.read' | 'keys.read' | 'keys.write' | 'settings.read' | 'settings.write';
 
 /**
- * AppKind
- */
-export type AppKind = 'extension' | 'integration';
-
-/**
- * AppProvider
- */
-export type AppProvider = 'official' | 'community';
-
-/**
- * AppScope
- */
-export type AppScope = 'workspace' | 'organization';
-
-/**
  * AssetPurpose
  *
  * Asset purpose category (used for validation and policies).
@@ -1446,6 +1431,10 @@ export type AutomationFlowOut = {
      */
     operations?: Array<AutomationOperationOut>;
     /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
      * Retrylimit
      */
     retryLimit: number;
@@ -1680,6 +1669,10 @@ export type AutomationRunOut = {
      */
     maxAttempts: number;
     /**
+     * Projectid
+     */
+    projectId?: string | null;
+    /**
      * Resultpayload
      */
     resultPayload?: {
@@ -1763,92 +1756,6 @@ export type AvatarUploadInitRequest = {
      * Total size in bytes.
      */
     sizeBytes: number;
-};
-
-/**
- * CapabilityListOut
- */
-export type CapabilityListOut = {
-    /**
-     * Items
-     */
-    items?: Array<CapabilitySummaryOut>;
-};
-
-/**
- * CapabilitySummaryOut
- *
- * User-facing capability summary (capability-first UX).
- */
-export type CapabilitySummaryOut = {
-    /**
-     * Capabilityid
-     *
-     * Stable capability identifier.
-     */
-    capabilityId: string;
-    /**
-     * Description
-     *
-     * Capability description (localized if possible).
-     */
-    description?: string | null;
-    /**
-     * Descriptioni18N
-     *
-     * i18n ref (namespace:key).
-     */
-    descriptionI18N?: string | null;
-    /**
-     * Enabled
-     *
-     * Whether capability is enabled in current scope.
-     */
-    enabled?: boolean;
-    /**
-     * Iconurl
-     *
-     * Optional icon URL (absolute) or API path.
-     */
-    iconUrl?: string | null;
-    /**
-     * Capability kind (extension/integration).
-     */
-    kind: AppKind;
-    /**
-     * Meta
-     *
-     * Optional provider metadata for UI.
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Name
-     *
-     * Capability display name (localized if possible).
-     */
-    name: string;
-    /**
-     * Namei18N
-     *
-     * i18n ref (namespace:key).
-     */
-    nameI18N?: string | null;
-    /**
-     * Capability provider (official/community).
-     */
-    provider: AppProvider;
-    /**
-     * Enablement scope (workspace/organization).
-     */
-    scope: AppScope;
-    /**
-     * Version
-     *
-     * Capability version (provider-defined).
-     */
-    version?: string | null;
 };
 
 /**
@@ -4410,12 +4317,6 @@ export type InvitationPreviewWorkspaceOut = {
      * Workspace name.
      */
     name: string;
-    /**
-     * Slug
-     *
-     * Workspace slug.
-     */
-    slug: string;
 };
 
 /**
@@ -4765,12 +4666,6 @@ export type MyInvitationWorkspaceOut = {
      * Workspace name.
      */
     name: string;
-    /**
-     * Slug
-     *
-     * Workspace slug.
-     */
-    slug: string;
 };
 
 /**
@@ -4963,12 +4858,6 @@ export type MyWorkspaceOut = {
      */
     isCreatorAdmin?: boolean;
     /**
-     * Islegacy
-     *
-     * Whether the underlying organization is in legacy multi-workspace compatibility mode.
-     */
-    isLegacy?: boolean;
-    /**
      * Workspace kind.
      */
     kind?: WorkspaceKind;
@@ -5002,12 +4891,6 @@ export type MyWorkspaceOut = {
      * Primary project id when available.
      */
     projectId?: string | null;
-    /**
-     * Slug
-     *
-     * Workspace slug.
-     */
-    slug: string;
     /**
      * Visibleonly
      *
@@ -5395,12 +5278,6 @@ export type OnboardingWorkspaceCreateRequest = {
      * Workspace name chosen during onboarding.
      */
     name?: string | null;
-    /**
-     * Slug
-     *
-     * Workspace slug chosen during onboarding.
-     */
-    slug?: string | null;
 };
 
 /**
@@ -6260,12 +6137,6 @@ export type OrganizationMemberWorkspaceOut = {
      * Workspace name.
      */
     workspaceName: string;
-    /**
-     * Workspaceslug
-     *
-     * Workspace slug.
-     */
-    workspaceSlug: string;
 };
 
 /**
@@ -6621,12 +6492,6 @@ export type OrganizationWorkspaceCreateRequest = {
      */
     name: string;
     /**
-     * Slug
-     *
-     * Workspace slug (optional).
-     */
-    slug?: string | null;
-    /**
      * Workspace bootstrap template.
      */
     template?: OrganizationWorkspaceTemplate;
@@ -6846,41 +6711,11 @@ export type OrganizationWorkspaceOut = {
      */
     projectId?: string | null;
     /**
-     * Slug
-     *
-     * Workspace slug.
-     */
-    slug: string;
-    /**
      * Workspaceid
      *
      * Workspace id.
      */
     workspaceId: string;
-};
-
-/**
- * OrganizationWorkspaceSlugAvailabilityOut
- */
-export type OrganizationWorkspaceSlugAvailabilityOut = {
-    /**
-     * Available
-     *
-     * Whether the slug is currently available.
-     */
-    available?: boolean;
-    /**
-     * Normalizedslug
-     *
-     * Normalized workspace slug if parseable.
-     */
-    normalizedSlug?: string | null;
-    /**
-     * Reason
-     *
-     * Explicit reason code when unavailable: invalid, reserved, or exists.
-     */
-    reason?: string | null;
 };
 
 /**
@@ -8309,11 +8144,11 @@ export type PermissionOut = {
      */
     name: string;
     /**
-     * Pluginid
+     * Ownerkey
      *
-     * Owning plugin id.
+     * Permission catalog owner key.
      */
-    pluginId?: string | null;
+    ownerKey?: string | null;
     /**
      * Scope
      *
@@ -8346,6 +8181,30 @@ export type PersonalApiKeyCreateIn = {
      * Expiresat
      */
     expiresAt?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Scopes
+     */
+    scopes?: Array<ApiKeyScope>;
+};
+
+/**
+ * ProjectApiKeyCreateIn
+ */
+export type ProjectApiKeyCreateIn = {
+    deliveryPerspective?: DeliveryKeyPerspective | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Expiresat
+     */
+    expiresAt?: string | null;
+    family: ApiKeyFamily;
     /**
      * Name
      */
@@ -8878,6 +8737,56 @@ export type ProjectRuntimeOut = {
      * Project id.
      */
     projectId: string;
+};
+
+/**
+ * ProjectRuntimeSiteOut
+ *
+ * Project runtime site metadata.
+ */
+export type ProjectRuntimeSiteOut = {
+    /**
+     * Defaultlocale
+     *
+     * Default locale code.
+     */
+    defaultLocale?: string;
+    /**
+     * Fallbacklocale
+     *
+     * Fallback locale code.
+     */
+    fallbackLocale?: string;
+    /**
+     * Isactive
+     *
+     * Whether the site is active.
+     */
+    isActive?: boolean;
+    /**
+     * Name
+     *
+     * Site display name.
+     */
+    name: string;
+    /**
+     * Siteid
+     *
+     * Resolved site id for the runtime.
+     */
+    siteId: string;
+    /**
+     * Slug
+     *
+     * Site slug (kept for compatibility/future).
+     */
+    slug: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
 };
 
 /**
@@ -10110,56 +10019,6 @@ export type ResponseModelAutomationRunListOut = {
  */
 export type ResponseModelAutomationRunOut = {
     data?: AutomationRunOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[CapabilityListOut]
- */
-export type ResponseModelCapabilityListOut = {
-    data?: CapabilityListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[CapabilitySummaryOut]
- */
-export type ResponseModelCapabilitySummaryOut = {
-    data?: CapabilitySummaryOut | null;
     /**
      * Error
      */
@@ -11434,31 +11293,6 @@ export type ResponseModelOrganizationWorkspaceOut = {
 };
 
 /**
- * ResponseModel[OrganizationWorkspaceSlugAvailabilityOut]
- */
-export type ResponseModelOrganizationWorkspaceSlugAvailabilityOut = {
-    data?: OrganizationWorkspaceSlugAvailabilityOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[AdminAssetFolderOut]]
  */
 export type ResponseModelPageDataAdminAssetFolderOut = {
@@ -12359,6 +12193,31 @@ export type ResponseModelProjectMemberOut = {
 };
 
 /**
+ * ResponseModel[ProjectRuntimeSiteOut]
+ */
+export type ResponseModelProjectRuntimeSiteOut = {
+    data?: ProjectRuntimeSiteOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ProjectSlugAvailabilityOut]
  */
 export type ResponseModelProjectSlugAvailabilityOut = {
@@ -13159,31 +13018,6 @@ export type ResponseModelTwoFactorStatusOut = {
 };
 
 /**
- * ResponseModel[UIEmbedListOut]
- */
-export type ResponseModelUiEmbedListOut = {
-    data?: UiEmbedListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[UploadAbortOut]
  */
 export type ResponseModelUploadAbortOut = {
@@ -13684,31 +13518,6 @@ export type ResponseModelWorkspaceSettingsDetail = {
 };
 
 /**
- * ResponseModel[WorkspaceSiteOut]
- */
-export type ResponseModelWorkspaceSiteOut = {
-    data?: WorkspaceSiteOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[WorkspaceTeamMemberOut]
  */
 export type ResponseModelWorkspaceTeamMemberOut = {
@@ -13738,56 +13547,6 @@ export type ResponseModelWorkspaceTeamMemberOut = {
  */
 export type ResponseModelWorkspaceTeamMemberStatusResult = {
     data?: WorkspaceTeamMemberStatusResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[WorkspaceThemeListOut]
- */
-export type ResponseModelWorkspaceThemeListOut = {
-    data?: WorkspaceThemeListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[WorkspaceThemeOut]
- */
-export type ResponseModelWorkspaceThemeOut = {
-    data?: WorkspaceThemeOut | null;
     /**
      * Error
      */
@@ -14275,25 +14034,13 @@ export type SettingsNamespaceSummary = {
      *
      * Namespace kind.
      */
-    kind: 'core' | 'theme' | 'plugin';
+    kind: 'core';
     /**
      * Namespace
      *
      * Settings namespace.
      */
     namespace: string;
-    /**
-     * Pluginid
-     *
-     * Plugin id if kind=plugin.
-     */
-    pluginId?: string | null;
-    /**
-     * Pluginslug
-     *
-     * Plugin slug if kind=plugin.
-     */
-    pluginSlug?: string | null;
     /**
      * Title
      *
@@ -15005,7 +14752,7 @@ export type SiteRouteMatchOut = {
     /**
      * Variantid
      *
-     * Optional theme variant id used by the resolved revision (if any).
+     * Optional design variant id used by the resolved revision (if any).
      */
     variantId?: string | null;
 };
@@ -15072,10 +14819,6 @@ export type SiteRuntimeOut = {
      * Site localization settings (public-safe).
      */
     siteLocalization?: SiteLocalizationOut | null;
-    /**
-     * Theme configuration.
-     */
-    theme: SiteThemeOut;
 };
 
 /**
@@ -15136,58 +14879,6 @@ export type SiteSettingUpsertIn = {
     value?: {
         [key: string]: unknown;
     } | null;
-};
-
-/**
- * SiteThemeOut
- */
-export type SiteThemeOut = {
-    /**
-     * Basecssurl
-     *
-     * Optional theme base CSS URL (typically a public asset URL).
-     */
-    baseCssUrl?: string | null;
-    /**
-     * Config
-     *
-     * Optional theme config (site-scoped, JSON).
-     */
-    config?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Cssvars
-     *
-     * Theme tokens as CSS variables (e.g. {'--color-primary': '#1677ff'}).
-     */
-    cssVars?: {
-        [key: string]: string;
-    };
-    /**
-     * Presetid
-     *
-     * Optional active preset id (theme-scoped).
-     */
-    presetId?: string | null;
-    /**
-     * Themeid
-     *
-     * Active theme id (npm-like).
-     */
-    themeId?: string | null;
-    /**
-     * Tokenscssurl
-     *
-     * Theme tokens CSS URL (typically a public asset URL).
-     */
-    tokensCssUrl?: string | null;
-    /**
-     * Version
-     *
-     * Active theme package version (semver).
-     */
-    version?: string | null;
 };
 
 /**
@@ -15482,99 +15173,6 @@ export type TwoFactorStatusOut = {
      * Whether 2FA is enabled.
      */
     enabled: boolean;
-};
-
-/**
- * UIEmbedDescriptorOut
- *
- * Declarative embed descriptor for Admin UI runtime.
- *
- * Notes:
- * - Community apps should use iframe embeds (embed_url).
- * - Official apps may also provide embed_url, or be rendered natively (future).
- */
-export type UiEmbedDescriptorOut = {
-    /**
-     * Capabilityid
-     *
-     * Owning capability id.
-     */
-    capabilityId: string;
-    /**
-     * Embedurl
-     *
-     * Absolute iframe URL to render.
-     */
-    embedUrl: string;
-    /**
-     * Icon
-     *
-     * Icon key (frontend maps to icon set).
-     */
-    icon?: string | null;
-    /**
-     * Id
-     *
-     * Embed id (stable within capability).
-     */
-    id: string;
-    /**
-     * Embed kind (field/entry_panel/app_page).
-     */
-    kind: UiEmbedKind;
-    /**
-     * Meta
-     *
-     * Arbitrary embed payload.
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Permissioncode
-     *
-     * Optional permission gate for visibility.
-     */
-    permissionCode?: string | null;
-    /**
-     * Sandbox
-     *
-     * Optional iframe sandbox policy override (defaults to strict host policy).
-     */
-    sandbox?: string | null;
-    /**
-     * Slot
-     *
-     * Slot identifier (host-defined).
-     */
-    slot: string;
-    /**
-     * Title
-     *
-     * Embed title fallback.
-     */
-    title: string;
-    /**
-     * Titlei18N
-     *
-     * i18n ref (namespace:key).
-     */
-    titleI18N?: string | null;
-};
-
-/**
- * UIEmbedKind
- */
-export type UiEmbedKind = 'field' | 'entry_panel' | 'app_page';
-
-/**
- * UIEmbedListOut
- */
-export type UiEmbedListOut = {
-    /**
-     * Items
-     */
-    items?: Array<UiEmbedDescriptorOut>;
 };
 
 /**
@@ -16047,30 +15645,6 @@ export type WebhookSubscriptionOut = {
 };
 
 /**
- * WorkspaceApiKeyCreateIn
- */
-export type WorkspaceApiKeyCreateIn = {
-    deliveryPerspective?: DeliveryKeyPerspective | null;
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Expiresat
-     */
-    expiresAt?: string | null;
-    family: ApiKeyFamily;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Scopes
-     */
-    scopes?: Array<ApiKeyScope>;
-};
-
-/**
  * WorkspaceAssignRoleToMembersRequest
  */
 export type WorkspaceAssignRoleToMembersRequest = {
@@ -16255,12 +15829,6 @@ export type WorkspaceDetailOut = {
      * Primary project binding for this workspace when available.
      */
     project?: WorkspacePrimaryProjectOut | null;
-    /**
-     * Slug
-     *
-     * Workspace slug.
-     */
-    slug: string;
 };
 
 /**
@@ -16691,17 +16259,17 @@ export type WorkspacePermissionOut = {
      */
     name: string;
     /**
-     * Pluginid
+     * Ownerkey
      *
-     * Owning plugin id.
+     * Permission catalog owner key.
      */
-    pluginId?: string | null;
+    ownerKey?: string | null;
     /**
-     * Pluginname
+     * Ownername
      *
-     * Localized plugin name (if applicable).
+     * Localized owner name (if applicable).
      */
-    pluginName?: string | null;
+    ownerName?: string | null;
 };
 
 /**
@@ -16763,17 +16331,17 @@ export type WorkspaceRbacMatrixPermissionRowOut = {
      */
     name: string;
     /**
-     * Pluginid
+     * Ownerkey
      *
-     * Owning plugin id.
+     * Permission catalog owner key.
      */
-    pluginId?: string | null;
+    ownerKey?: string | null;
     /**
-     * Pluginname
+     * Ownername
      *
-     * Localized plugin name (if applicable).
+     * Localized owner name (if applicable).
      */
-    pluginName?: string | null;
+    ownerName?: string | null;
 };
 
 /**
@@ -16900,60 +16468,6 @@ export type WorkspaceSettingsPatch = {
     patch?: {
         [key: string]: unknown;
     };
-};
-
-/**
- * WorkspaceSiteOut
- *
- * Workspace-scoped site metadata.
- *
- * Notes:
- * - Single-site workspace model: each workspace maps to exactly one site.
- * - Admin UI uses this endpoint to discover `site_id` for Portal editor URLs.
- */
-export type WorkspaceSiteOut = {
-    /**
-     * Defaultlocale
-     *
-     * Default locale code.
-     */
-    defaultLocale?: string;
-    /**
-     * Fallbacklocale
-     *
-     * Fallback locale code.
-     */
-    fallbackLocale?: string;
-    /**
-     * Isactive
-     *
-     * Whether the site is active.
-     */
-    isActive?: boolean;
-    /**
-     * Name
-     *
-     * Site display name.
-     */
-    name: string;
-    /**
-     * Siteid
-     *
-     * Resolved site id for the workspace.
-     */
-    siteId: string;
-    /**
-     * Slug
-     *
-     * Site slug (kept for compatibility/future).
-     */
-    slug: string;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
 };
 
 /**
@@ -17166,90 +16680,6 @@ export type WorkspaceTeamUserUpdateRequest = {
 };
 
 /**
- * WorkspaceThemeImportIn
- */
-export type WorkspaceThemeImportIn = {
-    /**
-     * Assetid
-     *
-     * Zip asset id to import as a theme package.
-     */
-    assetId: string;
-};
-
-/**
- * WorkspaceThemeListOut
- */
-export type WorkspaceThemeListOut = {
-    /**
-     * Items
-     */
-    items?: Array<WorkspaceThemeOut>;
-};
-
-/**
- * WorkspaceThemeOut
- */
-export type WorkspaceThemeOut = {
-    /**
-     * Artifactassetid
-     */
-    artifactAssetId?: string | null;
-    /**
-     * Artifacthash
-     */
-    artifactHash?: string | null;
-    /**
-     * Basecssassetid
-     */
-    baseCssAssetId?: string | null;
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Manifest
-     *
-     * Raw manifest.json.
-     */
-    manifest: {
-        [key: string]: unknown;
-    };
-    /**
-     * Name
-     */
-    name?: string | null;
-    /**
-     * Presets
-     */
-    presets?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Previewimageassetid
-     */
-    previewImageAssetId?: string | null;
-    /**
-     * Themeid
-     */
-    themeId: string;
-    /**
-     * Tokenscssassetid
-     */
-    tokensCssAssetId: string;
-    /**
-     * Variants
-     */
-    variants?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Version
-     */
-    version: string;
-};
-
-/**
  * WorkspaceUpdateRequest
  */
 export type WorkspaceUpdateRequest = {
@@ -17293,12 +16723,6 @@ export type WorkspaceUpdateRequest = {
      * Workspace name.
      */
     name?: string | null;
-    /**
-     * Slug
-     *
-     * Workspace slug.
-     */
-    slug?: string | null;
 };
 
 /**
@@ -19441,154 +18865,6 @@ export type DomainWorkspacesCreateMyOnboardingWorkspaceResponses = {
 
 export type DomainWorkspacesCreateMyOnboardingWorkspaceResponse = DomainWorkspacesCreateMyOnboardingWorkspaceResponses[keyof DomainWorkspacesCreateMyOnboardingWorkspaceResponses];
 
-export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * Slug
-         *
-         * Desired workspace slug.
-         */
-        slug: string;
-    };
-    url: '/api/v1/me/workspaces/onboarding/slug-availability';
-};
-
-export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityError = DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityErrors[keyof DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityErrors];
-
-export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceSlugAvailabilityOut;
-};
-
-export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityResponse = DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityResponses[keyof DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityResponses];
-
-export type DomainOrganizationListOrgCapabilitiesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/current/extensions';
-};
-
-export type DomainOrganizationListOrgCapabilitiesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelCapabilityListOut;
-};
-
-export type DomainOrganizationListOrgCapabilitiesResponse = DomainOrganizationListOrgCapabilitiesResponses[keyof DomainOrganizationListOrgCapabilitiesResponses];
-
-export type DomainOrganizationListOrgUiEmbedsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Slot
-         *
-         * Host-defined slot id (optional).
-         */
-        slot?: string | null;
-        /**
-         * Capabilityid
-         */
-        capabilityId?: string | null;
-        /**
-         * Enabledonly
-         */
-        enabledOnly?: boolean;
-    };
-    url: '/api/v1/organizations/current/extensions/ui-embeds';
-};
-
-export type DomainOrganizationListOrgUiEmbedsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrgUiEmbedsError = DomainOrganizationListOrgUiEmbedsErrors[keyof DomainOrganizationListOrgUiEmbedsErrors];
-
-export type DomainOrganizationListOrgUiEmbedsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUiEmbedListOut;
-};
-
-export type DomainOrganizationListOrgUiEmbedsResponse = DomainOrganizationListOrgUiEmbedsResponses[keyof DomainOrganizationListOrgUiEmbedsResponses];
-
-export type DomainOrganizationDisableOrgCapabilityData = {
-    body?: never;
-    path: {
-        /**
-         * Capability Id
-         */
-        capability_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/current/extensions/{capability_id}/disable';
-};
-
-export type DomainOrganizationDisableOrgCapabilityErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDisableOrgCapabilityError = DomainOrganizationDisableOrgCapabilityErrors[keyof DomainOrganizationDisableOrgCapabilityErrors];
-
-export type DomainOrganizationDisableOrgCapabilityResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelCapabilitySummaryOut;
-};
-
-export type DomainOrganizationDisableOrgCapabilityResponse = DomainOrganizationDisableOrgCapabilityResponses[keyof DomainOrganizationDisableOrgCapabilityResponses];
-
-export type DomainOrganizationEnableOrgCapabilityData = {
-    body?: never;
-    path: {
-        /**
-         * Capability Id
-         */
-        capability_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/current/extensions/{capability_id}/enable';
-};
-
-export type DomainOrganizationEnableOrgCapabilityErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationEnableOrgCapabilityError = DomainOrganizationEnableOrgCapabilityErrors[keyof DomainOrganizationEnableOrgCapabilityErrors];
-
-export type DomainOrganizationEnableOrgCapabilityResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelCapabilitySummaryOut;
-};
-
-export type DomainOrganizationEnableOrgCapabilityResponse = DomainOrganizationEnableOrgCapabilityResponses[keyof DomainOrganizationEnableOrgCapabilityResponses];
-
 export type DomainOrganizationDeleteOrganizationData = {
     body?: never;
     path?: never;
@@ -20421,7 +19697,7 @@ export type DomainOrganizationListOrganizationWorkspacesMeData = {
         /**
          * Q
          *
-         * Search query by workspace name or slug.
+         * Search query by workspace name.
          */
         q?: string | null;
         /**
@@ -20500,38 +19776,6 @@ export type DomainOrganizationCreateOrganizationWorkspaceMeResponses = {
 };
 
 export type DomainOrganizationCreateOrganizationWorkspaceMeResponse = DomainOrganizationCreateOrganizationWorkspaceMeResponses[keyof DomainOrganizationCreateOrganizationWorkspaceMeResponses];
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * Slug
-         *
-         * Desired workspace slug.
-         */
-        slug: string;
-    };
-    url: '/api/v1/organizations/me/workspaces/slug-availability';
-};
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeError = DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeErrors[keyof DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeErrors];
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceSlugAvailabilityOut;
-};
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeResponse = DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeResponses[keyof DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeResponses];
 
 export type DomainOrganizationDeleteOrganizationWorkspaceMeData = {
     body?: never;
@@ -21461,7 +20705,7 @@ export type DomainOrganizationListOrganizationWorkspacesByOrgData = {
         /**
          * Q
          *
-         * Search query by workspace name or slug.
+         * Search query by workspace name.
          */
         q?: string | null;
         /**
@@ -21547,45 +20791,6 @@ export type DomainOrganizationCreateOrganizationWorkspaceByOrgResponses = {
 };
 
 export type DomainOrganizationCreateOrganizationWorkspaceByOrgResponse = DomainOrganizationCreateOrganizationWorkspaceByOrgResponses[keyof DomainOrganizationCreateOrganizationWorkspaceByOrgResponses];
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query: {
-        /**
-         * Slug
-         *
-         * Desired workspace slug.
-         */
-        slug: string;
-    };
-    url: '/api/v1/organizations/{organization_id}/workspaces/slug-availability';
-};
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgError = DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgErrors[keyof DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgErrors];
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceSlugAvailabilityOut;
-};
-
-export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgResponse = DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgResponses[keyof DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgResponses];
 
 export type DomainOrganizationDeleteOrganizationWorkspaceByOrgData = {
     body?: never;
@@ -22018,7 +21223,7 @@ export type DomainProjectsListProjectApiKeysResponses = {
 export type DomainProjectsListProjectApiKeysResponse = DomainProjectsListProjectApiKeysResponses[keyof DomainProjectsListProjectApiKeysResponses];
 
 export type DomainProjectsCreateProjectApiKeyData = {
-    body: WorkspaceApiKeyCreateIn;
+    body: ProjectApiKeyCreateIn;
     path: {
         /**
          * Project Id
@@ -22189,6 +21394,1483 @@ export type DomainProjectsArchiveProjectResponses = {
 
 export type DomainProjectsArchiveProjectResponse = DomainProjectsArchiveProjectResponses[keyof DomainProjectsArchiveProjectResponses];
 
+export type DomainProjectsListProjectAutomationCatalogData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/automation/catalog';
+};
+
+export type DomainProjectsListProjectAutomationCatalogErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectAutomationCatalogError = DomainProjectsListProjectAutomationCatalogErrors[keyof DomainProjectsListProjectAutomationCatalogErrors];
+
+export type DomainProjectsListProjectAutomationCatalogResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationCatalogOut;
+};
+
+export type DomainProjectsListProjectAutomationCatalogResponse = DomainProjectsListProjectAutomationCatalogResponses[keyof DomainProjectsListProjectAutomationCatalogResponses];
+
+export type DomainProjectsListProjectAutomationFlowsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/automation/flows';
+};
+
+export type DomainProjectsListProjectAutomationFlowsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectAutomationFlowsError = DomainProjectsListProjectAutomationFlowsErrors[keyof DomainProjectsListProjectAutomationFlowsErrors];
+
+export type DomainProjectsListProjectAutomationFlowsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationFlowListOut;
+};
+
+export type DomainProjectsListProjectAutomationFlowsResponse = DomainProjectsListProjectAutomationFlowsResponses[keyof DomainProjectsListProjectAutomationFlowsResponses];
+
+export type DomainProjectsCreateProjectAutomationFlowData = {
+    body: AutomationFlowCreateIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/automation/flows';
+};
+
+export type DomainProjectsCreateProjectAutomationFlowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectAutomationFlowError = DomainProjectsCreateProjectAutomationFlowErrors[keyof DomainProjectsCreateProjectAutomationFlowErrors];
+
+export type DomainProjectsCreateProjectAutomationFlowResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelAutomationFlowOut;
+};
+
+export type DomainProjectsCreateProjectAutomationFlowResponse = DomainProjectsCreateProjectAutomationFlowResponses[keyof DomainProjectsCreateProjectAutomationFlowResponses];
+
+export type DomainProjectsDeleteProjectAutomationFlowData = {
+    body?: never;
+    path: {
+        /**
+         * Flow Id
+         */
+        flow_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/automation/flows/{flow_id}';
+};
+
+export type DomainProjectsDeleteProjectAutomationFlowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteProjectAutomationFlowError = DomainProjectsDeleteProjectAutomationFlowErrors[keyof DomainProjectsDeleteProjectAutomationFlowErrors];
+
+export type DomainProjectsDeleteProjectAutomationFlowResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainProjectsDeleteProjectAutomationFlowResponse = DomainProjectsDeleteProjectAutomationFlowResponses[keyof DomainProjectsDeleteProjectAutomationFlowResponses];
+
+export type DomainProjectsUpdateProjectAutomationFlowData = {
+    body: AutomationFlowPatchIn;
+    path: {
+        /**
+         * Flow Id
+         */
+        flow_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/automation/flows/{flow_id}';
+};
+
+export type DomainProjectsUpdateProjectAutomationFlowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpdateProjectAutomationFlowError = DomainProjectsUpdateProjectAutomationFlowErrors[keyof DomainProjectsUpdateProjectAutomationFlowErrors];
+
+export type DomainProjectsUpdateProjectAutomationFlowResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationFlowOut;
+};
+
+export type DomainProjectsUpdateProjectAutomationFlowResponse = DomainProjectsUpdateProjectAutomationFlowResponses[keyof DomainProjectsUpdateProjectAutomationFlowResponses];
+
+export type DomainProjectsListProjectAutomationRunsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/projects/{project_id}/automation/runs';
+};
+
+export type DomainProjectsListProjectAutomationRunsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectAutomationRunsError = DomainProjectsListProjectAutomationRunsErrors[keyof DomainProjectsListProjectAutomationRunsErrors];
+
+export type DomainProjectsListProjectAutomationRunsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationRunListOut;
+};
+
+export type DomainProjectsListProjectAutomationRunsResponse = DomainProjectsListProjectAutomationRunsResponses[keyof DomainProjectsListProjectAutomationRunsResponses];
+
+export type DomainProjectsGetProjectAutomationRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/automation/runs/{run_id}';
+};
+
+export type DomainProjectsGetProjectAutomationRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectAutomationRunError = DomainProjectsGetProjectAutomationRunErrors[keyof DomainProjectsGetProjectAutomationRunErrors];
+
+export type DomainProjectsGetProjectAutomationRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAutomationRunOut;
+};
+
+export type DomainProjectsGetProjectAutomationRunResponse = DomainProjectsGetProjectAutomationRunResponses[keyof DomainProjectsGetProjectAutomationRunResponses];
+
+export type DomainProjectsListProjectContentItemsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Modelkey
+         *
+         * Optional content model key filter.
+         */
+        modelKey?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/projects/{project_id}/content/items';
+};
+
+export type DomainProjectsListProjectContentItemsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentItemsError = DomainProjectsListProjectContentItemsErrors[keyof DomainProjectsListProjectContentItemsErrors];
+
+export type DomainProjectsListProjectContentItemsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataContentItemOut;
+};
+
+export type DomainProjectsListProjectContentItemsResponse = DomainProjectsListProjectContentItemsResponses[keyof DomainProjectsListProjectContentItemsResponses];
+
+export type DomainProjectsCreateProjectContentItemData = {
+    /**
+     * Create content item payload.
+     */
+    body: ContentItemCreateIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items';
+};
+
+export type DomainProjectsCreateProjectContentItemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectContentItemError = DomainProjectsCreateProjectContentItemErrors[keyof DomainProjectsCreateProjectContentItemErrors];
+
+export type DomainProjectsCreateProjectContentItemResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelContentItemOut;
+};
+
+export type DomainProjectsCreateProjectContentItemResponse = DomainProjectsCreateProjectContentItemResponses[keyof DomainProjectsCreateProjectContentItemResponses];
+
+export type DomainProjectsDeleteProjectContentItemData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}';
+};
+
+export type DomainProjectsDeleteProjectContentItemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteProjectContentItemError = DomainProjectsDeleteProjectContentItemErrors[keyof DomainProjectsDeleteProjectContentItemErrors];
+
+export type DomainProjectsDeleteProjectContentItemResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainProjectsDeleteProjectContentItemResponse = DomainProjectsDeleteProjectContentItemResponses[keyof DomainProjectsDeleteProjectContentItemResponses];
+
+export type DomainProjectsGetProjectContentItemData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}';
+};
+
+export type DomainProjectsGetProjectContentItemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectContentItemError = DomainProjectsGetProjectContentItemErrors[keyof DomainProjectsGetProjectContentItemErrors];
+
+export type DomainProjectsGetProjectContentItemResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemOut;
+};
+
+export type DomainProjectsGetProjectContentItemResponse = DomainProjectsGetProjectContentItemResponses[keyof DomainProjectsGetProjectContentItemResponses];
+
+export type DomainProjectsArchiveProjectContentItemData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/archive';
+};
+
+export type DomainProjectsArchiveProjectContentItemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsArchiveProjectContentItemError = DomainProjectsArchiveProjectContentItemErrors[keyof DomainProjectsArchiveProjectContentItemErrors];
+
+export type DomainProjectsArchiveProjectContentItemResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemOut;
+};
+
+export type DomainProjectsArchiveProjectContentItemResponse = DomainProjectsArchiveProjectContentItemResponses[keyof DomainProjectsArchiveProjectContentItemResponses];
+
+export type DomainProjectsApplyProjectContentItemBootstrapShapeData = {
+    /**
+     * Bootstrap shape payload.
+     */
+    body: ContentItemBootstrapShapeIn;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape';
+};
+
+export type DomainProjectsApplyProjectContentItemBootstrapShapeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsApplyProjectContentItemBootstrapShapeError = DomainProjectsApplyProjectContentItemBootstrapShapeErrors[keyof DomainProjectsApplyProjectContentItemBootstrapShapeErrors];
+
+export type DomainProjectsApplyProjectContentItemBootstrapShapeResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemOut;
+};
+
+export type DomainProjectsApplyProjectContentItemBootstrapShapeResponse = DomainProjectsApplyProjectContentItemBootstrapShapeResponses[keyof DomainProjectsApplyProjectContentItemBootstrapShapeResponses];
+
+export type DomainProjectsDuplicateProjectContentItemData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/duplicate';
+};
+
+export type DomainProjectsDuplicateProjectContentItemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDuplicateProjectContentItemError = DomainProjectsDuplicateProjectContentItemErrors[keyof DomainProjectsDuplicateProjectContentItemErrors];
+
+export type DomainProjectsDuplicateProjectContentItemResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemOut;
+};
+
+export type DomainProjectsDuplicateProjectContentItemResponse = DomainProjectsDuplicateProjectContentItemResponses[keyof DomainProjectsDuplicateProjectContentItemResponses];
+
+export type DomainProjectsUnarchiveProjectContentItemData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/unarchive';
+};
+
+export type DomainProjectsUnarchiveProjectContentItemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUnarchiveProjectContentItemError = DomainProjectsUnarchiveProjectContentItemErrors[keyof DomainProjectsUnarchiveProjectContentItemErrors];
+
+export type DomainProjectsUnarchiveProjectContentItemResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemOut;
+};
+
+export type DomainProjectsUnarchiveProjectContentItemResponse = DomainProjectsUnarchiveProjectContentItemResponses[keyof DomainProjectsUnarchiveProjectContentItemResponses];
+
+export type DomainProjectsListProjectContentItemVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions';
+};
+
+export type DomainProjectsListProjectContentItemVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentItemVersionsError = DomainProjectsListProjectContentItemVersionsErrors[keyof DomainProjectsListProjectContentItemVersionsErrors];
+
+export type DomainProjectsListProjectContentItemVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataContentVersionOut;
+};
+
+export type DomainProjectsListProjectContentItemVersionsResponse = DomainProjectsListProjectContentItemVersionsResponses[keyof DomainProjectsListProjectContentItemVersionsResponses];
+
+export type DomainProjectsSaveProjectContentItemDraftVersionData = {
+    /**
+     * Draft save payload.
+     */
+    body: ContentVersionDraftSaveIn;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft';
+};
+
+export type DomainProjectsSaveProjectContentItemDraftVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsSaveProjectContentItemDraftVersionError = DomainProjectsSaveProjectContentItemDraftVersionErrors[keyof DomainProjectsSaveProjectContentItemDraftVersionErrors];
+
+export type DomainProjectsSaveProjectContentItemDraftVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelContentVersionOut;
+};
+
+export type DomainProjectsSaveProjectContentItemDraftVersionResponse = DomainProjectsSaveProjectContentItemDraftVersionResponses[keyof DomainProjectsSaveProjectContentItemDraftVersionResponses];
+
+export type DomainProjectsGetProjectContentItemVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}';
+};
+
+export type DomainProjectsGetProjectContentItemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectContentItemVersionError = DomainProjectsGetProjectContentItemVersionErrors[keyof DomainProjectsGetProjectContentItemVersionErrors];
+
+export type DomainProjectsGetProjectContentItemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentVersionOut;
+};
+
+export type DomainProjectsGetProjectContentItemVersionResponse = DomainProjectsGetProjectContentItemVersionResponses[keyof DomainProjectsGetProjectContentItemVersionResponses];
+
+export type DomainProjectsPatchProjectContentItemVersionData = {
+    /**
+     * Version patch payload.
+     */
+    body: ContentVersionPatchIn;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}';
+};
+
+export type DomainProjectsPatchProjectContentItemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPatchProjectContentItemVersionError = DomainProjectsPatchProjectContentItemVersionErrors[keyof DomainProjectsPatchProjectContentItemVersionErrors];
+
+export type DomainProjectsPatchProjectContentItemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentVersionOut;
+};
+
+export type DomainProjectsPatchProjectContentItemVersionResponse = DomainProjectsPatchProjectContentItemVersionResponses[keyof DomainProjectsPatchProjectContentItemVersionResponses];
+
+export type DomainProjectsArchiveProjectContentItemVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/archive';
+};
+
+export type DomainProjectsArchiveProjectContentItemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsArchiveProjectContentItemVersionError = DomainProjectsArchiveProjectContentItemVersionErrors[keyof DomainProjectsArchiveProjectContentItemVersionErrors];
+
+export type DomainProjectsArchiveProjectContentItemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentVersionOut;
+};
+
+export type DomainProjectsArchiveProjectContentItemVersionResponse = DomainProjectsArchiveProjectContentItemVersionResponses[keyof DomainProjectsArchiveProjectContentItemVersionResponses];
+
+export type DomainProjectsListProjectContentBindingsData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/bindings';
+};
+
+export type DomainProjectsListProjectContentBindingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentBindingsError = DomainProjectsListProjectContentBindingsErrors[keyof DomainProjectsListProjectContentBindingsErrors];
+
+export type DomainProjectsListProjectContentBindingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentComponentBindingListOut;
+};
+
+export type DomainProjectsListProjectContentBindingsResponse = DomainProjectsListProjectContentBindingsResponses[keyof DomainProjectsListProjectContentBindingsResponses];
+
+export type DomainProjectsListProjectContentPresentationsData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/presentations';
+};
+
+export type DomainProjectsListProjectContentPresentationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentPresentationsError = DomainProjectsListProjectContentPresentationsErrors[keyof DomainProjectsListProjectContentPresentationsErrors];
+
+export type DomainProjectsListProjectContentPresentationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentPresentationListOut;
+};
+
+export type DomainProjectsListProjectContentPresentationsResponse = DomainProjectsListProjectContentPresentationsResponses[keyof DomainProjectsListProjectContentPresentationsResponses];
+
+export type DomainProjectsPublishProjectContentItemVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/publish';
+};
+
+export type DomainProjectsPublishProjectContentItemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPublishProjectContentItemVersionError = DomainProjectsPublishProjectContentItemVersionErrors[keyof DomainProjectsPublishProjectContentItemVersionErrors];
+
+export type DomainProjectsPublishProjectContentItemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentVersionOut;
+};
+
+export type DomainProjectsPublishProjectContentItemVersionResponse = DomainProjectsPublishProjectContentItemVersionResponses[keyof DomainProjectsPublishProjectContentItemVersionResponses];
+
+export type DomainProjectsScheduleProjectContentItemVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/schedule';
+};
+
+export type DomainProjectsScheduleProjectContentItemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsScheduleProjectContentItemVersionError = DomainProjectsScheduleProjectContentItemVersionErrors[keyof DomainProjectsScheduleProjectContentItemVersionErrors];
+
+export type DomainProjectsScheduleProjectContentItemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentVersionOut;
+};
+
+export type DomainProjectsScheduleProjectContentItemVersionResponse = DomainProjectsScheduleProjectContentItemVersionResponses[keyof DomainProjectsScheduleProjectContentItemVersionResponses];
+
+export type DomainProjectsGetProjectContentSeoProfileData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/seo';
+};
+
+export type DomainProjectsGetProjectContentSeoProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectContentSeoProfileError = DomainProjectsGetProjectContentSeoProfileErrors[keyof DomainProjectsGetProjectContentSeoProfileErrors];
+
+export type DomainProjectsGetProjectContentSeoProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentSeoProfileOut;
+};
+
+export type DomainProjectsGetProjectContentSeoProfileResponse = DomainProjectsGetProjectContentSeoProfileResponses[keyof DomainProjectsGetProjectContentSeoProfileResponses];
+
+export type DomainProjectsPatchProjectContentItemWorkflowData = {
+    /**
+     * Workflow patch payload.
+     */
+    body: ContentItemWorkflowPatchIn;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/workflow';
+};
+
+export type DomainProjectsPatchProjectContentItemWorkflowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPatchProjectContentItemWorkflowError = DomainProjectsPatchProjectContentItemWorkflowErrors[keyof DomainProjectsPatchProjectContentItemWorkflowErrors];
+
+export type DomainProjectsPatchProjectContentItemWorkflowResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemOut;
+};
+
+export type DomainProjectsPatchProjectContentItemWorkflowResponse = DomainProjectsPatchProjectContentItemWorkflowResponses[keyof DomainProjectsPatchProjectContentItemWorkflowResponses];
+
+export type DomainProjectsListProjectContentLibraryViewsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/library/views';
+};
+
+export type DomainProjectsListProjectContentLibraryViewsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentLibraryViewsError = DomainProjectsListProjectContentLibraryViewsErrors[keyof DomainProjectsListProjectContentLibraryViewsErrors];
+
+export type DomainProjectsListProjectContentLibraryViewsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type DomainProjectsListProjectContentLibraryViewsResponse = DomainProjectsListProjectContentLibraryViewsResponses[keyof DomainProjectsListProjectContentLibraryViewsResponses];
+
+export type DomainProjectsCreateProjectContentLibraryViewData = {
+    /**
+     * Create content library view payload.
+     */
+    body: ContentLibraryViewCreateIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/library/views';
+};
+
+export type DomainProjectsCreateProjectContentLibraryViewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectContentLibraryViewError = DomainProjectsCreateProjectContentLibraryViewErrors[keyof DomainProjectsCreateProjectContentLibraryViewErrors];
+
+export type DomainProjectsCreateProjectContentLibraryViewResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type DomainProjectsCreateProjectContentLibraryViewResponse = DomainProjectsCreateProjectContentLibraryViewResponses[keyof DomainProjectsCreateProjectContentLibraryViewResponses];
+
+export type DomainProjectsDeleteProjectContentLibraryViewData = {
+    body?: never;
+    path: {
+        /**
+         * View Id
+         */
+        view_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/library/views/{view_id}';
+};
+
+export type DomainProjectsDeleteProjectContentLibraryViewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteProjectContentLibraryViewError = DomainProjectsDeleteProjectContentLibraryViewErrors[keyof DomainProjectsDeleteProjectContentLibraryViewErrors];
+
+export type DomainProjectsDeleteProjectContentLibraryViewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type DomainProjectsDeleteProjectContentLibraryViewResponse = DomainProjectsDeleteProjectContentLibraryViewResponses[keyof DomainProjectsDeleteProjectContentLibraryViewResponses];
+
+export type DomainProjectsPatchProjectContentLibraryViewData = {
+    /**
+     * Patch content library view payload.
+     */
+    body: ContentLibraryViewPatchIn;
+    path: {
+        /**
+         * View Id
+         */
+        view_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/library/views/{view_id}';
+};
+
+export type DomainProjectsPatchProjectContentLibraryViewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPatchProjectContentLibraryViewError = DomainProjectsPatchProjectContentLibraryViewErrors[keyof DomainProjectsPatchProjectContentLibraryViewErrors];
+
+export type DomainProjectsPatchProjectContentLibraryViewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type DomainProjectsPatchProjectContentLibraryViewResponse = DomainProjectsPatchProjectContentLibraryViewResponses[keyof DomainProjectsPatchProjectContentLibraryViewResponses];
+
+export type DomainProjectsMoveProjectContentLibraryViewData = {
+    /**
+     * Move content library view payload.
+     */
+    body: ContentLibraryViewMoveIn;
+    path: {
+        /**
+         * View Id
+         */
+        view_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/library/views/{view_id}/move';
+};
+
+export type DomainProjectsMoveProjectContentLibraryViewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsMoveProjectContentLibraryViewError = DomainProjectsMoveProjectContentLibraryViewErrors[keyof DomainProjectsMoveProjectContentLibraryViewErrors];
+
+export type DomainProjectsMoveProjectContentLibraryViewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type DomainProjectsMoveProjectContentLibraryViewResponse = DomainProjectsMoveProjectContentLibraryViewResponses[keyof DomainProjectsMoveProjectContentLibraryViewResponses];
+
+export type DomainProjectsListProjectContentModelsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/projects/{project_id}/content/models';
+};
+
+export type DomainProjectsListProjectContentModelsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentModelsError = DomainProjectsListProjectContentModelsErrors[keyof DomainProjectsListProjectContentModelsErrors];
+
+export type DomainProjectsListProjectContentModelsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataContentModelOut;
+};
+
+export type DomainProjectsListProjectContentModelsResponse = DomainProjectsListProjectContentModelsResponses[keyof DomainProjectsListProjectContentModelsResponses];
+
+export type DomainProjectsCreateProjectContentModelData = {
+    /**
+     * Create model contract payload.
+     */
+    body: ContentModelDefinitionContract;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models';
+};
+
+export type DomainProjectsCreateProjectContentModelErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectContentModelError = DomainProjectsCreateProjectContentModelErrors[keyof DomainProjectsCreateProjectContentModelErrors];
+
+export type DomainProjectsCreateProjectContentModelResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelContentModelMutationOut;
+};
+
+export type DomainProjectsCreateProjectContentModelResponse = DomainProjectsCreateProjectContentModelResponses[keyof DomainProjectsCreateProjectContentModelResponses];
+
+export type DomainProjectsUpdateProjectContentModelData = {
+    /**
+     * Patch model contract payload.
+     */
+    body: ContentModelDefinitionPatchContract;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/{model_id}';
+};
+
+export type DomainProjectsUpdateProjectContentModelErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpdateProjectContentModelError = DomainProjectsUpdateProjectContentModelErrors[keyof DomainProjectsUpdateProjectContentModelErrors];
+
+export type DomainProjectsUpdateProjectContentModelResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentModelMutationOut;
+};
+
+export type DomainProjectsUpdateProjectContentModelResponse = DomainProjectsUpdateProjectContentModelResponses[keyof DomainProjectsUpdateProjectContentModelResponses];
+
+export type DomainProjectsPreviewProjectContentModelUpdateData = {
+    /**
+     * Patch model contract payload.
+     */
+    body: ContentModelDefinitionPatchContract;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/{model_id}/impact-preview';
+};
+
+export type DomainProjectsPreviewProjectContentModelUpdateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPreviewProjectContentModelUpdateError = DomainProjectsPreviewProjectContentModelUpdateErrors[keyof DomainProjectsPreviewProjectContentModelUpdateErrors];
+
+export type DomainProjectsPreviewProjectContentModelUpdateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentModelImpactPreviewOut;
+};
+
+export type DomainProjectsPreviewProjectContentModelUpdateResponse = DomainProjectsPreviewProjectContentModelUpdateResponses[keyof DomainProjectsPreviewProjectContentModelUpdateResponses];
+
+export type DomainProjectsListProjectContentRouteBindingsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/routing/bindings';
+};
+
+export type DomainProjectsListProjectContentRouteBindingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentRouteBindingsError = DomainProjectsListProjectContentRouteBindingsErrors[keyof DomainProjectsListProjectContentRouteBindingsErrors];
+
+export type DomainProjectsListProjectContentRouteBindingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListRouteBindingOut;
+};
+
+export type DomainProjectsListProjectContentRouteBindingsResponse = DomainProjectsListProjectContentRouteBindingsResponses[keyof DomainProjectsListProjectContentRouteBindingsResponses];
+
+export type DomainProjectsUpsertProjectContentRouteBindingData = {
+    /**
+     * Route binding upsert payload.
+     */
+    body: RouteBindingUpsertIn;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/routing/bindings/{item_id}';
+};
+
+export type DomainProjectsUpsertProjectContentRouteBindingErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpsertProjectContentRouteBindingError = DomainProjectsUpsertProjectContentRouteBindingErrors[keyof DomainProjectsUpsertProjectContentRouteBindingErrors];
+
+export type DomainProjectsUpsertProjectContentRouteBindingResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelRouteBindingOut;
+};
+
+export type DomainProjectsUpsertProjectContentRouteBindingResponse = DomainProjectsUpsertProjectContentRouteBindingResponses[keyof DomainProjectsUpsertProjectContentRouteBindingResponses];
+
+export type DomainProjectsListProjectContentHierarchyNodesData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/routing/hierarchy';
+};
+
+export type DomainProjectsListProjectContentHierarchyNodesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentHierarchyNodesError = DomainProjectsListProjectContentHierarchyNodesErrors[keyof DomainProjectsListProjectContentHierarchyNodesErrors];
+
+export type DomainProjectsListProjectContentHierarchyNodesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListHierarchyNodeOut;
+};
+
+export type DomainProjectsListProjectContentHierarchyNodesResponse = DomainProjectsListProjectContentHierarchyNodesResponses[keyof DomainProjectsListProjectContentHierarchyNodesResponses];
+
+export type DomainProjectsUpsertProjectContentHierarchyNodeData = {
+    /**
+     * Hierarchy node upsert payload.
+     */
+    body: HierarchyNodeUpsertIn;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/routing/hierarchy/{item_id}';
+};
+
+export type DomainProjectsUpsertProjectContentHierarchyNodeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpsertProjectContentHierarchyNodeError = DomainProjectsUpsertProjectContentHierarchyNodeErrors[keyof DomainProjectsUpsertProjectContentHierarchyNodeErrors];
+
+export type DomainProjectsUpsertProjectContentHierarchyNodeResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelHierarchyNodeOut;
+};
+
+export type DomainProjectsUpsertProjectContentHierarchyNodeResponse = DomainProjectsUpsertProjectContentHierarchyNodeResponses[keyof DomainProjectsUpsertProjectContentHierarchyNodeResponses];
+
 export type DomainProjectsGetProjectDangerCapabilitiesData = {
     body?: never;
     path: {
@@ -22220,6 +22902,235 @@ export type DomainProjectsGetProjectDangerCapabilitiesResponses = {
 };
 
 export type DomainProjectsGetProjectDangerCapabilitiesResponse = DomainProjectsGetProjectDangerCapabilitiesResponses[keyof DomainProjectsGetProjectDangerCapabilitiesResponses];
+
+export type DomainProjectsListProjectDomainsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/projects/{project_id}/domains';
+};
+
+export type DomainProjectsListProjectDomainsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectDomainsError = DomainProjectsListProjectDomainsErrors[keyof DomainProjectsListProjectDomainsErrors];
+
+export type DomainProjectsListProjectDomainsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataSiteDomainOut;
+};
+
+export type DomainProjectsListProjectDomainsResponse = DomainProjectsListProjectDomainsResponses[keyof DomainProjectsListProjectDomainsResponses];
+
+export type DomainProjectsCreateProjectDomainData = {
+    /**
+     * Project custom domain binding request.
+     */
+    body: SiteDomainCreateIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/domains';
+};
+
+export type DomainProjectsCreateProjectDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectDomainError = DomainProjectsCreateProjectDomainErrors[keyof DomainProjectsCreateProjectDomainErrors];
+
+export type DomainProjectsCreateProjectDomainResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelSiteDomainCreateOut;
+};
+
+export type DomainProjectsCreateProjectDomainResponse = DomainProjectsCreateProjectDomainResponses[keyof DomainProjectsCreateProjectDomainResponses];
+
+export type DomainProjectsDeleteProjectDomainData = {
+    body?: never;
+    path: {
+        /**
+         * Domain Id
+         *
+         * Domain record id.
+         */
+        domain_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/domains/{domain_id}';
+};
+
+export type DomainProjectsDeleteProjectDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteProjectDomainError = DomainProjectsDeleteProjectDomainErrors[keyof DomainProjectsDeleteProjectDomainErrors];
+
+export type DomainProjectsDeleteProjectDomainResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteDomainDeleteOut;
+};
+
+export type DomainProjectsDeleteProjectDomainResponse = DomainProjectsDeleteProjectDomainResponses[keyof DomainProjectsDeleteProjectDomainResponses];
+
+export type DomainProjectsUpdateProjectDomainData = {
+    /**
+     * Update payload.
+     */
+    body: SiteDomainUpdateIn;
+    path: {
+        /**
+         * Domain Id
+         *
+         * Domain record id.
+         */
+        domain_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/domains/{domain_id}';
+};
+
+export type DomainProjectsUpdateProjectDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpdateProjectDomainError = DomainProjectsUpdateProjectDomainErrors[keyof DomainProjectsUpdateProjectDomainErrors];
+
+export type DomainProjectsUpdateProjectDomainResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteDomainOut;
+};
+
+export type DomainProjectsUpdateProjectDomainResponse = DomainProjectsUpdateProjectDomainResponses[keyof DomainProjectsUpdateProjectDomainResponses];
+
+export type DomainProjectsVerifyProjectDomainData = {
+    body?: never;
+    path: {
+        /**
+         * Domain Id
+         *
+         * Domain record id.
+         */
+        domain_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/domains/{domain_id}/verify';
+};
+
+export type DomainProjectsVerifyProjectDomainErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsVerifyProjectDomainError = DomainProjectsVerifyProjectDomainErrors[keyof DomainProjectsVerifyProjectDomainErrors];
+
+export type DomainProjectsVerifyProjectDomainResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteDomainVerifyOut;
+};
+
+export type DomainProjectsVerifyProjectDomainResponse = DomainProjectsVerifyProjectDomainResponses[keyof DomainProjectsVerifyProjectDomainResponses];
+
+export type DomainProjectsGetProjectAuthzSnapshotData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/me/authz';
+};
+
+export type DomainProjectsGetProjectAuthzSnapshotErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectAuthzSnapshotError = DomainProjectsGetProjectAuthzSnapshotErrors[keyof DomainProjectsGetProjectAuthzSnapshotErrors];
+
+export type DomainProjectsGetProjectAuthzSnapshotResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAuthzSnapshot;
+};
+
+export type DomainProjectsGetProjectAuthzSnapshotResponse = DomainProjectsGetProjectAuthzSnapshotResponses[keyof DomainProjectsGetProjectAuthzSnapshotResponses];
 
 export type DomainProjectsListProjectMembersData = {
     body?: never;
@@ -22404,6 +23315,38 @@ export type DomainProjectsListProjectReleasesResponses = {
 
 export type DomainProjectsListProjectReleasesResponse = DomainProjectsListProjectReleasesResponses[keyof DomainProjectsListProjectReleasesResponses];
 
+export type DomainProjectsGetProjectReleaseDryRunData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/releases/dry-run';
+};
+
+export type DomainProjectsGetProjectReleaseDryRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectReleaseDryRunError = DomainProjectsGetProjectReleaseDryRunErrors[keyof DomainProjectsGetProjectReleaseDryRunErrors];
+
+export type DomainProjectsGetProjectReleaseDryRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseDryRunOut;
+};
+
+export type DomainProjectsGetProjectReleaseDryRunResponse = DomainProjectsGetProjectReleaseDryRunResponses[keyof DomainProjectsGetProjectReleaseDryRunResponses];
+
 export type DomainProjectsPublishProjectReleaseData = {
     body?: never;
     path: {
@@ -22508,6 +23451,70 @@ export type DomainProjectsRollbackProjectReleaseResponses = {
 
 export type DomainProjectsRollbackProjectReleaseResponse = DomainProjectsRollbackProjectReleaseResponses[keyof DomainProjectsRollbackProjectReleaseResponses];
 
+export type DomainProjectsGetProjectCoreSettingsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/settings/core';
+};
+
+export type DomainProjectsGetProjectCoreSettingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectCoreSettingsError = DomainProjectsGetProjectCoreSettingsErrors[keyof DomainProjectsGetProjectCoreSettingsErrors];
+
+export type DomainProjectsGetProjectCoreSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceSettingsDetail;
+};
+
+export type DomainProjectsGetProjectCoreSettingsResponse = DomainProjectsGetProjectCoreSettingsResponses[keyof DomainProjectsGetProjectCoreSettingsResponses];
+
+export type DomainProjectsPatchProjectCoreSettingsData = {
+    body: WorkspaceSettingsPatch;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/settings/core';
+};
+
+export type DomainProjectsPatchProjectCoreSettingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPatchProjectCoreSettingsError = DomainProjectsPatchProjectCoreSettingsErrors[keyof DomainProjectsPatchProjectCoreSettingsErrors];
+
+export type DomainProjectsPatchProjectCoreSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceSettingsDetail;
+};
+
+export type DomainProjectsPatchProjectCoreSettingsResponse = DomainProjectsPatchProjectCoreSettingsResponses[keyof DomainProjectsPatchProjectCoreSettingsResponses];
+
 export type DomainProjectsGetProjectSiteData = {
     body?: never;
     path: {
@@ -22535,7 +23542,7 @@ export type DomainProjectsGetProjectSiteResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelWorkspaceSiteOut;
+    200: ResponseModelProjectRuntimeSiteOut;
 };
 
 export type DomainProjectsGetProjectSiteResponse = DomainProjectsGetProjectSiteResponses[keyof DomainProjectsGetProjectSiteResponses];
@@ -22996,12 +24003,6 @@ export type DomainSitesResolveSiteByHostData = {
     body?: never;
     path?: never;
     query?: {
-        /**
-         * Workspaceslug
-         *
-         * Workspace slug to resolve (e.g. philipcole).
-         */
-        workspaceSlug?: string | null;
         /**
          * Host
          *
@@ -24164,178 +25165,6 @@ export type DomainWorkspacesListWorkspaceActivityResponses = {
 
 export type DomainWorkspacesListWorkspaceActivityResponse = DomainWorkspacesListWorkspaceActivityResponses[keyof DomainWorkspacesListWorkspaceActivityResponses];
 
-export type DomainWorkspacesListWorkspaceApiKeysData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/api-keys';
-};
-
-export type DomainWorkspacesListWorkspaceApiKeysErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceApiKeysError = DomainWorkspacesListWorkspaceApiKeysErrors[keyof DomainWorkspacesListWorkspaceApiKeysErrors];
-
-export type DomainWorkspacesListWorkspaceApiKeysResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelApiKeyListOut;
-};
-
-export type DomainWorkspacesListWorkspaceApiKeysResponse = DomainWorkspacesListWorkspaceApiKeysResponses[keyof DomainWorkspacesListWorkspaceApiKeysResponses];
-
-export type DomainWorkspacesCreateWorkspaceApiKeyData = {
-    body: WorkspaceApiKeyCreateIn;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/api-keys';
-};
-
-export type DomainWorkspacesCreateWorkspaceApiKeyErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateWorkspaceApiKeyError = DomainWorkspacesCreateWorkspaceApiKeyErrors[keyof DomainWorkspacesCreateWorkspaceApiKeyErrors];
-
-export type DomainWorkspacesCreateWorkspaceApiKeyResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelApiKeyCreateOut;
-};
-
-export type DomainWorkspacesCreateWorkspaceApiKeyResponse = DomainWorkspacesCreateWorkspaceApiKeyResponses[keyof DomainWorkspacesCreateWorkspaceApiKeyResponses];
-
-export type DomainWorkspacesGetWorkspaceApiKeyData = {
-    body?: never;
-    path: {
-        /**
-         * Key Id
-         */
-        key_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/api-keys/{key_id}';
-};
-
-export type DomainWorkspacesGetWorkspaceApiKeyErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceApiKeyError = DomainWorkspacesGetWorkspaceApiKeyErrors[keyof DomainWorkspacesGetWorkspaceApiKeyErrors];
-
-export type DomainWorkspacesGetWorkspaceApiKeyResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelApiKeyOut;
-};
-
-export type DomainWorkspacesGetWorkspaceApiKeyResponse = DomainWorkspacesGetWorkspaceApiKeyResponses[keyof DomainWorkspacesGetWorkspaceApiKeyResponses];
-
-export type DomainWorkspacesRevokeWorkspaceApiKeyData = {
-    body?: never;
-    path: {
-        /**
-         * Key Id
-         */
-        key_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/api-keys/{key_id}/revoke';
-};
-
-export type DomainWorkspacesRevokeWorkspaceApiKeyErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesRevokeWorkspaceApiKeyError = DomainWorkspacesRevokeWorkspaceApiKeyErrors[keyof DomainWorkspacesRevokeWorkspaceApiKeyErrors];
-
-export type DomainWorkspacesRevokeWorkspaceApiKeyResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelApiKeyOut;
-};
-
-export type DomainWorkspacesRevokeWorkspaceApiKeyResponse = DomainWorkspacesRevokeWorkspaceApiKeyResponses[keyof DomainWorkspacesRevokeWorkspaceApiKeyResponses];
-
-export type DomainWorkspacesRotateWorkspaceApiKeyData = {
-    body?: never;
-    path: {
-        /**
-         * Key Id
-         */
-        key_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/api-keys/{key_id}/rotate';
-};
-
-export type DomainWorkspacesRotateWorkspaceApiKeyErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesRotateWorkspaceApiKeyError = DomainWorkspacesRotateWorkspaceApiKeyErrors[keyof DomainWorkspacesRotateWorkspaceApiKeyErrors];
-
-export type DomainWorkspacesRotateWorkspaceApiKeyResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelApiKeyCreateOut;
-};
-
-export type DomainWorkspacesRotateWorkspaceApiKeyResponse = DomainWorkspacesRotateWorkspaceApiKeyResponses[keyof DomainWorkspacesRotateWorkspaceApiKeyResponses];
-
 export type DomainWorkspacesListAssetFoldersData = {
     body?: never;
     path: {
@@ -25079,1483 +25908,6 @@ export type DomainWorkspacesListAssetUsagesResponses = {
 
 export type DomainWorkspacesListAssetUsagesResponse = DomainWorkspacesListAssetUsagesResponses[keyof DomainWorkspacesListAssetUsagesResponses];
 
-export type DomainWorkspacesGetWorkspaceAutomationCatalogData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/automation/catalog';
-};
-
-export type DomainWorkspacesGetWorkspaceAutomationCatalogErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceAutomationCatalogError = DomainWorkspacesGetWorkspaceAutomationCatalogErrors[keyof DomainWorkspacesGetWorkspaceAutomationCatalogErrors];
-
-export type DomainWorkspacesGetWorkspaceAutomationCatalogResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAutomationCatalogOut;
-};
-
-export type DomainWorkspacesGetWorkspaceAutomationCatalogResponse = DomainWorkspacesGetWorkspaceAutomationCatalogResponses[keyof DomainWorkspacesGetWorkspaceAutomationCatalogResponses];
-
-export type DomainWorkspacesListWorkspaceAutomationFlowsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/automation/flows';
-};
-
-export type DomainWorkspacesListWorkspaceAutomationFlowsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceAutomationFlowsError = DomainWorkspacesListWorkspaceAutomationFlowsErrors[keyof DomainWorkspacesListWorkspaceAutomationFlowsErrors];
-
-export type DomainWorkspacesListWorkspaceAutomationFlowsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAutomationFlowListOut;
-};
-
-export type DomainWorkspacesListWorkspaceAutomationFlowsResponse = DomainWorkspacesListWorkspaceAutomationFlowsResponses[keyof DomainWorkspacesListWorkspaceAutomationFlowsResponses];
-
-export type DomainWorkspacesCreateWorkspaceAutomationFlowData = {
-    body: AutomationFlowCreateIn;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/automation/flows';
-};
-
-export type DomainWorkspacesCreateWorkspaceAutomationFlowErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateWorkspaceAutomationFlowError = DomainWorkspacesCreateWorkspaceAutomationFlowErrors[keyof DomainWorkspacesCreateWorkspaceAutomationFlowErrors];
-
-export type DomainWorkspacesCreateWorkspaceAutomationFlowResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelAutomationFlowOut;
-};
-
-export type DomainWorkspacesCreateWorkspaceAutomationFlowResponse = DomainWorkspacesCreateWorkspaceAutomationFlowResponses[keyof DomainWorkspacesCreateWorkspaceAutomationFlowResponses];
-
-export type DomainWorkspacesDeleteWorkspaceAutomationFlowData = {
-    body?: never;
-    path: {
-        /**
-         * Flow Id
-         */
-        flow_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/automation/flows/{flow_id}';
-};
-
-export type DomainWorkspacesDeleteWorkspaceAutomationFlowErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteWorkspaceAutomationFlowError = DomainWorkspacesDeleteWorkspaceAutomationFlowErrors[keyof DomainWorkspacesDeleteWorkspaceAutomationFlowErrors];
-
-export type DomainWorkspacesDeleteWorkspaceAutomationFlowResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainWorkspacesDeleteWorkspaceAutomationFlowResponse = DomainWorkspacesDeleteWorkspaceAutomationFlowResponses[keyof DomainWorkspacesDeleteWorkspaceAutomationFlowResponses];
-
-export type DomainWorkspacesUpdateWorkspaceAutomationFlowData = {
-    body: AutomationFlowPatchIn;
-    path: {
-        /**
-         * Flow Id
-         */
-        flow_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/automation/flows/{flow_id}';
-};
-
-export type DomainWorkspacesUpdateWorkspaceAutomationFlowErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesUpdateWorkspaceAutomationFlowError = DomainWorkspacesUpdateWorkspaceAutomationFlowErrors[keyof DomainWorkspacesUpdateWorkspaceAutomationFlowErrors];
-
-export type DomainWorkspacesUpdateWorkspaceAutomationFlowResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAutomationFlowOut;
-};
-
-export type DomainWorkspacesUpdateWorkspaceAutomationFlowResponse = DomainWorkspacesUpdateWorkspaceAutomationFlowResponses[keyof DomainWorkspacesUpdateWorkspaceAutomationFlowResponses];
-
-export type DomainWorkspacesListWorkspaceAutomationRunsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Limit
-         */
-        limit?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/automation/runs';
-};
-
-export type DomainWorkspacesListWorkspaceAutomationRunsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceAutomationRunsError = DomainWorkspacesListWorkspaceAutomationRunsErrors[keyof DomainWorkspacesListWorkspaceAutomationRunsErrors];
-
-export type DomainWorkspacesListWorkspaceAutomationRunsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAutomationRunListOut;
-};
-
-export type DomainWorkspacesListWorkspaceAutomationRunsResponse = DomainWorkspacesListWorkspaceAutomationRunsResponses[keyof DomainWorkspacesListWorkspaceAutomationRunsResponses];
-
-export type DomainWorkspacesGetWorkspaceAutomationRunData = {
-    body?: never;
-    path: {
-        /**
-         * Run Id
-         */
-        run_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/automation/runs/{run_id}';
-};
-
-export type DomainWorkspacesGetWorkspaceAutomationRunErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceAutomationRunError = DomainWorkspacesGetWorkspaceAutomationRunErrors[keyof DomainWorkspacesGetWorkspaceAutomationRunErrors];
-
-export type DomainWorkspacesGetWorkspaceAutomationRunResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAutomationRunOut;
-};
-
-export type DomainWorkspacesGetWorkspaceAutomationRunResponse = DomainWorkspacesGetWorkspaceAutomationRunResponses[keyof DomainWorkspacesGetWorkspaceAutomationRunResponses];
-
-export type DomainWorkspacesListWorkspaceContentItemsCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Modelkey
-         *
-         * Optional content model key filter.
-         */
-        modelKey?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/content/items';
-};
-
-export type DomainWorkspacesListWorkspaceContentItemsCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceContentItemsCanonicalError = DomainWorkspacesListWorkspaceContentItemsCanonicalErrors[keyof DomainWorkspacesListWorkspaceContentItemsCanonicalErrors];
-
-export type DomainWorkspacesListWorkspaceContentItemsCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataContentItemOut;
-};
-
-export type DomainWorkspacesListWorkspaceContentItemsCanonicalResponse = DomainWorkspacesListWorkspaceContentItemsCanonicalResponses[keyof DomainWorkspacesListWorkspaceContentItemsCanonicalResponses];
-
-export type DomainWorkspacesCreateWorkspaceContentItemCanonicalData = {
-    /**
-     * Create content item payload.
-     */
-    body: ContentItemCreateIn;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items';
-};
-
-export type DomainWorkspacesCreateWorkspaceContentItemCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateWorkspaceContentItemCanonicalError = DomainWorkspacesCreateWorkspaceContentItemCanonicalErrors[keyof DomainWorkspacesCreateWorkspaceContentItemCanonicalErrors];
-
-export type DomainWorkspacesCreateWorkspaceContentItemCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelContentItemOut;
-};
-
-export type DomainWorkspacesCreateWorkspaceContentItemCanonicalResponse = DomainWorkspacesCreateWorkspaceContentItemCanonicalResponses[keyof DomainWorkspacesCreateWorkspaceContentItemCanonicalResponses];
-
-export type DomainWorkspacesDeleteWorkspaceContentItemCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}';
-};
-
-export type DomainWorkspacesDeleteWorkspaceContentItemCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteWorkspaceContentItemCanonicalError = DomainWorkspacesDeleteWorkspaceContentItemCanonicalErrors[keyof DomainWorkspacesDeleteWorkspaceContentItemCanonicalErrors];
-
-export type DomainWorkspacesDeleteWorkspaceContentItemCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainWorkspacesDeleteWorkspaceContentItemCanonicalResponse = DomainWorkspacesDeleteWorkspaceContentItemCanonicalResponses[keyof DomainWorkspacesDeleteWorkspaceContentItemCanonicalResponses];
-
-export type DomainWorkspacesGetWorkspaceContentItemCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}';
-};
-
-export type DomainWorkspacesGetWorkspaceContentItemCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceContentItemCanonicalError = DomainWorkspacesGetWorkspaceContentItemCanonicalErrors[keyof DomainWorkspacesGetWorkspaceContentItemCanonicalErrors];
-
-export type DomainWorkspacesGetWorkspaceContentItemCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentItemOut;
-};
-
-export type DomainWorkspacesGetWorkspaceContentItemCanonicalResponse = DomainWorkspacesGetWorkspaceContentItemCanonicalResponses[keyof DomainWorkspacesGetWorkspaceContentItemCanonicalResponses];
-
-export type DomainWorkspacesArchiveWorkspaceContentItemCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/archive';
-};
-
-export type DomainWorkspacesArchiveWorkspaceContentItemCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesArchiveWorkspaceContentItemCanonicalError = DomainWorkspacesArchiveWorkspaceContentItemCanonicalErrors[keyof DomainWorkspacesArchiveWorkspaceContentItemCanonicalErrors];
-
-export type DomainWorkspacesArchiveWorkspaceContentItemCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentItemOut;
-};
-
-export type DomainWorkspacesArchiveWorkspaceContentItemCanonicalResponse = DomainWorkspacesArchiveWorkspaceContentItemCanonicalResponses[keyof DomainWorkspacesArchiveWorkspaceContentItemCanonicalResponses];
-
-export type DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeData = {
-    /**
-     * Bootstrap shape payload.
-     */
-    body: ContentItemBootstrapShapeIn;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape';
-};
-
-export type DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeError = DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeErrors[keyof DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeErrors];
-
-export type DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentItemOut;
-};
-
-export type DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeResponse = DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeResponses[keyof DomainWorkspacesApplyWorkspaceContentItemBootstrapShapeResponses];
-
-export type DomainWorkspacesDuplicateWorkspaceContentItemCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/duplicate';
-};
-
-export type DomainWorkspacesDuplicateWorkspaceContentItemCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDuplicateWorkspaceContentItemCanonicalError = DomainWorkspacesDuplicateWorkspaceContentItemCanonicalErrors[keyof DomainWorkspacesDuplicateWorkspaceContentItemCanonicalErrors];
-
-export type DomainWorkspacesDuplicateWorkspaceContentItemCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentItemOut;
-};
-
-export type DomainWorkspacesDuplicateWorkspaceContentItemCanonicalResponse = DomainWorkspacesDuplicateWorkspaceContentItemCanonicalResponses[keyof DomainWorkspacesDuplicateWorkspaceContentItemCanonicalResponses];
-
-export type DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/unarchive';
-};
-
-export type DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalError = DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalErrors[keyof DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalErrors];
-
-export type DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentItemOut;
-};
-
-export type DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalResponse = DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalResponses[keyof DomainWorkspacesUnarchiveWorkspaceContentItemCanonicalResponses];
-
-export type DomainWorkspacesListWorkspaceContentItemVersionsCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions';
-};
-
-export type DomainWorkspacesListWorkspaceContentItemVersionsCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceContentItemVersionsCanonicalError = DomainWorkspacesListWorkspaceContentItemVersionsCanonicalErrors[keyof DomainWorkspacesListWorkspaceContentItemVersionsCanonicalErrors];
-
-export type DomainWorkspacesListWorkspaceContentItemVersionsCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataContentVersionOut;
-};
-
-export type DomainWorkspacesListWorkspaceContentItemVersionsCanonicalResponse = DomainWorkspacesListWorkspaceContentItemVersionsCanonicalResponses[keyof DomainWorkspacesListWorkspaceContentItemVersionsCanonicalResponses];
-
-export type DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalData = {
-    /**
-     * Draft save payload.
-     */
-    body: ContentVersionDraftSaveIn;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft';
-};
-
-export type DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalError = DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalErrors[keyof DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalErrors];
-
-export type DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelContentVersionOut;
-};
-
-export type DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponse = DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponses[keyof DomainWorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponses];
-
-export type DomainWorkspacesGetWorkspaceContentItemVersionCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Version Number
-         */
-        version_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}';
-};
-
-export type DomainWorkspacesGetWorkspaceContentItemVersionCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceContentItemVersionCanonicalError = DomainWorkspacesGetWorkspaceContentItemVersionCanonicalErrors[keyof DomainWorkspacesGetWorkspaceContentItemVersionCanonicalErrors];
-
-export type DomainWorkspacesGetWorkspaceContentItemVersionCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentVersionOut;
-};
-
-export type DomainWorkspacesGetWorkspaceContentItemVersionCanonicalResponse = DomainWorkspacesGetWorkspaceContentItemVersionCanonicalResponses[keyof DomainWorkspacesGetWorkspaceContentItemVersionCanonicalResponses];
-
-export type DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalData = {
-    /**
-     * Version patch payload.
-     */
-    body: ContentVersionPatchIn;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Version Number
-         */
-        version_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}';
-};
-
-export type DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalError = DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalErrors[keyof DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalErrors];
-
-export type DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentVersionOut;
-};
-
-export type DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalResponse = DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalResponses[keyof DomainWorkspacesPatchWorkspaceContentItemVersionCanonicalResponses];
-
-export type DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Version Number
-         */
-        version_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/archive';
-};
-
-export type DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalError = DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalErrors[keyof DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalErrors];
-
-export type DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentVersionOut;
-};
-
-export type DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalResponse = DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalResponses[keyof DomainWorkspacesArchiveWorkspaceContentItemVersionCanonicalResponses];
-
-export type DomainWorkspacesListWorkspaceContentBindingsData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Version Number
-         */
-        version_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/bindings';
-};
-
-export type DomainWorkspacesListWorkspaceContentBindingsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceContentBindingsError = DomainWorkspacesListWorkspaceContentBindingsErrors[keyof DomainWorkspacesListWorkspaceContentBindingsErrors];
-
-export type DomainWorkspacesListWorkspaceContentBindingsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentComponentBindingListOut;
-};
-
-export type DomainWorkspacesListWorkspaceContentBindingsResponse = DomainWorkspacesListWorkspaceContentBindingsResponses[keyof DomainWorkspacesListWorkspaceContentBindingsResponses];
-
-export type DomainWorkspacesListWorkspaceContentPresentationsData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Version Number
-         */
-        version_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/presentations';
-};
-
-export type DomainWorkspacesListWorkspaceContentPresentationsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceContentPresentationsError = DomainWorkspacesListWorkspaceContentPresentationsErrors[keyof DomainWorkspacesListWorkspaceContentPresentationsErrors];
-
-export type DomainWorkspacesListWorkspaceContentPresentationsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentPresentationListOut;
-};
-
-export type DomainWorkspacesListWorkspaceContentPresentationsResponse = DomainWorkspacesListWorkspaceContentPresentationsResponses[keyof DomainWorkspacesListWorkspaceContentPresentationsResponses];
-
-export type DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Version Number
-         */
-        version_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/publish';
-};
-
-export type DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalError = DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalErrors[keyof DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalErrors];
-
-export type DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentVersionOut;
-};
-
-export type DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalResponse = DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalResponses[keyof DomainWorkspacesPublishWorkspaceContentItemVersionCanonicalResponses];
-
-export type DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Version Number
-         */
-        version_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/schedule';
-};
-
-export type DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalError = DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalErrors[keyof DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalErrors];
-
-export type DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentVersionOut;
-};
-
-export type DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalResponse = DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalResponses[keyof DomainWorkspacesScheduleWorkspaceContentItemVersionCanonicalResponses];
-
-export type DomainWorkspacesGetWorkspaceContentSeoProfileData = {
-    body?: never;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Version Number
-         */
-        version_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/seo';
-};
-
-export type DomainWorkspacesGetWorkspaceContentSeoProfileErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceContentSeoProfileError = DomainWorkspacesGetWorkspaceContentSeoProfileErrors[keyof DomainWorkspacesGetWorkspaceContentSeoProfileErrors];
-
-export type DomainWorkspacesGetWorkspaceContentSeoProfileResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentSeoProfileOut;
-};
-
-export type DomainWorkspacesGetWorkspaceContentSeoProfileResponse = DomainWorkspacesGetWorkspaceContentSeoProfileResponses[keyof DomainWorkspacesGetWorkspaceContentSeoProfileResponses];
-
-export type DomainWorkspacesPatchWorkspaceContentItemWorkflowData = {
-    /**
-     * Workflow patch payload.
-     */
-    body: ContentItemWorkflowPatchIn;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/items/{item_id}/workflow';
-};
-
-export type DomainWorkspacesPatchWorkspaceContentItemWorkflowErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPatchWorkspaceContentItemWorkflowError = DomainWorkspacesPatchWorkspaceContentItemWorkflowErrors[keyof DomainWorkspacesPatchWorkspaceContentItemWorkflowErrors];
-
-export type DomainWorkspacesPatchWorkspaceContentItemWorkflowResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentItemOut;
-};
-
-export type DomainWorkspacesPatchWorkspaceContentItemWorkflowResponse = DomainWorkspacesPatchWorkspaceContentItemWorkflowResponses[keyof DomainWorkspacesPatchWorkspaceContentItemWorkflowResponses];
-
-export type DomainWorkspacesListContentLibraryViewsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/library/views';
-};
-
-export type DomainWorkspacesListContentLibraryViewsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListContentLibraryViewsError = DomainWorkspacesListContentLibraryViewsErrors[keyof DomainWorkspacesListContentLibraryViewsErrors];
-
-export type DomainWorkspacesListContentLibraryViewsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentLibraryViewsStateOut;
-};
-
-export type DomainWorkspacesListContentLibraryViewsResponse = DomainWorkspacesListContentLibraryViewsResponses[keyof DomainWorkspacesListContentLibraryViewsResponses];
-
-export type DomainWorkspacesCreateContentLibraryViewData = {
-    /**
-     * Create content library view payload.
-     */
-    body: ContentLibraryViewCreateIn;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/library/views';
-};
-
-export type DomainWorkspacesCreateContentLibraryViewErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateContentLibraryViewError = DomainWorkspacesCreateContentLibraryViewErrors[keyof DomainWorkspacesCreateContentLibraryViewErrors];
-
-export type DomainWorkspacesCreateContentLibraryViewResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelContentLibraryViewsStateOut;
-};
-
-export type DomainWorkspacesCreateContentLibraryViewResponse = DomainWorkspacesCreateContentLibraryViewResponses[keyof DomainWorkspacesCreateContentLibraryViewResponses];
-
-export type DomainWorkspacesDeleteContentLibraryViewData = {
-    body?: never;
-    path: {
-        /**
-         * View Id
-         */
-        view_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}';
-};
-
-export type DomainWorkspacesDeleteContentLibraryViewErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteContentLibraryViewError = DomainWorkspacesDeleteContentLibraryViewErrors[keyof DomainWorkspacesDeleteContentLibraryViewErrors];
-
-export type DomainWorkspacesDeleteContentLibraryViewResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentLibraryViewsStateOut;
-};
-
-export type DomainWorkspacesDeleteContentLibraryViewResponse = DomainWorkspacesDeleteContentLibraryViewResponses[keyof DomainWorkspacesDeleteContentLibraryViewResponses];
-
-export type DomainWorkspacesPatchContentLibraryViewData = {
-    /**
-     * Patch content library view payload.
-     */
-    body: ContentLibraryViewPatchIn;
-    path: {
-        /**
-         * View Id
-         */
-        view_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}';
-};
-
-export type DomainWorkspacesPatchContentLibraryViewErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPatchContentLibraryViewError = DomainWorkspacesPatchContentLibraryViewErrors[keyof DomainWorkspacesPatchContentLibraryViewErrors];
-
-export type DomainWorkspacesPatchContentLibraryViewResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentLibraryViewsStateOut;
-};
-
-export type DomainWorkspacesPatchContentLibraryViewResponse = DomainWorkspacesPatchContentLibraryViewResponses[keyof DomainWorkspacesPatchContentLibraryViewResponses];
-
-export type DomainWorkspacesMoveContentLibraryViewData = {
-    /**
-     * Move content library view payload.
-     */
-    body: ContentLibraryViewMoveIn;
-    path: {
-        /**
-         * View Id
-         */
-        view_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}/move';
-};
-
-export type DomainWorkspacesMoveContentLibraryViewErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesMoveContentLibraryViewError = DomainWorkspacesMoveContentLibraryViewErrors[keyof DomainWorkspacesMoveContentLibraryViewErrors];
-
-export type DomainWorkspacesMoveContentLibraryViewResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentLibraryViewsStateOut;
-};
-
-export type DomainWorkspacesMoveContentLibraryViewResponse = DomainWorkspacesMoveContentLibraryViewResponses[keyof DomainWorkspacesMoveContentLibraryViewResponses];
-
-export type DomainWorkspacesListWorkspaceContentModelsCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/content/models';
-};
-
-export type DomainWorkspacesListWorkspaceContentModelsCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceContentModelsCanonicalError = DomainWorkspacesListWorkspaceContentModelsCanonicalErrors[keyof DomainWorkspacesListWorkspaceContentModelsCanonicalErrors];
-
-export type DomainWorkspacesListWorkspaceContentModelsCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataContentModelOut;
-};
-
-export type DomainWorkspacesListWorkspaceContentModelsCanonicalResponse = DomainWorkspacesListWorkspaceContentModelsCanonicalResponses[keyof DomainWorkspacesListWorkspaceContentModelsCanonicalResponses];
-
-export type DomainWorkspacesCreateWorkspaceContentModelData = {
-    /**
-     * Create model contract payload.
-     */
-    body: ContentModelDefinitionContract;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/models';
-};
-
-export type DomainWorkspacesCreateWorkspaceContentModelErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateWorkspaceContentModelError = DomainWorkspacesCreateWorkspaceContentModelErrors[keyof DomainWorkspacesCreateWorkspaceContentModelErrors];
-
-export type DomainWorkspacesCreateWorkspaceContentModelResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelContentModelMutationOut;
-};
-
-export type DomainWorkspacesCreateWorkspaceContentModelResponse = DomainWorkspacesCreateWorkspaceContentModelResponses[keyof DomainWorkspacesCreateWorkspaceContentModelResponses];
-
-export type DomainWorkspacesUpdateWorkspaceContentModelData = {
-    /**
-     * Patch model contract payload.
-     */
-    body: ContentModelDefinitionPatchContract;
-    path: {
-        /**
-         * Model Id
-         */
-        model_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/models/{model_id}';
-};
-
-export type DomainWorkspacesUpdateWorkspaceContentModelErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesUpdateWorkspaceContentModelError = DomainWorkspacesUpdateWorkspaceContentModelErrors[keyof DomainWorkspacesUpdateWorkspaceContentModelErrors];
-
-export type DomainWorkspacesUpdateWorkspaceContentModelResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentModelMutationOut;
-};
-
-export type DomainWorkspacesUpdateWorkspaceContentModelResponse = DomainWorkspacesUpdateWorkspaceContentModelResponses[keyof DomainWorkspacesUpdateWorkspaceContentModelResponses];
-
-export type DomainWorkspacesPreviewWorkspaceContentModelUpdateData = {
-    /**
-     * Patch model contract payload.
-     */
-    body: ContentModelDefinitionPatchContract;
-    path: {
-        /**
-         * Model Id
-         */
-        model_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/models/{model_id}/impact-preview';
-};
-
-export type DomainWorkspacesPreviewWorkspaceContentModelUpdateErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPreviewWorkspaceContentModelUpdateError = DomainWorkspacesPreviewWorkspaceContentModelUpdateErrors[keyof DomainWorkspacesPreviewWorkspaceContentModelUpdateErrors];
-
-export type DomainWorkspacesPreviewWorkspaceContentModelUpdateResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelContentModelImpactPreviewOut;
-};
-
-export type DomainWorkspacesPreviewWorkspaceContentModelUpdateResponse = DomainWorkspacesPreviewWorkspaceContentModelUpdateResponses[keyof DomainWorkspacesPreviewWorkspaceContentModelUpdateResponses];
-
-export type DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/routing/bindings';
-};
-
-export type DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalError = DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalErrors[keyof DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalErrors];
-
-export type DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelListRouteBindingOut;
-};
-
-export type DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalResponse = DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalResponses[keyof DomainWorkspacesListWorkspaceContentRouteBindingsCanonicalResponses];
-
-export type DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalData = {
-    /**
-     * Route binding upsert payload.
-     */
-    body: RouteBindingUpsertIn;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/routing/bindings/{item_id}';
-};
-
-export type DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalError = DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalErrors[keyof DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalErrors];
-
-export type DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelRouteBindingOut;
-};
-
-export type DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalResponse = DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalResponses[keyof DomainWorkspacesUpsertWorkspaceContentRouteBindingCanonicalResponses];
-
-export type DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/routing/hierarchy';
-};
-
-export type DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalError = DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalErrors[keyof DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalErrors];
-
-export type DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelListHierarchyNodeOut;
-};
-
-export type DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalResponse = DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalResponses[keyof DomainWorkspacesListWorkspaceContentHierarchyNodesCanonicalResponses];
-
-export type DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalData = {
-    /**
-     * Hierarchy node upsert payload.
-     */
-    body: HierarchyNodeUpsertIn;
-    path: {
-        /**
-         * Item Id
-         */
-        item_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/content/routing/hierarchy/{item_id}';
-};
-
-export type DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalError = DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalErrors[keyof DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalErrors];
-
-export type DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelHierarchyNodeOut;
-};
-
-export type DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalResponse = DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalResponses[keyof DomainWorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalResponses];
-
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesData = {
     body?: never;
     path: {
@@ -26587,157 +25939,6 @@ export type DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses = {
 };
 
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesResponse = DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses[keyof DomainWorkspacesGetWorkspaceDangerCapabilitiesResponses];
-
-export type DomainWorkspacesListWorkspaceCapabilitiesData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/extensions/capabilities';
-};
-
-export type DomainWorkspacesListWorkspaceCapabilitiesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceCapabilitiesError = DomainWorkspacesListWorkspaceCapabilitiesErrors[keyof DomainWorkspacesListWorkspaceCapabilitiesErrors];
-
-export type DomainWorkspacesListWorkspaceCapabilitiesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelCapabilityListOut;
-};
-
-export type DomainWorkspacesListWorkspaceCapabilitiesResponse = DomainWorkspacesListWorkspaceCapabilitiesResponses[keyof DomainWorkspacesListWorkspaceCapabilitiesResponses];
-
-export type DomainWorkspacesDisableWorkspaceCapabilityData = {
-    body?: never;
-    path: {
-        /**
-         * Capability Id
-         */
-        capability_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/extensions/capabilities/{capability_id}/disable';
-};
-
-export type DomainWorkspacesDisableWorkspaceCapabilityErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDisableWorkspaceCapabilityError = DomainWorkspacesDisableWorkspaceCapabilityErrors[keyof DomainWorkspacesDisableWorkspaceCapabilityErrors];
-
-export type DomainWorkspacesDisableWorkspaceCapabilityResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelCapabilitySummaryOut;
-};
-
-export type DomainWorkspacesDisableWorkspaceCapabilityResponse = DomainWorkspacesDisableWorkspaceCapabilityResponses[keyof DomainWorkspacesDisableWorkspaceCapabilityResponses];
-
-export type DomainWorkspacesEnableWorkspaceCapabilityData = {
-    body?: never;
-    path: {
-        /**
-         * Capability Id
-         */
-        capability_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/extensions/capabilities/{capability_id}/enable';
-};
-
-export type DomainWorkspacesEnableWorkspaceCapabilityErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesEnableWorkspaceCapabilityError = DomainWorkspacesEnableWorkspaceCapabilityErrors[keyof DomainWorkspacesEnableWorkspaceCapabilityErrors];
-
-export type DomainWorkspacesEnableWorkspaceCapabilityResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelCapabilitySummaryOut;
-};
-
-export type DomainWorkspacesEnableWorkspaceCapabilityResponse = DomainWorkspacesEnableWorkspaceCapabilityResponses[keyof DomainWorkspacesEnableWorkspaceCapabilityResponses];
-
-export type DomainWorkspacesListWorkspaceUiEmbedsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Slot
-         *
-         * Host-defined slot id (optional).
-         */
-        slot?: string | null;
-        /**
-         * Capabilityid
-         */
-        capabilityId?: string | null;
-        /**
-         * Enabledonly
-         */
-        enabledOnly?: boolean;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/extensions/ui-embeds';
-};
-
-export type DomainWorkspacesListWorkspaceUiEmbedsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceUiEmbedsError = DomainWorkspacesListWorkspaceUiEmbedsErrors[keyof DomainWorkspacesListWorkspaceUiEmbedsErrors];
-
-export type DomainWorkspacesListWorkspaceUiEmbedsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUiEmbedListOut;
-};
-
-export type DomainWorkspacesListWorkspaceUiEmbedsResponse = DomainWorkspacesListWorkspaceUiEmbedsResponses[keyof DomainWorkspacesListWorkspaceUiEmbedsResponses];
 
 export type DomainWorkspacesLeaveWorkspaceData = {
     body: LeaveWorkspaceRequest;
@@ -26834,70 +26035,6 @@ export type DomainWorkspacesSeedDemoNotificationsResponses = {
 };
 
 export type DomainWorkspacesSeedDemoNotificationsResponse = DomainWorkspacesSeedDemoNotificationsResponses[keyof DomainWorkspacesSeedDemoNotificationsResponses];
-
-export type DomainWorkspacesGetWorkspacePublishImpactData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/publish/impact';
-};
-
-export type DomainWorkspacesGetWorkspacePublishImpactErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspacePublishImpactError = DomainWorkspacesGetWorkspacePublishImpactErrors[keyof DomainWorkspacesGetWorkspacePublishImpactErrors];
-
-export type DomainWorkspacesGetWorkspacePublishImpactResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPublishImpactOut;
-};
-
-export type DomainWorkspacesGetWorkspacePublishImpactResponse = DomainWorkspacesGetWorkspacePublishImpactResponses[keyof DomainWorkspacesGetWorkspacePublishImpactResponses];
-
-export type DomainWorkspacesGetWorkspacePublishPreviewContractData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/publish/preview-contract';
-};
-
-export type DomainWorkspacesGetWorkspacePublishPreviewContractErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspacePublishPreviewContractError = DomainWorkspacesGetWorkspacePublishPreviewContractErrors[keyof DomainWorkspacesGetWorkspacePublishPreviewContractErrors];
-
-export type DomainWorkspacesGetWorkspacePublishPreviewContractResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPublishExportContractOut;
-};
-
-export type DomainWorkspacesGetWorkspacePublishPreviewContractResponse = DomainWorkspacesGetWorkspacePublishPreviewContractResponses[keyof DomainWorkspacesGetWorkspacePublishPreviewContractResponses];
 
 export type DomainWorkspacesListActionsData = {
     body?: never;
@@ -27229,174 +26366,6 @@ export type DomainWorkspacesSetRolePermissionsResponses = {
 
 export type DomainWorkspacesSetRolePermissionsResponse = DomainWorkspacesSetRolePermissionsResponses[keyof DomainWorkspacesSetRolePermissionsResponses];
 
-export type DomainWorkspacesListWorkspaceReleasesData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/releases';
-};
-
-export type DomainWorkspacesListWorkspaceReleasesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListWorkspaceReleasesError = DomainWorkspacesListWorkspaceReleasesErrors[keyof DomainWorkspacesListWorkspaceReleasesErrors];
-
-export type DomainWorkspacesListWorkspaceReleasesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelReleaseListOut;
-};
-
-export type DomainWorkspacesListWorkspaceReleasesResponse = DomainWorkspacesListWorkspaceReleasesResponses[keyof DomainWorkspacesListWorkspaceReleasesResponses];
-
-export type DomainWorkspacesGetWorkspaceReleaseDryRunData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/releases/dry-run';
-};
-
-export type DomainWorkspacesGetWorkspaceReleaseDryRunErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceReleaseDryRunError = DomainWorkspacesGetWorkspaceReleaseDryRunErrors[keyof DomainWorkspacesGetWorkspaceReleaseDryRunErrors];
-
-export type DomainWorkspacesGetWorkspaceReleaseDryRunResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelReleaseDryRunOut;
-};
-
-export type DomainWorkspacesGetWorkspaceReleaseDryRunResponse = DomainWorkspacesGetWorkspaceReleaseDryRunResponses[keyof DomainWorkspacesGetWorkspaceReleaseDryRunResponses];
-
-export type DomainWorkspacesPublishWorkspaceReleaseData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/releases/publish';
-};
-
-export type DomainWorkspacesPublishWorkspaceReleaseErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPublishWorkspaceReleaseError = DomainWorkspacesPublishWorkspaceReleaseErrors[keyof DomainWorkspacesPublishWorkspaceReleaseErrors];
-
-export type DomainWorkspacesPublishWorkspaceReleaseResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelReleasePublishOut;
-};
-
-export type DomainWorkspacesPublishWorkspaceReleaseResponse = DomainWorkspacesPublishWorkspaceReleaseResponses[keyof DomainWorkspacesPublishWorkspaceReleaseResponses];
-
-export type DomainWorkspacesGetWorkspaceReleaseData = {
-    body?: never;
-    path: {
-        /**
-         * Release Id
-         */
-        release_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/releases/{release_id}';
-};
-
-export type DomainWorkspacesGetWorkspaceReleaseErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceReleaseError = DomainWorkspacesGetWorkspaceReleaseErrors[keyof DomainWorkspacesGetWorkspaceReleaseErrors];
-
-export type DomainWorkspacesGetWorkspaceReleaseResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelReleaseOut;
-};
-
-export type DomainWorkspacesGetWorkspaceReleaseResponse = DomainWorkspacesGetWorkspaceReleaseResponses[keyof DomainWorkspacesGetWorkspaceReleaseResponses];
-
-export type DomainWorkspacesRollbackWorkspaceReleaseData = {
-    body?: never;
-    path: {
-        /**
-         * Release Id
-         */
-        release_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/releases/{release_id}/rollback';
-};
-
-export type DomainWorkspacesRollbackWorkspaceReleaseErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesRollbackWorkspaceReleaseError = DomainWorkspacesRollbackWorkspaceReleaseErrors[keyof DomainWorkspacesRollbackWorkspaceReleaseErrors];
-
-export type DomainWorkspacesRollbackWorkspaceReleaseResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelReleaseRollbackOut;
-};
-
-export type DomainWorkspacesRollbackWorkspaceReleaseResponse = DomainWorkspacesRollbackWorkspaceReleaseResponses[keyof DomainWorkspacesRollbackWorkspaceReleaseResponses];
-
 export type DomainWorkspacesGetWorkspaceCoreSettingsData = {
     body?: never;
     path: {
@@ -27657,270 +26626,6 @@ export type DomainWorkspacesAssignWorkspaceRoleToRegularMembersResponses = {
 };
 
 export type DomainWorkspacesAssignWorkspaceRoleToRegularMembersResponse = DomainWorkspacesAssignWorkspaceRoleToRegularMembersResponses[keyof DomainWorkspacesAssignWorkspaceRoleToRegularMembersResponses];
-
-export type DomainWorkspacesGetWorkspaceSiteData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site';
-};
-
-export type DomainWorkspacesGetWorkspaceSiteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetWorkspaceSiteError = DomainWorkspacesGetWorkspaceSiteErrors[keyof DomainWorkspacesGetWorkspaceSiteErrors];
-
-export type DomainWorkspacesGetWorkspaceSiteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelWorkspaceSiteOut;
-};
-
-export type DomainWorkspacesGetWorkspaceSiteResponse = DomainWorkspacesGetWorkspaceSiteResponses[keyof DomainWorkspacesGetWorkspaceSiteResponses];
-
-export type DomainSitesListSiteDomainsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/site/domains';
-};
-
-export type DomainSitesListSiteDomainsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesListSiteDomainsError = DomainSitesListSiteDomainsErrors[keyof DomainSitesListSiteDomainsErrors];
-
-export type DomainSitesListSiteDomainsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataSiteDomainOut;
-};
-
-export type DomainSitesListSiteDomainsResponse = DomainSitesListSiteDomainsResponses[keyof DomainSitesListSiteDomainsResponses];
-
-export type DomainSitesCreateSiteDomainData = {
-    /**
-     * Custom domain binding request.
-     */
-    body: SiteDomainCreateIn;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/domains';
-};
-
-export type DomainSitesCreateSiteDomainErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesCreateSiteDomainError = DomainSitesCreateSiteDomainErrors[keyof DomainSitesCreateSiteDomainErrors];
-
-export type DomainSitesCreateSiteDomainResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSiteDomainCreateOut;
-};
-
-export type DomainSitesCreateSiteDomainResponse = DomainSitesCreateSiteDomainResponses[keyof DomainSitesCreateSiteDomainResponses];
-
-export type DomainSitesDeleteSiteDomainData = {
-    body?: never;
-    path: {
-        /**
-         * Domain Id
-         *
-         * Domain record id.
-         */
-        domain_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}';
-};
-
-export type DomainSitesDeleteSiteDomainErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesDeleteSiteDomainError = DomainSitesDeleteSiteDomainErrors[keyof DomainSitesDeleteSiteDomainErrors];
-
-export type DomainSitesDeleteSiteDomainResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteDomainDeleteOut;
-};
-
-export type DomainSitesDeleteSiteDomainResponse = DomainSitesDeleteSiteDomainResponses[keyof DomainSitesDeleteSiteDomainResponses];
-
-export type DomainSitesUpdateSiteDomainData = {
-    /**
-     * Update payload.
-     */
-    body: SiteDomainUpdateIn;
-    path: {
-        /**
-         * Domain Id
-         *
-         * Domain record id.
-         */
-        domain_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}';
-};
-
-export type DomainSitesUpdateSiteDomainErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesUpdateSiteDomainError = DomainSitesUpdateSiteDomainErrors[keyof DomainSitesUpdateSiteDomainErrors];
-
-export type DomainSitesUpdateSiteDomainResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteDomainOut;
-};
-
-export type DomainSitesUpdateSiteDomainResponse = DomainSitesUpdateSiteDomainResponses[keyof DomainSitesUpdateSiteDomainResponses];
-
-export type DomainSitesVerifySiteDomainData = {
-    body?: never;
-    path: {
-        /**
-         * Domain Id
-         *
-         * Domain record id.
-         */
-        domain_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/domains/{domain_id}/verify';
-};
-
-export type DomainSitesVerifySiteDomainErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesVerifySiteDomainError = DomainSitesVerifySiteDomainErrors[keyof DomainSitesVerifySiteDomainErrors];
-
-export type DomainSitesVerifySiteDomainResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteDomainVerifyOut;
-};
-
-export type DomainSitesVerifySiteDomainResponse = DomainSitesVerifySiteDomainResponses[keyof DomainSitesVerifySiteDomainResponses];
-
-export type DomainWorkspacesCreateWorkspaceSitePreviewTokenData = {
-    /**
-     * Preview token request.
-     */
-    body: SitePreviewTokenCreateIn;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/site/preview-tokens';
-};
-
-export type DomainWorkspacesCreateWorkspaceSitePreviewTokenErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateWorkspaceSitePreviewTokenError = DomainWorkspacesCreateWorkspaceSitePreviewTokenErrors[keyof DomainWorkspacesCreateWorkspaceSitePreviewTokenErrors];
-
-export type DomainWorkspacesCreateWorkspaceSitePreviewTokenResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelSitePreviewTokenOut;
-};
-
-export type DomainWorkspacesCreateWorkspaceSitePreviewTokenResponse = DomainWorkspacesCreateWorkspaceSitePreviewTokenResponses[keyof DomainWorkspacesCreateWorkspaceSitePreviewTokenResponses];
 
 export type DomainWorkspacesListEmailInvitesData = {
     body?: never;
@@ -28612,150 +27317,6 @@ export type DomainWorkspacesListUserOptionsResponses = {
 };
 
 export type DomainWorkspacesListUserOptionsResponse = DomainWorkspacesListUserOptionsResponses[keyof DomainWorkspacesListUserOptionsResponses];
-
-export type DomainWorkspacesListThemesData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/themes';
-};
-
-export type DomainWorkspacesListThemesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListThemesError = DomainWorkspacesListThemesErrors[keyof DomainWorkspacesListThemesErrors];
-
-export type DomainWorkspacesListThemesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelWorkspaceThemeListOut;
-};
-
-export type DomainWorkspacesListThemesResponse = DomainWorkspacesListThemesResponses[keyof DomainWorkspacesListThemesResponses];
-
-export type DomainWorkspacesImportThemeData = {
-    body: WorkspaceThemeImportIn;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/themes/import';
-};
-
-export type DomainWorkspacesImportThemeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesImportThemeError = DomainWorkspacesImportThemeErrors[keyof DomainWorkspacesImportThemeErrors];
-
-export type DomainWorkspacesImportThemeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelWorkspaceThemeOut;
-};
-
-export type DomainWorkspacesImportThemeResponse = DomainWorkspacesImportThemeResponses[keyof DomainWorkspacesImportThemeResponses];
-
-export type DomainWorkspacesDeleteThemeData = {
-    body?: never;
-    path: {
-        /**
-         * Theme Id
-         */
-        theme_id: string;
-        /**
-         * Version
-         */
-        version: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/themes/{theme_id}/{version}';
-};
-
-export type DomainWorkspacesDeleteThemeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteThemeError = DomainWorkspacesDeleteThemeErrors[keyof DomainWorkspacesDeleteThemeErrors];
-
-export type DomainWorkspacesDeleteThemeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainWorkspacesDeleteThemeResponse = DomainWorkspacesDeleteThemeResponses[keyof DomainWorkspacesDeleteThemeResponses];
-
-export type DomainWorkspacesGetThemeData = {
-    body?: never;
-    path: {
-        /**
-         * Theme Id
-         */
-        theme_id: string;
-        /**
-         * Version
-         */
-        version: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/themes/{theme_id}/{version}';
-};
-
-export type DomainWorkspacesGetThemeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetThemeError = DomainWorkspacesGetThemeErrors[keyof DomainWorkspacesGetThemeErrors];
-
-export type DomainWorkspacesGetThemeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelWorkspaceThemeOut;
-};
-
-export type DomainWorkspacesGetThemeResponse = DomainWorkspacesGetThemeResponses[keyof DomainWorkspacesGetThemeResponses];
 
 export type DomainWorkspacesInitUploadData = {
     body: UploadInitRequest;

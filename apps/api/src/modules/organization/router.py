@@ -18,7 +18,6 @@ from src.modules.assets.admin.assets.org_router import router as organization_as
 from src.modules.assets.admin.uploads.org_router import router as organization_uploads_router
 from src.modules.assets.admin.usages.org_router import router as organization_usages_router
 from src.modules.auth.http.service import get_current_user_id
-from src.modules.organization.extensions.router import router as organization_extensions_router
 from src.modules.organization.http.service import get_current_org_membership
 from src.modules.organization.members.router import router as organization_members_router
 from src.modules.organization.rbac.router import router as organization_rbac_router
@@ -40,7 +39,6 @@ from src.modules.organization.workspaces.router import router as organization_wo
 
 router = APIRouter(tags=["domain.organization"])
 
-router.include_router(organization_extensions_router)
 router.include_router(organization_workspaces_router)
 router.include_router(organization_members_router)
 router.include_router(organization_rbac_router)

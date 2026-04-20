@@ -111,7 +111,7 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
 
         desired_by_role: dict[str, set[str]] = {code: set() for code in system_roles.keys()}
         templates: dict[str, PermissionTemplate] = {}
-        for _plugin_id, tpl in self._iter_permission_entries():
+        for _owner_key, tpl in self._iter_permission_entries():
             code = tpl.code
             if not code or code in templates:
                 continue

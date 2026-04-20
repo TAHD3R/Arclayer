@@ -8,9 +8,9 @@ from fastapi import Depends
 
 from src.config import Settings, get_settings
 from src.modules.auth.http.service import get_current_user_id
-from src.modules.projects.facade.service import ProjectFacadeService
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
+from src.modules.projects.runtime_bridge.service import ProjectRuntimeBridgeService
 from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
 from src.modules.workspaces.http.schema import WorkspaceContext
 
@@ -54,7 +54,7 @@ async def _build_project_content_route_context(
         ctx=workspace_ctx,
         error_code="PERMISSION_DENIED",
     )
-    facade = await ProjectFacadeService(settings).get_context(
+    runtime_context = await ProjectRuntimeBridgeService(settings).get_context(
         project_id=ctx.project_id,
         actor_user_id=user_id,
     )
@@ -64,8 +64,8 @@ async def _build_project_content_route_context(
         project_id=ctx.project_id,
         workspace_id=ctx.workspace_id,
         organization_id=ctx.organization_id,
-        runtime_id=facade.runtime_id,
-        site_id=facade.site_id,
+        runtime_id=runtime_context.runtime_id,
+        site_id=runtime_context.site_id,
     )
 
 

@@ -41,8 +41,6 @@ _ORG_PERMISSION_TEMPLATES: list[tuple[str, str, str, str]] = [
     ("org.settings.delete", "settings", "Delete organization", "Delete organization and all scoped settings."),
     ("org.assets.read", "assets", "View assets", "View organization asset library."),
     ("org.assets.manage", "assets", "Manage assets", "Upload and manage organization assets."),
-    ("org.extensions.read", "extensions", "View extensions", "View organization extensions and integrations."),
-    ("org.extensions.manage", "extensions", "Manage extensions", "Manage organization extensions and integrations."),
     ("org.activity.read", "activity", "View activity", "View organization activity and audit trails."),
 ]
 
@@ -72,8 +70,6 @@ _ORG_PERMISSION_I18N_KEYS: dict[str, tuple[str, str]] = {
     "org.settings.delete": ("ORG_ROLE_PERMISSION_SETTINGS_DELETE", "ORG_ROLE_PERMISSION_SETTINGS_DELETE_DESC"),
     "org.assets.read": ("ORG_ROLE_PERMISSION_ASSETS_VIEW", "ORG_ROLE_PERMISSION_ASSETS_VIEW_DESC"),
     "org.assets.manage": ("ORG_ROLE_PERMISSION_ASSETS_MANAGE", "ORG_ROLE_PERMISSION_ASSETS_MANAGE_DESC"),
-    "org.extensions.read": ("ORG_ROLE_PERMISSION_PLUGINS_VIEW", "ORG_ROLE_PERMISSION_PLUGINS_VIEW_DESC"),
-    "org.extensions.manage": ("ORG_ROLE_PERMISSION_PLUGINS_MANAGE", "ORG_ROLE_PERMISSION_PLUGINS_MANAGE_DESC"),
     "org.activity.read": ("ORG_ROLE_PERMISSION_ACTIVITY_VIEW", "ORG_ROLE_PERMISSION_ACTIVITY_VIEW_DESC"),
 }
 
@@ -93,8 +89,6 @@ _BUILTIN_ROLE_RULES: dict[str, set[str]] = {
         "org.settings.manage",
         "org.assets.read",
         "org.assets.manage",
-        "org.extensions.read",
-        "org.extensions.manage",
         "org.activity.read",
     },
     "member": {
@@ -104,7 +98,6 @@ _BUILTIN_ROLE_RULES: dict[str, set[str]] = {
         "org.workspaces.read",
         "org.settings.read",
         "org.assets.read",
-        "org.extensions.read",
         "org.activity.read",
     },
 }

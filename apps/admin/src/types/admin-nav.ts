@@ -20,7 +20,7 @@ export type AdminNavItem = {
   disabled?: boolean;
   blockedReason?: "missing_permission" | null;
   requiredPermission?: string | null;
-  ownerPluginId?: string | null;
+  ownerKey?: string | null;
   children?: AdminNavItem[];
   position?: "main" | "footer";
   actionRenderer?: (item: AdminNavItem) => ReactNode;

@@ -88,7 +88,7 @@ async def require_org_admin(
     Organization-level admin gate.
 
     - OWNER implies ADMIN permissions.
-    - Used for high-impact org operations (for example plugin management) that should not be
+    - Used for high-impact org operations such as platform administration that should not be
       exposed to regular members.
     """
 

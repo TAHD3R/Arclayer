@@ -68,7 +68,7 @@ class PermissionMutableFields(Protocol):
     description: str | None
     name_i18n: str | None
     description_i18n: str | None
-    plugin_id: str | None
+    owner_key: str | None
 
 
 class UploadPartMutableFields(Protocol):

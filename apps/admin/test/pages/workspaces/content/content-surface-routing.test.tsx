@@ -19,9 +19,9 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/pages/projects/content/library/article-editor/page", () => ({
-  ContentLibraryArticleEditorPage: (props: { workspaceId: string; itemId: string }) => (
+  ContentLibraryArticleEditorPage: (props: { projectId: string; itemId: string }) => (
     <div data-testid="content-library-article-editor-page">
-      {props.workspaceId}:{props.itemId}
+      {props.projectId}:{props.itemId}
     </div>
   ),
 }));
@@ -81,7 +81,7 @@ describe("content surface routing", () => {
       },
     });
 
-    render(<ContentLibraryItemResolverPage workspaceId="ws-1" itemId="item-structured" />, {
+    render(<ContentLibraryItemResolverPage projectId="project-1" itemId="item-structured" />, {
       wrapper: createWrapper(),
     });
 
@@ -119,7 +119,7 @@ describe("content surface routing", () => {
       },
     });
 
-    render(<ContentLibraryItemResolverPage workspaceId="ws-1" itemId="item-canvas" />, {
+    render(<ContentLibraryItemResolverPage projectId="project-1" itemId="item-canvas" />, {
       wrapper: createWrapper(),
     });
 
@@ -158,7 +158,7 @@ describe("content surface routing", () => {
       },
     });
 
-    render(<ContentLibraryItemResolverPage workspaceId="ws-1" itemId="item-blocked" />, {
+    render(<ContentLibraryItemResolverPage projectId="project-1" itemId="item-blocked" />, {
       wrapper: createWrapper(),
     });
 

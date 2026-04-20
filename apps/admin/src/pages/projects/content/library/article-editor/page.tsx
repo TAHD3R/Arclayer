@@ -3,9 +3,9 @@ import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { ContentLibraryArticleEditorShell } from "./components/content-library-article-editor-shell";
 import { useContentLibraryArticleEditor } from "./hooks/use-content-library-article-editor";
 
-export function ContentLibraryArticleEditorPage(props: { workspaceId: string; itemId: string }) {
+export function ContentLibraryArticleEditorPage(props: { projectId: string; itemId: string }) {
   const editor = useContentLibraryArticleEditor({
-    workspaceId: props.workspaceId,
+    workspaceId: props.projectId,
     itemId: props.itemId,
   });
 
@@ -18,10 +18,10 @@ export function ContentLibraryArticleEditorPage(props: { workspaceId: string; it
       <div
         className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card"
         data-item-id={props.itemId}
-        data-workspace-id={props.workspaceId}
+        data-project-id={props.projectId}
       >
         <ContentLibraryArticleEditorShell
-          workspaceId={props.workspaceId}
+          workspaceId={props.projectId}
           itemId={props.itemId}
           mode="page"
           title={editor.title}
