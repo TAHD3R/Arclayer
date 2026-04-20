@@ -18,9 +18,9 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   };
 });
 
-import { ContentLibraryArticleEditorPage } from "@/pages/workspaces/content/library/article-editor/page";
-import { ContentLibraryArticleEditorShell } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-shell";
-import type { ContentLibraryArticleEditorRuntimeState } from "@/pages/workspaces/content/library/runtime";
+import { ContentLibraryArticleEditorPage } from "@/pages/projects/content/library/article-editor/page";
+import { ContentLibraryArticleEditorShell } from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-shell";
+import type { ContentLibraryArticleEditorRuntimeState } from "@/pages/projects/content/library/runtime";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const mocked = vi.hoisted(() => ({
@@ -75,10 +75,10 @@ vi.mock("@/components/layout/admin-route-container", () => ({
   ),
 }));
 
-vi.mock("@/pages/workspaces/content/library/article-editor/hooks/api", async (importOriginal) => {
+vi.mock("@/pages/projects/content/library/article-editor/hooks/api", async (importOriginal) => {
   const actual =
     await importOriginal<
-      typeof import("@/pages/workspaces/content/library/article-editor/hooks/api")
+      typeof import("@/pages/projects/content/library/article-editor/hooks/api")
     >();
   return {
     ...actual,
@@ -112,7 +112,7 @@ vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
 }));
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-document",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-document",
   () => ({
     ContentLibraryArticleEditorDocumentProvider: (props: {
       children?: ReactNode;
@@ -146,7 +146,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-body",
   () => ({
     ContentLibraryArticleEditorBody: () => (
       <div data-testid="content-library-article-editor-body" />
@@ -156,7 +156,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-page-toolbar",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-page-toolbar",
   () => ({
     ContentLibraryArticleEditorPageToolbar: (props: {
       canPublish?: boolean;
@@ -219,7 +219,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-toc-sidebar",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-toc-sidebar",
   () => ({
     ContentLibraryArticleEditorTocSidebar: () => (
       <div data-testid="content-library-article-editor-toc-sidebar" />

@@ -78,6 +78,7 @@ class AutomationOperationOut(BaseSchema):
 class AutomationFlowOut(BaseSchema):
     id: PublicUUID
     workspace_id: UUID
+    project_id: UUID | None = None
     name: str
     description: str | None = None
     status: AutomationFlowStatus
@@ -110,6 +111,7 @@ class AutomationRunLogOut(BaseSchema):
 class AutomationRunOut(BaseSchema):
     id: PublicUUID
     workspace_id: UUID
+    project_id: UUID | None = None
     flow_id: PublicUUID
     trigger_event: str
     status: AutomationRunStatus

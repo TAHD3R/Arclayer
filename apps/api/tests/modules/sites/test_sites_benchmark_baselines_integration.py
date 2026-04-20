@@ -70,8 +70,8 @@ async def _measure_latency_ms(
     return samples
 
 
-async def _site_id(client, workspace_id: str) -> str:
-    site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+async def _site_id(client, project_id: str) -> str:
+    site_res = await client.get(f"/api/v1/projects/{project_id}/site")
     assert site_res.status_code == 200, site_res.text
     return site_res.json()["data"]["siteId"]
 
@@ -103,11 +103,11 @@ async def test_headless_cms_benchmark_baselines(
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_content_model(
             client,
-            workspace_id,
+            project_id,
             key="article",
             name="Article",
             category="content_library",
@@ -118,36 +118,36 @@ async def test_headless_cms_benchmark_baselines(
             defaultSurface="writing",
         )
 
-        page_item_id = await _create_page_item(client, workspace_id, title="Benchmark Template")
-        article_item_id = await _create_article_item(client, workspace_id, title="Benchmark Article")
+        page_item_id = await _create_page_item(client, project_id, title="Benchmark Template")
+        article_item_id = await _create_article_item(client, project_id, title="Benchmark Article")
 
         await _publish_page_template(
             client,
-            workspace_id,
+            project_id,
             item_id=page_item_id,
             title="Benchmark Template",
             path="/benchmark/:slug",
         )
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{article_item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{article_item_id}/versions/draft",
             json=_article_draft_payload(expected_version=0, title="Benchmark Article", slug="world", rating=8),
         )
         assert draft_res.status_code == 201, draft_res.text
-        await _publish_article_version(client, workspace_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
 
         await _upsert_route_binding(
             client,
-            workspace_id,
+            project_id,
             item_id=page_item_id,
             path="/benchmark/:slug",
             route_mode="dynamic",
             primary_source={"modelKey": "article", "fieldKey": "slug", "paramName": "slug"},
         )
-        await _publish_release(client, workspace_id)
+        await _publish_release(client, project_id)
 
-        site_id = await _site_id(client, workspace_id)
+        site_id = await _site_id(client, project_id)
         delivery_key_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/api-keys",
+            f"/api/v1/projects/{project_id}/api-keys",
             json={
                 "family": "delivery",
                 "name": "Published GraphQL Benchmark",

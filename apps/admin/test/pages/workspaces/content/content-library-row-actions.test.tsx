@@ -8,8 +8,8 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-import { ContentLibraryRowActions } from "@/pages/workspaces/content/library/components/content-library-row-actions";
-import type { ContentLibraryTableRow } from "@/pages/workspaces/content/library/types";
+import { ContentLibraryRowActions } from "@/pages/projects/content/library/components/content-library-row-actions";
+import type { ContentLibraryTableRow } from "@/pages/projects/content/library/types";
 
 function buildRow(overrides: Partial<ContentLibraryTableRow> = {}): ContentLibraryTableRow {
   return {

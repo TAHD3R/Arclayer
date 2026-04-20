@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { ContentLibraryItemResolverPage } from "@/pages/workspaces/content/library/item-resolver/page";
+import { ContentLibraryItemResolverPage } from "@/pages/projects/content/library/item-resolver/page";
 
 const getContentItemMock = vi.fn();
 
@@ -18,7 +18,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/pages/workspaces/content/library/article-editor/page", () => ({
+vi.mock("@/pages/projects/content/library/article-editor/page", () => ({
   ContentLibraryArticleEditorPage: (props: { workspaceId: string; itemId: string }) => (
     <div data-testid="content-library-article-editor-page">
       {props.workspaceId}:{props.itemId}
@@ -26,13 +26,13 @@ vi.mock("@/pages/workspaces/content/library/article-editor/page", () => ({
   ),
 }));
 
-vi.mock("@/pages/workspaces/content/structured/page", () => ({
+vi.mock("@/pages/projects/content/structured/page", () => ({
   ContentStructuredSurfacePage: (props: { item: { id: string } }) => (
     <div data-testid="content-structured-surface">structured:{props.item.id}</div>
   ),
 }));
 
-vi.mock("@/pages/workspaces/content/site-builder/page", () => ({
+vi.mock("@/pages/projects/content/site-builder/page", () => ({
   ContentSiteBuilderPage: (props: { item?: { id: string } | null }) => (
     <div data-testid="content-site-builder-shell">builder:{props.item?.id ?? "none"}</div>
   ),

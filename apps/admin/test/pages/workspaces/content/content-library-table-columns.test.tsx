@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
-import { useContentLibraryTableColumns } from "@/pages/workspaces/content/library/components/content-library-table-columns";
-import type { ContentLibraryTableRow } from "@/pages/workspaces/content/library/types";
+import { useContentLibraryTableColumns } from "@/pages/projects/content/library/components/content-library-table-columns";
+import type { ContentLibraryTableRow } from "@/pages/projects/content/library/types";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

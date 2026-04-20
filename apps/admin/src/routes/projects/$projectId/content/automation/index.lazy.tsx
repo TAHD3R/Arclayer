@@ -1,7 +1,6 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { ContentAutomationPage } from "@/pages/workspaces/content/automation/page";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { ContentAutomationPage } from "@/pages/projects/content/automation/page";
 
 export const Route = createLazyFileRoute("/projects/$projectId/content/automation/")({
   component: ProjectContentAutomationRouteComponent,
@@ -9,7 +8,5 @@ export const Route = createLazyFileRoute("/projects/$projectId/content/automatio
 
 function ProjectContentAutomationRouteComponent() {
   const { projectId } = Route.useParams();
-  const workspaceId =
-    useWorkspaceStore.getState().currentWorkspaceId ?? useWorkspaceStore.getState().lastWorkspaceId;
-  return <ContentAutomationPage workspaceId={workspaceId ?? projectId} />;
+  return <ContentAutomationPage projectId={projectId} />;
 }

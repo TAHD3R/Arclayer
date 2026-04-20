@@ -18,7 +18,7 @@ from src.modules.workspaces.publish.schema import (
 from src.modules.workspaces.publish.service import WorkspacePublishService
 
 router = APIRouter(
-    prefix="/workspaces/{workspace_id}/publish",
+    prefix="/_internal/workspaces/{workspace_id}/publish",
     tags=["domain.workspaces.publish"],
     dependencies=[require_workspace_permission("system:content:read")],
 )

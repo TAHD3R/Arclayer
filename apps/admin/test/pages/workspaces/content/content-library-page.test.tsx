@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("katex/dist/katex.min.css", () => ({}));
 
-import { ContentLibraryPage } from "@/pages/workspaces/content/library/page";
+import { ContentLibraryPage } from "@/pages/projects/content/library/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 
@@ -16,7 +16,7 @@ const mocked = vi.hoisted(() => ({
   getContentItemVersion: vi.fn(),
   loadContentLibraryArticleEditorSnapshot: vi.fn(),
   getContentSeoProfile: vi.fn(),
-  getWorkspacePublishImpact: vi.fn(),
+  getProjectPublishImpact: vi.fn(),
   getContentLibraryViews: vi.fn(),
   createContentLibraryView: vi.fn(),
   updateContentLibraryView: vi.fn(),
@@ -30,7 +30,7 @@ const mocked = vi.hoisted(() => ({
   deleteContentItem: vi.fn(),
   duplicateContentItem: vi.fn(),
   unarchiveContentItem: vi.fn(),
-  issueWorkspaceSitePreviewToken: vi.fn(),
+  issueProjectSitePreviewToken: vi.fn(),
   locationAssign: vi.fn(),
   navigate: vi.fn(),
   setSidebarOpen: vi.fn(),
@@ -46,7 +46,7 @@ vi.mock("@/api/content", () => ({
   listAllContentModels: (...args: unknown[]) => mocked.listAllContentModels(...args),
   getContentItemVersion: (...args: unknown[]) => mocked.getContentItemVersion(...args),
   getContentSeoProfile: (...args: unknown[]) => mocked.getContentSeoProfile(...args),
-  getWorkspacePublishImpact: (...args: unknown[]) => mocked.getWorkspacePublishImpact(...args),
+  getProjectPublishImpact: (...args: unknown[]) => mocked.getProjectPublishImpact(...args),
   getContentLibraryViews: (...args: unknown[]) => mocked.getContentLibraryViews(...args),
   createContentLibraryView: (...args: unknown[]) => mocked.createContentLibraryView(...args),
   updateContentLibraryView: (...args: unknown[]) => mocked.updateContentLibraryView(...args),
@@ -74,10 +74,10 @@ vi.mock("@/api/rbac", () => ({
     mocked.listWorkspacePermissionActions(...args),
 }));
 
-vi.mock("@/pages/workspaces/content/library/article-editor/hooks/api", async (importOriginal) => {
+vi.mock("@/pages/projects/content/library/article-editor/hooks/api", async (importOriginal) => {
   const actual =
     await importOriginal<
-      typeof import("@/pages/workspaces/content/library/article-editor/hooks/api")
+      typeof import("@/pages/projects/content/library/article-editor/hooks/api")
     >();
   return {
     ...actual,
@@ -86,9 +86,9 @@ vi.mock("@/pages/workspaces/content/library/article-editor/hooks/api", async (im
   };
 });
 
-vi.mock("@/api/workspace-site", () => ({
-  issueWorkspaceSitePreviewToken: (...args: unknown[]) =>
-    mocked.issueWorkspaceSitePreviewToken(...args),
+vi.mock("@/api/project-site", () => ({
+  issueProjectSitePreviewToken: (...args: unknown[]) =>
+    mocked.issueProjectSitePreviewToken(...args),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -139,7 +139,7 @@ vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
   AssetPickerDialog: () => null,
 }));
 
-vi.mock("@/pages/workspaces/content/library/components/content-library-preview-panel", () => ({
+vi.mock("@/pages/projects/content/library/components/content-library-preview-panel", () => ({
   ContentLibraryPreviewPanel: (props: {
     initialTitle?: string;
     initialSummary?: string;
@@ -166,7 +166,7 @@ vi.mock("@/pages/workspaces/content/library/components/content-library-preview-p
 }));
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-document",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-document",
   () => ({
     ContentLibraryArticleEditorDocumentProvider: (props: { children?: ReactNode }) => (
       <>{props.children}</>
@@ -179,7 +179,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-body",
   () => ({
     ContentLibraryArticleEditorBody: () => (
       <div data-testid="content-library-article-editor-body" />
@@ -188,7 +188,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-page-toolbar",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-page-toolbar",
   () => ({
     ContentLibraryArticleEditorPageToolbar: () => (
       <div data-testid="content-library-article-editor-page-toolbar" />
@@ -340,7 +340,7 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
   ),
 }));
 
-vi.mock("@/pages/workspaces/content/library/components/content-library-toolbar", () => ({
+vi.mock("@/pages/projects/content/library/components/content-library-toolbar", () => ({
   ContentLibraryToolbar: (props: {
     viewMode?: "card" | "table";
     searchInput?: string;
@@ -465,11 +465,11 @@ vi.mock("@/pages/workspaces/content/library/components/content-library-toolbar",
   ),
 }));
 
-vi.mock("@/pages/workspaces/content/library/components/content-library-action-dialogs", () => ({
+vi.mock("@/pages/projects/content/library/components/content-library-action-dialogs", () => ({
   ContentLibraryActionDialogs: () => null,
 }));
 
-vi.mock("@/pages/workspaces/content/library/components/content-library-new-content-button", () => ({
+vi.mock("@/pages/projects/content/library/components/content-library-new-content-button", () => ({
   ContentLibraryNewContentButton: (props: { onClick: () => void; disabled?: boolean }) => (
     <button type="button" onClick={props.onClick} disabled={props.disabled}>
       CONTENT_LIBRARY_ACTION_NEW_CONTENT
@@ -569,8 +569,13 @@ describe("ContentLibraryPage", () => {
         assign: mocked.locationAssign,
       },
     });
-    useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
-    mocked.issueWorkspaceSitePreviewToken.mockResolvedValue({
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "project-1",
+      currentProjectId: "project-1",
+      lastWorkspaceId: "project-1",
+      lastProjectId: "project-1",
+    });
+    mocked.issueProjectSitePreviewToken.mockResolvedValue({
       siteId: "site-1",
       token: "preview-token",
       expiresAtMs: 123,
@@ -608,7 +613,7 @@ describe("ContentLibraryPage", () => {
       async (_workspaceId: string, itemId: string) => ({
         item: {
           id: itemId,
-          workspaceId: "ws-1",
+          workspaceId: "project-1",
           siteId: "site-1",
           modelId: "model-1",
           modelKey: itemId === "content-1" ? "page" : "article",
@@ -647,7 +652,7 @@ describe("ContentLibraryPage", () => {
       robotsDirective: "index,follow",
       payload: null,
     });
-    mocked.getWorkspacePublishImpact.mockResolvedValue({
+    mocked.getProjectPublishImpact.mockResolvedValue({
       missingRoutes: [],
       unresolvedRelations: ["content-1"],
       unpublishedDependencies: ["content-1"],
@@ -685,7 +690,7 @@ describe("ContentLibraryPage", () => {
     mocked.moveContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
     mocked.deleteContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
     mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "ws-1",
+      workspaceId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage", "system:content:read"],
     });
@@ -706,7 +711,7 @@ describe("ContentLibraryPage", () => {
     mocked.listAllContentModels.mockResolvedValue([
       {
         id: "model-page",
-        workspaceId: "ws-1",
+        workspaceId: "project-1",
         siteId: "site-1",
         key: "page",
         name: "Page",
@@ -717,7 +722,7 @@ describe("ContentLibraryPage", () => {
       },
       {
         id: "model-article",
-        workspaceId: "ws-1",
+        workspaceId: "project-1",
         siteId: "site-1",
         key: "article",
         name: "Article",
@@ -728,7 +733,7 @@ describe("ContentLibraryPage", () => {
       },
       {
         id: "model-section",
-        workspaceId: "ws-1",
+        workspaceId: "project-1",
         siteId: "site-1",
         key: "reusable-section",
         name: "Reusable Section",
@@ -739,7 +744,7 @@ describe("ContentLibraryPage", () => {
       },
       {
         id: "model-category",
-        workspaceId: "ws-1",
+        workspaceId: "project-1",
         siteId: "site-1",
         key: "category",
         name: "Category",
@@ -752,7 +757,7 @@ describe("ContentLibraryPage", () => {
     mocked.listAllContentItems.mockResolvedValue([
       {
         id: "content-1",
-        workspaceId: "ws-1",
+        workspaceId: "project-1",
         siteId: "site-1",
         modelId: "model-page",
         modelKey: "page",
@@ -779,7 +784,7 @@ describe("ContentLibraryPage", () => {
       },
       {
         id: "content-2",
-        workspaceId: "ws-1",
+        workspaceId: "project-1",
         siteId: "site-1",
         modelId: "model-article",
         modelKey: "article",
@@ -957,7 +962,7 @@ describe("ContentLibraryPage", () => {
     );
 
     await waitFor(() => {
-      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("ws-1", {
+      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("project-1", {
         name: "Editorial queue",
         baseViewId: "all",
         query: "",
@@ -985,7 +990,7 @@ describe("ContentLibraryPage", () => {
     );
 
     await waitFor(() => {
-      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("ws-1", {
+      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("project-1", {
         name: "Editorial queue",
         baseViewId: "draft",
         query: "",
@@ -1094,7 +1099,7 @@ describe("ContentLibraryPage", () => {
     );
 
     await waitFor(() => {
-      expect(mocked.updateContentLibraryView).toHaveBeenCalledWith("ws-1", "view-1", {
+      expect(mocked.updateContentLibraryView).toHaveBeenCalledWith("project-1", "view-1", {
         baseViewId: "published",
         query: "launch",
         filters: { role: "page" },
@@ -1245,7 +1250,7 @@ describe("ContentLibraryPage", () => {
     await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_UPDATE_VIEW" }));
 
     await waitFor(() => {
-      expect(mocked.updateContentLibraryView).toHaveBeenCalledWith("ws-1", "view-1", {
+      expect(mocked.updateContentLibraryView).toHaveBeenCalledWith("project-1", "view-1", {
         name: "Shared launch board",
         visibility: "workspace",
         isDefault: true,
@@ -1317,7 +1322,7 @@ describe("ContentLibraryPage", () => {
     await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_SAVE_AS_VIEW" }));
 
     await waitFor(() => {
-      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("ws-1", {
+      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("project-1", {
         name: "Published launch copy",
         baseViewId: "published",
         query: "launch",
@@ -1408,7 +1413,7 @@ describe("ContentLibraryPage", () => {
     );
 
     await waitFor(() => {
-      expect(mocked.deleteContentLibraryView).toHaveBeenCalledWith("ws-1", "view-1");
+      expect(mocked.deleteContentLibraryView).toHaveBeenCalledWith("project-1", "view-1");
     });
   });
 
@@ -1444,7 +1449,7 @@ describe("ContentLibraryPage", () => {
     );
 
     expect(mocked.navigate).toHaveBeenCalledWith({
-      to: "/projects/ws-1/content/models",
+      to: "/projects/project-1/content/models",
     });
   });
 
@@ -1475,7 +1480,7 @@ describe("ContentLibraryPage", () => {
 
   test("falls back to read-only actions when content management access is missing", async () => {
     mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "ws-1",
+      workspaceId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:read"],
     });
@@ -1541,7 +1546,7 @@ describe("ContentLibraryPage", () => {
 
     expect(mocked.navigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: "/projects/ws-1/content/library/content-2",
+        to: "/projects/project-1/content/library/content-2",
       }),
     );
   });
@@ -1641,7 +1646,7 @@ describe("ContentLibraryPage", () => {
 
     expect(mocked.getContentItemVersion).not.toHaveBeenCalled();
     expect(mocked.getContentSeoProfile).not.toHaveBeenCalled();
-    expect(mocked.getWorkspacePublishImpact).not.toHaveBeenCalled();
+    expect(mocked.getProjectPublishImpact).not.toHaveBeenCalled();
   });
 
   test("filters the workbench by role without splitting the surface into separate pages", async () => {

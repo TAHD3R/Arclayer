@@ -6,6 +6,7 @@ from src.common.utils.public_ids import decode_public_id
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
 from tests.modules.workspaces.content.test_content_items_integration import (
+    _approve_content_item_for_publish,
     _draft_payload,
     _item_payload,
     _model_payload,
@@ -20,15 +21,15 @@ async def test_content_items_reject_duplicate_presentation_kind_payload(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_model_payload(),
         )
         assert model_res.status_code == 201, model_res.text
 
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
@@ -37,7 +38,7 @@ async def test_content_items_reject_duplicate_presentation_kind_payload(
         duplicate_payload = _draft_payload()
         duplicate_payload["presentations"].append({"kind": "form_data", "payload": {"duplicate": True}})
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=duplicate_payload,
         )
         assert draft_res.status_code == 409, draft_res.text
@@ -49,28 +50,29 @@ async def test_content_items_keep_published_status_when_transitioning_non_live_v
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_model_payload(),
         )
         assert model_res.status_code == 201, model_res.text
 
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         first_draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert first_draft_res.status_code == 201, first_draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
@@ -80,14 +82,14 @@ async def test_content_items_keep_published_status_when_transitioning_non_live_v
         second_draft_payload["changeSummary"] = "second draft"
         second_draft_payload["fieldsSnapshot"]["body"] = "Second draft body"
         second_draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=second_draft_payload,
         )
         assert second_draft_res.status_code == 201, second_draft_res.text
         assert second_draft_res.json()["data"]["versionNumber"] == 2
 
         schedule_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/2/schedule",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/schedule",
             json={},
         )
         assert schedule_res.status_code == 200, schedule_res.text
@@ -98,7 +100,7 @@ async def test_content_items_keep_published_status_when_transitioning_non_live_v
         assert str(item_after_schedule.status) == "published"
 
         archive_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/2/archive",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/archive",
             json={},
         )
         assert archive_res.status_code == 200, archive_res.text
@@ -113,34 +115,35 @@ async def test_content_items_archive_live_version_clears_published_pointer(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_model_payload(),
         )
         assert model_res.status_code == 201, model_res.text
 
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
 
         archive_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/archive",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/archive",
             json={},
         )
         assert archive_res.status_code == 200, archive_res.text
@@ -157,41 +160,42 @@ async def test_content_items_unarchive_live_archived_version_restores_draft(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_model_payload(),
         )
         assert model_res.status_code == 201, model_res.text
 
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
 
         archive_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/archive",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/archive",
             json={},
         )
         assert archive_res.status_code == 200, archive_res.text
         assert archive_res.json()["data"]["status"] == "archived"
 
         unarchive_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/unarchive",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/unarchive",
             json={},
         )
         assert unarchive_res.status_code == 200, unarchive_res.text
@@ -211,15 +215,15 @@ async def test_content_items_patch_draft_propagates_actor_audit_fields(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_model_payload(),
         )
         assert model_res.status_code == 201, model_res.text
 
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
@@ -227,7 +231,7 @@ async def test_content_items_patch_draft_propagates_actor_audit_fields(
         item_uuid = decode_public_id(item_id)
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
@@ -235,7 +239,7 @@ async def test_content_items_patch_draft_propagates_actor_audit_fields(
         await ContentVersionRecord.filter(item_id=item_uuid, version=1).update(last_transition_by_user_id=None)
 
         patch_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1",
             json={"changeSummary": "patch draft"},
         )
         assert patch_res.status_code == 200, patch_res.text
@@ -252,15 +256,15 @@ async def test_content_items_publish_rejects_missing_required_official_system_fi
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_model_payload(),
         )
         assert model_res.status_code == 201, model_res.text
 
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
@@ -270,13 +274,14 @@ async def test_content_items_publish_rejects_missing_required_official_system_fi
         invalid_draft["fieldsSnapshot"].pop("slug", None)
         invalid_draft["presentations"][0]["payload"].pop("slug", None)
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=invalid_draft,
         )
         assert draft_res.status_code == 201, draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 409, publish_res.text
@@ -294,15 +299,15 @@ async def test_content_items_publish_rejects_disallowed_official_presentation_ki
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_model_payload(),
         )
         assert model_res.status_code == 201, model_res.text
 
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
@@ -311,13 +316,14 @@ async def test_content_items_publish_rejects_disallowed_official_presentation_ki
         invalid_draft = _draft_payload()
         invalid_draft["presentations"].append({"kind": "visual_blueprint", "payload": {"root": "page"}})
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=invalid_draft,
         )
         assert draft_res.status_code == 201, draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 409, publish_res.text

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { listWorkspacePermissionActions } from "@/api/rbac";
-import { getMyWorkspaceAuthz } from "@/api/workspaces";
+import { getMyProjectAuthz, getMyWorkspaceAuthz } from "@/api/workspaces";
 import type { WorkspacePermissionAction } from "@/types/api/rbac";
 
 type UseWorkspacePermissionAccessResult = {
@@ -69,6 +69,44 @@ export function useWorkspacePermissionAccess(
   return {
     authzQuery,
     actionsQuery,
+    permissionCodes,
+    actionCatalog,
+    isSuperuser,
+    hasPermission,
+    hasAction,
+  };
+}
+
+export function useProjectPermissionAccess(
+  projectId: string | null | undefined,
+): UseWorkspacePermissionAccessResult {
+  const authzQuery = useQuery({
+    queryKey: ["project", "authz", projectId],
+    enabled: Boolean(projectId),
+    queryFn: async () => {
+      if (!projectId) throw new Error("projectId is required");
+      return getMyProjectAuthz(projectId);
+    },
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const permissionCodes = authzQuery.data?.permissionCodes ?? [];
+  const isSuperuser = Boolean(authzQuery.data?.isSuperuser);
+  const permissionCodeSet = useMemo(() => new Set(permissionCodes), [permissionCodes]);
+  const actionCatalog: WorkspacePermissionAction[] = [];
+
+  const hasPermission = (permissionCode: string) =>
+    isSuperuser || permissionCodeSet.has(String(permissionCode || "").trim());
+
+  const hasAction = (actionCode: string) => {
+    return hasPermission(actionCode);
+  };
+
+  return {
+    authzQuery,
+    actionsQuery: authzQuery,
     permissionCodes,
     actionCatalog,
     isSuperuser,

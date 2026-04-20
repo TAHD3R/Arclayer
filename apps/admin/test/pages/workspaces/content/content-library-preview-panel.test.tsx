@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
-import { ContentLibraryPreviewPanel } from "@/pages/workspaces/content/library/components/content-library-preview-panel";
-import type { ContentLibraryTableRow } from "@/pages/workspaces/content/library/types";
+import { ContentLibraryPreviewPanel } from "@/pages/projects/content/library/components/content-library-preview-panel";
+import type { ContentLibraryTableRow } from "@/pages/projects/content/library/types";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -10,20 +10,20 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/pages/workspaces/content/content-type-presentation", () => ({
+vi.mock("@/pages/projects/content/content-type-presentation", () => ({
   getContentTypeLabel: () => "Article",
   getContentTypeDescription: () => "Editorial content",
 }));
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-shell",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-shell",
   () => ({
     ContentLibraryArticleEditorShell: () => <div data-testid="article-editor-shell" />,
   }),
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/hooks/use-content-library-article-editor",
+  "@/pages/projects/content/library/article-editor/hooks/use-content-library-article-editor",
   () => ({
     useContentLibraryArticleEditor: () => ({
       title: "Launch note",

@@ -2,7 +2,7 @@ import type { PropsWithChildren } from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
-import { ContentStructuredSurfacePage } from "@/pages/workspaces/content/structured/page";
+import { ContentStructuredSurfacePage } from "@/pages/projects/content/structured/page";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

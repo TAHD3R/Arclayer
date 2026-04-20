@@ -21,32 +21,11 @@ from src.modules.workspaces.api_keys.router import (
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.authz.router import router as workspace_authz_router
 from src.modules.workspaces.automation.router import router as workspace_automation_router
-from src.modules.workspaces.content.bindings.router import (
-    bindings_router as workspace_content_bindings_router,
-)
-from src.modules.workspaces.content.items.router import (
-    canonical_items_router as workspace_content_items_router,
-)
-from src.modules.workspaces.content.models.router import (
-    canonical_models_router as workspace_content_models_router,
-)
-from src.modules.workspaces.content.presentations.router import (
-    presentations_router as workspace_content_presentations_router,
-)
-from src.modules.workspaces.content.routing.router import (
-    canonical_routing_router as workspace_content_routing_router,
-)
-from src.modules.workspaces.content.seo.router import seo_router as workspace_content_seo_router
-from src.modules.workspaces.content.views.router import (
-    content_library_views_router as workspace_content_library_views_router,
-)
 from src.modules.workspaces.danger_service import WorkspaceDangerService
 from src.modules.workspaces.extensions.router import router as workspace_extensions_router
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
-from src.modules.workspaces.publish.router import router as workspace_publish_router
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
-from src.modules.workspaces.releases.router import router as workspace_releases_router
 from src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
     LeaveWorkspaceResult,
@@ -62,7 +41,6 @@ from src.modules.workspaces.service import WorkspaceService
 from src.modules.workspaces.settings.router import router as workspace_settings_router
 from src.modules.workspaces.site.router import router as workspace_site_router
 from src.modules.workspaces.team.router import router as workspace_team_router
-from src.modules.workspaces.themes.router import router as workspace_themes_router
 
 router = APIRouter(tags=["domain.workspaces"])
 router.include_router(me_api_keys_router)
@@ -72,17 +50,7 @@ router.include_router(workspace_authz_router)
 router.include_router(workspace_rbac_router)
 router.include_router(workspace_assets_router)
 router.include_router(workspace_admin_router)
-router.include_router(workspace_themes_router)
-router.include_router(workspace_content_models_router)
-router.include_router(workspace_content_items_router)
-router.include_router(workspace_content_presentations_router)
-router.include_router(workspace_content_seo_router)
-router.include_router(workspace_content_library_views_router)
-router.include_router(workspace_content_bindings_router)
-router.include_router(workspace_content_routing_router)
 router.include_router(workspace_api_keys_router)
-router.include_router(workspace_releases_router)
-router.include_router(workspace_publish_router)
 router.include_router(workspace_site_router)
 router.include_router(workspace_activity_router)
 router.include_router(workspace_extensions_router)

@@ -22,7 +22,7 @@ import {
 import {
   isEditorDocumentHydrated,
   shouldApplyExternalDocumentSync,
-} from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-document-sync";
+} from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-document-sync";
 import { resolveLineHeightOptions } from "../../../../../../packages/ui/src/editor/line-height-toolbar-button";
 import {
   hasSlashInputChild,
@@ -51,12 +51,12 @@ import {
   setEditorMarkColorForBlocks,
 } from "../../../../../../packages/ui/src/editor/mark-color-utils";
 import { useEditorCustomColorsStore } from "../../../../../../packages/ui/src/editor/use-editor-custom-colors-store";
-import { getContentLibraryArticleEditorBodyEditorClass } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body-layout";
+import { getContentLibraryArticleEditorBodyEditorClass } from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-body-layout";
 import { exitEmptyToggle } from "../../../../../../packages/ui/src/editor/toggle-plugin-helpers";
 import {
   getDateKeyInTimeZone,
   zonedDateKeyToIso,
-} from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-date-localization";
+} from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-date-localization";
 
 describe("content-library-editor-primitives", () => {
   it("normalizes custom colors to hex and keeps recent custom colors deduplicated", () => {

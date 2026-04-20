@@ -98,18 +98,18 @@ def _page_template_draft_payload(*, title: str, path: str) -> dict:
     }
 
 
-async def _create_article_item(client, workspace_id: str, *, title: str) -> str:
+async def _create_article_item(client, project_id: str, *, title: str) -> str:
     item_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
+        f"/api/v1/projects/{project_id}/content/items",
         json={"modelKey": "article", "title": title, "locale": "en-US"},
     )
     assert item_res.status_code == 201, item_res.text
     return item_res.json()["data"]["id"]
 
 
-async def _create_generic_item(client, workspace_id: str, *, model_key: str, title: str) -> str:
+async def _create_generic_item(client, project_id: str, *, model_key: str, title: str) -> str:
     item_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
+        f"/api/v1/projects/{project_id}/content/items",
         json={"modelKey": model_key, "title": title, "locale": "en-US"},
     )
     assert item_res.status_code == 201, item_res.text
@@ -130,21 +130,26 @@ def _simple_form_draft_payload(*, expected_version: int, fields_snapshot: dict) 
     }
 
 
-async def _publish_page_template(client, workspace_id: str, *, item_id: str, title: str, path: str) -> None:
+async def _publish_page_template(client, project_id: str, *, item_id: str, title: str, path: str) -> None:
     draft_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
         json=_page_template_draft_payload(title=title, path=path),
     )
     assert draft_res.status_code == 201, draft_res.text
+    workflow_res = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/workflow",
+        json={"stage": "approved", "summary": f"{title} approved for publish"},
+    )
+    assert workflow_res.status_code == 200, workflow_res.text
     publish_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text
 
 
-async def _site_id_and_preview_token(client, workspace_id: str) -> tuple[str, str]:
-    site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+async def _site_id_and_preview_token(client, project_id: str) -> tuple[str, str]:
+    site_res = await client.get(f"/api/v1/projects/{project_id}/site")
     assert site_res.status_code == 200, site_res.text
     site_id = site_res.json()["data"]["siteId"]
     token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
@@ -171,11 +176,11 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_content_model(
             client,
-            workspace_id,
+            project_id,
             key="article",
             name="Article",
             category="content_library",
@@ -186,32 +191,32 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
             defaultSurface="writing",
         )
 
-        page_item_id = await _create_page_item(client, workspace_id, title="Article Template")
-        article_item_id = await _create_article_item(client, workspace_id, title="World v1")
+        page_item_id = await _create_page_item(client, project_id, title="Article Template")
+        article_item_id = await _create_article_item(client, project_id, title="World v1")
 
         await _publish_page_template(
-            client, workspace_id, item_id=page_item_id, title="Article Template", path="/blog/:slug"
+            client, project_id, item_id=page_item_id, title="Article Template", path="/blog/:slug"
         )
         patch_v1_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{article_item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{article_item_id}/versions/draft",
             json=_article_draft_payload(expected_version=0, title="World v1", slug="world", rating=5),
         )
         assert patch_v1_res.status_code == 201, patch_v1_res.text
-        await _publish_article_version(client, workspace_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
 
         await _upsert_route_binding(
             client,
-            workspace_id,
+            project_id,
             item_id=page_item_id,
             path="/blog/:slug",
             route_mode="dynamic",
             primary_source={"modelKey": "article", "fieldKey": "slug", "paramName": "slug"},
         )
-        await _publish_release(client, workspace_id)
+        await _publish_release(client, project_id)
 
-        site_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
+        site_id, preview_token = await _site_id_and_preview_token(client, project_id)
         preview_key_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/api-keys",
+            f"/api/v1/projects/{project_id}/api-keys",
             json={
                 "family": "delivery",
                 "name": "Preview GraphQL",
@@ -223,7 +228,7 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
         preview_key = preview_key_res.json()["data"]["secretToken"]
 
         preview_draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{article_item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{article_item_id}/versions/draft",
             json=_article_draft_payload(expected_version=1, title="World v2 draft", slug="world", rating=9),
         )
         assert preview_draft_res.status_code == 201, preview_draft_res.text
@@ -316,16 +321,16 @@ async def test_sites_graphql_rejects_delivery_keys_without_graphql_scope(
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
-        page_item_id = await _create_page_item(client, workspace_id, title="Landing")
-        await _publish_page_template(client, workspace_id, item_id=page_item_id, title="Landing", path="/landing")
-        await _upsert_route_binding(client, workspace_id, item_id=page_item_id, path="/landing")
-        await _publish_release(client, workspace_id)
+        page_item_id = await _create_page_item(client, project_id, title="Landing")
+        await _publish_page_template(client, project_id, item_id=page_item_id, title="Landing", path="/landing")
+        await _upsert_route_binding(client, project_id, item_id=page_item_id, path="/landing")
+        await _publish_release(client, project_id)
 
-        site_id, _preview_token = await _site_id_and_preview_token(client, workspace_id)
+        site_id, _preview_token = await _site_id_and_preview_token(client, project_id)
         published_key_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/api-keys",
+            f"/api/v1/projects/{project_id}/api-keys",
             json={
                 "family": "delivery",
                 "name": "Published Runtime",
@@ -371,11 +376,11 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_content_model(
             client,
-            workspace_id,
+            project_id,
             key="article",
             name="Article",
             category="content_library",
@@ -387,7 +392,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         )
         await _create_content_model(
             client,
-            workspace_id,
+            project_id,
             key="reusable-section",
             name="Reusable Section",
             category="site_builder",
@@ -398,7 +403,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         )
         await _create_content_model(
             client,
-            workspace_id,
+            project_id,
             key="category",
             name="Category",
             category="content_library",
@@ -408,27 +413,27 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
             defaultSurface="structured",
         )
 
-        article_v1 = await _create_article_item(client, workspace_id, title="Hello world")
-        article_v2 = await _create_article_item(client, workspace_id, title="Hello world v2")
-        page_1 = await _create_generic_item(client, workspace_id, model_key="page", title="Alpha Page")
-        page_2 = await _create_generic_item(client, workspace_id, model_key="page", title="Beta Page")
-        section_1 = await _create_generic_item(client, workspace_id, model_key="reusable-section", title="Header Alpha")
-        section_2 = await _create_generic_item(client, workspace_id, model_key="reusable-section", title="Header Beta")
-        category_1 = await _create_generic_item(client, workspace_id, model_key="category", title="News Category")
-        category_2 = await _create_generic_item(client, workspace_id, model_key="category", title="Docs Category")
+        article_v1 = await _create_article_item(client, project_id, title="Hello world")
+        article_v2 = await _create_article_item(client, project_id, title="Hello world v2")
+        page_1 = await _create_generic_item(client, project_id, model_key="page", title="Alpha Page")
+        page_2 = await _create_generic_item(client, project_id, model_key="page", title="Beta Page")
+        section_1 = await _create_generic_item(client, project_id, model_key="reusable-section", title="Header Alpha")
+        section_2 = await _create_generic_item(client, project_id, model_key="reusable-section", title="Header Beta")
+        category_1 = await _create_generic_item(client, project_id, model_key="category", title="News Category")
+        category_2 = await _create_generic_item(client, project_id, model_key="category", title="Docs Category")
 
         article_v1_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{article_v1}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{article_v1}/versions/draft",
             json=_article_draft_payload(expected_version=0, title="Hello world", slug="hello-world", rating=5),
         )
         assert article_v1_res.status_code == 201, article_v1_res.text
         article_v2_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{article_v2}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{article_v2}/versions/draft",
             json=_article_draft_payload(expected_version=0, title="Hello world v2", slug="hello-world", rating=9),
         )
         assert article_v2_res.status_code == 201, article_v2_res.text
         article_v2_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{article_v2}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{article_v2}/versions/draft",
             json=_article_draft_payload(
                 expected_version=1,
                 title="Hello world v2",
@@ -439,7 +444,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         assert article_v2_res.status_code == 201, article_v2_res.text
 
         page_1_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{page_1}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{page_1}/versions/draft",
             json=_simple_form_draft_payload(
                 expected_version=0,
                 fields_snapshot={"title": "Alpha Page", "path": "/alpha"},
@@ -447,7 +452,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         )
         assert page_1_res.status_code == 201, page_1_res.text
         page_2_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{page_2}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{page_2}/versions/draft",
             json=_simple_form_draft_payload(
                 expected_version=0,
                 fields_snapshot={"title": "Beta Page", "path": "/beta"},
@@ -456,7 +461,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         assert page_2_res.status_code == 201, page_2_res.text
 
         section_1_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{section_1}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{section_1}/versions/draft",
             json=_simple_form_draft_payload(
                 expected_version=0,
                 fields_snapshot={
@@ -468,7 +473,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         )
         assert section_1_res.status_code == 201, section_1_res.text
         section_2_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{section_2}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{section_2}/versions/draft",
             json=_simple_form_draft_payload(
                 expected_version=0,
                 fields_snapshot={
@@ -481,7 +486,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         assert section_2_res.status_code == 201, section_2_res.text
 
         category_1_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{category_1}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{category_1}/versions/draft",
             json=_simple_form_draft_payload(
                 expected_version=0,
                 fields_snapshot={"name": "News Category", "slug": "news", "description": "News"},
@@ -489,7 +494,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         )
         assert category_1_res.status_code == 201, category_1_res.text
         category_2_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{category_2}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{category_2}/versions/draft",
             json=_simple_form_draft_payload(
                 expected_version=0,
                 fields_snapshot={"name": "Docs Category", "slug": "docs", "description": "Docs"},
@@ -497,7 +502,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         )
         assert category_2_res.status_code == 201, category_2_res.text
 
-        site_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
+        site_id, preview_token = await _site_id_and_preview_token(client, project_id)
         query = """
         query ListContent(
           $perspective: DeliveryPerspective!,

@@ -32,7 +32,7 @@ import {
   loadContentLibraryModels,
   loadContentLibraryVersionHistory,
   loadContentLibraryViewsState,
-} from "@/pages/workspaces/content/library/runtime";
+} from "@/pages/projects/content/library/runtime";
 import type { AdminContentItem, AdminContentVersion } from "@/types/api";
 
 describe("content-library runtime", () => {

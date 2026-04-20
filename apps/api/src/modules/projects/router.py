@@ -11,6 +11,9 @@ from src.core.exceptions import BadRequest, Forbidden
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.projects.automation.router import router as projects_automation_router
+from src.modules.projects.content.router import router as projects_content_router
+from src.modules.projects.domains.router import router as projects_domains_router
 from src.modules.projects.facade.router import router as projects_facade_router
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
@@ -28,12 +31,17 @@ from src.modules.projects.schema import (
     ProjectUpdateRequest,
 )
 from src.modules.projects.service import ProjectService
+from src.modules.projects.themes.router import router as projects_themes_router
 from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access, resolve_workspace_context_by_id
 
 router = APIRouter(tags=["domain.projects"])
 router.include_router(projects_facade_router)
+router.include_router(projects_content_router)
+router.include_router(projects_automation_router)
+router.include_router(projects_domains_router)
+router.include_router(projects_themes_router)
 
 
 async def get_project_list_workspace_context(

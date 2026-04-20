@@ -5,7 +5,7 @@ import {
   createEmptyShapeSelection,
   detachPreset,
   toggleCapabilityPack,
-} from "@/pages/workspaces/content/bootstrap/state";
+} from "@/pages/projects/content/bootstrap/state";
 
 describe("content-bootstrap-state", () => {
   test("selecting a preset applies its recommended packs as selected", () => {

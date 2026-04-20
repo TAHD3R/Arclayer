@@ -6,6 +6,11 @@ from src.common.utils.public_ids import decode_public_id
 from src.models.content.publish_artifact import PublishArtifactRecord
 from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.release import ContentReleaseRecord
+from tests.modules.projects.helpers import (
+    bind_project_hierarchy,
+    bind_project_route,
+    project_context_ids,
+)
 from tests.modules.workspaces.content.test_content_items_integration import (
     _wait_latest_workspace_audit_event,
     _workspace_client,
@@ -15,38 +20,18 @@ from tests.modules.workspaces.publish.test_publish_integration import _publish_i
 pytestmark = pytest.mark.integration
 
 
-async def _prepare_publishable_tree(client, workspace_id: str) -> tuple[str, str]:
-    root_item_id, child_item_id = await _setup_publishable_items(client, workspace_id)
-
-    root_route_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{root_item_id}",
-        json={"locale": "en-US", "path": "/", "isActive": True},
-    )
-    assert root_route_res.status_code == 200, root_route_res.text
-
-    child_route_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{child_item_id}",
-        json={"locale": "en-US", "path": "/about", "isActive": True},
-    )
-    assert child_route_res.status_code == 200, child_route_res.text
-
-    root_node_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/hierarchy/{root_item_id}",
-        json={"parentItemId": None, "sortOrder": 0},
-    )
-    assert root_node_res.status_code == 200, root_node_res.text
-
-    child_node_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/hierarchy/{child_item_id}",
-        json={"parentItemId": root_item_id, "sortOrder": 10},
-    )
-    assert child_node_res.status_code == 200, child_node_res.text
+async def _prepare_publishable_tree(client, project_id: str) -> tuple[str, str]:
+    root_item_id, child_item_id = await _setup_publishable_items(client, project_id)
+    await bind_project_route(client, project_id, root_item_id, path="/")
+    await bind_project_route(client, project_id, child_item_id, path="/about")
+    await bind_project_hierarchy(client, project_id, root_item_id, parent_item_id=None, sort_order=0)
+    await bind_project_hierarchy(client, project_id, child_item_id, parent_item_id=root_item_id, sort_order=10)
     return root_item_id, child_item_id
 
 
-async def _publish_version(client, workspace_id: str, item_id: str, *, version: int, title: str, path: str) -> None:
+async def _publish_version(client, project_id: str, item_id: str, *, version: int, title: str, path: str) -> None:
     draft_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
         json={
             "expectedVersion": version - 1,
             "changeSummary": f"draft {version}",
@@ -82,7 +67,7 @@ async def _publish_version(client, workspace_id: str, item_id: str, *, version: 
     assert draft_res.status_code == 201, draft_res.text
 
     publish_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version}/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version}/publish",
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text
@@ -93,12 +78,13 @@ async def test_publish_artifacts_create_active_release_and_link_rows(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        root_item_id, child_item_id = await _prepare_publishable_tree(client, workspace_id)
-        await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
-        await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        project_id, _runtime_id = await project_context_ids(client, workspace_id)
+        root_item_id, child_item_id = await _prepare_publishable_tree(client, project_id)
+        await _publish_item(client, project_id, root_item_id, "Home", path="/")
+        await _publish_item(client, project_id, child_item_id, "About", path="/about")
 
-        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        publish_res = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
         assert publish_res.status_code == 200, publish_res.text
         assert publish_res.json()["data"]["release"]["releaseNumber"] == 1
 
@@ -123,16 +109,17 @@ async def test_publish_artifacts_rotate_active_release_forward(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        root_item_id, child_item_id = await _prepare_publishable_tree(client, workspace_id)
-        await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
-        await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        project_id, _runtime_id = await project_context_ids(client, workspace_id)
+        root_item_id, child_item_id = await _prepare_publishable_tree(client, project_id)
+        await _publish_item(client, project_id, root_item_id, "Home", path="/")
+        await _publish_item(client, project_id, child_item_id, "About", path="/about")
 
-        first_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        first_publish = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
         assert first_publish.status_code == 200, first_publish.text
 
-        await _publish_version(client, workspace_id, root_item_id, version=2, title="Home v2", path="/")
-        second_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        await _publish_version(client, project_id, root_item_id, version=2, title="Home v2", path="/")
+        second_publish = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
         assert second_publish.status_code == 200, second_publish.text
 
         releases = await ContentReleaseRecord.all().order_by("release_number")
@@ -153,27 +140,28 @@ async def test_release_management_list_detail_and_rollback(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        project_id, _runtime_id = await project_context_ids(client, workspace_id)
         workspace_uuid = decode_public_id(workspace_id)
-        root_item_id, child_item_id = await _prepare_publishable_tree(client, workspace_id)
-        await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
-        await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
+        root_item_id, child_item_id = await _prepare_publishable_tree(client, project_id)
+        await _publish_item(client, project_id, root_item_id, "Home", path="/")
+        await _publish_item(client, project_id, child_item_id, "About", path="/about")
 
-        first_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        first_publish = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
         assert first_publish.status_code == 200, first_publish.text
         first_release_id = first_publish.json()["data"]["release"]["id"]
         published_event = await _wait_latest_workspace_audit_event(
-            event_name="workspace.release.published",
+            event_name="project.release.published",
             workspace_id=workspace_uuid,
             entity_id=decode_public_id(first_release_id),
         )
         assert published_event.properties["release_number"] == 1
 
-        await _publish_version(client, workspace_id, root_item_id, version=2, title="Home v2", path="/")
-        second_publish = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        await _publish_version(client, project_id, root_item_id, version=2, title="Home v2", path="/")
+        second_publish = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
         assert second_publish.status_code == 200, second_publish.text
 
-        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/releases")
+        list_res = await client.get(f"/api/v1/projects/{project_id}/releases")
         assert list_res.status_code == 200, list_res.text
         items = list_res.json()["data"]["items"]
         assert [item["releaseNumber"] for item in items] == [2, 1]
@@ -181,19 +169,19 @@ async def test_release_management_list_detail_and_rollback(
         first_release = next(item for item in items if item["releaseNumber"] == 1)
         second_release = next(item for item in items if item["releaseNumber"] == 2)
 
-        detail_res = await client.get(f"/api/v1/workspaces/{workspace_id}/releases/{first_release['id']}")
+        detail_res = await client.get(f"/api/v1/projects/{project_id}/releases/{first_release['id']}")
         assert detail_res.status_code == 200, detail_res.text
         assert detail_res.json()["data"]["releaseNumber"] == 1
         assert detail_res.json()["data"]["isActive"] is False
 
-        rollback_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/{first_release['id']}/rollback")
+        rollback_res = await client.post(f"/api/v1/projects/{project_id}/releases/{first_release['id']}/rollback")
         assert rollback_res.status_code == 200, rollback_res.text
         rollback_data = rollback_res.json()["data"]
         assert rollback_data["release"]["id"] == first_release["id"]
         assert rollback_data["release"]["isActive"] is True
         assert rollback_data["previousActiveReleaseId"] == second_release["id"]
         rollback_event = await _wait_latest_workspace_audit_event(
-            event_name="workspace.release.rolled_back",
+            event_name="project.release.rolled_back",
             workspace_id=workspace_uuid,
             entity_id=decode_public_id(first_release["id"]),
         )

@@ -36,14 +36,14 @@ async def test_content_library_views_persist_private_and_workspace_state(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        empty_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/library/views")
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        empty_res = await client.get(f"/api/v1/projects/{project_id}/content/library/views")
         assert empty_res.status_code == 200, empty_res.text
         assert empty_res.json()["data"]["items"] == []
         assert empty_res.json()["data"].get("defaultViewId") is None
 
         private_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/library/views",
+            f"/api/v1/projects/{project_id}/content/library/views",
             json=_view_payload("Editorial queue", visibility="private", pinned=True, is_default=True),
         )
         assert private_res.status_code == 201, private_res.text
@@ -71,7 +71,7 @@ async def test_content_library_views_persist_private_and_workspace_state(
         ]
 
         shared_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/library/views",
+            f"/api/v1/projects/{project_id}/content/library/views",
             json=_view_payload("Shared launch queue", visibility="workspace"),
         )
         assert shared_res.status_code == 201, shared_res.text
@@ -81,7 +81,7 @@ async def test_content_library_views_persist_private_and_workspace_state(
         private_view_id = shared_payload["items"][1]["id"]
 
         rename_private_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/library/views/{private_view_id}",
+            f"/api/v1/projects/{project_id}/content/library/views/{private_view_id}",
             json={"name": "My editorial queue", "pinned": False},
         )
         assert rename_private_res.status_code == 200, rename_private_res.text
@@ -91,7 +91,7 @@ async def test_content_library_views_persist_private_and_workspace_state(
         assert renamed_private["isDefault"] is True
 
         rename_shared_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/library/views/{shared_view_id}",
+            f"/api/v1/projects/{project_id}/content/library/views/{shared_view_id}",
             json={"name": "Shared launch board", "pinned": True},
         )
         assert rename_shared_res.status_code == 200, rename_shared_res.text
@@ -100,7 +100,7 @@ async def test_content_library_views_persist_private_and_workspace_state(
         assert renamed_shared["pinned"] is True
 
         delete_private_res = await client.delete(
-            f"/api/v1/workspaces/{workspace_id}/content/library/views/{private_view_id}",
+            f"/api/v1/projects/{project_id}/content/library/views/{private_view_id}",
         )
         assert delete_private_res.status_code == 200, delete_private_res.text
         deleted_payload = delete_private_res.json()["data"]
@@ -168,16 +168,16 @@ async def test_content_library_views_update_saved_definition_and_visibility(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/library/views",
+            f"/api/v1/projects/{project_id}/content/library/views",
             json=_view_payload("Editorial queue", visibility="private", pinned=True, is_default=False),
         )
         assert create_res.status_code == 201, create_res.text
         created_view = create_res.json()["data"]["items"][0]
 
         update_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/library/views/{created_view['id']}",
+            f"/api/v1/projects/{project_id}/content/library/views/{created_view['id']}",
             json={
                 "name": "Shared launch board",
                 "baseViewId": "published",

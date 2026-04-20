@@ -14,18 +14,18 @@ from tests.modules.workspaces.publish.test_publish_integration import _publish_i
 pytestmark = pytest.mark.integration
 
 
-async def _prepare_published_root_item(client, workspace_id: str) -> str:
-    root_item_id, _ = await _setup_publishable_items(client, workspace_id)
-    await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
+async def _prepare_published_root_item(client, project_id: str) -> str:
+    root_item_id, _ = await _setup_publishable_items(client, project_id)
+    await _publish_item(client, project_id, root_item_id, "Home", path="/")
 
     root_route_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{root_item_id}",
+        f"/api/v1/projects/{project_id}/content/routing/bindings/{root_item_id}",
         json={"locale": "en-US", "path": "/", "isActive": True},
     )
     assert root_route_res.status_code == 200, root_route_res.text
 
     root_node_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/hierarchy/{root_item_id}",
+        f"/api/v1/projects/{project_id}/content/routing/hierarchy/{root_item_id}",
         json={"parentItemId": None, "sortOrder": 0},
     )
     assert root_node_res.status_code == 200, root_node_res.text
@@ -38,8 +38,8 @@ async def test_publish_impact_blocks_unshaped_items_from_resolved_truth(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        root_item_id = await _prepare_published_root_item(client, workspace_id)
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        root_item_id = await _prepare_published_root_item(client, project_id)
         root_item = await ContentItemRecord.get(id=decode_public_id(root_item_id))
         cast(Any, root_item).resolved_surface = None
         root_item.shape_state = ContentShapeState.UNSHAPED
@@ -49,7 +49,7 @@ async def test_publish_impact_blocks_unshaped_items_from_resolved_truth(
             update_fields=["resolved_surface", "shape_state", "shape_reason_code", "shape_reason_meta"]
         )
 
-        impact_res = await client.get(f"/api/v1/workspaces/{workspace_id}/publish/impact")
+        impact_res = await client.get(f"/api/v1/projects/{project_id}/publish/impact")
         assert impact_res.status_code == 200, impact_res.text
         blocked_items = impact_res.json()["data"]["blockedItems"]
         assert blocked_items == [
@@ -62,7 +62,7 @@ async def test_publish_impact_blocks_unshaped_items_from_resolved_truth(
             }
         ]
 
-        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        publish_res = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
         assert publish_res.status_code == 409, publish_res.text
         assert publish_res.json()["error"] == "PUBLISH_VALIDATION_FAILED"
 
@@ -72,10 +72,10 @@ async def test_publish_artifacts_emit_resolved_continuation_truth_instead_of_boo
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        root_item_id = await _prepare_published_root_item(client, workspace_id)
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        root_item_id = await _prepare_published_root_item(client, project_id)
 
-        publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+        publish_res = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
         assert publish_res.status_code == 200, publish_res.text
 
         artifact = await PublishArtifactRecord.get(

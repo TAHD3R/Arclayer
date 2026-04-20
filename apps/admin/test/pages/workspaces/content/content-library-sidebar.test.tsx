@@ -8,7 +8,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-import { ContentLibrarySidebar } from "@/pages/workspaces/content/library/components/content-library-sidebar";
+import { ContentLibrarySidebar } from "@/pages/projects/content/library/components/content-library-sidebar";
 
 describe("content-library-sidebar", () => {
   it("shows an archived quick filter and routes selection through the sidebar callback", async () => {

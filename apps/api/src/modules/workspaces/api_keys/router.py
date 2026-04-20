@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends
 
 from src.common.protocols.tortoise import HasOrganizationId
 from src.common.types.public_uuid import PublicUUID
+from src.common.utils.public_ids import decode_public_id
 from src.config import Settings, get_settings
 from src.core.events import Event, events
 from src.core.http.response import ApiResponse, ResponseModel
@@ -44,6 +45,14 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
+def _coerce_event_uuid(value: UUID | str | None) -> UUID | None:
+    if value is None:
+        return None
+    if isinstance(value, UUID):
+        return value
+    return decode_public_id(value)
+
+
 async def _publish_api_key_event(
     *,
     actor_user_id: UUID,
@@ -52,15 +61,18 @@ async def _publish_api_key_event(
     ctx: WorkspaceContext | None = None,
     organization_id: UUID | None = None,
 ) -> None:
+    key_id = _coerce_event_uuid(key.id)
+    workspace_id = _coerce_event_uuid(key.workspace_id)
+    site_id = _coerce_event_uuid(key.site_id)
     payload: dict[str, object | None] = {
         "delivery_perspective": str(key.delivery_perspective) if key.delivery_perspective is not None else None,
-        "entity_id": str(key.id),
+        "entity_id": str(key_id) if key_id is not None else None,
         "entity_type": "api_key",
         "key_family": str(key.family),
         "key_name": key.name,
         "scopes": [str(scope) for scope in key.scopes],
-        "site_id": str(key.site_id) if key.site_id is not None else None,
-        "workspace_id": str(key.workspace_id) if key.workspace_id is not None else None,
+        "site_id": str(site_id) if site_id is not None else None,
+        "workspace_id": str(workspace_id) if workspace_id is not None else None,
     }
     if organization_id is not None:
         payload["organization_id"] = str(organization_id)

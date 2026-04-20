@@ -20,7 +20,7 @@ from src.modules.workspaces.themes.schema import (
 from src.modules.workspaces.themes.service import WorkspaceThemesService
 
 router = APIRouter(
-    prefix="/workspaces/{workspace_id}",
+    prefix="/_internal/workspaces/{workspace_id}",
     tags=["domain.workspaces.themes"],
     dependencies=[require_workspace_permission("system:themes:read")],
 )

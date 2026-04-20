@@ -20,15 +20,15 @@ def _item_payload(title: str) -> dict:
     }
 
 
-async def _create_page_item(client, workspace_id: str, title: str) -> str:
+async def _create_page_item(client, project_id: str, title: str) -> str:
     item_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
+        f"/api/v1/projects/{project_id}/content/items",
         json=_item_payload(title),
     )
     assert item_res.status_code == 201, item_res.text
     item_id = item_res.json()["data"]["id"]
     shape_res = await client.patch(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
         json=_bootstrap_shape_payload(
             preset_key="page",
             capability_pack_ids=["publishable", "routable", "treeable"],
@@ -43,21 +43,21 @@ async def test_content_routing_lists_static_and_dynamic_route_contracts(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_article_model(client, workspace_id)
-        static_item_id = await _create_page_item(client, workspace_id, "Static")
-        dynamic_item_id = await _create_page_item(client, workspace_id, "Dynamic")
+        static_item_id = await _create_page_item(client, project_id, "Static")
+        dynamic_item_id = await _create_page_item(client, project_id, "Dynamic")
 
         static_route_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{static_item_id}",
+            f"/api/v1/projects/{project_id}/content/routing/bindings/{static_item_id}",
             json={"locale": "en-US", "path": "/blog/new", "isActive": True},
         )
         assert static_route_res.status_code == 200, static_route_res.text
         assert static_route_res.json()["data"]["routeMode"] == "static"
 
         dynamic_route_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{dynamic_item_id}",
+            f"/api/v1/projects/{project_id}/content/routing/bindings/{dynamic_item_id}",
             json={
                 "locale": "en-US",
                 "path": "/blog/:slug",
@@ -82,7 +82,7 @@ async def test_content_routing_lists_static_and_dynamic_route_contracts(
             "paramName": "slug",
         }
 
-        bindings_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/routing/bindings")
+        bindings_res = await client.get(f"/api/v1/projects/{project_id}/content/routing/bindings")
         assert bindings_res.status_code == 200, bindings_res.text
         bindings = {row["itemId"]: row for row in bindings_res.json()["data"]}
         assert bindings[static_item_id]["routeMode"] == "static"
@@ -94,14 +94,14 @@ async def test_content_routing_rejects_ambiguous_dynamic_patterns(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_article_model(client, workspace_id)
-        first_item_id = await _create_page_item(client, workspace_id, "First")
-        second_item_id = await _create_page_item(client, workspace_id, "Second")
+        first_item_id = await _create_page_item(client, project_id, "First")
+        second_item_id = await _create_page_item(client, project_id, "Second")
 
         first_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{first_item_id}",
+            f"/api/v1/projects/{project_id}/content/routing/bindings/{first_item_id}",
             json={
                 "locale": "en-US",
                 "path": "/blog/:slug",
@@ -117,7 +117,7 @@ async def test_content_routing_rejects_ambiguous_dynamic_patterns(
         assert first_res.status_code == 200, first_res.text
 
         second_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{second_item_id}",
+            f"/api/v1/projects/{project_id}/content/routing/bindings/{second_item_id}",
             json={
                 "locale": "en-US",
                 "path": "/blog/:id",

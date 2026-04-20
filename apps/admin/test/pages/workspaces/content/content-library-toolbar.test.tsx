@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
-import { ContentLibraryToolbar } from "@/pages/workspaces/content/library/components/content-library-toolbar";
+import { ContentLibraryToolbar } from "@/pages/projects/content/library/components/content-library-toolbar";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -49,7 +49,7 @@ vi.mock("@arclayer/ui/tooltip", () => ({
   TooltipContent: (props: { children: React.ReactNode }) => <div>{props.children}</div>,
 }));
 
-vi.mock("@/pages/workspaces/content/library/components/content-library-view-mode-toggle", () => ({
+vi.mock("@/pages/projects/content/library/components/content-library-view-mode-toggle", () => ({
   ContentLibraryViewModeToggle: () => <div data-testid="content-library-view-mode-toggle" />,
 }));
 

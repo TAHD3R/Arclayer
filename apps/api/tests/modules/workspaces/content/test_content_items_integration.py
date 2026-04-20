@@ -20,6 +20,7 @@ from src.models.workspaces.workspace import Workspace
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.organization.repository import OrganizationRepository
+from tests.utils.project_context import project_id_for_workspace
 
 pytestmark = pytest.mark.integration
 
@@ -42,7 +43,35 @@ async def _wait_latest_workspace_audit_event(
         if row is not None:
             return row
         if asyncio.get_running_loop().time() >= deadline:
-            raise AssertionError(f"expected audit event not found: {event_name}")
+            recent = await AuditEvent.filter(workspace_id=workspace_id).order_by("-occurred_at", "-id").limit(10)
+            recent_release_events = await (
+                AuditEvent.filter(event_name__icontains="release").order_by("-occurred_at", "-id").limit(10)
+            )
+            snapshot = [
+                {
+                    "entity_id": str(item.entity_id) if item.entity_id is not None else None,
+                    "event_name": item.event_name,
+                    "organization_id": str(item.organization_id) if item.organization_id is not None else None,
+                    "properties": item.properties,
+                    "workspace_id": str(item.workspace_id) if item.workspace_id is not None else None,
+                }
+                for item in recent
+            ]
+            release_snapshot = [
+                {
+                    "entity_id": str(item.entity_id) if item.entity_id is not None else None,
+                    "event_name": item.event_name,
+                    "organization_id": str(item.organization_id) if item.organization_id is not None else None,
+                    "properties": item.properties,
+                    "workspace_id": str(item.workspace_id) if item.workspace_id is not None else None,
+                }
+                for item in recent_release_events
+            ]
+            raise AssertionError(
+                f"expected audit event not found: {event_name}; workspace_id={workspace_id}; "
+                f"entity_id={entity_id}; recent_workspace_events={snapshot}; "
+                f"recent_release_events={release_snapshot}"
+            )
         await asyncio.sleep(0.1)
 
 
@@ -88,9 +117,10 @@ async def _workspace_client(prepared_db, integration_valkey_settings):
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-            site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+            project_id = await project_id_for_workspace(client, workspace_id)
+            site_res = await client.get(f"/api/v1/projects/{project_id}/site")
             assert site_res.status_code == 200, site_res.text
-            yield client, workspace_id
+            yield client, workspace_id, project_id
 
         app.dependency_overrides.clear()
 
@@ -118,11 +148,11 @@ def _model_payload() -> dict:
 
 async def _create_content_model(
     client: AsyncClient,
-    workspace_id: str,
+    project_id: str,
     **overrides: object,
 ) -> dict:
     response = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/models",
+        f"/api/v1/projects/{project_id}/content/models",
         json={
             **_model_payload(),
             **overrides,
@@ -133,9 +163,10 @@ async def _create_content_model(
 
 
 async def _create_article_model(client: AsyncClient, workspace_id: str) -> dict:
+    project_id = await project_id_for_workspace(client, workspace_id)
     return await _create_content_model(
         client,
-        workspace_id,
+        project_id,
         category="content_library",
         defaultEditor="rich_text",
         capabilities=["publishable", "rich_text_editable"],
@@ -146,9 +177,10 @@ async def _create_article_model(client: AsyncClient, workspace_id: str) -> dict:
 
 
 async def _create_page_model(client: AsyncClient, workspace_id: str) -> dict:
+    project_id = await project_id_for_workspace(client, workspace_id)
     return await _create_content_model(
         client,
-        workspace_id,
+        project_id,
         key="page",
         name="Page",
         category="site_builder",
@@ -212,27 +244,38 @@ def _published_write_payload() -> dict:
     }
 
 
+async def _approve_content_item_for_publish(client: AsyncClient, project_id: str, item_id: str) -> None:
+    response = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/workflow",
+        json={
+            "stage": "approved",
+            "summary": "Approved for publish",
+        },
+    )
+    assert response.status_code == 200, response.text
+
+
 @pytest.mark.asyncio
 async def test_content_items_full_workflow_with_first_class_presentations(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
@@ -240,7 +283,7 @@ async def test_content_items_full_workflow_with_first_class_presentations(
         await ContentVersionRecord.filter(item_id=item_uuid, version=1).update(last_transition_by_user_id=None)
 
         schedule_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/schedule",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/schedule",
             json={},
         )
         assert schedule_res.status_code == 200, schedule_res.text
@@ -250,8 +293,9 @@ async def test_content_items_full_workflow_with_first_class_presentations(
         assert scheduled_row.last_transition_by_user_id is not None
         await ContentVersionRecord.filter(item_id=item_uuid, version=1).update(last_transition_by_user_id=None)
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
@@ -270,15 +314,15 @@ async def test_content_items_list_is_available_from_canonical_read_endpoint(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
 
-        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items")
+        list_res = await client.get(f"/api/v1/projects/{project_id}/content/items")
         assert list_res.status_code == 200, list_res.text
         payload = list_res.json()["data"]
         assert payload["total"] == 1
@@ -295,9 +339,9 @@ async def test_content_items_create_requires_model_key_at_api_boundary(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json={
                 "title": "Hello World",
                 "locale": "en-US",
@@ -311,9 +355,9 @@ async def test_content_items_create_rejects_unknown_model_key(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json={**_item_payload(), "modelKey": "missing-model"},
         )
         assert response.status_code == 404, response.text
@@ -325,11 +369,11 @@ async def test_content_items_create_uses_model_defaults_when_model_key_is_provid
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
 
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json={**_item_payload(), "modelKey": "article"},
         )
         assert item_res.status_code == 201, item_res.text
@@ -341,7 +385,7 @@ async def test_content_items_create_uses_model_defaults_when_model_key_is_provid
         assert payload["resolvedSurface"] == "writing"
         assert payload["shapeState"] == "ready"
 
-        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items")
+        list_res = await client.get(f"/api/v1/projects/{project_id}/content/items")
         assert list_res.status_code == 200, list_res.text
         listed = list_res.json()["data"]["items"][0]
         assert listed["modelKey"] == "article"
@@ -353,22 +397,22 @@ async def test_content_items_list_returns_active_version_summary(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
 
-        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items")
+        list_res = await client.get(f"/api/v1/projects/{project_id}/content/items")
         assert list_res.status_code == 200, list_res.text
         payload = list_res.json()["data"]
         assert payload["total"] == 1
@@ -380,17 +424,17 @@ async def test_content_items_reads_active_version_title_slug_and_visibility(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json={
                 "expectedVersion": 0,
                 "changeSummary": "seed draft fields",
@@ -405,7 +449,7 @@ async def test_content_items_reads_active_version_title_slug_and_visibility(
         )
         assert draft_res.status_code == 201, draft_res.text
 
-        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items")
+        list_res = await client.get(f"/api/v1/projects/{project_id}/content/items")
         assert list_res.status_code == 200, list_res.text
         listed = list_res.json()["data"]["items"][0]
         assert listed["title"] == "Editorial title"
@@ -413,7 +457,7 @@ async def test_content_items_reads_active_version_title_slug_and_visibility(
         assert listed["slug"] == "editorial-title"
         assert listed["visibility"] == "private"
 
-        detail_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}")
+        detail_res = await client.get(f"/api/v1/projects/{project_id}/content/items/{item_id}")
         assert detail_res.status_code == 200, detail_res.text
         detail = detail_res.json()["data"]
         assert detail["title"] == "Editorial title"
@@ -427,17 +471,17 @@ async def test_content_items_archive_without_versions_marks_item_archived(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         archive_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/archive",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/archive",
             json={},
         )
         assert archive_res.status_code == 200, archive_res.text
@@ -457,23 +501,23 @@ async def test_content_items_unarchive_without_versions_restores_draft_status(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         archive_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/archive",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/archive",
             json={},
         )
         assert archive_res.status_code == 200, archive_res.text
 
         unarchive_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/unarchive",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/unarchive",
             json={},
         )
         assert unarchive_res.status_code == 200, unarchive_res.text
@@ -493,17 +537,17 @@ async def test_content_items_apply_bootstrap_shape_and_track_customized_state(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
@@ -511,7 +555,7 @@ async def test_content_items_apply_bootstrap_shape_and_track_customized_state(
         assert shape_res.json()["data"]["bootstrapPresetState"] == "selected"
 
         customized_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(
                 preset_key="post",
                 preset_state="customized",
@@ -528,35 +572,36 @@ async def test_content_items_reject_direct_writes_to_published_version(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
 
         patch_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1",
             json=_published_write_payload(),
         )
         assert patch_res.status_code == 409, patch_res.text
@@ -569,16 +614,16 @@ async def test_content_items_return_single_item_detail(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
-        detail_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}")
+        detail_res = await client.get(f"/api/v1/projects/{project_id}/content/items/{item_id}")
         assert detail_res.status_code == 200, detail_res.text
         data = detail_res.json()["data"]
         assert data["id"] == item_id
@@ -591,29 +636,29 @@ async def test_content_items_return_version_detail_with_fields_snapshot_and_pres
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
 
         version_res = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1",
         )
         assert version_res.status_code == 200, version_res.text
         data = version_res.json()["data"]
@@ -630,29 +675,30 @@ async def test_content_items_list_versions_endpoint_returns_latest_first(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
 
         first_draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert first_draft_res.status_code == 201, first_draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
@@ -664,12 +710,12 @@ async def test_content_items_list_versions_endpoint_returns_latest_first(
         second_draft_payload["presentations"][0]["payload"]["summary"] = "Next draft summary"
 
         second_draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=second_draft_payload,
         )
         assert second_draft_res.status_code == 201, second_draft_res.text
 
-        versions_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions")
+        versions_res = await client.get(f"/api/v1/projects/{project_id}/content/items/{item_id}/versions")
         assert versions_res.status_code == 200, versions_res.text
         data = versions_res.json()["data"]
         assert data["total"] == 2
@@ -683,11 +729,11 @@ async def test_content_item_mutations_emit_workspace_activity_events(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         workspace_uuid = decode_public_id(workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
@@ -701,7 +747,7 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         )
 
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
@@ -712,7 +758,7 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         )
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
@@ -722,8 +768,9 @@ async def test_content_item_mutations_emit_workspace_activity_events(
             entity_id=item_uuid,
         )
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
@@ -738,8 +785,9 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         )
         assert activity_res.status_code == 200, activity_res.text
         items = activity_res.json()["data"]["items"]
-        assert [entry["eventName"] for entry in items[:4]] == [
+        assert [entry["eventName"] for entry in items[:5]] == [
             "workspace.content.version.published",
+            "workspace.content.item.workflow.updated",
             "workspace.content.version.saved",
             "workspace.content.item.bootstrap.applied",
             "workspace.content.item.created",
@@ -751,42 +799,43 @@ async def test_content_items_archive_transition_is_explicit_and_terminal_for_pub
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
         assert publish_res.json()["data"]["state"] == "published"
 
         archive_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/archive",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/archive",
             json={},
         )
         assert archive_res.status_code == 200, archive_res.text
         assert archive_res.json()["data"]["state"] == "archived"
 
         republish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert republish_res.status_code == 409, republish_res.text
@@ -803,17 +852,17 @@ async def test_content_items_reject_selected_preset_state_without_preset_key(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         invalid_shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(preset_key=None, preset_state="selected"),
         )
         assert invalid_shape_res.status_code == 409, invalid_shape_res.text
@@ -825,29 +874,29 @@ async def test_content_items_duplicate_creates_new_draft_copy_with_presentations
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
 
         duplicate_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/duplicate",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/duplicate",
             json={},
         )
         assert duplicate_res.status_code == 200, duplicate_res.text
@@ -882,23 +931,23 @@ async def test_content_items_delete_removes_item_and_versions(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload(),
         )
         assert draft_res.status_code == 201, draft_res.text
 
         item_uuid = decode_public_id(item_id)
-        delete_res = await client.delete(f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}")
+        delete_res = await client.delete(f"/api/v1/projects/{project_id}/content/items/{item_id}")
         assert delete_res.status_code == 200, delete_res.text
 
         assert await ContentItemRecord.filter(id=item_uuid).exists() is False

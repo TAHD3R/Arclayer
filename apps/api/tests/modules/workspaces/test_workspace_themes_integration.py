@@ -16,13 +16,13 @@ from src.core.registry import create_app
 from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
-from src.models.sites.site import SiteRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.assets.naming.service import build_asset_object_key
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.platform.storage.local import safe_object_key_to_path
+from tests.utils.project_context import project_id_for_workspace, project_site_id
 
 pytestmark = pytest.mark.integration
 
@@ -134,13 +134,6 @@ async def test_workspace_theme_import_and_site_runtime_output(
             is_active=True,
             created_by_user_id=owner.id,
         )
-        site = await SiteRecord.create(
-            workspace_id=ws.id,
-            slug=f"site_{uuid4().hex[:8]}",
-            name="Site",
-            is_active=True,
-            created_by_user_id=owner.id,
-        )
 
         current_user: User | None = owner
 
@@ -186,12 +179,13 @@ async def test_workspace_theme_import_and_site_runtime_output(
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             ws_pid = encode_uuid(ws.id)
-            site_pid = encode_uuid(site.id)
+            project_id = await project_id_for_workspace(client, ws_pid)
+            site_pid = await project_site_id(client, project_id)
             zip_asset_pid = encode_uuid(zip_asset_id)
 
             # Import theme package from uploaded zip asset.
             resp = await client.post(
-                f"/api/v1/workspaces/{ws_pid}/themes/import",
+                f"/api/v1/projects/{project_id}/themes/import",
                 json={"assetId": zip_asset_pid},
             )
             assert resp.status_code == 200, resp.text

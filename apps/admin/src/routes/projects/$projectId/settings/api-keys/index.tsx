@@ -4,5 +4,10 @@ import { ProjectApiKeysSettingsPage } from "@/pages/settings/context-settings-pa
 
 export const Route = createFileRoute("/projects/$projectId/settings/api-keys/")({
   staticData: { titleKey: "account:SETTINGS_NAV_PROJECT_API_KEYS" },
-  component: ProjectApiKeysSettingsPage,
+  component: RouteComponent,
 });
+
+function RouteComponent() {
+  const { projectId } = Route.useParams();
+  return <ProjectApiKeysSettingsPage projectId={projectId} />;
+}

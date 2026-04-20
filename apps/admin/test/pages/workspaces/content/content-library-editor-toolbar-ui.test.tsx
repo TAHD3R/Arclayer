@@ -240,7 +240,7 @@ vi.mock("@arclayer/ui/editor", () => ({
 }));
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-menu",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-menu",
   () => ({
     ContentLibraryArticleEditorMenuBar: () => (
       <button type="button" aria-label="CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU">
@@ -251,7 +251,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-save-indicator",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-save-indicator",
   () => ({
     ContentLibraryArticleEditorSaveIndicator: () => null,
   }),
@@ -263,7 +263,7 @@ vi.mock("../../../../../../packages/ui/src/editor/transforms", () => ({
     fn(),
 }));
 
-import { ContentLibraryArticleEditorPageToolbar } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-page-toolbar";
+import { ContentLibraryArticleEditorPageToolbar } from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-page-toolbar";
 import { FontColorToolbarButton } from "../../../../../../packages/ui/src/editor/font-color-toolbar-button";
 
 describe("content-library-editor-toolbar-ui", () => {

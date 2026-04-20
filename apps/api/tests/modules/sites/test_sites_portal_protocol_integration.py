@@ -133,15 +133,15 @@ def _draft_payload(*, expected_version: int, title: str, path: str, seo_descript
     }
 
 
-async def _create_item(client, workspace_id: str, *, title: str) -> str:
+async def _create_item(client, project_id: str, *, title: str) -> str:
     response = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
+        f"/api/v1/projects/{project_id}/content/items",
         json=_item_payload(title),
     )
     assert response.status_code == 201, response.text
     item_id = response.json()["data"]["id"]
     shape_res = await client.patch(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
         json={
             "presetKey": "page",
             "presetState": "selected",
@@ -154,7 +154,7 @@ async def _create_item(client, workspace_id: str, *, title: str) -> str:
 
 async def _save_draft(
     client,
-    workspace_id: str,
+    project_id: str,
     *,
     item_id: str,
     expected_version: int,
@@ -163,7 +163,7 @@ async def _save_draft(
     seo_description: str,
 ) -> None:
     response = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
         json=_draft_payload(
             expected_version=expected_version,
             title=title,
@@ -174,17 +174,22 @@ async def _save_draft(
     assert response.status_code == 201, response.text
 
 
-async def _publish_version(client, workspace_id: str, *, item_id: str, version_number: int) -> None:
+async def _publish_version(client, project_id: str, *, item_id: str, version_number: int) -> None:
+    workflow_res = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/workflow",
+        json={"stage": "approved", "summary": f"Version {version_number} approved for publish"},
+    )
+    assert workflow_res.status_code == 200, workflow_res.text
     response = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/publish",
         json={},
     )
     assert response.status_code == 200, response.text
 
 
-async def _bind_route(client, workspace_id: str, *, item_id: str, path: str) -> None:
+async def _bind_route(client, project_id: str, *, item_id: str, path: str) -> None:
     response = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{item_id}",
+        f"/api/v1/projects/{project_id}/content/routing/bindings/{item_id}",
         json={"locale": "en-US", "path": path, "isActive": True},
     )
     assert response.status_code == 200, response.text
@@ -194,7 +199,7 @@ async def test_sites_public_preview_draft_publish_flow(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         workspace_uuid = decode_public_id(workspace_id)
         workspace = await Workspace.get(id=workspace_uuid)
         await SettingRecord.create(
@@ -205,7 +210,7 @@ async def test_sites_public_preview_draft_publish_flow(
             updated_by=None,
         )
 
-        site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+        site_res = await client.get(f"/api/v1/projects/{project_id}/site")
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
         site_uuid = decode_public_id(site_id)
@@ -219,38 +224,38 @@ async def test_sites_public_preview_draft_publish_flow(
         )
 
         model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_page_model_payload(),
         )
         assert model_res.status_code == 201, model_res.text
 
-        about_item_id = await _create_item(client, workspace_id, title="About")
-        world_item_id = await _create_item(client, workspace_id, title="World")
-        new_item_id = await _create_item(client, workspace_id, title="New")
+        about_item_id = await _create_item(client, project_id, title="About")
+        world_item_id = await _create_item(client, project_id, title="World")
+        new_item_id = await _create_item(client, project_id, title="New")
 
         await _save_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=about_item_id,
             expected_version=0,
             title="About v1",
             path="/about",
             seo_description="About description",
         )
-        await _publish_version(client, workspace_id, item_id=about_item_id, version_number=1)
-        await _bind_route(client, workspace_id, item_id=about_item_id, path="/about")
+        await _publish_version(client, project_id, item_id=about_item_id, version_number=1)
+        await _bind_route(client, project_id, item_id=about_item_id, path="/about")
 
         await _save_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=world_item_id,
             expected_version=0,
             title="Entry world v1",
             path="/blog/world",
             seo_description="World v1 description",
         )
-        await _publish_version(client, workspace_id, item_id=world_item_id, version_number=1)
-        await _bind_route(client, workspace_id, item_id=world_item_id, path="/blog/world")
+        await _publish_version(client, project_id, item_id=world_item_id, version_number=1)
+        await _bind_route(client, project_id, item_id=world_item_id, path="/blog/world")
 
         resp = await client.get("/api/v1/sites/resolve", params={"workspaceSlug": workspace.slug})
         assert resp.status_code == 200
@@ -270,7 +275,7 @@ async def test_sites_public_preview_draft_publish_flow(
 
         await _save_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=world_item_id,
             expected_version=1,
             title="Entry world v2 (draft)",
@@ -296,14 +301,14 @@ async def test_sites_public_preview_draft_publish_flow(
 
         await _save_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=new_item_id,
             expected_version=0,
             title="Entry new v1 (draft)",
             path="/blog/new",
             seo_description="New v1 description",
         )
-        await _bind_route(client, workspace_id, item_id=new_item_id, path="/blog/new")
+        await _bind_route(client, project_id, item_id=new_item_id, path="/blog/new")
 
         resp = await client.get(
             f"/api/v1/sites/{site_id}/routes/resolve",
@@ -319,8 +324,8 @@ async def test_sites_public_preview_draft_publish_flow(
         assert resp.status_code == 200
         assert _get_seo_title_from_resolved_document(resp.json()) == "Entry new v1 (draft) | Arclayer"
 
-        await _publish_version(client, workspace_id, item_id=new_item_id, version_number=1)
-        await _publish_version(client, workspace_id, item_id=world_item_id, version_number=2)
+        await _publish_version(client, project_id, item_id=new_item_id, version_number=1)
+        await _publish_version(client, project_id, item_id=world_item_id, version_number=2)
 
         resp = await client.get(
             f"/api/v1/sites/{site_id}/routes/resolve",

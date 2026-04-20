@@ -4,22 +4,22 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { ContentReleaseCenterPage } from "@/pages/workspaces/content/releases/page";
+import { ContentReleaseCenterPage } from "@/pages/projects/content/releases/page";
 
 const mocked = vi.hoisted(() => ({
-  getWorkspaceReleaseDryRun: vi.fn(),
-  listWorkspaceReleases: vi.fn(),
-  publishWorkspaceRelease: vi.fn(),
-  rollbackWorkspaceRelease: vi.fn(),
+  getProjectReleaseDryRun: vi.fn(),
+  listProjectReleases: vi.fn(),
+  publishProjectRelease: vi.fn(),
+  rollbackProjectRelease: vi.fn(),
   getMyWorkspaceAuthz: vi.fn(),
   listWorkspacePermissionActions: vi.fn(),
 }));
 
 vi.mock("@/api/content", () => ({
-  getWorkspaceReleaseDryRun: (...args: unknown[]) => mocked.getWorkspaceReleaseDryRun(...args),
-  listWorkspaceReleases: (...args: unknown[]) => mocked.listWorkspaceReleases(...args),
-  publishWorkspaceRelease: (...args: unknown[]) => mocked.publishWorkspaceRelease(...args),
-  rollbackWorkspaceRelease: (...args: unknown[]) => mocked.rollbackWorkspaceRelease(...args),
+  getProjectReleaseDryRun: (...args: unknown[]) => mocked.getProjectReleaseDryRun(...args),
+  listProjectReleases: (...args: unknown[]) => mocked.listProjectReleases(...args),
+  publishProjectRelease: (...args: unknown[]) => mocked.publishProjectRelease(...args),
+  rollbackProjectRelease: (...args: unknown[]) => mocked.rollbackProjectRelease(...args),
 }));
 
 vi.mock("@/api/workspaces", () => ({
@@ -64,7 +64,7 @@ function renderPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ContentReleaseCenterPage workspaceId="ws-1" />
+      <ContentReleaseCenterPage projectId="project-1" />
     </QueryClientProvider>,
   );
 }
@@ -73,7 +73,7 @@ describe("content-release-center-page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "ws-1",
+      workspaceId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:publish"],
     });
@@ -85,7 +85,7 @@ describe("content-release-center-page", () => {
         permissionCodes: ["system:content:publish"],
       },
     ]);
-    mocked.getWorkspaceReleaseDryRun.mockResolvedValue({
+    mocked.getProjectReleaseDryRun.mockResolvedValue({
       readinessSummary: {
         ready: false,
         selectedItemCount: 12,
@@ -112,11 +112,11 @@ describe("content-release-center-page", () => {
         },
       },
     });
-    mocked.listWorkspaceReleases.mockResolvedValue({
+    mocked.listProjectReleases.mockResolvedValue({
       items: [
         {
           id: "release-2",
-          workspaceId: "ws-1",
+          workspaceId: "project-1",
           siteId: "site-1",
           releaseNumber: 2,
           isActive: true,
@@ -129,7 +129,7 @@ describe("content-release-center-page", () => {
         },
         {
           id: "release-1",
-          workspaceId: "ws-1",
+          workspaceId: "project-1",
           siteId: "site-1",
           releaseNumber: 1,
           isActive: false,
@@ -142,8 +142,8 @@ describe("content-release-center-page", () => {
         },
       ],
     });
-    mocked.publishWorkspaceRelease.mockResolvedValue({});
-    mocked.rollbackWorkspaceRelease.mockResolvedValue({});
+    mocked.publishProjectRelease.mockResolvedValue({});
+    mocked.rollbackProjectRelease.mockResolvedValue({});
   });
 
   test("renders readiness summary, blockers, and release history", async () => {
@@ -159,7 +159,7 @@ describe("content-release-center-page", () => {
 
   test("publishes and rolls back through the release APIs", async () => {
     const user = userEvent.setup();
-    mocked.getWorkspaceReleaseDryRun.mockResolvedValueOnce({
+    mocked.getProjectReleaseDryRun.mockResolvedValueOnce({
       readinessSummary: {
         ready: true,
         selectedItemCount: 12,
@@ -190,14 +190,14 @@ describe("content-release-center-page", () => {
 
     await user.click(publishButton);
     await waitFor(() => {
-      expect(mocked.publishWorkspaceRelease).toHaveBeenCalledWith("ws-1");
+      expect(mocked.publishProjectRelease).toHaveBeenCalledWith("project-1");
     });
 
     await user.click(
       await screen.findByRole("button", { name: "CONTENT_RELEASE_ACTION_ROLLBACK" }),
     );
     await waitFor(() => {
-      expect(mocked.rollbackWorkspaceRelease).toHaveBeenCalledWith("ws-1", "release-1");
+      expect(mocked.rollbackProjectRelease).toHaveBeenCalledWith("project-1", "release-1");
     });
   });
 });

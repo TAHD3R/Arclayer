@@ -42,7 +42,7 @@ def get_workspace_automation_service(settings: Settings = Depends(get_settings))
 async def get_workspace_automation_catalog(
     service: Annotated[WorkspaceAutomationService, Depends(get_workspace_automation_service)],
 ) -> ResponseModel[AutomationCatalogOut]:
-    return ApiResponse.success(data=await service.get_catalog_out())
+    return ApiResponse.success(data=await service.get_workspace_catalog_out())
 
 
 @router.get(

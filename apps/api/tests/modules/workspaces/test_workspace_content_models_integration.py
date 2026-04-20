@@ -15,6 +15,7 @@ from src.models.workspaces.workspace import Workspace
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.organization.repository import OrganizationRepository
+from tests.utils.project_context import project_id_for_workspace
 
 pytestmark = pytest.mark.integration
 
@@ -68,11 +69,12 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-            site_res = await client.get(f"/api/v1/workspaces/{ws_pid}/site")
+            project_id = await project_id_for_workspace(client, ws_pid)
+            site_res = await client.get(f"/api/v1/projects/{project_id}/site")
             assert site_res.status_code == 200, site_res.text
 
             page_model_res = await client.post(
-                f"/api/v1/workspaces/{ws_pid}/content/models",
+                f"/api/v1/projects/{project_id}/content/models",
                 json={
                     "key": "page",
                     "name": "Page",
@@ -84,7 +86,7 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
             assert page_model_res.status_code == 201, page_model_res.text
 
             article_model_res = await client.post(
-                f"/api/v1/workspaces/{ws_pid}/content/models",
+                f"/api/v1/projects/{project_id}/content/models",
                 json={
                     "key": "article",
                     "name": "Article",
@@ -95,7 +97,7 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
             )
             assert article_model_res.status_code == 201, article_model_res.text
 
-            models_res = await client.get(f"/api/v1/workspaces/{ws_pid}/content/models")
+            models_res = await client.get(f"/api/v1/projects/{project_id}/content/models")
             assert models_res.status_code == 200, models_res.text
             payload = models_res.json()["data"]
             assert payload["total"] >= 2
@@ -177,11 +179,12 @@ async def test_workspace_content_models_rejects_non_official_custom_model_creati
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-            site_res = await client.get(f"/api/v1/workspaces/{ws_pid}/site")
+            project_id = await project_id_for_workspace(client, ws_pid)
+            site_res = await client.get(f"/api/v1/projects/{project_id}/site")
             assert site_res.status_code == 200, site_res.text
 
             create_res = await client.post(
-                f"/api/v1/workspaces/{ws_pid}/content/models",
+                f"/api/v1/projects/{project_id}/content/models",
                 json={
                     "key": "author",
                     "name": "Author",

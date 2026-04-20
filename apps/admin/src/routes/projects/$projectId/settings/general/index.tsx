@@ -8,5 +8,6 @@ export const Route = createFileRoute("/projects/$projectId/settings/general/")({
 });
 
 function RouteComponent() {
-  return <ProjectGeneralSettingsPage />;
+  const { projectId } = Route.useParams();
+  return <ProjectGeneralSettingsPage projectId={projectId} />;
 }

@@ -12,49 +12,48 @@ import { pickBool, pickNumber, pickString, pickStringArray } from "./utils";
  * - Secret 字段（如 s3_secret_access_key）由 API 掩码；UI 只允许“设置新值”，因此初始值固定为空串。
  */
 export function buildGeneralSettingsInitialValues(params: {
-  workspace?: SettingsDetail;
+  project?: SettingsDetail;
   system?: SettingsDetail;
 }): GeneralSettingsFormValues {
-  const workspaceValue = params.workspace?.value;
+  const projectValue = params.project?.value;
   const systemValue = params.system?.value;
 
-  const siteName = pickString(workspaceValue, ["site", "name"]) ?? "Arclayer";
-  const siteSubtitle = pickString(workspaceValue, ["site", "subtitle"]) ?? "";
+  const siteName = pickString(projectValue, ["site", "name"]) ?? "Arclayer";
+  const siteSubtitle = pickString(projectValue, ["site", "subtitle"]) ?? "";
   const siteDescription =
-    pickString(workspaceValue, ["site", "description"]) ??
-    pickString(workspaceValue, ["seo", "default_description"]) ??
+    pickString(projectValue, ["site", "description"]) ??
+    pickString(projectValue, ["seo", "default_description"]) ??
     "";
-  const siteUrl = pickString(workspaceValue, ["site", "url"]) ?? "";
-  const siteLogoUrl = pickString(workspaceValue, ["site", "logo_url"]) ?? "";
-  const siteLogoAssetId = pickString(workspaceValue, ["site", "logo_asset_id"]) ?? "";
-  const siteFaviconUrl = pickString(workspaceValue, ["site", "favicon_url"]) ?? "";
-  const siteFaviconAssetId = pickString(workspaceValue, ["site", "favicon_asset_id"]) ?? "";
+  const siteUrl = pickString(projectValue, ["site", "url"]) ?? "";
+  const siteLogoUrl = pickString(projectValue, ["site", "logo_url"]) ?? "";
+  const siteLogoAssetId = pickString(projectValue, ["site", "logo_asset_id"]) ?? "";
+  const siteFaviconUrl = pickString(projectValue, ["site", "favicon_url"]) ?? "";
+  const siteFaviconAssetId = pickString(projectValue, ["site", "favicon_asset_id"]) ?? "";
   const siteAvatarPlaceholderUrl =
-    pickString(workspaceValue, ["site", "avatar_placeholder_url"]) ?? "";
+    pickString(projectValue, ["site", "avatar_placeholder_url"]) ?? "";
   const siteAvatarPlaceholderAssetId =
-    pickString(workspaceValue, ["site", "avatar_placeholder_asset_id"]) ?? "";
-  const siteContactEmail = pickString(workspaceValue, ["site", "contact_email"]) ?? "";
+    pickString(projectValue, ["site", "avatar_placeholder_asset_id"]) ?? "";
+  const siteContactEmail = pickString(projectValue, ["site", "contact_email"]) ?? "";
 
   const defaultLocale =
-    normalizeLocaleTag(pickString(workspaceValue, ["site_localization", "default_locale"])) ??
-    normalizeLocaleTag(pickString(workspaceValue, ["site_localization", "locale"])) ??
+    normalizeLocaleTag(pickString(projectValue, ["site_localization", "default_locale"])) ??
+    normalizeLocaleTag(pickString(projectValue, ["site_localization", "locale"])) ??
     "zh-CN";
   const fallbackLocale =
-    normalizeLocaleTag(pickString(workspaceValue, ["site_localization", "fallback_locale"])) ??
+    normalizeLocaleTag(pickString(projectValue, ["site_localization", "fallback_locale"])) ??
     "en-US";
   const supportedLocalesInput =
-    pickStringArray(workspaceValue, ["site_localization", "supported_locales"]) ?? [];
+    pickStringArray(projectValue, ["site_localization", "supported_locales"]) ?? [];
   const supportedLocales = uniqLocales([...supportedLocalesInput, defaultLocale, fallbackLocale]);
-  const timezone = pickString(workspaceValue, ["site_localization", "timezone"]) ?? "Asia/Shanghai";
+  const timezone = pickString(projectValue, ["site_localization", "timezone"]) ?? "Asia/Shanghai";
   const useBrowserTimeZone =
-    pickBool(workspaceValue, ["site_localization", "use_browser_timezone"]) ?? true;
-  const dateFormat =
-    pickString(workspaceValue, ["site_localization", "date_format"]) ?? "YYYY-MM-DD";
+    pickBool(projectValue, ["site_localization", "use_browser_timezone"]) ?? true;
+  const dateFormat = pickString(projectValue, ["site_localization", "date_format"]) ?? "YYYY-MM-DD";
   const useRelativeDateTime =
-    pickBool(workspaceValue, ["site_localization", "use_relative_datetime"]) ?? true;
+    pickBool(projectValue, ["site_localization", "use_relative_datetime"]) ?? true;
 
   const seoTitlePolicy = parseTitlePolicy(
-    pickUnknown(workspaceValue, ["seo", "title_policy_v1"]),
+    pickUnknown(projectValue, ["seo", "title_policy_v1"]),
   ) ?? {
     parts: [
       { kind: "token", value: "pageTitle" },
@@ -66,14 +65,14 @@ export function buildGeneralSettingsInitialValues(params: {
   };
 
   const siteNameI18n =
-    parseLocalizedStringMap(pickUnknown(workspaceValue, ["site", "name_i18n"])) ?? {};
+    parseLocalizedStringMap(pickUnknown(projectValue, ["site", "name_i18n"])) ?? {};
   const siteNameI18nEnabled = Object.keys(siteNameI18n).length > 0;
 
   // Prefer new `site.description_i18n`, fall back to legacy `seo.default_description_i18n` to avoid
   // losing previously saved values.
   const siteDescriptionI18n =
-    parseLocalizedStringMap(pickUnknown(workspaceValue, ["site", "description_i18n"])) ??
-    parseLocalizedStringMap(pickUnknown(workspaceValue, ["seo", "default_description_i18n"])) ??
+    parseLocalizedStringMap(pickUnknown(projectValue, ["site", "description_i18n"])) ??
+    parseLocalizedStringMap(pickUnknown(projectValue, ["seo", "default_description_i18n"])) ??
     {};
   const siteDescriptionI18nEnabled = Object.keys(siteDescriptionI18n).length > 0;
 

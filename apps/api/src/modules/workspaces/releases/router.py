@@ -8,6 +8,7 @@ from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Depends
 
 from src.common.types.public_uuid import PublicUUID
+from src.common.utils.public_ids import decode_public_id
 from src.core.events import Event, events
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.logging import get_logger
@@ -26,7 +27,7 @@ from src.modules.workspaces.releases.schema import (
 from src.modules.workspaces.releases.service import WorkspaceReleasesService
 
 router = APIRouter(
-    prefix="/workspaces/{workspace_id}/releases",
+    prefix="/_internal/workspaces/{workspace_id}/releases",
     tags=["domain.workspaces.releases"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
@@ -40,24 +41,42 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
+def _normalize_public_or_uuid(value: PublicUUID | UUID | str | None) -> UUID | None:
+    if value is None:
+        return None
+    if isinstance(value, UUID):
+        return value
+    raw = str(value).strip()
+    if not raw:
+        return None
+    try:
+        return UUID(raw)
+    except ValueError:
+        return decode_public_id(raw)
+
+
 async def _publish_release_event(
     *,
     actor_user_id: UUID,
     ctx: WorkspaceContext,
     event_name: str,
     payload: ReleaseOut,
+    project_id: UUID | None = None,
     previous_active_release_id: str | None = None,
 ) -> None:
     event_payload: dict[str, object | None] = {
-        "entity_id": str(payload.id),
+        "entity_id": str(_normalize_public_or_uuid(payload.id)),
         "entity_type": "release",
         "is_active": payload.is_active,
         "organization_id": str(ctx.organization_id),
         "previous_active_release_id": (
-            str(previous_active_release_id) if previous_active_release_id is not None else None
+            str(_normalize_public_or_uuid(previous_active_release_id))
+            if previous_active_release_id is not None
+            else None
         ),
+        "project_id": str(project_id) if project_id is not None else None,
         "release_number": payload.release_number,
-        "site_id": str(payload.site_id),
+        "site_id": str(_normalize_public_or_uuid(payload.site_id)),
         "workspace_id": str(ctx.workspace_id),
     }
     try:

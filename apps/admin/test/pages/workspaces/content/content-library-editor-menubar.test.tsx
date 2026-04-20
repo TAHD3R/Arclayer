@@ -127,7 +127,7 @@ vi.mock("@arclayer/ui/kbd", () => ({
 }));
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-import-dialog",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-import-dialog",
   () => ({
     ContentLibraryArticleEditorImportDialog: ({
       open,
@@ -140,7 +140,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-export-dialog",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-export-dialog",
   () => ({
     ContentLibraryArticleEditorExportDialog: ({
       open,
@@ -153,7 +153,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-search-dialog",
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-search-dialog",
   () => ({
     ContentLibraryArticleEditorSearchOverlay: ({
       open,
@@ -164,7 +164,7 @@ vi.mock(
   }),
 );
 
-import { ContentLibraryArticleEditorMenuBar } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-menu";
+import { ContentLibraryArticleEditorMenuBar } from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-menu";
 
 describe("content-library-editor-menubar", () => {
   beforeEach(() => {

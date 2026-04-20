@@ -4,5 +4,10 @@ import { ProjectDomainSettingsPage } from "@/pages/settings/context-settings-pag
 
 export const Route = createFileRoute("/projects/$projectId/settings/domain/")({
   staticData: { titleKey: "account:SETTINGS_NAV_PROJECT_DOMAIN" },
-  component: ProjectDomainSettingsPage,
+  component: RouteComponent,
 });
+
+function RouteComponent() {
+  const { projectId } = Route.useParams();
+  return <ProjectDomainSettingsPage projectId={projectId} />;
+}

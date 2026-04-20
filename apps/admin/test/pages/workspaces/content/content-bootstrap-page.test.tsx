@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
-import { ContentBootstrapPage } from "@/pages/workspaces/content/bootstrap/page";
+import { ContentBootstrapPage } from "@/pages/projects/content/bootstrap/page";
 
 const mocked = vi.hoisted(() => ({
   useContentBootstrapController: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/pages/workspaces/content/bootstrap/hooks/use-content-bootstrap-controller", () => ({
+vi.mock("@/pages/projects/content/bootstrap/hooks/use-content-bootstrap-controller", () => ({
   useContentBootstrapController: mocked.useContentBootstrapController,
 }));
 

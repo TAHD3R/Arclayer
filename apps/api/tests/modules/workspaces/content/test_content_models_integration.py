@@ -20,6 +20,7 @@ from src.models.workspaces.workspace import Workspace
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.organization.repository import OrganizationRepository
+from tests.utils.project_context import project_id_for_workspace
 
 pytestmark = pytest.mark.integration
 
@@ -66,12 +67,12 @@ def _explicit_update_payload() -> dict:
 async def _preview_model_update(
     client: AsyncClient,
     *,
-    workspace_id: str,
+    project_id: str,
     model_id: str,
     payload: dict,
 ):
     response = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}/impact-preview",
+        f"/api/v1/projects/{project_id}/content/models/{model_id}/impact-preview",
         json=payload,
     )
     assert response.status_code == 200, response.text
@@ -81,18 +82,18 @@ async def _preview_model_update(
 async def _patch_model_with_preview(
     client: AsyncClient,
     *,
-    workspace_id: str,
+    project_id: str,
     model_id: str,
     payload: dict,
 ):
     preview = await _preview_model_update(
         client,
-        workspace_id=workspace_id,
+        project_id=project_id,
         model_id=model_id,
         payload=payload,
     )
     response = await client.patch(
-        f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+        f"/api/v1/projects/{project_id}/content/models/{model_id}",
         json={
             **payload,
             "impactPreviewToken": preview["previewToken"],
@@ -143,9 +144,10 @@ async def _workspace_client(prepared_db, integration_valkey_settings):
         app.dependency_overrides[get_current_user_id] = _get_user_id
 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-            site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+            project_id = await project_id_for_workspace(client, workspace_id)
+            site_res = await client.get(f"/api/v1/projects/{project_id}/site")
             assert site_res.status_code == 200, site_res.text
-            yield client, workspace_id
+            yield client, workspace_id, project_id
 
         app.dependency_overrides.clear()
 
@@ -155,9 +157,9 @@ async def test_content_models_create_blank_first_payload_returns_201(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert response.status_code == 201, response.text
@@ -196,7 +198,7 @@ async def test_content_models_create_blank_first_payload_returns_201(
         assert saved.workflow_policy == {"states": ["draft", "published"], "initial_state": "draft"}
         assert saved.published_contract_snapshot is not None
 
-        list_response = await client.get(f"/api/v1/workspaces/{workspace_id}/content/models")
+        list_response = await client.get(f"/api/v1/projects/{project_id}/content/models")
         assert list_response.status_code == 200, list_response.text
         model_payload = list_response.json()["data"]["items"][0]
         assert model_payload["key"] == "article"
@@ -211,9 +213,9 @@ async def test_content_models_patch_updates_explicit_contract_sections(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
@@ -221,7 +223,7 @@ async def test_content_models_patch_updates_explicit_contract_sections(
 
         patch_response = await _patch_model_with_preview(
             client,
-            workspace_id=workspace_id,
+            project_id=project_id,
             model_id=model_id,
             payload=_explicit_update_payload(),
         )
@@ -292,9 +294,9 @@ async def test_content_models_rejects_template_key_or_preset_metadata_payload(
         "preset": {"id": "starter", "version": 1},
     }
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=payload,
         )
         assert response.status_code in {400, 422}, response.text
@@ -310,22 +312,22 @@ async def test_content_models_rejects_kind_in_create_and_patch_payloads(
         "kind": "page",
     }
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=create_payload,
         )
         assert create_response.status_code in {400, 422}, create_response.text
 
         baseline_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert baseline_response.status_code == 201, baseline_response.text
         model_id = baseline_response.json()["data"]["id"]
 
         patch_response = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            f"/api/v1/projects/{project_id}/content/models/{model_id}",
             json={"kind": "post"},
         )
         assert patch_response.status_code in {400, 422}, patch_response.text
@@ -336,9 +338,9 @@ async def test_content_models_patch_returns_breaking_impact_for_destructive_sche
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
@@ -346,7 +348,7 @@ async def test_content_models_patch_returns_breaking_impact_for_destructive_sche
 
         seed_response = await _patch_model_with_preview(
             client,
-            workspace_id=workspace_id,
+            project_id=project_id,
             model_id=model_id,
             payload=_explicit_update_payload(),
         )
@@ -354,7 +356,7 @@ async def test_content_models_patch_returns_breaking_impact_for_destructive_sche
 
         destructive_response = await _patch_model_with_preview(
             client,
-            workspace_id=workspace_id,
+            project_id=project_id,
             model_id=model_id,
             payload={
                 "fields": [],
@@ -374,9 +376,9 @@ async def test_content_models_rejects_non_official_model_keys(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json={"key": "author", "name": "Author"},
         )
         assert response.status_code == 409, response.text

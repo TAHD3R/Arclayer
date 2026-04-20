@@ -1,7 +1,6 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { WorkspaceExtensionDetailPage } from "@/pages/workspaces/extensions/detail/page";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { WorkspaceExtensionDetailPage } from "@/pages/projects/extensions/detail/page";
 
 export const Route = createLazyFileRoute("/projects/$projectId/extensions/$extensionSlug/")({
   component: ProjectExtensionDetailRouteComponent,
@@ -9,12 +8,9 @@ export const Route = createLazyFileRoute("/projects/$projectId/extensions/$exten
 
 function ProjectExtensionDetailRouteComponent() {
   const { projectId, extensionSlug } = Route.useParams();
-  const workspaceId =
-    useWorkspaceStore.getState().currentWorkspaceId ?? useWorkspaceStore.getState().lastWorkspaceId;
-
   return (
     <WorkspaceExtensionDetailPage
-      workspaceId={workspaceId ?? projectId}
+      projectId={projectId}
       extensionSlug={extensionSlug}
       backTo={`/projects/${projectId}/extensions`}
     />

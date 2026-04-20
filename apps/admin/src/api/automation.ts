@@ -1,4 +1,4 @@
-import { workspacePath, toQueryString } from "@/lib/api";
+import { projectPath, toQueryString } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
   AdminAutomationCatalog,
@@ -12,68 +12,68 @@ import type {
 
 const AUTOMATION_QUERY_KEY_PREFIX = ["content", "automation"] as const;
 
-export function buildAutomationCatalogQueryKey(workspaceId: string) {
-  return [...AUTOMATION_QUERY_KEY_PREFIX, "catalog", workspaceId] as const;
+export function buildAutomationCatalogQueryKey(projectId: string) {
+  return [...AUTOMATION_QUERY_KEY_PREFIX, "catalog", projectId] as const;
 }
 
-export function buildAutomationFlowsQueryKey(workspaceId: string) {
-  return [...AUTOMATION_QUERY_KEY_PREFIX, "flows", workspaceId] as const;
+export function buildAutomationFlowsQueryKey(projectId: string) {
+  return [...AUTOMATION_QUERY_KEY_PREFIX, "flows", projectId] as const;
 }
 
-export function buildAutomationRunsQueryKey(workspaceId: string) {
-  return [...AUTOMATION_QUERY_KEY_PREFIX, "runs", workspaceId] as const;
+export function buildAutomationRunsQueryKey(projectId: string) {
+  return [...AUTOMATION_QUERY_KEY_PREFIX, "runs", projectId] as const;
 }
 
-export async function getWorkspaceAutomationCatalog(
-  workspaceId: string,
+export async function getProjectAutomationCatalog(
+  projectId: string,
 ): Promise<AdminAutomationCatalog> {
-  return api.get<AdminAutomationCatalog>(workspacePath(workspaceId, "/automation/catalog"));
+  return api.get<AdminAutomationCatalog>(projectPath(projectId, "/automation/catalog"));
 }
 
-export async function listWorkspaceAutomationFlows(
-  workspaceId: string,
+export async function listProjectAutomationFlows(
+  projectId: string,
 ): Promise<AdminAutomationFlowList> {
-  return api.get<AdminAutomationFlowList>(workspacePath(workspaceId, "/automation/flows"));
+  return api.get<AdminAutomationFlowList>(projectPath(projectId, "/automation/flows"));
 }
 
-export async function createWorkspaceAutomationFlow(
-  workspaceId: string,
+export async function createProjectAutomationFlow(
+  projectId: string,
   payload: CreateAdminAutomationFlowPayload,
 ): Promise<AdminAutomationFlow> {
-  return api.post<AdminAutomationFlow>(workspacePath(workspaceId, "/automation/flows"), payload);
+  return api.post<AdminAutomationFlow>(projectPath(projectId, "/automation/flows"), payload);
 }
 
-export async function updateWorkspaceAutomationFlow(
-  workspaceId: string,
+export async function updateProjectAutomationFlow(
+  projectId: string,
   flowId: string,
   payload: PatchAdminAutomationFlowPayload,
 ): Promise<AdminAutomationFlow> {
   return api.patch<AdminAutomationFlow>(
-    workspacePath(workspaceId, `/automation/flows/${encodeURIComponent(flowId)}`),
+    projectPath(projectId, `/automation/flows/${encodeURIComponent(flowId)}`),
     payload,
   );
 }
 
-export async function deleteWorkspaceAutomationFlow(
-  workspaceId: string,
+export async function deleteProjectAutomationFlow(
+  projectId: string,
   flowId: string,
 ): Promise<void> {
-  await api.delete(workspacePath(workspaceId, `/automation/flows/${encodeURIComponent(flowId)}`));
+  await api.delete(projectPath(projectId, `/automation/flows/${encodeURIComponent(flowId)}`));
 }
 
-export async function listWorkspaceAutomationRuns(
-  workspaceId: string,
+export async function listProjectAutomationRuns(
+  projectId: string,
   params: { limit?: number } = {},
 ): Promise<AdminAutomationRunList> {
   const query = toQueryString({ limit: params.limit });
-  return api.get<AdminAutomationRunList>(workspacePath(workspaceId, `/automation/runs${query}`));
+  return api.get<AdminAutomationRunList>(projectPath(projectId, `/automation/runs${query}`));
 }
 
-export async function getWorkspaceAutomationRun(
-  workspaceId: string,
+export async function getProjectAutomationRun(
+  projectId: string,
   runId: string,
 ): Promise<AdminAutomationRun> {
   return api.get<AdminAutomationRun>(
-    workspacePath(workspaceId, `/automation/runs/${encodeURIComponent(runId)}`),
+    projectPath(projectId, `/automation/runs/${encodeURIComponent(runId)}`),
   );
 }

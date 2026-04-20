@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { buildContentLibraryRows } from "@/pages/workspaces/content/library/utils";
+import { buildContentLibraryRows } from "@/pages/projects/content/library/utils";
 
 describe("content-library-no-heuristics", () => {
   test("trusts backend workbench payload even when model metadata points somewhere else", () => {

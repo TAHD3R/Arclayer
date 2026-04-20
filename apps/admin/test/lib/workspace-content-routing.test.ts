@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "vitest";
 
 import {
-  buildWorkspaceContentEditorUrl,
-  workspaceContentCreatePath,
-  workspaceContentLibraryPath,
-} from "@/lib/routing/workspace-content-routing";
+  buildProjectContentEditorUrl,
+  projectContentCreatePath,
+  projectContentLibraryPath,
+} from "@/lib/routing/project-content-routing";
 
 describe("workspace-content-routing", () => {
   beforeEach(() => {
@@ -12,12 +12,12 @@ describe("workspace-content-routing", () => {
   });
 
   test("builds workspace content library and create paths", () => {
-    expect(workspaceContentLibraryPath("ws 1")).toBe("/projects/ws%201/content/library");
-    expect(workspaceContentCreatePath("ws 1")).toBe("/projects/ws%201/content/create");
+    expect(projectContentLibraryPath("ws 1")).toBe("/projects/ws%201/content/library");
+    expect(projectContentCreatePath("ws 1")).toBe("/projects/ws%201/content/create");
   });
 
   test("builds editor handoff url with explicit safe returnTo", () => {
-    const url = buildWorkspaceContentEditorUrl({
+    const url = buildProjectContentEditorUrl({
       siteId: "site-1",
       itemId: "item-1",
       token: "preview-token",
@@ -30,7 +30,7 @@ describe("workspace-content-routing", () => {
   });
 
   test("falls back to current admin location when returnTo is omitted", () => {
-    const url = buildWorkspaceContentEditorUrl({
+    const url = buildProjectContentEditorUrl({
       siteId: "site-1",
       itemId: "item-1",
       token: "preview-token",
@@ -40,7 +40,7 @@ describe("workspace-content-routing", () => {
   });
 
   test("drops unsafe returnTo values", () => {
-    const url = buildWorkspaceContentEditorUrl({
+    const url = buildProjectContentEditorUrl({
       siteId: "site-1",
       itemId: "item-1",
       token: "preview-token",

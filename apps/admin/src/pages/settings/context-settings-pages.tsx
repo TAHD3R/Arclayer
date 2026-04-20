@@ -8,13 +8,14 @@ import { listProjectMembers, updateProjectMemberRole } from "@/api/project-membe
 import { SETTINGS_WORKSPACE_NAV_ITEMS } from "@/constants/menu/settings";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { GeneralSiteSettingsPage } from "@/pages/workspaces/settings/site/basics/page";
-import { GeneralLocalizationSettingsPage } from "@/pages/workspaces/settings/site/localization/page";
+import { ProjectApiKeysSettingsPage as ProjectApiKeysSettingsSurface } from "@/pages/projects/settings/api-keys/page";
+import { ProjectDomainSettingsPage as ProjectDomainSettingsSurface } from "@/pages/projects/settings/domain/page";
+import { GeneralSiteSettingsPage } from "@/pages/projects/settings/site/basics/page";
+import { GeneralLocalizationSettingsPage } from "@/pages/projects/settings/site/localization/page";
 import { WorkspacePermissionsSettingsPage } from "@/pages/workspaces/settings/workspace/permissions/page";
 import { WorkspaceSettingsBasicsView } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view";
 import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
 import { TeamMembersView } from "@/pages/workspaces/team/members/components/team-members-view";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { ProjectMemberRole } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
@@ -146,14 +147,12 @@ export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
   );
 }
 
-export function ProjectGeneralSettingsPage() {
-  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
-  return <GeneralSiteSettingsPage workspaceId={workspaceId} />;
+export function ProjectGeneralSettingsPage(props: { projectId: string }) {
+  return <GeneralSiteSettingsPage projectId={props.projectId} />;
 }
 
-export function ProjectLocalizationSettingsPage() {
-  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
-  return <GeneralLocalizationSettingsPage workspaceId={workspaceId} />;
+export function ProjectLocalizationSettingsPage(props: { projectId: string }) {
+  return <GeneralLocalizationSettingsPage projectId={props.projectId} />;
 }
 
 export function ProjectMembersSettingsPage(props: { projectId: string }) {
@@ -295,16 +294,16 @@ function ProjectStandalonePage(props: { titleKey: string; descriptionKey?: strin
   );
 }
 
-export function ProjectDomainSettingsPage() {
-  return <ProjectStandalonePage titleKey="account:SETTINGS_NAV_PROJECT_DOMAIN" />;
+export function ProjectDomainSettingsPage(props: { projectId: string }) {
+  return <ProjectDomainSettingsSurface projectId={props.projectId} />;
 }
 
 export function ProjectSeoSettingsPage() {
   return <ProjectStandalonePage titleKey="account:SETTINGS_NAV_PROJECT_SEO" />;
 }
 
-export function ProjectApiKeysSettingsPage() {
-  return <ProjectStandalonePage titleKey="account:SETTINGS_NAV_PROJECT_API_KEYS" />;
+export function ProjectApiKeysSettingsPage(props: { projectId: string }) {
+  return <ProjectApiKeysSettingsSurface projectId={props.projectId} />;
 }
 
 export function ProjectRuntimeSettingsPage() {

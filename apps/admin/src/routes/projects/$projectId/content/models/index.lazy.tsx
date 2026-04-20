@@ -1,7 +1,6 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { ContentModelsControlCenterPage } from "@/pages/workspaces/content/models/page";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/page";
 
 export const Route = createLazyFileRoute("/projects/$projectId/content/models/")({
   component: ProjectContentModelsRouteComponent,
@@ -9,7 +8,5 @@ export const Route = createLazyFileRoute("/projects/$projectId/content/models/")
 
 function ProjectContentModelsRouteComponent() {
   const { projectId } = Route.useParams();
-  const workspaceId =
-    useWorkspaceStore.getState().currentWorkspaceId ?? useWorkspaceStore.getState().lastWorkspaceId;
-  return <ContentModelsControlCenterPage workspaceId={workspaceId ?? projectId} />;
+  return <ContentModelsControlCenterPage projectId={projectId} />;
 }

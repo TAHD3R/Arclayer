@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { ContentModelsControlCenterPage } from "@/pages/workspaces/content/models/page";
+import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/page";
 
 const listAllContentModelsMock = vi.fn();
 const getContentModelImpactPreviewMock = vi.fn();
@@ -68,7 +68,7 @@ function createWrapper() {
 function buildModel(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: "model-1",
-    workspaceId: "ws-1",
+    workspaceId: "project-1",
     siteId: "site-1",
     key: "article",
     name: "Article",
@@ -315,7 +315,7 @@ describe("ContentModelsControlCenterPage", () => {
       }),
     );
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -339,7 +339,7 @@ describe("ContentModelsControlCenterPage", () => {
 
     fireEvent.click(previewButton);
     await waitFor(() => {
-      expect(getContentModelImpactPreviewMock).toHaveBeenCalledWith("ws-1", "model-1", {
+      expect(getContentModelImpactPreviewMock).toHaveBeenCalledWith("project-1", "model-1", {
         defaultSurface: "writing",
       });
     });
@@ -352,7 +352,7 @@ describe("ContentModelsControlCenterPage", () => {
 
     fireEvent.click(previewButton);
     await waitFor(() => {
-      expect(getContentModelImpactPreviewMock).toHaveBeenLastCalledWith("ws-1", "model-1", {
+      expect(getContentModelImpactPreviewMock).toHaveBeenLastCalledWith("project-1", "model-1", {
         defaultPosture: "entry",
         defaultSurface: "writing",
       });
@@ -369,7 +369,7 @@ describe("ContentModelsControlCenterPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_APPLY_CONFIRM_OK" }));
 
     await waitFor(() => {
-      expect(patchContentModelMock).toHaveBeenCalledWith("ws-1", "model-1", {
+      expect(patchContentModelMock).toHaveBeenCalledWith("project-1", "model-1", {
         defaultPosture: "entry",
         defaultSurface: "writing",
         impactPreviewToken: "preview-2",
@@ -445,7 +445,7 @@ describe("ContentModelsControlCenterPage", () => {
       }),
     );
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -465,7 +465,7 @@ describe("ContentModelsControlCenterPage", () => {
     fireEvent.click(previewButton);
 
     await waitFor(() => {
-      expect(getContentModelImpactPreviewMock).toHaveBeenCalledWith("ws-1", "model-1", {
+      expect(getContentModelImpactPreviewMock).toHaveBeenCalledWith("project-1", "model-1", {
         defaultSurface: null,
       });
     });
@@ -480,7 +480,7 @@ describe("ContentModelsControlCenterPage", () => {
     listAllContentModelsMock.mockResolvedValue([buildModel()]);
     getContentModelImpactPreviewMock.mockResolvedValue(buildPreview());
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -516,7 +516,7 @@ describe("ContentModelsControlCenterPage", () => {
     listAllContentModelsMock.mockResolvedValue([buildModel()]);
     getContentModelImpactPreviewMock.mockResolvedValue(buildPreview());
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -547,7 +547,7 @@ describe("ContentModelsControlCenterPage", () => {
       buildModel({ id: "model-2", key: "page", name: "Page" }),
     ]);
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -579,7 +579,7 @@ describe("ContentModelsControlCenterPage", () => {
       }),
     );
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -604,7 +604,7 @@ describe("ContentModelsControlCenterPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_APPLY_CONFIRM_OK" }));
 
     await waitFor(() => {
-      expect(patchContentModelMock).toHaveBeenCalledWith("ws-1", "model-1", {
+      expect(patchContentModelMock).toHaveBeenCalledWith("project-1", "model-1", {
         defaultSurface: "writing",
         impactPreviewToken: "preview-1",
       });
@@ -619,7 +619,7 @@ describe("ContentModelsControlCenterPage", () => {
       }),
     ]);
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -647,7 +647,7 @@ describe("ContentModelsControlCenterPage", () => {
   test("renders governance sections for system boundary, custom boundary, workflow, delivery, and graphql", async () => {
     listAllContentModelsMock.mockResolvedValue([buildModel()]);
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
@@ -674,7 +674,7 @@ describe("ContentModelsControlCenterPage", () => {
     });
     listAllContentModelsMock.mockResolvedValue([buildModel()]);
 
-    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 

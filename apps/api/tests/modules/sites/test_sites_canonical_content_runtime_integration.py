@@ -167,15 +167,15 @@ def _article_draft_payload(*, expected_version: int, title: str, slug: str) -> d
     }
 
 
-async def _create_page_item(client, workspace_id: str, *, title: str) -> str:
+async def _create_page_item(client, project_id: str, *, title: str) -> str:
     item_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
+        f"/api/v1/projects/{project_id}/content/items",
         json=_page_item_payload(title),
     )
     assert item_res.status_code == 201, item_res.text
     item_id = item_res.json()["data"]["id"]
     shape_res = await client.patch(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
         json=_bootstrap_shape_payload(
             preset_key="page",
             capability_pack_ids=["publishable", "routable", "treeable"],
@@ -185,23 +185,28 @@ async def _create_page_item(client, workspace_id: str, *, title: str) -> str:
     return item_id
 
 
-async def _create_article_item(client, workspace_id: str, *, slug: str, title: str) -> str:
+async def _create_article_item(client, project_id: str, *, slug: str, title: str) -> str:
     item_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
+        f"/api/v1/projects/{project_id}/content/items",
         json=_article_item_payload(slug, title),
     )
     assert item_res.status_code == 201, item_res.text
     return item_res.json()["data"]["id"]
 
 
-async def _publish_page_item(client, workspace_id: str, *, item_id: str, title: str, path: str) -> None:
+async def _publish_page_item(client, project_id: str, *, item_id: str, title: str, path: str) -> None:
     draft_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
         json=_page_draft_payload(title=title, path=path),
     )
     assert draft_res.status_code == 201, draft_res.text
+    workflow_res = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/workflow",
+        json={"stage": "approved", "summary": f"{title} approved for publish"},
+    )
+    assert workflow_res.status_code == 200, workflow_res.text
     publish_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text
@@ -209,7 +214,7 @@ async def _publish_page_item(client, workspace_id: str, *, item_id: str, title: 
 
 async def _publish_dependency_page_item(
     client,
-    workspace_id: str,
+    project_id: str,
     *,
     item_id: str,
     title: str,
@@ -217,12 +222,17 @@ async def _publish_dependency_page_item(
     ref_entry_id: str,
 ) -> None:
     draft_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
         json=_page_dependency_draft_payload(title=title, path=path, ref_entry_id=ref_entry_id),
     )
     assert draft_res.status_code == 201, draft_res.text
+    workflow_res = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/workflow",
+        json={"stage": "approved", "summary": f"{title} approved for publish"},
+    )
+    assert workflow_res.status_code == 200, workflow_res.text
     publish_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text
@@ -230,7 +240,7 @@ async def _publish_dependency_page_item(
 
 async def _save_article_draft(
     client,
-    workspace_id: str,
+    project_id: str,
     *,
     item_id: str,
     expected_version: int,
@@ -238,15 +248,20 @@ async def _save_article_draft(
     slug: str,
 ) -> None:
     draft_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
         json=_article_draft_payload(expected_version=expected_version, title=title, slug=slug),
     )
     assert draft_res.status_code == 201, draft_res.text
 
 
-async def _publish_article_version(client, workspace_id: str, *, item_id: str, version: int) -> None:
+async def _publish_article_version(client, project_id: str, *, item_id: str, version: int) -> None:
+    workflow_res = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/workflow",
+        json={"stage": "approved", "summary": f"Version {version} approved for publish"},
+    )
+    assert workflow_res.status_code == 200, workflow_res.text
     publish_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version}/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version}/publish",
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text
@@ -254,7 +269,7 @@ async def _publish_article_version(client, workspace_id: str, *, item_id: str, v
 
 async def _upsert_route_binding(
     client,
-    workspace_id: str,
+    project_id: str,
     *,
     item_id: str,
     path: str,
@@ -271,7 +286,7 @@ async def _upsert_route_binding(
     if primary_source is not None:
         payload["primarySource"] = primary_source
     route_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{item_id}",
+        f"/api/v1/projects/{project_id}/content/routing/bindings/{item_id}",
         json=payload,
     )
     assert route_res.status_code == 200, route_res.text
@@ -282,41 +297,41 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_article_model(client, workspace_id)
 
-        template_item_id = await _create_page_item(client, workspace_id, title="Blog Template")
-        static_item_id = await _create_page_item(client, workspace_id, title="New Landing")
-        article_item_id = await _create_article_item(client, workspace_id, slug="world", title="Entry world v1")
+        template_item_id = await _create_page_item(client, project_id, title="Blog Template")
+        static_item_id = await _create_page_item(client, project_id, title="New Landing")
+        article_item_id = await _create_article_item(client, project_id, slug="world", title="Entry world v1")
 
         await _publish_page_item(
             client,
-            workspace_id,
+            project_id,
             item_id=template_item_id,
             title="Blog Template",
             path="/blog/:slug",
         )
         await _publish_page_item(
             client,
-            workspace_id,
+            project_id,
             item_id=static_item_id,
             title="New Landing",
             path="/blog/new",
         )
         await _save_article_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=article_item_id,
             expected_version=0,
             title="Entry world v1",
             slug="world",
         )
-        await _publish_article_version(client, workspace_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
 
         await _upsert_route_binding(
             client,
-            workspace_id,
+            project_id,
             item_id=template_item_id,
             path="/blog/:slug",
             route_mode="dynamic",
@@ -326,9 +341,9 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
                 "paramName": "slug",
             },
         )
-        await _upsert_route_binding(client, workspace_id, item_id=static_item_id, path="/blog/new")
+        await _upsert_route_binding(client, project_id, item_id=static_item_id, path="/blog/new")
 
-        site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+        site_res = await client.get(f"/api/v1/projects/{project_id}/site")
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
 
@@ -338,7 +353,7 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
 
         await _save_article_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=article_item_id,
             expected_version=1,
             title="Entry world v2 (draft)",
@@ -394,23 +409,23 @@ async def test_sites_route_resolve_returns_primary_record_unavailable_for_public
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_article_model(client, workspace_id)
 
-        template_item_id = await _create_page_item(client, workspace_id, title="Draft Only Template")
-        article_item_id = await _create_article_item(client, workspace_id, slug="world", title="Draft only world")
+        template_item_id = await _create_page_item(client, project_id, title="Draft Only Template")
+        article_item_id = await _create_article_item(client, project_id, slug="world", title="Draft only world")
 
         await _publish_page_item(
             client,
-            workspace_id,
+            project_id,
             item_id=template_item_id,
             title="Draft Only Template",
             path="/draft-only/:slug",
         )
         await _save_article_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=article_item_id,
             expected_version=0,
             title="Draft only world",
@@ -418,7 +433,7 @@ async def test_sites_route_resolve_returns_primary_record_unavailable_for_public
         )
         await _upsert_route_binding(
             client,
-            workspace_id,
+            project_id,
             item_id=template_item_id,
             path="/draft-only/:slug",
             route_mode="dynamic",
@@ -429,7 +444,7 @@ async def test_sites_route_resolve_returns_primary_record_unavailable_for_public
             },
         )
 
-        site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+        site_res = await client.get(f"/api/v1/projects/{project_id}/site")
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
 
@@ -460,31 +475,31 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_article_model(client, workspace_id)
 
-        public_page_id = await _create_page_item(client, workspace_id, title="Public Dependency Page")
-        fallback_page_id = await _create_page_item(client, workspace_id, title="Preview Fallback Dependency Page")
-        missing_page_id = await _create_page_item(client, workspace_id, title="Preview Missing Dependency Page")
+        public_page_id = await _create_page_item(client, project_id, title="Public Dependency Page")
+        fallback_page_id = await _create_page_item(client, project_id, title="Preview Fallback Dependency Page")
+        missing_page_id = await _create_page_item(client, project_id, title="Preview Missing Dependency Page")
 
-        draft_only_dependency_id = await _create_article_item(client, workspace_id, slug="draft-dep", title="Draft Dep")
+        draft_only_dependency_id = await _create_article_item(client, project_id, slug="draft-dep", title="Draft Dep")
         fallback_dependency_id = await _create_article_item(
             client,
-            workspace_id,
+            project_id,
             slug="fallback-dep",
             title="Fallback Dep v1",
         )
         missing_dependency_id = await _create_article_item(
             client,
-            workspace_id,
+            project_id,
             slug="missing-dep",
             title="Missing Dep",
         )
 
         await _save_article_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=draft_only_dependency_id,
             expected_version=0,
             title="Draft Dep",
@@ -492,13 +507,13 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
         )
         await _save_article_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=fallback_dependency_id,
             expected_version=0,
             title="Fallback Dep v1",
             slug="fallback-dep",
         )
-        await _publish_article_version(client, workspace_id, item_id=fallback_dependency_id, version=1)
+        await _publish_article_version(client, project_id, item_id=fallback_dependency_id, version=1)
 
         fallback_dependency_uuid = decode_public_id(fallback_dependency_id)
         fallback_dependency = await ContentItemRecord.get(id=fallback_dependency_uuid)
@@ -507,7 +522,7 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
 
         await _publish_dependency_page_item(
             client,
-            workspace_id,
+            project_id,
             item_id=public_page_id,
             title="Public Dependency Page",
             path="/dependency-public",
@@ -515,7 +530,7 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
         )
         await _publish_dependency_page_item(
             client,
-            workspace_id,
+            project_id,
             item_id=fallback_page_id,
             title="Preview Fallback Dependency Page",
             path="/dependency-fallback",
@@ -523,18 +538,18 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
         )
         await _publish_dependency_page_item(
             client,
-            workspace_id,
+            project_id,
             item_id=missing_page_id,
             title="Preview Missing Dependency Page",
             path="/dependency-missing",
             ref_entry_id=missing_dependency_id,
         )
 
-        await _upsert_route_binding(client, workspace_id, item_id=public_page_id, path="/dependency-public")
-        await _upsert_route_binding(client, workspace_id, item_id=fallback_page_id, path="/dependency-fallback")
-        await _upsert_route_binding(client, workspace_id, item_id=missing_page_id, path="/dependency-missing")
+        await _upsert_route_binding(client, project_id, item_id=public_page_id, path="/dependency-public")
+        await _upsert_route_binding(client, project_id, item_id=fallback_page_id, path="/dependency-fallback")
+        await _upsert_route_binding(client, project_id, item_id=missing_page_id, path="/dependency-missing")
 
-        site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+        site_res = await client.get(f"/api/v1/projects/{project_id}/site")
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
 

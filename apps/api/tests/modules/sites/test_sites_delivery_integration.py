@@ -18,6 +18,7 @@ from tests.modules.workspaces.content.test_content_items_integration import (
     _create_content_model,
     _create_page_model,
 )
+from tests.utils.project_context import project_id_for_workspace
 
 pytestmark = pytest.mark.integration
 
@@ -129,9 +130,9 @@ def _page_binding_failure_draft_payload(*, title: str, path: str) -> dict:
     }
 
 
-async def _create_article_item(client, workspace_id: str, *, slug: str, title: str) -> str:
+async def _create_article_item(client, project_id: str, *, slug: str, title: str) -> str:
     item_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
+        f"/api/v1/projects/{project_id}/content/items",
         json=_article_item_payload(slug, title),
     )
     assert item_res.status_code == 201, item_res.text
@@ -139,9 +140,10 @@ async def _create_article_item(client, workspace_id: str, *, slug: str, title: s
 
 
 async def _create_reusable_section_model(client, workspace_id: str) -> dict:
+    project_id = await project_id_for_workspace(client, workspace_id)
     return await _create_content_model(
         client,
-        workspace_id,
+        project_id,
         key="reusable-section",
         name="Reusable Section",
         category="site_builder",
@@ -152,15 +154,15 @@ async def _create_reusable_section_model(client, workspace_id: str) -> dict:
     )
 
 
-async def _create_reusable_section_item(client, workspace_id: str, *, title: str) -> str:
+async def _create_reusable_section_item(client, project_id: str, *, title: str) -> str:
     item_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
+        f"/api/v1/projects/{project_id}/content/items",
         json=_section_item_payload(title),
     )
     assert item_res.status_code == 201, item_res.text
     item_id = item_res.json()["data"]["id"]
     shape_res = await client.patch(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
         json=_bootstrap_shape_payload(
             preset_key="section",
             capability_pack_ids=["publishable"],
@@ -172,31 +174,36 @@ async def _create_reusable_section_item(client, workspace_id: str, *, title: str
 
 async def _save_section_draft(
     client,
-    workspace_id: str,
+    project_id: str,
     *,
     item_id: str,
     title: str,
     alias: str,
 ) -> None:
     draft_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
         json=_section_draft_payload(title=title, alias=alias),
     )
     assert draft_res.status_code == 201, draft_res.text
 
 
-async def _publish_release(client, workspace_id: str) -> None:
-    publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+async def _approve_item_for_publish(client, project_id: str, *, item_id: str, summary: str) -> None:
+    workflow_res = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/workflow",
+        json={"stage": "approved", "summary": summary},
+    )
+    assert workflow_res.status_code == 200, workflow_res.text
+
+
+async def _publish_release(client, project_id: str) -> None:
+    publish_res = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
     assert publish_res.status_code == 200, publish_res.text
 
 
-async def _site_id_and_preview_token(client, workspace_id: str) -> tuple[str, str]:
-    site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+async def _site_id_and_preview_token(client, project_id: str) -> tuple[str, str]:
+    site_res = await client.get(f"/api/v1/projects/{project_id}/site")
     assert site_res.status_code == 200, site_res.text
     site_id = site_res.json()["data"]["siteId"]
-    workspace_res = await client.get(f"/api/v1/workspaces/{workspace_id}")
-    assert workspace_res.status_code == 200, workspace_res.text
-    project_id = workspace_res.json()["data"]["project"]["projectId"]
     project_res = await client.get(f"/api/v1/projects/{project_id}")
     assert project_res.status_code == 200, project_res.text
     runtime_id = project_res.json()["data"]["primaryRuntime"]["id"]
@@ -210,41 +217,41 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_article_model(client, workspace_id)
 
-        template_item_id = await _create_page_item(client, workspace_id, title="Blog Template")
-        static_item_id = await _create_page_item(client, workspace_id, title="New Landing")
-        article_item_id = await _create_article_item(client, workspace_id, slug="world", title="Entry world v1")
+        template_item_id = await _create_page_item(client, project_id, title="Blog Template")
+        static_item_id = await _create_page_item(client, project_id, title="New Landing")
+        article_item_id = await _create_article_item(client, project_id, slug="world", title="Entry world v1")
 
         await _publish_page_item(
             client,
-            workspace_id,
+            project_id,
             item_id=template_item_id,
             title="Blog Template",
             path="/blog/:slug",
         )
         await _publish_page_item(
             client,
-            workspace_id,
+            project_id,
             item_id=static_item_id,
             title="New Landing",
             path="/blog/new",
         )
         await _save_article_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=article_item_id,
             expected_version=0,
             title="Entry world v1",
             slug="world",
         )
-        await _publish_article_version(client, workspace_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
 
         await _upsert_route_binding(
             client,
-            workspace_id,
+            project_id,
             item_id=template_item_id,
             path="/blog/:slug",
             route_mode="dynamic",
@@ -254,13 +261,13 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
                 "paramName": "slug",
             },
         )
-        await _upsert_route_binding(client, workspace_id, item_id=static_item_id, path="/blog/new")
-        await _publish_release(client, workspace_id)
+        await _upsert_route_binding(client, project_id, item_id=static_item_id, path="/blog/new")
+        await _publish_release(client, project_id)
 
-        runtime_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
+        runtime_id, preview_token = await _site_id_and_preview_token(client, project_id)
         await _save_article_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=article_item_id,
             expected_version=1,
             title="Entry world v2 (draft)",
@@ -300,34 +307,40 @@ async def test_delivery_pages_resolve_surfaces_binding_resolution_failures(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         await _create_article_model(client, workspace_id)
 
-        template_item_id = await _create_page_item(client, workspace_id, title="Broken Template")
-        article_item_id = await _create_article_item(client, workspace_id, slug="world", title="Entry world v1")
+        template_item_id = await _create_page_item(client, project_id, title="Broken Template")
+        article_item_id = await _create_article_item(client, project_id, slug="world", title="Entry world v1")
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{template_item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{template_item_id}/versions/draft",
             json=_page_binding_failure_draft_payload(title="Broken Template", path="/broken/:slug"),
         )
         assert draft_res.status_code == 201, draft_res.text
+        await _approve_item_for_publish(
+            client,
+            project_id,
+            item_id=template_item_id,
+            summary="Broken template approved for binding diagnostics",
+        )
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{template_item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{template_item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
 
         article_draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{article_item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{article_item_id}/versions/draft",
             json=_article_draft_payload(expected_version=0, title="Entry world v1", slug="world"),
         )
         assert article_draft_res.status_code == 201, article_draft_res.text
-        await _publish_article_version(client, workspace_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
 
         await _upsert_route_binding(
             client,
-            workspace_id,
+            project_id,
             item_id=template_item_id,
             path="/broken/:slug",
             route_mode="dynamic",
@@ -337,9 +350,9 @@ async def test_delivery_pages_resolve_surfaces_binding_resolution_failures(
                 "paramName": "slug",
             },
         )
-        await _publish_release(client, workspace_id)
+        await _publish_release(client, project_id)
 
-        runtime_id, _ = await _site_id_and_preview_token(client, workspace_id)
+        runtime_id, _ = await _site_id_and_preview_token(client, project_id)
         published_res = await client.get(
             f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/broken/world", "perspective": "published"},
@@ -353,25 +366,31 @@ async def test_delivery_sections_and_global_sets_resolve_reusable_section_contra
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_reusable_section_model(client, workspace_id)
 
-        section_item_id = await _create_reusable_section_item(client, workspace_id, title="Header Section")
+        section_item_id = await _create_reusable_section_item(client, project_id, title="Header Section")
         await _save_section_draft(
             client,
-            workspace_id,
+            project_id,
             item_id=section_item_id,
             title="Header Section",
             alias="site-header",
         )
+        await _approve_item_for_publish(
+            client,
+            project_id,
+            item_id=section_item_id,
+            summary="Reusable section approved for delivery contract",
+        )
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{section_item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{section_item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
-        await _publish_release(client, workspace_id)
+        await _publish_release(client, project_id)
 
-        runtime_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
+        runtime_id, preview_token = await _site_id_and_preview_token(client, project_id)
 
         section_res = await client.get(
             f"/api/v1/runtimes/{runtime_id}/delivery/sections/site-header",

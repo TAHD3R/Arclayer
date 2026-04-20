@@ -18,7 +18,7 @@ from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
 
 seo_router = APIRouter(
-    prefix="/workspaces/{workspace_id}/content",
+    prefix="/_internal/workspace-content",
     tags=["domain.workspaces.content"],
     dependencies=[require_workspace_permission("system:content:read")],
 )

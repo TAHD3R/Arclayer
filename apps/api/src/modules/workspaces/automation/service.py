@@ -24,8 +24,10 @@ from src.models.automation.flow import (
 )
 from src.models.system.notification import NotificationCategory, NotificationRecord
 from src.modules.workspaces.automation.catalog import (
-    list_automation_operation_kinds,
-    list_automation_triggers,
+    list_project_automation_operation_kinds,
+    list_project_automation_triggers,
+    list_workspace_automation_operation_kinds,
+    list_workspace_automation_triggers,
     trigger_definition_for_event,
     trigger_definition_for_kind,
     validate_operation_config,
@@ -60,6 +62,26 @@ class WorkspaceAutomationService:
         self.repo = repo or AutomationRepository()
 
     async def get_catalog_out(self) -> AutomationCatalogOut:
+        return await self.get_workspace_catalog_out()
+
+    async def get_workspace_catalog_out(self) -> AutomationCatalogOut:
+        return self._build_catalog_out(
+            triggers=list_workspace_automation_triggers(),
+            operations=list_workspace_automation_operation_kinds(),
+        )
+
+    async def get_project_catalog_out(self) -> AutomationCatalogOut:
+        return self._build_catalog_out(
+            triggers=list_project_automation_triggers(),
+            operations=list_project_automation_operation_kinds(),
+        )
+
+    @staticmethod
+    def _build_catalog_out(
+        *,
+        triggers: tuple[Any, ...] | list[Any],
+        operations: tuple[Any, ...] | list[Any],
+    ) -> AutomationCatalogOut:
         return AutomationCatalogOut(
             triggers=[
                 AutomationTriggerOut(
@@ -68,7 +90,7 @@ class WorkspaceAutomationService:
                     label=definition.label,
                     description=definition.description,
                 )
-                for definition in list_automation_triggers()
+                for definition in triggers
             ],
             operations=[
                 AutomationOperationKindOut(
@@ -77,12 +99,16 @@ class WorkspaceAutomationService:
                     description=definition.description,
                     required_fields=list(definition.required_fields),
                 )
-                for definition in list_automation_operation_kinds()
+                for definition in operations
             ],
         )
 
     async def list_flows_out(self, *, workspace_id: UUID) -> AutomationFlowListOut:
         flows = await self.repo.list_flows(workspace_id=workspace_id)
+        return AutomationFlowListOut(items=[await self._to_flow_out(flow) for flow in flows])
+
+    async def list_project_flows_out(self, *, workspace_id: UUID, project_id: UUID) -> AutomationFlowListOut:
+        flows = await self.repo.list_project_flows(workspace_id=workspace_id, project_id=project_id)
         return AutomationFlowListOut(items=[await self._to_flow_out(flow) for flow in flows])
 
     async def create_flow_out(
@@ -92,6 +118,7 @@ class WorkspaceAutomationService:
         actor_user_id: UUID | None,
         payload: AutomationFlowCreateIn,
     ) -> AutomationFlowOut:
+        self._validate_workspace_scope_payload(payload)
         trigger_kind = AutomationTriggerKind(str(payload.trigger_kind))
         trigger = trigger_definition_for_kind(trigger_kind)
         operations = self._normalize_operations(payload.operations)
@@ -113,6 +140,38 @@ class WorkspaceAutomationService:
             raise Conflict("Automation flow already exists", error="AUTOMATION_FLOW_CONFLICT") from exc
         return await self._to_flow_out(flow)
 
+    async def create_project_flow_out(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        actor_user_id: UUID | None,
+        payload: AutomationFlowCreateIn,
+    ) -> AutomationFlowOut:
+        self._validate_project_scope_payload(payload)
+        credential_binding = dict(payload.credential_binding or {})
+        credential_binding["projectId"] = str(project_id)
+        trigger_kind = AutomationTriggerKind(str(payload.trigger_kind))
+        trigger = trigger_definition_for_kind(trigger_kind)
+        operations = self._normalize_operations(payload.operations)
+        try:
+            flow = await self.repo.create_flow(
+                workspace_id=workspace_id,
+                name=payload.name,
+                description=payload.description,
+                status=AutomationFlowStatus(str(payload.status)),
+                trigger_kind=trigger_kind,
+                trigger_event=trigger.event_name,
+                retry_limit=payload.retry_limit,
+                dead_letter_enabled=payload.dead_letter_enabled,
+                credential_binding=credential_binding,
+                created_by_user_id=actor_user_id,
+                operations=operations,
+            )
+        except IntegrityError as exc:
+            raise Conflict("Automation flow already exists", error="AUTOMATION_FLOW_CONFLICT") from exc
+        return await self._to_flow_out(flow)
+
     async def update_flow_out(
         self,
         *,
@@ -122,6 +181,7 @@ class WorkspaceAutomationService:
         payload: AutomationFlowPatchIn,
     ) -> AutomationFlowOut:
         flow = await self._get_flow_or_raise(workspace_id=workspace_id, flow_id=flow_id)
+        self._validate_workspace_scope_patch(payload)
         fields: dict[str, Any] = {"updated_by_user_id": actor_user_id}
         if payload.name is not None:
             fields["name"] = payload.name
@@ -142,8 +202,54 @@ class WorkspaceAutomationService:
             raise Conflict("Automation flow already exists", error="AUTOMATION_FLOW_CONFLICT") from exc
         return await self._to_flow_out(flow)
 
+    async def update_project_flow_out(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        flow_id: UUID,
+        actor_user_id: UUID | None,
+        payload: AutomationFlowPatchIn,
+    ) -> AutomationFlowOut:
+        flow = await self._get_project_flow_or_raise(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            flow_id=flow_id,
+        )
+        self._validate_project_scope_patch(payload)
+        fields: dict[str, Any] = {"updated_by_user_id": actor_user_id}
+        if payload.name is not None:
+            fields["name"] = payload.name
+        if payload.description is not None:
+            fields["description"] = payload.description
+        if payload.status is not None:
+            fields["status"] = AutomationFlowStatus(str(payload.status))
+        if payload.retry_limit is not None:
+            fields["retry_limit"] = payload.retry_limit
+        if payload.dead_letter_enabled is not None:
+            fields["dead_letter_enabled"] = payload.dead_letter_enabled
+        if payload.credential_binding is not None:
+            credential_binding = dict(payload.credential_binding)
+            credential_binding["projectId"] = str(project_id)
+            fields["credential_binding"] = credential_binding
+        operations = self._normalize_operations(payload.operations) if payload.operations is not None else None
+        try:
+            flow = await self.repo.update_flow(flow, fields=fields, operations=operations)
+        except IntegrityError as exc:
+            raise Conflict("Automation flow already exists", error="AUTOMATION_FLOW_CONFLICT") from exc
+        return await self._to_flow_out(flow)
+
     async def delete_flow(self, *, workspace_id: UUID, flow_id: UUID) -> None:
         deleted = await self.repo.delete_flow(workspace_id=workspace_id, flow_id=flow_id)
+        if deleted <= 0:
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="AUTOMATION_FLOW_NOT_FOUND")
+
+    async def delete_project_flow(self, *, workspace_id: UUID, project_id: UUID, flow_id: UUID) -> None:
+        deleted = await self.repo.delete_project_flow(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            flow_id=flow_id,
+        )
         if deleted <= 0:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="AUTOMATION_FLOW_NOT_FOUND")
 
@@ -151,8 +257,30 @@ class WorkspaceAutomationService:
         runs = await self.repo.list_runs(workspace_id=workspace_id, limit=limit)
         return AutomationRunListOut(items=[await self._to_run_out(run, include_logs=False) for run in runs])
 
+    async def list_project_runs_out(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        limit: int = 50,
+    ) -> AutomationRunListOut:
+        runs = await self.repo.list_project_runs(workspace_id=workspace_id, project_id=project_id, limit=limit)
+        return AutomationRunListOut(items=[await self._to_run_out(run, include_logs=False) for run in runs])
+
     async def get_run_out(self, *, workspace_id: UUID, run_id: UUID) -> AutomationRunOut:
         run = await self.repo.get_run(workspace_id=workspace_id, run_id=run_id)
+        if run is None:
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="AUTOMATION_RUN_NOT_FOUND")
+        return await self._to_run_out(run, include_logs=True)
+
+    async def get_project_run_out(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        run_id: UUID,
+    ) -> AutomationRunOut:
+        run = await self.repo.get_project_run(workspace_id=workspace_id, project_id=project_id, run_id=run_id)
         if run is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="AUTOMATION_RUN_NOT_FOUND")
         return await self._to_run_out(run, include_logs=True)
@@ -164,7 +292,15 @@ class WorkspaceAutomationService:
         workspace_id = self._workspace_id_from_payload(event.payload)
         if workspace_id is None:
             return []
-        flows = await self.repo.list_enabled_flows_for_event(workspace_id=workspace_id, event_name=event.name)
+        project_id = self._project_id_from_event_payload(event.payload)
+        if project_id is not None:
+            flows = await self.repo.list_enabled_project_flows_for_event(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                event_name=event.name,
+            )
+        else:
+            flows = await self.repo.list_enabled_flows_for_event(workspace_id=workspace_id, event_name=event.name)
         results: list[AutomationRunOut] = []
         for flow in flows:
             results.append(await self.execute_flow(flow=flow, event=event))
@@ -237,8 +373,88 @@ class WorkspaceAutomationService:
             normalized.append((operation.name, kind, config, operation.sort_order if operation.sort_order else index))
         return normalized
 
+    @staticmethod
+    def _validate_workspace_scope_payload(payload: AutomationFlowCreateIn) -> None:
+        if payload.trigger_kind not in {definition.kind for definition in list_workspace_automation_triggers()}:
+            raise BadRequest(
+                "Workspace automation only supports workspace-global triggers.",
+                error="AUTOMATION_WORKSPACE_TRIGGER_SCOPE_INVALID",
+            )
+        WorkspaceAutomationService._validate_workspace_operations(payload.operations)
+        if WorkspaceAutomationService._project_id_from_credential_binding(payload.credential_binding) is not None:
+            raise BadRequest(
+                "Workspace automation cannot bind a project context.",
+                error="AUTOMATION_WORKSPACE_BINDING_SCOPE_INVALID",
+            )
+
+    @staticmethod
+    def _validate_project_scope_payload(payload: AutomationFlowCreateIn) -> None:
+        if payload.trigger_kind not in {definition.kind for definition in list_project_automation_triggers()}:
+            raise BadRequest(
+                "Project automation requires a project-scoped trigger.",
+                error="AUTOMATION_PROJECT_TRIGGER_SCOPE_INVALID",
+            )
+
+    @staticmethod
+    def _validate_workspace_scope_patch(payload: AutomationFlowPatchIn) -> None:
+        if payload.operations is not None:
+            WorkspaceAutomationService._validate_workspace_operations(payload.operations)
+        if (
+            payload.credential_binding is not None
+            and WorkspaceAutomationService._project_id_from_credential_binding(payload.credential_binding) is not None
+        ):
+            raise BadRequest(
+                "Workspace automation cannot bind a project context.",
+                error="AUTOMATION_WORKSPACE_BINDING_SCOPE_INVALID",
+            )
+
+    @staticmethod
+    def _validate_project_scope_patch(payload: AutomationFlowPatchIn) -> None:
+        if payload.operations is not None:
+            WorkspaceAutomationService._validate_project_operations(payload.operations)
+
+    @staticmethod
+    def _validate_workspace_operations(operations: list[Any]) -> None:
+        allowed_kinds = {definition.kind for definition in list_workspace_automation_operation_kinds()}
+        for operation in operations:
+            kind = AutomationOperationKind(str(operation.kind))
+            if kind not in allowed_kinds:
+                raise BadRequest(
+                    "Workspace automation only supports global integration operations.",
+                    error="AUTOMATION_WORKSPACE_OPERATION_SCOPE_INVALID",
+                    meta={"operationKind": kind.value},
+                )
+
+    @staticmethod
+    def _validate_project_operations(operations: list[Any]) -> None:
+        allowed_kinds = {definition.kind for definition in list_project_automation_operation_kinds()}
+        for operation in operations:
+            kind = AutomationOperationKind(str(operation.kind))
+            if kind not in allowed_kinds:
+                raise BadRequest(
+                    "Project automation operation is unsupported.",
+                    error="AUTOMATION_PROJECT_OPERATION_SCOPE_INVALID",
+                    meta={"operationKind": kind.value},
+                )
+
     async def _get_flow_or_raise(self, *, workspace_id: UUID, flow_id: UUID) -> AutomationFlowRecord:
         flow = await self.repo.get_flow(workspace_id=workspace_id, flow_id=flow_id)
+        if flow is None:
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="AUTOMATION_FLOW_NOT_FOUND")
+        return flow
+
+    async def _get_project_flow_or_raise(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        flow_id: UUID,
+    ) -> AutomationFlowRecord:
+        flow = await self.repo.get_project_flow(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            flow_id=flow_id,
+        )
         if flow is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="AUTOMATION_FLOW_NOT_FOUND")
         return flow
@@ -388,6 +604,7 @@ class WorkspaceAutomationService:
         return AutomationFlowOut(
             id=flow.id,
             workspace_id=flow.workspace_id,
+            project_id=self._project_id_from_credential_binding(flow.credential_binding),
             name=flow.name,
             description=flow.description,
             status=AutomationFlowStatus(str(flow.status)),
@@ -421,6 +638,7 @@ class WorkspaceAutomationService:
         return AutomationRunOut(
             id=run.id,
             workspace_id=run.workspace_id,
+            project_id=self._project_id_from_event_payload(run.event_payload),
             flow_id=run.flow_id,
             trigger_event=run.trigger_event,
             status=AutomationRunStatus(str(run.status)),
@@ -446,3 +664,15 @@ class WorkspaceAutomationService:
                 for log in logs
             ],
         )
+
+    @staticmethod
+    def _project_id_from_credential_binding(binding: Any) -> UUID | None:
+        if not isinstance(binding, dict):
+            return None
+        return WorkspaceAutomationService._uuid_or_none(binding.get("projectId"))
+
+    @staticmethod
+    def _project_id_from_event_payload(payload: Any) -> UUID | None:
+        if not isinstance(payload, dict):
+            return None
+        return WorkspaceAutomationService._uuid_or_none(payload.get("project_id") or payload.get("projectId"))

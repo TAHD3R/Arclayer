@@ -8,36 +8,36 @@ from tests.modules.workspaces.publish.test_publish_integration import _publish_i
 pytestmark = pytest.mark.integration
 
 
-async def _prepare_published_site(client, workspace_id: str) -> None:
-    root_item_id, child_item_id = await _setup_publishable_items(client, workspace_id)
-    await _publish_item(client, workspace_id, root_item_id, "Home", path="/")
-    await _publish_item(client, workspace_id, child_item_id, "About", path="/about")
+async def _prepare_published_site(client, project_id: str) -> None:
+    root_item_id, child_item_id = await _setup_publishable_items(client, project_id)
+    await _publish_item(client, project_id, root_item_id, "Home", path="/")
+    await _publish_item(client, project_id, child_item_id, "About", path="/about")
 
     root_route_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{root_item_id}",
+        f"/api/v1/projects/{project_id}/content/routing/bindings/{root_item_id}",
         json={"locale": "en-US", "path": "/", "isActive": True},
     )
     assert root_route_res.status_code == 200, root_route_res.text
 
     child_route_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{child_item_id}",
+        f"/api/v1/projects/{project_id}/content/routing/bindings/{child_item_id}",
         json={"locale": "en-US", "path": "/about", "isActive": True},
     )
     assert child_route_res.status_code == 200, child_route_res.text
 
     root_node_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/hierarchy/{root_item_id}",
+        f"/api/v1/projects/{project_id}/content/routing/hierarchy/{root_item_id}",
         json={"parentItemId": None, "sortOrder": 0},
     )
     assert root_node_res.status_code == 200, root_node_res.text
 
     child_node_res = await client.put(
-        f"/api/v1/workspaces/{workspace_id}/content/routing/hierarchy/{child_item_id}",
+        f"/api/v1/projects/{project_id}/content/routing/hierarchy/{child_item_id}",
         json={"parentItemId": root_item_id, "sortOrder": 10},
     )
     assert child_node_res.status_code == 200, child_node_res.text
 
-    publish_res = await client.post(f"/api/v1/workspaces/{workspace_id}/releases/publish", json={})
+    publish_res = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
     assert publish_res.status_code == 200, publish_res.text
 
 
@@ -51,10 +51,10 @@ async def test_preview_contract_reads_publish_artifacts_as_runtime_truth(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        await _prepare_published_site(client, workspace_id)
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        await _prepare_published_site(client, project_id)
 
-        preview_res = await client.get(f"/api/v1/workspaces/{workspace_id}/publish/preview-contract")
+        preview_res = await client.get(f"/api/v1/projects/{project_id}/publish/preview-contract")
         assert preview_res.status_code == 200, preview_res.text
         contract = preview_res.json()["data"]
 

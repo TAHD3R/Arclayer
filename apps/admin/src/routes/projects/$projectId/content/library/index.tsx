@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   parseContentLibraryViewState,
   serializeContentLibraryViewState,
-} from "@/pages/workspaces/content/library/utils";
+} from "@/pages/projects/content/library/utils";
 
 type ProjectContentLibrarySearch = {
   view?: string;

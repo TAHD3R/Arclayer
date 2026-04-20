@@ -1,5 +1,5 @@
 import { api } from "@/lib/http";
-import { workspacePath, systemSettingsPath } from "@/lib/api";
+import { projectPath, workspacePath, systemSettingsPath } from "@/lib/api";
 import type { SettingsDetail, SystemSettingsDetail } from "@/types/api";
 
 export async function getCoreSettings(workspaceId: string): Promise<SettingsDetail> {
@@ -11,6 +11,17 @@ export async function patchCoreSettings(
   patch: Record<string, unknown>,
 ): Promise<SettingsDetail> {
   return api.patch<SettingsDetail>(workspacePath(workspaceId, "/settings/core"), { patch });
+}
+
+export async function getProjectCoreSettings(projectId: string): Promise<SettingsDetail> {
+  return api.get<SettingsDetail>(projectPath(projectId, "/settings/core"));
+}
+
+export async function patchProjectCoreSettings(
+  projectId: string,
+  patch: Record<string, unknown>,
+): Promise<SettingsDetail> {
+  return api.patch<SettingsDetail>(projectPath(projectId, "/settings/core"), { patch });
 }
 
 /**

@@ -5,7 +5,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   ContentLibraryViewModeToggle,
   type ContentLibraryViewMode,
-} from "@/pages/workspaces/content/library/components/content-library-view-mode-toggle";
+} from "@/pages/projects/content/library/components/content-library-view-mode-toggle";
 
 describe("ContentLibraryViewModeToggle", () => {
   test("ships explicit active-state classes for the selected view mode", async () => {

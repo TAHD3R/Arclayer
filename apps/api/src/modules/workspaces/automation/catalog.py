@@ -28,9 +28,9 @@ class AutomationOperationDefinition:
 TRIGGER_DEFINITIONS: tuple[AutomationTriggerDefinition, ...] = (
     AutomationTriggerDefinition(
         kind=AutomationTriggerKind.PUBLISH_COMPLETED,
-        event_name="workspace.release.published",
+        event_name="project.release.published",
         label="Release published",
-        description="Runs after a workspace release is activated.",
+        description="Runs after a project release is activated.",
     ),
     AutomationTriggerDefinition(
         kind=AutomationTriggerKind.CONTENT_TRANSITIONED,
@@ -40,17 +40,20 @@ TRIGGER_DEFINITIONS: tuple[AutomationTriggerDefinition, ...] = (
     ),
     AutomationTriggerDefinition(
         kind=AutomationTriggerKind.API_KEY_ROTATED,
-        event_name="workspace.api_key.rotated",
+        event_name="project.api_key.rotated",
         label="API key rotated",
-        description="Runs when a workspace API key is rotated.",
+        description="Runs when a project API key is rotated.",
     ),
     AutomationTriggerDefinition(
         kind=AutomationTriggerKind.PREVIEW_TOKEN_CREATED,
-        event_name="workspace.preview_token.created",
+        event_name="project.preview_token.created",
         label="Preview token issued",
-        description="Runs when a workspace preview token is issued.",
+        description="Runs when a project preview token is issued.",
     ),
 )
+
+WORKSPACE_TRIGGER_DEFINITIONS: tuple[AutomationTriggerDefinition, ...] = ()
+PROJECT_TRIGGER_DEFINITIONS: tuple[AutomationTriggerDefinition, ...] = TRIGGER_DEFINITIONS
 
 OPERATION_DEFINITIONS: tuple[AutomationOperationDefinition, ...] = (
     AutomationOperationDefinition(
@@ -89,6 +92,18 @@ OPERATION_DEFINITIONS: tuple[AutomationOperationDefinition, ...] = (
     ),
 )
 
+WORKSPACE_OPERATION_DEFINITIONS: tuple[AutomationOperationDefinition, ...] = tuple(
+    definition
+    for definition in OPERATION_DEFINITIONS
+    if definition.kind
+    in {
+        AutomationOperationKind.WEBHOOK,
+        AutomationOperationKind.HTTP_REQUEST,
+        AutomationOperationKind.NOTIFICATION,
+    }
+)
+PROJECT_OPERATION_DEFINITIONS: tuple[AutomationOperationDefinition, ...] = OPERATION_DEFINITIONS
+
 _TRIGGERS_BY_KIND = {definition.kind: definition for definition in TRIGGER_DEFINITIONS}
 _TRIGGERS_BY_EVENT = {definition.event_name: definition for definition in TRIGGER_DEFINITIONS}
 _OPERATIONS_BY_KIND = {definition.kind: definition for definition in OPERATION_DEFINITIONS}
@@ -99,8 +114,24 @@ def list_automation_triggers() -> tuple[AutomationTriggerDefinition, ...]:
     return TRIGGER_DEFINITIONS
 
 
+def list_workspace_automation_triggers() -> tuple[AutomationTriggerDefinition, ...]:
+    return WORKSPACE_TRIGGER_DEFINITIONS
+
+
+def list_project_automation_triggers() -> tuple[AutomationTriggerDefinition, ...]:
+    return PROJECT_TRIGGER_DEFINITIONS
+
+
 def list_automation_operation_kinds() -> tuple[AutomationOperationDefinition, ...]:
     return OPERATION_DEFINITIONS
+
+
+def list_workspace_automation_operation_kinds() -> tuple[AutomationOperationDefinition, ...]:
+    return WORKSPACE_OPERATION_DEFINITIONS
+
+
+def list_project_automation_operation_kinds() -> tuple[AutomationOperationDefinition, ...]:
+    return PROJECT_OPERATION_DEFINITIONS
 
 
 def trigger_definition_for_kind(kind: AutomationTriggerKind) -> AutomationTriggerDefinition:

@@ -11,16 +11,28 @@ class SiteRecord(BaseModel):
 
     Site (public portal boundary).
 
-    Sprint 3:
-    - A site belongs to a workspace (tenant boundary).
-    - Single-site workspace model: 1 workspace -> 1 site.
-    - Public routing is resolved by `Workspace.slug` (workspaceSlug) instead of a site-level host field.
+    Project runtime storage:
+    - A site belongs to a workspace as tenant context.
+    - A site can be attached to a project and runtime as the public delivery boundary.
+    - Public routing resolves through project runtime ownership and verified domains.
     """
 
     workspace = fields.ForeignKeyField(
         "models.Workspace",
         related_name="sites",
         on_delete=fields.CASCADE,
+    )
+    project = fields.ForeignKeyField(
+        "models.ProjectRecord",
+        related_name="sites",
+        on_delete=fields.CASCADE,
+        null=True,
+    )
+    runtime = fields.ForeignKeyField(
+        "models.ProjectRuntimeRecord",
+        related_name="sites",
+        on_delete=fields.CASCADE,
+        null=True,
     )
 
     slug = fields.CharField(max_length=64, db_index=True)
@@ -35,6 +47,4 @@ class SiteRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "domain_sites"
         abstract = False
-        # Enforce 1:1 between workspace and site (single-site workspace model).
-        # Slug is kept for forward compatibility, but is not part of the uniqueness contract.
-        unique_together = (("workspace_id",),)
+        unique_together = (("runtime_id",),)

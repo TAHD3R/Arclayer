@@ -7,6 +7,7 @@ from src.models.content.component_binding import ComponentBindingRecord
 from src.models.content.content_version import ContentVersionRecord
 from src.models.content.seo_profile import SEOProfileRecord
 from tests.modules.workspaces.content.test_content_items_integration import (
+    _approve_content_item_for_publish,
     _bootstrap_shape_payload,
     _create_page_model,
     _workspace_client,
@@ -72,16 +73,16 @@ async def test_draft_save_persists_first_class_seo_profiles_and_component_bindin
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(
                 preset_key="page",
                 capability_pack_ids=["publishable", "visual_editable", "has_slots", "seo_managed"],
@@ -90,7 +91,7 @@ async def test_draft_save_persists_first_class_seo_profiles_and_component_bindin
         assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload("Summer Launch"),
         )
         assert draft_res.status_code == 201, draft_res.text
@@ -115,16 +116,16 @@ async def test_content_version_auxiliary_endpoints_expose_presentations_seo_and_
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(
                 preset_key="page",
                 capability_pack_ids=["publishable", "visual_editable", "has_slots", "seo_managed"],
@@ -133,27 +134,27 @@ async def test_content_version_auxiliary_endpoints_expose_presentations_seo_and_
         assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload("Summer Launch"),
         )
         assert draft_res.status_code == 201, draft_res.text
 
         presentations_res = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/presentations",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/presentations",
         )
         assert presentations_res.status_code == 200, presentations_res.text
         kinds = {entry["kind"] for entry in presentations_res.json()["data"]["items"]}
         assert {"form_data", "visual_blueprint", "slot_mapping", "seo"} <= kinds
 
         seo_res = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/seo",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/seo",
         )
         assert seo_res.status_code == 200, seo_res.text
         assert seo_res.json()["data"]["metaTitle"] == "Summer Launch | Arclayer"
         assert seo_res.json()["data"]["canonicalUrl"] == "/summer-launch"
 
         bindings_res = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/bindings",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/bindings",
         )
         assert bindings_res.status_code == 200, bindings_res.text
         bindings = bindings_res.json()["data"]["items"]
@@ -167,17 +168,17 @@ async def test_published_page_version_keeps_own_snapshot_after_newer_draft_chang
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_page_model(client, workspace_id)
         item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
 
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(
                 preset_key="page",
                 capability_pack_ids=["publishable", "visual_editable", "has_slots", "seo_managed"],
@@ -186,19 +187,20 @@ async def test_published_page_version_keeps_own_snapshot_after_newer_draft_chang
         assert shape_res.status_code == 200, shape_res.text
 
         first_draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json=_draft_payload("Summer Launch", path="/summer-launch"),
         )
         assert first_draft_res.status_code == 201, first_draft_res.text
 
+        await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
 
         second_draft_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
             json={
                 **_draft_payload(
                     "Autumn Launch",
@@ -212,7 +214,7 @@ async def test_published_page_version_keeps_own_snapshot_after_newer_draft_chang
         assert second_draft_res.status_code == 201, second_draft_res.text
 
         version_one_res = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1",
         )
         assert version_one_res.status_code == 200, version_one_res.text
         version_one = version_one_res.json()["data"]
@@ -226,7 +228,7 @@ async def test_published_page_version_keeps_own_snapshot_after_newer_draft_chang
         }
 
         version_two_res = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/2",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2",
         )
         assert version_two_res.status_code == 200, version_two_res.text
         version_two = version_two_res.json()["data"]
@@ -234,27 +236,27 @@ async def test_published_page_version_keeps_own_snapshot_after_newer_draft_chang
         assert version_two["fieldsSnapshot"]["path"] == "/autumn-launch"
 
         seo_v1 = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/seo",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/seo",
         )
         assert seo_v1.status_code == 200, seo_v1.text
         assert seo_v1.json()["data"]["metaTitle"] == "Summer Launch | Arclayer"
         assert seo_v1.json()["data"]["canonicalUrl"] == "/summer-launch"
 
         seo_v2 = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/2/seo",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/seo",
         )
         assert seo_v2.status_code == 200, seo_v2.text
         assert seo_v2.json()["data"]["metaTitle"] == "Autumn Launch | Arclayer"
         assert seo_v2.json()["data"]["canonicalUrl"] == "/autumn-launch"
 
         bindings_v1 = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/bindings",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/bindings",
         )
         assert bindings_v1.status_code == 200, bindings_v1.text
         assert bindings_v1.json()["data"]["items"][0]["bindingPayload"] == {"field": "title"}
 
         bindings_v2 = await client.get(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/2/bindings",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/bindings",
         )
         assert bindings_v2.status_code == 200, bindings_v2.text
         assert bindings_v2.json()["data"]["items"][0]["bindingPayload"] == {"field": "headline_v2"}

@@ -1,4 +1,4 @@
-import { workspacePath, toQueryString } from "@/lib/api";
+import { projectPath, toQueryString } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
   AdminContentItem,
@@ -30,16 +30,16 @@ import type {
 
 const CONTENT_LIST_PAGE_SIZE = 200;
 
-export function buildContentModelsGovernanceQueryKey(workspaceId: string | null) {
-  return ["content", "models", "governance", workspaceId] as const;
+export function buildContentModelsGovernanceQueryKey(projectId: string | null) {
+  return ["content", "models", "governance", projectId] as const;
 }
 
 export function buildContentModelPreviewQueryKey(
-  workspaceId: string | null,
+  projectId: string | null,
   modelId: string | null,
   payloadKey: string | null,
 ) {
-  return ["content", "models", "preview", workspaceId, modelId, payloadKey] as const;
+  return ["content", "models", "preview", projectId, modelId, payloadKey] as const;
 }
 
 async function collectAllPages<T>(fetchPage: (page: number) => Promise<PageData<T>>): Promise<T[]> {
@@ -55,48 +55,46 @@ async function collectAllPages<T>(fetchPage: (page: number) => Promise<PageData<
 }
 
 export async function listContentModels(
-  workspaceId: string,
+  projectId: string,
   params: ListAdminContentModelsParams = {},
 ): Promise<PageData<AdminContentModel>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? CONTENT_LIST_PAGE_SIZE,
   });
-  return api.get<PageData<AdminContentModel>>(
-    workspacePath(workspaceId, `/content/models${query}`),
-  );
+  return api.get<PageData<AdminContentModel>>(projectPath(projectId, `/content/models${query}`));
 }
 
-export async function listAllContentModels(workspaceId: string): Promise<AdminContentModel[]> {
+export async function listAllContentModels(projectId: string): Promise<AdminContentModel[]> {
   return collectAllPages((page) =>
-    listContentModels(workspaceId, { page, size: CONTENT_LIST_PAGE_SIZE }),
+    listContentModels(projectId, { page, size: CONTENT_LIST_PAGE_SIZE }),
   );
 }
 
 export async function getContentModelImpactPreview(
-  workspaceId: string,
+  projectId: string,
   modelId: string,
   payload: PatchAdminContentModelPayload,
 ): Promise<AdminContentModelImpactPreview> {
   return api.post<AdminContentModelImpactPreview>(
-    workspacePath(workspaceId, `/content/models/${modelId}/impact-preview`),
+    projectPath(projectId, `/content/models/${modelId}/impact-preview`),
     payload,
   );
 }
 
 export async function patchContentModel(
-  workspaceId: string,
+  projectId: string,
   modelId: string,
   payload: PatchAdminContentModelPayload,
 ): Promise<AdminContentModel> {
   return api.patch<AdminContentModel>(
-    workspacePath(workspaceId, `/content/models/${modelId}`),
+    projectPath(projectId, `/content/models/${modelId}`),
     payload,
   );
 }
 
 export async function listContentItems(
-  workspaceId: string,
+  projectId: string,
   params: ListAdminContentItemsParams = {},
 ): Promise<PageData<AdminContentItem>> {
   const query = toQueryString({
@@ -104,73 +102,70 @@ export async function listContentItems(
     size: params.size ?? CONTENT_LIST_PAGE_SIZE,
     modelKey: params.modelKey,
   });
-  return api.get<PageData<AdminContentItem>>(workspacePath(workspaceId, `/content/items${query}`));
+  return api.get<PageData<AdminContentItem>>(projectPath(projectId, `/content/items${query}`));
 }
 
-export async function listAllContentItems(workspaceId: string): Promise<AdminContentItem[]> {
+export async function listAllContentItems(projectId: string): Promise<AdminContentItem[]> {
   return collectAllPages((page) =>
-    listContentItems(workspaceId, { page, size: CONTENT_LIST_PAGE_SIZE }),
+    listContentItems(projectId, { page, size: CONTENT_LIST_PAGE_SIZE }),
   );
 }
 
-export async function getContentItem(
-  workspaceId: string,
-  itemId: string,
-): Promise<AdminContentItem> {
-  return api.get<AdminContentItem>(workspacePath(workspaceId, `/content/items/${itemId}`));
+export async function getContentItem(projectId: string, itemId: string): Promise<AdminContentItem> {
+  return api.get<AdminContentItem>(projectPath(projectId, `/content/items/${itemId}`));
 }
 
 export async function createContentItem(
-  workspaceId: string,
+  projectId: string,
   payload: CreateAdminContentItemPayload,
 ): Promise<AdminContentItem> {
-  return api.post<AdminContentItem>(workspacePath(workspaceId, "/content/items"), payload);
+  return api.post<AdminContentItem>(projectPath(projectId, "/content/items"), payload);
 }
 
 export async function applyContentBootstrapShape(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   payload: ApplyAdminContentBootstrapShapePayload,
 ): Promise<AdminContentItem> {
   return api.patch<AdminContentItem>(
-    workspacePath(workspaceId, `/content/items/${itemId}/bootstrap-shape`),
+    projectPath(projectId, `/content/items/${itemId}/bootstrap-shape`),
     payload,
   );
 }
 
 export async function archiveContentItemVersion(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   versionNumber: number,
 ): Promise<AdminContentVersion> {
   return api.post<AdminContentVersion>(
-    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}/archive`),
+    projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}/archive`),
   );
 }
 
 export async function saveContentItemDraftVersion(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   payload: SaveAdminContentDraftVersionPayload,
 ): Promise<AdminContentVersion> {
   return api.post<AdminContentVersion>(
-    workspacePath(workspaceId, `/content/items/${itemId}/versions/draft`),
+    projectPath(projectId, `/content/items/${itemId}/versions/draft`),
     payload,
   );
 }
 
 export async function getContentItemVersion(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   versionNumber: number,
 ): Promise<AdminContentVersion> {
   return api.get<AdminContentVersion>(
-    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}`),
+    projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}`),
   );
 }
 
 export async function listContentItemVersions(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   params: ListAdminContentVersionsParams = {},
 ): Promise<PageData<AdminContentVersion>> {
@@ -179,161 +174,153 @@ export async function listContentItemVersions(
     size: params.size ?? 20,
   });
   return api.get<PageData<AdminContentVersion>>(
-    workspacePath(workspaceId, `/content/items/${itemId}/versions${query}`),
+    projectPath(projectId, `/content/items/${itemId}/versions${query}`),
   );
 }
 
 export async function patchContentItemVersion(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   versionNumber: number,
   payload: PatchAdminContentVersionPayload,
 ): Promise<AdminContentVersion> {
   return api.patch<AdminContentVersion>(
-    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}`),
+    projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}`),
     payload,
   );
 }
 
 export async function publishContentItemVersion(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   versionNumber: number,
 ): Promise<AdminContentVersion> {
   return api.post<AdminContentVersion>(
-    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}/publish`),
+    projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}/publish`),
   );
 }
 
 export async function getContentSeoProfile(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   versionNumber: number,
 ): Promise<AdminContentSeoProfile> {
   return api.get<AdminContentSeoProfile>(
-    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}/seo`),
+    projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}/seo`),
   );
 }
 
-export async function getWorkspacePublishImpact(workspaceId: string): Promise<AdminPublishImpact> {
-  return api.get<AdminPublishImpact>(workspacePath(workspaceId, "/publish/impact"));
+export async function getProjectPublishImpact(projectId: string): Promise<AdminPublishImpact> {
+  return api.get<AdminPublishImpact>(projectPath(projectId, "/publish/impact"));
 }
 
 export async function patchContentItemWorkflow(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   payload: PatchAdminContentItemWorkflowPayload,
 ): Promise<AdminContentItem> {
   return api.patch<AdminContentItem>(
-    workspacePath(workspaceId, `/content/items/${itemId}/workflow`),
+    projectPath(projectId, `/content/items/${itemId}/workflow`),
     payload,
   );
 }
 
-export async function listWorkspaceReleases(workspaceId: string): Promise<AdminReleaseList> {
-  return api.get<AdminReleaseList>(workspacePath(workspaceId, "/releases"));
+export async function listProjectReleases(projectId: string): Promise<AdminReleaseList> {
+  return api.get<AdminReleaseList>(projectPath(projectId, "/releases"));
 }
 
-export async function getWorkspaceReleaseDryRun(workspaceId: string): Promise<AdminReleaseDryRun> {
-  return api.get<AdminReleaseDryRun>(workspacePath(workspaceId, "/releases/dry-run"));
+export async function getProjectReleaseDryRun(projectId: string): Promise<AdminReleaseDryRun> {
+  return api.get<AdminReleaseDryRun>(projectPath(projectId, "/releases/dry-run"));
 }
 
-export async function publishWorkspaceRelease(
-  workspaceId: string,
-): Promise<AdminReleasePublishResult> {
-  return api.post<AdminReleasePublishResult>(workspacePath(workspaceId, "/releases/publish"));
+export async function publishProjectRelease(projectId: string): Promise<AdminReleasePublishResult> {
+  return api.post<AdminReleasePublishResult>(projectPath(projectId, "/releases/publish"));
 }
 
-export async function rollbackWorkspaceRelease(
-  workspaceId: string,
+export async function rollbackProjectRelease(
+  projectId: string,
   releaseId: string,
 ): Promise<AdminReleaseRollbackResult> {
   return api.post<AdminReleaseRollbackResult>(
-    workspacePath(workspaceId, `/releases/${releaseId}/rollback`),
+    projectPath(projectId, `/releases/${releaseId}/rollback`),
   );
 }
 
-export async function getWorkspaceRelease(
-  workspaceId: string,
+export async function getProjectRelease(
+  projectId: string,
   releaseId: string,
 ): Promise<AdminRelease> {
-  return api.get<AdminRelease>(workspacePath(workspaceId, `/releases/${releaseId}`));
+  return api.get<AdminRelease>(projectPath(projectId, `/releases/${releaseId}`));
 }
 
 export async function getContentLibraryViews(
-  workspaceId: string,
+  projectId: string,
 ): Promise<AdminContentLibraryViewsState> {
-  return api.get<AdminContentLibraryViewsState>(
-    workspacePath(workspaceId, "/content/library/views"),
-  );
+  return api.get<AdminContentLibraryViewsState>(projectPath(projectId, "/content/library/views"));
 }
 
 export async function createContentLibraryView(
-  workspaceId: string,
+  projectId: string,
   payload: CreateAdminContentLibraryViewPayload,
 ): Promise<AdminContentLibraryViewsState> {
   return api.post<AdminContentLibraryViewsState>(
-    workspacePath(workspaceId, "/content/library/views"),
+    projectPath(projectId, "/content/library/views"),
     payload,
   );
 }
 
 export async function updateContentLibraryView(
-  workspaceId: string,
+  projectId: string,
   viewId: string,
   payload: PatchAdminContentLibraryViewPayload,
 ): Promise<AdminContentLibraryViewsState> {
   return api.patch<AdminContentLibraryViewsState>(
-    workspacePath(workspaceId, `/content/library/views/${viewId}`),
+    projectPath(projectId, `/content/library/views/${viewId}`),
     payload,
   );
 }
 
 export async function moveContentLibraryView(
-  workspaceId: string,
+  projectId: string,
   viewId: string,
   payload: MoveAdminContentLibraryViewPayload,
 ): Promise<AdminContentLibraryViewsState> {
   return api.post<AdminContentLibraryViewsState>(
-    workspacePath(workspaceId, `/content/library/views/${viewId}/move`),
+    projectPath(projectId, `/content/library/views/${viewId}/move`),
     payload,
   );
 }
 
 export async function deleteContentLibraryView(
-  workspaceId: string,
+  projectId: string,
   viewId: string,
 ): Promise<AdminContentLibraryViewsState> {
   return api.delete<AdminContentLibraryViewsState>(
-    workspacePath(workspaceId, `/content/library/views/${viewId}`),
+    projectPath(projectId, `/content/library/views/${viewId}`),
   );
 }
 
 export async function archiveContentItem(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
 ): Promise<AdminContentItem> {
-  return api.post<AdminContentItem>(workspacePath(workspaceId, `/content/items/${itemId}/archive`));
+  return api.post<AdminContentItem>(projectPath(projectId, `/content/items/${itemId}/archive`));
 }
 
 export async function unarchiveContentItem(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
 ): Promise<AdminContentItem> {
-  return api.post<AdminContentItem>(
-    workspacePath(workspaceId, `/content/items/${itemId}/unarchive`),
-  );
+  return api.post<AdminContentItem>(projectPath(projectId, `/content/items/${itemId}/unarchive`));
 }
 
 export async function duplicateContentItem(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
 ): Promise<AdminContentItem> {
-  return api.post<AdminContentItem>(
-    workspacePath(workspaceId, `/content/items/${itemId}/duplicate`),
-  );
+  return api.post<AdminContentItem>(projectPath(projectId, `/content/items/${itemId}/duplicate`));
 }
 
-export async function deleteContentItem(workspaceId: string, itemId: string): Promise<void> {
-  await api.delete<void>(workspacePath(workspaceId, `/content/items/${itemId}`));
+export async function deleteContentItem(projectId: string, itemId: string): Promise<void> {
+  await api.delete<void>(projectPath(projectId, `/content/items/${itemId}`));
 }

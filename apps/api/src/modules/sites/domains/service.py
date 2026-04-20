@@ -142,6 +142,9 @@ class SiteDomainsService(BaseService):
         site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
         return await self._repo.list_domains_for_site(site_id=site_id)
 
+    async def list_domains_for_site(self, *, site_id: UUID) -> list[SiteDomainRecord]:
+        return await self._repo.list_domains_for_site(site_id=site_id)
+
     async def create_domain(
         self,
         *,
@@ -154,6 +157,24 @@ class SiteDomainsService(BaseService):
         normalized = self._validate_custom_hostname(hostname=hostname)
         token = secrets.token_urlsafe(24)
 
+        rec = await self._repo.create_domain(
+            site_id=site_id,
+            hostname=normalized,
+            verification_token=token,
+            created_by_user_id=actor_user_id,
+        )
+        await self._invalidate_resolve_cache_best_effort(hostname=normalized)
+        return rec, self.build_dns_instruction(hostname=normalized, token=token)
+
+    async def create_domain_for_site(
+        self,
+        *,
+        site_id: UUID,
+        hostname: str,
+        actor_user_id: UUID | None,
+    ) -> tuple[SiteDomainRecord, SiteDomainDnsInstructionOut]:
+        normalized = self._validate_custom_hostname(hostname=hostname)
+        token = secrets.token_urlsafe(24)
         rec = await self._repo.create_domain(
             site_id=site_id,
             hostname=normalized,
@@ -181,6 +202,22 @@ class SiteDomainsService(BaseService):
         await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
         return updated
 
+    async def set_domain_active_for_site(
+        self,
+        *,
+        site_id: UUID,
+        domain_id: UUID,
+        is_active: bool,
+    ) -> SiteDomainRecord:
+        rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
+        rec_view = cast(SiteDomainRecordView, rec)
+        if bool(is_active) and not rec_view.is_verified:
+            raise Conflict("Domain must be verified before activation", error="SITE_DOMAIN_NOT_VERIFIED")
+        updated = await self._repo.set_domain_active(site_id=site_id, domain_id=domain_id, is_active=bool(is_active))
+        updated_view = cast(SiteDomainRecordView, updated)
+        await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
+        return updated
+
     async def delete_domain(
         self,
         *,
@@ -189,6 +226,12 @@ class SiteDomainsService(BaseService):
         actor_user_id: UUID | None,
     ) -> None:
         site_id = await self._resolve_site_id_for_workspace(workspace_id=workspace_id, actor_user_id=actor_user_id)
+        rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
+        await self._repo.delete_domain(site_id=site_id, domain_id=domain_id)
+        rec_view = cast(SiteDomainRecordView, rec)
+        await self._invalidate_resolve_cache_best_effort(hostname=str(rec_view.hostname))
+
+    async def delete_domain_for_site(self, *, site_id: UUID, domain_id: UUID) -> None:
         rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
         await self._repo.delete_domain(site_id=site_id, domain_id=domain_id)
         rec_view = cast(SiteDomainRecordView, rec)
@@ -272,6 +315,24 @@ class SiteDomainsService(BaseService):
             await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
             return updated, dns, observed
 
+        return rec, dns, observed
+
+    async def verify_domain_for_site(
+        self,
+        *,
+        site_id: UUID,
+        domain_id: UUID,
+    ) -> tuple[SiteDomainRecord, SiteDomainDnsInstructionOut, list[str]]:
+        rec = await self._repo.get_domain_by_id(site_id=site_id, domain_id=domain_id)
+        rec_view = cast(SiteDomainRecordView, rec)
+        dns = self.build_dns_instruction(hostname=str(rec_view.hostname), token=str(rec_view.verification_token))
+        lookup = await self._lookup_dns_txt_async(txt_name=dns.txt_record_name)
+        observed = lookup.observed
+        if dns.txt_record_value in observed:
+            updated = await self._repo.mark_domain_verified(site_id=site_id, domain_id=domain_id)
+            updated_view = cast(SiteDomainRecordView, updated)
+            await self._invalidate_resolve_cache_best_effort(hostname=str(updated_view.hostname))
+            return updated, dns, observed
         return rec, dns, observed
 
     def to_out(self, rec: SiteDomainRecord) -> dict[str, Any]:

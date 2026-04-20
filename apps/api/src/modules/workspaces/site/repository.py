@@ -11,8 +11,16 @@ from src.models.sites.site import SiteRecord
 
 class WorkspaceSiteRepository(BaseRepository):
     async def get_site_by_workspace_id(self, *, workspace_id: UUID) -> SiteRecord | None:
-        # Deterministic: keep the oldest site if legacy data has multiple rows.
+        # Deterministic legacy fallback for workspace-scoped callers during the cutover.
         return await SiteRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").first()
+
+    async def get_unassigned_site_by_workspace_id(self, *, workspace_id: UUID) -> SiteRecord | None:
+        return (
+            await SiteRecord
+            .filter(workspace_id=workspace_id, runtime_id__isnull=True)
+            .order_by("created_at", "id")
+            .first()
+        )
 
     async def count_sites_by_workspace_id(self, *, workspace_id: UUID) -> int:
         return int(await SiteRecord.filter(workspace_id=workspace_id).count())
@@ -31,6 +39,8 @@ class WorkspaceSiteRepository(BaseRepository):
         self,
         *,
         workspace_id: UUID,
+        project_id: UUID | None = None,
+        runtime_id: UUID | None = None,
         slug: str,
         name: str,
         default_locale: str,
@@ -39,12 +49,19 @@ class WorkspaceSiteRepository(BaseRepository):
     ) -> SiteRecord:
         # Use a transaction so callers can safely chain "get or create".
         async with in_transaction() as conn:
-            rec = await SiteRecord.filter(workspace_id=workspace_id).using_db(conn).order_by("created_at", "id").first()
+            query = SiteRecord.filter(workspace_id=workspace_id).using_db(conn)
+            if runtime_id is not None:
+                query = query.filter(runtime_id=runtime_id)
+            elif project_id is not None:
+                query = query.filter(project_id=project_id)
+            rec = await query.order_by("created_at", "id").first()
             if rec is not None:
                 return rec
 
             return await SiteRecord.create(
                 workspace_id=workspace_id,
+                project_id=project_id,
+                runtime_id=runtime_id,
                 slug=slug,
                 name=name,
                 default_locale=default_locale,
@@ -53,3 +70,15 @@ class WorkspaceSiteRepository(BaseRepository):
                 created_by_user_id=created_by_user_id,
                 using_db=conn,
             )
+
+    async def attach_site_to_runtime(
+        self,
+        *,
+        site: SiteRecord,
+        project_id: UUID,
+        runtime_id: UUID,
+    ) -> SiteRecord:
+        site.project_id = project_id
+        site.runtime_id = runtime_id
+        await site.save(update_fields=["project_id", "runtime_id", "updated_at"])
+        return site

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   ContentLibraryItemSettingsDialogs,
   type ContentLibraryItemSettingsDialogState,
-} from "@/pages/workspaces/content/library/components/content-library-item-settings-dialogs";
+} from "@/pages/projects/content/library/components/content-library-item-settings-dialogs";
 
 const mocked = vi.hoisted(() => ({
   patchContentItemVersion: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock("@/api/content", () => ({
   saveContentItemDraftVersion: (...args: unknown[]) => mocked.saveContentItemDraftVersion(...args),
 }));
 
-vi.mock("@/pages/workspaces/content/library/article-editor/hooks/api", () => ({
+vi.mock("@/pages/projects/content/library/article-editor/hooks/api", () => ({
   loadContentLibraryArticleEditorSnapshot: (...args: unknown[]) =>
     mocked.loadContentLibraryArticleEditorSnapshot(...args),
 }));

@@ -72,10 +72,30 @@ class ProjectRuntimeService:
         workspace_id: UUID,
         actor_user_id: UUID | None,
     ) -> ProjectRuntimeContext:
-        site = await self.workspace_site_service.get_or_create_site_for_workspace(
-            workspace_id=workspace_id,
-            actor_user_id=actor_user_id,
-        )
+        site = await self.project_repo.get_runtime_site(runtime_id=runtime.id)
+        if site is None:
+            project_id = UUID(str(cast(HasProjectId, runtime).project_id))
+            project = await self.project_repo.get_project_by_id(project_id=project_id)
+            legacy_site = await self.workspace_site_service.repo.get_unassigned_site_by_workspace_id(
+                workspace_id=workspace_id,
+            )
+            if legacy_site is not None:
+                site = await self.workspace_site_service.repo.attach_site_to_runtime(
+                    site=legacy_site,
+                    project_id=project_id,
+                    runtime_id=runtime.id,
+                )
+            else:
+                site = await self.workspace_site_service.repo.create_site(
+                    workspace_id=workspace_id,
+                    project_id=project_id,
+                    runtime_id=runtime.id,
+                    slug=str(project.slug),
+                    name=f"{project.name} Site",
+                    default_locale="zh-CN",
+                    fallback_locale="en-US",
+                    created_by_user_id=actor_user_id,
+                )
         if site is None:
             raise NotFound("Project runtime site bridge not found", error="PROJECT_RUNTIME_SITE_NOT_FOUND")
         return ProjectRuntimeContext(

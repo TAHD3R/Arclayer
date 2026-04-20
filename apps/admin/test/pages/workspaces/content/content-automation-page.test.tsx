@@ -4,17 +4,18 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { ContentAutomationPage } from "@/pages/workspaces/content/automation/page";
+import { ContentAutomationPage } from "@/pages/projects/content/automation/page";
 
 const mocked = vi.hoisted(() => ({
-  createWorkspaceAutomationFlow: vi.fn(),
-  deleteWorkspaceAutomationFlow: vi.fn(),
+  createProjectAutomationFlow: vi.fn(),
+  deleteProjectAutomationFlow: vi.fn(),
+  getMyProjectAuthz: vi.fn(),
   getMyWorkspaceAuthz: vi.fn(),
-  getWorkspaceAutomationCatalog: vi.fn(),
-  listWorkspaceAutomationFlows: vi.fn(),
-  listWorkspaceAutomationRuns: vi.fn(),
+  getProjectAutomationCatalog: vi.fn(),
+  listProjectAutomationFlows: vi.fn(),
+  listProjectAutomationRuns: vi.fn(),
   listWorkspacePermissionActions: vi.fn(),
-  updateWorkspaceAutomationFlow: vi.fn(),
+  updateProjectAutomationFlow: vi.fn(),
 }));
 
 vi.mock("@/api/automation", () => ({
@@ -26,20 +27,16 @@ vi.mock("@/api/automation", () => ({
   ],
   buildAutomationFlowsQueryKey: (...args: unknown[]) => ["content", "automation", "flows", ...args],
   buildAutomationRunsQueryKey: (...args: unknown[]) => ["content", "automation", "runs", ...args],
-  createWorkspaceAutomationFlow: (...args: unknown[]) =>
-    mocked.createWorkspaceAutomationFlow(...args),
-  deleteWorkspaceAutomationFlow: (...args: unknown[]) =>
-    mocked.deleteWorkspaceAutomationFlow(...args),
-  getWorkspaceAutomationCatalog: (...args: unknown[]) =>
-    mocked.getWorkspaceAutomationCatalog(...args),
-  listWorkspaceAutomationFlows: (...args: unknown[]) =>
-    mocked.listWorkspaceAutomationFlows(...args),
-  listWorkspaceAutomationRuns: (...args: unknown[]) => mocked.listWorkspaceAutomationRuns(...args),
-  updateWorkspaceAutomationFlow: (...args: unknown[]) =>
-    mocked.updateWorkspaceAutomationFlow(...args),
+  createProjectAutomationFlow: (...args: unknown[]) => mocked.createProjectAutomationFlow(...args),
+  deleteProjectAutomationFlow: (...args: unknown[]) => mocked.deleteProjectAutomationFlow(...args),
+  getProjectAutomationCatalog: (...args: unknown[]) => mocked.getProjectAutomationCatalog(...args),
+  listProjectAutomationFlows: (...args: unknown[]) => mocked.listProjectAutomationFlows(...args),
+  listProjectAutomationRuns: (...args: unknown[]) => mocked.listProjectAutomationRuns(...args),
+  updateProjectAutomationFlow: (...args: unknown[]) => mocked.updateProjectAutomationFlow(...args),
 }));
 
 vi.mock("@/api/workspaces", () => ({
+  getMyProjectAuthz: (...args: unknown[]) => mocked.getMyProjectAuthz(...args),
   getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
 }));
 
@@ -75,15 +72,15 @@ function buildCatalog() {
     triggers: [
       {
         kind: "publish_completed",
-        eventName: "workspace.release.published",
+        eventName: "project.release.published",
         label: "Release published",
         description: "Runs after a release is activated.",
       },
       {
         kind: "api_key_rotated",
-        eventName: "workspace.api_key.rotated",
+        eventName: "project.api_key.rotated",
         label: "API key rotated",
-        description: "Runs after a workspace API key is rotated.",
+        description: "Runs after a project API key is rotated.",
       },
     ],
     operations: [
@@ -106,12 +103,12 @@ function buildCatalog() {
 function buildFlow(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: "flow-1",
-    workspaceId: "ws-1",
+    workspaceId: "project-1",
     name: "Publish webhook",
     description: "Notify a downstream system.",
     status: "active",
     triggerKind: "publish_completed",
-    triggerEvent: "workspace.release.published",
+    triggerEvent: "project.release.published",
     retryLimit: 0,
     deadLetterEnabled: true,
     credentialBinding: null,
@@ -138,13 +135,13 @@ function buildFlow(overrides: Partial<Record<string, unknown>> = {}) {
 function buildRun(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: "run-1",
-    workspaceId: "ws-1",
+    workspaceId: "project-1",
     flowId: "flow-1",
-    triggerEvent: "workspace.release.published",
+    triggerEvent: "project.release.published",
     status: "succeeded",
     attempt: 1,
     maxAttempts: 1,
-    eventPayload: { workspaceId: "ws-1" },
+    eventPayload: { projectId: "project-1" },
     resultPayload: { ok: true },
     error: null,
     startedAt: "2026-04-19T10:01:00Z",
@@ -176,7 +173,7 @@ function renderPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ContentAutomationPage workspaceId="ws-1" />
+      <ContentAutomationPage projectId="project-1" />
     </QueryClientProvider>,
   );
 }
@@ -184,29 +181,26 @@ function renderPage() {
 describe("content-automation-page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "ws-1",
+    mocked.getMyProjectAuthz.mockResolvedValue({
+      workspaceId: "workspace-1",
       isSuperuser: false,
       permissionCodes: ["system:automation:manage"],
     });
-    mocked.listWorkspacePermissionActions.mockResolvedValue([
-      {
-        code: "system:automation:manage",
-        description: "Manage workspace automation flows.",
-        subjectKinds: ["workspace_member"],
-        permissionCodes: ["system:automation:manage"],
-      },
-    ]);
-    mocked.getWorkspaceAutomationCatalog.mockResolvedValue(buildCatalog());
-    mocked.listWorkspaceAutomationFlows.mockResolvedValue({ items: [buildFlow()] });
-    mocked.listWorkspaceAutomationRuns.mockResolvedValue({ items: [buildRun()] });
-    mocked.createWorkspaceAutomationFlow.mockResolvedValue(
+    mocked.getMyWorkspaceAuthz.mockResolvedValue({
+      workspaceId: "project-1",
+      isSuperuser: false,
+      permissionCodes: ["system:automation:manage"],
+    });
+    mocked.getProjectAutomationCatalog.mockResolvedValue(buildCatalog());
+    mocked.listProjectAutomationFlows.mockResolvedValue({ items: [buildFlow()] });
+    mocked.listProjectAutomationRuns.mockResolvedValue({ items: [buildRun()] });
+    mocked.createProjectAutomationFlow.mockResolvedValue(
       buildFlow({ id: "flow-2", name: "New flow" }),
     );
-    mocked.updateWorkspaceAutomationFlow.mockResolvedValue(
+    mocked.updateProjectAutomationFlow.mockResolvedValue(
       buildFlow({ name: "Publish webhook updated" }),
     );
-    mocked.deleteWorkspaceAutomationFlow.mockResolvedValue(undefined);
+    mocked.deleteProjectAutomationFlow.mockResolvedValue(undefined);
   });
 
   test("renders flow inventory and run diagnostics", async () => {
@@ -214,14 +208,14 @@ describe("content-automation-page", () => {
 
     expect(await screen.findByText("CONTENT_AUTOMATION_TITLE")).toBeInTheDocument();
     expect(await screen.findByText("Publish webhook")).toBeInTheDocument();
-    expect(screen.getAllByText("workspace.release.published").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("project.release.published").length).toBeGreaterThan(0);
     expect(screen.getByText("CONTENT_AUTOMATION_RUNS_TITLE")).toBeInTheDocument();
     expect(await screen.findByText("Operation completed.")).toBeInTheDocument();
   });
 
   test("creates a flow from the editor", async () => {
     const user = userEvent.setup();
-    mocked.listWorkspaceAutomationFlows.mockResolvedValue({ items: [] });
+    mocked.listProjectAutomationFlows.mockResolvedValue({ items: [] });
     renderPage();
 
     await user.type(await screen.findByLabelText("CONTENT_AUTOMATION_FIELD_NAME"), "New flow");
@@ -236,8 +230,8 @@ describe("content-automation-page", () => {
     await user.click(screen.getByRole("button", { name: "CONTENT_AUTOMATION_ACTION_CREATE" }));
 
     await waitFor(() => {
-      expect(mocked.createWorkspaceAutomationFlow).toHaveBeenCalledWith(
-        "ws-1",
+      expect(mocked.createProjectAutomationFlow).toHaveBeenCalledWith(
+        "project-1",
         expect.objectContaining({
           name: "New flow",
           operations: [
@@ -264,8 +258,8 @@ describe("content-automation-page", () => {
     await user.click(screen.getByRole("button", { name: "CONTENT_AUTOMATION_ACTION_SAVE" }));
 
     await waitFor(() => {
-      expect(mocked.updateWorkspaceAutomationFlow).toHaveBeenCalledWith(
-        "ws-1",
+      expect(mocked.updateProjectAutomationFlow).toHaveBeenCalledWith(
+        "project-1",
         "flow-1",
         expect.objectContaining({ name: "Publish webhook updated" }),
       );
@@ -273,7 +267,7 @@ describe("content-automation-page", () => {
 
     await user.click(screen.getByRole("button", { name: "CONTENT_AUTOMATION_ACTION_DELETE" }));
     await waitFor(() => {
-      expect(mocked.deleteWorkspaceAutomationFlow).toHaveBeenCalledWith("ws-1", "flow-1");
+      expect(mocked.deleteProjectAutomationFlow).toHaveBeenCalledWith("project-1", "flow-1");
     });
   });
 });

@@ -26,7 +26,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(
-    prefix="/workspaces/{workspace_id}/site/domains",
+    prefix="/_internal/workspaces/{workspace_id}/site/domains",
     tags=["domain.sites.domains"],
     dependencies=[require_workspace_permission("system:domains:read")],
 )

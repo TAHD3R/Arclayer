@@ -8,7 +8,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-import { ContentLibraryArticleEditorSearchOverlay } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-search-dialog";
+import { ContentLibraryArticleEditorSearchOverlay } from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-search-dialog";
 
 function renderSearchDialog() {
   const onOpenChange = vi.fn();

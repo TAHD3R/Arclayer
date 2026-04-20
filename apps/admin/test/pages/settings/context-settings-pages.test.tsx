@@ -108,18 +108,15 @@ vi.mock("@/pages/workspaces/team/roles/page", () => ({
   ),
 }));
 
-vi.mock("@/pages/workspaces/settings/site/basics/page", () => ({
-  GeneralSiteSettingsPage: (props: { workspaceId?: string | null }) => (
-    <div data-testid="general-site-settings-page" data-workspace-id={props.workspaceId ?? ""} />
+vi.mock("@/pages/projects/settings/site/basics/page", () => ({
+  GeneralSiteSettingsPage: (props: { projectId: string }) => (
+    <div data-testid="general-site-settings-page" data-project-id={props.projectId} />
   ),
 }));
 
-vi.mock("@/pages/workspaces/settings/site/localization/page", () => ({
-  GeneralLocalizationSettingsPage: (props: { workspaceId?: string | null }) => (
-    <div
-      data-testid="general-localization-settings-page"
-      data-workspace-id={props.workspaceId ?? ""}
-    />
+vi.mock("@/pages/projects/settings/site/localization/page", () => ({
+  GeneralLocalizationSettingsPage: (props: { projectId: string }) => (
+    <div data-testid="general-localization-settings-page" data-project-id={props.projectId} />
   ),
 }));
 
@@ -189,12 +186,12 @@ describe("context settings pages", () => {
     );
   });
 
-  it("renders project general settings through the site settings page with workspace context from store", () => {
-    renderWithQueryClient(<ProjectGeneralSettingsPage />);
+  it("renders project general settings through the site settings page with project context", () => {
+    renderWithQueryClient(<ProjectGeneralSettingsPage projectId="project-1" />);
 
     expect(screen.getByTestId("general-site-settings-page")).toHaveAttribute(
-      "data-workspace-id",
-      "ws-store",
+      "data-project-id",
+      "project-1",
     );
   });
 

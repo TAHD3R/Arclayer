@@ -13,6 +13,7 @@ from src.models.organization.user import User
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
+from src.models.sites.site import SiteRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from src.modules.workspaces.slug.service import parse_explicit_workspace_slug
 
@@ -327,6 +328,10 @@ class ProjectRepository(BaseRepository):
         if runtime is None:
             raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")
         return runtime
+
+    async def get_runtime_site(self, *, runtime_id: UUID) -> SiteRecord | None:
+        await self.get_runtime_by_id(runtime_id=runtime_id)
+        return await SiteRecord.get_or_none(runtime_id=runtime_id)
 
     async def get_primary_project_ids_by_workspace_ids(
         self,

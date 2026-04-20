@@ -3,12 +3,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { GeneralSettingsShell } from "@/pages/workspaces/settings/site/components/general-settings-shell";
+import { GeneralSettingsShell } from "@/pages/projects/settings/site/components/general-settings-shell";
 
-const getCoreSettingsMock = vi.fn();
-const patchCoreSettingsMock = vi.fn();
-const getMyWorkspaceAuthzMock = vi.fn();
-const listWorkspacePermissionActionsMock = vi.fn();
+const getProjectCoreSettingsMock = vi.fn();
+const patchProjectCoreSettingsMock = vi.fn();
+const getMyProjectAuthzMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -21,17 +20,12 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/api/settings", () => ({
-  getCoreSettings: (...args: unknown[]) => getCoreSettingsMock(...args),
-  patchCoreSettings: (...args: unknown[]) => patchCoreSettingsMock(...args),
+  getProjectCoreSettings: (...args: unknown[]) => getProjectCoreSettingsMock(...args),
+  patchProjectCoreSettings: (...args: unknown[]) => patchProjectCoreSettingsMock(...args),
 }));
 
 vi.mock("@/api/workspaces", () => ({
-  getMyWorkspaceAuthz: (...args: unknown[]) => getMyWorkspaceAuthzMock(...args),
-}));
-
-vi.mock("@/api/rbac", () => ({
-  listWorkspacePermissionActions: (...args: unknown[]) =>
-    listWorkspacePermissionActionsMock(...args),
+  getMyProjectAuthz: (...args: unknown[]) => getMyProjectAuthzMock(...args),
 }));
 
 vi.mock("@/layouts/page-shell/default-page", () => ({
@@ -77,13 +71,13 @@ vi.mock("@arclayer/ui/chrome-tabs", () => ({
   ),
 }));
 
-vi.mock("@/pages/workspaces/settings/site/components/tabs/site-settings-tab", () => ({
+vi.mock("@/pages/projects/settings/site/components/tabs/site-settings-tab", () => ({
   SiteSettingsTab: (props: { disabled: boolean }) => (
     <div data-testid="site-settings-tab" data-disabled={String(props.disabled)} />
   ),
 }));
 
-vi.mock("@/pages/workspaces/settings/site/components/tabs/localization-settings-tab", () => ({
+vi.mock("@/pages/projects/settings/site/components/tabs/localization-settings-tab", () => ({
   LocalizationSettingsTab: (props: { disabled: boolean }) => (
     <div data-testid="localization-settings-tab" data-disabled={String(props.disabled)} />
   ),
@@ -102,12 +96,11 @@ function renderWithQuery(node: React.ReactElement) {
 
 describe("GeneralSettingsShell permission consumption", () => {
   beforeEach(() => {
-    getCoreSettingsMock.mockReset();
-    patchCoreSettingsMock.mockReset();
-    getMyWorkspaceAuthzMock.mockReset();
-    listWorkspacePermissionActionsMock.mockReset();
+    getProjectCoreSettingsMock.mockReset();
+    patchProjectCoreSettingsMock.mockReset();
+    getMyProjectAuthzMock.mockReset();
 
-    getCoreSettingsMock.mockResolvedValue({
+    getProjectCoreSettingsMock.mockResolvedValue({
       namespace: "core",
       value: {
         site: {
@@ -139,24 +132,16 @@ describe("GeneralSettingsShell permission consumption", () => {
         },
       },
     });
-    getMyWorkspaceAuthzMock.mockResolvedValue({
-      workspaceId: "ws-1",
+    getMyProjectAuthzMock.mockResolvedValue({
+      workspaceId: "workspace-1",
       isSuperuser: false,
       permissionCodes: ["system:site:manage"],
     });
-    listWorkspacePermissionActionsMock.mockResolvedValue([
-      {
-        code: "system:site:manage",
-        description: "Manage site settings.",
-        subjectKinds: ["workspace_member"],
-        permissionCodes: ["system:site:manage"],
-      },
-    ]);
   });
 
   it("keeps tabs editable when site management access is granted", async () => {
     renderWithQuery(
-      <GeneralSettingsShell activeTab="basics" workspaceIdOverride="ws-1" embedded={false} />,
+      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
     );
 
     await waitFor(() => {
@@ -170,14 +155,14 @@ describe("GeneralSettingsShell permission consumption", () => {
   });
 
   it("shows read-only guidance and disables save surfaces without site management access", async () => {
-    getMyWorkspaceAuthzMock.mockResolvedValueOnce({
-      workspaceId: "ws-1",
+    getMyProjectAuthzMock.mockResolvedValueOnce({
+      workspaceId: "workspace-1",
       isSuperuser: false,
       permissionCodes: ["system:site:read"],
     });
 
     renderWithQuery(
-      <GeneralSettingsShell activeTab="basics" workspaceIdOverride="ws-1" embedded={false} />,
+      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
     );
 
     expect(await screen.findByTestId("general-settings-read-only-notice")).toHaveTextContent(

@@ -26,13 +26,24 @@ from src.modules.workspaces.api_keys.schema import (
     WorkspaceApiKeyCreateIn,
 )
 from src.modules.workspaces.api_keys.service import WorkspaceApiKeysService
+from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
+from src.modules.workspaces.authz.schema import AuthzSnapshot
+from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.publish.preview_service import WorkspacePublishPreviewService
 from src.modules.workspaces.publish.schema import PublishExportContractOut, PublishImpactOut
 from src.modules.workspaces.publish.service import WorkspacePublishService
 from src.modules.workspaces.releases.router import _publish_release_event
-from src.modules.workspaces.releases.schema import ReleaseListOut, ReleaseOut, ReleasePublishOut, ReleaseRollbackOut
+from src.modules.workspaces.releases.schema import (
+    ReleaseDryRunOut,
+    ReleaseListOut,
+    ReleaseOut,
+    ReleasePublishOut,
+    ReleaseRollbackOut,
+)
 from src.modules.workspaces.releases.service import WorkspaceReleasesService
+from src.modules.workspaces.settings.schema import WorkspaceSettingsDetail, WorkspaceSettingsPatch
+from src.modules.workspaces.settings.service import WorkspaceSettingsService
 from src.modules.workspaces.site.schema import WorkspaceSiteOut
 from src.platform.cache.valkey import get_valkey
 
@@ -52,6 +63,10 @@ def get_project_facade_service(settings: Settings = Depends(get_settings)) -> Pr
 
 def get_project_api_keys_service(settings: Settings = Depends(get_settings)) -> WorkspaceApiKeysService:
     return WorkspaceApiKeysService(settings)
+
+
+def get_project_settings_service(settings: Settings = Depends(get_settings)) -> WorkspaceSettingsService:
+    return WorkspaceSettingsService(settings)
 
 
 def get_project_releases_service() -> WorkspaceReleasesService:
@@ -93,6 +108,76 @@ def _workspace_context_for_project_event(
         visible_only=ctx.visible_only,
         is_creator_admin=ctx.is_creator_admin,
     )
+
+
+def require_project_workspace_permission(permission: str):
+    async def _dep(
+        ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+        user_id: Annotated[UUID, Depends(get_current_user_id)],
+    ) -> None:
+        await ensure_workspace_permission_granted(
+            permission,
+            user_id=user_id,
+            ctx=_workspace_context_for_project_event(ctx=ctx, workspace_id=ctx.workspace_id),
+        )
+
+    return Depends(_dep)
+
+
+@router.get(
+    "/me/authz",
+    response_model=ResponseModel[AuthzSnapshot],
+    summary="Get project-scoped authz snapshot for current user",
+)
+async def get_project_authz_snapshot(
+    ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
+) -> ResponseModel[AuthzSnapshot]:
+    snapshot = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=ctx.workspace_id)
+    return ApiResponse.success(data=snapshot)
+
+
+@router.get(
+    "/settings/core",
+    response_model=ResponseModel[WorkspaceSettingsDetail],
+    summary="Get project core settings",
+)
+async def get_project_core_settings(
+    ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[WorkspaceSettingsService, Depends(get_project_settings_service)],
+) -> ResponseModel[WorkspaceSettingsDetail]:
+    await ensure_workspace_permission_granted(
+        "system:settings:read",
+        user_id=user_id,
+        ctx=_workspace_context_for_project_event(ctx=ctx, workspace_id=ctx.workspace_id),
+    )
+    detail = await service.get_core_detail(workspace_id=ctx.workspace_id)
+    return ApiResponse.success(data=detail)
+
+
+@router.patch(
+    "/settings/core",
+    response_model=ResponseModel[WorkspaceSettingsDetail],
+    summary="Patch project core settings",
+)
+async def patch_project_core_settings(
+    payload: WorkspaceSettingsPatch,
+    ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[WorkspaceSettingsService, Depends(get_project_settings_service)],
+) -> ResponseModel[WorkspaceSettingsDetail]:
+    await ensure_workspace_permission_granted(
+        "system:settings:manage",
+        user_id=user_id,
+        ctx=_workspace_context_for_project_event(ctx=ctx, workspace_id=ctx.workspace_id),
+    )
+    detail = await service.patch_core(
+        workspace_id=ctx.workspace_id,
+        patch=payload.patch or {},
+        updated_by=user_id,
+    )
+    return ApiResponse.success(data=detail)
 
 
 @router.get(
@@ -204,7 +289,7 @@ async def create_project_api_key(
         actor_user_id=actor_user_id,
         event_name="project.api_key.created",
         key=data.key,
-        organization_id=ctx.organization_id,
+        ctx=_workspace_context_for_project_event(ctx=ctx, workspace_id=facade.workspace_id),
     )
     return ApiResponse.success(data=data)
 
@@ -239,7 +324,7 @@ async def revoke_project_api_key(
         actor_user_id=actor_user_id,
         event_name="project.api_key.revoked",
         key=data,
-        organization_id=ctx.organization_id,
+        ctx=_workspace_context_for_project_event(ctx=ctx, workspace_id=ctx.workspace_id),
     )
     return ApiResponse.success(data=data)
 
@@ -260,7 +345,7 @@ async def rotate_project_api_key(
         actor_user_id=actor_user_id,
         event_name="project.api_key.rotated",
         key=data.key,
-        organization_id=ctx.organization_id,
+        ctx=_workspace_context_for_project_event(ctx=ctx, workspace_id=ctx.workspace_id),
     )
     return ApiResponse.success(data=data)
 
@@ -270,6 +355,7 @@ async def rotate_project_api_key(
     response_model=ResponseModel[ReleaseListOut],
     response_model_exclude_none=True,
     summary="List project releases",
+    dependencies=[require_project_workspace_permission("system:content:read")],
 )
 async def list_project_releases(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -283,10 +369,29 @@ async def list_project_releases(
 
 
 @router.get(
+    "/releases/dry-run",
+    response_model=ResponseModel[ReleaseDryRunOut],
+    response_model_exclude_none=True,
+    summary="Preview project release readiness and diagnostics",
+    dependencies=[require_project_workspace_permission("system:content:read")],
+)
+async def get_project_release_dry_run(
+    ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    facade_service: Annotated[ProjectFacadeService, Depends(get_project_facade_service)],
+    service: Annotated[WorkspaceReleasesService, Depends(get_project_releases_service)],
+) -> ResponseModel[ReleaseDryRunOut]:
+    facade = await facade_service.get_context(project_id=ctx.project_id, actor_user_id=actor_user_id)
+    data = await service.get_release_dry_run_out(workspace_id=facade.workspace_id, site_id=facade.site_id)
+    return ApiResponse.success(data=data)
+
+
+@router.get(
     "/releases/{release_id}",
     response_model=ResponseModel[ReleaseOut],
     response_model_exclude_none=True,
     summary="Get project release",
+    dependencies=[require_project_workspace_permission("system:content:read")],
 )
 async def get_project_release(
     release_id: PublicUUID,
@@ -309,6 +414,7 @@ async def get_project_release(
     response_model=ResponseModel[ReleasePublishOut],
     response_model_exclude_none=True,
     summary="Publish a new project release",
+    dependencies=[require_project_workspace_permission("system:content:publish")],
 )
 async def publish_project_release(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -327,6 +433,7 @@ async def publish_project_release(
         ctx=_workspace_context_for_project_event(ctx=ctx, workspace_id=facade.workspace_id),
         event_name="project.release.published",
         payload=data.release,
+        project_id=ctx.project_id,
     )
     return ApiResponse.success(data=data)
 
@@ -336,6 +443,7 @@ async def publish_project_release(
     response_model=ResponseModel[ReleaseRollbackOut],
     response_model_exclude_none=True,
     summary="Rollback a project release",
+    dependencies=[require_project_workspace_permission("system:content:publish")],
 )
 async def rollback_project_release(
     release_id: PublicUUID,
@@ -355,6 +463,7 @@ async def rollback_project_release(
         ctx=_workspace_context_for_project_event(ctx=ctx, workspace_id=facade.workspace_id),
         event_name="project.release.rolled_back",
         payload=data.release,
+        project_id=ctx.project_id,
         previous_active_release_id=(
             str(data.previous_active_release_id) if data.previous_active_release_id is not None else None
         ),
@@ -367,6 +476,7 @@ async def rollback_project_release(
     response_model=ResponseModel[PublishImpactOut],
     response_model_exclude_none=True,
     summary="Preview project publish impact",
+    dependencies=[require_project_workspace_permission("system:content:read")],
 )
 async def get_project_publish_impact(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -384,6 +494,7 @@ async def get_project_publish_impact(
     response_model=ResponseModel[PublishExportContractOut],
     response_model_exclude_none=True,
     summary="Read preview contract from project publish artifacts",
+    dependencies=[require_project_workspace_permission("system:content:read")],
 )
 async def get_project_publish_preview_contract(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],

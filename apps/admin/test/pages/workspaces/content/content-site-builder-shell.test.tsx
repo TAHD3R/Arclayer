@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { ContentSiteBuilderPage } from "@/pages/workspaces/content/site-builder/page";
+import { ContentSiteBuilderPage } from "@/pages/projects/content/site-builder/page";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

@@ -21,11 +21,32 @@ from src.models.automation.flow import (
 
 
 class AutomationRepository:
+    @staticmethod
+    def _project_id_from_binding(binding: dict[str, Any] | None) -> str | None:
+        if not isinstance(binding, dict):
+            return None
+        project_id = binding.get("projectId")
+        return str(project_id).strip() if project_id is not None else None
+
+    @classmethod
+    def _is_workspace_scoped_flow(cls, flow: AutomationFlowRecord) -> bool:
+        return cls._project_id_from_binding(flow.credential_binding) is None
+
+    @staticmethod
+    def _project_filter_kwargs(*, project_id: UUID | None) -> dict[str, Any]:
+        return {"credential_binding__projectId": str(project_id)} if project_id is not None else {}
+
     async def list_flows(self, *, workspace_id: UUID) -> list[AutomationFlowRecord]:
-        return await AutomationFlowRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").all()
+        flows = await AutomationFlowRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").all()
+        return [flow for flow in flows if self._is_workspace_scoped_flow(flow)]
+
+    async def list_project_flows(self, *, workspace_id: UUID, project_id: UUID) -> list[AutomationFlowRecord]:
+        flows = await AutomationFlowRecord.filter(workspace_id=workspace_id).order_by("created_at", "id").all()
+        expected_project_id = str(project_id)
+        return [flow for flow in flows if self._project_id_from_binding(flow.credential_binding) == expected_project_id]
 
     async def list_enabled_flows_for_event(self, *, workspace_id: UUID, event_name: str) -> list[AutomationFlowRecord]:
-        return (
+        flows = (
             await AutomationFlowRecord
             .filter(
                 workspace_id=workspace_id,
@@ -35,9 +56,46 @@ class AutomationRepository:
             .order_by("created_at", "id")
             .all()
         )
+        return [flow for flow in flows if self._is_workspace_scoped_flow(flow)]
+
+    async def list_enabled_project_flows_for_event(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        event_name: str,
+    ) -> list[AutomationFlowRecord]:
+        flows = (
+            await AutomationFlowRecord
+            .filter(
+                workspace_id=workspace_id,
+                trigger_event=event_name,
+                status=AutomationFlowStatus.ACTIVE,
+            )
+            .order_by("created_at", "id")
+            .all()
+        )
+        expected_project_id = str(project_id)
+        return [flow for flow in flows if self._project_id_from_binding(flow.credential_binding) == expected_project_id]
 
     async def get_flow(self, *, workspace_id: UUID, flow_id: UUID) -> AutomationFlowRecord | None:
-        return await AutomationFlowRecord.filter(id=flow_id, workspace_id=workspace_id).first()
+        flow = await AutomationFlowRecord.filter(id=flow_id, workspace_id=workspace_id).first()
+        if flow is None or not self._is_workspace_scoped_flow(flow):
+            return None
+        return flow
+
+    async def get_project_flow(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        flow_id: UUID,
+    ) -> AutomationFlowRecord | None:
+        flow = await AutomationFlowRecord.filter(id=flow_id, workspace_id=workspace_id).first()
+        expected_project_id = str(project_id)
+        if flow is None or self._project_id_from_binding(flow.credential_binding) != expected_project_id:
+            return None
+        return flow
 
     async def create_flow(
         self,
@@ -89,7 +147,16 @@ class AutomationRepository:
             return flow
 
     async def delete_flow(self, *, workspace_id: UUID, flow_id: UUID) -> int:
-        return int(await AutomationFlowRecord.filter(id=flow_id, workspace_id=workspace_id).delete())
+        flow = await self.get_flow(workspace_id=workspace_id, flow_id=flow_id)
+        if flow is None:
+            return 0
+        return int(await AutomationFlowRecord.filter(id=flow.id).delete())
+
+    async def delete_project_flow(self, *, workspace_id: UUID, project_id: UUID, flow_id: UUID) -> int:
+        flow = await self.get_project_flow(workspace_id=workspace_id, project_id=project_id, flow_id=flow_id)
+        if flow is None:
+            return 0
+        return int(await AutomationFlowRecord.filter(id=flow.id).delete())
 
     async def list_operations(self, *, flow_id: UUID) -> list[AutomationOperationRecord]:
         return await AutomationOperationRecord.filter(flow_id=flow_id).order_by("sort_order", "created_at", "id").all()
@@ -172,12 +239,44 @@ class AutomationRepository:
 
     async def list_runs(self, *, workspace_id: UUID, limit: int) -> list[AutomationRunRecord]:
         safe_limit = max(1, min(int(limit or 0), 100))
-        return await AutomationRunRecord.filter(workspace_id=workspace_id).order_by("-created_at").limit(safe_limit)
+        runs = await AutomationRunRecord.filter(workspace_id=workspace_id).order_by("-created_at").limit(safe_limit * 3)
+        return [run for run in runs if self._project_id_from_event_payload(run.event_payload) is None][:safe_limit]
+
+    async def list_project_runs(self, *, workspace_id: UUID, project_id: UUID, limit: int) -> list[AutomationRunRecord]:
+        safe_limit = max(1, min(int(limit or 0), 100))
+        runs = await AutomationRunRecord.filter(workspace_id=workspace_id).order_by("-created_at").limit(safe_limit * 3)
+        expected_project_id = str(project_id)
+        return [run for run in runs if self._project_id_from_event_payload(run.event_payload) == expected_project_id][
+            :safe_limit
+        ]
 
     async def get_run(self, *, workspace_id: UUID, run_id: UUID) -> AutomationRunRecord | None:
-        return await AutomationRunRecord.filter(id=run_id, workspace_id=workspace_id).first()
+        run = await AutomationRunRecord.filter(id=run_id, workspace_id=workspace_id).first()
+        if run is None or self._project_id_from_event_payload(run.event_payload) is not None:
+            return None
+        return run
+
+    async def get_project_run(
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        run_id: UUID,
+    ) -> AutomationRunRecord | None:
+        run = await AutomationRunRecord.filter(id=run_id, workspace_id=workspace_id).first()
+        expected_project_id = str(project_id)
+        if run is None or self._project_id_from_event_payload(run.event_payload) != expected_project_id:
+            return None
+        return run
 
     async def list_run_logs(self, *, workspace_id: UUID, run_id: UUID) -> list[AutomationRunLogRecord]:
         return await AutomationRunLogRecord.filter(workspace_id=workspace_id, run_id=run_id).order_by(
             "created_at", "id"
         )
+
+    @staticmethod
+    def _project_id_from_event_payload(payload: dict[str, Any] | None) -> str | None:
+        if not isinstance(payload, dict):
+            return None
+        project_id = payload.get("project_id") or payload.get("projectId")
+        return str(project_id).strip() if project_id is not None else None

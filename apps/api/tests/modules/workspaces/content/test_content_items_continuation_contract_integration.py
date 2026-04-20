@@ -20,9 +20,9 @@ async def test_content_model_create_persists_and_exposes_continuation_defaults(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json={
                 "key": "article",
                 "name": "Article",
@@ -47,7 +47,7 @@ async def test_content_model_create_persists_and_exposes_continuation_defaults(
         assert str(saved.default_posture) == "structured"
         assert str(saved.default_surface) == "writing"
 
-        list_response = await client.get(f"/api/v1/workspaces/{workspace_id}/content/models")
+        list_response = await client.get(f"/api/v1/projects/{project_id}/content/models")
         assert list_response.status_code == 200, list_response.text
         listed = list_response.json()["data"]["items"][0]
         assert listed["defaultRole"] == "article"
@@ -60,10 +60,10 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
         create_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
+            f"/api/v1/projects/{project_id}/content/items",
             json=_item_payload(),
         )
         assert create_res.status_code == 201, create_res.text
@@ -84,7 +84,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
         assert item["continuationTarget"]["route"] == item["openIntent"]["route"]
 
         shape_res = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
@@ -112,7 +112,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
         assert row.shape_reason_code is None
 
         duplicate_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/duplicate",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/duplicate",
             json={},
         )
         assert duplicate_res.status_code == 200, duplicate_res.text

@@ -19,7 +19,7 @@ import {
   togglePinnedContentLibrarySavedView,
   writePersistedContentLibrarySavedViews,
   writePersistedContentLibraryViewState,
-} from "@/pages/workspaces/content/library/utils";
+} from "@/pages/projects/content/library/utils";
 
 describe("content-library-utils", () => {
   test("exposes the agreed system preset views for the workbench", () => {

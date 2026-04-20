@@ -4,24 +4,28 @@ import pytest
 
 from src.config import get_settings
 from src.settings.crypto import ensure_master_key
+from tests.modules.projects.helpers import (
+    create_project_page_model,
+    project_context_ids,
+)
 from tests.modules.sites.test_sites_delivery_integration import _site_id_and_preview_token
-from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
-from tests.modules.workspaces.publish.test_preview_contract_integration import _prepare_published_site
+from tests.modules.workspaces.content.test_content_items_integration import (
+    _bootstrap_shape_payload,
+    _workspace_client,
+)
+from tests.modules.workspaces.content.test_content_presentations_integration import (
+    _draft_payload as _page_draft_payload,
+)
+from tests.modules.workspaces.content.test_content_presentations_integration import (
+    _item_payload as _page_item_payload,
+)
 from tests.modules.workspaces.test_workspace_api_keys_management_integration import _workspace_payload
 
 pytestmark = pytest.mark.integration
 
 
 async def _project_context_ids(client, workspace_id: str) -> tuple[str, str]:
-    workspace_res = await client.get(f"/api/v1/workspaces/{workspace_id}")
-    assert workspace_res.status_code == 200, workspace_res.text
-    project_id = workspace_res.json()["data"]["project"]["projectId"]
-
-    project_res = await client.get(f"/api/v1/projects/{project_id}")
-    assert project_res.status_code == 200, project_res.text
-    runtime = project_res.json()["data"]["primaryRuntime"]
-    assert runtime is not None
-    return project_id, runtime["id"]
+    return await project_context_ids(client, workspace_id)
 
 
 async def _project_site_id(client, project_id: str) -> str:
@@ -30,16 +34,78 @@ async def _project_site_id(client, project_id: str) -> str:
     return project_site_res.json()["data"]["siteId"]
 
 
+async def _create_project_page_item(
+    client,
+    project_id: str,
+    *,
+    title: str,
+    path: str,
+) -> str:
+    item_res = await client.post(
+        f"/api/v1/projects/{project_id}/content/items",
+        json={
+            **_page_item_payload(),
+            "title": title,
+        },
+    )
+    assert item_res.status_code == 201, item_res.text
+    item_id = item_res.json()["data"]["id"]
+
+    shape_res = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape",
+        json=_bootstrap_shape_payload(
+            preset_key="page",
+            capability_pack_ids=["publishable", "routable", "treeable"],
+        ),
+    )
+    assert shape_res.status_code == 200, shape_res.text
+
+    draft_res = await client.post(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
+        json=_page_draft_payload(title),
+    )
+    assert draft_res.status_code == 201, draft_res.text
+
+    workflow_res = await client.patch(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/workflow",
+        json={"stage": "approved", "summary": f"{title} approved for publish"},
+    )
+    assert workflow_res.status_code == 200, workflow_res.text
+
+    publish_res = await client.post(
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
+        json={},
+    )
+    assert publish_res.status_code == 200, publish_res.text
+
+    route_res = await client.put(
+        f"/api/v1/projects/{project_id}/content/routing/bindings/{item_id}",
+        json={"locale": "en-US", "path": path, "isActive": True},
+    )
+    assert route_res.status_code == 200, route_res.text
+    return item_id
+
+
+async def _prepare_project_published_site(client, workspace_id: str) -> None:
+    project_id, _runtime_id = await _project_context_ids(client, workspace_id)
+    await create_project_page_model(client, project_id)
+    await _create_project_page_item(client, project_id, title="Home", path="/")
+    await _create_project_page_item(client, project_id, title="About", path="/about")
+
+    publish_res = await client.post(f"/api/v1/projects/{project_id}/releases/publish", json={})
+    assert publish_res.status_code == 200, publish_res.text
+
+
 @pytest.mark.asyncio
 async def test_runtime_routes_resolve_same_delivery_and_runtime_contract_as_project_primary_runtime(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        await _prepare_published_site(client, workspace_id)
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, _project_id):
+        await _prepare_project_published_site(client, workspace_id)
 
         project_id, runtime_id = await _project_context_ids(client, workspace_id)
-        preview_runtime_id, preview_token = await _site_id_and_preview_token(client, workspace_id)
+        preview_runtime_id, preview_token = await _site_id_and_preview_token(client, project_id)
         project_site_id = await _project_site_id(client, project_id)
 
         runtime_res = await client.get(f"/api/v1/runtimes/{runtime_id}/runtime")
@@ -71,8 +137,8 @@ async def test_project_facade_publish_and_preview_contract_resolve_through_runti
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        await _prepare_published_site(client, workspace_id)
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, _project_id):
+        await _prepare_project_published_site(client, workspace_id)
         project_id, _runtime_id = await _project_context_ids(client, workspace_id)
 
         releases_res = await client.get(f"/api/v1/projects/{project_id}/releases")
@@ -104,9 +170,9 @@ async def test_project_api_keys_bind_to_runtime_site_bridge(
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, _project_id):
         project_id, runtime_id = await _project_context_ids(client, workspace_id)
-        preview_runtime_id, _preview_token = await _site_id_and_preview_token(client, workspace_id)
+        preview_runtime_id, _preview_token = await _site_id_and_preview_token(client, project_id)
         project_site_id = await _project_site_id(client, project_id)
 
         create_res = await client.post(f"/api/v1/projects/{project_id}/api-keys", json=_workspace_payload())

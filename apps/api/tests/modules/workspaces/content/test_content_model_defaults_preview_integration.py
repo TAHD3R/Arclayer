@@ -63,9 +63,9 @@ async def test_content_model_impact_preview_returns_counts_and_preview_token(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
@@ -73,7 +73,7 @@ async def test_content_model_impact_preview_returns_counts_and_preview_token(
         model_id = model_payload["id"]
         preview = await _preview_model_update(
             client,
-            workspace_id=workspace_id,
+            project_id=project_id,
             model_id=model_id,
             payload={
                 "fields": [
@@ -115,9 +115,9 @@ async def test_content_model_patch_requires_valid_preview_token(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
@@ -134,14 +134,14 @@ async def test_content_model_patch_requires_valid_preview_token(
         }
 
         missing_preview_response = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            f"/api/v1/projects/{project_id}/content/models/{model_id}",
             json=payload,
         )
         assert missing_preview_response.status_code == 409, missing_preview_response.text
         assert missing_preview_response.json()["error"] == "CONTENT_MODEL_IMPACT_PREVIEW_REQUIRED"
 
         invalid_preview_response = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            f"/api/v1/projects/{project_id}/content/models/{model_id}",
             json={
                 **payload,
                 "impactPreviewToken": "invalid.preview.token",
@@ -156,9 +156,9 @@ async def test_content_model_impact_preview_blocks_apply_when_defaults_break_ite
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
@@ -179,7 +179,7 @@ async def test_content_model_impact_preview_blocks_apply_when_defaults_break_ite
 
         preview = await _preview_model_update(
             client,
-            workspace_id=workspace_id,
+            project_id=project_id,
             model_id=model_id,
             payload={"defaultSurface": None},
         )
@@ -204,15 +204,15 @@ async def test_content_model_locked_system_fields_are_rejected(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
         model_id = create_response.json()["data"]["id"]
         patch_response = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            f"/api/v1/projects/{project_id}/content/models/{model_id}",
             json={"name": "Renamed Article"},
         )
         assert patch_response.status_code == 409, patch_response.text
@@ -237,16 +237,16 @@ async def test_content_model_system_field_collision_is_rejected_during_preview(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
         model_id = create_response.json()["data"]["id"]
 
         preview_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}/impact-preview",
+            f"/api/v1/projects/{project_id}/content/models/{model_id}/impact-preview",
             json={
                 "fields": [
                     {
@@ -272,9 +272,9 @@ async def test_content_model_patch_emits_model_contract_audit_event(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
+            f"/api/v1/projects/{project_id}/content/models",
             json=_blank_first_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
@@ -283,7 +283,7 @@ async def test_content_model_patch_emits_model_contract_audit_event(
         workspace_uuid = decode_public_id(workspace_id)
         preview = await _preview_model_update(
             client,
-            workspace_id=workspace_id,
+            project_id=project_id,
             model_id=model_id,
             payload={
                 "description": "Article extensions",
@@ -298,7 +298,7 @@ async def test_content_model_patch_emits_model_contract_audit_event(
             },
         )
         patch_response = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            f"/api/v1/projects/{project_id}/content/models/{model_id}",
             json={
                 "description": "Article extensions",
                 "fields": [

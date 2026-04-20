@@ -25,6 +25,7 @@ class _FakeRepo:
         self.created_logs: list[dict[str, object | None]] = []
         self.updated_runs: list[dict[str, object | None]] = []
         self.enabled_flows: list[SimpleNamespace] = []
+        self.project_enabled_flows: list[SimpleNamespace] = []
         self.operations_by_flow: dict[UUID, list[SimpleNamespace]] = {}
 
     @staticmethod
@@ -113,18 +114,34 @@ class _FakeRepo:
             if flow.workspace_id == workspace_id and flow.trigger_event == event_name
         ]
 
+    async def list_enabled_project_flows_for_event(  # type: ignore[no-untyped-def]
+        self,
+        *,
+        workspace_id: UUID,
+        project_id: UUID,
+        event_name: str,
+    ):
+        return [
+            flow
+            for flow in self.project_enabled_flows
+            if flow.workspace_id == workspace_id
+            and str(flow.project_id) == str(project_id)
+            and flow.trigger_event == event_name
+        ]
+
 
 @pytest.mark.asyncio
-async def test_create_flow_out_sets_trigger_event_and_normalizes_operations() -> None:
+async def test_create_project_flow_out_sets_trigger_event_and_normalizes_operations() -> None:
     repo = _FakeRepo()
     service = WorkspaceAutomationService(repo=repo)
     workspace_id = uuid4()
+    project_id = uuid4()
     actor_user_id = uuid4()
 
     payload = AutomationFlowCreateIn(
         name="Notify on publish",
         description="Send webhook after publish",
-        trigger_kind=AutomationTriggerKind.PUBLISH_COMPLETED,
+        trigger_kind=AutomationTriggerKind.API_KEY_ROTATED,
         status=AutomationFlowStatus.ACTIVE,
         operations=[
             AutomationOperationIn(
@@ -135,14 +152,16 @@ async def test_create_flow_out_sets_trigger_event_and_normalizes_operations() ->
         ],
     )
 
-    flow = await service.create_flow_out(
+    flow = await service.create_project_flow_out(
         workspace_id=workspace_id,
+        project_id=project_id,
         actor_user_id=actor_user_id,
         payload=payload,
     )
 
     assert flow.workspace_id == workspace_id
-    assert flow.trigger_event == "workspace.release.published"
+    assert flow.project_id == project_id
+    assert flow.trigger_event == "project.api_key.rotated"
     assert flow.operations == []
 
 
@@ -166,7 +185,7 @@ async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monke
 
     async def _fake_http_operation(*, config, event):  # type: ignore[no-untyped-def]
         assert config["url"] == "https://example.com/hooks/publish"
-        assert event.name == "workspace.release.published"
+        assert event.name == "project.release.published"
         return {"statusCode": 204}
 
     monkeypatch.setattr(service, "_execute_http_operation", _fake_http_operation)
@@ -177,13 +196,13 @@ async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monke
         dead_letter_enabled=True,
         retry_limit=0,
         status=AutomationFlowStatus.ACTIVE,
-        trigger_event="workspace.release.published",
+        trigger_event="project.release.published",
     )
     result = await service.execute_flow(
         flow=flow,
         event=Event(
-            name="workspace.release.published",
-            payload={"workspace_id": str(workspace_id), "site_id": str(uuid4())},
+            name="project.release.published",
+            payload={"workspace_id": str(workspace_id), "project_id": str(uuid4()), "site_id": str(uuid4())},
             actor_user_id=str(uuid4()),
         ),
     )
@@ -244,17 +263,19 @@ async def test_execute_flow_marks_run_dead_letter_on_operation_failure(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_handle_event_executes_matching_workspace_flows(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_handle_event_executes_matching_project_flows(monkeypatch: pytest.MonkeyPatch) -> None:
     repo = _FakeRepo()
     workspace_id = uuid4()
-    repo.enabled_flows = [
+    project_id = uuid4()
+    repo.project_enabled_flows = [
         SimpleNamespace(
             id=uuid4(),
             workspace_id=workspace_id,
+            project_id=project_id,
             dead_letter_enabled=True,
             retry_limit=0,
             status=AutomationFlowStatus.ACTIVE,
-            trigger_event="workspace.api_key.rotated",
+            trigger_event="project.api_key.rotated",
         )
     ]
     service = WorkspaceAutomationService(repo=repo)
@@ -269,13 +290,13 @@ async def test_handle_event_executes_matching_workspace_flows(monkeypatch: pytes
 
     result = await service.handle_event(
         Event(
-            name="workspace.api_key.rotated",
-            payload={"workspace_id": str(workspace_id), "entity_id": str(uuid4())},
+            name="project.api_key.rotated",
+            payload={"workspace_id": str(workspace_id), "project_id": str(project_id), "entity_id": str(uuid4())},
         )
     )
 
     assert len(result) == 1
-    assert executed == [repo.enabled_flows[0].id]
+    assert executed == [repo.project_enabled_flows[0].id]
 
 
 def test_validate_operation_config_rejects_missing_webhook_url() -> None:

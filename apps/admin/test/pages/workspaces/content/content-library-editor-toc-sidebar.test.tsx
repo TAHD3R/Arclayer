@@ -52,7 +52,7 @@ vi.mock("@arclayer/ui/button", () => ({
   },
 }));
 
-import { ContentLibraryArticleEditorTocSidebar } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-toc-sidebar";
+import { ContentLibraryArticleEditorTocSidebar } from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-toc-sidebar";
 
 describe("content-library-editor-toc-sidebar", () => {
   beforeEach(() => {

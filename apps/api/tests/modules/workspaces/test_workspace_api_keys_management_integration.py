@@ -73,7 +73,7 @@ async def test_personal_api_key_management_flow(
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, _workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, _workspace_id, _project_id):
         create_res = await client.post("/api/v1/me/api-keys", json=_personal_payload())
         assert create_res.status_code == 200, create_res.text
         created = create_res.json()["data"]
@@ -129,9 +129,9 @@ async def test_workspace_api_key_management_flow(
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         workspace_uuid = decode_public_id(workspace_id)
-        create_res = await client.post(f"/api/v1/workspaces/{workspace_id}/api-keys", json=_workspace_payload())
+        create_res = await client.post(f"/api/v1/projects/{project_id}/api-keys", json=_workspace_payload())
         assert create_res.status_code == 200, create_res.text
         created = create_res.json()["data"]
         key_id = created["key"]["id"]
@@ -139,39 +139,39 @@ async def test_workspace_api_key_management_flow(
         assert created["key"]["family"] == "workspace_service"
         assert created["key"]["workspaceId"] == workspace_id
         created_event = await _wait_latest_workspace_audit_event(
-            event_name="workspace.api_key.created",
+            event_name="project.api_key.created",
             workspace_id=workspace_uuid,
             entity_id=decode_public_id(key_id),
         )
         assert created_event.properties["key_family"] == "workspace_service"
 
-        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/api-keys")
+        list_res = await client.get(f"/api/v1/projects/{project_id}/api-keys")
         assert list_res.status_code == 200, list_res.text
         items = list_res.json()["data"]["items"]
         assert len(items) == 1
         assert items[0]["id"] == key_id
 
-        detail_res = await client.get(f"/api/v1/workspaces/{workspace_id}/api-keys/{key_id}")
+        detail_res = await client.get(f"/api/v1/projects/{project_id}/api-keys/{key_id}")
         assert detail_res.status_code == 200, detail_res.text
         assert detail_res.json()["data"]["tokenMask"].startswith("ark_ws_")
 
-        rotate_res = await client.post(f"/api/v1/workspaces/{workspace_id}/api-keys/{key_id}/rotate")
+        rotate_res = await client.post(f"/api/v1/projects/{project_id}/api-keys/{key_id}/rotate")
         assert rotate_res.status_code == 200, rotate_res.text
         rotated = rotate_res.json()["data"]
         assert rotated["key"]["id"] == key_id
         assert rotated["secretToken"].startswith("ark_ws_")
         rotated_event = await _wait_latest_workspace_audit_event(
-            event_name="workspace.api_key.rotated",
+            event_name="project.api_key.rotated",
             workspace_id=workspace_uuid,
             entity_id=decode_public_id(key_id),
         )
         assert rotated_event.properties["key_family"] == "workspace_service"
 
-        revoke_res = await client.post(f"/api/v1/workspaces/{workspace_id}/api-keys/{key_id}/revoke")
+        revoke_res = await client.post(f"/api/v1/projects/{project_id}/api-keys/{key_id}/revoke")
         assert revoke_res.status_code == 200, revoke_res.text
         assert revoke_res.json()["data"]["revokedAt"] is not None
         revoked_event = await _wait_latest_workspace_audit_event(
-            event_name="workspace.api_key.revoked",
+            event_name="project.api_key.revoked",
             workspace_id=workspace_uuid,
             entity_id=decode_public_id(key_id),
         )
@@ -191,9 +191,9 @@ async def test_workspace_delivery_key_requires_delivery_scope_and_perspective(
     get_settings.cache_clear()
     ensure_master_key(get_settings().security.master_key_path)
 
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         missing_perspective_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/api-keys",
+            f"/api/v1/projects/{project_id}/api-keys",
             json={
                 "family": "delivery",
                 "name": "Preview Runtime",
@@ -204,7 +204,7 @@ async def test_workspace_delivery_key_requires_delivery_scope_and_perspective(
         assert missing_perspective_res.json()["error"] == "DELIVERY_KEY_PERSPECTIVE_REQUIRED"
 
         valid_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/api-keys",
+            f"/api/v1/projects/{project_id}/api-keys",
             json={
                 "family": "delivery",
                 "name": "Preview Runtime",

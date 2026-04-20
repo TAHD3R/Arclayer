@@ -391,6 +391,7 @@ class AnalyticsAuditLogSettings(BaseSettings):
         default_factory=lambda: [
             "auth.*",
             "me.api_key.*",
+            "project.*",
             "workspace.*",
             "rbac.*",
             "system.*",
