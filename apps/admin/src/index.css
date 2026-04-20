@@ -83,69 +83,6 @@ body,
   }
 }
 
-/* Scene transition loader – mirrors the Vite-injected first-paint animation (l11). */
-.scene-loader {
-  width: 55px;
-  aspect-ratio: 1;
-  --_ink: var(--color-primary, #1677ff);
-  --_g1: conic-gradient(from 90deg at top 3px left 3px, transparent 90deg, var(--_ink) 0);
-  --_g2: conic-gradient(from -90deg at bottom 3px right 3px, transparent 90deg, var(--_ink) 0);
-  background:
-    var(--_g1), var(--_g1), var(--_g1), var(--_g1), var(--_g2), var(--_g2), var(--_g2), var(--_g2);
-  background-position:
-    0 0,
-    100% 0,
-    100% 100%,
-    0 100%;
-  background-size: 25px 25px;
-  background-repeat: no-repeat;
-  animation: scene-loader-spin 1.5s infinite;
-}
-
-@keyframes scene-loader-spin {
-  0% {
-    background-size:
-      35px 15px,
-      15px 15px,
-      15px 35px,
-      35px 35px;
-  }
-  25% {
-    background-size:
-      35px 35px,
-      15px 35px,
-      15px 15px,
-      35px 15px;
-  }
-  50% {
-    background-size:
-      15px 35px,
-      35px 35px,
-      35px 15px,
-      15px 15px;
-  }
-  75% {
-    background-size:
-      15px 15px,
-      35px 15px,
-      35px 35px,
-      15px 35px;
-  }
-  100% {
-    background-size:
-      35px 15px,
-      15px 15px,
-      15px 35px,
-      35px 35px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scene-loader {
-    animation: none;
-  }
-}
-
 .settings-section-flash {
   outline: 1px dashed transparent;
   outline-offset: 4px;

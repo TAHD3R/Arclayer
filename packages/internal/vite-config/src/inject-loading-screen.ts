@@ -27,14 +27,11 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
   position: fixed;
   inset: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
   pointer-events: none;
   background: hsl(var(--background, 0 0% 100%));
   color: hsl(var(--foreground, 0 0% 6.7%));
-  --app-loading-ink: hsl(var(--primary, 211 100% 45.9%));
   font-family: var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
   z-index: 9999;
   opacity: 1;
@@ -48,43 +45,22 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
 #app-loading.is-hiding {
   opacity: 0;
 }
-
-/* HTML: <div class="loader"></div> */
-#app-loading .loader {
-  width: 55px;
-  aspect-ratio: 1;
-  --g1: conic-gradient(from 90deg at top 3px left 3px, transparent 90deg, var(--app-loading-ink) 0);
-  --g2: conic-gradient(from -90deg at bottom 3px right 3px, transparent 90deg, var(--app-loading-ink) 0);
-  background:
-    var(--g1), var(--g1), var(--g1), var(--g1),
-    var(--g2), var(--g2), var(--g2), var(--g2);
-  background-position: 0 0, 100% 0, 100% 100%, 0 100%;
-  background-size: 25px 25px;
-  background-repeat: no-repeat;
-  animation: l11 1.5s infinite;
+#app-loading .spinner {
+  width: 16px;
+  height: 16px;
+  color: hsl(var(--muted-foreground, 215 16% 47%));
+  animation: app-loading-spin 1s linear infinite;
+}
+#app-loading .spinner circle {
+  opacity: 0.25;
+}
+#app-loading .spinner path {
+  opacity: 1;
 }
 
-@keyframes l11 {
-  0% {
-    background-size: 35px 15px, 15px 15px, 15px 35px, 35px 35px;
-  }
-  25% {
-    background-size: 35px 35px, 15px 35px, 15px 15px, 35px 15px;
-  }
-  50% {
-    background-size: 15px 35px, 35px 35px, 35px 15px, 15px 15px;
-  }
-  75% {
-    background-size: 15px 15px, 35px 15px, 35px 35px, 15px 35px;
-  }
-  100% {
-    background-size: 35px 15px, 15px 15px, 15px 35px, 35px 35px;
-  }
-}
-
-@media (max-width: 480px) {
-  #app-loading .loader {
-    width: 48px;
+@keyframes app-loading-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -92,14 +68,29 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
   #app-loading {
     transition: opacity 0ms linear;
   }
-  #app-loading .loader {
+  #app-loading .spinner {
     animation: none;
   }
 }
 `.trim();
 
   const innerHtml = `
-<div class="loader" role="status" aria-label="${escapeHtml(appName)}" aria-live="polite"></div>
+<svg
+  class="spinner"
+  viewBox="0 0 24 24"
+  role="status"
+  aria-label="${escapeHtml(appName)}"
+  aria-live="polite"
+>
+  <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="4"></circle>
+  <path
+    d="M12 2a10 10 0 0 1 10 10"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="4"
+    stroke-linecap="round"
+  ></path>
+</svg>
 `.trim();
 
   const script = `

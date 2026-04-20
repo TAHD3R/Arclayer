@@ -1,14 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
+import { Spinner } from "@arclayer/ui/spinner";
 
 interface SceneLoadingOverlayProps {
   visible: boolean;
 }
 
-/**
- * Full-screen overlay that masks layout switches (auth → admin, admin → editor, etc.).
- * Reuses the same conic-gradient square animation as the Vite-injected first-paint loader
- * so the visual language stays consistent.
- */
 export function SceneLoadingOverlay({ visible }: SceneLoadingOverlayProps) {
   return (
     <AnimatePresence>
@@ -18,9 +14,14 @@ export function SceneLoadingOverlay({ visible }: SceneLoadingOverlayProps) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="fixed inset-0 z-2147483646 flex items-center justify-center bg-card pointer-events-none"
+          className="fixed inset-0 z-2147483646 flex items-center justify-center bg-background pointer-events-none"
         >
-          <div className="scene-loader" role="status" aria-label="Loading" />
+          <Spinner
+            role="status"
+            aria-live="polite"
+            aria-label="Loading"
+            className="size-4 text-label-secondary"
+          />
         </motion.div>
       )}
     </AnimatePresence>
