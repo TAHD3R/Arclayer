@@ -32,17 +32,25 @@ const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_HOVER_OPEN_DELAY_MS = 70;
 const SIDEBAR_HOVER_CLOSE_DELAY_MS = 180;
 const SIDEBAR_COLLAPSE_VISUAL_DELAY_MS = 250;
-const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 const SIDEBAR_EXPAND_TRANSITION_CLASSNAME = "duration-250 ease-[cubic-bezier(0.77,0,0.175,1)]";
+const SIDEBAR_DEFAULT_WIDTH_PX = 220;
+const SIDEBAR_MIN_WIDTH_PX = 180;
+const SIDEBAR_MAX_WIDTH_PX = 320;
+
+function clampSidebarWidthPx(value: number): number {
+  return Math.max(SIDEBAR_MIN_WIDTH_PX, Math.min(SIDEBAR_MAX_WIDTH_PX, Math.round(value)));
+}
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
   layoutState: "expanded" | "collapsed";
   open: boolean;
   setOpen: (open: boolean) => void;
+  widthPx: number;
+  setWidthPx: (widthPx: number) => void;
   hoverOpen: boolean;
   hoverIntent: boolean;
   openMobile: boolean;
@@ -70,12 +78,18 @@ type SidebarProviderProps = React.ComponentProps<"div"> & {
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  defaultWidthPx?: number;
+  widthPx?: number;
+  onWidthChange?: (widthPx: number) => void;
 };
 
 function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  defaultWidthPx = SIDEBAR_DEFAULT_WIDTH_PX,
+  widthPx: widthPxProp,
+  onWidthChange: setWidthPxProp,
   className,
   style,
   children,
@@ -95,11 +109,13 @@ function SidebarProvider({
   const previousHoverPreviewLockCountRef = React.useRef(0);
   const hoverPreviewLockIdsRef = React.useRef(new Set<number>());
   const nextHoverPreviewLockIdRef = React.useRef(1);
+  const [_widthPx, _setWidthPx] = React.useState(clampSidebarWidthPx(defaultWidthPx));
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
   const [_open, _setOpen] = React.useState(defaultOpen);
   const open = openProp ?? _open;
+  const widthPx = clampSidebarWidthPx(widthPxProp ?? _widthPx);
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value;
@@ -113,6 +129,18 @@ function SidebarProvider({
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
     },
     [setOpenProp, open],
+  );
+  const setWidthPx = React.useCallback(
+    (value: number | ((value: number) => number)) => {
+      const raw = typeof value === "function" ? value(widthPx) : value;
+      const nextWidthPx = clampSidebarWidthPx(raw);
+      if (setWidthPxProp) {
+        setWidthPxProp(nextWidthPx);
+      } else {
+        _setWidthPx(nextWidthPx);
+      }
+    },
+    [setWidthPxProp, widthPx],
   );
 
   const clearHoverOpenTimer = React.useCallback(() => {
@@ -300,6 +328,8 @@ function SidebarProvider({
       layoutState,
       open,
       setOpen,
+      widthPx,
+      setWidthPx,
       hoverOpen,
       hoverIntent,
       isMobile,
@@ -314,6 +344,8 @@ function SidebarProvider({
       layoutState,
       open,
       setOpen,
+      widthPx,
+      setWidthPx,
       hoverOpen,
       hoverIntent,
       isMobile,
@@ -333,7 +365,7 @@ function SidebarProvider({
             data-slot="sidebar-wrapper"
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH,
+                "--sidebar-width": `${widthPx}px`,
                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
                 ...style,
               } as React.CSSProperties
@@ -558,100 +590,87 @@ function SidebarTrigger({ className, onClick, ...props }: SidebarTriggerProps) {
   );
 }
 
-type SidebarRailProps = React.ComponentProps<typeof ButtonPrimitive> & {
-  tooltip?: React.ReactNode;
-};
+type SidebarRailProps = React.ComponentProps<typeof ButtonPrimitive>;
 
 function SidebarRail({
   className,
   "aria-label": ariaLabel,
-  tooltip,
   onClick,
   onMouseEnter,
   onMouseMove,
   onMouseLeave,
   ...props
 }: SidebarRailProps) {
-  const { toggleSidebar } = useSidebar();
+  const { isMobile, layoutState, setWidthPx, widthPx } = useSidebar();
   const label = ariaLabel ?? "Toggle Sidebar";
-  const tooltipContent = tooltip ?? null;
-  const frameRef = React.useRef<number | null>(null);
-  const pointerRef = React.useRef<{ x: number; y: number } | null>(null);
-  const [tooltipOpen, setTooltipOpen] = React.useState(false);
-  const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
-
-  const flushPointerPosition = React.useCallback(() => {
-    frameRef.current = null;
-    if (!pointerRef.current) return;
-    setTooltipPosition(pointerRef.current);
-  }, []);
-
-  const schedulePointerPosition = React.useCallback(
-    (x: number, y: number) => {
-      pointerRef.current = { x, y };
-      if (frameRef.current !== null) return;
-      frameRef.current = window.requestAnimationFrame(flushPointerPosition);
-    },
-    [flushPointerPosition],
-  );
+  const dragStateRef = React.useRef<{
+    pointerId: number;
+    startClientX: number;
+    startWidthPx: number;
+  } | null>(null);
 
   React.useEffect(() => {
     return () => {
-      if (frameRef.current === null) return;
-      window.cancelAnimationFrame(frameRef.current);
+      dragStateRef.current = null;
     };
   }, []);
 
   return (
-    <>
-      <ButtonPrimitive
-        data-sidebar="rail"
-        data-slot="sidebar-rail"
-        aria-label={label}
-        tabIndex={-1}
-        onClick={(event) => {
-          onClick?.(event);
-          toggleSidebar();
-        }}
-        onMouseEnter={(event) => {
-          onMouseEnter?.(event);
-          if (!tooltipContent) return;
-          schedulePointerPosition(event.clientX, event.clientY);
-          setTooltipOpen(true);
-        }}
-        onMouseMove={(event) => {
-          onMouseMove?.(event);
-          if (!tooltipContent) return;
-          schedulePointerPosition(event.clientX, event.clientY);
-        }}
-        onMouseLeave={(event) => {
-          onMouseLeave?.(event);
-          setTooltipOpen(false);
-        }}
-        tapScale={1}
-        className={cn(
-          "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
-          "cursor-pointer",
-          "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
-          "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
-          "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
-          className,
-        )}
-        {...props}
-      />
-      {tooltipOpen ? (
-        <div
-          data-slot="sidebar-rail-tooltip"
-          className="pointer-events-none fixed z-50 -translate-y-1/2 rounded-md border border-border/70 bg-popover px-3 py-1.5 text-callout text-balance text-popover-foreground shadow-lg shadow-black/5"
-          style={{
-            left: `${tooltipPosition.x + 14}px`,
-            top: `${tooltipPosition.y}px`,
-          }}
-        >
-          {tooltipContent}
-        </div>
-      ) : null}
-    </>
+    <ButtonPrimitive
+      data-sidebar="rail"
+      data-slot="sidebar-rail"
+      aria-label={label}
+      tabIndex={-1}
+      onClick={(event) => {
+        onClick?.(event);
+      }}
+      onMouseEnter={(event) => {
+        onMouseEnter?.(event);
+      }}
+      onMouseMove={(event) => {
+        onMouseMove?.(event);
+      }}
+      onMouseLeave={(event) => {
+        onMouseLeave?.(event);
+      }}
+      onPointerDown={(event) => {
+        if (isMobile || layoutState !== "expanded") return;
+        if (!Number.isFinite(event.clientX)) return;
+        event.preventDefault();
+        dragStateRef.current = {
+          pointerId: event.pointerId,
+          startClientX: event.clientX,
+          startWidthPx: widthPx,
+        };
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        if (dragStateRef.current?.pointerId !== event.pointerId) return;
+        if (!Number.isFinite(event.clientX)) return;
+        const deltaX = event.clientX - dragStateRef.current.startClientX;
+        setWidthPx(dragStateRef.current.startWidthPx + deltaX);
+      }}
+      onPointerUp={(event) => {
+        if (dragStateRef.current?.pointerId !== event.pointerId) return;
+        dragStateRef.current = null;
+        event.currentTarget.releasePointerCapture?.(event.pointerId);
+      }}
+      onPointerCancel={(event) => {
+        if (dragStateRef.current?.pointerId !== event.pointerId) return;
+        dragStateRef.current = null;
+        event.currentTarget.releasePointerCapture?.(event.pointerId);
+      }}
+      tapScale={1}
+      className={cn(
+        "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
+        "cursor-col-resize",
+        "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
+        "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
+        "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 

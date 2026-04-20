@@ -26,11 +26,6 @@ const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
   "data-[state=open]:border-border/60 data-[state=open]:bg-accent/70 data-[state=open]:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
-const TOPBAR_SIDEBAR_BUTTON_CLASSNAME = cn(
-  "shrink-0 text-label-secondary transition-[background-color,color] duration-200",
-  "hover:bg-accent/60 hover:text-label-primary",
-  "data-[state=open]:bg-accent/70 data-[state=open]:text-label-primary",
-);
 const TOPBAR_CONTENT_PADDING_CLASSNAME = "p-2";
 const DESKTOP_SCENE_NAV_ALIGNMENT_CLASSNAME = "md:pl-3";
 
@@ -44,7 +39,7 @@ function SidebarToggleButton(props: {
 }) {
   if (props.mode === "hidden") return null;
 
-  return (
+  const button = (
     <Button
       type="button"
       variant="ghost"
@@ -53,12 +48,21 @@ function SidebarToggleButton(props: {
       aria-label={props.label}
       onClick={props.onToggle}
       className={cn(
-        TOPBAR_SIDEBAR_BUTTON_CLASSNAME,
+        TOPBAR_ICON_BUTTON_CLASSNAME,
         props.mode === "mobile-only" ? "md:hidden" : null,
       )}
     >
       <Menu className="size-5" aria-hidden="true" />
     </Button>
+  );
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild focusTrigger={false}>
+        {button}
+      </TooltipTrigger>
+      <TooltipContent>{props.label}</TooltipContent>
+    </Tooltip>
   );
 }
 

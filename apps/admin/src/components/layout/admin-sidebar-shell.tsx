@@ -17,6 +17,7 @@ export type AdminSidebarShellProps = {
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
   collapsible?: "icon" | "none";
+  railAriaLabel?: string;
   className?: string;
 };
 
@@ -146,6 +147,7 @@ export function AdminSidebarShell({
   resolvePermissionName,
   pathnameOverride,
   collapsible = "icon",
+  railAriaLabel,
   className,
 }: AdminSidebarShellProps) {
   const { t } = useTranslation("common");
@@ -165,7 +167,9 @@ export function AdminSidebarShell({
         resolvePermissionName={resolvePermissionName}
         pathnameOverride={pathnameOverride}
       />
-      {collapsible !== "none" ? <SidebarRail aria-label={t("common:SIDEBAR_TOGGLE")} /> : null}
+      {collapsible !== "none" ? (
+        <SidebarRail aria-label={railAriaLabel ?? t("common:SIDEBAR_RESIZE")} />
+      ) : null}
     </Sidebar>
   );
 }

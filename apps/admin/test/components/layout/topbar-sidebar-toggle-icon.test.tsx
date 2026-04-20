@@ -270,9 +270,42 @@ describe("topbar sidebar toggle icon", () => {
     const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
     expect(toggleButton).toHaveAttribute("data-variant", "ghost");
     expect(toggleButton).toHaveAttribute("data-size", "icon-lg");
-    expect(Array.from(toggleButton.classList)).not.toContain("border-r");
+    expect(toggleButton.className).toContain("relative");
+    expect(toggleButton.className).toContain("size-10");
+    expect(toggleButton.className).toContain("border-transparent");
     expect(toggleButton.className).not.toContain("md:hidden");
     expect(toggleButton.closest(".grid")).toHaveClass("p-2");
+  });
+
+  it("AdminTopbar 的 sidebar toggle 在 hover 时显示 tooltip", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "workspace",
+          pathname: "/projects/ws-1",
+          workspaceId: "ws-1",
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+        sidebarToggleMode="always"
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
+
+    await user.hover(trigger);
+
+    await waitFor(() => {
+      expect(document.body.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(
+        "common:SIDEBAR_TOGGLE",
+      );
+    });
   });
 
   it("AdminTopbar 将 command trigger 宽度收窄", async () => {

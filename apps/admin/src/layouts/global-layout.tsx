@@ -18,6 +18,7 @@ import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
 import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
@@ -40,6 +41,8 @@ export function GlobalLayout() {
   });
   const accessToken = useAuthStore((state) => state.accessToken);
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
+  const sidebarWidthPx = usePreferencesStore((state) => state.sidebarWidthPx);
+  const setSidebarWidthPx = usePreferencesStore((state) => state.setSidebarWidthPx);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const { isSuperAdmin } = useCurrentUserProfile();
@@ -164,6 +167,9 @@ export function GlobalLayout() {
         open
         defaultOpen
         onOpenChange={() => undefined}
+        defaultWidthPx={sidebarWidthPx}
+        widthPx={sidebarWidthPx}
+        onWidthChange={setSidebarWidthPx}
         className="h-screen overflow-hidden"
       >
         <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">

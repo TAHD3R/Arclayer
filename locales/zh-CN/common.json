@@ -119,6 +119,7 @@
   "NEXT": "下一页",
   "PREVIOUS": "上一页",
   "SIDEBAR_TOGGLE": "切换侧边栏",
+  "SIDEBAR_RESIZE": "调节侧边栏宽度",
   "SIDEBAR_RAIL_TOOLTIP": "展开或收起侧边栏",
   "SIDEBAR_RAIL_TOOLTIP_SHORTCUT": "点击或 {{shortcut}}",
   "ORG_INVITATIONS_DESC": "跟踪组织邀请并管理邀请生命周期。",

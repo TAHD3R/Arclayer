@@ -30,7 +30,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
+  const sidebarWidthPx = usePreferencesStore((s) => s.sidebarWidthPx);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
+  const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
@@ -123,6 +125,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
       open
       defaultOpen
       onOpenChange={() => undefined}
+      defaultWidthPx={sidebarWidthPx}
+      widthPx={sidebarWidthPx}
+      onWidthChange={setSidebarWidthPx}
       className="h-screen overflow-hidden"
     >
       <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">

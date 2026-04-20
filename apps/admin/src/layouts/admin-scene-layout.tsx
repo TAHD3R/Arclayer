@@ -14,7 +14,6 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
-const SIDEBAR_EXPANDED_WIDTH_PX = 220;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 const TOPBAR_HEIGHT_REM = "3.5rem";
 
@@ -65,8 +64,10 @@ export function AdminSceneLayout({
   const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
   const storedSidebarOpen = usePreferencesStore((s) => s.sidebarOpen);
+  const sidebarWidthPx = usePreferencesStore((s) => s.sidebarWidthPx);
   const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
   const setSidebarOpen = usePreferencesStore((s) => s.setSidebarOpen);
+  const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
   const [notificationPanelOpen, , setNotificationPanelOpen] = useToggle(false);
   const sidebarOpen = sidebarCollapsible === "none" ? true : storedSidebarOpen;
 
@@ -83,10 +84,12 @@ export function AdminSceneLayout({
       defaultOpen={sidebarOpen}
       open={sidebarOpen}
       onOpenChange={sidebarCollapsible === "none" ? () => undefined : setSidebarOpen}
+      defaultWidthPx={sidebarWidthPx}
+      widthPx={sidebarWidthPx}
+      onWidthChange={setSidebarWidthPx}
       className="h-screen overflow-hidden"
       style={
         {
-          "--sidebar-width": `${SIDEBAR_EXPANDED_WIDTH_PX}px`,
           "--sidebar-width-icon": `${SIDEBAR_COLLAPSED_WIDTH_PX}px`,
           "--admin-topbar-height": TOPBAR_HEIGHT_REM,
         } as CSSProperties

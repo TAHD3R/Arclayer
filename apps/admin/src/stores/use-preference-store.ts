@@ -35,6 +35,15 @@ import { type ThemeMode } from "@arclayer/ui/theme-mode";
 const DEFAULT_SIDEBAR_ITEM_VISIBILITY: SidebarItemVisibility = {
   favorites: true,
 };
+const DEFAULT_SIDEBAR_WIDTH_PX = 220;
+const MIN_SIDEBAR_WIDTH_PX = 180;
+const MAX_SIDEBAR_WIDTH_PX = 320;
+
+function normalizeSidebarWidthPx(input: unknown): number {
+  const raw = typeof input === "number" ? input : Number(String(input));
+  if (!Number.isFinite(raw)) return DEFAULT_SIDEBAR_WIDTH_PX;
+  return clampInt(raw, MIN_SIDEBAR_WIDTH_PX, MAX_SIDEBAR_WIDTH_PX);
+}
 
 function normalizeSidebarItemVisibility(input: unknown): SidebarItemVisibility {
   const record = input && typeof input === "object" ? input : {};
@@ -291,6 +300,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   fontWeightPreference: null,
   notificationPanelPinned: false,
   sidebarOpen: true,
+  sidebarWidthPx: DEFAULT_SIDEBAR_WIDTH_PX,
   showNotificationsBadge: true,
   sidebarItemVisibility: DEFAULT_SIDEBAR_ITEM_VISIBILITY,
 
@@ -415,6 +425,12 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     set({ sidebarOpen: Boolean(open) });
   },
 
+  setSidebarWidthPx: (widthPx) => {
+    const next = normalizeSidebarWidthPx(widthPx);
+    writeStorageItem(STORAGE_KEYS.sidebarWidthPx, String(next));
+    set({ sidebarWidthPx: next });
+  },
+
   setShowNotificationsBadge: (show) => {
     writeStorageItem(STORAGE_KEYS.showNotificationsBadge, String(show));
     set({ showNotificationsBadge: show });
@@ -452,6 +468,7 @@ export function initializePreferences() {
   const notificationPanelPinned = readStorageItem(STORAGE_KEYS.notificationPanelPinned) === "true";
   const sidebarOpenStored = readStorageItem(STORAGE_KEYS.sidebarOpen);
   const sidebarOpen = sidebarOpenStored ? sidebarOpenStored === "true" : true;
+  const sidebarWidthPx = normalizeSidebarWidthPx(readStorageItem(STORAGE_KEYS.sidebarWidthPx));
   const timeZonePreference = normalizeTimeZonePreference(
     readStorageItem(STORAGE_KEYS.timeZonePreference),
   );
@@ -489,6 +506,7 @@ export function initializePreferences() {
     fontWeightPreference,
     notificationPanelPinned,
     sidebarOpen,
+    sidebarWidthPx,
     showNotificationsBadge,
     sidebarItemVisibility,
   });

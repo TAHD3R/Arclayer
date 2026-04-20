@@ -119,6 +119,7 @@
   "NEXT": "Next",
   "PREVIOUS": "Previous",
   "SIDEBAR_TOGGLE": "Toggle sidebar",
+  "SIDEBAR_RESIZE": "Resize sidebar",
   "SIDEBAR_RAIL_TOOLTIP": "Collapse or expand the sidebar",
   "SIDEBAR_RAIL_TOOLTIP_SHORTCUT": "Click or {{shortcut}}",
   "ORG_INVITATIONS_DESC": "Track organization invitations and manage invite lifecycle.",

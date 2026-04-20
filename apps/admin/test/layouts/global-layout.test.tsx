@@ -4,8 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GlobalLayout } from "@/layouts/global-layout";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 
 let mockSearchStr = "";
+let preferencesState = {
+  sidebarWidthPx: 260,
+  setSidebarWidthPx: vi.fn(),
+};
 
 function collectNavKeys(
   items: Array<{ key: string; children?: Array<{ key: string }> }>,
@@ -41,6 +46,11 @@ vi.mock("react-i18next", () => ({
     t: (key: string) => key,
     i18n: { language: "en-US", resolvedLanguage: "en-US" },
   }),
+}));
+
+vi.mock("@/stores/use-preference-store", () => ({
+  usePreferencesStore: (selector: (state: typeof preferencesState) => unknown) =>
+    selector(preferencesState),
 }));
 
 const topbarSpy = vi.fn();
@@ -157,6 +167,10 @@ describe("GlobalLayout", () => {
     });
     topbarSpy.mockClear();
     sceneLayoutSpy.mockClear();
+    preferencesState = {
+      sidebarWidthPx: 260,
+      setSidebarWidthPx: vi.fn(),
+    };
     mockSearchStr = "";
     vi.mocked(useCurrentUserProfile).mockReturnValue({
       isSuperAdmin: false,
@@ -225,6 +239,15 @@ describe("GlobalLayout", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     expect(screen.queryByTestId("admin-scene-layout")).not.toBeInTheDocument();
+    expect(screen.getByTestId("outlet")).toBeInTheDocument();
+  });
+
+  it("keeps persisted sidebar width state available to the global content-only shell", () => {
+    mockSearchStr = "?arclayer_favorite_overlay=content-only";
+
+    renderWithQueryClient(<GlobalLayout />);
+
+    expect(usePreferencesStore((state) => state.sidebarWidthPx)).toBe(260);
     expect(screen.getByTestId("outlet")).toBeInTheDocument();
   });
 });

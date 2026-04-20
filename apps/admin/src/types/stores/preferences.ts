@@ -36,6 +36,8 @@ export interface PreferencesState {
   setNotificationPanelPinned: (pinned: boolean) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  sidebarWidthPx: number;
+  setSidebarWidthPx: (widthPx: number) => void;
   showNotificationsBadge: boolean;
   setShowNotificationsBadge: (show: boolean) => void;
   sidebarItemVisibility: SidebarItemVisibility;
