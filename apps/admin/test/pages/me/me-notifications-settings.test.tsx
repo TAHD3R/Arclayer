@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/components/user-notification-settings-view";
 import type { NotificationPreferences, NotificationPreferenceTopic } from "@/types/api";
 
@@ -101,7 +102,9 @@ function renderSettings(mode: "page" | "dialog" = "dialog") {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <UserNotificationSettingsView mode={mode} />
+      <SettingsScreenProvider>
+        <UserNotificationSettingsView mode={mode} />
+      </SettingsScreenProvider>
     </QueryClientProvider>,
   );
 }

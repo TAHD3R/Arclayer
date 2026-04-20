@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import { listWorkspaceRoles } from "@/api/rbac";
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { DataTableInfiniteScrollFooter } from "@/components/common/data-table-infinite-scroll-footer";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
@@ -291,137 +292,146 @@ export function TeamMembersView(props: {
         emptyDescription={t("team:TEAM_EMPTY_DESC")}
         variant="compact"
       >
-        {membersQuery.isFetching && !membersQuery.isLoading && !membersQuery.isFetchingNextPage ? (
-          <SettingsTableRefreshSkeleton />
-        ) : null}
-        <div className="min-w-0 overflow-x-auto">
-          <table className="min-w-[62rem] w-full table-fixed border-collapse">
-            <thead>
-              <tr className="border-b border-border/60">
-                <th className="w-1/4 py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
-                  {t("team:TEAM_TABLE_COL_USER")}
-                </th>
-                <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
-                  {t("team:TEAM_TABLE_COL_ROLES")}
-                </th>
-                <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
-                  {t("team:TEAM_TABLE_COL_STATUS")}
-                </th>
-                <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
-                  {t("team:TEAM_TABLE_COL_LAST_LOGIN")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((member) => {
-                const roleSummary =
-                  member.roleCodes.length <= 1
-                    ? (roleNameByCode.get(member.roleCodes[0] ?? "") ?? member.roleCodes[0] ?? "-")
-                    : t("team:TEAM_MEMBER_CONTEXT_MULTIPLE_ROLES", {
-                        count: member.roleCodes.length,
-                      });
-                const hoverStatusLabel =
-                  member.userStatus === "active"
-                    ? t("team:TEAM_USER_STATUS_ACTIVE")
-                    : member.userStatus === "disabled"
-                      ? t("team:TEAM_USER_STATUS_DISABLED")
-                      : t("team:TEAM_USER_STATUS_LOCKED");
-                const membership = member.membershipStatus;
-                const user = member.userStatus;
-                const isNormal = membership === "active" && user === "active";
-                const formattedLastLogin = dateTime.formatDateTimeOrNull(member.lastLoginAt);
+        <SettingsSectionAnchor section="members-table">
+          {membersQuery.isFetching &&
+          !membersQuery.isLoading &&
+          !membersQuery.isFetchingNextPage ? (
+            <SettingsTableRefreshSkeleton />
+          ) : null}
+          <div className="min-w-0 overflow-x-auto">
+            <table className="min-w-[62rem] w-full table-fixed border-collapse">
+              <thead>
+                <tr className="border-b border-border/60">
+                  <th className="w-1/4 py-2 pr-4 text-left text-callout font-semibold text-label-secondary">
+                    {t("team:TEAM_TABLE_COL_USER")}
+                  </th>
+                  <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                    {t("team:TEAM_TABLE_COL_ROLES")}
+                  </th>
+                  <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                    {t("team:TEAM_TABLE_COL_STATUS")}
+                  </th>
+                  <th className="w-1/4 px-4 py-2 text-left text-callout font-semibold font-medium text-label-secondary">
+                    {t("team:TEAM_TABLE_COL_LAST_LOGIN")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((member) => {
+                  const roleSummary =
+                    member.roleCodes.length <= 1
+                      ? (roleNameByCode.get(member.roleCodes[0] ?? "") ??
+                        member.roleCodes[0] ??
+                        "-")
+                      : t("team:TEAM_MEMBER_CONTEXT_MULTIPLE_ROLES", {
+                          count: member.roleCodes.length,
+                        });
+                  const hoverStatusLabel =
+                    member.userStatus === "active"
+                      ? t("team:TEAM_USER_STATUS_ACTIVE")
+                      : member.userStatus === "disabled"
+                        ? t("team:TEAM_USER_STATUS_DISABLED")
+                        : t("team:TEAM_USER_STATUS_LOCKED");
+                  const membership = member.membershipStatus;
+                  const user = member.userStatus;
+                  const isNormal = membership === "active" && user === "active";
+                  const formattedLastLogin = dateTime.formatDateTimeOrNull(member.lastLoginAt);
 
-                return (
-                  <tr
-                    key={member.membershipId}
-                    className="border-b border-border/50 last:border-b-0"
-                  >
-                    <td className="py-4 pr-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <MemberIdentityCell
-                          member={member}
-                          scopeLabel={t("team:TEAM_MEMBER_CONTEXT_SCOPE")}
-                          scopeVariant="workspace"
-                          badges={
-                            <>
-                              <TeamRoleTag
-                                className="!mr-0 max-w-full overflow-hidden"
-                                label={<span className="truncate">{roleSummary}</span>}
-                              />
-                              <TeamUserStatusTag
-                                status={member.userStatus}
-                                className="!mr-0 max-w-full overflow-hidden"
-                                label={<span className="truncate">{hoverStatusLabel}</span>}
-                              />
-                            </>
-                          }
-                          description={t("team:TEAM_MEMBER_CONTEXT_HOVER_SUMMARY", {
-                            roleCount: member.roleCodes.length,
-                          })}
-                          className="min-w-0 flex-1"
-                        />
-                        <div className="shrink-0">{renderMemberActions(member)}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      {member.roleCodes.length ? (
-                        <div className="flex flex-wrap gap-1">
-                          {member.roleCodes.slice(0, 3).map((code: string) => (
-                            <TeamRoleTag
-                              key={code}
-                              className="mr-0!"
-                              label={roleNameByCode.get(code) ?? code}
-                            />
-                          ))}
-                          {member.roleCodes.length > 3 ? (
-                            <span className="text-caption text-label-secondary">
-                              {t("team:TEAM_MORE_ROLES", { count: member.roleCodes.length - 3 })}
-                            </span>
-                          ) : null}
+                  return (
+                    <SettingsSectionAnchor
+                      key={member.membershipId}
+                      as="tr"
+                      section="member-row"
+                      payloadMatches={(payload) => payload?.memberId === member.userId}
+                      className="border-b border-border/50 last:border-b-0"
+                    >
+                      <td className="py-4 pr-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <MemberIdentityCell
+                            member={member}
+                            scopeLabel={t("team:TEAM_MEMBER_CONTEXT_SCOPE")}
+                            scopeVariant="workspace"
+                            badges={
+                              <>
+                                <TeamRoleTag
+                                  className="!mr-0 max-w-full overflow-hidden"
+                                  label={<span className="truncate">{roleSummary}</span>}
+                                />
+                                <TeamUserStatusTag
+                                  status={member.userStatus}
+                                  className="!mr-0 max-w-full overflow-hidden"
+                                  label={<span className="truncate">{hoverStatusLabel}</span>}
+                                />
+                              </>
+                            }
+                            description={t("team:TEAM_MEMBER_CONTEXT_HOVER_SUMMARY", {
+                              roleCount: member.roleCodes.length,
+                            })}
+                            className="min-w-0 flex-1"
+                          />
+                          <div className="shrink-0">{renderMemberActions(member)}</div>
                         </div>
-                      ) : (
-                        <span className="text-label-secondary">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex flex-wrap items-center gap-1">
-                        <TeamMembershipStatusTag
-                          status={membership}
-                          className="mr-0!"
-                          label={
-                            membership === "active"
-                              ? t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")
-                              : membership === "invited"
-                                ? t("team:TEAM_MEMBERSHIP_STATUS_INVITED")
-                                : t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")
-                          }
-                        />
-                        {!isNormal ? (
-                          <TeamUserStatusTag
-                            status={user}
+                      </td>
+                      <td className="px-4 py-4">
+                        {member.roleCodes.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {member.roleCodes.slice(0, 3).map((code: string) => (
+                              <TeamRoleTag
+                                key={code}
+                                className="mr-0!"
+                                label={roleNameByCode.get(code) ?? code}
+                              />
+                            ))}
+                            {member.roleCodes.length > 3 ? (
+                              <span className="text-caption text-label-secondary">
+                                {t("team:TEAM_MORE_ROLES", { count: member.roleCodes.length - 3 })}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span className="text-label-secondary">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-wrap items-center gap-1">
+                          <TeamMembershipStatusTag
+                            status={membership}
                             className="mr-0!"
                             label={
-                              user === "active"
-                                ? t("team:TEAM_USER_STATUS_ACTIVE")
-                                : user === "disabled"
-                                  ? t("team:TEAM_USER_STATUS_DISABLED")
-                                  : t("team:TEAM_USER_STATUS_LOCKED")
+                              membership === "active"
+                                ? t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")
+                                : membership === "invited"
+                                  ? t("team:TEAM_MEMBERSHIP_STATUS_INVITED")
+                                  : t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")
                             }
                           />
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-callout text-label-primary">
-                      <span className={formattedLastLogin ? "" : "text-label-secondary"}>
-                        {formattedLastLogin || t("team:TEAM_LAST_LOGIN_NEVER")}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                          {!isNormal ? (
+                            <TeamUserStatusTag
+                              status={user}
+                              className="mr-0!"
+                              label={
+                                user === "active"
+                                  ? t("team:TEAM_USER_STATUS_ACTIVE")
+                                  : user === "disabled"
+                                    ? t("team:TEAM_USER_STATUS_DISABLED")
+                                    : t("team:TEAM_USER_STATUS_LOCKED")
+                              }
+                            />
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-callout text-label-primary">
+                        <span className={formattedLastLogin ? "" : "text-label-secondary"}>
+                          {formattedLastLogin || t("team:TEAM_LAST_LOGIN_NEVER")}
+                        </span>
+                      </td>
+                    </SettingsSectionAnchor>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </SettingsSectionAnchor>
         {membersQuery.data && rows.length > 0 ? (
           <DataTableInfiniteScrollFooter
             hasMore={Boolean(membersQuery.hasNextPage)}

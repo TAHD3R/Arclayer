@@ -34,10 +34,12 @@ function listSupportedTimeZones(): string[] {
 }
 
 export function buildDateFormatOptions(t: (key: string) => string): Array<LocalizationOption> {
-  return DATE_FORMAT_ITEMS.map((item) => ({
+  const fixedDateFormatOptions: Array<LocalizationOption> = DATE_FORMAT_ITEMS.map((item) => ({
     value: item.value,
     label: item.label,
-  })).concat({
+  }));
+
+  return fixedDateFormatOptions.concat({
     value: FULL_DATE_TIME_FORMAT,
     label: t("settings:SETTINGS_LOCALIZATION_FULL_DATE_TIME_LABEL"),
   });

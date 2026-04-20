@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { AdminNotificationsPanel } from "@/components/layout/admin-notifications-panel";
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 
@@ -58,16 +59,18 @@ function renderPanel() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ChromeTabsProvider
-        labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
-      >
-        <AdminNotificationsPanel
-          isPinned={false}
-          onPinChange={() => undefined}
-          onClose={() => undefined}
-          className="w-fit max-w-full"
-        />
-      </ChromeTabsProvider>
+      <SettingsScreenProvider>
+        <ChromeTabsProvider
+          labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
+        >
+          <AdminNotificationsPanel
+            isPinned={false}
+            onPinChange={() => undefined}
+            onClose={() => undefined}
+            className="w-fit max-w-full"
+          />
+        </ChromeTabsProvider>
+      </SettingsScreenProvider>
     </QueryClientProvider>,
   );
 }

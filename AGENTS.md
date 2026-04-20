@@ -79,6 +79,15 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
   - `GitNexus` for repo-wide exploration, graph search, architecture discovery, cross-boundary process tracing, and multi-repo reference work
   - `code-review-graph` for change review, impact analysis, risk scoring, and review-focused context
   - `serena` for symbol-level navigation, reference tracing, and precise semantic lookup
+- Resolve the active repository root before using repo-intelligence tools:
+  - run `git rev-parse --show-toplevel` from the current working directory
+  - treat the returned absolute path as `<ACTIVE_REPO_ROOT>`
+  - compare MCP repository paths against `<ACTIVE_REPO_ROOT>` before trusting indexed output
+- MCP calls must target `<ACTIVE_REPO_ROOT>` explicitly when multiple repos, clones, forks, or worktrees are indexed:
+  - GitNexus: pass `repo: "<ACTIVE_REPO_ROOT>"` or a registered repo entry whose `path` matches `<ACTIVE_REPO_ROOT>`.
+  - code-review-graph: pass `repo_root: "<ACTIVE_REPO_ROOT>"` on graph build, update, review, impact, query, and refactor tools.
+  - serena: activate `<ACTIVE_REPO_ROOT>` before symbol-level work.
+- If a repo-intelligence tool returns another checkout path for the same project, analyze, register, build, or update `<ACTIVE_REPO_ROOT>` first. Use live repo reads until the tool output matches `<ACTIVE_REPO_ROOT>`.
 - For medium-or-larger tasks, architecture work, root-cause analysis across multiple files, reference-repo comparison, or cross-file refactors, use this workflow before broad manual exploration.
 - Default tool order:
   - start with `GitNexus` when the task is about understanding the codebase, discovering execution flows, comparing patterns, or exploring unfamiliar areas
@@ -93,14 +102,16 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
   - regressions that are not obviously isolated to one file
 - Do not force these tools for trivial single-file edits where a direct file read is faster.
 - `GitNexus` local workflow for this repo:
-  - run `gitnexus analyze . --skip-agents-md` from repo root when the repo is not indexed or the index is stale
-  - run `gitnexus status` to verify freshness before relying on it
+  - run `gitnexus analyze <ACTIVE_REPO_ROOT> --skip-agents-md` when the active repo is missing from the index or stale
+  - run `gitnexus status` and verify that the indexed path matches `<ACTIVE_REPO_ROOT>` before relying on it
   - keep `.gitnexus/` local and uncommitted
 - `GitNexus` is the preferred tool when working with local reference repositories such as `references/*`, or when comparing Arclayer against other codebases.
-- If `code-review-graph` is empty or stale, refresh it before relying on results:
-  - `code-review-graph status --repo /home/philip/Arclayer`
-  - `code-review-graph update --repo /home/philip/Arclayer`
-  - use full `code-review-graph build --repo /home/philip/Arclayer --skip-flows` when needed
+- Refresh `code-review-graph` for `<ACTIVE_REPO_ROOT>` before relying on results. Prefer an incremental update first and use a full rebuild when the graph is missing, stale, or structurally wrong:
+  - MCP: `build_or_update_graph_tool({ repo_root: "<ACTIVE_REPO_ROOT>", full_rebuild: false })`
+  - MCP full rebuild: `build_or_update_graph_tool({ repo_root: "<ACTIVE_REPO_ROOT>", full_rebuild: true })`
+  - CLI status: `code-review-graph status --repo <ACTIVE_REPO_ROOT>`
+  - CLI update: `code-review-graph update --repo <ACTIVE_REPO_ROOT>`
+  - CLI full build: `code-review-graph build --repo <ACTIVE_REPO_ROOT> --skip-flows`
 - If any of these tools are unavailable, stale, or return incomplete data, state that explicitly and continue from live repo truth rather than treating tool output as authoritative.
 
 ## Command Discipline (Monorepo)
@@ -171,6 +182,6 @@ Use `pnpm format` only when formatting is required by the task.
 
 ## Reference Repositories
 
-- Third-party reference repositories belong under `/home/philip/Arclayer/references/`.
+- Third-party reference repositories belong under `<ACTIVE_REPO_ROOT>/references/`.
 - `/references` is gitignored. Keep reference repos there so they never enter Arclayer commits by accident.
 - Use reference repos for architecture comparison, implementation benchmarking, and protocol study. Do not copy code blindly across boundaries.

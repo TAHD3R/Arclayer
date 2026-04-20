@@ -9,6 +9,7 @@ import {
   getWorkspaceDangerCapabilities,
   listMyWorkspaces,
 } from "@/api/workspaces";
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { DialogField } from "@/pages/usercenter/profile/components/dialog-field";
 import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -84,7 +85,7 @@ export function WorkspaceSettingsDangerSection(props: { workspaceId: string }) {
       return;
     }
     setCurrentWorkspaceId(nextWorkspace.workspaceId);
-    await navigate({ to: "/settings/workspace/general", replace: true });
+    await navigate({ to: `/projects/${nextWorkspace.projectId}/settings/general`, replace: true });
   };
 
   const submitDeleteDialog = form.handleSubmit(async (values) => {
@@ -112,42 +113,44 @@ export function WorkspaceSettingsDangerSection(props: { workspaceId: string }) {
 
   return (
     <>
-      <UserCenterSettingPanel
-        title={t("settings:SETTINGS_WORKSPACE_DANGER_PANEL_TITLE")}
-        variant="dialog"
-        showDivider
-      >
-        <div className="flex flex-col gap-6">
-          <SettingCard className="border-destructive/30">
-            <SettingCardHeader
-              title={t("settings:SETTINGS_WORKSPACE_DELETE_TITLE")}
-              description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
-              action={
-                blockedReasonText ? (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild focusTrigger={false}>
-                        <span data-testid="delete-workspace-tooltip-trigger">{deleteAction}</span>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-72 text-left">
-                        {blockedReasonText}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : (
-                  deleteAction
-                )
-              }
-            />
-          </SettingCard>
+      <SettingsSectionAnchor section="workspace-danger">
+        <UserCenterSettingPanel
+          title={t("settings:SETTINGS_WORKSPACE_DANGER_PANEL_TITLE")}
+          variant="dialog"
+          showDivider
+        >
+          <div className="flex flex-col gap-6">
+            <SettingCard className="border-destructive/30">
+              <SettingCardHeader
+                title={t("settings:SETTINGS_WORKSPACE_DELETE_TITLE")}
+                description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
+                action={
+                  blockedReasonText ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild focusTrigger={false}>
+                          <span data-testid="delete-workspace-tooltip-trigger">{deleteAction}</span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-72 text-left">
+                          {blockedReasonText}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    deleteAction
+                  )
+                }
+              />
+            </SettingCard>
 
-          {dangerQuery.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{t("common:REQUEST_FAILED")}</AlertDescription>
-            </Alert>
-          ) : null}
-        </div>
-      </UserCenterSettingPanel>
+            {dangerQuery.isError ? (
+              <Alert variant="destructive">
+                <AlertDescription>{t("common:REQUEST_FAILED")}</AlertDescription>
+              </Alert>
+            ) : null}
+          </div>
+        </UserCenterSettingPanel>
+      </SettingsSectionAnchor>
 
       <SettingDialog
         open={open}

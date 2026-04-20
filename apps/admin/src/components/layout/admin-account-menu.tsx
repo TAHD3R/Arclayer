@@ -12,7 +12,7 @@ import {
 } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Check,
   ChevronRight,
@@ -30,12 +30,12 @@ import { useTranslation } from "react-i18next";
 import * as authApi from "@/api/auth";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import { queryClient } from "@/lib/query/query-client-instance";
-import { buildUsercenterOverlayNavigate } from "@/lib/routing/usercenter-overlay";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -488,13 +488,7 @@ function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
 
 function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const navigate = useNavigate();
-  const location = useRouterState({
-    select: (state) => ({
-      pathname: state.location.pathname,
-      hash: state.location.hash,
-    }),
-    structuralSharing: true,
-  });
+  const settingsScreen = useSettingsScreen();
   const accessToken = useAuthStore((s) => s.accessToken);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
@@ -541,12 +535,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     locale,
     onLogout,
     onAccountSettings: () => {
-      return void navigate(
-        buildUsercenterOverlayNavigate({
-          currentLocation: location,
-          tab: "profile",
-        }),
-      );
+      settingsScreen.openSettings({ screen: "personal.profile" });
     },
     onThemePreferenceChange: async (next) => {
       await setThemePreferenceWithTransition(next, { direction: "ltr" });

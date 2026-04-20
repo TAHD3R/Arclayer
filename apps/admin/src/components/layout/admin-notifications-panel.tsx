@@ -9,6 +9,7 @@ import { motion } from "motion/react";
 import { archiveNotification, listNotifications, markNotificationRead } from "@/api/notifications";
 import type { NotificationItem } from "@/types/api";
 import { listMyWorkspaces } from "@/api/workspaces";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { NotificationCard } from "@/components/common/notification-card";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Skeleton } from "@arclayer/ui/skeleton";
@@ -24,10 +25,6 @@ import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
 import { buildNotificationsSourceSearch } from "@/lib/routing/notifications-source";
-import {
-  buildUsercenterOverlayNavigate,
-  resolveUsercenterOverlayTabFromPath,
-} from "@/lib/routing/usercenter-overlay";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
@@ -76,14 +73,8 @@ export function AdminNotificationsPanel({
 }: AdminNotificationsPanelProps) {
   const { t, i18n } = useTranslation("notifications");
   const navigate = useNavigate();
-  const location = useRouterState({
-    select: (state) => ({
-      pathname: state.location.pathname,
-      hash: state.location.hash,
-    }),
-    structuralSharing: true,
-  });
-  const pathname = location.pathname;
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const settingsScreen = useSettingsScreen();
   const queryClient = useQueryClient();
   const nowMs = useNowTick(60_000);
   const [tab, setTab] = useState<NotificationPanelTab>("unread");
@@ -143,7 +134,13 @@ export function AdminNotificationsPanel({
     () => new Set((workspacesQuery.data?.items ?? []).map((item) => String(item.workspaceId))),
     [workspacesQuery.data?.items],
   );
-  const inboxSourceSearch = useMemo(() => buildNotificationsSourceSearch(pathname), [pathname]);
+  const inboxSourceSearch = useMemo(
+    () =>
+      buildNotificationsSourceSearch(pathname, {
+        settingsScreen: settingsScreen.state.open ? settingsScreen.state.screen : undefined,
+      }),
+    [pathname, settingsScreen.state.open, settingsScreen.state.screen],
+  );
 
   const apiStatus = tabToApiStatus(tab);
 
@@ -251,17 +248,11 @@ export function AdminNotificationsPanel({
       return;
     }
     await markRead(item);
-    const usercenterTab = resolveUsercenterOverlayTabFromPath(target);
-    if (usercenterTab) {
-      void navigate(
-        buildUsercenterOverlayNavigate({
-          currentLocation: location,
-          tab: usercenterTab,
-        }),
-      );
+    if (target.type === "settings") {
+      settingsScreen.openSettings(target.target);
       return;
     }
-    void navigate({ to: target as never });
+    void navigate({ to: target.to as never });
   };
 
   const effectiveError = listQuery.isError && !listQuery.data ? listQuery.error : null;

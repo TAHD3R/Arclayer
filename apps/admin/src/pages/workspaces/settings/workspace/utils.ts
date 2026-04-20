@@ -4,20 +4,24 @@ import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 import type { WorkspaceSettingsTabNavigation } from "./types";
 
 export function resolveWorkspaceSettingsTabNavigation(
-  _workspaceId: string,
+  workspaceId: string,
   tab: WorkspaceSettingsTabKey,
   currentSearchStr = "",
 ): WorkspaceSettingsTabNavigation {
   const search = buildFavoriteOverlaySearchUpdater(currentSearchStr);
+  const to = "/projects/$projectId/settings/general";
+  const params = { projectId: workspaceId };
 
   if (tab === "content") {
     return {
-      to: "/settings/workspace/general",
+      to,
+      params,
       ...(search ? { search } : {}),
     };
   }
   return {
-    to: "/settings/workspace/general",
+    to,
+    params,
     ...(search ? { search } : {}),
   };
 }

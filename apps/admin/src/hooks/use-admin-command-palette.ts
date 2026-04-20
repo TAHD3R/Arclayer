@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, UserRound, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { listAssets } from "@/api/assets";
 import { listTeamMembers } from "@/api/team";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import type { CommandEntry, CommandScope, CommandSection } from "@/lib/command/command-types";
 import {
   formatAssetBytes,
@@ -16,10 +17,6 @@ import {
 } from "@/lib/command/entry-utils";
 import { buildAdminNavCommandEntries } from "@/lib/command/nav-command-items";
 import { resolveCommandSections, type CommandSource } from "@/lib/command/source-registry";
-import {
-  buildUsercenterOverlayNavigate,
-  resolveUsercenterOverlayTabFromPath,
-} from "@/lib/routing/usercenter-overlay";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { useCommandRecentStore } from "@/stores/use-command-recent-store";
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -50,7 +47,7 @@ function buildActionEntries(params: {
       keywords: [t("account:ME_TAB_PROFILE"), t("account:ME_TITLE")],
       icon: UserRound,
       shortcut: ["G", "P"],
-      action: { type: "navigate", to: "/settings/personal/profile" },
+      action: { type: "settings", target: { screen: "personal.profile" } },
     },
     {
       id: "action:notifications",
@@ -93,13 +90,7 @@ export function useAdminCommandPalette(props: {
   scope: CommandScope;
 }) {
   const navigate = useNavigate();
-  const location = useRouterState({
-    select: (state) => ({
-      pathname: state.location.pathname,
-      hash: state.location.hash,
-    }),
-    structuralSharing: true,
-  });
+  const settingsScreen = useSettingsScreen();
   const { t, i18n } = useTranslation(["command", "account", "notifications", "nav"]);
   const [query, setQuery] = useState("");
   const searchQuery = query.trim();
@@ -162,7 +153,6 @@ export function useAdminCommandPalette(props: {
 
   const userEntries = useMemo<CommandEntry[]>(() => {
     if (props.scope.kind === "workspace" && props.scope.workspaceId) {
-      const to = "/settings/workspace/members/";
       return (usersQuery.data?.items ?? []).map((member) => {
         const primary = (
           member.displayName ||
@@ -179,7 +169,14 @@ export function useAdminCommandPalette(props: {
           subtitle: secondary,
           keywords: [primary, secondary, member.userId],
           avatar: { name: primary, assetRef: member.avatarUrl, shape: "circle" },
-          action: { type: "navigate", to, search: { q: secondary, memberId: member.userId } },
+          action: {
+            type: "settings",
+            target: {
+              screen: "workspace.members",
+              section: "member-row",
+              payload: { memberId: member.userId },
+            },
+          },
           recent: {
             enabled: true,
             snapshot: {
@@ -188,8 +185,13 @@ export function useAdminCommandPalette(props: {
               title: primary,
               subtitle: secondary,
               keywords: [primary, secondary, member.userId],
-              to,
+              to: "settings:workspace.members",
               search: { q: secondary, memberId: member.userId },
+              settingsTarget: {
+                screen: "workspace.members",
+                section: "member-row",
+                payload: { memberId: member.userId },
+              },
               avatarName: primary,
               avatarAssetRef: member.avatarUrl,
               avatarShape: "circle",
@@ -344,14 +346,8 @@ export function useAdminCommandPalette(props: {
       entry.action.run();
       return;
     }
-    const usercenterTab = resolveUsercenterOverlayTabFromPath(entry.action.to);
-    if (usercenterTab) {
-      void navigate(
-        buildUsercenterOverlayNavigate({
-          currentLocation: location,
-          tab: usercenterTab,
-        }),
-      );
+    if (entry.action.type === "settings") {
+      settingsScreen.openSettings(entry.action.target);
       return;
     }
     void navigate({ to: entry.action.to as never, search: (entry.action.search ?? {}) as never });

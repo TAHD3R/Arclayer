@@ -146,6 +146,40 @@ body,
   }
 }
 
+.settings-section-flash {
+  outline: 1px dashed transparent;
+  outline-offset: 4px;
+  animation: arclayer-settings-section-flash 1100ms ease-out;
+}
+
+@keyframes arclayer-settings-section-flash {
+  0% {
+    outline-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
+    transform: translateY(0);
+  }
+  18% {
+    outline-color: color-mix(in oklab, var(--color-primary) 70%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-primary) 12%, transparent);
+    transform: translateY(-1px);
+  }
+  55% {
+    outline-color: color-mix(in oklab, var(--color-primary) 45%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-primary) 8%, transparent);
+  }
+  100% {
+    outline-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-section-flash {
+    animation-duration: 1ms;
+  }
+}
+
 @layer utilities {
   @keyframes arclayer-collapsible-down {
     from {

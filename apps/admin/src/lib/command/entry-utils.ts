@@ -71,11 +71,9 @@ function buildRecentFallbackEntry(record: RecentCommandRecord): CommandEntry {
         }
       : undefined,
     shortcut: record.shortcut,
-    action: {
-      type: "navigate",
-      to: record.to,
-      search: record.search,
-    },
+    action: record.settingsTarget
+      ? { type: "settings" as const, target: record.settingsTarget }
+      : { type: "navigate" as const, to: record.to, search: record.search },
     recent: {
       enabled: true,
       snapshot: {
@@ -86,6 +84,7 @@ function buildRecentFallbackEntry(record: RecentCommandRecord): CommandEntry {
         keywords: record.keywords,
         to: record.to,
         search: record.search,
+        settingsTarget: record.settingsTarget,
         avatarName: record.avatarName,
         avatarAssetRef: record.avatarAssetRef,
         avatarShape: record.avatarShape,

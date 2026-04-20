@@ -1,6 +1,5 @@
-import { Fragment, useLayoutEffect, type ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
-import { Link, useNavigate, useRouterState, useSearch } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -15,43 +14,34 @@ import {
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
 } from "@/components/layout/admin-side-nav/nav-node-styles";
 import {
-  isExactMatch,
   NAV_ITEM_BUTTON_PADDING_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
   NAV_ITEM_RADIUS_CLASSNAME,
 } from "@/components/layout/admin-side-nav/nav-utils";
-import { SETTINGS_NAV_ITEMS } from "@/constants/menu/settings";
+import { SETTINGS_NAV_ITEMS, type SettingsNavItem } from "@/constants/menu/settings";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import {
-  buildUsercenterOverlayPath,
-  resolveSettingsOverlayTabFromPath,
-  type SettingsOverlayTab,
-} from "@/lib/routing/usercenter-overlay";
-import { projectHomePath } from "@/lib/routing/workspace-routing";
+import type { SettingsScreen } from "@/lib/settings/settings-screen";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { AdminNavItem } from "@/types/admin-nav";
 
 type SettingsFrameProps = {
-  activePath: string;
-  activeTab: SettingsOverlayTab;
+  activeScreen: SettingsScreen;
   action?: ReactNode;
   children: ReactNode;
   onClose?: () => void;
-  onSelectItem?: (item: AdminNavItem) => void;
+  onSelectItem?: (item: SettingsNavItem) => void;
   expandedGutters?: boolean;
   className?: string;
 };
 
-function resolveLeadingLabel(item: AdminNavItem, t: (key: string) => string): string | null {
+function resolveLeadingLabel(item: SettingsNavItem, t: (key: string) => string): string | null {
   if (item.groupLabelBeforeKey) return t(item.groupLabelBeforeKey);
   return item.groupLabelBefore ?? null;
 }
 
 function SettingsNavList(props: {
-  items: readonly AdminNavItem[];
-  pathname: string;
-  onSelectItem?: (item: AdminNavItem) => void;
+  items: readonly SettingsNavItem[];
+  activeScreen: SettingsScreen;
+  onSelectItem: (item: SettingsNavItem) => void;
 }) {
   const { t } = useTranslation();
   let previousLabel: string | null = null;
@@ -60,7 +50,7 @@ function SettingsNavList(props: {
     <nav aria-label={t("account:SETTINGS_SHELL_TITLE")} className="py-4">
       <ul className="space-y-1.5">
         {props.items.map((item) => {
-          const isActive = Boolean(item.to && isExactMatch(item.to, props.pathname));
+          const isActive = item.screen === props.activeScreen;
           const label = item.labelKey ? t(item.labelKey) : item.label;
           const leadingLabel = resolveLeadingLabel(item, t);
           const showLeadingLabel = Boolean(leadingLabel && leadingLabel !== previousLabel);
@@ -79,46 +69,25 @@ function SettingsNavList(props: {
               ) : null}
               <li>
                 <div className="group/nav-item">
-                  {item.to && !item.disabled ? (
-                    props.onSelectItem ? (
-                      <button
-                        type="button"
-                        data-active={isActive}
-                        className={cn(
-                          "relative z-10 flex w-full items-center gap-1 text-sm",
-                          NAV_ITEM_HEIGHT_CLASSNAME,
-                          NAV_ITEM_RADIUS_CLASSNAME,
-                          NAV_ITEM_BUTTON_PADDING_CLASSNAME,
-                          INTERACTIVE_TRANSITION_CLASSNAME,
-                          NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-                          NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-                          isActive && "font-semibold",
-                        )}
-                        onClick={() => props.onSelectItem?.(item)}
-                      >
-                        {iconSlot(0, item.icon, { isActive })}
-                        <span className="min-w-0 flex-1 truncate text-left">{label}</span>
-                      </button>
-                    ) : (
-                      <Link
-                        to={item.to}
-                        className={cn(
-                          "relative z-10 flex items-center gap-1 text-sm",
-                          NAV_ITEM_HEIGHT_CLASSNAME,
-                          NAV_ITEM_RADIUS_CLASSNAME,
-                          NAV_ITEM_BUTTON_PADDING_CLASSNAME,
-                          INTERACTIVE_TRANSITION_CLASSNAME,
-                          NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-                          NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-                          isActive && "font-semibold",
-                        )}
-                        activeProps={{ "data-active": true }}
-                        inactiveProps={{ "data-active": false }}
-                      >
-                        {iconSlot(0, item.icon, { isActive })}
-                        <span className="min-w-0 flex-1 truncate">{label}</span>
-                      </Link>
-                    )
+                  {!item.disabled ? (
+                    <button
+                      type="button"
+                      data-active={isActive}
+                      className={cn(
+                        "relative z-10 flex w-full items-center gap-1 text-sm",
+                        NAV_ITEM_HEIGHT_CLASSNAME,
+                        NAV_ITEM_RADIUS_CLASSNAME,
+                        NAV_ITEM_BUTTON_PADDING_CLASSNAME,
+                        INTERACTIVE_TRANSITION_CLASSNAME,
+                        NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
+                        NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+                        isActive && "font-semibold",
+                      )}
+                      onClick={() => props.onSelectItem(item)}
+                    >
+                      {iconSlot(0, item.icon, { isActive })}
+                      <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+                    </button>
                   ) : (
                     <div
                       aria-disabled="true"
@@ -150,7 +119,7 @@ function SettingsNavList(props: {
 
 export function SettingsFrame(props: SettingsFrameProps) {
   const { t } = useTranslation("account");
-  const activeItem = getUsercenterOverlayItem(props.activeTab);
+  const activeItem = getUsercenterOverlayItem(props.activeScreen);
 
   return (
     <div
@@ -165,8 +134,8 @@ export function SettingsFrame(props: SettingsFrameProps) {
           <div className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
             <SettingsNavList
               items={SETTINGS_NAV_ITEMS}
-              pathname={props.activePath}
-              onSelectItem={props.onSelectItem}
+              activeScreen={props.activeScreen}
+              onSelectItem={(item) => props.onSelectItem?.(item)}
             />
           </div>
         </div>
@@ -209,46 +178,4 @@ export function SettingsFrame(props: SettingsFrameProps) {
       </div>
     </div>
   );
-}
-
-function resolveSettingsOverlayBackgroundPath() {
-  const projectId =
-    useWorkspaceStore.getState().currentProjectId ?? useWorkspaceStore.getState().lastProjectId;
-  return projectId ? `${projectHomePath(projectId)}/` : "/";
-}
-
-export function SettingsRouteBridge() {
-  const navigate = useNavigate();
-  const { personalSettings } = useSearch({ from: "__root__" });
-  const location = useRouterState({
-    select: (state) => ({
-      pathname: state.location.pathname,
-      hash: state.location.hash,
-    }),
-    structuralSharing: true,
-  });
-  const activeTab = resolveSettingsFrameTab(location.pathname);
-
-  useLayoutEffect(() => {
-    if (personalSettings === activeTab) return;
-    void navigate({
-      to: resolveSettingsOverlayBackgroundPath() as never,
-      hash: location.hash,
-      replace: true,
-      search: ((prev: Record<string, unknown>) => ({
-        ...prev,
-        personalSettings: activeTab,
-      })) as never,
-      mask: {
-        to: buildUsercenterOverlayPath(activeTab),
-        hash: location.hash,
-      },
-    });
-  }, [activeTab, location.hash, navigate, personalSettings]);
-
-  return null;
-}
-
-export function resolveSettingsFrameTab(pathname: string): SettingsOverlayTab {
-  return resolveSettingsOverlayTabFromPath(pathname) ?? "profile";
 }

@@ -44,7 +44,7 @@ interface TeamRolesDialogsProps {
   createRolePending: boolean;
   onCreateRoleSubmit: (values: CreateRoleFormValues) => void;
   editOpen: boolean;
-  setEditOpen: (open: boolean) => void;
+  setEditOpen: React.Dispatch<React.SetStateAction<boolean>>;
   editForm: UseFormReturn<EditRoleFormValues>;
   editErrors: FieldErrors<EditRoleFormValues>;
   editRolePending: boolean;

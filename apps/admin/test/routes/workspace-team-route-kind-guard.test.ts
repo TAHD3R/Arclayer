@@ -1,18 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@tanstack/react-router", () => ({
-  createFileRoute: () => (config: Record<string, unknown>) => config,
-  lazyRouteComponent: () => null,
-}));
-import { Route } from "@/routes/settings/workspace/members/index";
+import { TeamMembersPage } from "@/pages/workspaces/team/members/page";
 
-describe("workspace members settings route", () => {
+describe("workspace members settings hard cut", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("uses the current workspace context without route-time guard logic", () => {
-    const beforeLoad = (Route as unknown as { beforeLoad?: unknown }).beforeLoad;
-    expect(beforeLoad).toBeUndefined();
+  it("keeps the team members surface available as a direct page component", () => {
+    expect(TeamMembersPage).toBeTypeOf("function");
   });
 });

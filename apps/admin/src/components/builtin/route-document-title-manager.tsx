@@ -1,9 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouterState, useSearch } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { getWorkspaceDetail } from "@/api/workspaces";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { buildDocumentTitle } from "@/lib/admin-nav-utils";
 import { getUsercenterOverlayTitleKey } from "@/pages/usercenter/shared/usercenter-overlay-registry";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -34,20 +35,20 @@ function resolveWorkspaceId(params: unknown): string | null {
 export function RouteDocumentTitleManager(): null {
   const { t } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const { personalSettings } = useSearch({ from: "__root__" });
+  const settingsScreen = useSettingsScreen();
 
   const matches = useRouterState({
     select: (s) => s.matches,
   });
 
   const titleKey = useMemo(() => {
-    if (personalSettings) return getUsercenterOverlayTitleKey(personalSettings);
+    if (settingsScreen.state.open) return getUsercenterOverlayTitleKey(settingsScreen.state.screen);
     for (let i = matches.length - 1; i >= 0; i -= 1) {
       const key = resolveTitleKey(matches[i]?.staticData);
       if (key) return key;
     }
     return null;
-  }, [matches, personalSettings]);
+  }, [matches, settingsScreen.state.open, settingsScreen.state.screen]);
 
   const workspaceId = useMemo(() => {
     for (let i = matches.length - 1; i >= 0; i -= 1) {

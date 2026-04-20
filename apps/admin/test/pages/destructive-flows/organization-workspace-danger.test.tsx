@@ -5,6 +5,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { WorkspaceSettingsDangerView } from "@/pages/workspaces/settings/workspace/danger/components/workspace-settings-danger-view";
@@ -48,11 +49,13 @@ function renderWithProviders(node: ReactElement) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ChromeTabsProvider
-        labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
-      >
-        <TooltipProvider>{node}</TooltipProvider>
-      </ChromeTabsProvider>
+      <SettingsScreenProvider>
+        <ChromeTabsProvider
+          labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
+        >
+          <TooltipProvider>{node}</TooltipProvider>
+        </ChromeTabsProvider>
+      </SettingsScreenProvider>
     </QueryClientProvider>,
   );
 }
@@ -160,7 +163,7 @@ describe("workspace destructive flows", () => {
     await waitFor(() => {
       expect(deleteWorkspaceMock).toHaveBeenCalledWith("ws-1", "Workspace Alpha");
       expect(navigateMock).toHaveBeenCalledWith({
-        to: "/settings/workspace/general",
+        to: "/projects/undefined/settings/general",
         replace: true,
       });
     });

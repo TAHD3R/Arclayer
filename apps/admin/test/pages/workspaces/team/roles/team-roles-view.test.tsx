@@ -4,6 +4,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { TeamRolesView } from "@/pages/workspaces/team/roles/components/team-roles-view";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -114,7 +115,11 @@ function renderWithQuery(node: ReactElement) {
     },
   });
 
-  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <SettingsScreenProvider>{node}</SettingsScreenProvider>
+    </QueryClientProvider>,
+  );
 }
 
 describe("TeamRolesView", () => {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -11,15 +11,12 @@ import {
   archiveNotification,
   seedDemoNotifications,
 } from "@/api/notifications";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import type { NotificationItem } from "@/types/api";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
-import {
-  buildUsercenterOverlayNavigate,
-  resolveUsercenterOverlayTabFromPath,
-} from "@/lib/routing/usercenter-overlay";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import type { ListStatus } from "../types";
@@ -29,13 +26,7 @@ const PAGE_SIZE = 20;
 export function useNotifications() {
   const { t, i18n } = useTranslation("notifications");
   const navigate = useNavigate();
-  const location = useRouterState({
-    select: (state) => ({
-      pathname: state.location.pathname,
-      hash: state.location.hash,
-    }),
-    structuralSharing: true,
-  });
+  const settingsScreen = useSettingsScreen();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
@@ -213,17 +204,11 @@ export function useNotifications() {
       return;
     }
     await markRead(n);
-    const usercenterTab = resolveUsercenterOverlayTabFromPath(target);
-    if (usercenterTab) {
-      void navigate(
-        buildUsercenterOverlayNavigate({
-          currentLocation: location,
-          tab: usercenterTab,
-        }),
-      );
+    if (target.type === "settings") {
+      settingsScreen.openSettings(target.target);
       return;
     }
-    void navigate({ to: target as never });
+    void navigate({ to: target.to as never });
   };
 
   const navigateToReadTarget = (n: NotificationItem) => {
@@ -234,17 +219,11 @@ export function useNotifications() {
       notifyErrorText(t("NOTIFICATIONS_TARGET_FORBIDDEN"));
       return;
     }
-    const usercenterTab = resolveUsercenterOverlayTabFromPath(target);
-    if (usercenterTab) {
-      void navigate(
-        buildUsercenterOverlayNavigate({
-          currentLocation: location,
-          tab: usercenterTab,
-        }),
-      );
+    if (target.type === "settings") {
+      settingsScreen.openSettings(target.target);
       return;
     }
-    void navigate({ to: target as never });
+    void navigate({ to: target.to as never });
   };
 
   // --- Infinite scroll observer ---

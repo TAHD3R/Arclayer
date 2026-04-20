@@ -2,6 +2,8 @@ import { Controller } from "react-hook-form";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
+import { normalizeLocale } from "@/lib/i18n";
 import { RELATIVE_DATETIME_OPTION_VALUE } from "@/lib/settings/general/localization-options";
 import { PreferenceSettingRow } from "@/pages/usercenter/appearance/components/preference-setting-row";
 import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
@@ -20,50 +22,53 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
       showDivider
     >
       <div className="flex flex-col gap-4">
-        <PreferenceSettingRow
-          title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
-          description={t("settings:SETTINGS_WORKSPACE_LANGUAGE_DESC")}
-          action={
-            <Controller
-              control={c.form.control}
-              name="locale"
-              render={({ field }) => (
-                <Select
-                  value={field.value || undefined}
-                  disabled={c.disabled || !c.coreQuery.data}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    void c.withSavingKey("workspace:locale", async () => {
-                      await c.patchWorkspaceCoreMutation.mutateAsync({
-                        workspace_localization: { locale: value },
-                      });
-                      if (c.workspaceId) {
-                        await c.queryClient.invalidateQueries({
-                          queryKey: ["workspace", "adminMenu", c.workspaceId],
+        <SettingsSectionAnchor section="workspace-localization">
+          <PreferenceSettingRow
+            title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
+            description={t("settings:SETTINGS_WORKSPACE_LANGUAGE_DESC")}
+            action={
+              <Controller
+                control={c.form.control}
+                name="locale"
+                render={({ field }) => (
+                  <Select
+                    value={field.value || undefined}
+                    disabled={c.disabled || !c.coreQuery.data}
+                    onValueChange={(value) => {
+                      const locale = normalizeLocale(value);
+                      field.onChange(locale);
+                      void c.withSavingKey("workspace:locale", async () => {
+                        await c.patchWorkspaceCoreMutation.mutateAsync({
+                          workspace_localization: { locale },
                         });
-                        c.cacheWorkspaceLocale(String(c.workspaceId), value);
-                      }
-                      if (c.localePreferenceMode === "workspace") {
-                        c.setEffectiveLocale(value);
-                      }
-                    });
-                  }}
-                >
-                  <SelectTrigger className="w-56">
-                    <SelectValue placeholder={t("common:SELECT")} />
-                  </SelectTrigger>
-                  <SelectContent position="popper" align="end">
-                    {c.localeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          }
-        />
+                        if (c.workspaceId) {
+                          await c.queryClient.invalidateQueries({
+                            queryKey: ["workspace", "adminMenu", c.workspaceId],
+                          });
+                          c.cacheWorkspaceLocale(String(c.workspaceId), locale);
+                        }
+                        if (c.localePreferenceMode === "workspace") {
+                          c.setEffectiveLocale(locale);
+                        }
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-56">
+                      <SelectValue placeholder={t("common:SELECT")} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="end">
+                      {c.localeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            }
+          />
+        </SettingsSectionAnchor>
 
         <PreferenceSettingRow
           title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { normalizeUserProfile } from "@/lib/auth/user-profile";
 import { UserProfileAccountSecuritySection } from "@/pages/usercenter/profile/components/profile-account-security-section";
 import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
@@ -47,17 +48,23 @@ function UserProfileViewContent(props: Required<UserProfileViewProps>) {
           showDivider
           variant={panelVariant}
         >
-          <UserProfileBasicsSection profile={profile} />
+          <SettingsSectionAnchor section="profile-basics">
+            <UserProfileBasicsSection profile={profile} />
+          </SettingsSectionAnchor>
         </UserCenterSettingPanel>
 
-        <UserLinkedAccountsSection redirect={redirect} mode={props.mode} />
+        <SettingsSectionAnchor section="linked-accounts">
+          <UserLinkedAccountsSection redirect={redirect} mode={props.mode} />
+        </SettingsSectionAnchor>
 
         <UserCenterSettingPanel
           title={t("ME_PROFILE_ACCOUNT_SECURITY_PANEL_TITLE")}
           showDivider
           variant={panelVariant}
         >
-          <UserProfileAccountSecuritySection email={profile.email} redirect={redirect} />
+          <SettingsSectionAnchor section="password">
+            <UserProfileAccountSecuritySection email={profile.email} redirect={redirect} />
+          </SettingsSectionAnchor>
         </UserCenterSettingPanel>
 
         <UserCenterSettingPanel
@@ -73,7 +80,9 @@ function UserProfileViewContent(props: Required<UserProfileViewProps>) {
           showDivider
           variant={panelVariant}
         >
-          <UserDangerSection email={profile.email} redirect={redirect} />
+          <SettingsSectionAnchor section="danger">
+            <UserDangerSection email={profile.email} redirect={redirect} />
+          </SettingsSectionAnchor>
         </UserCenterSettingPanel>
       </UserCenterSettingsSectionStack>
       {loading ? (

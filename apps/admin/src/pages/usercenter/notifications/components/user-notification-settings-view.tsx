@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { notifyError } from "@/lib/notifications";
 import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/usercenter-settings-section-stack";
@@ -319,124 +320,130 @@ export function UserNotificationSettingsView(props: UserNotificationSettingsPage
         emptyDescription={t("common:EMPTY_DESC")}
       >
         <TooltipProvider>
-          <div className="pt-1">
-            <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
-              <Table className="table-fixed border-collapse text-callout">
-                <colgroup>
-                  <col style={{ width: "52%" }} />
-                  <col style={{ width: "24%" }} />
-                  <col style={{ width: "24%" }} />
-                </colgroup>
-                <TableHeader className="border-b border-border/60 bg-background">
-                  <TableRow className="border-border/40 bg-background hover:bg-transparent">
-                    <TableHead className="bg-background align-middle">
-                      <div className="flex items-center px-4 py-2">
-                        <span className="text-callout font-semibold text-label-secondary">
-                          {t("account:ME_NOTIFY_COL_TYPE")}
-                        </span>
-                      </div>
-                    </TableHead>
-                    {columns.map((column) => {
-                      const actionableTopics = topics.filter((topic) => {
-                        const channelState = topic.channels[column.key];
-                        return channelState.supported && channelState.mutable;
-                      });
-                      const bulkUpdates = actionableTopics
-                        .filter((topic) => !topic.channels[column.key].enabled)
-                        .map((topic) => ({
-                          topicKey: topic.key,
-                          channel: column.key,
-                          enabled: true,
-                        }));
-                      const bulkResets = actionableTopics
-                        .filter((topic) => topic.channels[column.key].enabled)
-                        .map((topic) => ({
-                          topicKey: topic.key,
-                          channel: column.key,
-                          enabled: false,
-                        }));
-
-                      return (
-                        <NotificationChannelHead
-                          key={column.key}
-                          column={column}
-                          pending={pendingChannels.has(column.key)}
-                          disabled={actionableTopics.length <= 0 || pendingChannels.has(column.key)}
-                          t={t}
-                          onBulkSelect={(enabled) => {
-                            const updates = enabled ? bulkUpdates : bulkResets;
-                            void runPreferenceUpdates(updates, { bulkChannel: column.key });
-                          }}
-                        />
-                      );
-                    })}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topics.map((topic) => {
-                    const copy = resolveTopicCopy(topic, t);
-
-                    return (
-                      <TableRow
-                        key={topic.key}
-                        className="border-border/50 bg-background transition-colors hover:bg-muted/20"
-                      >
-                        <TableCell className="border-r border-border/40 px-4 py-3">
-                          <div className="min-w-0">
-                            <div className="break-words font-semibold text-label-primary">
-                              {copy.title}
-                            </div>
-                            <div className="mt-0.5 line-clamp-3 text-label-secondary">
-                              {copy.description}
-                            </div>
+          <SettingsSectionAnchor section="notification-channel-in-app">
+            <SettingsSectionAnchor section="notification-channel-email">
+              <div className="pt-1">
+                <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
+                  <Table className="table-fixed border-collapse text-callout">
+                    <colgroup>
+                      <col style={{ width: "52%" }} />
+                      <col style={{ width: "24%" }} />
+                      <col style={{ width: "24%" }} />
+                    </colgroup>
+                    <TableHeader className="border-b border-border/60 bg-background">
+                      <TableRow className="border-border/40 bg-background hover:bg-transparent">
+                        <TableHead className="bg-background align-middle">
+                          <div className="flex items-center px-4 py-2">
+                            <span className="text-callout font-semibold text-label-secondary">
+                              {t("account:ME_NOTIFY_COL_TYPE")}
+                            </span>
                           </div>
-                        </TableCell>
+                        </TableHead>
                         {columns.map((column) => {
-                          const channelState = topic.channels[column.key];
-                          const rowKey = buildRowKey(topic.key, column.key);
-                          const loading =
-                            pendingKeys.has(rowKey) || pendingChannels.has(column.key);
-                          const disabled =
-                            loading || !channelState.mutable || !channelState.supported;
+                          const actionableTopics = topics.filter((topic) => {
+                            const channelState = topic.channels[column.key];
+                            return channelState.supported && channelState.mutable;
+                          });
+                          const bulkUpdates = actionableTopics
+                            .filter((topic) => !topic.channels[column.key].enabled)
+                            .map((topic) => ({
+                              topicKey: topic.key,
+                              channel: column.key,
+                              enabled: true,
+                            }));
+                          const bulkResets = actionableTopics
+                            .filter((topic) => topic.channels[column.key].enabled)
+                            .map((topic) => ({
+                              topicKey: topic.key,
+                              channel: column.key,
+                              enabled: false,
+                            }));
 
                           return (
-                            <TableCell key={rowKey} className="px-3 py-3 text-center">
-                              <div className="flex justify-center">
-                                {loading ? (
-                                  <Spinner className="size-4 text-label-secondary" />
-                                ) : (
-                                  <Checkbox
-                                    checked={channelState.enabled}
-                                    disabled={disabled}
-                                    aria-label={t("account:ME_NOTIFY_CELL_TOGGLE_ARIA", {
-                                      topic: copy.title,
-                                      channel: column.title,
-                                    })}
-                                    onCheckedChange={(checked) => {
-                                      if (!channelState.mutable || !channelState.supported) {
-                                        return;
-                                      }
-                                      void runPreferenceUpdates([
-                                        {
-                                          topicKey: topic.key,
-                                          channel: column.key,
-                                          enabled: Boolean(checked),
-                                        },
-                                      ]);
-                                    }}
-                                  />
-                                )}
-                              </div>
-                            </TableCell>
+                            <NotificationChannelHead
+                              key={column.key}
+                              column={column}
+                              pending={pendingChannels.has(column.key)}
+                              disabled={
+                                actionableTopics.length <= 0 || pendingChannels.has(column.key)
+                              }
+                              t={t}
+                              onBulkSelect={(enabled) => {
+                                const updates = enabled ? bulkUpdates : bulkResets;
+                                void runPreferenceUpdates(updates, { bulkChannel: column.key });
+                              }}
+                            />
                           );
                         })}
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+                    </TableHeader>
+                    <TableBody>
+                      {topics.map((topic) => {
+                        const copy = resolveTopicCopy(topic, t);
+
+                        return (
+                          <TableRow
+                            key={topic.key}
+                            className="border-border/50 bg-background transition-colors hover:bg-muted/20"
+                          >
+                            <TableCell className="border-r border-border/40 px-4 py-3">
+                              <div className="min-w-0">
+                                <div className="break-words font-semibold text-label-primary">
+                                  {copy.title}
+                                </div>
+                                <div className="mt-0.5 line-clamp-3 text-label-secondary">
+                                  {copy.description}
+                                </div>
+                              </div>
+                            </TableCell>
+                            {columns.map((column) => {
+                              const channelState = topic.channels[column.key];
+                              const rowKey = buildRowKey(topic.key, column.key);
+                              const loading =
+                                pendingKeys.has(rowKey) || pendingChannels.has(column.key);
+                              const disabled =
+                                loading || !channelState.mutable || !channelState.supported;
+
+                              return (
+                                <TableCell key={rowKey} className="px-3 py-3 text-center">
+                                  <div className="flex justify-center">
+                                    {loading ? (
+                                      <Spinner className="size-4 text-label-secondary" />
+                                    ) : (
+                                      <Checkbox
+                                        checked={channelState.enabled}
+                                        disabled={disabled}
+                                        aria-label={t("account:ME_NOTIFY_CELL_TOGGLE_ARIA", {
+                                          topic: copy.title,
+                                          channel: column.title,
+                                        })}
+                                        onCheckedChange={(checked) => {
+                                          if (!channelState.mutable || !channelState.supported) {
+                                            return;
+                                          }
+                                          void runPreferenceUpdates([
+                                            {
+                                              topicKey: topic.key,
+                                              channel: column.key,
+                                              enabled: Boolean(checked),
+                                            },
+                                          ]);
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </SettingsSectionAnchor>
+          </SettingsSectionAnchor>
         </TooltipProvider>
       </ContentGuard>
     </UserCenterSettingsSectionStack>

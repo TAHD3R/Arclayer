@@ -53,10 +53,6 @@ export function switchWorkspacePath(params: {
   const { pathname, currentProjectId, nextProjectId } = params;
   const nextPrefix = `/projects/${nextProjectId}`;
 
-  if (pathname.startsWith("/settings/workspace/")) {
-    return pathname;
-  }
-
   const currentId = String(currentProjectId || "");
   const fromPrefix = currentId ? `/projects/${currentId}` : "";
 

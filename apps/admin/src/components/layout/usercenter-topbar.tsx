@@ -5,8 +5,8 @@ import type { CommandScope } from "@/lib/command/command-types";
 import type { AdminNavItem } from "@/types/admin-nav";
 
 const ACCOUNT_COMMAND_SCOPE = {
-  kind: "none",
-  pathname: "/settings/personal",
+  kind: "me",
+  pathname: "/me/settings",
   workspaceId: null,
   organizationId: null,
 } as const;

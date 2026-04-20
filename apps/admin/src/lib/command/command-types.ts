@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { SettingsSectionTarget } from "@/lib/settings/settings-screen";
 
 export type CommandScopeKind = "workspace" | "organization" | "me" | "none";
 export type CommandEntryKind = "page" | "action" | "user" | "asset";
@@ -16,7 +17,15 @@ export type CommandCallbackAction = {
   run: () => void;
 };
 
-export type CommandEntryAction = CommandNavigateAction | CommandCallbackAction;
+export type CommandSettingsAction = {
+  type: "settings";
+  target: SettingsSectionTarget;
+};
+
+export type CommandEntryAction =
+  | CommandNavigateAction
+  | CommandCallbackAction
+  | CommandSettingsAction;
 
 export type RecentCommandRecord = {
   key: string;
@@ -26,6 +35,7 @@ export type RecentCommandRecord = {
   keywords: string[];
   to: string;
   search?: Record<string, string>;
+  settingsTarget?: SettingsSectionTarget;
   avatarName?: string;
   avatarAssetRef?: string | null;
   avatarShape?: CommandAvatarShape;

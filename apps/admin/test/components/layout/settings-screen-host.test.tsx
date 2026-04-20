@@ -1,29 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { UsercenterOverlayHost } from "@/components/layout/usercenter-overlay-host";
+import {
+  SettingsScreenProvider,
+  useSettingsScreen,
+} from "@/components/layout/settings-screen-provider";
+import { SettingsScreenHost } from "@/components/layout/usercenter-overlay-host";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-
-const navigateMock = vi.fn().mockResolvedValue(undefined);
-const historyBackMock = vi.fn();
-
-const overlaySearch: { personalSettings?: string } = { personalSettings: "profile" };
-const routerState = {
-  pathname: "/w/ws-1/assets",
-  hash: "#gallery",
-};
-
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => navigateMock,
-  useRouter: () => ({ history: { back: historyBackMock } }),
-  useSearch: () => overlaySearch,
-  useRouterState: ({
-    select,
-  }: {
-    select: (state: { location: { pathname: string; hash: string } }) => unknown;
-  }) => select({ location: { pathname: routerState.pathname, hash: routerState.hash } }),
-}));
+import type { SettingsScreen } from "@/lib/settings/settings-screen";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -106,18 +91,29 @@ vi.mock("@/pages/workspaces/team/roles/page", () => ({
   ),
 }));
 
-function renderOverlayHost() {
-  return render(<UsercenterOverlayHost />);
+function OpenSettingsButton(props: { screen: SettingsScreen }) {
+  const settings = useSettingsScreen();
+  return (
+    <button type="button" onClick={() => settings.openSettings({ screen: props.screen })}>
+      Open settings
+    </button>
+  );
 }
 
-describe("UsercenterOverlayHost", () => {
+async function renderSettingsHost(initialScreen: SettingsScreen = "personal.profile") {
+  const user = userEvent.setup();
+  render(
+    <SettingsScreenProvider>
+      <OpenSettingsButton screen={initialScreen} />
+      <SettingsScreenHost />
+    </SettingsScreenProvider>,
+  );
+  await user.click(screen.getByRole("button", { name: "Open settings" }));
+  return user;
+}
+
+describe("SettingsScreenHost", () => {
   beforeEach(() => {
-    navigateMock.mockClear();
-    historyBackMock.mockClear();
-    overlaySearch.personalSettings = "profile";
-    routerState.pathname = "/w/ws-1/assets";
-    routerState.hash = "#gallery";
-    window.history.replaceState({ __TSR_index: 1 }, "");
     useWorkspaceStore.setState({
       currentWorkspaceId: "ws-alpha",
       currentProjectId: "project-alpha",
@@ -126,14 +122,19 @@ describe("UsercenterOverlayHost", () => {
     });
   });
 
-  it("renders the shared settings frame inside the overlay chrome", () => {
-    renderOverlayHost();
+  it("renders the shared settings frame inside the overlay chrome", async () => {
+    await renderSettingsHost();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("navigation", { name: "account:SETTINGS_SHELL_TITLE" }),
+      ).toBeVisible();
+    });
 
     const closeButton = screen.getByRole("button", { name: "Close" });
     const overlayContent = screen.getByTestId("settings-shell-frame");
     const nav = screen.getByRole("navigation", { name: "account:SETTINGS_SHELL_TITLE" });
 
-    expect(overlayContent).not.toBeNull();
     expect(overlayContent).toHaveClass(
       "h-full",
       "w-full",
@@ -155,60 +156,35 @@ describe("UsercenterOverlayHost", () => {
     expect(screen.getByText("account:ME_TAB_PROFILE")).toBeVisible();
     expect(screen.getByText("account:ME_TAB_PROFILE_DESC")).toBeVisible();
     expect(screen.getByTestId("overlay-profile-view")).toBeVisible();
-    expect(screen.queryByText("个人设置")).toBeNull();
-    expect(screen.queryByText("设置管理个人偏好与工作空间访问项。")).toBeNull();
-    expect(screen.queryByText(/To pick up a draggable item/i)).toBeNull();
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("bg-background/80");
-    expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_PROFILE" })).toHaveClass(
-      "text-sm",
-    );
   });
 
-  it("switches sections by masked navigation while keeping the current background route", async () => {
-    const user = userEvent.setup();
-    renderOverlayHost();
+  it("switches screens inside the same provider-driven overlay", async () => {
+    const user = await renderSettingsHost();
 
     await user.click(screen.getByRole("button", { name: "account:ACCOUNT_NAV_NOTIFICATIONS" }));
 
-    const navigation = navigateMock.mock.calls.at(-1)?.[0];
-    expect(navigation.to).toBe("/w/ws-1/assets");
-    expect(navigation.hash).toBe("#gallery");
-    expect(navigation.replace).toBe(true);
-    expect(navigation.mask).toEqual({ to: "/settings/personal/notifications" });
-    expect(navigation.search({ assetId: "asset-1" })).toEqual({
-      assetId: "asset-1",
-      personalSettings: "notifications",
+    await waitFor(() => {
+      expect(screen.getByText("account:ME_TAB_NOTIFICATIONS")).toBeVisible();
+      expect(screen.getByTestId("overlay-notifications-view")).toBeVisible();
     });
-  });
-
-  it("switches to workspace settings sections inside the same overlay", async () => {
-    const user = userEvent.setup();
-    overlaySearch.personalSettings = "workspace-general";
-    renderOverlayHost();
-
-    expect(screen.getByTestId("overlay-workspace-general-view")).toHaveTextContent("ws-alpha");
 
     await user.click(
       screen.getByRole("button", { name: "account:SETTINGS_NAV_WORKSPACE_MEMBERS" }),
     );
 
-    const navigation = navigateMock.mock.calls.at(-1)?.[0];
-    expect(navigation.to).toBe("/w/ws-1/assets");
-    expect(navigation.hash).toBe("#gallery");
-    expect(navigation.replace).toBe(true);
-    expect(navigation.mask).toEqual({ to: "/settings/workspace/members" });
-    expect(navigation.search({ assetId: "asset-1" })).toEqual({
-      assetId: "asset-1",
-      personalSettings: "workspace-members",
+    await waitFor(() => {
+      expect(screen.getByText("settings:SETTINGS_WORKSPACE_MEMBERS_TITLE")).toBeVisible();
+      expect(screen.getByTestId("overlay-workspace-members-view")).toHaveTextContent("ws-alpha");
     });
   });
 
   it("shows the workspace members primary action in the overlay header and controls invite state", async () => {
-    const user = userEvent.setup();
-    overlaySearch.personalSettings = "workspace-members";
-    renderOverlayHost();
+    const user = await renderSettingsHost("workspace.members");
 
-    expect(screen.getByRole("button", { name: "TEAM_INVITE_MEMBER" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "TEAM_INVITE_MEMBER" })).toBeVisible();
+    });
     expect(screen.getByTestId("overlay-workspace-members-invite-state")).toHaveTextContent("false");
 
     await user.click(screen.getByRole("button", { name: "TEAM_INVITE_MEMBER" }));
@@ -217,12 +193,12 @@ describe("UsercenterOverlayHost", () => {
   });
 
   it("shows the workspace invitations header actions in the overlay and controls both dialogs", async () => {
-    const user = userEvent.setup();
-    overlaySearch.personalSettings = "workspace-invitations";
-    renderOverlayHost();
+    const user = await renderSettingsHost("workspace.invitations");
 
-    expect(screen.getByRole("button", { name: "TEAM_INVITE_CREATE_LINK_ACTION" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "common:ORG_MEMBERS_INVITE" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "TEAM_INVITE_CREATE_LINK_ACTION" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "common:ORG_MEMBERS_INVITE" })).toBeVisible();
+    });
     expect(screen.getByTestId("overlay-workspace-invitations-link-state")).toHaveTextContent(
       "false",
     );
@@ -242,11 +218,11 @@ describe("UsercenterOverlayHost", () => {
   });
 
   it("shows the workspace roles header action in the overlay and controls create state", async () => {
-    const user = userEvent.setup();
-    overlaySearch.personalSettings = "workspace-roles";
-    renderOverlayHost();
+    const user = await renderSettingsHost("workspace.roles");
 
-    expect(screen.getByRole("button", { name: "TEAM_ROLES_ADD_ROLE" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "TEAM_ROLES_ADD_ROLE" })).toBeVisible();
+    });
     expect(screen.getByTestId("overlay-workspace-roles-create-state")).toHaveTextContent("false");
 
     await user.click(screen.getByRole("button", { name: "TEAM_ROLES_ADD_ROLE" }));
@@ -254,8 +230,8 @@ describe("UsercenterOverlayHost", () => {
     expect(screen.getByTestId("overlay-workspace-roles-create-state")).toHaveTextContent("true");
   });
 
-  it("mounts a dedicated internal scroll region for overlay content", () => {
-    renderOverlayHost();
+  it("mounts a dedicated internal scroll region for overlay content", async () => {
+    await renderSettingsHost();
 
     expect(screen.getByTestId("settings-shell-scroll-region")).toHaveClass(
       "min-h-0",
@@ -264,30 +240,29 @@ describe("UsercenterOverlayHost", () => {
     );
   });
 
-  it("closes by going back in history", async () => {
-    const user = userEvent.setup();
-    renderOverlayHost();
+  it("closes through provider state without router navigation", async () => {
+    const user = await renderSettingsHost();
 
     await user.click(screen.getByRole("button", { name: "Close" }));
 
-    expect(historyBackMock).toHaveBeenCalledTimes(1);
-    expect(navigateMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.queryByTestId("settings-shell-frame")).toBeNull();
+    });
   });
 
-  it("falls back to the root route when there is no history entry to go back to", async () => {
-    const user = userEvent.setup();
-    window.history.replaceState({ __TSR_index: 0 }, "");
-    useWorkspaceStore.setState({
-      currentWorkspaceId: null,
-      currentProjectId: null,
-      lastWorkspaceId: null,
-      lastProjectId: null,
+  it("keeps the host mounted so expandable-screen can run exit animation", async () => {
+    const user = await renderSettingsHost();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("settings-shell-frame")).toBeVisible();
     });
-    renderOverlayHost();
+    expect(document.body.dataset.expandableScreen).toBe("open");
 
     await user.click(screen.getByRole("button", { name: "Close" }));
 
-    expect(historyBackMock).not.toHaveBeenCalled();
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/", replace: true });
+    expect(document.body.dataset.expandableScreen).toBe("closed");
+    await waitFor(() => {
+      expect(screen.queryByTestId("settings-shell-frame")).toBeNull();
+    });
   });
 });

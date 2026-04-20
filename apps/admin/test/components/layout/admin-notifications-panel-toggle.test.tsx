@@ -2,13 +2,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { MouseEventHandler, ReactNode } from "react";
+import { useEffect, type MouseEventHandler, type ReactNode } from "react";
 
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 
@@ -33,7 +35,7 @@ vi.mock("@tanstack/react-router", () => ({
     select,
   }: {
     select: (state: { location: { pathname: string } }) => unknown;
-  }) => select({ location: { pathname: "/settings/personal/profile" } }),
+  }) => select({ location: { pathname: "/notifications" } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -104,13 +106,25 @@ function renderWithQueryClient(component: React.ReactElement) {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <ChromeTabsProvider
-        labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
-      >
-        {component}
-      </ChromeTabsProvider>
+      <SettingsScreenProvider>
+        <ChromeTabsProvider
+          labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
+        >
+          {component}
+        </ChromeTabsProvider>
+      </SettingsScreenProvider>
     </QueryClientProvider>,
   );
+}
+
+function OpenPersonalSettingsOnMount() {
+  const { openSettings } = useSettingsScreen();
+
+  useEffect(() => {
+    openSettings({ screen: "personal.profile" });
+  }, [openSettings]);
+
+  return null;
 }
 
 describe("AdminNotificationsPanel toggle", () => {
@@ -162,6 +176,7 @@ describe("AdminNotificationsPanel toggle", () => {
 
     renderWithQueryClient(
       <AdminLayout>
+        <OpenPersonalSettingsOnMount />
         <div>content</div>
       </AdminLayout>,
     );
@@ -184,6 +199,7 @@ describe("AdminNotificationsPanel toggle", () => {
 
     renderWithQueryClient(
       <AdminLayout>
+        <OpenPersonalSettingsOnMount />
         <div>content</div>
       </AdminLayout>,
     );
@@ -205,8 +221,8 @@ describe("AdminNotificationsPanel toggle", () => {
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/notifications",
       search: {
-        sourceKind: "account",
-        sourcePath: "/settings/personal/profile",
+        sourceKind: "personal",
+        sourceScreen: "personal.profile",
       },
     });
   });

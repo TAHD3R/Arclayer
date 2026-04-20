@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
 import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/usercenter-settings-section-stack";
 import {
@@ -26,7 +27,9 @@ export function UserAppearanceView(props: UserAppearanceViewProps) {
         variant={panelVariant}
         showDivider
       >
-        <UserAppearanceSection />
+        <SettingsSectionAnchor section="appearance">
+          <UserAppearanceSection />
+        </SettingsSectionAnchor>
       </UserCenterSettingPanel>
 
       <UserCenterSettingPanel
@@ -34,7 +37,9 @@ export function UserAppearanceView(props: UserAppearanceViewProps) {
         variant={panelVariant}
         showDivider
       >
-        <UserLocalizationSection />
+        <SettingsSectionAnchor section="language">
+          <UserLocalizationSection />
+        </SettingsSectionAnchor>
       </UserCenterSettingPanel>
 
       <UserCenterSettingPanel
@@ -42,7 +47,9 @@ export function UserAppearanceView(props: UserAppearanceViewProps) {
         variant={panelVariant}
         showDivider
       >
-        <UserSidebarNavigationSection />
+        <SettingsSectionAnchor section="datetime">
+          <UserSidebarNavigationSection />
+        </SettingsSectionAnchor>
       </UserCenterSettingPanel>
     </UserCenterSettingsSectionStack>
   );

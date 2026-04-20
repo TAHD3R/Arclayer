@@ -5,6 +5,10 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as authApi from "@/api/auth";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
+import {
+  SettingsScreenProvider,
+  useSettingsScreen,
+} from "@/components/layout/settings-screen-provider";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -65,10 +69,23 @@ function renderWithProviders(component: React.ReactElement) {
         labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
       >
         <SidebarProvider defaultOpen className="h-screen">
-          {component}
+          <SettingsScreenProvider>
+            {component}
+            <SettingsScreenProbe />
+          </SettingsScreenProvider>
         </SidebarProvider>
       </ChromeTabsProvider>
     </QueryClientProvider>,
+  );
+}
+
+function SettingsScreenProbe() {
+  const settings = useSettingsScreen();
+  return (
+    <>
+      <div data-testid="settings-open">{String(settings.state.open)}</div>
+      <div data-testid="settings-screen">{settings.state.screen}</div>
+    </>
   );
 }
 
@@ -242,21 +259,19 @@ describe("AdminAccountMenu", () => {
     expect(navigateMock).toHaveBeenCalledWith({ to: "/login", replace: true });
   });
 
-  it("从 workspace shell 打开账号设置时会切到 masked usercenter overlay", async () => {
+  it("从 workspace shell 打开账号设置时会打开 provider settings screen", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
     await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" }));
 
-    const navigation = navigateMock.mock.calls.at(-1)?.[0];
-    expect(navigation.to).toBe("/w/ws-1/");
-    expect(navigation.hash).toBe("");
-    expect(navigation.mask).toEqual({ to: "/settings/personal/profile" });
-    expect(navigation.search({ q: "demo" })).toEqual({ q: "demo", personalSettings: "profile" });
+    expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("personal.profile");
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("在 /workspaces 打开个人设置时也会复用同一套 masked overlay contract", async () => {
+  it("在 /workspaces 打开个人设置时复用同一套 provider contract", async () => {
     routerState.pathname = "/workspaces/";
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
@@ -264,12 +279,8 @@ describe("AdminAccountMenu", () => {
     await openAccountMenu(user);
     await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" }));
 
-    const navigation = navigateMock.mock.calls.at(-1)?.[0];
-    expect(navigation.to).toBe("/workspaces/");
-    expect(navigation.mask).toEqual({ to: "/settings/personal/profile" });
-    expect(navigation.search({ create: "1" })).toEqual({
-      create: "1",
-      personalSettings: "profile",
-    });
+    expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("personal.profile");
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 });

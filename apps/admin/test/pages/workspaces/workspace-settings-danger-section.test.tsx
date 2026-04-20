@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { WorkspaceSettingsDangerSection } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-danger-section";
@@ -38,7 +39,9 @@ function renderWithProviders(node: ReactElement) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>{node}</TooltipProvider>
+      <SettingsScreenProvider>
+        <TooltipProvider>{node}</TooltipProvider>
+      </SettingsScreenProvider>
     </QueryClientProvider>,
   );
 }
@@ -118,7 +121,7 @@ describe("WorkspaceSettingsDangerSection", () => {
     await waitFor(() => {
       expect(deleteWorkspaceMock).toHaveBeenCalledWith("ws-1", "Workspace Alpha");
       expect(navigateMock).toHaveBeenCalledWith({
-        to: "/settings/workspace/general",
+        to: "/projects/undefined/settings/general",
         replace: true,
       });
     });

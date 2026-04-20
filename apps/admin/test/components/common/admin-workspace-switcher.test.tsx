@@ -6,6 +6,10 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MyWorkspace, MyWorkspaceListResult } from "@/types/api";
 import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
+import {
+  SettingsScreenProvider,
+  useSettingsScreen,
+} from "@/components/layout/settings-screen-provider";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
@@ -139,10 +143,24 @@ function renderWithQueryClient(component: React.ReactElement) {
         labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
       >
         <SidebarProvider defaultOpen className="h-screen">
-          {component}
+          <SettingsScreenProvider>
+            {component}
+            <SettingsScreenProbe />
+          </SettingsScreenProvider>
         </SidebarProvider>
       </ChromeTabsProvider>
     </QueryClientProvider>,
+  );
+}
+
+function SettingsScreenProbe() {
+  const settings = useSettingsScreen();
+  return (
+    <>
+      <div data-testid="settings-open">{String(settings.state.open)}</div>
+      <div data-testid="settings-screen">{settings.state.screen}</div>
+      <div data-testid="settings-section">{settings.state.section ?? "none"}</div>
+    </>
   );
 }
 
@@ -499,7 +517,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     );
   });
 
-  it("workspace scope: action buttons navigate to workspace and account destinations", async () => {
+  it("workspace scope: action buttons open workspace settings through provider", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
@@ -511,25 +529,16 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Workspace settings/ }));
     await waitFor(() => {
-      const navigation = navigateMock.mock.calls.at(-1)?.[0];
-      expect(navigation.to).toBe("/projects/project-alpha/assets");
-      expect(navigation.mask).toEqual({ to: "/settings/workspace/general" });
-      expect(navigation.search({ q: "demo" })).toEqual({
-        q: "demo",
-        personalSettings: "workspace-general",
-      });
+      expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
+      expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.general");
     });
 
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Invite members/ }));
     await waitFor(() => {
-      const navigation = navigateMock.mock.calls.at(-1)?.[0];
-      expect(navigation.to).toBe("/projects/project-alpha/assets");
-      expect(navigation.mask).toEqual({ to: "/settings/workspace/members" });
-      expect(navigation.search({ q: "demo" })).toEqual({
-        q: "demo",
-        personalSettings: "workspace-members",
-      });
+      expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
+      expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.members");
+      expect(screen.getByTestId("settings-section")).toHaveTextContent("invite-member");
     });
 
     await user.click(trigger);

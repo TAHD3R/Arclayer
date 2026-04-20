@@ -1,39 +1,23 @@
-import { useCallback, useState } from "react";
-import { useNavigate, useRouter, useRouterState, useSearch } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import {
-  buildUsercenterOverlayNavigate,
-  isSettingsOverlayTab,
-  resolveSettingsOverlayTabFromPath,
-} from "@/lib/routing/usercenter-overlay";
-import { projectHomePath } from "@/lib/routing/workspace-routing";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { getUsercenterOverlayItem } from "@/pages/usercenter/shared/usercenter-overlay-registry";
 import { SettingsFrame } from "@/pages/settings/settings-shell";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { AdminNavItem } from "@/types/admin-nav";
 import { Button } from "@arclayer/ui/button";
 import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
 import { TeamMembersView } from "@/pages/workspaces/team/members/components/team-members-view";
 import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
 import { TeamRolesPage } from "@/pages/workspaces/team/roles/page";
 
-export function UsercenterOverlayHost() {
+export function SettingsScreenHost() {
   const { t } = useTranslation("team");
-  const { personalSettings } = useSearch({ from: "__root__" });
-  const navigate = useNavigate();
-  const router = useRouter();
-  const location = useRouterState({
-    select: (state) => ({
-      pathname: state.location.pathname,
-      hash: state.location.hash,
-    }),
-    structuralSharing: true,
-  });
-
-  const activeTab = personalSettings ?? null;
-  const activeItem = activeTab ? getUsercenterOverlayItem(activeTab) : null;
+  const settingsScreen = useSettingsScreen();
+  const isOpen = settingsScreen.state.open;
+  const activeScreen = settingsScreen.state.screen;
+  const activeItem = getUsercenterOverlayItem(activeScreen);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
   const workspaceId = currentWorkspaceId ?? lastWorkspaceId;
@@ -42,105 +26,90 @@ export function UsercenterOverlayHost() {
   const [workspaceInvitationEmailOpen, setWorkspaceInvitationEmailOpen] = useState(false);
   const [workspaceRoleCreateOpen, setWorkspaceRoleCreateOpen] = useState(false);
 
+  useEffect(() => {
+    if (!settingsScreen.state.open) return;
+    if (activeScreen === "workspace.members" && settingsScreen.state.section === "invite-member") {
+      setWorkspaceMembersInviteOpen(true);
+    }
+    if (
+      activeScreen === "workspace.invitations" &&
+      settingsScreen.state.section === "create-invitation"
+    ) {
+      setWorkspaceInvitationEmailOpen(true);
+    }
+    if (
+      activeScreen === "workspace.invitations" &&
+      settingsScreen.state.section === "invite-links"
+    ) {
+      setWorkspaceInvitationLinkOpen(true);
+    }
+    if (activeScreen === "workspace.roles" && settingsScreen.state.section === "create-role") {
+      setWorkspaceRoleCreateOpen(true);
+    }
+  }, [activeScreen, settingsScreen.state.open, settingsScreen.state.section]);
+
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (open || !activeTab) return;
-      const historyIndex =
-        typeof window !== "undefined"
-          ? (window.history.state as { __TSR_index?: number } | null)?.__TSR_index
-          : undefined;
-      if (historyIndex === 0) {
-        const projectId =
-          useWorkspaceStore.getState().currentProjectId ??
-          useWorkspaceStore.getState().lastProjectId;
-        void navigate({
-          to: (projectId ? `${projectHomePath(projectId)}/` : "/") as never,
-          replace: true,
-        });
-        return;
-      }
-      router.history.back();
+      if (!open) settingsScreen.closeSettings();
     },
-    [activeTab, navigate, router],
+    [settingsScreen],
   );
 
-  const handleTabChange = useCallback(
-    (nextValue: string) => {
-      if (!isSettingsOverlayTab(nextValue)) return;
-      void navigate(
-        buildUsercenterOverlayNavigate({
-          currentLocation: location,
-          tab: nextValue,
-          replace: true,
-        }),
-      );
-    },
-    [location, navigate],
-  );
-
-  const handleItemSelect = useCallback(
-    (item: AdminNavItem) => {
-      const nextTab = item.to ? resolveSettingsOverlayTabFromPath(item.to) : null;
-      if (!nextTab) return;
-      handleTabChange(nextTab);
-    },
-    [handleTabChange],
-  );
-
-  if (!activeItem) return null;
-  const action =
-    activeTab === "workspace-members" ? (
-      <Button onClick={() => setWorkspaceMembersInviteOpen(true)}>
-        <Plus size={16} />
-        {t("TEAM_INVITE_MEMBER")}
+  const action = !isOpen ? undefined : activeScreen === "workspace.members" ? (
+    <Button onClick={() => setWorkspaceMembersInviteOpen(true)}>
+      <Plus size={16} />
+      {t("TEAM_INVITE_MEMBER")}
+    </Button>
+  ) : activeScreen === "workspace.invitations" ? (
+    <div className="flex items-center gap-2">
+      <Button variant="outline" onClick={() => setWorkspaceInvitationLinkOpen(true)}>
+        {t("TEAM_INVITE_CREATE_LINK_ACTION")}
       </Button>
-    ) : activeTab === "workspace-invitations" ? (
-      <div className="flex items-center gap-2">
-        <Button variant="outline" onClick={() => setWorkspaceInvitationLinkOpen(true)}>
-          {t("TEAM_INVITE_CREATE_LINK_ACTION")}
-        </Button>
-        <Button onClick={() => setWorkspaceInvitationEmailOpen(true)}>
-          <Plus size={16} />
-          {t("common:ORG_MEMBERS_INVITE")}
-        </Button>
-      </div>
-    ) : activeTab === "workspace-roles" ? (
-      <Button onClick={() => setWorkspaceRoleCreateOpen(true)}>
+      <Button onClick={() => setWorkspaceInvitationEmailOpen(true)}>
         <Plus size={16} />
-        {t("TEAM_ROLES_ADD_ROLE")}
+        {t("common:ORG_MEMBERS_INVITE")}
       </Button>
-    ) : undefined;
-  const renderedContent =
-    activeTab === "workspace-members" ? (
-      <TeamMembersView
-        workspaceIdOverride={workspaceId ?? null}
-        inviteOpen={workspaceMembersInviteOpen}
-        onInviteOpenChange={setWorkspaceMembersInviteOpen}
-        embedded
-      />
-    ) : activeTab === "workspace-invitations" ? (
-      <TeamInvitationsPage
-        workspaceIdOverride={workspaceId ?? null}
-        inviteLinkOpen={workspaceInvitationLinkOpen}
-        onInviteLinkOpenChange={setWorkspaceInvitationLinkOpen}
-        inviteEmailOpen={workspaceInvitationEmailOpen}
-        onInviteEmailOpenChange={setWorkspaceInvitationEmailOpen}
-        embedded
-      />
-    ) : activeTab === "workspace-roles" ? (
-      <TeamRolesPage
-        workspaceIdOverride={workspaceId ?? null}
-        createOpen={workspaceRoleCreateOpen}
-        onCreateOpenChange={setWorkspaceRoleCreateOpen}
-        embedded
-      />
-    ) : (
-      activeItem.render()
-    );
+    </div>
+  ) : activeScreen === "workspace.roles" ? (
+    <Button onClick={() => setWorkspaceRoleCreateOpen(true)}>
+      <Plus size={16} />
+      {t("TEAM_ROLES_ADD_ROLE")}
+    </Button>
+  ) : undefined;
+  const renderedContent = !isOpen ? null : activeScreen === "workspace.members" ? (
+    <TeamMembersView
+      workspaceIdOverride={workspaceId ?? null}
+      inviteOpen={workspaceMembersInviteOpen}
+      onInviteOpenChange={setWorkspaceMembersInviteOpen}
+      embedded
+    />
+  ) : activeScreen === "workspace.invitations" ? (
+    <TeamInvitationsPage
+      workspaceIdOverride={workspaceId ?? null}
+      inviteLinkOpen={workspaceInvitationLinkOpen}
+      onInviteLinkOpenChange={setWorkspaceInvitationLinkOpen}
+      inviteEmailOpen={workspaceInvitationEmailOpen}
+      onInviteEmailOpenChange={setWorkspaceInvitationEmailOpen}
+      embedded
+    />
+  ) : activeScreen === "workspace.roles" ? (
+    <TeamRolesPage
+      workspaceIdOverride={workspaceId ?? null}
+      createOpen={workspaceRoleCreateOpen}
+      onCreateOpenChange={setWorkspaceRoleCreateOpen}
+      embedded
+    />
+  ) : (
+    activeItem.render({
+      targetSection: settingsScreen.state.section,
+      payload: settingsScreen.state.payload,
+      focusRequestId: settingsScreen.state.focusRequestId,
+    })
+  );
 
   return (
     <ExpandableScreen
-      expanded
+      expanded={isOpen}
       onExpandChange={handleOpenChange}
       layoutId="global-usercenter-overlay"
     >
@@ -149,12 +118,11 @@ export function UsercenterOverlayHost() {
         className="border border-border/80 bg-background shadow-2xl"
       >
         <SettingsFrame
-          activePath={activeItem.to}
-          activeTab={activeItem.tab}
+          activeScreen={activeScreen}
           action={action}
           expandedGutters
           onClose={() => handleOpenChange(false)}
-          onSelectItem={handleItemSelect}
+          onSelectItem={(item) => settingsScreen.switchSettingsScreen(item.screen)}
           className="h-full w-full max-w-none rounded-none border-0 shadow-none"
         >
           {renderedContent}
@@ -163,3 +131,5 @@ export function UsercenterOverlayHost() {
     </ExpandableScreen>
   );
 }
+
+export const UsercenterOverlayHost = SettingsScreenHost;

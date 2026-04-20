@@ -1,3 +1,4 @@
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
 
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
@@ -17,9 +18,13 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
         variant="dialog"
         showDivider
       >
-        <div className="flex flex-col gap-4">
-          <WorkspaceSettingsIconAccordionItem controller={c} />
-        </div>
+        <SettingsSectionAnchor section="workspace-identity">
+          <SettingsSectionAnchor section="workspace-icon">
+            <div className="flex flex-col gap-4">
+              <WorkspaceSettingsIconAccordionItem controller={c} />
+            </div>
+          </SettingsSectionAnchor>
+        </SettingsSectionAnchor>
       </UserCenterSettingPanel>
 
       <WorkspaceSettingsBasicsLocalizationPanel controller={c} />

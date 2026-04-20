@@ -15,6 +15,7 @@ import {
   renewTeamInviteLink,
 } from "@/api/team";
 import { listMyWorkspaces } from "@/api/workspaces";
+import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { DataTableInfiniteScrollFooter } from "@/components/common/data-table-infinite-scroll-footer";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { InvitationStatusTag } from "@/components/ui/tags";
@@ -357,7 +358,12 @@ export function TeamInvitationsView(
       const expiresAt = dateTime.formatDateTimeOrNull(invitation.expiresAt);
 
       return (
-        <tr key={invitation.id} className="border-b border-border/50 last:border-b-0">
+        <SettingsSectionAnchor
+          key={invitation.id}
+          as="tr"
+          section="pending-invitations"
+          className="border-b border-border/50 last:border-b-0"
+        >
           <td className="py-4 pr-4">
             <div className="flex min-w-0 items-baseline justify-between gap-3">
               <div className="truncate font-medium text-label-primary">
@@ -418,7 +424,7 @@ export function TeamInvitationsView(
               </Button>
             </div>
           </td>
-        </tr>
+        </SettingsSectionAnchor>
       );
     },
     [dateTime, renderInvitationStatus, roleNameByCode, t],
@@ -435,7 +441,12 @@ export function TeamInvitationsView(
       const createdAt = dateTime.formatDateTimeOrNull(invitation.createdAt);
 
       return (
-        <tr key={invitation.id} className="border-b border-border/50 last:border-b-0">
+        <SettingsSectionAnchor
+          key={invitation.id}
+          as="tr"
+          section="accepted-invitations"
+          className="border-b border-border/50 last:border-b-0"
+        >
           <td className="py-4 pr-4 text-callout text-label-primary">{invitation.email || "-"}</td>
           <td className="px-4 py-4 text-callout text-label-primary">{roleName || "-"}</td>
           <td className="px-4 py-4">
@@ -464,7 +475,7 @@ export function TeamInvitationsView(
           <td className="py-4 pl-4 text-callout text-label-primary">
             <span className={createdAt ? "" : "text-label-secondary"}>{createdAt || "-"}</span>
           </td>
-        </tr>
+        </SettingsSectionAnchor>
       );
     },
     [dateTime, renderInvitationStatus, roleNameByCode, t],
@@ -486,7 +497,12 @@ export function TeamInvitationsView(
           : null);
 
       return (
-        <tr key={link.id} className="border-b border-border/50 last:border-b-0">
+        <SettingsSectionAnchor
+          key={link.id}
+          as="tr"
+          section="invite-links"
+          className="border-b border-border/50 last:border-b-0"
+        >
           <td className="py-4 pr-4">
             <InvitationUserLabel
               user={link.createdBy}
@@ -565,7 +581,7 @@ export function TeamInvitationsView(
               </Button>
             </div>
           </td>
-        </tr>
+        </SettingsSectionAnchor>
       );
     },
     [dateTime, disableLinkMutation, roleNameByCode, t, workspaceId],

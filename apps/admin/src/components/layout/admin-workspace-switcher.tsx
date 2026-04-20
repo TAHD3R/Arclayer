@@ -21,7 +21,7 @@ import {
   type WorkspaceAvatarIdentity,
 } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
-import { buildUsercenterOverlayNavigate } from "@/lib/routing/usercenter-overlay";
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { projectsHomePath } from "@/lib/routing/workspace-routing";
 import {
   WorkspaceCreateDialog,
@@ -442,8 +442,7 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
   const lastProjectId = useWorkspaceStore((state) => state.lastProjectId);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const navigate = useNavigate();
+  const settingsScreen = useSettingsScreen();
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", "switcher", sessionVersion],
@@ -521,12 +520,7 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
             }
             setCurrentWorkspaceId(effectiveWorkspaceId);
             closeFloatingPanel();
-            void navigate(
-              buildUsercenterOverlayNavigate({
-                currentLocation: { pathname, hash: "" },
-                tab: "workspace-general",
-              }),
-            );
+            settingsScreen.openSettings({ screen: "workspace.general" });
           }}
         />
         {effectiveWorkspaceId ? (
@@ -541,12 +535,10 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
               }
               setCurrentWorkspaceId(effectiveWorkspaceId);
               closeFloatingPanel();
-              void navigate(
-                buildUsercenterOverlayNavigate({
-                  currentLocation: { pathname, hash: "" },
-                  tab: "workspace-members",
-                }),
-              );
+              settingsScreen.openSettings({
+                screen: "workspace.members",
+                section: "invite-member",
+              });
             }}
           />
         ) : null}

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UserProfileView } from "@/pages/usercenter/profile/components/user-profile-view";
 
 const meQueryState = {
@@ -85,7 +86,11 @@ describe("UserProfileView", () => {
   });
 
   it("renders the danger section at the bottom of the profile view", () => {
-    render(<UserProfileView mode="dialog" />);
+    render(
+      <SettingsScreenProvider>
+        <UserProfileView mode="dialog" />
+      </SettingsScreenProvider>,
+    );
 
     expect(screen.getByText("profile-basics")).toBeVisible();
     expect(screen.getByText("linked-accounts")).toBeVisible();
@@ -97,7 +102,11 @@ describe("UserProfileView", () => {
     meQueryState.isLoading = true;
     meQueryState.data = undefined as unknown as typeof meQueryState.data;
 
-    render(<UserProfileView mode="dialog" />);
+    render(
+      <SettingsScreenProvider>
+        <UserProfileView mode="dialog" />
+      </SettingsScreenProvider>,
+    );
 
     expect(screen.getByLabelText("ME_TAB_PROFILE")).toBeVisible();
   });

@@ -2,13 +2,13 @@ import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/rea
 import { useState } from "react";
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UsercenterOverlayHost } from "@/components/layout/usercenter-overlay-host";
 import { WorkspaceFirstOnboardingOverlayHost } from "@/components/layout/workspace-first-onboarding-overlay-host";
 import { useSceneRevealTransition } from "@arclayer/hooks/use-scene-reveal-transition";
 import { isAuthScenePath, isLoginPath, isPublicPath } from "@/lib/routing/route-identity";
 import { resolvePostAuthRoute } from "@/lib/routing/post-auth-routing";
 import { getSceneLayout, resolveSceneKey } from "@/lib/routing/scene-registry";
-import { validateRootUsercenterOverlaySearch } from "@/lib/routing/usercenter-overlay";
 import { RouterDefaultError, RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
 import { RouteDocumentTitleManager } from "@/components/builtin/route-document-title-manager";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -42,29 +42,30 @@ export function RootLayout() {
   const [onboardingBlocking, setOnboardingBlocking] = useState(false);
 
   return (
-    <>
+    <SettingsScreenProvider>
       <RouteDocumentTitleManager />
-      <div
-        data-testid="root-scene-shell"
-        aria-hidden={onboardingBlocking ? "true" : undefined}
-        inert={onboardingBlocking}
-      >
-        <Layout>
-          <Outlet />
-        </Layout>
-      </div>
-      <UsercenterOverlayHost />
-      <WorkspaceFirstOnboardingOverlayHost
-        pathname={pathname}
-        onBlockingChange={setOnboardingBlocking}
-      />
-      <SceneLoadingOverlay visible={overlayVisible} />
-    </>
+      <>
+        <div
+          data-testid="root-scene-shell"
+          aria-hidden={onboardingBlocking ? "true" : undefined}
+          inert={onboardingBlocking}
+        >
+          <Layout>
+            <Outlet />
+          </Layout>
+        </div>
+        <UsercenterOverlayHost />
+        <WorkspaceFirstOnboardingOverlayHost
+          pathname={pathname}
+          onBlockingChange={setOnboardingBlocking}
+        />
+        <SceneLoadingOverlay visible={overlayVisible} />
+      </>
+    </SettingsScreenProvider>
   );
 }
 
 export const Route = createRootRoute({
-  validateSearch: validateRootUsercenterOverlaySearch,
   beforeLoad: async ({ location }) => {
     const token = useAuthStore.getState().accessToken;
     const isPublic = isPublicPath(location.pathname);

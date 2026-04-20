@@ -9,65 +9,71 @@ import {
 } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
+import type { SettingsScreen } from "@/lib/settings/settings-screen";
 
-export const SETTINGS_PERSONAL_NAV_ITEMS: readonly AdminNavItem[] = [
+export type SettingsNavItem = Omit<AdminNavItem, "to"> & {
+  screen: SettingsScreen;
+  to?: string;
+};
+
+export const SETTINGS_PERSONAL_NAV_ITEMS: readonly SettingsNavItem[] = [
   {
     key: "settings.personal.profile",
+    screen: "personal.profile",
     label: "Profile",
     labelKey: "account:ACCOUNT_NAV_PROFILE",
-    to: "/settings/personal/profile",
     icon: UserRound,
     groupLabelBeforeKey: "account:SETTINGS_NAV_SECTION_PERSONAL",
   },
   {
     key: "settings.personal.preferences",
+    screen: "personal.preferences",
     label: "Preferences",
     labelKey: "account:ACCOUNT_NAV_APPEARANCE",
-    to: "/settings/personal/preferences",
     icon: SlidersHorizontal,
   },
   {
     key: "settings.personal.notifications",
+    screen: "personal.notifications",
     label: "Notifications",
     labelKey: "account:ACCOUNT_NAV_NOTIFICATIONS",
-    to: "/settings/personal/notifications",
     icon: Bell,
   },
 ] as const;
 
-export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly AdminNavItem[] = [
+export const SETTINGS_WORKSPACE_NAV_ITEMS: readonly SettingsNavItem[] = [
   {
     key: "settings.workspace.general",
+    screen: "workspace.general",
     label: "General",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_GENERAL",
-    to: "/settings/workspace/general",
     icon: SquareStack,
     groupLabelBeforeKey: "account:SETTINGS_NAV_SECTION_WORKSPACE",
   },
   {
     key: "settings.workspace.members",
+    screen: "workspace.members",
     label: "Members",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_MEMBERS",
-    to: "/settings/workspace/members",
     icon: Users,
   },
   {
     key: "settings.workspace.invitations",
+    screen: "workspace.invitations",
     label: "Invitations",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_INVITATIONS",
-    to: "/settings/workspace/invitations",
     icon: MailPlus,
   },
   {
     key: "settings.workspace.roles",
+    screen: "workspace.roles",
     label: "Permissions",
     labelKey: "account:SETTINGS_NAV_WORKSPACE_ROLES",
-    to: "/settings/workspace/roles",
     icon: Shield,
   },
 ] as const;
 
-export const SETTINGS_NAV_ITEMS: readonly AdminNavItem[] = [
+export const SETTINGS_NAV_ITEMS: readonly SettingsNavItem[] = [
   ...SETTINGS_PERSONAL_NAV_ITEMS,
   ...SETTINGS_WORKSPACE_NAV_ITEMS,
 ] as const;

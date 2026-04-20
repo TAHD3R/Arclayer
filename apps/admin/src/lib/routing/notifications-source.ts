@@ -1,12 +1,30 @@
 import { isGlobalPath } from "@/lib/routing/route-identity";
+import type { SettingsScreen } from "@/lib/settings/settings-screen";
 import { normalizePath } from "@/lib/admin-nav-utils";
 
-export type NotificationsSourceKind = "workspace" | "global" | "account";
+export type NotificationsSourceKind = "workspace" | "global" | "personal";
 
-export type NotificationsSourceSearch = {
-  sourceKind?: NotificationsSourceKind;
+type WorkspaceOrGlobalNotificationsSource = {
+  sourceKind?: "workspace" | "global";
   sourcePath?: string;
+  sourceScreen?: never;
 };
+
+type PersonalNotificationsSource = {
+  sourceKind?: "personal";
+  sourceScreen?: SettingsScreen;
+  sourcePath?: never;
+};
+
+export type NotificationsSourceSearch =
+  | WorkspaceOrGlobalNotificationsSource
+  | PersonalNotificationsSource;
+
+const PERSONAL_NOTIFICATIONS_SCREENS = new Set<SettingsScreen>([
+  "personal.profile",
+  "personal.preferences",
+  "personal.notifications",
+]);
 
 function isValidRelativePath(value: string): boolean {
   return value.startsWith("/") && !value.startsWith("//");
@@ -15,7 +33,11 @@ function isValidRelativePath(value: string): boolean {
 function isAllowedSourcePath(kind: NotificationsSourceKind, path: string): boolean {
   if (kind === "workspace") return path.startsWith("/projects/");
   if (kind === "global") return isGlobalPath(path);
-  return path.startsWith("/settings/personal/") || path === "/settings";
+  return false;
+}
+
+function isPersonalNotificationsScreen(value: unknown): value is SettingsScreen {
+  return typeof value === "string" && PERSONAL_NOTIFICATIONS_SCREENS.has(value as SettingsScreen);
 }
 
 export function validateNotificationsSourceSearch(
@@ -24,16 +46,24 @@ export function validateNotificationsSourceSearch(
   const sourceKind =
     search.sourceKind === "workspace" ||
     search.sourceKind === "global" ||
-    search.sourceKind === "account"
+    search.sourceKind === "personal"
       ? search.sourceKind
       : undefined;
+
+  if (!sourceKind) return {};
+
+  if (sourceKind === "personal") {
+    return isPersonalNotificationsScreen(search.sourceScreen)
+      ? { sourceKind, sourceScreen: search.sourceScreen }
+      : {};
+  }
+
   const rawPath =
     typeof search.sourcePath === "string" && search.sourcePath.trim()
       ? search.sourcePath.trim()
       : undefined;
 
-  if (!sourceKind || !rawPath) return {};
-  if (!isValidRelativePath(rawPath)) return {};
+  if (!rawPath || !isValidRelativePath(rawPath)) return {};
 
   const sourcePath = normalizePath(rawPath);
   if (!isAllowedSourcePath(sourceKind, sourcePath)) return {};
@@ -48,10 +78,14 @@ export function parseNotificationsSourceSearch(searchStr: string): Notifications
   return validateNotificationsSourceSearch({
     sourceKind: params.get("sourceKind") ?? undefined,
     sourcePath: params.get("sourcePath") ?? undefined,
+    sourceScreen: params.get("sourceScreen") ?? undefined,
   });
 }
 
-export function buildNotificationsSourceSearch(pathname: string): NotificationsSourceSearch {
+export function buildNotificationsSourceSearch(
+  pathname: string,
+  options: { settingsScreen?: SettingsScreen } = {},
+): NotificationsSourceSearch {
   const normalized = normalizePath(pathname);
 
   if (normalized.startsWith("/projects/")) {
@@ -61,10 +95,10 @@ export function buildNotificationsSourceSearch(pathname: string): NotificationsS
     };
   }
 
-  if (normalized.startsWith("/settings/personal") || normalized === "/settings") {
+  if (options.settingsScreen && PERSONAL_NOTIFICATIONS_SCREENS.has(options.settingsScreen)) {
     return {
-      sourceKind: "account",
-      sourcePath: normalized,
+      sourceKind: "personal",
+      sourceScreen: options.settingsScreen,
     };
   }
 

@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SystemRouteImport } from './routes/system'
-import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SystemIndexRouteImport } from './routes/system/index'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
@@ -24,16 +23,7 @@ import { Route as SystemOauthIndexRouteImport } from './routes/system/oauth/inde
 import { Route as SystemNotificationsIndexRouteImport } from './routes/system/notifications/index'
 import { Route as SystemEmailIndexRouteImport } from './routes/system/email/index'
 import { Route as SystemAccessIndexRouteImport } from './routes/system/access/index'
-import { Route as SettingsWorkspaceIndexRouteImport } from './routes/settings/workspace/index'
-import { Route as SettingsPersonalIndexRouteImport } from './routes/settings/personal/index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
-import { Route as SettingsWorkspaceRolesIndexRouteImport } from './routes/settings/workspace/roles/index'
-import { Route as SettingsWorkspaceMembersIndexRouteImport } from './routes/settings/workspace/members/index'
-import { Route as SettingsWorkspaceInvitationsIndexRouteImport } from './routes/settings/workspace/invitations/index'
-import { Route as SettingsWorkspaceGeneralIndexRouteImport } from './routes/settings/workspace/general/index'
-import { Route as SettingsPersonalProfileIndexRouteImport } from './routes/settings/personal/profile/index'
-import { Route as SettingsPersonalPreferencesIndexRouteImport } from './routes/settings/personal/preferences/index'
-import { Route as SettingsPersonalNotificationsIndexRouteImport } from './routes/settings/personal/notifications/index'
 import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
 import { Route as ProjectsProjectIdAssetsIndexRouteImport } from './routes/projects/$projectId/assets/index'
 import { Route as ProjectsProjectIdActivityIndexRouteImport } from './routes/projects/$projectId/activity/index'
@@ -54,11 +44,6 @@ import { Route as ProjectsProjectIdContentLibraryItemIdIndexRouteImport } from '
 const SystemRoute = SystemRouteImport.update({
   id: '/system',
   path: '/system',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -133,16 +118,6 @@ const SystemAccessIndexRoute = SystemAccessIndexRouteImport.update({
   path: '/access/',
   getParentRoute: () => SystemRoute,
 } as any)
-const SettingsWorkspaceIndexRoute = SettingsWorkspaceIndexRouteImport.update({
-  id: '/workspace/',
-  path: '/workspace/',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsPersonalIndexRoute = SettingsPersonalIndexRouteImport.update({
-  id: '/personal/',
-  path: '/personal/',
-  getParentRoute: () => SettingsRoute,
-} as any)
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -150,48 +125,6 @@ const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/projects/$projectId/index.lazy').then((d) => d.Route),
 )
-const SettingsWorkspaceRolesIndexRoute =
-  SettingsWorkspaceRolesIndexRouteImport.update({
-    id: '/workspace/roles/',
-    path: '/workspace/roles/',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsWorkspaceMembersIndexRoute =
-  SettingsWorkspaceMembersIndexRouteImport.update({
-    id: '/workspace/members/',
-    path: '/workspace/members/',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsWorkspaceInvitationsIndexRoute =
-  SettingsWorkspaceInvitationsIndexRouteImport.update({
-    id: '/workspace/invitations/',
-    path: '/workspace/invitations/',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsWorkspaceGeneralIndexRoute =
-  SettingsWorkspaceGeneralIndexRouteImport.update({
-    id: '/workspace/general/',
-    path: '/workspace/general/',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsPersonalProfileIndexRoute =
-  SettingsPersonalProfileIndexRouteImport.update({
-    id: '/personal/profile/',
-    path: '/personal/profile/',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsPersonalPreferencesIndexRoute =
-  SettingsPersonalPreferencesIndexRouteImport.update({
-    id: '/personal/preferences/',
-    path: '/personal/preferences/',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsPersonalNotificationsIndexRoute =
-  SettingsPersonalNotificationsIndexRouteImport.update({
-    id: '/personal/notifications/',
-    path: '/personal/notifications/',
-    getParentRoute: () => SettingsRoute,
-  } as any)
 const ProjectsProjectIdSettingsIndexRoute =
   ProjectsProjectIdSettingsIndexRouteImport.update({
     id: '/settings/',
@@ -327,7 +260,6 @@ const ProjectsProjectIdContentLibraryItemIdIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/settings': typeof SettingsRouteWithChildren
   '/system': typeof SystemRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/invitations/': typeof InvitationsIndexRoute
@@ -337,8 +269,6 @@ export interface FileRoutesByFullPath {
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/system/': typeof SystemIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/settings/personal/': typeof SettingsPersonalIndexRoute
-  '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
   '/system/access/': typeof SystemAccessIndexRoute
   '/system/email/': typeof SystemEmailIndexRoute
   '/system/notifications/': typeof SystemNotificationsIndexRoute
@@ -347,13 +277,6 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
-  '/settings/personal/notifications/': typeof SettingsPersonalNotificationsIndexRoute
-  '/settings/personal/preferences/': typeof SettingsPersonalPreferencesIndexRoute
-  '/settings/personal/profile/': typeof SettingsPersonalProfileIndexRoute
-  '/settings/workspace/general/': typeof SettingsWorkspaceGeneralIndexRoute
-  '/settings/workspace/invitations/': typeof SettingsWorkspaceInvitationsIndexRoute
-  '/settings/workspace/members/': typeof SettingsWorkspaceMembersIndexRoute
-  '/settings/workspace/roles/': typeof SettingsWorkspaceRolesIndexRoute
   '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
   '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
@@ -370,7 +293,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/settings': typeof SettingsRouteWithChildren
   '/invitations': typeof InvitationsIndexRoute
   '/login': typeof LoginIndexRoute
   '/notifications': typeof NotificationsIndexRoute
@@ -378,8 +300,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordIndexRoute
   '/system': typeof SystemIndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
-  '/settings/personal': typeof SettingsPersonalIndexRoute
-  '/settings/workspace': typeof SettingsWorkspaceIndexRoute
   '/system/access': typeof SystemAccessIndexRoute
   '/system/email': typeof SystemEmailIndexRoute
   '/system/notifications': typeof SystemNotificationsIndexRoute
@@ -388,13 +308,6 @@ export interface FileRoutesByTo {
   '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
-  '/settings/personal/notifications': typeof SettingsPersonalNotificationsIndexRoute
-  '/settings/personal/preferences': typeof SettingsPersonalPreferencesIndexRoute
-  '/settings/personal/profile': typeof SettingsPersonalProfileIndexRoute
-  '/settings/workspace/general': typeof SettingsWorkspaceGeneralIndexRoute
-  '/settings/workspace/invitations': typeof SettingsWorkspaceInvitationsIndexRoute
-  '/settings/workspace/members': typeof SettingsWorkspaceMembersIndexRoute
-  '/settings/workspace/roles': typeof SettingsWorkspaceRolesIndexRoute
   '/projects/$projectId/content/automation': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create': typeof ProjectsProjectIdContentCreateIndexRoute
   '/projects/$projectId/content/library': typeof ProjectsProjectIdContentLibraryIndexRoute
@@ -412,7 +325,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/settings': typeof SettingsRouteWithChildren
   '/system': typeof SystemRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/invitations/': typeof InvitationsIndexRoute
@@ -422,8 +334,6 @@ export interface FileRoutesById {
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/system/': typeof SystemIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/settings/personal/': typeof SettingsPersonalIndexRoute
-  '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
   '/system/access/': typeof SystemAccessIndexRoute
   '/system/email/': typeof SystemEmailIndexRoute
   '/system/notifications/': typeof SystemNotificationsIndexRoute
@@ -432,13 +342,6 @@ export interface FileRoutesById {
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
-  '/settings/personal/notifications/': typeof SettingsPersonalNotificationsIndexRoute
-  '/settings/personal/preferences/': typeof SettingsPersonalPreferencesIndexRoute
-  '/settings/personal/profile/': typeof SettingsPersonalProfileIndexRoute
-  '/settings/workspace/general/': typeof SettingsWorkspaceGeneralIndexRoute
-  '/settings/workspace/invitations/': typeof SettingsWorkspaceInvitationsIndexRoute
-  '/settings/workspace/members/': typeof SettingsWorkspaceMembersIndexRoute
-  '/settings/workspace/roles/': typeof SettingsWorkspaceRolesIndexRoute
   '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
   '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
@@ -457,7 +360,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/settings'
     | '/system'
     | '/projects/$projectId'
     | '/invitations/'
@@ -467,8 +369,6 @@ export interface FileRouteTypes {
     | '/reset-password/'
     | '/system/'
     | '/projects/$projectId/'
-    | '/settings/personal/'
-    | '/settings/workspace/'
     | '/system/access/'
     | '/system/email/'
     | '/system/notifications/'
@@ -477,13 +377,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
     | '/projects/$projectId/settings/'
-    | '/settings/personal/notifications/'
-    | '/settings/personal/preferences/'
-    | '/settings/personal/profile/'
-    | '/settings/workspace/general/'
-    | '/settings/workspace/invitations/'
-    | '/settings/workspace/members/'
-    | '/settings/workspace/roles/'
     | '/projects/$projectId/content/automation/'
     | '/projects/$projectId/content/create/'
     | '/projects/$projectId/content/library/'
@@ -500,7 +393,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/settings'
     | '/invitations'
     | '/login'
     | '/notifications'
@@ -508,8 +400,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/system'
     | '/projects/$projectId'
-    | '/settings/personal'
-    | '/settings/workspace'
     | '/system/access'
     | '/system/email'
     | '/system/notifications'
@@ -518,13 +408,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/activity'
     | '/projects/$projectId/assets'
     | '/projects/$projectId/settings'
-    | '/settings/personal/notifications'
-    | '/settings/personal/preferences'
-    | '/settings/personal/profile'
-    | '/settings/workspace/general'
-    | '/settings/workspace/invitations'
-    | '/settings/workspace/members'
-    | '/settings/workspace/roles'
     | '/projects/$projectId/content/automation'
     | '/projects/$projectId/content/create'
     | '/projects/$projectId/content/library'
@@ -541,7 +424,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/settings'
     | '/system'
     | '/projects/$projectId'
     | '/invitations/'
@@ -551,8 +433,6 @@ export interface FileRouteTypes {
     | '/reset-password/'
     | '/system/'
     | '/projects/$projectId/'
-    | '/settings/personal/'
-    | '/settings/workspace/'
     | '/system/access/'
     | '/system/email/'
     | '/system/notifications/'
@@ -561,13 +441,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
     | '/projects/$projectId/settings/'
-    | '/settings/personal/notifications/'
-    | '/settings/personal/preferences/'
-    | '/settings/personal/profile/'
-    | '/settings/workspace/general/'
-    | '/settings/workspace/invitations/'
-    | '/settings/workspace/members/'
-    | '/settings/workspace/roles/'
     | '/projects/$projectId/content/automation/'
     | '/projects/$projectId/content/create/'
     | '/projects/$projectId/content/library/'
@@ -585,7 +458,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SettingsRoute: typeof SettingsRouteWithChildren
   SystemRoute: typeof SystemRouteWithChildren
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
   InvitationsIndexRoute: typeof InvitationsIndexRoute
@@ -602,13 +474,6 @@ declare module '@tanstack/react-router' {
       path: '/system'
       fullPath: '/system'
       preLoaderRoute: typeof SystemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -702,75 +567,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemAccessIndexRouteImport
       parentRoute: typeof SystemRoute
     }
-    '/settings/workspace/': {
-      id: '/settings/workspace/'
-      path: '/workspace'
-      fullPath: '/settings/workspace/'
-      preLoaderRoute: typeof SettingsWorkspaceIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/personal/': {
-      id: '/settings/personal/'
-      path: '/personal'
-      fullPath: '/settings/personal/'
-      preLoaderRoute: typeof SettingsPersonalIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
     '/projects/$projectId/': {
       id: '/projects/$projectId/'
       path: '/'
       fullPath: '/projects/$projectId/'
       preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
-    }
-    '/settings/workspace/roles/': {
-      id: '/settings/workspace/roles/'
-      path: '/workspace/roles'
-      fullPath: '/settings/workspace/roles/'
-      preLoaderRoute: typeof SettingsWorkspaceRolesIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/workspace/members/': {
-      id: '/settings/workspace/members/'
-      path: '/workspace/members'
-      fullPath: '/settings/workspace/members/'
-      preLoaderRoute: typeof SettingsWorkspaceMembersIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/workspace/invitations/': {
-      id: '/settings/workspace/invitations/'
-      path: '/workspace/invitations'
-      fullPath: '/settings/workspace/invitations/'
-      preLoaderRoute: typeof SettingsWorkspaceInvitationsIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/workspace/general/': {
-      id: '/settings/workspace/general/'
-      path: '/workspace/general'
-      fullPath: '/settings/workspace/general/'
-      preLoaderRoute: typeof SettingsWorkspaceGeneralIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/personal/profile/': {
-      id: '/settings/personal/profile/'
-      path: '/personal/profile'
-      fullPath: '/settings/personal/profile/'
-      preLoaderRoute: typeof SettingsPersonalProfileIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/personal/preferences/': {
-      id: '/settings/personal/preferences/'
-      path: '/personal/preferences'
-      fullPath: '/settings/personal/preferences/'
-      preLoaderRoute: typeof SettingsPersonalPreferencesIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/personal/notifications/': {
-      id: '/settings/personal/notifications/'
-      path: '/personal/notifications'
-      fullPath: '/settings/personal/notifications/'
-      preLoaderRoute: typeof SettingsPersonalNotificationsIndexRouteImport
-      parentRoute: typeof SettingsRoute
     }
     '/projects/$projectId/settings/': {
       id: '/projects/$projectId/settings/'
@@ -887,36 +689,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface SettingsRouteChildren {
-  SettingsPersonalIndexRoute: typeof SettingsPersonalIndexRoute
-  SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute
-  SettingsPersonalNotificationsIndexRoute: typeof SettingsPersonalNotificationsIndexRoute
-  SettingsPersonalPreferencesIndexRoute: typeof SettingsPersonalPreferencesIndexRoute
-  SettingsPersonalProfileIndexRoute: typeof SettingsPersonalProfileIndexRoute
-  SettingsWorkspaceGeneralIndexRoute: typeof SettingsWorkspaceGeneralIndexRoute
-  SettingsWorkspaceInvitationsIndexRoute: typeof SettingsWorkspaceInvitationsIndexRoute
-  SettingsWorkspaceMembersIndexRoute: typeof SettingsWorkspaceMembersIndexRoute
-  SettingsWorkspaceRolesIndexRoute: typeof SettingsWorkspaceRolesIndexRoute
-}
-
-const SettingsRouteChildren: SettingsRouteChildren = {
-  SettingsPersonalIndexRoute: SettingsPersonalIndexRoute,
-  SettingsWorkspaceIndexRoute: SettingsWorkspaceIndexRoute,
-  SettingsPersonalNotificationsIndexRoute:
-    SettingsPersonalNotificationsIndexRoute,
-  SettingsPersonalPreferencesIndexRoute: SettingsPersonalPreferencesIndexRoute,
-  SettingsPersonalProfileIndexRoute: SettingsPersonalProfileIndexRoute,
-  SettingsWorkspaceGeneralIndexRoute: SettingsWorkspaceGeneralIndexRoute,
-  SettingsWorkspaceInvitationsIndexRoute:
-    SettingsWorkspaceInvitationsIndexRoute,
-  SettingsWorkspaceMembersIndexRoute: SettingsWorkspaceMembersIndexRoute,
-  SettingsWorkspaceRolesIndexRoute: SettingsWorkspaceRolesIndexRoute,
-}
-
-const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
-  SettingsRouteChildren,
-)
-
 interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
   SystemAccessIndexRoute: typeof SystemAccessIndexRoute
@@ -996,7 +768,6 @@ const ProjectsProjectIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SettingsRoute: SettingsRouteWithChildren,
   SystemRoute: SystemRouteWithChildren,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
   InvitationsIndexRoute: InvitationsIndexRoute,
