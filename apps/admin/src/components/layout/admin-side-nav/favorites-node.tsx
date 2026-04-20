@@ -30,6 +30,7 @@ import {
 } from "@arclayer/ui/breadcrumb";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { Collapsible, CollapsibleContent } from "@arclayer/ui/collapsible";
+import { ConfirmDialog } from "@arclayer/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +66,7 @@ import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
 import { extractWorkspaceBaseFromPath, mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { FavoriteFolderNode, FavoriteNode } from "@/types/stores/favorites";
 import type { AdminNavItem } from "@/types/admin-nav";
 import {
@@ -172,6 +174,7 @@ const FAVORITES_LAYOUT_COLLAPSE_CONTROLS_CLASSNAME = cn(
   NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
   "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
   "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:gap-0",
+  "opacity-0 transition-opacity duration-150 group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100",
 );
 const FAVORITES_ROW_ACTIONS_CLASSNAME = cn(
   FAVORITES_TRAILING_CONTROLS_CLASSNAME,
@@ -589,7 +592,7 @@ function FavoriteFolderMenu(props: { onRename: () => void; onDelete: () => void 
   );
 }
 
-function FavoritesHeaderMenu(props: { onCreateFolder: () => void }) {
+function FavoritesHeaderMenu(props: { onCreateFolder: () => void; onHideFromSidebar: () => void }) {
   const { t } = useTranslation("nav");
 
   return (
@@ -610,6 +613,10 @@ function FavoritesHeaderMenu(props: { onCreateFolder: () => void }) {
           onSelect={props.onCreateFolder}
         >
           {t("NAV_FAVORITES_ACTION_NEW_FOLDER")}
+        </DropdownMenuIconItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuIconItem onSelect={props.onHideFromSidebar}>
+          {t("NAV_FAVORITES_ACTION_HIDE_FROM_SIDEBAR")}
         </DropdownMenuIconItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1130,10 +1137,12 @@ export function FavoritesNode(props: FavoritesNodeProps) {
   const renameFolder = useFavoritesStore((state) => state.renameFolder);
   const deleteFolder = useFavoritesStore((state) => state.deleteFolder);
   const setFolderExpanded = useFavoritesStore((state) => state.setFolderExpanded);
+  const setSidebarItemVisible = usePreferencesStore((state) => state.setSidebarItemVisible);
 
   const [overlayEntry, setOverlayEntry] = useState<FavoriteOverlayEntry | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [hideConfirmOpen, setHideConfirmOpen] = useState(false);
   const overlayWorkspaceBase = useMemo(
     () => (overlayEntry ? extractWorkspaceBaseFromPath(overlayEntry.href) : null),
     [overlayEntry],
@@ -1200,6 +1209,11 @@ export function FavoritesNode(props: FavoritesNodeProps) {
     setSectionExpanded(true);
     const folderId = addFolder(defaultFolderName, null);
     startEditingFolder(folderId, defaultFolderName);
+  };
+
+  const handleConfirmHideFromSidebar = () => {
+    setSidebarItemVisible("favorites", false);
+    setHideConfirmOpen(false);
   };
 
   const handleSelectItem = (row: FavoriteDisplayItem) => {
@@ -1311,9 +1325,10 @@ export function FavoritesNode(props: FavoritesNodeProps) {
                 </span>
               </ButtonPrimitive>
               <div className={FAVORITES_LAYOUT_COLLAPSE_CONTROLS_CLASSNAME}>
-                {effectiveExpanded ? (
-                  <FavoritesHeaderMenu onCreateFolder={handleCreateFolder} />
-                ) : null}
+                <FavoritesHeaderMenu
+                  onCreateFolder={handleCreateFolder}
+                  onHideFromSidebar={() => setHideConfirmOpen(true)}
+                />
                 <span
                   className={cn(NAV_TRAILING_ICON_SLOT_CLASSNAME, NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}
                 >
@@ -1467,6 +1482,15 @@ export function FavoritesNode(props: FavoritesNodeProps) {
           ) : null}
         </ExpandableScreenContent>
       </ExpandableScreen>
+      <ConfirmDialog
+        open={hideConfirmOpen}
+        onOpenChange={setHideConfirmOpen}
+        title={t("NAV_FAVORITES_HIDE_CONFIRM_TITLE")}
+        description={t("NAV_FAVORITES_HIDE_CONFIRM_DESCRIPTION")}
+        confirmText={t("NAV_FAVORITES_HIDE_CONFIRM_ACTION")}
+        cancelText={t("NAV_FAVORITES_HIDE_CONFIRM_CANCEL")}
+        onConfirm={handleConfirmHideFromSidebar}
+      />
     </>
   );
 }

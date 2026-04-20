@@ -25,10 +25,26 @@ import {
 import type {
   LocalePreferenceMode,
   PreferencesState,
+  SidebarItemVisibility,
+  SidebarVisibilityItemKey,
   ThemePreference,
   WorkspaceLocaleCache,
 } from "@/types/stores";
 import { type ThemeMode } from "@arclayer/ui/theme-mode";
+
+const DEFAULT_SIDEBAR_ITEM_VISIBILITY: SidebarItemVisibility = {
+  favorites: true,
+};
+
+function normalizeSidebarItemVisibility(input: unknown): SidebarItemVisibility {
+  const record = input && typeof input === "object" ? input : {};
+  return {
+    favorites:
+      typeof (record as Partial<Record<SidebarVisibilityItemKey, unknown>>).favorites === "boolean"
+        ? Boolean((record as Partial<Record<SidebarVisibilityItemKey, unknown>>).favorites)
+        : DEFAULT_SIDEBAR_ITEM_VISIBILITY.favorites,
+  };
+}
 
 function normalizeLocalePreferenceMode(input: unknown): LocalePreferenceMode {
   if (input === "explicit" || input === "browser" || input === "workspace") return input;
@@ -276,6 +292,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   notificationPanelPinned: false,
   sidebarOpen: true,
   showNotificationsBadge: true,
+  sidebarItemVisibility: DEFAULT_SIDEBAR_ITEM_VISIBILITY,
 
   setThemeMode: (mode) => {
     get().setThemePreference(mode);
@@ -402,6 +419,16 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     writeStorageItem(STORAGE_KEYS.showNotificationsBadge, String(show));
     set({ showNotificationsBadge: show });
   },
+
+  setSidebarItemVisible: (key, visible) => {
+    const current = get().sidebarItemVisibility;
+    const next = {
+      ...current,
+      [key]: Boolean(visible),
+    };
+    writeStorageJson(STORAGE_KEYS.sidebarItemVisibility, next);
+    set({ sidebarItemVisibility: next });
+  },
 }));
 
 let isInitialized = false;
@@ -440,6 +467,9 @@ export function initializePreferences() {
   const showNotificationsBadge = showNotificationsBadgeStored
     ? showNotificationsBadgeStored === "true"
     : true;
+  const sidebarItemVisibility = normalizeSidebarItemVisibility(
+    readStorageJson(STORAGE_KEYS.sidebarItemVisibility),
+  );
 
   applyReduceMotionToDom(reduceMotion);
   applyContrastToDom(contrastMore);
@@ -460,6 +490,7 @@ export function initializePreferences() {
     notificationPanelPinned,
     sidebarOpen,
     showNotificationsBadge,
+    sidebarItemVisibility,
   });
 
   themeObserver = new MutationObserver((mutations) => {

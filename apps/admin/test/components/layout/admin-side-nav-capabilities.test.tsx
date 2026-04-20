@@ -7,6 +7,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { Sidebar, SidebarProvider } from "@arclayer/ui/sidebar";
 
@@ -19,6 +20,7 @@ const translations: Record<string, string> = {
   NAV_FAVORITES_NEW_FOLDER_NAME: "New folder",
   NAV_FAVORITES_FOLDER_NAME_INPUT: "Folder name",
   NAV_FAVORITES_ACTION_NEW_FOLDER: "New folder",
+  NAV_FAVORITES_ACTION_HIDE_FROM_SIDEBAR: "Hide from sidebar",
   NAV_FAVORITES_ACTION_RENAME_FOLDER: "Rename folder",
   NAV_FAVORITES_ACTION_DELETE_FOLDER: "Delete folder",
   NAV_FAVORITES_ROW_ACTIONS: "Favorite actions",
@@ -29,6 +31,11 @@ const translations: Record<string, string> = {
   NAV_FAVORITES_ACTION_REMOVE: "Remove from favorites",
   NAV_FAVORITES_ACTION_EXPAND: "Expand favorites",
   NAV_FAVORITES_ACTION_COLLAPSE: "Collapse favorites",
+  NAV_FAVORITES_HIDE_CONFIRM_TITLE: "Hide Favorites from the sidebar",
+  NAV_FAVORITES_HIDE_CONFIRM_DESCRIPTION:
+    "Favorites will be removed from the sidebar. You can show them again anytime in Preferences > Sidebar & navigation.",
+  NAV_FAVORITES_HIDE_CONFIRM_ACTION: "Hide Favorites",
+  NAV_FAVORITES_HIDE_CONFIRM_CANCEL: "Cancel",
 };
 
 let mockPathname = "/";
@@ -178,6 +185,7 @@ describe("AdminSiderNav capability nodes", () => {
     vi.restoreAllMocks();
     mockPathname = "/";
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
+    usePreferencesStore.setState({ sidebarItemVisibility: { favorites: true } });
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-1",
       project: { projectId: "project-1" },
@@ -208,7 +216,8 @@ describe("AdminSiderNav capability nodes", () => {
       </SidebarProvider>,
     );
 
-    expect(screen.queryByRole("button", { name: "Favorites actions" })).not.toBeInTheDocument();
+    const favoritesActionButton = screen.getByRole("button", { name: "Favorites actions" });
+    expect(favoritesActionButton.parentElement?.className).toContain("opacity-0");
 
     await user.click(screen.getByRole("button", { name: "Favorites" }));
 

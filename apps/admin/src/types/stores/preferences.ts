@@ -5,6 +5,8 @@ import type { AppLocale } from "@/lib/i18n";
 export type ThemePreference = ThemeMode | "system";
 export type LocalePreferenceMode = "workspace" | "browser" | "explicit";
 export type WorkspaceLocaleCache = Record<string, AppLocale | undefined>;
+export type SidebarVisibilityItemKey = "favorites";
+export type SidebarItemVisibility = Record<SidebarVisibilityItemKey, boolean>;
 
 export interface PreferencesState {
   themeMode: ThemeMode;
@@ -36,4 +38,6 @@ export interface PreferencesState {
   setSidebarOpen: (open: boolean) => void;
   showNotificationsBadge: boolean;
   setShowNotificationsBadge: (show: boolean) => void;
+  sidebarItemVisibility: SidebarItemVisibility;
+  setSidebarItemVisible: (key: SidebarVisibilityItemKey, visible: boolean) => void;
 }

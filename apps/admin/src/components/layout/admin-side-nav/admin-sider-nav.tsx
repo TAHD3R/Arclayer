@@ -7,6 +7,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 import type { FavoriteNode } from "@/types/stores/favorites";
 import { cn } from "@arclayer/lib/utils";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -233,6 +234,7 @@ function useDisplayItems(
     [favoritePaths, storedFavoriteTree],
   );
   const baseItems = props.items ?? [];
+  const sidebarItemVisibility = usePreferencesStore((state) => state.sidebarItemVisibility);
   const favoriteItems = useMemo(
     () =>
       resolveFavoriteNavItems({
@@ -244,8 +246,11 @@ function useDisplayItems(
     [favoriteTree, baseItems, props.favoriteWorkspaceBase, i18n.language, i18n.resolvedLanguage, t],
   );
   const starredItem = useMemo(
-    () => (props.showFavorites ? buildStarredItem(favoriteItems, pathname) : null),
-    [favoriteItems, pathname, props.showFavorites],
+    () =>
+      props.showFavorites && sidebarItemVisibility.favorites
+        ? buildStarredItem(favoriteItems, pathname)
+        : null,
+    [favoriteItems, pathname, props.showFavorites, sidebarItemVisibility.favorites],
   );
   const displayItems = useMemo(
     () => injectStarredItem(baseItems, starredItem),

@@ -8,879 +8,922 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as SystemRouteImport } from "./routes/system";
-import { Route as SettingsRouteImport } from "./routes/settings";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as SystemIndexRouteImport } from "./routes/system/index";
-import { Route as ResetPasswordIndexRouteImport } from "./routes/reset-password/index";
-import { Route as ProjectsIndexRouteImport } from "./routes/projects/index";
-import { Route as NotificationsIndexRouteImport } from "./routes/notifications/index";
-import { Route as LoginIndexRouteImport } from "./routes/login/index";
-import { Route as InvitationsIndexRouteImport } from "./routes/invitations/index";
-import { Route as ProjectsProjectIdRouteImport } from "./routes/projects/$projectId";
-import { Route as SystemStorageIndexRouteImport } from "./routes/system/storage/index";
-import { Route as SystemOauthIndexRouteImport } from "./routes/system/oauth/index";
-import { Route as SystemNotificationsIndexRouteImport } from "./routes/system/notifications/index";
-import { Route as SystemEmailIndexRouteImport } from "./routes/system/email/index";
-import { Route as SystemAccessIndexRouteImport } from "./routes/system/access/index";
-import { Route as SettingsWorkspaceIndexRouteImport } from "./routes/settings/workspace/index";
-import { Route as SettingsPersonalIndexRouteImport } from "./routes/settings/personal/index";
-import { Route as ProjectsProjectIdIndexRouteImport } from "./routes/projects/$projectId/index";
-import { Route as SettingsWorkspaceRolesIndexRouteImport } from "./routes/settings/workspace/roles/index";
-import { Route as SettingsWorkspaceMembersIndexRouteImport } from "./routes/settings/workspace/members/index";
-import { Route as SettingsWorkspaceInvitationsIndexRouteImport } from "./routes/settings/workspace/invitations/index";
-import { Route as SettingsWorkspaceGeneralIndexRouteImport } from "./routes/settings/workspace/general/index";
-import { Route as SettingsPersonalProfileIndexRouteImport } from "./routes/settings/personal/profile/index";
-import { Route as SettingsPersonalPreferencesIndexRouteImport } from "./routes/settings/personal/preferences/index";
-import { Route as SettingsPersonalNotificationsIndexRouteImport } from "./routes/settings/personal/notifications/index";
-import { Route as ProjectsProjectIdSettingsIndexRouteImport } from "./routes/projects/$projectId/settings/index";
-import { Route as ProjectsProjectIdAssetsIndexRouteImport } from "./routes/projects/$projectId/assets/index";
-import { Route as ProjectsProjectIdActivityIndexRouteImport } from "./routes/projects/$projectId/activity/index";
-import { Route as ProjectsProjectIdSettingsSeoIndexRouteImport } from "./routes/projects/$projectId/settings/seo/index";
-import { Route as ProjectsProjectIdSettingsRuntimeIndexRouteImport } from "./routes/projects/$projectId/settings/runtime/index";
-import { Route as ProjectsProjectIdSettingsLocalizationIndexRouteImport } from "./routes/projects/$projectId/settings/localization/index";
-import { Route as ProjectsProjectIdSettingsGeneralIndexRouteImport } from "./routes/projects/$projectId/settings/general/index";
-import { Route as ProjectsProjectIdSettingsDomainIndexRouteImport } from "./routes/projects/$projectId/settings/domain/index";
-import { Route as ProjectsProjectIdSettingsApiKeysIndexRouteImport } from "./routes/projects/$projectId/settings/api-keys/index";
-import { Route as ProjectsProjectIdContentSiteBuilderIndexRouteImport } from "./routes/projects/$projectId/content/site-builder/index";
-import { Route as ProjectsProjectIdContentReleasesIndexRouteImport } from "./routes/projects/$projectId/content/releases/index";
-import { Route as ProjectsProjectIdContentModelsIndexRouteImport } from "./routes/projects/$projectId/content/models/index";
-import { Route as ProjectsProjectIdContentLibraryIndexRouteImport } from "./routes/projects/$projectId/content/library/index";
-import { Route as ProjectsProjectIdContentCreateIndexRouteImport } from "./routes/projects/$projectId/content/create/index";
-import { Route as ProjectsProjectIdContentAutomationIndexRouteImport } from "./routes/projects/$projectId/content/automation/index";
-import { Route as ProjectsProjectIdContentLibraryItemIdIndexRouteImport } from "./routes/projects/$projectId/content/library/$itemId/index";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as SystemRouteImport } from './routes/system'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as SystemIndexRouteImport } from './routes/system/index'
+import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
+import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
+import { Route as LoginIndexRouteImport } from './routes/login/index'
+import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
+import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
+import { Route as SystemStorageIndexRouteImport } from './routes/system/storage/index'
+import { Route as SystemOauthIndexRouteImport } from './routes/system/oauth/index'
+import { Route as SystemNotificationsIndexRouteImport } from './routes/system/notifications/index'
+import { Route as SystemEmailIndexRouteImport } from './routes/system/email/index'
+import { Route as SystemAccessIndexRouteImport } from './routes/system/access/index'
+import { Route as SettingsWorkspaceIndexRouteImport } from './routes/settings/workspace/index'
+import { Route as SettingsPersonalIndexRouteImport } from './routes/settings/personal/index'
+import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
+import { Route as SettingsWorkspaceRolesIndexRouteImport } from './routes/settings/workspace/roles/index'
+import { Route as SettingsWorkspaceMembersIndexRouteImport } from './routes/settings/workspace/members/index'
+import { Route as SettingsWorkspaceInvitationsIndexRouteImport } from './routes/settings/workspace/invitations/index'
+import { Route as SettingsWorkspaceGeneralIndexRouteImport } from './routes/settings/workspace/general/index'
+import { Route as SettingsPersonalProfileIndexRouteImport } from './routes/settings/personal/profile/index'
+import { Route as SettingsPersonalPreferencesIndexRouteImport } from './routes/settings/personal/preferences/index'
+import { Route as SettingsPersonalNotificationsIndexRouteImport } from './routes/settings/personal/notifications/index'
+import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
+import { Route as ProjectsProjectIdAssetsIndexRouteImport } from './routes/projects/$projectId/assets/index'
+import { Route as ProjectsProjectIdActivityIndexRouteImport } from './routes/projects/$projectId/activity/index'
+import { Route as ProjectsProjectIdSettingsSeoIndexRouteImport } from './routes/projects/$projectId/settings/seo/index'
+import { Route as ProjectsProjectIdSettingsRuntimeIndexRouteImport } from './routes/projects/$projectId/settings/runtime/index'
+import { Route as ProjectsProjectIdSettingsLocalizationIndexRouteImport } from './routes/projects/$projectId/settings/localization/index'
+import { Route as ProjectsProjectIdSettingsGeneralIndexRouteImport } from './routes/projects/$projectId/settings/general/index'
+import { Route as ProjectsProjectIdSettingsDomainIndexRouteImport } from './routes/projects/$projectId/settings/domain/index'
+import { Route as ProjectsProjectIdSettingsApiKeysIndexRouteImport } from './routes/projects/$projectId/settings/api-keys/index'
+import { Route as ProjectsProjectIdContentSiteBuilderIndexRouteImport } from './routes/projects/$projectId/content/site-builder/index'
+import { Route as ProjectsProjectIdContentReleasesIndexRouteImport } from './routes/projects/$projectId/content/releases/index'
+import { Route as ProjectsProjectIdContentModelsIndexRouteImport } from './routes/projects/$projectId/content/models/index'
+import { Route as ProjectsProjectIdContentLibraryIndexRouteImport } from './routes/projects/$projectId/content/library/index'
+import { Route as ProjectsProjectIdContentCreateIndexRouteImport } from './routes/projects/$projectId/content/create/index'
+import { Route as ProjectsProjectIdContentAutomationIndexRouteImport } from './routes/projects/$projectId/content/automation/index'
+import { Route as ProjectsProjectIdContentLibraryItemIdIndexRouteImport } from './routes/projects/$projectId/content/library/$itemId/index'
 
 const SystemRoute = SystemRouteImport.update({
-  id: "/system",
-  path: "/system",
+  id: '/system',
+  path: '/system',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/index.lazy").then((d) => d.Route));
+} as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
 const SystemIndexRoute = SystemIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => SystemRoute,
-} as any);
+} as any)
 const ResetPasswordIndexRoute = ResetPasswordIndexRouteImport.update({
-  id: "/reset-password/",
-  path: "/reset-password/",
+  id: '/reset-password/',
+  path: '/reset-password/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/reset-password/index.lazy").then((d) => d.Route));
+} as any).lazy(() =>
+  import('./routes/reset-password/index.lazy').then((d) => d.Route),
+)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
-  id: "/projects/",
-  path: "/projects/",
+  id: '/projects/',
+  path: '/projects/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
-  id: "/notifications/",
-  path: "/notifications/",
+  id: '/notifications/',
+  path: '/notifications/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/notifications/index.lazy").then((d) => d.Route));
+} as any).lazy(() =>
+  import('./routes/notifications/index.lazy').then((d) => d.Route),
+)
 const LoginIndexRoute = LoginIndexRouteImport.update({
-  id: "/login/",
-  path: "/login/",
+  id: '/login/',
+  path: '/login/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/login/index.lazy").then((d) => d.Route));
+} as any).lazy(() => import('./routes/login/index.lazy').then((d) => d.Route))
 const InvitationsIndexRoute = InvitationsIndexRouteImport.update({
-  id: "/invitations/",
-  path: "/invitations/",
+  id: '/invitations/',
+  path: '/invitations/',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/invitations/index.lazy").then((d) => d.Route));
+} as any).lazy(() =>
+  import('./routes/invitations/index.lazy').then((d) => d.Route),
+)
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
-  id: "/projects/$projectId",
-  path: "/projects/$projectId",
+  id: '/projects/$projectId',
+  path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const SystemStorageIndexRoute = SystemStorageIndexRouteImport.update({
-  id: "/storage/",
-  path: "/storage/",
+  id: '/storage/',
+  path: '/storage/',
   getParentRoute: () => SystemRoute,
-} as any);
+} as any)
 const SystemOauthIndexRoute = SystemOauthIndexRouteImport.update({
-  id: "/oauth/",
-  path: "/oauth/",
+  id: '/oauth/',
+  path: '/oauth/',
   getParentRoute: () => SystemRoute,
-} as any);
-const SystemNotificationsIndexRoute = SystemNotificationsIndexRouteImport.update({
-  id: "/notifications/",
-  path: "/notifications/",
-  getParentRoute: () => SystemRoute,
-} as any);
+} as any)
+const SystemNotificationsIndexRoute =
+  SystemNotificationsIndexRouteImport.update({
+    id: '/notifications/',
+    path: '/notifications/',
+    getParentRoute: () => SystemRoute,
+  } as any)
 const SystemEmailIndexRoute = SystemEmailIndexRouteImport.update({
-  id: "/email/",
-  path: "/email/",
+  id: '/email/',
+  path: '/email/',
   getParentRoute: () => SystemRoute,
-} as any);
+} as any)
 const SystemAccessIndexRoute = SystemAccessIndexRouteImport.update({
-  id: "/access/",
-  path: "/access/",
+  id: '/access/',
+  path: '/access/',
   getParentRoute: () => SystemRoute,
-} as any);
+} as any)
 const SettingsWorkspaceIndexRoute = SettingsWorkspaceIndexRouteImport.update({
-  id: "/workspace/",
-  path: "/workspace/",
+  id: '/workspace/',
+  path: '/workspace/',
   getParentRoute: () => SettingsRoute,
-} as any);
+} as any)
 const SettingsPersonalIndexRoute = SettingsPersonalIndexRouteImport.update({
-  id: "/personal/",
-  path: "/personal/",
+  id: '/personal/',
+  path: '/personal/',
   getParentRoute: () => SettingsRoute,
-} as any);
+} as any)
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
-  id: "/",
-  path: "/",
-  getParentRoute: () => ProjectsProjectIdRoute,
-} as any).lazy(() => import("./routes/projects/$projectId/index.lazy").then((d) => d.Route));
-const SettingsWorkspaceRolesIndexRoute = SettingsWorkspaceRolesIndexRouteImport.update({
-  id: "/workspace/roles/",
-  path: "/workspace/roles/",
-  getParentRoute: () => SettingsRoute,
-} as any);
-const SettingsWorkspaceMembersIndexRoute = SettingsWorkspaceMembersIndexRouteImport.update({
-  id: "/workspace/members/",
-  path: "/workspace/members/",
-  getParentRoute: () => SettingsRoute,
-} as any);
-const SettingsWorkspaceInvitationsIndexRoute = SettingsWorkspaceInvitationsIndexRouteImport.update({
-  id: "/workspace/invitations/",
-  path: "/workspace/invitations/",
-  getParentRoute: () => SettingsRoute,
-} as any);
-const SettingsWorkspaceGeneralIndexRoute = SettingsWorkspaceGeneralIndexRouteImport.update({
-  id: "/workspace/general/",
-  path: "/workspace/general/",
-  getParentRoute: () => SettingsRoute,
-} as any);
-const SettingsPersonalProfileIndexRoute = SettingsPersonalProfileIndexRouteImport.update({
-  id: "/personal/profile/",
-  path: "/personal/profile/",
-  getParentRoute: () => SettingsRoute,
-} as any);
-const SettingsPersonalPreferencesIndexRoute = SettingsPersonalPreferencesIndexRouteImport.update({
-  id: "/personal/preferences/",
-  path: "/personal/preferences/",
-  getParentRoute: () => SettingsRoute,
-} as any);
-const SettingsPersonalNotificationsIndexRoute =
-  SettingsPersonalNotificationsIndexRouteImport.update({
-    id: "/personal/notifications/",
-    path: "/personal/notifications/",
-    getParentRoute: () => SettingsRoute,
-  } as any);
-const ProjectsProjectIdSettingsIndexRoute = ProjectsProjectIdSettingsIndexRouteImport.update({
-  id: "/settings/",
-  path: "/settings/",
-  getParentRoute: () => ProjectsProjectIdRoute,
-} as any);
-const ProjectsProjectIdAssetsIndexRoute = ProjectsProjectIdAssetsIndexRouteImport.update({
-  id: "/assets/",
-  path: "/assets/",
-  getParentRoute: () => ProjectsProjectIdRoute,
-} as any).lazy(() => import("./routes/projects/$projectId/assets/index.lazy").then((d) => d.Route));
-const ProjectsProjectIdActivityIndexRoute = ProjectsProjectIdActivityIndexRouteImport.update({
-  id: "/activity/",
-  path: "/activity/",
+  id: '/',
+  path: '/',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any).lazy(() =>
-  import("./routes/projects/$projectId/activity/index.lazy").then((d) => d.Route),
-);
-const ProjectsProjectIdSettingsSeoIndexRoute = ProjectsProjectIdSettingsSeoIndexRouteImport.update({
-  id: "/settings/seo/",
-  path: "/settings/seo/",
-  getParentRoute: () => ProjectsProjectIdRoute,
-} as any);
+  import('./routes/projects/$projectId/index.lazy').then((d) => d.Route),
+)
+const SettingsWorkspaceRolesIndexRoute =
+  SettingsWorkspaceRolesIndexRouteImport.update({
+    id: '/workspace/roles/',
+    path: '/workspace/roles/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsWorkspaceMembersIndexRoute =
+  SettingsWorkspaceMembersIndexRouteImport.update({
+    id: '/workspace/members/',
+    path: '/workspace/members/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsWorkspaceInvitationsIndexRoute =
+  SettingsWorkspaceInvitationsIndexRouteImport.update({
+    id: '/workspace/invitations/',
+    path: '/workspace/invitations/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsWorkspaceGeneralIndexRoute =
+  SettingsWorkspaceGeneralIndexRouteImport.update({
+    id: '/workspace/general/',
+    path: '/workspace/general/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsPersonalProfileIndexRoute =
+  SettingsPersonalProfileIndexRouteImport.update({
+    id: '/personal/profile/',
+    path: '/personal/profile/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsPersonalPreferencesIndexRoute =
+  SettingsPersonalPreferencesIndexRouteImport.update({
+    id: '/personal/preferences/',
+    path: '/personal/preferences/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsPersonalNotificationsIndexRoute =
+  SettingsPersonalNotificationsIndexRouteImport.update({
+    id: '/personal/notifications/',
+    path: '/personal/notifications/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const ProjectsProjectIdSettingsIndexRoute =
+  ProjectsProjectIdSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
+const ProjectsProjectIdAssetsIndexRoute =
+  ProjectsProjectIdAssetsIndexRouteImport.update({
+    id: '/assets/',
+    path: '/assets/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/assets/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const ProjectsProjectIdActivityIndexRoute =
+  ProjectsProjectIdActivityIndexRouteImport.update({
+    id: '/activity/',
+    path: '/activity/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/activity/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const ProjectsProjectIdSettingsSeoIndexRoute =
+  ProjectsProjectIdSettingsSeoIndexRouteImport.update({
+    id: '/settings/seo/',
+    path: '/settings/seo/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
 const ProjectsProjectIdSettingsRuntimeIndexRoute =
   ProjectsProjectIdSettingsRuntimeIndexRouteImport.update({
-    id: "/settings/runtime/",
-    path: "/settings/runtime/",
+    id: '/settings/runtime/',
+    path: '/settings/runtime/',
     getParentRoute: () => ProjectsProjectIdRoute,
-  } as any);
+  } as any)
 const ProjectsProjectIdSettingsLocalizationIndexRoute =
   ProjectsProjectIdSettingsLocalizationIndexRouteImport.update({
-    id: "/settings/localization/",
-    path: "/settings/localization/",
+    id: '/settings/localization/',
+    path: '/settings/localization/',
     getParentRoute: () => ProjectsProjectIdRoute,
-  } as any);
+  } as any)
 const ProjectsProjectIdSettingsGeneralIndexRoute =
   ProjectsProjectIdSettingsGeneralIndexRouteImport.update({
-    id: "/settings/general/",
-    path: "/settings/general/",
+    id: '/settings/general/',
+    path: '/settings/general/',
     getParentRoute: () => ProjectsProjectIdRoute,
-  } as any);
+  } as any)
 const ProjectsProjectIdSettingsDomainIndexRoute =
   ProjectsProjectIdSettingsDomainIndexRouteImport.update({
-    id: "/settings/domain/",
-    path: "/settings/domain/",
+    id: '/settings/domain/',
+    path: '/settings/domain/',
     getParentRoute: () => ProjectsProjectIdRoute,
-  } as any);
+  } as any)
 const ProjectsProjectIdSettingsApiKeysIndexRoute =
   ProjectsProjectIdSettingsApiKeysIndexRouteImport.update({
-    id: "/settings/api-keys/",
-    path: "/settings/api-keys/",
+    id: '/settings/api-keys/',
+    path: '/settings/api-keys/',
     getParentRoute: () => ProjectsProjectIdRoute,
-  } as any);
+  } as any)
 const ProjectsProjectIdContentSiteBuilderIndexRoute =
   ProjectsProjectIdContentSiteBuilderIndexRouteImport.update({
-    id: "/content/site-builder/",
-    path: "/content/site-builder/",
+    id: '/content/site-builder/',
+    path: '/content/site-builder/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
-    import("./routes/projects/$projectId/content/site-builder/index.lazy").then((d) => d.Route),
-  );
+    import('./routes/projects/$projectId/content/site-builder/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdContentReleasesIndexRoute =
   ProjectsProjectIdContentReleasesIndexRouteImport.update({
-    id: "/content/releases/",
-    path: "/content/releases/",
+    id: '/content/releases/',
+    path: '/content/releases/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
-    import("./routes/projects/$projectId/content/releases/index.lazy").then((d) => d.Route),
-  );
+    import('./routes/projects/$projectId/content/releases/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdContentModelsIndexRoute =
   ProjectsProjectIdContentModelsIndexRouteImport.update({
-    id: "/content/models/",
-    path: "/content/models/",
+    id: '/content/models/',
+    path: '/content/models/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
-    import("./routes/projects/$projectId/content/models/index.lazy").then((d) => d.Route),
-  );
+    import('./routes/projects/$projectId/content/models/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdContentLibraryIndexRoute =
   ProjectsProjectIdContentLibraryIndexRouteImport.update({
-    id: "/content/library/",
-    path: "/content/library/",
+    id: '/content/library/',
+    path: '/content/library/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
-    import("./routes/projects/$projectId/content/library/index.lazy").then((d) => d.Route),
-  );
+    import('./routes/projects/$projectId/content/library/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdContentCreateIndexRoute =
   ProjectsProjectIdContentCreateIndexRouteImport.update({
-    id: "/content/create/",
-    path: "/content/create/",
+    id: '/content/create/',
+    path: '/content/create/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
-    import("./routes/projects/$projectId/content/create/index.lazy").then((d) => d.Route),
-  );
+    import('./routes/projects/$projectId/content/create/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdContentAutomationIndexRoute =
   ProjectsProjectIdContentAutomationIndexRouteImport.update({
-    id: "/content/automation/",
-    path: "/content/automation/",
+    id: '/content/automation/',
+    path: '/content/automation/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
-    import("./routes/projects/$projectId/content/automation/index.lazy").then((d) => d.Route),
-  );
+    import('./routes/projects/$projectId/content/automation/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdContentLibraryItemIdIndexRoute =
   ProjectsProjectIdContentLibraryItemIdIndexRouteImport.update({
-    id: "/content/library/$itemId/",
-    path: "/content/library/$itemId/",
+    id: '/content/library/$itemId/',
+    path: '/content/library/$itemId/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
-    import("./routes/projects/$projectId/content/library/$itemId/index.lazy").then((d) => d.Route),
-  );
+    import('./routes/projects/$projectId/content/library/$itemId/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/settings": typeof SettingsRouteWithChildren;
-  "/system": typeof SystemRouteWithChildren;
-  "/projects/$projectId": typeof ProjectsProjectIdRouteWithChildren;
-  "/invitations/": typeof InvitationsIndexRoute;
-  "/login/": typeof LoginIndexRoute;
-  "/notifications/": typeof NotificationsIndexRoute;
-  "/projects/": typeof ProjectsIndexRoute;
-  "/reset-password/": typeof ResetPasswordIndexRoute;
-  "/system/": typeof SystemIndexRoute;
-  "/projects/$projectId/": typeof ProjectsProjectIdIndexRoute;
-  "/settings/personal/": typeof SettingsPersonalIndexRoute;
-  "/settings/workspace/": typeof SettingsWorkspaceIndexRoute;
-  "/system/access/": typeof SystemAccessIndexRoute;
-  "/system/email/": typeof SystemEmailIndexRoute;
-  "/system/notifications/": typeof SystemNotificationsIndexRoute;
-  "/system/oauth/": typeof SystemOauthIndexRoute;
-  "/system/storage/": typeof SystemStorageIndexRoute;
-  "/projects/$projectId/activity/": typeof ProjectsProjectIdActivityIndexRoute;
-  "/projects/$projectId/assets/": typeof ProjectsProjectIdAssetsIndexRoute;
-  "/projects/$projectId/settings/": typeof ProjectsProjectIdSettingsIndexRoute;
-  "/settings/personal/notifications/": typeof SettingsPersonalNotificationsIndexRoute;
-  "/settings/personal/preferences/": typeof SettingsPersonalPreferencesIndexRoute;
-  "/settings/personal/profile/": typeof SettingsPersonalProfileIndexRoute;
-  "/settings/workspace/general/": typeof SettingsWorkspaceGeneralIndexRoute;
-  "/settings/workspace/invitations/": typeof SettingsWorkspaceInvitationsIndexRoute;
-  "/settings/workspace/members/": typeof SettingsWorkspaceMembersIndexRoute;
-  "/settings/workspace/roles/": typeof SettingsWorkspaceRolesIndexRoute;
-  "/projects/$projectId/content/automation/": typeof ProjectsProjectIdContentAutomationIndexRoute;
-  "/projects/$projectId/content/create/": typeof ProjectsProjectIdContentCreateIndexRoute;
-  "/projects/$projectId/content/library/": typeof ProjectsProjectIdContentLibraryIndexRoute;
-  "/projects/$projectId/content/models/": typeof ProjectsProjectIdContentModelsIndexRoute;
-  "/projects/$projectId/content/releases/": typeof ProjectsProjectIdContentReleasesIndexRoute;
-  "/projects/$projectId/content/site-builder/": typeof ProjectsProjectIdContentSiteBuilderIndexRoute;
-  "/projects/$projectId/settings/api-keys/": typeof ProjectsProjectIdSettingsApiKeysIndexRoute;
-  "/projects/$projectId/settings/domain/": typeof ProjectsProjectIdSettingsDomainIndexRoute;
-  "/projects/$projectId/settings/general/": typeof ProjectsProjectIdSettingsGeneralIndexRoute;
-  "/projects/$projectId/settings/localization/": typeof ProjectsProjectIdSettingsLocalizationIndexRoute;
-  "/projects/$projectId/settings/runtime/": typeof ProjectsProjectIdSettingsRuntimeIndexRoute;
-  "/projects/$projectId/settings/seo/": typeof ProjectsProjectIdSettingsSeoIndexRoute;
-  "/projects/$projectId/content/library/$itemId/": typeof ProjectsProjectIdContentLibraryItemIdIndexRoute;
+  '/': typeof IndexRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/system': typeof SystemRouteWithChildren
+  '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/invitations/': typeof InvitationsIndexRoute
+  '/login/': typeof LoginIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
+  '/reset-password/': typeof ResetPasswordIndexRoute
+  '/system/': typeof SystemIndexRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/settings/personal/': typeof SettingsPersonalIndexRoute
+  '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
+  '/system/access/': typeof SystemAccessIndexRoute
+  '/system/email/': typeof SystemEmailIndexRoute
+  '/system/notifications/': typeof SystemNotificationsIndexRoute
+  '/system/oauth/': typeof SystemOauthIndexRoute
+  '/system/storage/': typeof SystemStorageIndexRoute
+  '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
+  '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
+  '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
+  '/settings/personal/notifications/': typeof SettingsPersonalNotificationsIndexRoute
+  '/settings/personal/preferences/': typeof SettingsPersonalPreferencesIndexRoute
+  '/settings/personal/profile/': typeof SettingsPersonalProfileIndexRoute
+  '/settings/workspace/general/': typeof SettingsWorkspaceGeneralIndexRoute
+  '/settings/workspace/invitations/': typeof SettingsWorkspaceInvitationsIndexRoute
+  '/settings/workspace/members/': typeof SettingsWorkspaceMembersIndexRoute
+  '/settings/workspace/roles/': typeof SettingsWorkspaceRolesIndexRoute
+  '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
+  '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
+  '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
+  '/projects/$projectId/content/models/': typeof ProjectsProjectIdContentModelsIndexRoute
+  '/projects/$projectId/content/releases/': typeof ProjectsProjectIdContentReleasesIndexRoute
+  '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
+  '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
+  '/projects/$projectId/settings/domain/': typeof ProjectsProjectIdSettingsDomainIndexRoute
+  '/projects/$projectId/settings/general/': typeof ProjectsProjectIdSettingsGeneralIndexRoute
+  '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
+  '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
+  '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
+  '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/settings": typeof SettingsRouteWithChildren;
-  "/invitations": typeof InvitationsIndexRoute;
-  "/login": typeof LoginIndexRoute;
-  "/notifications": typeof NotificationsIndexRoute;
-  "/projects": typeof ProjectsIndexRoute;
-  "/reset-password": typeof ResetPasswordIndexRoute;
-  "/system": typeof SystemIndexRoute;
-  "/projects/$projectId": typeof ProjectsProjectIdIndexRoute;
-  "/settings/personal": typeof SettingsPersonalIndexRoute;
-  "/settings/workspace": typeof SettingsWorkspaceIndexRoute;
-  "/system/access": typeof SystemAccessIndexRoute;
-  "/system/email": typeof SystemEmailIndexRoute;
-  "/system/notifications": typeof SystemNotificationsIndexRoute;
-  "/system/oauth": typeof SystemOauthIndexRoute;
-  "/system/storage": typeof SystemStorageIndexRoute;
-  "/projects/$projectId/activity": typeof ProjectsProjectIdActivityIndexRoute;
-  "/projects/$projectId/assets": typeof ProjectsProjectIdAssetsIndexRoute;
-  "/projects/$projectId/settings": typeof ProjectsProjectIdSettingsIndexRoute;
-  "/settings/personal/notifications": typeof SettingsPersonalNotificationsIndexRoute;
-  "/settings/personal/preferences": typeof SettingsPersonalPreferencesIndexRoute;
-  "/settings/personal/profile": typeof SettingsPersonalProfileIndexRoute;
-  "/settings/workspace/general": typeof SettingsWorkspaceGeneralIndexRoute;
-  "/settings/workspace/invitations": typeof SettingsWorkspaceInvitationsIndexRoute;
-  "/settings/workspace/members": typeof SettingsWorkspaceMembersIndexRoute;
-  "/settings/workspace/roles": typeof SettingsWorkspaceRolesIndexRoute;
-  "/projects/$projectId/content/automation": typeof ProjectsProjectIdContentAutomationIndexRoute;
-  "/projects/$projectId/content/create": typeof ProjectsProjectIdContentCreateIndexRoute;
-  "/projects/$projectId/content/library": typeof ProjectsProjectIdContentLibraryIndexRoute;
-  "/projects/$projectId/content/models": typeof ProjectsProjectIdContentModelsIndexRoute;
-  "/projects/$projectId/content/releases": typeof ProjectsProjectIdContentReleasesIndexRoute;
-  "/projects/$projectId/content/site-builder": typeof ProjectsProjectIdContentSiteBuilderIndexRoute;
-  "/projects/$projectId/settings/api-keys": typeof ProjectsProjectIdSettingsApiKeysIndexRoute;
-  "/projects/$projectId/settings/domain": typeof ProjectsProjectIdSettingsDomainIndexRoute;
-  "/projects/$projectId/settings/general": typeof ProjectsProjectIdSettingsGeneralIndexRoute;
-  "/projects/$projectId/settings/localization": typeof ProjectsProjectIdSettingsLocalizationIndexRoute;
-  "/projects/$projectId/settings/runtime": typeof ProjectsProjectIdSettingsRuntimeIndexRoute;
-  "/projects/$projectId/settings/seo": typeof ProjectsProjectIdSettingsSeoIndexRoute;
-  "/projects/$projectId/content/library/$itemId": typeof ProjectsProjectIdContentLibraryItemIdIndexRoute;
+  '/': typeof IndexRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/invitations': typeof InvitationsIndexRoute
+  '/login': typeof LoginIndexRoute
+  '/notifications': typeof NotificationsIndexRoute
+  '/projects': typeof ProjectsIndexRoute
+  '/reset-password': typeof ResetPasswordIndexRoute
+  '/system': typeof SystemIndexRoute
+  '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
+  '/settings/personal': typeof SettingsPersonalIndexRoute
+  '/settings/workspace': typeof SettingsWorkspaceIndexRoute
+  '/system/access': typeof SystemAccessIndexRoute
+  '/system/email': typeof SystemEmailIndexRoute
+  '/system/notifications': typeof SystemNotificationsIndexRoute
+  '/system/oauth': typeof SystemOauthIndexRoute
+  '/system/storage': typeof SystemStorageIndexRoute
+  '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
+  '/projects/$projectId/assets': typeof ProjectsProjectIdAssetsIndexRoute
+  '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
+  '/settings/personal/notifications': typeof SettingsPersonalNotificationsIndexRoute
+  '/settings/personal/preferences': typeof SettingsPersonalPreferencesIndexRoute
+  '/settings/personal/profile': typeof SettingsPersonalProfileIndexRoute
+  '/settings/workspace/general': typeof SettingsWorkspaceGeneralIndexRoute
+  '/settings/workspace/invitations': typeof SettingsWorkspaceInvitationsIndexRoute
+  '/settings/workspace/members': typeof SettingsWorkspaceMembersIndexRoute
+  '/settings/workspace/roles': typeof SettingsWorkspaceRolesIndexRoute
+  '/projects/$projectId/content/automation': typeof ProjectsProjectIdContentAutomationIndexRoute
+  '/projects/$projectId/content/create': typeof ProjectsProjectIdContentCreateIndexRoute
+  '/projects/$projectId/content/library': typeof ProjectsProjectIdContentLibraryIndexRoute
+  '/projects/$projectId/content/models': typeof ProjectsProjectIdContentModelsIndexRoute
+  '/projects/$projectId/content/releases': typeof ProjectsProjectIdContentReleasesIndexRoute
+  '/projects/$projectId/content/site-builder': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
+  '/projects/$projectId/settings/api-keys': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
+  '/projects/$projectId/settings/domain': typeof ProjectsProjectIdSettingsDomainIndexRoute
+  '/projects/$projectId/settings/general': typeof ProjectsProjectIdSettingsGeneralIndexRoute
+  '/projects/$projectId/settings/localization': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
+  '/projects/$projectId/settings/runtime': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
+  '/projects/$projectId/settings/seo': typeof ProjectsProjectIdSettingsSeoIndexRoute
+  '/projects/$projectId/content/library/$itemId': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/settings": typeof SettingsRouteWithChildren;
-  "/system": typeof SystemRouteWithChildren;
-  "/projects/$projectId": typeof ProjectsProjectIdRouteWithChildren;
-  "/invitations/": typeof InvitationsIndexRoute;
-  "/login/": typeof LoginIndexRoute;
-  "/notifications/": typeof NotificationsIndexRoute;
-  "/projects/": typeof ProjectsIndexRoute;
-  "/reset-password/": typeof ResetPasswordIndexRoute;
-  "/system/": typeof SystemIndexRoute;
-  "/projects/$projectId/": typeof ProjectsProjectIdIndexRoute;
-  "/settings/personal/": typeof SettingsPersonalIndexRoute;
-  "/settings/workspace/": typeof SettingsWorkspaceIndexRoute;
-  "/system/access/": typeof SystemAccessIndexRoute;
-  "/system/email/": typeof SystemEmailIndexRoute;
-  "/system/notifications/": typeof SystemNotificationsIndexRoute;
-  "/system/oauth/": typeof SystemOauthIndexRoute;
-  "/system/storage/": typeof SystemStorageIndexRoute;
-  "/projects/$projectId/activity/": typeof ProjectsProjectIdActivityIndexRoute;
-  "/projects/$projectId/assets/": typeof ProjectsProjectIdAssetsIndexRoute;
-  "/projects/$projectId/settings/": typeof ProjectsProjectIdSettingsIndexRoute;
-  "/settings/personal/notifications/": typeof SettingsPersonalNotificationsIndexRoute;
-  "/settings/personal/preferences/": typeof SettingsPersonalPreferencesIndexRoute;
-  "/settings/personal/profile/": typeof SettingsPersonalProfileIndexRoute;
-  "/settings/workspace/general/": typeof SettingsWorkspaceGeneralIndexRoute;
-  "/settings/workspace/invitations/": typeof SettingsWorkspaceInvitationsIndexRoute;
-  "/settings/workspace/members/": typeof SettingsWorkspaceMembersIndexRoute;
-  "/settings/workspace/roles/": typeof SettingsWorkspaceRolesIndexRoute;
-  "/projects/$projectId/content/automation/": typeof ProjectsProjectIdContentAutomationIndexRoute;
-  "/projects/$projectId/content/create/": typeof ProjectsProjectIdContentCreateIndexRoute;
-  "/projects/$projectId/content/library/": typeof ProjectsProjectIdContentLibraryIndexRoute;
-  "/projects/$projectId/content/models/": typeof ProjectsProjectIdContentModelsIndexRoute;
-  "/projects/$projectId/content/releases/": typeof ProjectsProjectIdContentReleasesIndexRoute;
-  "/projects/$projectId/content/site-builder/": typeof ProjectsProjectIdContentSiteBuilderIndexRoute;
-  "/projects/$projectId/settings/api-keys/": typeof ProjectsProjectIdSettingsApiKeysIndexRoute;
-  "/projects/$projectId/settings/domain/": typeof ProjectsProjectIdSettingsDomainIndexRoute;
-  "/projects/$projectId/settings/general/": typeof ProjectsProjectIdSettingsGeneralIndexRoute;
-  "/projects/$projectId/settings/localization/": typeof ProjectsProjectIdSettingsLocalizationIndexRoute;
-  "/projects/$projectId/settings/runtime/": typeof ProjectsProjectIdSettingsRuntimeIndexRoute;
-  "/projects/$projectId/settings/seo/": typeof ProjectsProjectIdSettingsSeoIndexRoute;
-  "/projects/$projectId/content/library/$itemId/": typeof ProjectsProjectIdContentLibraryItemIdIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/system': typeof SystemRouteWithChildren
+  '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/invitations/': typeof InvitationsIndexRoute
+  '/login/': typeof LoginIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
+  '/reset-password/': typeof ResetPasswordIndexRoute
+  '/system/': typeof SystemIndexRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
+  '/settings/personal/': typeof SettingsPersonalIndexRoute
+  '/settings/workspace/': typeof SettingsWorkspaceIndexRoute
+  '/system/access/': typeof SystemAccessIndexRoute
+  '/system/email/': typeof SystemEmailIndexRoute
+  '/system/notifications/': typeof SystemNotificationsIndexRoute
+  '/system/oauth/': typeof SystemOauthIndexRoute
+  '/system/storage/': typeof SystemStorageIndexRoute
+  '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
+  '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
+  '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
+  '/settings/personal/notifications/': typeof SettingsPersonalNotificationsIndexRoute
+  '/settings/personal/preferences/': typeof SettingsPersonalPreferencesIndexRoute
+  '/settings/personal/profile/': typeof SettingsPersonalProfileIndexRoute
+  '/settings/workspace/general/': typeof SettingsWorkspaceGeneralIndexRoute
+  '/settings/workspace/invitations/': typeof SettingsWorkspaceInvitationsIndexRoute
+  '/settings/workspace/members/': typeof SettingsWorkspaceMembersIndexRoute
+  '/settings/workspace/roles/': typeof SettingsWorkspaceRolesIndexRoute
+  '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
+  '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
+  '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
+  '/projects/$projectId/content/models/': typeof ProjectsProjectIdContentModelsIndexRoute
+  '/projects/$projectId/content/releases/': typeof ProjectsProjectIdContentReleasesIndexRoute
+  '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
+  '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
+  '/projects/$projectId/settings/domain/': typeof ProjectsProjectIdSettingsDomainIndexRoute
+  '/projects/$projectId/settings/general/': typeof ProjectsProjectIdSettingsGeneralIndexRoute
+  '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
+  '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
+  '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
+  '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/settings"
-    | "/system"
-    | "/projects/$projectId"
-    | "/invitations/"
-    | "/login/"
-    | "/notifications/"
-    | "/projects/"
-    | "/reset-password/"
-    | "/system/"
-    | "/projects/$projectId/"
-    | "/settings/personal/"
-    | "/settings/workspace/"
-    | "/system/access/"
-    | "/system/email/"
-    | "/system/notifications/"
-    | "/system/oauth/"
-    | "/system/storage/"
-    | "/projects/$projectId/activity/"
-    | "/projects/$projectId/assets/"
-    | "/projects/$projectId/settings/"
-    | "/settings/personal/notifications/"
-    | "/settings/personal/preferences/"
-    | "/settings/personal/profile/"
-    | "/settings/workspace/general/"
-    | "/settings/workspace/invitations/"
-    | "/settings/workspace/members/"
-    | "/settings/workspace/roles/"
-    | "/projects/$projectId/content/automation/"
-    | "/projects/$projectId/content/create/"
-    | "/projects/$projectId/content/library/"
-    | "/projects/$projectId/content/models/"
-    | "/projects/$projectId/content/releases/"
-    | "/projects/$projectId/content/site-builder/"
-    | "/projects/$projectId/settings/api-keys/"
-    | "/projects/$projectId/settings/domain/"
-    | "/projects/$projectId/settings/general/"
-    | "/projects/$projectId/settings/localization/"
-    | "/projects/$projectId/settings/runtime/"
-    | "/projects/$projectId/settings/seo/"
-    | "/projects/$projectId/content/library/$itemId/";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/settings'
+    | '/system'
+    | '/projects/$projectId'
+    | '/invitations/'
+    | '/login/'
+    | '/notifications/'
+    | '/projects/'
+    | '/reset-password/'
+    | '/system/'
+    | '/projects/$projectId/'
+    | '/settings/personal/'
+    | '/settings/workspace/'
+    | '/system/access/'
+    | '/system/email/'
+    | '/system/notifications/'
+    | '/system/oauth/'
+    | '/system/storage/'
+    | '/projects/$projectId/activity/'
+    | '/projects/$projectId/assets/'
+    | '/projects/$projectId/settings/'
+    | '/settings/personal/notifications/'
+    | '/settings/personal/preferences/'
+    | '/settings/personal/profile/'
+    | '/settings/workspace/general/'
+    | '/settings/workspace/invitations/'
+    | '/settings/workspace/members/'
+    | '/settings/workspace/roles/'
+    | '/projects/$projectId/content/automation/'
+    | '/projects/$projectId/content/create/'
+    | '/projects/$projectId/content/library/'
+    | '/projects/$projectId/content/models/'
+    | '/projects/$projectId/content/releases/'
+    | '/projects/$projectId/content/site-builder/'
+    | '/projects/$projectId/settings/api-keys/'
+    | '/projects/$projectId/settings/domain/'
+    | '/projects/$projectId/settings/general/'
+    | '/projects/$projectId/settings/localization/'
+    | '/projects/$projectId/settings/runtime/'
+    | '/projects/$projectId/settings/seo/'
+    | '/projects/$projectId/content/library/$itemId/'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/settings"
-    | "/invitations"
-    | "/login"
-    | "/notifications"
-    | "/projects"
-    | "/reset-password"
-    | "/system"
-    | "/projects/$projectId"
-    | "/settings/personal"
-    | "/settings/workspace"
-    | "/system/access"
-    | "/system/email"
-    | "/system/notifications"
-    | "/system/oauth"
-    | "/system/storage"
-    | "/projects/$projectId/activity"
-    | "/projects/$projectId/assets"
-    | "/projects/$projectId/settings"
-    | "/settings/personal/notifications"
-    | "/settings/personal/preferences"
-    | "/settings/personal/profile"
-    | "/settings/workspace/general"
-    | "/settings/workspace/invitations"
-    | "/settings/workspace/members"
-    | "/settings/workspace/roles"
-    | "/projects/$projectId/content/automation"
-    | "/projects/$projectId/content/create"
-    | "/projects/$projectId/content/library"
-    | "/projects/$projectId/content/models"
-    | "/projects/$projectId/content/releases"
-    | "/projects/$projectId/content/site-builder"
-    | "/projects/$projectId/settings/api-keys"
-    | "/projects/$projectId/settings/domain"
-    | "/projects/$projectId/settings/general"
-    | "/projects/$projectId/settings/localization"
-    | "/projects/$projectId/settings/runtime"
-    | "/projects/$projectId/settings/seo"
-    | "/projects/$projectId/content/library/$itemId";
+    | '/'
+    | '/settings'
+    | '/invitations'
+    | '/login'
+    | '/notifications'
+    | '/projects'
+    | '/reset-password'
+    | '/system'
+    | '/projects/$projectId'
+    | '/settings/personal'
+    | '/settings/workspace'
+    | '/system/access'
+    | '/system/email'
+    | '/system/notifications'
+    | '/system/oauth'
+    | '/system/storage'
+    | '/projects/$projectId/activity'
+    | '/projects/$projectId/assets'
+    | '/projects/$projectId/settings'
+    | '/settings/personal/notifications'
+    | '/settings/personal/preferences'
+    | '/settings/personal/profile'
+    | '/settings/workspace/general'
+    | '/settings/workspace/invitations'
+    | '/settings/workspace/members'
+    | '/settings/workspace/roles'
+    | '/projects/$projectId/content/automation'
+    | '/projects/$projectId/content/create'
+    | '/projects/$projectId/content/library'
+    | '/projects/$projectId/content/models'
+    | '/projects/$projectId/content/releases'
+    | '/projects/$projectId/content/site-builder'
+    | '/projects/$projectId/settings/api-keys'
+    | '/projects/$projectId/settings/domain'
+    | '/projects/$projectId/settings/general'
+    | '/projects/$projectId/settings/localization'
+    | '/projects/$projectId/settings/runtime'
+    | '/projects/$projectId/settings/seo'
+    | '/projects/$projectId/content/library/$itemId'
   id:
-    | "__root__"
-    | "/"
-    | "/settings"
-    | "/system"
-    | "/projects/$projectId"
-    | "/invitations/"
-    | "/login/"
-    | "/notifications/"
-    | "/projects/"
-    | "/reset-password/"
-    | "/system/"
-    | "/projects/$projectId/"
-    | "/settings/personal/"
-    | "/settings/workspace/"
-    | "/system/access/"
-    | "/system/email/"
-    | "/system/notifications/"
-    | "/system/oauth/"
-    | "/system/storage/"
-    | "/projects/$projectId/activity/"
-    | "/projects/$projectId/assets/"
-    | "/projects/$projectId/settings/"
-    | "/settings/personal/notifications/"
-    | "/settings/personal/preferences/"
-    | "/settings/personal/profile/"
-    | "/settings/workspace/general/"
-    | "/settings/workspace/invitations/"
-    | "/settings/workspace/members/"
-    | "/settings/workspace/roles/"
-    | "/projects/$projectId/content/automation/"
-    | "/projects/$projectId/content/create/"
-    | "/projects/$projectId/content/library/"
-    | "/projects/$projectId/content/models/"
-    | "/projects/$projectId/content/releases/"
-    | "/projects/$projectId/content/site-builder/"
-    | "/projects/$projectId/settings/api-keys/"
-    | "/projects/$projectId/settings/domain/"
-    | "/projects/$projectId/settings/general/"
-    | "/projects/$projectId/settings/localization/"
-    | "/projects/$projectId/settings/runtime/"
-    | "/projects/$projectId/settings/seo/"
-    | "/projects/$projectId/content/library/$itemId/";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/'
+    | '/settings'
+    | '/system'
+    | '/projects/$projectId'
+    | '/invitations/'
+    | '/login/'
+    | '/notifications/'
+    | '/projects/'
+    | '/reset-password/'
+    | '/system/'
+    | '/projects/$projectId/'
+    | '/settings/personal/'
+    | '/settings/workspace/'
+    | '/system/access/'
+    | '/system/email/'
+    | '/system/notifications/'
+    | '/system/oauth/'
+    | '/system/storage/'
+    | '/projects/$projectId/activity/'
+    | '/projects/$projectId/assets/'
+    | '/projects/$projectId/settings/'
+    | '/settings/personal/notifications/'
+    | '/settings/personal/preferences/'
+    | '/settings/personal/profile/'
+    | '/settings/workspace/general/'
+    | '/settings/workspace/invitations/'
+    | '/settings/workspace/members/'
+    | '/settings/workspace/roles/'
+    | '/projects/$projectId/content/automation/'
+    | '/projects/$projectId/content/create/'
+    | '/projects/$projectId/content/library/'
+    | '/projects/$projectId/content/models/'
+    | '/projects/$projectId/content/releases/'
+    | '/projects/$projectId/content/site-builder/'
+    | '/projects/$projectId/settings/api-keys/'
+    | '/projects/$projectId/settings/domain/'
+    | '/projects/$projectId/settings/general/'
+    | '/projects/$projectId/settings/localization/'
+    | '/projects/$projectId/settings/runtime/'
+    | '/projects/$projectId/settings/seo/'
+    | '/projects/$projectId/content/library/$itemId/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  SettingsRoute: typeof SettingsRouteWithChildren;
-  SystemRoute: typeof SystemRouteWithChildren;
-  ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren;
-  InvitationsIndexRoute: typeof InvitationsIndexRoute;
-  LoginIndexRoute: typeof LoginIndexRoute;
-  NotificationsIndexRoute: typeof NotificationsIndexRoute;
-  ProjectsIndexRoute: typeof ProjectsIndexRoute;
-  ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute;
+  IndexRoute: typeof IndexRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
+  SystemRoute: typeof SystemRouteWithChildren
+  ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
+  InvitationsIndexRoute: typeof InvitationsIndexRoute
+  LoginIndexRoute: typeof LoginIndexRoute
+  NotificationsIndexRoute: typeof NotificationsIndexRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/system": {
-      id: "/system";
-      path: "/system";
-      fullPath: "/system";
-      preLoaderRoute: typeof SystemRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/settings": {
-      id: "/settings";
-      path: "/settings";
-      fullPath: "/settings";
-      preLoaderRoute: typeof SettingsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/system/": {
-      id: "/system/";
-      path: "/";
-      fullPath: "/system/";
-      preLoaderRoute: typeof SystemIndexRouteImport;
-      parentRoute: typeof SystemRoute;
-    };
-    "/reset-password/": {
-      id: "/reset-password/";
-      path: "/reset-password";
-      fullPath: "/reset-password/";
-      preLoaderRoute: typeof ResetPasswordIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/projects/": {
-      id: "/projects/";
-      path: "/projects";
-      fullPath: "/projects/";
-      preLoaderRoute: typeof ProjectsIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/notifications/": {
-      id: "/notifications/";
-      path: "/notifications";
-      fullPath: "/notifications/";
-      preLoaderRoute: typeof NotificationsIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/login/": {
-      id: "/login/";
-      path: "/login";
-      fullPath: "/login/";
-      preLoaderRoute: typeof LoginIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/invitations/": {
-      id: "/invitations/";
-      path: "/invitations";
-      fullPath: "/invitations/";
-      preLoaderRoute: typeof InvitationsIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/projects/$projectId": {
-      id: "/projects/$projectId";
-      path: "/projects/$projectId";
-      fullPath: "/projects/$projectId";
-      preLoaderRoute: typeof ProjectsProjectIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/system/storage/": {
-      id: "/system/storage/";
-      path: "/storage";
-      fullPath: "/system/storage/";
-      preLoaderRoute: typeof SystemStorageIndexRouteImport;
-      parentRoute: typeof SystemRoute;
-    };
-    "/system/oauth/": {
-      id: "/system/oauth/";
-      path: "/oauth";
-      fullPath: "/system/oauth/";
-      preLoaderRoute: typeof SystemOauthIndexRouteImport;
-      parentRoute: typeof SystemRoute;
-    };
-    "/system/notifications/": {
-      id: "/system/notifications/";
-      path: "/notifications";
-      fullPath: "/system/notifications/";
-      preLoaderRoute: typeof SystemNotificationsIndexRouteImport;
-      parentRoute: typeof SystemRoute;
-    };
-    "/system/email/": {
-      id: "/system/email/";
-      path: "/email";
-      fullPath: "/system/email/";
-      preLoaderRoute: typeof SystemEmailIndexRouteImport;
-      parentRoute: typeof SystemRoute;
-    };
-    "/system/access/": {
-      id: "/system/access/";
-      path: "/access";
-      fullPath: "/system/access/";
-      preLoaderRoute: typeof SystemAccessIndexRouteImport;
-      parentRoute: typeof SystemRoute;
-    };
-    "/settings/workspace/": {
-      id: "/settings/workspace/";
-      path: "/workspace";
-      fullPath: "/settings/workspace/";
-      preLoaderRoute: typeof SettingsWorkspaceIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/settings/personal/": {
-      id: "/settings/personal/";
-      path: "/personal";
-      fullPath: "/settings/personal/";
-      preLoaderRoute: typeof SettingsPersonalIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/projects/$projectId/": {
-      id: "/projects/$projectId/";
-      path: "/";
-      fullPath: "/projects/$projectId/";
-      preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/settings/workspace/roles/": {
-      id: "/settings/workspace/roles/";
-      path: "/workspace/roles";
-      fullPath: "/settings/workspace/roles/";
-      preLoaderRoute: typeof SettingsWorkspaceRolesIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/settings/workspace/members/": {
-      id: "/settings/workspace/members/";
-      path: "/workspace/members";
-      fullPath: "/settings/workspace/members/";
-      preLoaderRoute: typeof SettingsWorkspaceMembersIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/settings/workspace/invitations/": {
-      id: "/settings/workspace/invitations/";
-      path: "/workspace/invitations";
-      fullPath: "/settings/workspace/invitations/";
-      preLoaderRoute: typeof SettingsWorkspaceInvitationsIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/settings/workspace/general/": {
-      id: "/settings/workspace/general/";
-      path: "/workspace/general";
-      fullPath: "/settings/workspace/general/";
-      preLoaderRoute: typeof SettingsWorkspaceGeneralIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/settings/personal/profile/": {
-      id: "/settings/personal/profile/";
-      path: "/personal/profile";
-      fullPath: "/settings/personal/profile/";
-      preLoaderRoute: typeof SettingsPersonalProfileIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/settings/personal/preferences/": {
-      id: "/settings/personal/preferences/";
-      path: "/personal/preferences";
-      fullPath: "/settings/personal/preferences/";
-      preLoaderRoute: typeof SettingsPersonalPreferencesIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/settings/personal/notifications/": {
-      id: "/settings/personal/notifications/";
-      path: "/personal/notifications";
-      fullPath: "/settings/personal/notifications/";
-      preLoaderRoute: typeof SettingsPersonalNotificationsIndexRouteImport;
-      parentRoute: typeof SettingsRoute;
-    };
-    "/projects/$projectId/settings/": {
-      id: "/projects/$projectId/settings/";
-      path: "/settings";
-      fullPath: "/projects/$projectId/settings/";
-      preLoaderRoute: typeof ProjectsProjectIdSettingsIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/assets/": {
-      id: "/projects/$projectId/assets/";
-      path: "/assets";
-      fullPath: "/projects/$projectId/assets/";
-      preLoaderRoute: typeof ProjectsProjectIdAssetsIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/activity/": {
-      id: "/projects/$projectId/activity/";
-      path: "/activity";
-      fullPath: "/projects/$projectId/activity/";
-      preLoaderRoute: typeof ProjectsProjectIdActivityIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/settings/seo/": {
-      id: "/projects/$projectId/settings/seo/";
-      path: "/settings/seo";
-      fullPath: "/projects/$projectId/settings/seo/";
-      preLoaderRoute: typeof ProjectsProjectIdSettingsSeoIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/settings/runtime/": {
-      id: "/projects/$projectId/settings/runtime/";
-      path: "/settings/runtime";
-      fullPath: "/projects/$projectId/settings/runtime/";
-      preLoaderRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/settings/localization/": {
-      id: "/projects/$projectId/settings/localization/";
-      path: "/settings/localization";
-      fullPath: "/projects/$projectId/settings/localization/";
-      preLoaderRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/settings/general/": {
-      id: "/projects/$projectId/settings/general/";
-      path: "/settings/general";
-      fullPath: "/projects/$projectId/settings/general/";
-      preLoaderRoute: typeof ProjectsProjectIdSettingsGeneralIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/settings/domain/": {
-      id: "/projects/$projectId/settings/domain/";
-      path: "/settings/domain";
-      fullPath: "/projects/$projectId/settings/domain/";
-      preLoaderRoute: typeof ProjectsProjectIdSettingsDomainIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/settings/api-keys/": {
-      id: "/projects/$projectId/settings/api-keys/";
-      path: "/settings/api-keys";
-      fullPath: "/projects/$projectId/settings/api-keys/";
-      preLoaderRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/content/site-builder/": {
-      id: "/projects/$projectId/content/site-builder/";
-      path: "/content/site-builder";
-      fullPath: "/projects/$projectId/content/site-builder/";
-      preLoaderRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/content/releases/": {
-      id: "/projects/$projectId/content/releases/";
-      path: "/content/releases";
-      fullPath: "/projects/$projectId/content/releases/";
-      preLoaderRoute: typeof ProjectsProjectIdContentReleasesIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/content/models/": {
-      id: "/projects/$projectId/content/models/";
-      path: "/content/models";
-      fullPath: "/projects/$projectId/content/models/";
-      preLoaderRoute: typeof ProjectsProjectIdContentModelsIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/content/library/": {
-      id: "/projects/$projectId/content/library/";
-      path: "/content/library";
-      fullPath: "/projects/$projectId/content/library/";
-      preLoaderRoute: typeof ProjectsProjectIdContentLibraryIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/content/create/": {
-      id: "/projects/$projectId/content/create/";
-      path: "/content/create";
-      fullPath: "/projects/$projectId/content/create/";
-      preLoaderRoute: typeof ProjectsProjectIdContentCreateIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/content/automation/": {
-      id: "/projects/$projectId/content/automation/";
-      path: "/content/automation";
-      fullPath: "/projects/$projectId/content/automation/";
-      preLoaderRoute: typeof ProjectsProjectIdContentAutomationIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
-    "/projects/$projectId/content/library/$itemId/": {
-      id: "/projects/$projectId/content/library/$itemId/";
-      path: "/content/library/$itemId";
-      fullPath: "/projects/$projectId/content/library/$itemId/";
-      preLoaderRoute: typeof ProjectsProjectIdContentLibraryItemIdIndexRouteImport;
-      parentRoute: typeof ProjectsProjectIdRoute;
-    };
+    '/system': {
+      id: '/system'
+      path: '/system'
+      fullPath: '/system'
+      preLoaderRoute: typeof SystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system/': {
+      id: '/system/'
+      path: '/'
+      fullPath: '/system/'
+      preLoaderRoute: typeof SystemIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/reset-password/': {
+      id: '/reset-password/'
+      path: '/reset-password'
+      fullPath: '/reset-password/'
+      preLoaderRoute: typeof ResetPasswordIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications/': {
+      id: '/notifications/'
+      path: '/notifications'
+      fullPath: '/notifications/'
+      preLoaderRoute: typeof NotificationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/': {
+      id: '/login/'
+      path: '/login'
+      fullPath: '/login/'
+      preLoaderRoute: typeof LoginIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitations/': {
+      id: '/invitations/'
+      path: '/invitations'
+      fullPath: '/invitations/'
+      preLoaderRoute: typeof InvitationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId': {
+      id: '/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof ProjectsProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system/storage/': {
+      id: '/system/storage/'
+      path: '/storage'
+      fullPath: '/system/storage/'
+      preLoaderRoute: typeof SystemStorageIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/oauth/': {
+      id: '/system/oauth/'
+      path: '/oauth'
+      fullPath: '/system/oauth/'
+      preLoaderRoute: typeof SystemOauthIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/notifications/': {
+      id: '/system/notifications/'
+      path: '/notifications'
+      fullPath: '/system/notifications/'
+      preLoaderRoute: typeof SystemNotificationsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/email/': {
+      id: '/system/email/'
+      path: '/email'
+      fullPath: '/system/email/'
+      preLoaderRoute: typeof SystemEmailIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/access/': {
+      id: '/system/access/'
+      path: '/access'
+      fullPath: '/system/access/'
+      preLoaderRoute: typeof SystemAccessIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/settings/workspace/': {
+      id: '/settings/workspace/'
+      path: '/workspace'
+      fullPath: '/settings/workspace/'
+      preLoaderRoute: typeof SettingsWorkspaceIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/personal/': {
+      id: '/settings/personal/'
+      path: '/personal'
+      fullPath: '/settings/personal/'
+      preLoaderRoute: typeof SettingsPersonalIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/projects/$projectId/': {
+      id: '/projects/$projectId/'
+      path: '/'
+      fullPath: '/projects/$projectId/'
+      preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/settings/workspace/roles/': {
+      id: '/settings/workspace/roles/'
+      path: '/workspace/roles'
+      fullPath: '/settings/workspace/roles/'
+      preLoaderRoute: typeof SettingsWorkspaceRolesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/workspace/members/': {
+      id: '/settings/workspace/members/'
+      path: '/workspace/members'
+      fullPath: '/settings/workspace/members/'
+      preLoaderRoute: typeof SettingsWorkspaceMembersIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/workspace/invitations/': {
+      id: '/settings/workspace/invitations/'
+      path: '/workspace/invitations'
+      fullPath: '/settings/workspace/invitations/'
+      preLoaderRoute: typeof SettingsWorkspaceInvitationsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/workspace/general/': {
+      id: '/settings/workspace/general/'
+      path: '/workspace/general'
+      fullPath: '/settings/workspace/general/'
+      preLoaderRoute: typeof SettingsWorkspaceGeneralIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/personal/profile/': {
+      id: '/settings/personal/profile/'
+      path: '/personal/profile'
+      fullPath: '/settings/personal/profile/'
+      preLoaderRoute: typeof SettingsPersonalProfileIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/personal/preferences/': {
+      id: '/settings/personal/preferences/'
+      path: '/personal/preferences'
+      fullPath: '/settings/personal/preferences/'
+      preLoaderRoute: typeof SettingsPersonalPreferencesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/personal/notifications/': {
+      id: '/settings/personal/notifications/'
+      path: '/personal/notifications'
+      fullPath: '/settings/personal/notifications/'
+      preLoaderRoute: typeof SettingsPersonalNotificationsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/projects/$projectId/settings/': {
+      id: '/projects/$projectId/settings/'
+      path: '/settings'
+      fullPath: '/projects/$projectId/settings/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/assets/': {
+      id: '/projects/$projectId/assets/'
+      path: '/assets'
+      fullPath: '/projects/$projectId/assets/'
+      preLoaderRoute: typeof ProjectsProjectIdAssetsIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/activity/': {
+      id: '/projects/$projectId/activity/'
+      path: '/activity'
+      fullPath: '/projects/$projectId/activity/'
+      preLoaderRoute: typeof ProjectsProjectIdActivityIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings/seo/': {
+      id: '/projects/$projectId/settings/seo/'
+      path: '/settings/seo'
+      fullPath: '/projects/$projectId/settings/seo/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsSeoIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings/runtime/': {
+      id: '/projects/$projectId/settings/runtime/'
+      path: '/settings/runtime'
+      fullPath: '/projects/$projectId/settings/runtime/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings/localization/': {
+      id: '/projects/$projectId/settings/localization/'
+      path: '/settings/localization'
+      fullPath: '/projects/$projectId/settings/localization/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings/general/': {
+      id: '/projects/$projectId/settings/general/'
+      path: '/settings/general'
+      fullPath: '/projects/$projectId/settings/general/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsGeneralIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings/domain/': {
+      id: '/projects/$projectId/settings/domain/'
+      path: '/settings/domain'
+      fullPath: '/projects/$projectId/settings/domain/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsDomainIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings/api-keys/': {
+      id: '/projects/$projectId/settings/api-keys/'
+      path: '/settings/api-keys'
+      fullPath: '/projects/$projectId/settings/api-keys/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/site-builder/': {
+      id: '/projects/$projectId/content/site-builder/'
+      path: '/content/site-builder'
+      fullPath: '/projects/$projectId/content/site-builder/'
+      preLoaderRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/releases/': {
+      id: '/projects/$projectId/content/releases/'
+      path: '/content/releases'
+      fullPath: '/projects/$projectId/content/releases/'
+      preLoaderRoute: typeof ProjectsProjectIdContentReleasesIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/models/': {
+      id: '/projects/$projectId/content/models/'
+      path: '/content/models'
+      fullPath: '/projects/$projectId/content/models/'
+      preLoaderRoute: typeof ProjectsProjectIdContentModelsIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/library/': {
+      id: '/projects/$projectId/content/library/'
+      path: '/content/library'
+      fullPath: '/projects/$projectId/content/library/'
+      preLoaderRoute: typeof ProjectsProjectIdContentLibraryIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/create/': {
+      id: '/projects/$projectId/content/create/'
+      path: '/content/create'
+      fullPath: '/projects/$projectId/content/create/'
+      preLoaderRoute: typeof ProjectsProjectIdContentCreateIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/automation/': {
+      id: '/projects/$projectId/content/automation/'
+      path: '/content/automation'
+      fullPath: '/projects/$projectId/content/automation/'
+      preLoaderRoute: typeof ProjectsProjectIdContentAutomationIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/library/$itemId/': {
+      id: '/projects/$projectId/content/library/$itemId/'
+      path: '/content/library/$itemId'
+      fullPath: '/projects/$projectId/content/library/$itemId/'
+      preLoaderRoute: typeof ProjectsProjectIdContentLibraryItemIdIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
   }
 }
 
 interface SettingsRouteChildren {
-  SettingsPersonalIndexRoute: typeof SettingsPersonalIndexRoute;
-  SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute;
-  SettingsPersonalNotificationsIndexRoute: typeof SettingsPersonalNotificationsIndexRoute;
-  SettingsPersonalPreferencesIndexRoute: typeof SettingsPersonalPreferencesIndexRoute;
-  SettingsPersonalProfileIndexRoute: typeof SettingsPersonalProfileIndexRoute;
-  SettingsWorkspaceGeneralIndexRoute: typeof SettingsWorkspaceGeneralIndexRoute;
-  SettingsWorkspaceInvitationsIndexRoute: typeof SettingsWorkspaceInvitationsIndexRoute;
-  SettingsWorkspaceMembersIndexRoute: typeof SettingsWorkspaceMembersIndexRoute;
-  SettingsWorkspaceRolesIndexRoute: typeof SettingsWorkspaceRolesIndexRoute;
+  SettingsPersonalIndexRoute: typeof SettingsPersonalIndexRoute
+  SettingsWorkspaceIndexRoute: typeof SettingsWorkspaceIndexRoute
+  SettingsPersonalNotificationsIndexRoute: typeof SettingsPersonalNotificationsIndexRoute
+  SettingsPersonalPreferencesIndexRoute: typeof SettingsPersonalPreferencesIndexRoute
+  SettingsPersonalProfileIndexRoute: typeof SettingsPersonalProfileIndexRoute
+  SettingsWorkspaceGeneralIndexRoute: typeof SettingsWorkspaceGeneralIndexRoute
+  SettingsWorkspaceInvitationsIndexRoute: typeof SettingsWorkspaceInvitationsIndexRoute
+  SettingsWorkspaceMembersIndexRoute: typeof SettingsWorkspaceMembersIndexRoute
+  SettingsWorkspaceRolesIndexRoute: typeof SettingsWorkspaceRolesIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsPersonalIndexRoute: SettingsPersonalIndexRoute,
   SettingsWorkspaceIndexRoute: SettingsWorkspaceIndexRoute,
-  SettingsPersonalNotificationsIndexRoute: SettingsPersonalNotificationsIndexRoute,
+  SettingsPersonalNotificationsIndexRoute:
+    SettingsPersonalNotificationsIndexRoute,
   SettingsPersonalPreferencesIndexRoute: SettingsPersonalPreferencesIndexRoute,
   SettingsPersonalProfileIndexRoute: SettingsPersonalProfileIndexRoute,
   SettingsWorkspaceGeneralIndexRoute: SettingsWorkspaceGeneralIndexRoute,
-  SettingsWorkspaceInvitationsIndexRoute: SettingsWorkspaceInvitationsIndexRoute,
+  SettingsWorkspaceInvitationsIndexRoute:
+    SettingsWorkspaceInvitationsIndexRoute,
   SettingsWorkspaceMembersIndexRoute: SettingsWorkspaceMembersIndexRoute,
   SettingsWorkspaceRolesIndexRoute: SettingsWorkspaceRolesIndexRoute,
-};
+}
 
-const SettingsRouteWithChildren = SettingsRoute._addFileChildren(SettingsRouteChildren);
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
 
 interface SystemRouteChildren {
-  SystemIndexRoute: typeof SystemIndexRoute;
-  SystemAccessIndexRoute: typeof SystemAccessIndexRoute;
-  SystemEmailIndexRoute: typeof SystemEmailIndexRoute;
-  SystemNotificationsIndexRoute: typeof SystemNotificationsIndexRoute;
-  SystemOauthIndexRoute: typeof SystemOauthIndexRoute;
-  SystemStorageIndexRoute: typeof SystemStorageIndexRoute;
+  SystemIndexRoute: typeof SystemIndexRoute
+  SystemAccessIndexRoute: typeof SystemAccessIndexRoute
+  SystemEmailIndexRoute: typeof SystemEmailIndexRoute
+  SystemNotificationsIndexRoute: typeof SystemNotificationsIndexRoute
+  SystemOauthIndexRoute: typeof SystemOauthIndexRoute
+  SystemStorageIndexRoute: typeof SystemStorageIndexRoute
 }
 
 const SystemRouteChildren: SystemRouteChildren = {
@@ -890,28 +933,29 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemNotificationsIndexRoute: SystemNotificationsIndexRoute,
   SystemOauthIndexRoute: SystemOauthIndexRoute,
   SystemStorageIndexRoute: SystemStorageIndexRoute,
-};
+}
 
-const SystemRouteWithChildren = SystemRoute._addFileChildren(SystemRouteChildren);
+const SystemRouteWithChildren =
+  SystemRoute._addFileChildren(SystemRouteChildren)
 
 interface ProjectsProjectIdRouteChildren {
-  ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute;
-  ProjectsProjectIdActivityIndexRoute: typeof ProjectsProjectIdActivityIndexRoute;
-  ProjectsProjectIdAssetsIndexRoute: typeof ProjectsProjectIdAssetsIndexRoute;
-  ProjectsProjectIdSettingsIndexRoute: typeof ProjectsProjectIdSettingsIndexRoute;
-  ProjectsProjectIdContentAutomationIndexRoute: typeof ProjectsProjectIdContentAutomationIndexRoute;
-  ProjectsProjectIdContentCreateIndexRoute: typeof ProjectsProjectIdContentCreateIndexRoute;
-  ProjectsProjectIdContentLibraryIndexRoute: typeof ProjectsProjectIdContentLibraryIndexRoute;
-  ProjectsProjectIdContentModelsIndexRoute: typeof ProjectsProjectIdContentModelsIndexRoute;
-  ProjectsProjectIdContentReleasesIndexRoute: typeof ProjectsProjectIdContentReleasesIndexRoute;
-  ProjectsProjectIdContentSiteBuilderIndexRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRoute;
-  ProjectsProjectIdSettingsApiKeysIndexRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRoute;
-  ProjectsProjectIdSettingsDomainIndexRoute: typeof ProjectsProjectIdSettingsDomainIndexRoute;
-  ProjectsProjectIdSettingsGeneralIndexRoute: typeof ProjectsProjectIdSettingsGeneralIndexRoute;
-  ProjectsProjectIdSettingsLocalizationIndexRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRoute;
-  ProjectsProjectIdSettingsRuntimeIndexRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRoute;
-  ProjectsProjectIdSettingsSeoIndexRoute: typeof ProjectsProjectIdSettingsSeoIndexRoute;
-  ProjectsProjectIdContentLibraryItemIdIndexRoute: typeof ProjectsProjectIdContentLibraryItemIdIndexRoute;
+  ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
+  ProjectsProjectIdActivityIndexRoute: typeof ProjectsProjectIdActivityIndexRoute
+  ProjectsProjectIdAssetsIndexRoute: typeof ProjectsProjectIdAssetsIndexRoute
+  ProjectsProjectIdSettingsIndexRoute: typeof ProjectsProjectIdSettingsIndexRoute
+  ProjectsProjectIdContentAutomationIndexRoute: typeof ProjectsProjectIdContentAutomationIndexRoute
+  ProjectsProjectIdContentCreateIndexRoute: typeof ProjectsProjectIdContentCreateIndexRoute
+  ProjectsProjectIdContentLibraryIndexRoute: typeof ProjectsProjectIdContentLibraryIndexRoute
+  ProjectsProjectIdContentModelsIndexRoute: typeof ProjectsProjectIdContentModelsIndexRoute
+  ProjectsProjectIdContentReleasesIndexRoute: typeof ProjectsProjectIdContentReleasesIndexRoute
+  ProjectsProjectIdContentSiteBuilderIndexRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRoute
+  ProjectsProjectIdSettingsApiKeysIndexRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRoute
+  ProjectsProjectIdSettingsDomainIndexRoute: typeof ProjectsProjectIdSettingsDomainIndexRoute
+  ProjectsProjectIdSettingsGeneralIndexRoute: typeof ProjectsProjectIdSettingsGeneralIndexRoute
+  ProjectsProjectIdSettingsLocalizationIndexRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRoute
+  ProjectsProjectIdSettingsRuntimeIndexRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRoute
+  ProjectsProjectIdSettingsSeoIndexRoute: typeof ProjectsProjectIdSettingsSeoIndexRoute
+  ProjectsProjectIdContentLibraryItemIdIndexRoute: typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
 }
 
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
@@ -919,24 +963,36 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdActivityIndexRoute: ProjectsProjectIdActivityIndexRoute,
   ProjectsProjectIdAssetsIndexRoute: ProjectsProjectIdAssetsIndexRoute,
   ProjectsProjectIdSettingsIndexRoute: ProjectsProjectIdSettingsIndexRoute,
-  ProjectsProjectIdContentAutomationIndexRoute: ProjectsProjectIdContentAutomationIndexRoute,
-  ProjectsProjectIdContentCreateIndexRoute: ProjectsProjectIdContentCreateIndexRoute,
-  ProjectsProjectIdContentLibraryIndexRoute: ProjectsProjectIdContentLibraryIndexRoute,
-  ProjectsProjectIdContentModelsIndexRoute: ProjectsProjectIdContentModelsIndexRoute,
-  ProjectsProjectIdContentReleasesIndexRoute: ProjectsProjectIdContentReleasesIndexRoute,
-  ProjectsProjectIdContentSiteBuilderIndexRoute: ProjectsProjectIdContentSiteBuilderIndexRoute,
-  ProjectsProjectIdSettingsApiKeysIndexRoute: ProjectsProjectIdSettingsApiKeysIndexRoute,
-  ProjectsProjectIdSettingsDomainIndexRoute: ProjectsProjectIdSettingsDomainIndexRoute,
-  ProjectsProjectIdSettingsGeneralIndexRoute: ProjectsProjectIdSettingsGeneralIndexRoute,
-  ProjectsProjectIdSettingsLocalizationIndexRoute: ProjectsProjectIdSettingsLocalizationIndexRoute,
-  ProjectsProjectIdSettingsRuntimeIndexRoute: ProjectsProjectIdSettingsRuntimeIndexRoute,
-  ProjectsProjectIdSettingsSeoIndexRoute: ProjectsProjectIdSettingsSeoIndexRoute,
-  ProjectsProjectIdContentLibraryItemIdIndexRoute: ProjectsProjectIdContentLibraryItemIdIndexRoute,
-};
+  ProjectsProjectIdContentAutomationIndexRoute:
+    ProjectsProjectIdContentAutomationIndexRoute,
+  ProjectsProjectIdContentCreateIndexRoute:
+    ProjectsProjectIdContentCreateIndexRoute,
+  ProjectsProjectIdContentLibraryIndexRoute:
+    ProjectsProjectIdContentLibraryIndexRoute,
+  ProjectsProjectIdContentModelsIndexRoute:
+    ProjectsProjectIdContentModelsIndexRoute,
+  ProjectsProjectIdContentReleasesIndexRoute:
+    ProjectsProjectIdContentReleasesIndexRoute,
+  ProjectsProjectIdContentSiteBuilderIndexRoute:
+    ProjectsProjectIdContentSiteBuilderIndexRoute,
+  ProjectsProjectIdSettingsApiKeysIndexRoute:
+    ProjectsProjectIdSettingsApiKeysIndexRoute,
+  ProjectsProjectIdSettingsDomainIndexRoute:
+    ProjectsProjectIdSettingsDomainIndexRoute,
+  ProjectsProjectIdSettingsGeneralIndexRoute:
+    ProjectsProjectIdSettingsGeneralIndexRoute,
+  ProjectsProjectIdSettingsLocalizationIndexRoute:
+    ProjectsProjectIdSettingsLocalizationIndexRoute,
+  ProjectsProjectIdSettingsRuntimeIndexRoute:
+    ProjectsProjectIdSettingsRuntimeIndexRoute,
+  ProjectsProjectIdSettingsSeoIndexRoute:
+    ProjectsProjectIdSettingsSeoIndexRoute,
+  ProjectsProjectIdContentLibraryItemIdIndexRoute:
+    ProjectsProjectIdContentLibraryItemIdIndexRoute,
+}
 
-const ProjectsProjectIdRouteWithChildren = ProjectsProjectIdRoute._addFileChildren(
-  ProjectsProjectIdRouteChildren,
-);
+const ProjectsProjectIdRouteWithChildren =
+  ProjectsProjectIdRoute._addFileChildren(ProjectsProjectIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -948,7 +1004,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsIndexRoute: NotificationsIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

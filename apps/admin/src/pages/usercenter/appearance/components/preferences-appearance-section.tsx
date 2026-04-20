@@ -100,3 +100,18 @@ export function UserAppearanceSection() {
     </div>
   );
 }
+
+export function UserSidebarNavigationSection() {
+  const { t } = useTranslation("account");
+  const showFavoritesInSidebar = usePreferencesStore((s) => s.sidebarItemVisibility.favorites);
+  const setSidebarItemVisible = usePreferencesStore((s) => s.setSidebarItemVisible);
+
+  return (
+    <PreferenceSwitchRow
+      checked={showFavoritesInSidebar}
+      description={t("ME_PREF_SIDEBAR_FAVORITES_DESC")}
+      onCheckedChange={(checked) => setSidebarItemVisible("favorites", checked)}
+      title={t("ME_PREF_SIDEBAR_FAVORITES_TITLE")}
+    />
+  );
+}

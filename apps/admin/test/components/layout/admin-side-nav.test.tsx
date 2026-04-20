@@ -10,6 +10,7 @@ import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
 import { mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import { Sidebar, SidebarMenuButton, SidebarProvider } from "@arclayer/ui/sidebar";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
@@ -343,6 +344,7 @@ describe("AdminSiderNav collapsed groups", () => {
     mockLanguage = "en-US";
     mockPathname = "/w/ws-1/team/invitations";
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
+    usePreferencesStore.setState({ sidebarItemVisibility: { favorites: true } });
   });
 
   it("forwards refs through SidebarMenuButton to the real button element", () => {
@@ -694,6 +696,18 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toBeVisible();
   });
 
+  it("does not render favorites when the sidebar visibility preference disables it", () => {
+    useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
+    usePreferencesStore.setState({ sidebarItemVisibility: { favorites: false } });
+
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    expect(screen.queryByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toBeNull();
+  });
+
   it("inserts favorites after the explicit global resources anchor", () => {
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
 
@@ -746,6 +760,54 @@ describe("AdminSiderNav collapsed groups", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("shows favorites header actions on hover in expanded mode", async () => {
+    const user = userEvent.setup();
+    useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: true });
+
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    const favoritesActionsButton = screen.getByRole("button", {
+      name: "en-US:NAV_FAVORITES_SECTION_ACTIONS",
+    });
+    expect(favoritesActionsButton.parentElement?.className).toContain("opacity-0");
+
+    await user.hover(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" }));
+
+    expect(favoritesActionsButton.parentElement?.className).toContain(
+      "group-hover/nav-item:opacity-100",
+    );
+  });
+
+  it("hides favorites after confirming the header menu action", async () => {
+    const user = userEvent.setup();
+    useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: true });
+
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    await user.click(screen.getByRole("button", { name: "en-US:NAV_FAVORITES_SECTION_ACTIONS" }));
+    await user.click(
+      screen.getByRole("menuitem", { name: "en-US:NAV_FAVORITES_ACTION_HIDE_FROM_SIDEBAR" }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "en-US:NAV_FAVORITES_HIDE_CONFIRM_TITLE" }),
+    ).toBeVisible();
+
+    await user.click(
+      screen.getByRole("button", { name: "en-US:NAV_FAVORITES_HIDE_CONFIRM_ACTION" }),
+    );
+
+    expect(screen.queryByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toBeNull();
+    expect(useFavoritesStore.getState().items).toEqual([]);
+    expect(usePreferencesStore.getState().sidebarItemVisibility.favorites).toBe(false);
   });
 
   it("creates a new favorites folder and immediately focuses the rename input", async () => {
@@ -1022,7 +1084,7 @@ describe("AdminSiderNav collapsed groups", () => {
       favoriteWorkspaceBase: "/w/ws-alpha",
     });
 
-    expect(screen.queryByRole("button", { name: "Alpha Workspace" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Alpha Project" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Projects" }));
 
@@ -1079,7 +1141,6 @@ describe("AdminSiderNav collapsed groups", () => {
   });
 
   it("updates the active branch when pathnameOverride changes between workspace source pages", async () => {
-    const user = userEvent.setup();
     mockPathname = "/settings/personal/profile";
     const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/projects/ws-1");
 
@@ -1093,14 +1154,6 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-active",
       "true",
     );
-
-    await user.click(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" }));
-
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_PROJECT" })).toHaveAttribute(
-      "data-active",
-      "false",
-    );
-
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>

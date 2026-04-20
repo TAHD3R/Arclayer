@@ -2,7 +2,10 @@ import { useTranslation } from "react-i18next";
 
 import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
 import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/usercenter-settings-section-stack";
-import { UserAppearanceSection } from "@/pages/usercenter/appearance/components/preferences-appearance-section";
+import {
+  UserAppearanceSection,
+  UserSidebarNavigationSection,
+} from "@/pages/usercenter/appearance/components/preferences-appearance-section";
 import { UserLocalizationSection } from "@/pages/usercenter/appearance/components/preferences-localization-section";
 
 type UserAppearanceViewMode = "page" | "dialog";
@@ -32,6 +35,14 @@ export function UserAppearanceView(props: UserAppearanceViewProps) {
         showDivider
       >
         <UserLocalizationSection />
+      </UserCenterSettingPanel>
+
+      <UserCenterSettingPanel
+        title={t("ME_PREF_SIDEBAR_NAVIGATION_TITLE")}
+        variant={panelVariant}
+        showDivider
+      >
+        <UserSidebarNavigationSection />
       </UserCenterSettingPanel>
     </UserCenterSettingsSectionStack>
   );
