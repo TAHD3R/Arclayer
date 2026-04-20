@@ -33,11 +33,47 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-dropdown-menu";
 import { cn } from "@arclayer/lib/utils";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
+import { useSidebarHoverPreviewLock } from "./sidebar";
 
 type DropdownMenuProps = DropdownMenuPrimitiveProps;
 
-function DropdownMenu(props: DropdownMenuProps) {
-  return <DropdownMenuPrimitive {...props} />;
+function DropdownMenu({ open: openProp, defaultOpen, onOpenChange, ...props }: DropdownMenuProps) {
+  const hoverPreviewLock = useSidebarHoverPreviewLock();
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false);
+  const open = openProp ?? uncontrolledOpen;
+  const releaseHoverPreviewLockRef = React.useRef<(() => void) | null>(null);
+
+  const setOpen = React.useCallback(
+    (nextOpen: boolean) => {
+      if (openProp === undefined) {
+        setUncontrolledOpen(nextOpen);
+      }
+      onOpenChange?.(nextOpen);
+    },
+    [onOpenChange, openProp],
+  );
+
+  React.useEffect(() => {
+    if (!hoverPreviewLock) return;
+
+    if (open) {
+      releaseHoverPreviewLockRef.current ??= hoverPreviewLock.lockHoverPreview();
+      return;
+    }
+
+    releaseHoverPreviewLockRef.current?.();
+    releaseHoverPreviewLockRef.current = null;
+  }, [hoverPreviewLock, open]);
+
+  React.useEffect(
+    () => () => {
+      releaseHoverPreviewLockRef.current?.();
+      releaseHoverPreviewLockRef.current = null;
+    },
+    [],
+  );
+
+  return <DropdownMenuPrimitive open={open} onOpenChange={setOpen} {...props} />;
 }
 
 type DropdownMenuTriggerProps = DropdownMenuTriggerPrimitiveProps;

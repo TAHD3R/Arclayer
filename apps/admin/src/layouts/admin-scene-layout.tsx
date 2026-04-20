@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
-const SIDEBAR_EXPANDED_WIDTH_PX = 270;
+const SIDEBAR_EXPANDED_WIDTH_PX = 220;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 const TOPBAR_HEIGHT_REM = "3.5rem";
 

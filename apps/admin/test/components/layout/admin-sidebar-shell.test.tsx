@@ -1,7 +1,14 @@
+import * as React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
 const { navClickSpy } = vi.hoisted(() => ({
@@ -38,6 +45,29 @@ function renderWithSidebar(node: React.ReactElement) {
     <SidebarProvider defaultOpen className="h-screen">
       {node}
     </SidebarProvider>,
+  );
+}
+
+function TestLayoutMenu() {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <div>
+      <button type="button" onClick={() => setOpen(true)}>
+        Open layout menu
+      </button>
+      <button type="button" onClick={() => setOpen(false)}>
+        Close layout menu
+      </button>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button type="button">Layout menu trigger</button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuIconItem onSelect={() => setOpen(false)}>Menu action</DropdownMenuIconItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -322,5 +352,85 @@ describe("AdminSidebarShell", () => {
     expect(sidebarContent).not.toHaveAttribute("inert");
     fireEvent.click(navButton);
     expect(navClickSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps hover preview expanded while a layout dropdown menu stays open", () => {
+    vi.useFakeTimers();
+
+    try {
+      const view = render(
+        <SidebarProvider defaultOpen={false} className="h-screen">
+          <AdminSidebarShell
+            showNavSkeleton={false}
+            showOrgNavErrorOverlay={false}
+            mainItems={[]}
+            collapsible="icon"
+          />
+          <div className="p-8">
+            <TestLayoutMenu />
+          </div>
+        </SidebarProvider>,
+      );
+
+      const sidebar = view.container.querySelector<HTMLElement>('[data-slot="sidebar"]');
+      const sidebarContainer = view.container.querySelector<HTMLElement>(
+        '[data-slot="sidebar-container"]',
+      );
+
+      expect(sidebar).not.toBeNull();
+      expect(sidebarContainer).not.toBeNull();
+
+      act(() => {
+        fireEvent.pointerEnter(sidebarContainer!);
+        fireEvent.pointerMove(sidebarContainer!);
+        vi.advanceTimersByTime(70);
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "true");
+
+      act(() => {
+        fireEvent.click(screen.getByRole("button", { name: "Open layout menu" }));
+      });
+
+      expect(screen.getByText("Menu action")).toBeInTheDocument();
+
+      act(() => {
+        fireEvent.pointerLeave(sidebarContainer!);
+        vi.advanceTimersByTime(180);
+        vi.advanceTimersByTime(250);
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "true");
+
+      act(() => {
+        fireEvent.click(screen.getByText("Close layout menu"));
+      });
+
+      expect(screen.queryByText("Menu action")).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(179);
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+
+      act(() => {
+        vi.runOnlyPendingTimers();
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "");
+
+      act(() => {
+        vi.runOnlyPendingTimers();
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -55,6 +55,17 @@ type SidebarContextProps = {
 
 const [LocalSidebarProvider, useSidebar] = getStrictContext<SidebarContextProps>("SidebarContext");
 
+type SidebarHoverPreviewLockContextValue = {
+  lockHoverPreview: () => () => void;
+};
+
+const SidebarHoverPreviewLockContext =
+  React.createContext<SidebarHoverPreviewLockContextValue | null>(null);
+
+function useSidebarHoverPreviewLock() {
+  return React.useContext(SidebarHoverPreviewLockContext);
+}
+
 type SidebarProviderProps = React.ComponentProps<"div"> & {
   defaultOpen?: boolean;
   open?: boolean;
@@ -75,11 +86,15 @@ function SidebarProvider({
   const [hoverOpen, setHoverOpen] = React.useState(false);
   const [hoverIntent, setHoverIntent] = React.useState(false);
   const [collapseVisualHold, setCollapseVisualHold] = React.useState(false);
+  const [hoverPreviewLockCount, setHoverPreviewLockCount] = React.useState(0);
   const hoverOpenTimerRef = React.useRef<number | null>(null);
   const hoverCloseTimerRef = React.useRef<number | null>(null);
   const collapseVisualTimerRef = React.useRef<number | null>(null);
   const previousOpenRef = React.useRef(openProp ?? defaultOpen);
   const previousHoverOpenRef = React.useRef(false);
+  const previousHoverPreviewLockCountRef = React.useRef(0);
+  const hoverPreviewLockIdsRef = React.useRef(new Set<number>());
+  const nextHoverPreviewLockIdRef = React.useRef(1);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -127,6 +142,28 @@ function SidebarProvider({
     }, SIDEBAR_COLLAPSE_VISUAL_DELAY_MS);
   }, [clearCollapseVisualTimer]);
 
+  const scheduleHoverPreviewClose = React.useCallback(() => {
+    clearHoverOpenTimer();
+    clearHoverCloseTimer();
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      setHoverIntent(false);
+      setHoverOpen(false);
+      hoverCloseTimerRef.current = null;
+    }, SIDEBAR_HOVER_CLOSE_DELAY_MS);
+  }, [clearHoverCloseTimer, clearHoverOpenTimer]);
+
+  const lockHoverPreview = React.useCallback(() => {
+    const lockId = nextHoverPreviewLockIdRef.current++;
+    hoverPreviewLockIdsRef.current.add(lockId);
+    setHoverPreviewLockCount(hoverPreviewLockIdsRef.current.size);
+    clearHoverCloseTimer();
+
+    return () => {
+      if (!hoverPreviewLockIdsRef.current.delete(lockId)) return;
+      setHoverPreviewLockCount(hoverPreviewLockIdsRef.current.size);
+    };
+  }, [clearHoverCloseTimer]);
+
   const markHoverPointerEnter = React.useCallback(() => {
     clearHoverOpenTimer();
     clearHoverCloseTimer();
@@ -147,12 +184,12 @@ function SidebarProvider({
       setHoverOpen(false);
       return;
     }
-    hoverCloseTimerRef.current = window.setTimeout(() => {
-      setHoverIntent(false);
-      setHoverOpen(false);
-      hoverCloseTimerRef.current = null;
-    }, SIDEBAR_HOVER_CLOSE_DELAY_MS);
-  }, [clearHoverCloseTimer, clearHoverOpenTimer, isMobile, open]);
+    setHoverIntent(false);
+    if (hoverPreviewLockIdsRef.current.size > 0) {
+      return;
+    }
+    scheduleHoverPreviewClose();
+  }, [clearHoverCloseTimer, clearHoverOpenTimer, isMobile, open, scheduleHoverPreviewClose]);
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
@@ -206,7 +243,32 @@ function SidebarProvider({
   }, [clearCollapseVisualTimer, hoverOpen, isMobile, open, startCollapseVisualHold]);
 
   React.useEffect(() => {
+    const previousLockCount = previousHoverPreviewLockCountRef.current;
+    previousHoverPreviewLockCountRef.current = hoverPreviewLockCount;
+
+    if (hoverPreviewLockCount > 0) {
+      clearHoverCloseTimer();
+      return;
+    }
+    if (previousLockCount === 0) return;
+    if (isMobile || open) return;
+    if (!hoverOpen) return;
+    if (hoverIntent) return;
+
+    scheduleHoverPreviewClose();
+  }, [
+    clearHoverCloseTimer,
+    hoverIntent,
+    hoverOpen,
+    hoverPreviewLockCount,
+    isMobile,
+    open,
+    scheduleHoverPreviewClose,
+  ]);
+
+  React.useEffect(() => {
     return () => {
+      hoverPreviewLockIdsRef.current.clear();
       clearHoverOpenTimer();
       clearHoverCloseTimer();
       clearCollapseVisualTimer();
@@ -265,25 +327,27 @@ function SidebarProvider({
 
   return (
     <LocalSidebarProvider value={contextValue}>
-      <TooltipProvider openDelay={0}>
-        <div
-          data-slot="sidebar-wrapper"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH,
-              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-              ...style,
-            } as React.CSSProperties
-          }
-          className={cn(
-            "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
-            className,
-          )}
-          {...props}
-        >
-          {children}
-        </div>
-      </TooltipProvider>
+      <SidebarHoverPreviewLockContext.Provider value={{ lockHoverPreview }}>
+        <TooltipProvider openDelay={0}>
+          <div
+            data-slot="sidebar-wrapper"
+            style={
+              {
+                "--sidebar-width": SIDEBAR_WIDTH,
+                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+                ...style,
+              } as React.CSSProperties
+            }
+            className={cn(
+              "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
+              className,
+            )}
+            {...props}
+          >
+            {children}
+          </div>
+        </TooltipProvider>
+      </SidebarHoverPreviewLockContext.Provider>
     </LocalSidebarProvider>
   );
 }
@@ -864,4 +928,5 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
+  useSidebarHoverPreviewLock,
 };

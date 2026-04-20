@@ -44,6 +44,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import {
   ArrowUpRight,
   ChevronRight,
+  EyeOff,
   ExternalLink,
   FolderPlus,
   MoreHorizontal,
@@ -615,7 +616,10 @@ function FavoritesHeaderMenu(props: { onCreateFolder: () => void; onHideFromSide
           {t("NAV_FAVORITES_ACTION_NEW_FOLDER")}
         </DropdownMenuIconItem>
         <DropdownMenuSeparator />
-        <DropdownMenuIconItem onSelect={props.onHideFromSidebar}>
+        <DropdownMenuIconItem
+          icon={<EyeOff className="size-4" aria-hidden="true" />}
+          onSelect={props.onHideFromSidebar}
+        >
           {t("NAV_FAVORITES_ACTION_HIDE_FROM_SIDEBAR")}
         </DropdownMenuIconItem>
       </DropdownMenuContent>
