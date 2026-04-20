@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ProjectGeneralSettingsPage,
-  ProjectMembersSettingsPage,
   WorkspaceInvitationsSettingsPage,
   WorkspaceMembersSettingsPage,
   WorkspaceRolesSettingsPage,
@@ -120,32 +119,6 @@ vi.mock("@/pages/projects/settings/site/localization/page", () => ({
   ),
 }));
 
-vi.mock("@/api/project-members", () => ({
-  listProjectMembers: vi.fn(async () => ({
-    items: [
-      {
-        id: "membership-1",
-        projectId: "project-1",
-        workspaceId: "workspace-1",
-        userId: "user-1",
-        username: "ada",
-        email: "ada@example.com",
-        displayName: "Ada Lovelace",
-        avatarUrl: null,
-        userStatus: "active",
-        role: "owner",
-      },
-    ],
-    total: 1,
-    page: 1,
-    size: 20,
-    pages: 1,
-    next: null,
-    prev: null,
-  })),
-  updateProjectMemberRole: vi.fn(),
-}));
-
 describe("context settings pages", () => {
   function renderWithQueryClient(node: ReactNode) {
     const queryClient = new QueryClient({
@@ -193,12 +166,6 @@ describe("context settings pages", () => {
       "data-project-id",
       "project-1",
     );
-  });
-
-  it("renders project members settings with member data", async () => {
-    renderWithQueryClient(<ProjectMembersSettingsPage projectId="project-1" />);
-
-    expect(await screen.findByText("Ada Lovelace")).toBeInTheDocument();
   });
 
   it("renders workspace invitations with both header actions in the context shell", () => {

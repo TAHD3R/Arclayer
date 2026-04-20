@@ -75,10 +75,6 @@ export function collectAllowedWorkspacePathPrefixes(
 
   const hasTeam = Array.from(prefixes).some((p) => p.startsWith(normalizePath(`${base}/team/`)));
   if (hasTeam) prefixes.add(normalizePath(`${base}/team`));
-  const hasExtensions = Array.from(prefixes).some((p) =>
-    p.startsWith(normalizePath(`${base}/extensions/`)),
-  );
-  if (hasExtensions) prefixes.add(normalizePath(`${base}/extensions`));
 
   return Array.from(prefixes);
 }

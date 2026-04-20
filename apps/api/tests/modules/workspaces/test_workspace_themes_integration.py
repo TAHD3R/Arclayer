@@ -183,9 +183,9 @@ async def test_workspace_theme_import_and_site_runtime_output(
             site_pid = await project_site_id(client, project_id)
             zip_asset_pid = encode_uuid(zip_asset_id)
 
-            # Import theme package from uploaded zip asset.
+            # Theme import remains workspace-owned during this repair.
             resp = await client.post(
-                f"/api/v1/projects/{project_id}/themes/import",
+                f"/api/v1/workspaces/{ws_pid}/themes/import",
                 json={"assetId": zip_asset_pid},
             )
             assert resp.status_code == 200, resp.text

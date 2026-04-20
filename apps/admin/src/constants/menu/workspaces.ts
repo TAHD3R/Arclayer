@@ -245,7 +245,7 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
     key: "settings.project",
     label: "Project Settings",
     labelKey: "nav:NAV_SETTINGS_PROJECT",
-    to: "/settings/members",
+    to: "/settings/general",
     icon: Settings2,
   },
 ] as const;

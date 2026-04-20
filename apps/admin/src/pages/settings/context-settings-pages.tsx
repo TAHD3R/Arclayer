@@ -1,13 +1,9 @@
 import { useRouterState } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { listProjectMembers, updateProjectMemberRole } from "@/api/project-members";
 import { SETTINGS_WORKSPACE_NAV_ITEMS } from "@/constants/menu/settings";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ProjectApiKeysSettingsPage as ProjectApiKeysSettingsSurface } from "@/pages/projects/settings/api-keys/page";
 import { ProjectDomainSettingsPage as ProjectDomainSettingsSurface } from "@/pages/projects/settings/domain/page";
 import { GeneralSiteSettingsPage } from "@/pages/projects/settings/site/basics/page";
@@ -16,10 +12,7 @@ import { WorkspacePermissionsSettingsPage } from "@/pages/workspaces/settings/wo
 import { WorkspaceSettingsBasicsView } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view";
 import { TeamInvitationsPage } from "@/pages/workspaces/team/invitations/page";
 import { TeamMembersView } from "@/pages/workspaces/team/members/components/team-members-view";
-import type { ProjectMemberRole } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
 import { ContextSettingsShell } from "./context-settings-shell";
 
@@ -153,128 +146,6 @@ export function ProjectGeneralSettingsPage(props: { projectId: string }) {
 
 export function ProjectLocalizationSettingsPage(props: { projectId: string }) {
   return <GeneralLocalizationSettingsPage projectId={props.projectId} />;
-}
-
-export function ProjectMembersSettingsPage(props: { projectId: string }) {
-  const { t } = useTranslation(["account", "common"]);
-  const queryClient = useQueryClient();
-  const [searchInput, setSearchInput] = useState("");
-
-  const membersQuery = useQuery({
-    queryKey: ["project", "members", props.projectId, searchInput],
-    queryFn: async () =>
-      listProjectMembers(props.projectId, {
-        q: searchInput.trim() || undefined,
-      }),
-    retry: false,
-    staleTime: 30 * 1000,
-    meta: { silent: true },
-  });
-
-  const updateRoleMutation = useMutation({
-    mutationFn: async (payload: { membershipId: string; role: ProjectMemberRole }) =>
-      updateProjectMemberRole(props.projectId, payload.membershipId, { role: payload.role }),
-    onSuccess: async () => {
-      notifySuccessText(t("common:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({
-        queryKey: ["project", "members", props.projectId],
-        exact: false,
-      });
-    },
-    onError: (error) => notifyError(error),
-  });
-
-  return (
-    <DefaultPage
-      title={t("account:SETTINGS_NAV_PROJECT_MEMBERS")}
-      showFavoriteToggle={false}
-      pageFrame="full"
-      largeViewportGutters={false}
-      className="min-h-full"
-      contentClassName="min-h-full"
-      contentContainerClassName="min-h-full"
-      action={
-        <div className="flex w-full max-w-sm items-center gap-3">
-          <Input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder={t("account:SETTINGS_PROJECT_MEMBERS_SEARCH_PLACEHOLDER")}
-          />
-        </div>
-      }
-    >
-      <div className="overflow-hidden rounded-[16px] border border-border/70 bg-background">
-        <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)] gap-4 border-b border-border/70 px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-label-tertiary">
-          <span>{t("account:SETTINGS_PROJECT_MEMBERS_COL_MEMBER")}</span>
-          <span>{t("account:SETTINGS_PROJECT_MEMBERS_COL_STATUS")}</span>
-          <span>{t("account:SETTINGS_PROJECT_MEMBERS_COL_ROLE")}</span>
-        </div>
-
-        {membersQuery.isLoading ? (
-          <div className="px-5 py-8 text-sm text-label-secondary">{t("common:LOADING")}</div>
-        ) : membersQuery.isError ? (
-          <div className="flex items-center justify-between gap-4 px-5 py-8">
-            <div className="text-sm text-label-secondary">{t("common:REQUEST_FAILED")}</div>
-            <Button variant="outline" onClick={() => void membersQuery.refetch()}>
-              {t("common:RETRY")}
-            </Button>
-          </div>
-        ) : (membersQuery.data?.items.length ?? 0) === 0 ? (
-          <div className="px-5 py-10 text-sm text-label-secondary">
-            {t("account:SETTINGS_PROJECT_MEMBERS_EMPTY")}
-          </div>
-        ) : (
-          <div className="divide-y divide-border/70">
-            {(membersQuery.data?.items ?? []).map((member) => {
-              const label = member.displayName || member.username || member.email || member.userId;
-              return (
-                <div
-                  key={member.id}
-                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)] gap-4 px-5 py-4"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-label-primary">{label}</div>
-                    <div className="truncate text-sm text-label-secondary">
-                      {member.email || member.username}
-                    </div>
-                  </div>
-                  <div className="self-center text-sm text-label-secondary">
-                    {member.userStatus}
-                  </div>
-                  <div className="self-center">
-                    <Select
-                      value={member.role}
-                      onValueChange={(value) => {
-                        void updateRoleMutation.mutateAsync({
-                          membershipId: member.id,
-                          role: value as ProjectMemberRole,
-                        });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="owner">
-                          {t("account:SETTINGS_PROJECT_ROLE_OWNER")}
-                        </SelectItem>
-                        <SelectItem value="editor">
-                          {t("account:SETTINGS_PROJECT_ROLE_EDITOR")}
-                        </SelectItem>
-                        <SelectItem value="viewer">
-                          {t("account:SETTINGS_PROJECT_ROLE_VIEWER")}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </DefaultPage>
-  );
 }
 
 function ProjectStandalonePage(props: { titleKey: string; descriptionKey?: string }) {

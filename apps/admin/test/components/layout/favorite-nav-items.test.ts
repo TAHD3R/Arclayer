@@ -175,7 +175,7 @@ describe("resolveFavoriteNavItems", () => {
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
         path: "/w/ws-9",
-        label: "Philip Cole's Workspace",
+        label: "nav:NAV_DASHBOARD",
         isCurrentWorkspace: false,
       }),
       expect.objectContaining({

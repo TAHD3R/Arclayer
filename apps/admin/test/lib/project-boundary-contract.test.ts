@@ -16,7 +16,6 @@ describe("project boundary contract", () => {
       "apps/admin/src/routes/projects/$projectId/content/automation/index.lazy.tsx",
       "apps/admin/src/routes/projects/$projectId/content/site-builder/index.lazy.tsx",
       "apps/admin/src/routes/projects/$projectId/content/library/$itemId/index.lazy.tsx",
-      "apps/admin/src/routes/projects/$projectId/extensions/$extensionSlug/index.lazy.tsx",
     ];
 
     const violations = routeFiles.flatMap((relativePath) => {
@@ -36,7 +35,6 @@ describe("project boundary contract", () => {
   test("project-owned Admin pages live under pages/projects", () => {
     const workspaceProjectPageFolders = [
       "apps/admin/src/pages/workspaces/content",
-      "apps/admin/src/pages/workspaces/extensions",
       "apps/admin/src/pages/workspaces/settings/site",
     ];
 
@@ -76,6 +74,31 @@ describe("project boundary contract", () => {
         .filter((marker) => source.includes(marker))
         .map((marker) => `${relativePath} contains ${marker}`);
     });
+
+    expect(violations).toEqual([]);
+  });
+
+  test("stale project settings and extensions routes are removed from project admin surfaces", () => {
+    const forbiddenProjectRoutes = [
+      "apps/admin/src/routes/projects/$projectId/extensions/index.tsx",
+      "apps/admin/src/routes/projects/$projectId/extensions/index.lazy.tsx",
+      "apps/admin/src/routes/projects/$projectId/extensions/$extensionSlug/index.tsx",
+      "apps/admin/src/routes/projects/$projectId/extensions/$extensionSlug/index.lazy.tsx",
+      "apps/admin/src/routes/projects/$projectId/settings/members/index.tsx",
+      "apps/admin/src/api/project-themes.ts",
+      "apps/admin/src/pages/projects/extensions",
+    ];
+
+    const violations = forbiddenProjectRoutes.filter((relativePath) =>
+      existsSync(resolve(repoRoot, relativePath)),
+    );
+
+    const workspaceNavSource = read("apps/admin/src/constants/menu/workspaces.ts");
+    if (workspaceNavSource.includes('to: "/settings/members"')) {
+      violations.push(
+        "apps/admin/src/constants/menu/workspaces.ts points Project Settings to members",
+      );
+    }
 
     expect(violations).toEqual([]);
   });

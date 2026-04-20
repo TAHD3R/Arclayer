@@ -15,7 +15,6 @@ from src.modules.projects.content.models.router import router as project_models_
 from src.modules.projects.content.routing.router import router as project_routing_router
 from src.modules.projects.domains.router import router as project_domains_router
 from src.modules.projects.facade.router import router as project_facade_router
-from src.modules.projects.themes.router import router as project_themes_router
 from src.modules.system.admin.notifications.router import router as notifications_router
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.workspaces.api_keys.router import workspace_api_keys_router
@@ -178,21 +177,13 @@ def test_content_router_uses_granular_permissions() -> None:
     assert "require_project_content_manage_context" in upsert_binding_calls
 
 
-def test_site_and_theme_routers_use_granular_permissions() -> None:
+def test_site_router_uses_granular_permissions() -> None:
     site_read = _route_permissions(site_router, path="/workspaces/{workspace_id}/site", method="GET")
     site_preview = _route_permissions(site_router, path="/workspaces/{workspace_id}/site/preview-tokens", method="POST")
-    import_theme = _route_permissions(project_themes_router, path="/projects/{project_id}/themes/import", method="POST")
-    delete_theme = _route_permissions(
-        project_themes_router,
-        path="/projects/{project_id}/themes/{theme_id}/{version}",
-        method="DELETE",
-    )
 
     assert site_read == {"system:site:read"}
     assert site_preview == {"system:site:read", "system:site:manage"}
-    assert import_theme == {"system:themes:read", "system:themes:manage"}
-    assert delete_theme == {"system:themes:read", "system:themes:manage"}
-    assert "admin:access" not in site_read | site_preview | import_theme | delete_theme
+    assert "admin:access" not in site_read | site_preview
 
 
 def test_workspace_api_key_router_uses_granular_permissions() -> None:

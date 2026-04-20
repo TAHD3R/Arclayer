@@ -34,10 +34,11 @@ describe("workspace nav regression", () => {
       "/assets",
       "/content/models",
       "/content/library",
+      "/content/releases",
+      "/content/automation",
       "/settings/general",
       "/activity",
-      "/settings/members",
-      "/settings/workspace/general",
+      "/settings/general",
     ]);
   });
 
@@ -56,14 +57,8 @@ describe("workspace nav regression", () => {
       "dashboard",
       "inbox",
       "website",
-      "marketing",
-      "analytics",
-      "customers.leads",
-      "apps",
-      "automations",
       "activity",
       "settings.project",
-      "settings.workspace",
     ]);
 
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website")).toMatchObject({
@@ -76,31 +71,14 @@ describe("workspace nav regression", () => {
 
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "website")?.children?.map((item) => item.key),
-    ).toEqual(["assets", "content.models", "content.library", "settings.site"]);
-    expect(
-      ADMIN_NAV_ITEMS.find((item) => item.key === "marketing")?.children?.every(
-        (item) => item.disabled,
-      ),
-    ).toBe(true);
-    expect(
-      ADMIN_NAV_ITEMS.find((item) => item.key === "analytics")?.children?.every(
-        (item) => item.disabled,
-      ),
-    ).toBe(true);
-    expect(
-      ADMIN_NAV_ITEMS.find((item) => item.key === "customers.leads")?.children?.every(
-        (item) => item.disabled,
-      ),
-    ).toBe(true);
-    expect(
-      ADMIN_NAV_ITEMS.find((item) => item.key === "customers.leads")?.children?.map(
-        (item) => item.key,
-      ),
-    ).toEqual(["customers.contacts", "customers.leads.list", "customers.forms-submissions"]);
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "automations")).toMatchObject({
-      disabled: true,
-      labelKey: "nav:NAV_AUTOMATIONS",
-    });
+    ).toEqual([
+      "assets",
+      "content.models",
+      "content.library",
+      "content.releases",
+      "content.automation",
+      "settings.site",
+    ]);
   });
 
   test("returns the project-first workspace nav tree", () => {
@@ -110,16 +88,9 @@ describe("workspace nav regression", () => {
       "dashboard",
       "inbox",
       "website",
-      "marketing",
-      "analytics",
-      "customers.leads",
-      "apps",
-      "automations",
       "activity",
       "settings.project",
-      "settings.workspace",
     ]);
     expect(listWorkspaceNavTargets(workspaceNav)).toContain("/settings/general");
-    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/settings/workspace/general");
   });
 });

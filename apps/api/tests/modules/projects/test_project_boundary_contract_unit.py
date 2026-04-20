@@ -17,6 +17,12 @@ PROJECT_OWNED_WORKSPACE_ROUTERS = {
     "apps/api/src/modules/workspaces/themes/router.py": 'prefix="/workspaces/{workspace_id}"',
 }
 
+PROJECT_ONLY_DRIFT_MARKERS = {
+    "apps/api/src/modules/projects/router.py": [
+        "projects_themes_router",
+    ],
+}
+
 WORKSPACE_SINGLE_SITE_MARKERS = {
     "apps/api/src/models/sites/site.py": [
         "Single-site workspace model",
@@ -73,5 +79,14 @@ def test_workspace_router_mounts_only_collaboration_container_features() -> None
         for router_name in PROJECT_OWNED_WORKSPACE_MOUNTS
         if f"router.include_router({router_name})" in source
     )
+
+    assert violations == []
+
+
+def test_project_router_excludes_stale_project_theme_mounts() -> None:
+    violations: list[str] = []
+    for relative_path, markers in PROJECT_ONLY_DRIFT_MARKERS.items():
+        source = _read(relative_path)
+        violations.extend(f"{relative_path} contains {marker}" for marker in markers if marker in source)
 
     assert violations == []

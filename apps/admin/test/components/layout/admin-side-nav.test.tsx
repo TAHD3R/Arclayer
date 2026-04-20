@@ -709,7 +709,7 @@ describe("AdminSiderNav collapsed groups", () => {
 
     expect(buttons.indexOf("Home")).toBeLessThan(buttons.indexOf("Resources"));
     expect(buttons.indexOf("Resources")).toBeLessThan(buttons.indexOf("en-US:nav:NAV_FAVORITES"));
-    expect(buttons.indexOf("en-US:nav:NAV_FAVORITES")).toBeLessThan(buttons.indexOf("Workspaces"));
+    expect(buttons.indexOf("en-US:nav:NAV_FAVORITES")).toBeLessThan(buttons.indexOf("Projects"));
   });
 
   it("keeps favorites in collapsed mode during the hover-open threshold", () => {
@@ -1024,10 +1024,10 @@ describe("AdminSiderNav collapsed groups", () => {
 
     expect(screen.queryByRole("button", { name: "Alpha Workspace" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Workspaces" }));
+    await user.click(screen.getByRole("button", { name: "Projects" }));
 
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/workspaces" });
-    expect(screen.getByRole("button", { name: "Alpha Workspace" })).toBeVisible();
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
+    expect(screen.getByRole("button", { name: "Alpha Project" })).toBeVisible();
   });
 
   it("uses the parent route as the collapsed click target for navigate-self-and-expand groups", async () => {
@@ -1036,9 +1036,9 @@ describe("AdminSiderNav collapsed groups", () => {
     renderCollapsedNav(navigateSelfAndExpandItems);
 
     await waitForCollapsedRender();
-    fireEvent.click(screen.getByRole("button", { name: "Workspaces" }));
+    fireEvent.click(screen.getByRole("button", { name: "Projects" }));
 
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/workspaces" });
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
   });
 
   it("can keep a source menu branch active while current route renders /notifications", async () => {
@@ -1098,7 +1098,7 @@ describe("AdminSiderNav collapsed groups", () => {
 
     expect(screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_PROJECT" })).toHaveAttribute(
       "data-active",
-      "true",
+      "false",
     );
 
     view.rerender(

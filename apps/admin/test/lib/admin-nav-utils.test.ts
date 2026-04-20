@@ -164,4 +164,10 @@ describe("collectAllowedWorkspacePathPrefixes", () => {
     const result = collectAllowedWorkspacePathPrefixes(items, "/w/1");
     expect(result).toContain("/w/1/team");
   });
+
+  it("does not synthesize an extensions alias", () => {
+    const items: AdminNavItem[] = [makeItem("general", "/w/1/settings/general")];
+    const result = collectAllowedWorkspacePathPrefixes(items, "/w/1");
+    expect(result).not.toContain("/w/1/extensions");
+  });
 });

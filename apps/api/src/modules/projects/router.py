@@ -31,7 +31,6 @@ from src.modules.projects.schema import (
     ProjectUpdateRequest,
 )
 from src.modules.projects.service import ProjectService
-from src.modules.projects.themes.router import router as projects_themes_router
 from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access, resolve_workspace_context_by_id
@@ -41,7 +40,6 @@ router.include_router(projects_facade_router)
 router.include_router(projects_content_router)
 router.include_router(projects_automation_router)
 router.include_router(projects_domains_router)
-router.include_router(projects_themes_router)
 
 
 async def get_project_list_workspace_context(
