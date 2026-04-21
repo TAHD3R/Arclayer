@@ -31,17 +31,20 @@ vi.mock("@/layouts/page-shell/default-page", () => ({
   DefaultPage: ({
     title,
     description,
+    action,
     extra,
     children,
   }: {
     title: string;
     description?: string;
+    action?: React.ReactNode;
     extra?: React.ReactNode;
     children?: React.ReactNode;
   }) => (
     <div>
       <h1>{title}</h1>
       {description ? <p>{description}</p> : null}
+      <div>{action}</div>
       <div>{extra}</div>
       <div>{children}</div>
     </div>
@@ -87,6 +90,9 @@ describe("SystemDirectoryShell", () => {
     expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_USERS")).toBeInTheDocument();
     expect(
       screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_ORGANIZATIONS"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ADD_USER"),
     ).toBeInTheDocument();
     expect(screen.getByText("directory body")).toBeInTheDocument();
   });

@@ -4018,6 +4018,12 @@ export type DeliveryStyleOut = {
  */
 export type DirectoryActorSummaryOut = {
     /**
+     * Avatarurl
+     *
+     * Avatar URL.
+     */
+    avatarUrl?: string | null;
+    /**
      * Displayname
      *
      * Display name.
@@ -4041,6 +4047,80 @@ export type DirectoryActorSummaryOut = {
      * Username.
      */
     username: string;
+};
+
+/**
+ * DirectoryOrganizationDetailOut
+ */
+export type DirectoryOrganizationDetailOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Isactive
+     *
+     * Whether the organization is active.
+     */
+    isActive?: boolean;
+    /**
+     * Organization kind.
+     */
+    kind: OrganizationKind;
+    /**
+     * Logourl
+     *
+     * Organization logo URL.
+     */
+    logoUrl?: string | null;
+    /**
+     * Membercount
+     *
+     * Active member count.
+     */
+    memberCount?: number;
+    /**
+     * Name
+     *
+     * Organization name.
+     */
+    name: string;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Owner summary.
+     */
+    owner?: DirectoryActorSummaryOut | null;
+    /**
+     * Projectcount
+     *
+     * Project count.
+     */
+    projectCount?: number;
+    /**
+     * Slug
+     *
+     * Organization slug.
+     */
+    slug: string;
+    /**
+     * Updatedat
+     *
+     * Last update time.
+     */
+    updatedAt: string;
+    /**
+     * Workspacecount
+     *
+     * Workspace count.
+     */
+    workspaceCount?: number;
 };
 
 /**
@@ -4103,6 +4183,118 @@ export type DirectoryOrganizationListItemOut = {
      * Workspace count.
      */
     workspaceCount?: number;
+};
+
+/**
+ * DirectoryProjectDetailOut
+ */
+export type DirectoryProjectDetailOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Description
+     *
+     * Project description.
+     */
+    description?: string | null;
+    /**
+     * Iconcolor
+     *
+     * Project icon color.
+     */
+    iconColor: string;
+    /**
+     * Iconemoji
+     *
+     * Project icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Project icon glyph.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Iconmode
+     *
+     * Project icon mode.
+     */
+    iconMode: string;
+    /**
+     * Iconurl
+     *
+     * Project icon URL.
+     */
+    iconUrl?: string | null;
+    /**
+     * Isactive
+     *
+     * Whether the project is active.
+     */
+    isActive?: boolean;
+    /**
+     * Membercount
+     *
+     * Project member count.
+     */
+    memberCount?: number;
+    /**
+     * Name
+     *
+     * Project name.
+     */
+    name: string;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Organizationname
+     *
+     * Organization name.
+     */
+    organizationName: string;
+    /**
+     * Owner summary.
+     */
+    owner?: DirectoryActorSummaryOut | null;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Slug
+     *
+     * Project slug.
+     */
+    slug: string;
+    /**
+     * Updatedat
+     *
+     * Last update time.
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+    /**
+     * Workspacename
+     *
+     * Workspace name.
+     */
+    workspaceName: string;
 };
 
 /**
@@ -4182,9 +4374,15 @@ export type DirectoryProjectListItemOut = {
 };
 
 /**
- * DirectoryUserListItemOut
+ * DirectoryUserDetailOut
  */
-export type DirectoryUserListItemOut = {
+export type DirectoryUserDetailOut = {
+    /**
+     * Avatarurl
+     *
+     * Avatar URL.
+     */
+    avatarUrl?: string | null;
     /**
      * Createdat
      *
@@ -4204,6 +4402,12 @@ export type DirectoryUserListItemOut = {
      */
     email?: string | null;
     /**
+     * Haspassword
+     *
+     * Whether a local password is configured.
+     */
+    hasPassword?: boolean;
+    /**
      * Issuperadmin
      *
      * Whether the user is a super admin.
@@ -4215,6 +4419,12 @@ export type DirectoryUserListItemOut = {
      * Last login time.
      */
     lastLoginAt?: string | null;
+    /**
+     * Linkedoauthproviders
+     *
+     * Linked OAuth providers for the account.
+     */
+    linkedOauthProviders?: Array<string>;
     /**
      * Organizationmembershipcount
      *
@@ -4235,6 +4445,18 @@ export type DirectoryUserListItemOut = {
     projectMembershipCount?: number;
     status: UserStatus;
     /**
+     * Twofactorenabled
+     *
+     * Whether two-factor authentication is enabled.
+     */
+    twoFactorEnabled?: boolean;
+    /**
+     * Updatedat
+     *
+     * Last update time.
+     */
+    updatedAt: string;
+    /**
      * Userid
      *
      * User id.
@@ -4252,6 +4474,251 @@ export type DirectoryUserListItemOut = {
      * Active workspace memberships for the user.
      */
     workspaceMembershipCount?: number;
+};
+
+/**
+ * DirectoryUserListItemOut
+ */
+export type DirectoryUserListItemOut = {
+    /**
+     * Avatarurl
+     *
+     * Avatar URL.
+     */
+    avatarUrl?: string | null;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Displayname
+     *
+     * Display name.
+     */
+    displayName?: string | null;
+    /**
+     * Email
+     *
+     * Email.
+     */
+    email?: string | null;
+    /**
+     * Haspassword
+     *
+     * Whether a local password is configured.
+     */
+    hasPassword?: boolean;
+    /**
+     * Issuperadmin
+     *
+     * Whether the user is a super admin.
+     */
+    isSuperAdmin?: boolean;
+    /**
+     * Lastloginat
+     *
+     * Last login time.
+     */
+    lastLoginAt?: string | null;
+    /**
+     * Linkedoauthproviders
+     *
+     * Linked OAuth providers for the account.
+     */
+    linkedOauthProviders?: Array<string>;
+    /**
+     * Organizationmembershipcount
+     *
+     * Active organization memberships for the user.
+     */
+    organizationMembershipCount?: number;
+    /**
+     * Ownedorganizationscount
+     *
+     * Organizations owned by the user.
+     */
+    ownedOrganizationsCount?: number;
+    /**
+     * Projectmembershipcount
+     *
+     * Project memberships for the user.
+     */
+    projectMembershipCount?: number;
+    status: UserStatus;
+    /**
+     * Twofactorenabled
+     *
+     * Whether two-factor authentication is enabled.
+     */
+    twoFactorEnabled?: boolean;
+    /**
+     * Userid
+     *
+     * User id.
+     */
+    userId: string;
+    /**
+     * Username
+     *
+     * Username.
+     */
+    username: string;
+    /**
+     * Workspacemembershipcount
+     *
+     * Active workspace memberships for the user.
+     */
+    workspaceMembershipCount?: number;
+};
+
+/**
+ * DirectoryUserResetPasswordRequest
+ */
+export type DirectoryUserResetPasswordRequest = {
+    /**
+     * Newpassword
+     *
+     * New password.
+     */
+    newPassword: string;
+};
+
+/**
+ * DirectoryUserUpdateRequest
+ */
+export type DirectoryUserUpdateRequest = {
+    /**
+     * Avatarassetid
+     *
+     * Avatar asset id.
+     */
+    avatarAssetId?: string | null;
+    /**
+     * Displayname
+     *
+     * Display name.
+     */
+    displayName?: string | null;
+    /**
+     * Email
+     *
+     * Email address.
+     */
+    email?: string | null;
+};
+
+/**
+ * DirectoryWorkspaceDetailOut
+ */
+export type DirectoryWorkspaceDetailOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Description
+     *
+     * Workspace description.
+     */
+    description?: string | null;
+    /**
+     * Iconcolor
+     *
+     * Workspace icon color.
+     */
+    iconColor: string;
+    /**
+     * Iconemoji
+     *
+     * Workspace icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Workspace icon glyph.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Iconmode
+     *
+     * Workspace icon mode.
+     */
+    iconMode: string;
+    /**
+     * Iconurl
+     *
+     * Workspace icon URL.
+     */
+    iconUrl?: string | null;
+    /**
+     * Isactive
+     *
+     * Whether the workspace is active.
+     */
+    isActive?: boolean;
+    /**
+     * Isarchived
+     *
+     * Whether the workspace is archived.
+     */
+    isArchived?: boolean;
+    /**
+     * Kind
+     *
+     * Workspace kind.
+     */
+    kind: string;
+    /**
+     * Membercount
+     *
+     * Active member count.
+     */
+    memberCount?: number;
+    /**
+     * Name
+     *
+     * Workspace name.
+     */
+    name: string;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Organizationname
+     *
+     * Organization name.
+     */
+    organizationName: string;
+    /**
+     * Owner summary.
+     */
+    owner?: DirectoryActorSummaryOut | null;
+    /**
+     * Projectcount
+     *
+     * Project count.
+     */
+    projectCount?: number;
+    /**
+     * Updatedat
+     *
+     * Last update time.
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
 };
 
 /**
@@ -10879,6 +11346,106 @@ export type ResponseModelDeliverySectionOut = {
  */
 export type ResponseModelDeliveryStyleOut = {
     data?: DeliveryStyleOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DirectoryOrganizationDetailOut]
+ */
+export type ResponseModelDirectoryOrganizationDetailOut = {
+    data?: DirectoryOrganizationDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DirectoryProjectDetailOut]
+ */
+export type ResponseModelDirectoryProjectDetailOut = {
+    data?: DirectoryProjectDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DirectoryUserDetailOut]
+ */
+export type ResponseModelDirectoryUserDetailOut = {
+    data?: DirectoryUserDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DirectoryWorkspaceDetailOut]
+ */
+export type ResponseModelDirectoryWorkspaceDetailOut = {
+    data?: DirectoryWorkspaceDetailOut | null;
     /**
      * Error
      */
@@ -21800,6 +22367,38 @@ export type DomainProjectsUpdateProjectResponses = {
 
 export type DomainProjectsUpdateProjectResponse = DomainProjectsUpdateProjectResponses[keyof DomainProjectsUpdateProjectResponses];
 
+export type DomainProjectsListProjectActionsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/actions';
+};
+
+export type DomainProjectsListProjectActionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectActionsError = DomainProjectsListProjectActionsErrors[keyof DomainProjectsListProjectActionsErrors];
+
+export type DomainProjectsListProjectActionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListWorkspacePermissionActionOut;
+};
+
+export type DomainProjectsListProjectActionsResponse = DomainProjectsListProjectActionsResponses[keyof DomainProjectsListProjectActionsResponses];
+
 export type DomainProjectsListProjectApiKeysData = {
     body?: never;
     path: {
@@ -25443,6 +26042,36 @@ export type InternalSystemListOrganizationsResponses = {
 
 export type InternalSystemListOrganizationsResponse = InternalSystemListOrganizationsResponses[keyof InternalSystemListOrganizationsResponses];
 
+export type InternalSystemGetOrganizationDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/organizations/{organization_id}';
+};
+
+export type InternalSystemGetOrganizationDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetOrganizationDetailError = InternalSystemGetOrganizationDetailErrors[keyof InternalSystemGetOrganizationDetailErrors];
+
+export type InternalSystemGetOrganizationDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryOrganizationDetailOut;
+};
+
+export type InternalSystemGetOrganizationDetailResponse = InternalSystemGetOrganizationDetailResponses[keyof InternalSystemGetOrganizationDetailResponses];
+
 export type InternalSystemListProjectsData = {
     body?: never;
     path?: never;
@@ -25492,6 +26121,36 @@ export type InternalSystemListProjectsResponses = {
 };
 
 export type InternalSystemListProjectsResponse = InternalSystemListProjectsResponses[keyof InternalSystemListProjectsResponses];
+
+export type InternalSystemGetProjectDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/projects/{project_id}';
+};
+
+export type InternalSystemGetProjectDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetProjectDetailError = InternalSystemGetProjectDetailErrors[keyof InternalSystemGetProjectDetailErrors];
+
+export type InternalSystemGetProjectDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryProjectDetailOut;
+};
+
+export type InternalSystemGetProjectDetailResponse = InternalSystemGetProjectDetailResponses[keyof InternalSystemGetProjectDetailResponses];
 
 export type InternalSystemListUsersData = {
     body?: never;
@@ -25543,6 +26202,562 @@ export type InternalSystemListUsersResponses = {
 
 export type InternalSystemListUsersResponse = InternalSystemListUsersResponses[keyof InternalSystemListUsersResponses];
 
+export type InternalSystemDeleteUserAccountData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}';
+};
+
+export type InternalSystemDeleteUserAccountErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDeleteUserAccountError = InternalSystemDeleteUserAccountErrors[keyof InternalSystemDeleteUserAccountErrors];
+
+export type InternalSystemDeleteUserAccountResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type InternalSystemDeleteUserAccountResponse = InternalSystemDeleteUserAccountResponses[keyof InternalSystemDeleteUserAccountResponses];
+
+export type InternalSystemGetUserDetailData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}';
+};
+
+export type InternalSystemGetUserDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetUserDetailError = InternalSystemGetUserDetailErrors[keyof InternalSystemGetUserDetailErrors];
+
+export type InternalSystemGetUserDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemGetUserDetailResponse = InternalSystemGetUserDetailResponses[keyof InternalSystemGetUserDetailResponses];
+
+export type InternalSystemUpdateUserData = {
+    body: DirectoryUserUpdateRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}';
+};
+
+export type InternalSystemUpdateUserErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateUserError = InternalSystemUpdateUserErrors[keyof InternalSystemUpdateUserErrors];
+
+export type InternalSystemUpdateUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemUpdateUserResponse = InternalSystemUpdateUserResponses[keyof InternalSystemUpdateUserResponses];
+
+export type InternalSystemInitUserAvatarUploadData = {
+    body: UploadInitRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/init';
+};
+
+export type InternalSystemInitUserAvatarUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemInitUserAvatarUploadError = InternalSystemInitUserAvatarUploadErrors[keyof InternalSystemInitUserAvatarUploadErrors];
+
+export type InternalSystemInitUserAvatarUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadInitOut;
+};
+
+export type InternalSystemInitUserAvatarUploadResponse = InternalSystemInitUserAvatarUploadResponses[keyof InternalSystemInitUserAvatarUploadResponses];
+
+export type InternalSystemGetUserAvatarUploadStatusData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}';
+};
+
+export type InternalSystemGetUserAvatarUploadStatusErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetUserAvatarUploadStatusError = InternalSystemGetUserAvatarUploadStatusErrors[keyof InternalSystemGetUserAvatarUploadStatusErrors];
+
+export type InternalSystemGetUserAvatarUploadStatusResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadStatusOut;
+};
+
+export type InternalSystemGetUserAvatarUploadStatusResponse = InternalSystemGetUserAvatarUploadStatusResponses[keyof InternalSystemGetUserAvatarUploadStatusResponses];
+
+export type InternalSystemAbortUserAvatarUploadData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/abort';
+};
+
+export type InternalSystemAbortUserAvatarUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemAbortUserAvatarUploadError = InternalSystemAbortUserAvatarUploadErrors[keyof InternalSystemAbortUserAvatarUploadErrors];
+
+export type InternalSystemAbortUserAvatarUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadAbortOut;
+};
+
+export type InternalSystemAbortUserAvatarUploadResponse = InternalSystemAbortUserAvatarUploadResponses[keyof InternalSystemAbortUserAvatarUploadResponses];
+
+export type InternalSystemCompleteUserAvatarUploadData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/complete';
+};
+
+export type InternalSystemCompleteUserAvatarUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCompleteUserAvatarUploadError = InternalSystemCompleteUserAvatarUploadErrors[keyof InternalSystemCompleteUserAvatarUploadErrors];
+
+export type InternalSystemCompleteUserAvatarUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadCompleteOut;
+};
+
+export type InternalSystemCompleteUserAvatarUploadResponse = InternalSystemCompleteUserAvatarUploadResponses[keyof InternalSystemCompleteUserAvatarUploadResponses];
+
+export type InternalSystemUploadUserAvatarPartData = {
+    body?: never;
+    headers?: {
+        /**
+         * Content-Length
+         */
+        'Content-Length'?: number | null;
+    };
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}';
+};
+
+export type InternalSystemUploadUserAvatarPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUploadUserAvatarPartError = InternalSystemUploadUserAvatarPartErrors[keyof InternalSystemUploadUserAvatarPartErrors];
+
+export type InternalSystemUploadUserAvatarPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type InternalSystemUploadUserAvatarPartResponse = InternalSystemUploadUserAvatarPartResponses[keyof InternalSystemUploadUserAvatarPartResponses];
+
+export type InternalSystemCommitUserAvatarUploadPartData = {
+    body: UploadPartCommitRequest;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}/commit';
+};
+
+export type InternalSystemCommitUserAvatarUploadPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCommitUserAvatarUploadPartError = InternalSystemCommitUserAvatarUploadPartErrors[keyof InternalSystemCommitUserAvatarUploadPartErrors];
+
+export type InternalSystemCommitUserAvatarUploadPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type InternalSystemCommitUserAvatarUploadPartResponse = InternalSystemCommitUserAvatarUploadPartResponses[keyof InternalSystemCommitUserAvatarUploadPartResponses];
+
+export type InternalSystemPresignUserAvatarUploadPartData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}/presign';
+};
+
+export type InternalSystemPresignUserAvatarUploadPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemPresignUserAvatarUploadPartError = InternalSystemPresignUserAvatarUploadPartErrors[keyof InternalSystemPresignUserAvatarUploadPartErrors];
+
+export type InternalSystemPresignUserAvatarUploadPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadPartPresignOut;
+};
+
+export type InternalSystemPresignUserAvatarUploadPartResponse = InternalSystemPresignUserAvatarUploadPartResponses[keyof InternalSystemPresignUserAvatarUploadPartResponses];
+
+export type InternalSystemDisableUserData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/disable';
+};
+
+export type InternalSystemDisableUserErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDisableUserError = InternalSystemDisableUserErrors[keyof InternalSystemDisableUserErrors];
+
+export type InternalSystemDisableUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemDisableUserResponse = InternalSystemDisableUserResponses[keyof InternalSystemDisableUserResponses];
+
+export type InternalSystemDisableUserTwoFactorData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/disable-two-factor';
+};
+
+export type InternalSystemDisableUserTwoFactorErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDisableUserTwoFactorError = InternalSystemDisableUserTwoFactorErrors[keyof InternalSystemDisableUserTwoFactorErrors];
+
+export type InternalSystemDisableUserTwoFactorResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemDisableUserTwoFactorResponse = InternalSystemDisableUserTwoFactorResponses[keyof InternalSystemDisableUserTwoFactorResponses];
+
+export type InternalSystemEnableUserData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/enable';
+};
+
+export type InternalSystemEnableUserErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemEnableUserError = InternalSystemEnableUserErrors[keyof InternalSystemEnableUserErrors];
+
+export type InternalSystemEnableUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemEnableUserResponse = InternalSystemEnableUserResponses[keyof InternalSystemEnableUserResponses];
+
+export type InternalSystemUnlinkUserOauthIdentityData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+        /**
+         * Provider
+         */
+        provider: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/oauth-identities/{provider}';
+};
+
+export type InternalSystemUnlinkUserOauthIdentityErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUnlinkUserOauthIdentityError = InternalSystemUnlinkUserOauthIdentityErrors[keyof InternalSystemUnlinkUserOauthIdentityErrors];
+
+export type InternalSystemUnlinkUserOauthIdentityResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemUnlinkUserOauthIdentityResponse = InternalSystemUnlinkUserOauthIdentityResponses[keyof InternalSystemUnlinkUserOauthIdentityResponses];
+
+export type InternalSystemResetUserPasswordData = {
+    body: DirectoryUserResetPasswordRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/reset-password';
+};
+
+export type InternalSystemResetUserPasswordErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemResetUserPasswordError = InternalSystemResetUserPasswordErrors[keyof InternalSystemResetUserPasswordErrors];
+
+export type InternalSystemResetUserPasswordResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemResetUserPasswordResponse = InternalSystemResetUserPasswordResponses[keyof InternalSystemResetUserPasswordResponses];
+
+export type InternalSystemRevokeUserSessionsData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/revoke-sessions';
+};
+
+export type InternalSystemRevokeUserSessionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemRevokeUserSessionsError = InternalSystemRevokeUserSessionsErrors[keyof InternalSystemRevokeUserSessionsErrors];
+
+export type InternalSystemRevokeUserSessionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemRevokeUserSessionsResponse = InternalSystemRevokeUserSessionsResponses[keyof InternalSystemRevokeUserSessionsResponses];
+
+export type InternalSystemSendUserResetPasswordEmailData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/users/{user_id}/send-reset-password-email';
+};
+
+export type InternalSystemSendUserResetPasswordEmailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemSendUserResetPasswordEmailError = InternalSystemSendUserResetPasswordEmailErrors[keyof InternalSystemSendUserResetPasswordEmailErrors];
+
+export type InternalSystemSendUserResetPasswordEmailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryUserDetailOut;
+};
+
+export type InternalSystemSendUserResetPasswordEmailResponse = InternalSystemSendUserResetPasswordEmailResponses[keyof InternalSystemSendUserResetPasswordEmailResponses];
+
 export type InternalSystemListWorkspacesData = {
     body?: never;
     path?: never;
@@ -25592,6 +26807,36 @@ export type InternalSystemListWorkspacesResponses = {
 };
 
 export type InternalSystemListWorkspacesResponse = InternalSystemListWorkspacesResponses[keyof InternalSystemListWorkspacesResponses];
+
+export type InternalSystemGetWorkspaceDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/workspaces/{workspace_id}';
+};
+
+export type InternalSystemGetWorkspaceDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemGetWorkspaceDetailError = InternalSystemGetWorkspaceDetailErrors[keyof InternalSystemGetWorkspaceDetailErrors];
+
+export type InternalSystemGetWorkspaceDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryWorkspaceDetailOut;
+};
+
+export type InternalSystemGetWorkspaceDetailResponse = InternalSystemGetWorkspaceDetailResponses[keyof InternalSystemGetWorkspaceDetailResponses];
 
 export type InternalSystemSendTestEmailData = {
     body: MailTestRequest;

@@ -10,7 +10,7 @@ const TAG_TEXT_STYLE_CLASSNAMES = {
 } as const;
 
 export const TAG_BASE_ROOT_CLASSNAME =
-  "inline-flex items-center rounded-sm border border-border px-2 py-1 font-semibold ";
+  "inline-flex min-w-0 max-w-full shrink items-center rounded-sm border border-border px-2 py-1 font-semibold whitespace-nowrap ";
 
 type TagSemanticClassNames = {
   root?: string;
@@ -43,9 +43,9 @@ function mergeTagClassNames(
 ): TagSemanticClassNames {
   return {
     root: cn(TAG_BASE_ROOT_CLASSNAME, overrides?.root),
-    icon: cn("inline-flex items-center ", overrides?.icon),
+    icon: cn("inline-flex shrink-0 items-center ", overrides?.icon),
     content: cn(
-      "inline-flex items-center gap-1 ",
+      "inline-flex min-w-0 max-w-full items-center gap-1 ",
       TAG_TEXT_STYLE_CLASSNAMES[textStyle],
       overrides?.content,
     ),
@@ -95,7 +95,9 @@ export function BaseTag({
     >
       <span className={mergedClassNames.content}>
         {icon ? <span className={mergedClassNames.icon}>{icon}</span> : null}
-        <span className="inline-flex items-center">{children}</span>
+        <span className="inline-flex min-w-0 max-w-full shrink items-center overflow-hidden">
+          {children}
+        </span>
       </span>
       {closable ? (
         <button

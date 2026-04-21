@@ -27,7 +27,7 @@ export function DataTableActionsCell(props: {
   return (
     <div
       className={cn(
-        "flex min-w-max max-w-full items-center gap-2 whitespace-nowrap",
+        "flex min-w-max max-w-full items-center gap-2 whitespace-nowrap rounded-l-lg bg-background/95 px-2 py-1",
         alignmentClass,
         props.className,
       )}

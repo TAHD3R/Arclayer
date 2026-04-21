@@ -55,7 +55,12 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
         )}
       </button>
 
-      {props.loading ? <SpinnerOverlay className={cn("bg-card/40", radiusClass)} /> : null}
+      {props.loading ? (
+        <SpinnerOverlay
+          className={cn("bg-card/40", radiusClass)}
+          spinnerContainerClassName="border-0 bg-transparent p-0"
+        />
+      ) : null}
 
       {canRemove ? (
         <Button

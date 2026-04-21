@@ -1,18 +1,24 @@
 from __future__ import annotations
 
+import builtins
+
 import pytest
 from fastapi import FastAPI
 from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
 from src.core.exceptions import init_exception_handlers
+from src.models.auth.oauth_identity import OAuthIdentity
+from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization, OrganizationKind
-from src.models.organization.user import User, UserStatus
+from src.models.organization.user import User, UserCredential, UserStatus
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from src.modules.auth.http.service import get_current_user, require_super_admin
+from src.modules.auth.repository import UserRepository
+from src.modules.auth.tokens.service import hash_password, verify_password
 from src.modules.system.router import router as system_router
 from tests.utils.asgi_client import asgi_client
 
@@ -25,10 +31,95 @@ class DummyUser(BaseModel):
     is_super_admin: bool = True
 
 
+class DummyValkey:
+    def __init__(self) -> None:
+        self._store: dict[str, str] = {}
+
+    def key(self, *parts: str) -> str:
+        return ":".join(parts)
+
+    async def get(self, key: str) -> str | None:
+        return self._store.get(key)
+
+    async def set(
+        self, key: str, value: str, *, ex: int | None = None, nx: bool | None = None, xx: bool | None = None
+    ) -> bool:
+        if nx and key in self._store:
+            return False
+        if xx and key not in self._store:
+            return False
+        self._store[key] = value
+        return True
+
+    async def delete(self, *keys: str) -> int:
+        deleted = 0
+        for key in keys:
+            if key in self._store:
+                deleted += 1
+                self._store.pop(key, None)
+        return deleted
+
+    async def exists(self, *keys: str) -> int:
+        return sum(1 for key in keys if key in self._store)
+
+    async def expire(self, key: str, seconds: int) -> bool:
+        return key in self._store
+
+    async def ttl(self, key: str) -> int:
+        return 1 if key in self._store else -2
+
+    async def getdel(self, key: str) -> str | None:
+        return self._store.pop(key, None)
+
+    async def setex(self, key: str, seconds: int, value: str) -> bool:
+        self._store[key] = value
+        return True
+
+    async def incr(self, key: str, amount: int = 1) -> int:
+        current = int(self._store.get(key, "0"))
+        current += amount
+        self._store[key] = str(current)
+        return current
+
+    async def sadd(self, key: str, *members: str) -> int:
+        current = set((self._store.get(key, "") or "").split("\n")) if key in self._store else set()
+        before = len({member for member in current if member})
+        current.update(members)
+        normalized = {member for member in current if member}
+        self._store[key] = "\n".join(sorted(normalized))
+        return len(normalized) - before
+
+    async def srem(self, key: str, *members: str) -> int:
+        current = set((self._store.get(key, "") or "").split("\n")) if key in self._store else set()
+        before = len({member for member in current if member})
+        for member in members:
+            current.discard(member)
+        normalized = {member for member in current if member}
+        self._store[key] = "\n".join(sorted(normalized))
+        return before - len(normalized)
+
+    async def smembers(self, key: str) -> builtins.set[str]:
+        return {member for member in (self._store.get(key, "") or "").split("\n") if member}
+
+    async def set_json(
+        self, key: str, data: object, *, ex: int | None = None, nx: bool | None = None, xx: bool | None = None
+    ) -> bool:
+        import json
+
+        return await self.set(key, json.dumps(data), ex=ex, nx=nx, xx=xx)
+
+    async def get_json(self, key: str):
+        import json
+
+        raw = await self.get(key)
+        return json.loads(raw) if raw is not None else None
+
+
 async def _build_app() -> FastAPI:
     app = FastAPI()
     init_exception_handlers(app, get_settings())
     app.include_router(system_router, prefix="/api/v1/system")
+    app.state.valkey = DummyValkey()
     return app
 
 
@@ -290,3 +381,318 @@ async def test_system_directory_detail_returns_not_found() -> None:
 
     assert res.status_code == 404
     assert res.json()["error"] == "NOT_FOUND"
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_user_governance_actions_update_account_and_sessions() -> None:
+    settings = get_settings()
+    acting_admin = await User.create(
+        username="platform-admin",
+        email="platform-admin@example.com",
+        display_name="Platform Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    managed_user = await User.create(
+        username="managed-user",
+        email="managed@example.com",
+        display_name="Managed User",
+        status=UserStatus.ACTIVE,
+        token_version=1,
+        avatar_url="/assets/original-avatar",
+    )
+    await UserCredential.create(
+        user=managed_user,
+        password_hash=hash_password("old_password_123", settings.auth),
+    )
+    await UserTwoFactor.create(
+        user_id=managed_user.id,
+        totp_secret_enc="secret",
+        enabled_at=managed_user.created_at,
+        last_totp_counter=None,
+        last_totp_used_at=None,
+    )
+    await OAuthIdentity.create(
+        provider="google",
+        subject="google-subject",
+        user_id=managed_user.id,
+        email=managed_user.email,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    user_id = str(managed_user.id)
+    async with asgi_client(app) as client:
+        profile_res = await client.patch(
+            f"/api/v1/system/directory/users/{user_id}",
+            json={
+                "displayName": "Managed Renamed",
+                "email": "managed2@example.com",
+                "avatarAssetId": None,
+            },
+        )
+        password_res = await client.post(
+            f"/api/v1/system/directory/users/{user_id}/reset-password",
+            json={"newPassword": "new_password_123"},
+        )
+        reset_email_res = await client.post(
+            f"/api/v1/system/directory/users/{user_id}/send-reset-password-email",
+        )
+        sessions_res = await client.post(f"/api/v1/system/directory/users/{user_id}/revoke-sessions")
+        disable_2fa_res = await client.post(f"/api/v1/system/directory/users/{user_id}/disable-two-factor")
+        unlink_oauth_res = await client.delete(
+            f"/api/v1/system/directory/users/{user_id}/oauth-identities/google",
+        )
+        disable_res = await client.post(f"/api/v1/system/directory/users/{user_id}/disable")
+        enable_res = await client.post(f"/api/v1/system/directory/users/{user_id}/enable")
+
+    assert profile_res.status_code == 200
+    assert profile_res.json()["data"]["displayName"] == "Managed Renamed"
+    assert profile_res.json()["data"]["email"] == "managed2@example.com"
+    assert profile_res.json()["data"]["avatarUrl"] is None
+    assert password_res.status_code == 200
+    assert reset_email_res.status_code == 200
+    assert sessions_res.status_code == 200
+    assert disable_2fa_res.status_code == 200
+    assert disable_2fa_res.json()["data"]["twoFactorEnabled"] is False
+    assert unlink_oauth_res.status_code == 200
+    assert unlink_oauth_res.json()["data"]["linkedOauthProviders"] == []
+    assert disable_res.status_code == 200
+    assert disable_res.json()["data"]["status"] == "disabled"
+    assert enable_res.status_code == 200
+    assert enable_res.json()["data"]["status"] == "active"
+
+    updated = await UserRepository().get_by_id_with_credential(managed_user.id)
+    assert updated is not None
+    assert updated.display_name == "Managed Renamed"
+    assert updated.email == "managed2@example.com"
+    assert updated.avatar_url is None
+    assert updated.status == UserStatus.ACTIVE
+    assert updated.token_version == 4
+    updated_credential = await UserCredential.get_or_none(user_id=managed_user.id)
+    assert updated_credential is not None
+    assert verify_password("new_password_123", updated_credential.password_hash, settings.auth)
+    assert await UserTwoFactor.filter(user_id=managed_user.id).count() == 0
+    assert await OAuthIdentity.filter(user_id=managed_user.id).count() == 0
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_user_governance_rejects_email_conflict_and_self_disable() -> None:
+    acting_admin = await User.create(
+        username="self-admin",
+        email="self-admin@example.com",
+        display_name="Self Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    managed_user = await User.create(
+        username="conflict-user",
+        email="conflict@example.com",
+        display_name="Conflict User",
+        status=UserStatus.ACTIVE,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        conflict_res = await client.patch(
+            f"/api/v1/system/directory/users/{managed_user.id}",
+            json={"email": "self-admin@example.com"},
+        )
+        self_disable_res = await client.post(f"/api/v1/system/directory/users/{acting_admin.id}/disable")
+
+    assert conflict_res.status_code == 409
+    assert conflict_res.json()["error"] == "EMAIL_EXISTS"
+    assert self_disable_res.status_code == 400
+    assert self_disable_res.json()["error"] == "CANNOT_DISABLE_SELF"
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_user_governance_rejects_unlinking_last_sign_in_method() -> None:
+    acting_admin = await User.create(
+        username="oauth-admin",
+        email="oauth-admin@example.com",
+        display_name="OAuth Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    managed_user = await User.create(
+        username="oauth-only-user",
+        email="oauth-only@example.com",
+        display_name="OAuth Only",
+        status=UserStatus.ACTIVE,
+    )
+    await OAuthIdentity.create(
+        provider="google",
+        subject="oauth-only-google",
+        user_id=managed_user.id,
+        email=managed_user.email,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        unlink_res = await client.delete(
+            f"/api/v1/system/directory/users/{managed_user.id}/oauth-identities/google",
+        )
+
+    assert unlink_res.status_code == 409
+    assert unlink_res.json()["error"] == "LAST_SIGNIN_METHOD"
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_deletes_user_account_with_account_cleanup() -> None:
+    settings = get_settings()
+    acting_admin = await User.create(
+        username="delete-admin",
+        email="delete-admin@example.com",
+        display_name="Delete Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    managed_user = await User.create(
+        username="delete-target",
+        email="delete-target@example.com",
+        display_name="Delete Target",
+        status=UserStatus.ACTIVE,
+        token_version=1,
+        avatar_url="/assets/delete-target-avatar",
+    )
+    other_owner = await User.create(
+        username="delete-other-owner",
+        email="delete-other-owner@example.com",
+        display_name="Delete Other Owner",
+        status=UserStatus.ACTIVE,
+    )
+    await UserCredential.create(
+        user=managed_user,
+        password_hash=hash_password("old_password_123", settings.auth),
+    )
+    await UserTwoFactor.create(
+        user_id=managed_user.id,
+        totp_secret_enc="secret",
+        enabled_at=managed_user.created_at,
+        last_totp_counter=None,
+        last_totp_used_at=None,
+    )
+    await UserTwoFactorBackupCode.create(
+        user_id=managed_user.id,
+        salt="salt",
+        code_hash="hash",
+        used_at=None,
+    )
+    await OAuthIdentity.create(
+        provider="google",
+        subject="delete-target-google",
+        user_id=managed_user.id,
+        email=managed_user.email,
+    )
+    organization = await Organization.create(
+        name="Delete Org",
+        slug="delete-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=other_owner.id,
+    )
+    workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Delete Workspace",
+        owner_user_id=other_owner.id,
+        created_by_user_id=other_owner.id,
+    )
+    project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="delete-project",
+        name="Delete Project",
+        created_by_user_id=other_owner.id,
+    )
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=managed_user.id,
+        role=OrgRole.MEMBER,
+        role_code=OrgRole.MEMBER.value,
+        status="active",
+    )
+    workspace_membership = await WorkspaceMembership.create(
+        workspace_id=workspace.id,
+        user_id=managed_user.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    await ProjectMembership.create(
+        project_id=project.id,
+        user_id=managed_user.id,
+        role=ProjectMemberRole.EDITOR,
+        created_by_user_id=other_owner.id,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        res = await client.delete(f"/api/v1/system/directory/users/{managed_user.id}")
+
+    assert res.status_code == 200
+    assert res.json()["data"] is None
+
+    deleted = await User.get(id=managed_user.id)
+    assert deleted.username.startswith("deleted_")
+    assert deleted.email is None
+    assert deleted.display_name is None
+    assert deleted.avatar_url is None
+    assert deleted.status == UserStatus.DISABLED
+    assert deleted.token_version == 2
+    assert await UserCredential.filter(user_id=managed_user.id).count() == 0
+    assert await OAuthIdentity.filter(user_id=managed_user.id).count() == 0
+    assert await UserTwoFactor.filter(user_id=managed_user.id).count() == 0
+    assert await UserTwoFactorBackupCode.filter(user_id=managed_user.id).count() == 0
+    assert await OrgMembership.filter(user_id=managed_user.id).count() == 0
+    assert await ProjectMembership.filter(user_id=managed_user.id).count() == 0
+    updated_membership = await WorkspaceMembership.get(id=workspace_membership.id)
+    assert updated_membership.status == WorkspaceMembershipStatus.DISABLED
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_rejects_self_delete() -> None:
+    acting_admin = await User.create(
+        username="delete-self-admin",
+        email="delete-self-admin@example.com",
+        display_name="Delete Self Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        res = await client.delete(f"/api/v1/system/directory/users/{acting_admin.id}")
+
+    assert res.status_code == 400
+    assert res.json()["error"] == "CANNOT_DELETE_SELF"

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import EmailStr, Field, field_validator
 
+from src.common.constants.auth import PASSWORD_REGEX
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.organization.organization import OrganizationKind
@@ -23,8 +25,15 @@ class DirectoryUserListItemOut(BaseSchema):
     username: str = Field(..., description="Username.")
     display_name: str | None = Field(default=None, description="Display name.")
     email: str | None = Field(default=None, description="Email.")
+    avatar_url: str | None = Field(default=None, description="Avatar URL.")
     status: UserStatus = Field(..., description="User status.")
     is_super_admin: bool = Field(default=False, description="Whether the user is a super admin.")
+    has_password: bool = Field(default=False, description="Whether a local password is configured.")
+    two_factor_enabled: bool = Field(default=False, description="Whether two-factor authentication is enabled.")
+    linked_oauth_providers: list[str] = Field(
+        default_factory=list,
+        description="Linked OAuth providers for the account.",
+    )
     last_login_at: datetime | None = Field(default=None, description="Last login time.")
     created_at: datetime = Field(..., description="Created at.")
     owned_organizations_count: int = Field(default=0, ge=0, description="Organizations owned by the user.")
@@ -89,7 +98,6 @@ class DirectoryProjectListItemOut(BaseSchema):
 
 class DirectoryUserDetailOut(DirectoryUserListItemOut):
     updated_at: datetime = Field(..., description="Last update time.")
-    avatar_url: str | None = Field(default=None, description="Avatar URL.")
 
 
 class DirectoryOrganizationDetailOut(DirectoryOrganizationListItemOut):
@@ -114,3 +122,32 @@ class DirectoryProjectDetailOut(DirectoryProjectListItemOut):
     icon_glyph: str | None = Field(default=None, description="Project icon glyph.")
     icon_emoji: str | None = Field(default=None, description="Project icon emoji.")
     icon_url: str | None = Field(default=None, description="Project icon URL.")
+
+
+class DirectoryUserUpdateRequest(BaseSchema):
+    email: EmailStr | None = Field(default=None, description="Email address.")
+    display_name: str | None = Field(default=None, max_length=64, description="Display name.")
+    avatar_asset_id: PublicUUID | None = Field(
+        default=None,
+        description="Avatar asset id.",
+        validation_alias="avatarAssetId",
+    )
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+
+class DirectoryUserResetPasswordRequest(BaseSchema):
+    new_password: str = Field(min_length=8, max_length=128, description="New password.")
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        if not re.match(PASSWORD_REGEX, value):
+            raise ValueError("New password must contain letters and numbers, and be 8-128 characters long.")
+        return value

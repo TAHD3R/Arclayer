@@ -147,7 +147,7 @@ export function resolveCellPinStyle<TData>(cell: Cell<TData, unknown>): PinStyle
   }
 
   return {
-    className: cn("z-20 bg-inherit transition-colors"),
+    className: cn("z-20 bg-background transition-colors"),
     style,
   };
 }

@@ -19,6 +19,9 @@ export type SystemDirectoryUser = {
   avatarUrl: string | null;
   status: string;
   isSuperAdmin: boolean;
+  hasPassword: boolean;
+  twoFactorEnabled: boolean;
+  linkedOauthProviders: string[];
   lastLoginAt: string | null;
   createdAt: string;
   ownedOrganizationsCount: number;
@@ -29,6 +32,9 @@ export type SystemDirectoryUser = {
   display_name?: string | null;
   avatar_url?: string | null;
   is_super_admin?: boolean;
+  has_password?: boolean;
+  two_factor_enabled?: boolean;
+  linked_oauth_providers?: string[];
   last_login_at?: string | null;
   created_at?: string;
   owned_organizations_count?: number;

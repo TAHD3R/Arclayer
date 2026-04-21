@@ -19,6 +19,7 @@ import { Button } from "@arclayer/ui/button";
 import { ColorPicker } from "@arclayer/ui/color-picker";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { SpinnerOverlay } from "@arclayer/ui/spinner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 import type { WorkspaceIconDialogValues } from "../hooks/use-workspace-menu-actions";
@@ -368,6 +369,12 @@ export function WorkspaceIconDialog(props: WorkspaceIconDialogProps) {
                           }
                         />
                       )}
+                      {isUploading ? (
+                        <SpinnerOverlay
+                          className="rounded-full bg-card/40"
+                          spinnerContainerClassName="border-0 bg-transparent p-0"
+                        />
+                      ) : null}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>

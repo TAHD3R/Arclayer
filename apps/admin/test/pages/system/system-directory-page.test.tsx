@@ -1,12 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SystemDirectoryUsersPage } from "@/pages/system/directory/users/page";
 
-const { adminDataTableSectionMock, userDetailHookMock } = vi.hoisted(() => ({
+const { adminDataTableSectionMock } = vi.hoisted(() => ({
   adminDataTableSectionMock: vi.fn(),
-  userDetailHookMock: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -20,29 +19,29 @@ vi.mock("@/components/common/data-table-search-input", () => ({
   DataTableSearchInput: ({ placeholder }: { placeholder: string }) => <div>{placeholder}</div>,
 }));
 
+vi.mock("@/components/common/data-table-tools-labels", () => ({
+  buildDataTableToolsLabels: () => ({
+    refresh: "common:DATA_TABLE_REFRESH",
+    clearSelection: "common:DATA_TABLE_CLEAR_SELECTION",
+    columns: "common:DATA_TABLE_COLUMNS",
+    columnsTitle: "common:DATA_TABLE_COLUMNS_TITLE",
+    columnsDescription: "common:DATA_TABLE_COLUMNS_DESCRIPTION",
+    reset: "common:DATA_TABLE_RESET",
+  }),
+}));
+
 vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
   useAdminDateTimeFormatter: () => ({
     formatDateTime: (value: string) => value,
   }),
 }));
 
-vi.mock("@/pages/system/directory/hooks", async () => {
-  const actual = await vi.importActual<typeof import("@/pages/system/directory/hooks")>(
-    "@/pages/system/directory/hooks",
-  );
-
-  return {
-    ...actual,
-    useSystemDirectoryUserDetail: userDetailHookMock,
-  };
-});
-
 vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
   AdminDataTableSection: (props: {
     emptyTitle: string;
     emptyDescription: string;
     toolbar?: React.ReactNode;
-    onRowClick?: (row: { original: { userId: string } }, rowIndex: number) => void;
+    footerSlot?: React.ReactNode;
   }) => {
     adminDataTableSectionMock(props);
     return (
@@ -50,14 +49,7 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
         <div>{props.emptyTitle}</div>
         <div>{props.emptyDescription}</div>
         <div>{props.toolbar}</div>
-        {props.onRowClick ? (
-          <button
-            type="button"
-            onClick={() => props.onRowClick?.({ original: { userId: "user-1" } }, 0)}
-          >
-            open-user-row
-          </button>
-        ) : null}
+        <div>{props.footerSlot}</div>
       </div>
     );
   },
@@ -113,8 +105,27 @@ vi.mock("@arclayer/ui/data-table", async () => {
     await vi.importActual<typeof import("@arclayer/ui/data-table")>("@arclayer/ui/data-table");
   return {
     ...actual,
+    DataTableToolbarTools: ({ labels }: { labels: { refresh: string } }) => (
+      <div>{labels.refresh}</div>
+    ),
     useDataTable: () => ({
-      table: {} as never,
+      table: {
+        getSelectedRowModel: () => ({
+          rows: [
+            {
+              id: "user-1",
+              original: {
+                userId: "user-1",
+                username: "philip",
+                displayName: "Philip",
+                email: "philip@example.com",
+                status: "active",
+              },
+            },
+          ],
+        }),
+        resetRowSelection: vi.fn(),
+      } as never,
       searchInput: "",
       setSearchInput: vi.fn(),
       requestParams: {},
@@ -146,30 +157,6 @@ function renderWithQueryClient(ui: React.ReactElement) {
 describe("SystemDirectoryUsersPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    userDetailHookMock.mockImplementation((userId: string | null) => ({
-      detail: userId
-        ? {
-            userId,
-            username: "philip",
-            displayName: "Philip",
-            email: "philip@example.com",
-            avatarUrl: null,
-            status: "active",
-            isSuperAdmin: true,
-            lastLoginAt: null,
-            createdAt: "2026-04-20T00:00:00Z",
-            updatedAt: "2026-04-21T00:00:00Z",
-            ownedOrganizationsCount: 1,
-            organizationMembershipCount: 2,
-            workspaceMembershipCount: 3,
-            projectMembershipCount: 4,
-          }
-        : null,
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    }));
   });
 
   it("renders the user directory empty state and search field", () => {
@@ -182,20 +169,10 @@ describe("SystemDirectoryUsersPage", () => {
       screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_EMPTY_DESC"),
     ).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_SEARCH")).toBeInTheDocument();
+    expect(screen.getByText("common:DATA_TABLE_REFRESH")).toBeInTheDocument();
+    expect(
+      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_SELECTED_COUNT"),
+    ).toBeInTheDocument();
     expect(adminDataTableSectionMock).toHaveBeenCalled();
-  });
-
-  it("opens the details sheet after clicking a user row", () => {
-    renderWithQueryClient(<SystemDirectoryUsersPage />);
-
-    fireEvent.click(screen.getByText("open-user-row"));
-
-    expect(userDetailHookMock).toHaveBeenLastCalledWith("user-1");
-    expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_USER_TITLE"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACCOUNT"),
-    ).toBeInTheDocument();
   });
 });

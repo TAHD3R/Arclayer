@@ -50,6 +50,7 @@
   "BAD_REQUEST": "Bad request",
   "DB_OPERATIONAL_ERROR": "Database operation failed",
   "CANNOT_DISABLE_SELF": "You cannot disable your own account",
+  "CANNOT_DELETE_SELF": "You cannot delete your own account",
   "CAPABILITY_ID_REQUIRED": "capability_id is required",
   "CAPABILITY_NOT_FOUND": "Capability not found",
   "CAPABILITY_SCOPE_MISMATCH": "Capability scope mismatch",

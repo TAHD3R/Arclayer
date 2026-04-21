@@ -1,11 +1,26 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Request
 
+from src.common.constants.assets import ASSET_SCOPE_USER
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.i18n import t
+from src.models.organization.user import User
+from src.modules.assets.admin.uploads.schema import (
+    UploadAbortOut,
+    UploadCompleteOut,
+    UploadInitOut,
+    UploadInitRequest,
+    UploadPartCommitRequest,
+    UploadPartPresignOut,
+    UploadStatusOut,
+)
+from src.modules.assets.admin.uploads.service import UploadsService
+from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import require_super_admin
 from src.modules.system.directory.schema import (
     DirectoryOrganizationDetailOut,
@@ -14,10 +29,13 @@ from src.modules.system.directory.schema import (
     DirectoryProjectListItemOut,
     DirectoryUserDetailOut,
     DirectoryUserListItemOut,
+    DirectoryUserResetPasswordRequest,
+    DirectoryUserUpdateRequest,
     DirectoryWorkspaceDetailOut,
     DirectoryWorkspaceListItemOut,
 )
 from src.modules.system.directory.service import SystemDirectoryService
+from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(
     tags=["internal.system.directory"],
@@ -25,8 +43,39 @@ router = APIRouter(
 )
 
 
-def get_directory_service(settings: Settings = Depends(get_settings)) -> SystemDirectoryService:
-    return SystemDirectoryService(settings)
+def get_directory_service(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> SystemDirectoryService:
+    try:
+        valkey = get_valkey(request)
+    except RuntimeError:
+        valkey = None
+    return SystemDirectoryService(settings, valkey=valkey)
+
+
+def get_uploads_service(settings: Settings = Depends(get_settings)) -> UploadsService:
+    return UploadsService(settings)
+
+
+async def require_directory_user_scope(
+    user_id: PublicUUID,
+    directory_service: SystemDirectoryService = Depends(get_directory_service),
+) -> AssetScope:
+    user = await directory_service.require_user(user_id=user_id)
+    return AssetScope(type=ASSET_SCOPE_USER, id=user.id)
+
+
+def _upload_init_out(session) -> UploadInitOut:
+    return UploadInitOut(
+        upload_id=session.id,
+        chunk_size=session.chunk_size,
+        total_parts=session.total_parts,
+        expires_at=session.expires_at,
+        method=session.storage_provider if session.storage_provider != "s3" else "s3_multipart",
+        reserved_asset_id=session.reserved_asset_id,
+        object_key=session.object_key,
+    )
 
 
 @router.get(
@@ -55,6 +104,264 @@ async def get_user_detail(
 ) -> ResponseModel[DirectoryUserDetailOut]:
     detail = await service.get_user_detail(user_id=user_id)
     return ApiResponse.success(data=detail)
+
+
+@router.patch(
+    "/users/{user_id}",
+    response_model=ResponseModel[DirectoryUserDetailOut],
+    summary="Update user account profile in the system directory",
+)
+async def update_user(
+    user_id: PublicUUID,
+    payload: DirectoryUserUpdateRequest,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryUserDetailOut]:
+    detail = await service.update_user(user_id=user_id, payload=payload)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/users/{user_id}/avatar/uploads/init",
+    response_model=ResponseModel[UploadInitOut],
+    summary="Initialize avatar upload for a directory user",
+)
+async def init_user_avatar_upload(
+    payload: UploadInitRequest,
+    user_scope: AssetScope = Depends(require_directory_user_scope),
+    actor: User = Depends(require_super_admin),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[UploadInitOut]:
+    session = await service.init_upload(
+        scope=user_scope,
+        actor_user_id=actor.id,
+        purpose="avatar",
+        filename=payload.filename,
+        mime=payload.mime,
+        size_bytes=payload.size_bytes,
+        expected_sha256=payload.expected_sha256,
+        requested_visibility="public",
+        requested_indexable=False,
+        target_folder_id=None,
+    )
+    return ApiResponse.success(data=_upload_init_out(session))
+
+
+@router.get(
+    "/users/{user_id}/avatar/uploads/{upload_id}",
+    response_model=ResponseModel[UploadStatusOut],
+    summary="Get avatar upload status for a directory user",
+)
+async def get_user_avatar_upload_status(
+    upload_id: PublicUUID,
+    user_scope: AssetScope = Depends(require_directory_user_scope),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[UploadStatusOut]:
+    session, missing = await service.get_status(upload_id=upload_id, scope=user_scope)
+    return ApiResponse.success(
+        data=UploadStatusOut(
+            upload_id=session.id,
+            status=str(session.status),
+            missing_parts=missing,
+            uploaded_parts=(int(session.total_parts) - len(missing)),
+            total_parts=int(session.total_parts),
+        )
+    )
+
+
+@router.put(
+    "/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}",
+    response_model=ResponseModel[None],
+    summary="Upload avatar part for a directory user",
+)
+async def upload_user_avatar_part(
+    request: Request,
+    upload_id: PublicUUID,
+    part_number: int,
+    user_scope: AssetScope = Depends(require_directory_user_scope),
+    service: UploadsService = Depends(get_uploads_service),
+    content_length: int | None = Header(default=None, alias="Content-Length"),
+) -> ResponseModel[None]:
+    data = await request.body()
+    if content_length is not None and content_length != len(data):
+        raise BadRequest(message=t("errors", "UPLOAD_BODY_INVALID"), error="UPLOAD_BODY_INVALID")
+
+    await service.put_part(upload_id=upload_id, scope=user_scope, part_number=part_number, data=data)
+    return ApiResponse.success(data=None)
+
+
+@router.post(
+    "/users/{user_id}/avatar/uploads/{upload_id}/complete",
+    response_model=ResponseModel[UploadCompleteOut],
+    summary="Complete avatar upload for a directory user",
+)
+async def complete_user_avatar_upload(
+    background_tasks: BackgroundTasks,
+    upload_id: PublicUUID,
+    user_scope: AssetScope = Depends(require_directory_user_scope),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[UploadCompleteOut]:
+    asset_id = await service.complete(upload_id=upload_id, scope=user_scope, background_tasks=background_tasks)
+    return ApiResponse.success(data=UploadCompleteOut(asset_id=asset_id))
+
+
+@router.post(
+    "/users/{user_id}/avatar/uploads/{upload_id}/abort",
+    response_model=ResponseModel[UploadAbortOut],
+    summary="Abort avatar upload for a directory user",
+)
+async def abort_user_avatar_upload(
+    upload_id: PublicUUID,
+    user_scope: AssetScope = Depends(require_directory_user_scope),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[UploadAbortOut]:
+    session = await service.abort(upload_id=upload_id, scope=user_scope)
+    return ApiResponse.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
+
+
+@router.post(
+    "/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}/presign",
+    response_model=ResponseModel[UploadPartPresignOut],
+    summary="Presign avatar upload part for a directory user",
+)
+async def presign_user_avatar_upload_part(
+    upload_id: PublicUUID,
+    part_number: int,
+    user_scope: AssetScope = Depends(require_directory_user_scope),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[UploadPartPresignOut]:
+    out = await service.presign_part(upload_id=upload_id, scope=user_scope, part_number=part_number)
+    return ApiResponse.success(data=out)
+
+
+@router.post(
+    "/users/{user_id}/avatar/uploads/{upload_id}/parts/{part_number}/commit",
+    response_model=ResponseModel[None],
+    summary="Commit avatar upload part for a directory user",
+)
+async def commit_user_avatar_upload_part(
+    upload_id: PublicUUID,
+    part_number: int,
+    payload: UploadPartCommitRequest,
+    user_scope: AssetScope = Depends(require_directory_user_scope),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[None]:
+    await service.commit_part(
+        upload_id=upload_id,
+        scope=user_scope,
+        part_number=part_number,
+        etag=payload.etag,
+        size_bytes=payload.size_bytes,
+    )
+    return ApiResponse.success(data=None)
+
+
+@router.post(
+    "/users/{user_id}/reset-password",
+    response_model=ResponseModel[DirectoryUserDetailOut],
+    summary="Reset user password in the system directory",
+)
+async def reset_user_password(
+    user_id: PublicUUID,
+    payload: DirectoryUserResetPasswordRequest,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryUserDetailOut]:
+    detail = await service.reset_user_password(user_id=user_id, payload=payload)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/users/{user_id}/send-reset-password-email",
+    response_model=ResponseModel[DirectoryUserDetailOut],
+    summary="Send password reset email in the system directory",
+)
+async def send_user_reset_password_email(
+    user_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryUserDetailOut]:
+    detail = await service.send_reset_password_email(user_id=user_id)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/users/{user_id}/revoke-sessions",
+    response_model=ResponseModel[DirectoryUserDetailOut],
+    summary="Revoke user login sessions in the system directory",
+)
+async def revoke_user_sessions(
+    user_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryUserDetailOut]:
+    detail = await service.revoke_user_sessions(user_id=user_id)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/users/{user_id}/disable-two-factor",
+    response_model=ResponseModel[DirectoryUserDetailOut],
+    summary="Disable user two-factor authentication in the system directory",
+)
+async def disable_user_two_factor(
+    user_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryUserDetailOut]:
+    detail = await service.disable_user_two_factor(user_id=user_id)
+    return ApiResponse.success(data=detail)
+
+
+@router.delete(
+    "/users/{user_id}/oauth-identities/{provider}",
+    response_model=ResponseModel[DirectoryUserDetailOut],
+    summary="Unlink a user's OAuth identity in the system directory",
+)
+async def unlink_user_oauth_identity(
+    user_id: PublicUUID,
+    provider: str,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryUserDetailOut]:
+    detail = await service.unlink_user_oauth_provider(user_id=user_id, provider=provider)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/users/{user_id}/disable",
+    response_model=ResponseModel[DirectoryUserDetailOut],
+    summary="Disable user account in the system directory",
+)
+async def disable_user(
+    user_id: PublicUUID,
+    acting_user: User = Depends(require_super_admin),
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryUserDetailOut]:
+    detail = await service.set_user_enabled(user_id=user_id, enabled=False, acting_user_id=acting_user.id)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/users/{user_id}/enable",
+    response_model=ResponseModel[DirectoryUserDetailOut],
+    summary="Enable user account in the system directory",
+)
+async def enable_user(
+    user_id: PublicUUID,
+    acting_user: User = Depends(require_super_admin),
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryUserDetailOut]:
+    detail = await service.set_user_enabled(user_id=user_id, enabled=True, acting_user_id=acting_user.id)
+    return ApiResponse.success(data=detail)
+
+
+@router.delete(
+    "/users/{user_id}",
+    response_model=ResponseModel[None],
+    summary="Delete user account in the system directory",
+)
+async def delete_user_account(
+    user_id: PublicUUID,
+    acting_user: User = Depends(require_super_admin),
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[None]:
+    await service.delete_user_account(user_id=user_id, acting_user_id=acting_user.id)
+    return ApiResponse.success(data=None)
 
 
 @router.get(

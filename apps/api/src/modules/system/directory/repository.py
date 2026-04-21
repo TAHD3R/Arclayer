@@ -5,9 +5,11 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
+from src.models.auth.oauth_identity import OAuthIdentity
+from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
 from src.models.organization.org_membership import OrgMembership
 from src.models.organization.organization import Organization
-from src.models.organization.user import User
+from src.models.organization.user import User, UserCredential
 from src.models.projects.membership import ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
@@ -132,6 +134,71 @@ class SystemDirectoryRepository:
             return {}
         rows = await User.filter(id__in=ids)
         return {UUID(str(row.id)): row for row in rows}
+
+    async def get_users_with_credentials_by_ids(self, *, user_ids: Iterable[UUID]) -> dict[UUID, User]:
+        ids = list(set(user_ids))
+        if not ids:
+            return {}
+        rows = await User.filter(id__in=ids).prefetch_related("credential")
+        return {UUID(str(row.id)): row for row in rows}
+
+    async def get_user_with_credential_by_id(self, *, user_id: UUID) -> User | None:
+        return await User.filter(id=user_id).prefetch_related("credential").get_or_none()
+
+    async def list_linked_oauth_providers_by_user_ids(self, *, user_ids: Iterable[UUID]) -> dict[UUID, list[str]]:
+        ids = list(set(user_ids))
+        if not ids:
+            return {}
+        rows = await OAuthIdentity.filter(user_id__in=ids).values("user_id", "provider")
+        providers_by_user: dict[UUID, list[str]] = {}
+        for row in rows:
+            key = UUID(str(row["user_id"]))
+            provider = str(row["provider"] or "").strip().lower()
+            if not provider:
+                continue
+            providers = providers_by_user.setdefault(key, [])
+            if provider not in providers:
+                providers.append(provider)
+        for providers in providers_by_user.values():
+            providers.sort()
+        return providers_by_user
+
+    async def list_two_factor_enabled_user_ids(self, *, user_ids: Iterable[UUID]) -> set[UUID]:
+        ids = list(set(user_ids))
+        if not ids:
+            return set()
+        rows = await UserTwoFactor.filter(user_id__in=ids, enabled_at__not_isnull=True).values("user_id")
+        return {UUID(str(row["user_id"])) for row in rows}
+
+    async def delete_user_two_factor(self, *, user_id: UUID) -> None:
+        await UserTwoFactorBackupCode.filter(user_id=user_id).delete()
+        await UserTwoFactor.filter(user_id=user_id).delete()
+
+    async def delete_user_linked_oauth_provider(self, *, user_id: UUID, provider: str) -> int:
+        provider_key = str(provider or "").strip().lower()
+        if not provider_key:
+            return 0
+        return await OAuthIdentity.filter(user_id=user_id, provider=provider_key).delete()
+
+    async def delete_user_linked_oauth_identities(self, *, user_id: UUID) -> int:
+        return await OAuthIdentity.filter(user_id=user_id).delete()
+
+    async def user_has_password(self, *, user_id: UUID) -> bool:
+        return await UserCredential.filter(user_id=user_id).exists()
+
+    async def delete_user_credentials(self, *, user_id: UUID) -> int:
+        return await UserCredential.filter(user_id=user_id).delete()
+
+    async def disable_user_workspace_memberships(self, *, user_id: UUID) -> int:
+        return await WorkspaceMembership.filter(user_id=user_id).update(
+            status=WorkspaceMembershipStatus.DISABLED,
+        )
+
+    async def delete_user_org_memberships(self, *, user_id: UUID) -> int:
+        return await OrgMembership.filter(user_id=user_id).delete()
+
+    async def delete_user_project_memberships(self, *, user_id: UUID) -> int:
+        return await ProjectMembership.filter(user_id=user_id).delete()
 
     async def count_organizations_by_owner_ids(self, *, owner_user_ids: Iterable[UUID]) -> dict[UUID, int]:
         ids = list(set(owner_user_ids))

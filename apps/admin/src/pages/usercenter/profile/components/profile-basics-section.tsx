@@ -139,6 +139,7 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
                 size={80}
                 shape="circle"
                 disabled={isAvatarBusy}
+                loading={isAvatarBusy}
                 src={
                   resolveAssetRefToPublicUrlPath(
                     props.profile.avatarUrl ?? props.profile.avatarAssetId,

@@ -1,13 +1,22 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
-import { FolderKanban, LayoutTemplate, Users } from "lucide-react";
+import { FolderKanban, LayoutTemplate, MoreVertical, Users } from "lucide-react";
 
 import type { SystemDirectoryProject } from "@/types/api/system-directory";
+import { Button } from "@arclayer/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 
 import {
+  createActionsColumn,
   createCustomColumn,
   createDateColumn,
+  createSelectionColumn,
   createTruncatedTextColumn,
   createOwnerCell,
   renderSlugTag,
@@ -16,16 +25,15 @@ import {
   SystemDirectoryTable,
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
-import { SystemDirectoryDetailsSheet } from "../system-directory-details-sheet";
-import { useSystemDirectoryProjectDetail, useSystemDirectoryProjectsTable } from "../hooks";
+import { useSystemDirectoryProjectsTable } from "../hooks";
 
 export function SystemDirectoryProjectsPage() {
   const { t } = useTranslation(["settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryProject, unknown>>>(
     () => [
+      createSelectionColumn<SystemDirectoryProject>(),
       createTruncatedTextColumn<SystemDirectoryProject>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PROJECT"),
         (row) => row.name,
@@ -74,33 +82,57 @@ export function SystemDirectoryProjectsPage() {
         dateTime,
         { id: "createdAt", sortKey: "created_at" },
       ),
+      createActionsColumn<SystemDirectoryProject>({
+        size: 220,
+        minSize: 208,
+        renderActions: () => (
+          <>
+            <Button size="sm" variant="outline">
+              {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_PROJECT")}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_MORE")}
+                >
+                  <MoreVertical className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuIconItem
+                  icon={<LayoutTemplate className="size-4" />}
+                  variant="destructive"
+                >
+                  {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_PROJECT")}
+                </DropdownMenuIconItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        ),
+      }),
     ],
     [dateTime, t],
   );
 
   const tableHook = useSystemDirectoryProjectsTable(columns);
-  const detailQuery = useSystemDirectoryProjectDetail(selectedProjectId);
 
   return (
-    <>
-      <SystemDirectoryTable
-        tableHook={tableHook}
-        onRowClick={(row) => setSelectedProjectId(row.projectId)}
-        text={{
-          emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_EMPTY_TITLE"),
-          emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_EMPTY_DESC"),
-          searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_SEARCH"),
-        }}
-      />
-      <SystemDirectoryDetailsSheet
-        kind="project"
-        open={Boolean(selectedProjectId)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedProjectId(null);
-        }}
-        query={detailQuery}
-        formatDateTime={dateTime.formatDateTime}
-      />
-    </>
+    <SystemDirectoryTable
+      tableHook={tableHook}
+      text={{
+        emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_EMPTY_TITLE"),
+        emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_EMPTY_DESC"),
+        searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_SEARCH"),
+      }}
+      bulkActions={[
+        {
+          key: "archive",
+          label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_PROJECT"),
+          onClick: () => undefined,
+        },
+      ]}
+    />
   );
 }

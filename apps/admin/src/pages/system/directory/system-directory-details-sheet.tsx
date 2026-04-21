@@ -4,7 +4,6 @@ import {
   Archive,
   Building2,
   CircleUserRound,
-  Crown,
   FolderKanban,
   LayoutTemplate,
   Lock,
@@ -14,13 +13,12 @@ import {
   Users,
 } from "lucide-react";
 
+import { UserAvatar } from "@/components/common/entity-avatar";
 import {
-  OrganizationAvatar,
-  UserAvatar,
-  WorkspaceAvatar,
-  workspaceAvatarPropsFromIdentity,
-} from "@/components/common/entity-avatar";
-import { renderTag, renderTagWithTooltip } from "@/pages/system/directory/system-directory-table";
+  renderSlugTag,
+  renderTag,
+  renderTagWithTooltip,
+} from "@/pages/system/directory/system-directory-table";
 import type {
   DirectoryActorSummary,
   SystemDirectoryOrganizationDetail,
@@ -29,7 +27,6 @@ import type {
   SystemDirectoryWorkspaceDetail,
 } from "@/types/api/system-directory";
 import { Button } from "@arclayer/ui/button";
-import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingSheet } from "@arclayer/ui/setting-sheet";
 
 type UserDetailQuery = {
@@ -71,6 +68,12 @@ type SystemDirectoryDetailsSheetProps =
       onOpenChange: (open: boolean) => void;
       query: UserDetailQuery;
       formatDateTime: (value: string) => string;
+      actions?: Array<{
+        key: string;
+        label: string;
+        onClick: () => void;
+        variant?: "outline" | "ghost";
+      }>;
     }
   | {
       kind: "organization";
@@ -120,25 +123,6 @@ function StatusTag(props: { status: string }) {
   });
 }
 
-function BooleanTag(props: { value: boolean; trueLabel: string; falseLabel: string }) {
-  return props.value
-    ? renderTag(props.trueLabel, { tone: "gold", icon: Crown })
-    : renderTag(props.falseLabel, { tone: "default", icon: ShieldCheck });
-}
-
-function OrganizationKindTag(props: { kind: string }) {
-  const { t } = useTranslation(["settings"]);
-  return props.kind === "personal"
-    ? renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_KIND_PERSONAL"), {
-        tone: "blue",
-        icon: CircleUserRound,
-      })
-    : renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_KIND_TEAM"), {
-        tone: "default",
-        icon: Building2,
-      });
-}
-
 function ActiveTag(props: { active: boolean }) {
   const { t } = useTranslation(["settings"]);
   return props.active
@@ -165,73 +149,102 @@ function ArchivedTag(props: { archived: boolean }) {
       });
 }
 
-function CountTag(props: {
-  value: number;
-  icon: typeof Users;
-  tone?: "default" | "blue" | "green";
-}) {
-  return renderTag(String(props.value), {
-    tone: props.tone ?? "default",
-    icon: props.icon,
-  });
+function OrganizationKindTag(props: { kind: string }) {
+  const { t } = useTranslation(["settings"]);
+  return props.kind === "personal"
+    ? renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_KIND_PERSONAL"), {
+        tone: "blue",
+        icon: CircleUserRound,
+      })
+    : renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_KIND_TEAM"), {
+        tone: "default",
+        icon: Building2,
+      });
 }
 
-function IdentityHeader(props: {
-  avatar: ReactNode;
-  title: string;
-  subtitle?: string | null;
-  meta?: ReactNode;
-}) {
+function SheetSection(props: { title: string; children: ReactNode }) {
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-border/60 bg-muted/[0.04] p-4">
-      {props.avatar}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-title4 font-semibold text-label-primary">{props.title}</div>
-        {props.subtitle ? (
-          <div className="mt-1 truncate text-body text-label-secondary">{props.subtitle}</div>
-        ) : null}
-        {props.meta ? <div className="mt-3 flex flex-wrap gap-2">{props.meta}</div> : null}
+    <div className="grid gap-3 rounded-2xl border border-border/60 bg-muted/[0.03] p-4">
+      <div className="text-sm font-medium text-foreground">{props.title}</div>
+      {props.children}
+    </div>
+  );
+}
+
+function LabelValue(props: { label: string; value: ReactNode }) {
+  return (
+    <div className="grid gap-1">
+      <div className="text-xs text-muted-foreground">{props.label}</div>
+      <div className="text-sm text-foreground">{props.value}</div>
+    </div>
+  );
+}
+
+function CountValue(props: { label: string; value: number; icon: typeof Users }) {
+  return (
+    <LabelValue label={props.label} value={renderTag(String(props.value), { icon: props.icon })} />
+  );
+}
+
+function ResponsiblePersonValue(props: { actor: DirectoryActorSummary | null | undefined }) {
+  if (!props.actor) return <span className="text-muted-foreground">-</span>;
+  const name = getActorPrimary(props.actor);
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <UserAvatar
+        name={name}
+        assetRef={props.actor.avatarUrl ?? props.actor.avatar_url}
+        size={28}
+      />
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium text-foreground">{name}</div>
+        <div className="truncate text-xs text-muted-foreground">
+          {props.actor.email || props.actor.username}
+        </div>
       </div>
     </div>
   );
 }
 
-function FieldValue(props: { value: ReactNode }) {
+function ActionRow(props: {
+  actions: Array<{
+    key: string;
+    label: string;
+    onClick?: () => void;
+    variant?: "outline" | "ghost";
+  }>;
+}) {
   return (
-    <div className="min-h-9 rounded-xl border border-border/60 bg-background px-3 py-2">
-      {props.value}
+    <div className="flex flex-wrap gap-2">
+      {props.actions.map((action) => (
+        <Button
+          key={action.key}
+          type="button"
+          size="sm"
+          variant={action.variant ?? "outline"}
+          onClick={action.onClick}
+        >
+          {action.label}
+        </Button>
+      ))}
     </div>
   );
-}
-
-function TextValue(props: { value: string | null | undefined }) {
-  if (!props.value) return <FieldValue value={<span className="text-label-secondary">-</span>} />;
-
-  return (
-    <FieldValue
-      value={<div className="break-words text-sm text-label-primary">{props.value}</div>}
-    />
-  );
-}
-
-function TagValue(props: { value: ReactNode }) {
-  return <FieldValue value={<div className="flex flex-wrap gap-2">{props.value}</div>} />;
 }
 
 function LoadingState() {
   const { t } = useTranslation(["settings"]);
   return (
-    <div className="flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/[0.04] text-sm text-label-secondary">
+    <div className="flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/[0.04] text-sm text-muted-foreground">
       {t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_LOADING")}
     </div>
   );
 }
 
 function ErrorState(props: { onRetry: () => void }) {
-  const { t } = useTranslation(["settings"]);
+  const { t } = useTranslation(["settings", "common"]);
   return (
     <div className="grid gap-4 rounded-2xl border border-border/60 bg-muted/[0.04] p-5">
-      <div className="text-sm text-label-secondary">
+      <div className="text-sm text-muted-foreground">
         {t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_LOAD_ERROR")}
       </div>
       <div>
@@ -246,151 +259,141 @@ function ErrorState(props: { onRetry: () => void }) {
 function UserDetailsBody(props: {
   detail: SystemDirectoryUserDetail;
   formatDateTime: (value: string) => string;
+  actions?: Array<{
+    key: string;
+    label: string;
+    onClick: () => void;
+    variant?: "outline" | "ghost";
+  }>;
 }) {
   const { t } = useTranslation(["settings"]);
+  const linkedOauthProviders =
+    props.detail.linkedOauthProviders ?? props.detail.linked_oauth_providers ?? [];
+
   return (
-    <div className="grid gap-5">
-      <IdentityHeader
-        avatar={
-          <UserAvatar
-            name={props.detail.displayName || props.detail.username}
-            assetRef={props.detail.avatarUrl ?? props.detail.avatar_url}
-            size={56}
+    <div className="grid gap-4">
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACCOUNT")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS")}
+            value={<StatusTag status={props.detail.status} />}
           />
-        }
-        title={props.detail.displayName || props.detail.username}
-        subtitle={props.detail.email || props.detail.username}
-        meta={
-          <>
-            <StatusTag status={props.detail.status} />
-            <BooleanTag
-              value={props.detail.isSuperAdmin}
-              trueLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_SUPER_ADMIN_ON")}
-              falseLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_SUPER_ADMIN_OFF")}
-            />
-          </>
-        }
-      />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PERMISSION")}
+            value={
+              props.detail.isSuperAdmin
+                ? renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_SUPER_ADMIN_ON"), {
+                    tone: "green",
+                    icon: ShieldCheck,
+                  })
+                : renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_SUPER_ADMIN_OFF"))
+            }
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_LAST_LOGIN")}
+            value={props.detail.lastLoginAt ? props.formatDateTime(props.detail.lastLoginAt) : "-"}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_UPDATED_AT")}
+            value={props.formatDateTime(props.detail.updatedAt)}
+          />
+        </div>
+      </SheetSection>
 
-      <SettingDialogFields>
-        <SettingDialogField title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACCOUNT")}>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_USER")}
-              </div>
-              <TextValue value={props.detail.username} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_EMAIL")}
-              </div>
-              <TextValue value={props.detail.email} />
-            </div>
-          </div>
-        </SettingDialogField>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACCESS")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_PASSWORD_MODE")}
+            value={
+              props.detail.hasPassword
+                ? renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_PASSWORD_MODE_ENABLED"), {
+                    tone: "green",
+                    icon: Lock,
+                  })
+                : renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_PASSWORD_MODE_EMPTY"), {
+                    tone: "default",
+                  })
+            }
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_TWO_FACTOR")}
+            value={
+              props.detail.twoFactorEnabled
+                ? renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_TWO_FACTOR_ENABLED"), {
+                    tone: "green",
+                    icon: ShieldCheck,
+                  })
+                : renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_TWO_FACTOR_DISABLED"), {
+                    tone: "default",
+                  })
+            }
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_LINKED_OAUTH")}
+            value={
+              linkedOauthProviders.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {linkedOauthProviders.map((provider) => (
+                    <span key={provider}>{renderTag(provider, { tone: "blue" })}</span>
+                  ))}
+                </div>
+              ) : (
+                t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_LINKED_OAUTH_EMPTY")
+              )
+            }
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_LOGIN_SESSION")}
+            value={renderTag(t("settings:SETTINGS_SYSTEM_DIRECTORY_LOGIN_SESSION_SUMMARY"))}
+          />
+        </div>
+      </SheetSection>
 
-        <SettingDialogField title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACCESS")}>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS")}
-              </div>
-              <TagValue value={<StatusTag status={props.detail.status} />} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_SUPER_ADMIN")}
-              </div>
-              <TagValue
-                value={
-                  <BooleanTag
-                    value={props.detail.isSuperAdmin}
-                    trueLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_SUPER_ADMIN_ON")}
-                    falseLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_SUPER_ADMIN_OFF")}
-                  />
-                }
-              />
-            </div>
-          </div>
-        </SettingDialogField>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_SCOPE")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATIONS")}
+            value={props.detail.organizationMembershipCount}
+            icon={Building2}
+          />
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACES")}
+            value={props.detail.workspaceMembershipCount}
+            icon={FolderKanban}
+          />
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PROJECTS")}
+            value={props.detail.projectMembershipCount}
+            icon={LayoutTemplate}
+          />
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_OWNED_ORGANIZATIONS")}
+            value={props.detail.ownedOrganizationsCount}
+            icon={Users}
+          />
+        </div>
+      </SheetSection>
 
-        <SettingDialogField title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_SCOPE")}>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATIONS")}
-              </div>
-              <TagValue
-                value={
-                  <CountTag value={props.detail.organizationMembershipCount} icon={Building2} />
-                }
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACES")}
-              </div>
-              <TagValue
-                value={
-                  <CountTag
-                    value={props.detail.workspaceMembershipCount}
-                    icon={FolderKanban}
-                    tone="blue"
-                  />
-                }
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PROJECTS")}
-              </div>
-              <TagValue
-                value={
-                  <CountTag value={props.detail.projectMembershipCount} icon={LayoutTemplate} />
-                }
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_OWNED_ORGANIZATIONS")}
-              </div>
-              <TagValue
-                value={<CountTag value={props.detail.ownedOrganizationsCount} icon={Users} />}
-              />
-            </div>
-          </div>
-        </SettingDialogField>
-
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIVITY")}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_LAST_LOGIN")}
-              </div>
-              <TextValue
-                value={
-                  props.detail.lastLoginAt ? props.formatDateTime(props.detail.lastLoginAt) : null
-                }
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_CREATED_AT")}
-              </div>
-              <TextValue value={props.formatDateTime(props.detail.createdAt)} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_UPDATED_AT")}
-              </div>
-              <TextValue value={props.formatDateTime(props.detail.updatedAt)} />
-            </div>
-          </div>
-        </SettingDialogField>
-      </SettingDialogFields>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIONS")}>
+        <ActionRow
+          actions={
+            props.actions ?? [
+              {
+                key: "edit",
+                label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_EDIT_ACCOUNT"),
+              },
+              {
+                key: "reset-password",
+                label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESET_PASSWORD"),
+              },
+              {
+                key: "revoke-sessions",
+                label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_LOGIN_SESSIONS"),
+              },
+            ]
+          }
+        />
+      </SheetSection>
     </div>
   );
 }
@@ -400,138 +403,77 @@ function OrganizationDetailsBody(props: {
   formatDateTime: (value: string) => string;
 }) {
   const { t } = useTranslation(["settings"]);
-  const ownerName = getActorPrimary(props.detail.owner);
+
   return (
-    <div className="grid gap-5">
-      <IdentityHeader
-        avatar={
-          <OrganizationAvatar name={props.detail.name} assetRef={props.detail.logoUrl} size={56} />
-        }
-        title={props.detail.name}
-        subtitle={props.detail.slug}
-        meta={
-          <>
-            <OrganizationKindTag kind={props.detail.kind} />
-            <ActiveTag active={props.detail.isActive} />
-          </>
-        }
-      />
+    <div className="grid gap-4">
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OVERVIEW")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_RESPONSIBLE_PERSON")}
+            value={<ResponsiblePersonValue actor={props.detail.owner} />}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_KIND")}
+            value={<OrganizationKindTag kind={props.detail.kind} />}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS")}
+            value={<ActiveTag active={props.detail.isActive} />}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_SLUG")}
+            value={renderSlugTag(props.detail.slug)}
+          />
+        </div>
+      </SheetSection>
 
-      <SettingDialogFields>
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OVERVIEW")}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATION")}
-              </div>
-              <TextValue value={props.detail.name} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_SLUG")}
-              </div>
-              <TagValue value={renderTagWithTooltip(props.detail.slug)} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_KIND")}
-              </div>
-              <TagValue value={<OrganizationKindTag kind={props.detail.kind} />} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS")}
-              </div>
-              <TagValue value={<ActiveTag active={props.detail.isActive} />} />
-            </div>
-          </div>
-        </SettingDialogField>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_SCOPE")}>
+        <div className="grid gap-4 md:grid-cols-3">
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_MEMBERS")}
+            value={props.detail.memberCount}
+            icon={Users}
+          />
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACES")}
+            value={props.detail.workspaceCount}
+            icon={FolderKanban}
+          />
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PROJECTS")}
+            value={props.detail.projectCount}
+            icon={LayoutTemplate}
+          />
+        </div>
+      </SheetSection>
 
-        <SettingDialogField title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OWNER")}>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_OWNER")}
-              </div>
-              <FieldValue
-                value={
-                  props.detail.owner ? (
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        name={ownerName}
-                        assetRef={props.detail.owner.avatarUrl ?? props.detail.owner.avatar_url}
-                        size={32}
-                      />
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-label-primary">
-                          {ownerName}
-                        </div>
-                        <div className="truncate text-footnote text-label-secondary">
-                          {props.detail.owner.email || props.detail.owner.username}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-label-secondary">-</span>
-                  )
-                }
-              />
-            </div>
-          </div>
-        </SettingDialogField>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIVITY")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_CREATED_AT")}
+            value={props.formatDateTime(props.detail.createdAt)}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_UPDATED_AT")}
+            value={props.formatDateTime(props.detail.updatedAt)}
+          />
+        </div>
+      </SheetSection>
 
-        <SettingDialogField title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_SCOPE")}>
-          <div className="grid gap-3 md:grid-cols-3">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_MEMBERS")}
-              </div>
-              <TagValue
-                value={<CountTag value={props.detail.memberCount} icon={Users} tone="blue" />}
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACES")}
-              </div>
-              <TagValue
-                value={
-                  <CountTag value={props.detail.workspaceCount} icon={FolderKanban} tone="blue" />
-                }
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PROJECTS")}
-              </div>
-              <TagValue
-                value={<CountTag value={props.detail.projectCount} icon={LayoutTemplate} />}
-              />
-            </div>
-          </div>
-        </SettingDialogField>
-
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIVITY")}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_CREATED_AT")}
-              </div>
-              <TextValue value={props.formatDateTime(props.detail.createdAt)} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_UPDATED_AT")}
-              </div>
-              <TextValue value={props.formatDateTime(props.detail.updatedAt)} />
-            </div>
-          </div>
-        </SettingDialogField>
-      </SettingDialogFields>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIONS")}>
+        <ActionRow
+          actions={[
+            {
+              key: "edit",
+              label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_EDIT_ORGANIZATION"),
+            },
+            {
+              key: "assign-lead",
+              label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ASSIGN_RESPONSIBLE_PERSON"),
+            },
+          ]}
+        />
+      </SheetSection>
     </div>
   );
 }
@@ -541,151 +483,83 @@ function WorkspaceDetailsBody(props: {
   formatDateTime: (value: string) => string;
 }) {
   const { t } = useTranslation(["settings"]);
-  const ownerName = getActorPrimary(props.detail.owner);
+
   return (
-    <div className="grid gap-5">
-      <IdentityHeader
-        avatar={
-          <WorkspaceAvatar
-            name={props.detail.name}
-            size={56}
-            {...workspaceAvatarPropsFromIdentity({
-              iconMode: props.detail.iconMode,
-              iconColor: props.detail.iconColor,
-              iconGlyph: props.detail.iconGlyph,
-              iconEmoji: props.detail.iconEmoji,
-              iconUrl: props.detail.iconUrl,
-            })}
+    <div className="grid gap-4">
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OVERVIEW")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATION")}
+            value={renderTagWithTooltip(props.detail.organizationName, { icon: Building2 })}
           />
-        }
-        title={props.detail.name}
-        subtitle={props.detail.organizationName}
-        meta={
-          <>
-            <ActiveTag active={props.detail.isActive} />
-            <ArchivedTag archived={props.detail.isArchived} />
-          </>
-        }
-      />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_RESPONSIBLE_PERSON")}
+            value={<ResponsiblePersonValue actor={props.detail.owner} />}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS")}
+            value={
+              <div className="flex flex-wrap gap-2">
+                <ActiveTag active={props.detail.isActive} />
+                <ArchivedTag archived={props.detail.isArchived} />
+              </div>
+            }
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_DESCRIPTION")}
+            value={props.detail.description || "-"}
+          />
+        </div>
+      </SheetSection>
 
-      <SettingDialogFields>
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OVERVIEW")}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACE")}
-              </div>
-              <TextValue value={props.detail.name} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATION")}
-              </div>
-              <TextValue value={props.detail.organizationName} />
-            </div>
-            <div className="md:col-span-2">
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_DESCRIPTION")}
-              </div>
-              <TextValue value={props.detail.description} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_KIND")}
-              </div>
-              <TextValue value={props.detail.kind} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS")}
-              </div>
-              <TagValue
-                value={
-                  <>
-                    <ActiveTag active={props.detail.isActive} />
-                    <ArchivedTag archived={props.detail.isArchived} />
-                  </>
-                }
-              />
-            </div>
-          </div>
-        </SettingDialogField>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_SCOPE")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_MEMBERS")}
+            value={props.detail.memberCount}
+            icon={Users}
+          />
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PROJECTS")}
+            value={props.detail.projectCount}
+            icon={LayoutTemplate}
+          />
+        </div>
+      </SheetSection>
 
-        <SettingDialogField title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OWNER")}>
-          <div className="grid gap-3">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_OWNER")}
-              </div>
-              <FieldValue
-                value={
-                  props.detail.owner ? (
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        name={ownerName}
-                        assetRef={props.detail.owner.avatarUrl ?? props.detail.owner.avatar_url}
-                        size={32}
-                      />
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-label-primary">
-                          {ownerName}
-                        </div>
-                        <div className="truncate text-footnote text-label-secondary">
-                          {props.detail.owner.email || props.detail.owner.username}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-label-secondary">-</span>
-                  )
-                }
-              />
-            </div>
-          </div>
-        </SettingDialogField>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIVITY")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_CREATED_AT")}
+            value={props.formatDateTime(props.detail.createdAt)}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_UPDATED_AT")}
+            value={props.formatDateTime(props.detail.updatedAt)}
+          />
+        </div>
+      </SheetSection>
 
-        <SettingDialogField title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_SCOPE")}>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_MEMBERS")}
-              </div>
-              <TagValue
-                value={<CountTag value={props.detail.memberCount} icon={Users} tone="blue" />}
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PROJECTS")}
-              </div>
-              <TagValue
-                value={<CountTag value={props.detail.projectCount} icon={LayoutTemplate} />}
-              />
-            </div>
-          </div>
-        </SettingDialogField>
-
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIVITY")}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_CREATED_AT")}
-              </div>
-              <TextValue value={props.formatDateTime(props.detail.createdAt)} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_UPDATED_AT")}
-              </div>
-              <TextValue value={props.formatDateTime(props.detail.updatedAt)} />
-            </div>
-          </div>
-        </SettingDialogField>
-      </SettingDialogFields>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIONS")}>
+        <ActionRow
+          actions={[
+            {
+              key: "manage-roles",
+              label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_MANAGE_ROLES"),
+            },
+            {
+              key: "archive",
+              label: props.detail.isArchived
+                ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESTORE_WORKSPACE")
+                : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_WORKSPACE"),
+            },
+            {
+              key: "delete",
+              label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_WORKSPACE"),
+            },
+          ]}
+        />
+      </SheetSection>
     </div>
   );
 }
@@ -695,132 +569,71 @@ function ProjectDetailsBody(props: {
   formatDateTime: (value: string) => string;
 }) {
   const { t } = useTranslation(["settings"]);
-  const ownerName = getActorPrimary(props.detail.owner);
+
   return (
-    <div className="grid gap-5">
-      <IdentityHeader
-        avatar={
-          <WorkspaceAvatar
-            name={props.detail.name}
-            size={56}
-            {...workspaceAvatarPropsFromIdentity({
-              iconMode: props.detail.iconMode,
-              iconColor: props.detail.iconColor,
-              iconGlyph: props.detail.iconGlyph,
-              iconEmoji: props.detail.iconEmoji,
-              iconUrl: props.detail.iconUrl,
-            })}
+    <div className="grid gap-4">
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OVERVIEW")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATION")}
+            value={renderTagWithTooltip(props.detail.organizationName, { icon: Building2 })}
           />
-        }
-        title={props.detail.name}
-        subtitle={props.detail.workspaceName}
-        meta={<ActiveTag active={props.detail.isActive} />}
-      />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACE")}
+            value={renderTagWithTooltip(props.detail.workspaceName, { icon: FolderKanban })}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_RESPONSIBLE_PERSON")}
+            value={<ResponsiblePersonValue actor={props.detail.owner} />}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_SLUG")}
+            value={renderSlugTag(props.detail.slug)}
+          />
+        </div>
+      </SheetSection>
 
-      <SettingDialogFields>
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OVERVIEW")}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_PROJECT")}
-              </div>
-              <TextValue value={props.detail.name} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_SLUG")}
-              </div>
-              <TagValue value={renderTagWithTooltip(props.detail.slug)} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACE")}
-              </div>
-              <TextValue value={props.detail.workspaceName} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATION")}
-              </div>
-              <TextValue value={props.detail.organizationName} />
-            </div>
-            <div className="md:col-span-2">
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_DESCRIPTION")}
-              </div>
-              <TextValue value={props.detail.description} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS")}
-              </div>
-              <TagValue value={<ActiveTag active={props.detail.isActive} />} />
-            </div>
-          </div>
-        </SettingDialogField>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_SCOPE")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <CountValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_MEMBERS")}
+            value={props.detail.memberCount}
+            icon={Users}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS")}
+            value={<ActiveTag active={props.detail.isActive} />}
+          />
+        </div>
+      </SheetSection>
 
-        <SettingDialogField title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_OWNER")}>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_OWNER")}
-              </div>
-              <FieldValue
-                value={
-                  props.detail.owner ? (
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        name={ownerName}
-                        assetRef={props.detail.owner.avatarUrl ?? props.detail.owner.avatar_url}
-                        size={32}
-                      />
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-label-primary">
-                          {ownerName}
-                        </div>
-                        <div className="truncate text-footnote text-label-secondary">
-                          {props.detail.owner.email || props.detail.owner.username}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-label-secondary">-</span>
-                  )
-                }
-              />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_MEMBERS")}
-              </div>
-              <TagValue
-                value={<CountTag value={props.detail.memberCount} icon={Users} tone="blue" />}
-              />
-            </div>
-          </div>
-        </SettingDialogField>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIVITY")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_CREATED_AT")}
+            value={props.formatDateTime(props.detail.createdAt)}
+          />
+          <LabelValue
+            label={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_UPDATED_AT")}
+            value={props.formatDateTime(props.detail.updatedAt)}
+          />
+        </div>
+      </SheetSection>
 
-        <SettingDialogField
-          title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIVITY")}
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_CREATED_AT")}
-              </div>
-              <TextValue value={props.formatDateTime(props.detail.createdAt)} />
-            </div>
-            <div>
-              <div className="mb-2 text-footnote text-label-secondary">
-                {t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_UPDATED_AT")}
-              </div>
-              <TextValue value={props.formatDateTime(props.detail.updatedAt)} />
-            </div>
-          </div>
-        </SettingDialogField>
-      </SettingDialogFields>
+      <SheetSection title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_SECTION_ACTIONS")}>
+        <ActionRow
+          actions={[
+            {
+              key: "archive",
+              label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_PROJECT"),
+            },
+            {
+              key: "delete",
+              label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_PROJECT"),
+            },
+          ]}
+        />
+      </SheetSection>
     </div>
   );
 }
@@ -846,61 +659,79 @@ export function SystemDirectoryDetailsSheet(props: SystemDirectoryDetailsSheetPr
   };
 
   if (props.kind === "user") {
+    const detail = props.query.detail;
     return (
       <SettingSheet
         {...common}
-        title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_USER_TITLE")}
-        description={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_USER_DESC")}
+        title={
+          detail
+            ? detail.displayName || detail.username
+            : t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_USER_TITLE")
+        }
+        description={detail?.email || t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_USER_DESC")}
       >
         {renderBody(
-          <UserDetailsBody detail={props.query.detail!} formatDateTime={props.formatDateTime} />,
+          detail ? (
+            <UserDetailsBody
+              detail={detail}
+              formatDateTime={props.formatDateTime}
+              actions={props.actions}
+            />
+          ) : null,
         )}
       </SettingSheet>
     );
   }
 
   if (props.kind === "organization") {
+    const detail = props.query.detail;
     return (
       <SettingSheet
         {...common}
-        title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_ORGANIZATION_TITLE")}
+        title={detail?.name || t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_ORGANIZATION_TITLE")}
         description={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_ORGANIZATION_DESC")}
       >
         {renderBody(
-          <OrganizationDetailsBody
-            detail={props.query.detail!}
-            formatDateTime={props.formatDateTime}
-          />,
+          detail ? (
+            <OrganizationDetailsBody detail={detail} formatDateTime={props.formatDateTime} />
+          ) : null,
         )}
       </SettingSheet>
     );
   }
 
   if (props.kind === "workspace") {
+    const detail = props.query.detail;
     return (
       <SettingSheet
         {...common}
-        title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_WORKSPACE_TITLE")}
-        description={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_WORKSPACE_DESC")}
+        title={detail?.name || t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_WORKSPACE_TITLE")}
+        description={
+          detail?.organizationName || t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_WORKSPACE_DESC")
+        }
       >
         {renderBody(
-          <WorkspaceDetailsBody
-            detail={props.query.detail!}
-            formatDateTime={props.formatDateTime}
-          />,
+          detail ? (
+            <WorkspaceDetailsBody detail={detail} formatDateTime={props.formatDateTime} />
+          ) : null,
         )}
       </SettingSheet>
     );
   }
 
+  const detail = props.query.detail;
   return (
     <SettingSheet
       {...common}
-      title={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_PROJECT_TITLE")}
-      description={t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_PROJECT_DESC")}
+      title={detail?.name || t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_PROJECT_TITLE")}
+      description={
+        detail?.workspaceName || t("settings:SETTINGS_SYSTEM_DIRECTORY_DETAILS_PROJECT_DESC")
+      }
     >
       {renderBody(
-        <ProjectDetailsBody detail={props.query.detail!} formatDateTime={props.formatDateTime} />,
+        detail ? (
+          <ProjectDetailsBody detail={detail} formatDateTime={props.formatDateTime} />
+        ) : null,
       )}
     </SettingSheet>
   );

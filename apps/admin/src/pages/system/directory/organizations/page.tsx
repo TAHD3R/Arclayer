@@ -1,13 +1,22 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Building2, CircleUserRound, FolderKanban, Users } from "lucide-react";
+import { Building2, CircleUserRound, FolderKanban, MoreVertical, Users } from "lucide-react";
 
 import type { SystemDirectoryOrganization } from "@/types/api/system-directory";
+import { Button } from "@arclayer/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 
 import {
+  createActionsColumn,
   createCustomColumn,
   createDateColumn,
+  createSelectionColumn,
   createTruncatedTextColumn,
   createOwnerCell,
   renderCountTag,
@@ -16,19 +25,15 @@ import {
   SystemDirectoryTable,
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
-import { SystemDirectoryDetailsSheet } from "../system-directory-details-sheet";
-import {
-  useSystemDirectoryOrganizationDetail,
-  useSystemDirectoryOrganizationsTable,
-} from "../hooks";
+import { useSystemDirectoryOrganizationsTable } from "../hooks";
 
 export function SystemDirectoryOrganizationsPage() {
   const { t } = useTranslation(["settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | null>(null);
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryOrganization, unknown>>>(
     () => [
+      createSelectionColumn<SystemDirectoryOrganization>(),
       createTruncatedTextColumn<SystemDirectoryOrganization>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATION"),
         (row) => row.name,
@@ -78,33 +83,54 @@ export function SystemDirectoryOrganizationsPage() {
         dateTime,
         { id: "createdAt", sortKey: "created_at" },
       ),
+      createActionsColumn<SystemDirectoryOrganization>({
+        size: 220,
+        minSize: 208,
+        renderActions: () => (
+          <>
+            <Button size="sm" variant="outline">
+              {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_EDIT_ORGANIZATION")}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_MORE")}
+                >
+                  <MoreVertical className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuIconItem icon={<Users className="size-4" />}>
+                  {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ASSIGN_RESPONSIBLE_PERSON")}
+                </DropdownMenuIconItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        ),
+      }),
     ],
     [dateTime, t],
   );
 
   const tableHook = useSystemDirectoryOrganizationsTable(columns);
-  const detailQuery = useSystemDirectoryOrganizationDetail(selectedOrganizationId);
 
   return (
-    <>
-      <SystemDirectoryTable
-        tableHook={tableHook}
-        onRowClick={(row) => setSelectedOrganizationId(row.organizationId)}
-        text={{
-          emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_TITLE"),
-          emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_DESC"),
-          searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_SEARCH"),
-        }}
-      />
-      <SystemDirectoryDetailsSheet
-        kind="organization"
-        open={Boolean(selectedOrganizationId)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedOrganizationId(null);
-        }}
-        query={detailQuery}
-        formatDateTime={dateTime.formatDateTime}
-      />
-    </>
+    <SystemDirectoryTable
+      tableHook={tableHook}
+      text={{
+        emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_TITLE"),
+        emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_DESC"),
+        searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_SEARCH"),
+      }}
+      bulkActions={[
+        {
+          key: "export-members",
+          label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_EXPORT_MEMBERS"),
+          onClick: () => undefined,
+        },
+      ]}
+    />
   );
 }

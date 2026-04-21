@@ -1,29 +1,37 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Archive, FolderKanban, LayoutTemplate, Users } from "lucide-react";
+import { Archive, FolderKanban, LayoutTemplate, MoreVertical, Users } from "lucide-react";
 
 import type { SystemDirectoryWorkspace } from "@/types/api/system-directory";
+import { Button } from "@arclayer/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 
 import {
+  createActionsColumn,
   createCustomColumn,
   createDateColumn,
+  createSelectionColumn,
   createTruncatedTextColumn,
   createOwnerCell,
   renderTag,
   SystemDirectoryTable,
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
-import { SystemDirectoryDetailsSheet } from "../system-directory-details-sheet";
-import { useSystemDirectoryWorkspaceDetail, useSystemDirectoryWorkspacesTable } from "../hooks";
+import { useSystemDirectoryWorkspacesTable } from "../hooks";
 
 export function SystemDirectoryWorkspacesPage() {
   const { t } = useTranslation(["settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryWorkspace, unknown>>>(
     () => [
+      createSelectionColumn<SystemDirectoryWorkspace>(),
       createTruncatedTextColumn<SystemDirectoryWorkspace>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACE"),
         (row) => row.name,
@@ -76,33 +84,56 @@ export function SystemDirectoryWorkspacesPage() {
         dateTime,
         { id: "createdAt", sortKey: "created_at" },
       ),
+      createActionsColumn<SystemDirectoryWorkspace>({
+        size: 220,
+        minSize: 208,
+        renderActions: (row) => (
+          <>
+            <Button size="sm" variant="outline">
+              {t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_MANAGE_ROLES")}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_MORE")}
+                >
+                  <MoreVertical className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuIconItem icon={<Archive className="size-4" />}>
+                  {row.isArchived
+                    ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESTORE_WORKSPACE")
+                    : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_WORKSPACE")}
+                </DropdownMenuIconItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        ),
+      }),
     ],
     [dateTime, t],
   );
 
   const tableHook = useSystemDirectoryWorkspacesTable(columns);
-  const detailQuery = useSystemDirectoryWorkspaceDetail(selectedWorkspaceId);
 
   return (
-    <>
-      <SystemDirectoryTable
-        tableHook={tableHook}
-        onRowClick={(row) => setSelectedWorkspaceId(row.workspaceId)}
-        text={{
-          emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_EMPTY_TITLE"),
-          emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_EMPTY_DESC"),
-          searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_SEARCH"),
-        }}
-      />
-      <SystemDirectoryDetailsSheet
-        kind="workspace"
-        open={Boolean(selectedWorkspaceId)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedWorkspaceId(null);
-        }}
-        query={detailQuery}
-        formatDateTime={dateTime.formatDateTime}
-      />
-    </>
+    <SystemDirectoryTable
+      tableHook={tableHook}
+      text={{
+        emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_EMPTY_TITLE"),
+        emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_EMPTY_DESC"),
+        searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_SEARCH"),
+      }}
+      bulkActions={[
+        {
+          key: "archive",
+          label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_WORKSPACE"),
+          onClick: () => undefined,
+        },
+      ]}
+    />
   );
 }
