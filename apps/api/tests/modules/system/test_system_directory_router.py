@@ -193,3 +193,100 @@ async def test_system_directory_supports_search() -> None:
     assert orgs_res.status_code == 200
     assert [item["username"] for item in users_res.json()["data"]["items"]] == ["tenant-owner"]
     assert [item["name"] for item in orgs_res.json()["data"]["items"]] == ["Searchable Org"]
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_returns_entity_details() -> None:
+    owner = await User.create(
+        username="detail-owner",
+        email="detail-owner@example.com",
+        display_name="Detail Owner",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+        avatar_url="/assets/detail-owner-avatar",
+    )
+    organization = await Organization.create(
+        name="Detail Org",
+        slug="detail-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=owner.id,
+        logo_url="/assets/detail-org-logo",
+    )
+    workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Detail Workspace",
+        description="Detailed workspace",
+        owner_user_id=owner.id,
+        created_by_user_id=owner.id,
+        icon_url="/assets/detail-workspace-icon",
+    )
+    project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="detail-project",
+        name="Detail Project",
+        description="Detailed project",
+        created_by_user_id=owner.id,
+        icon_url="/assets/detail-project-icon",
+    )
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=owner.id,
+        role=OrgRole.OWNER,
+        role_code=OrgRole.OWNER.value,
+        status="active",
+    )
+    await WorkspaceMembership.create(
+        workspace_id=workspace.id,
+        user_id=owner.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    await ProjectMembership.create(
+        project_id=project.id,
+        user_id=owner.id,
+        role=ProjectMemberRole.OWNER,
+        created_by_user_id=owner.id,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        user_res = await client.get(f"/api/v1/system/directory/users/{owner.id}")
+        org_res = await client.get(f"/api/v1/system/directory/organizations/{organization.id}")
+        workspace_res = await client.get(f"/api/v1/system/directory/workspaces/{workspace.id}")
+        project_res = await client.get(f"/api/v1/system/directory/projects/{project.id}")
+
+    assert user_res.status_code == 200
+    assert org_res.status_code == 200
+    assert workspace_res.status_code == 200
+    assert project_res.status_code == 200
+
+    assert user_res.json()["data"]["avatarUrl"] == "/assets/detail-owner-avatar"
+    assert org_res.json()["data"]["logoUrl"] == "/assets/detail-org-logo"
+    assert workspace_res.json()["data"]["iconUrl"] == "/assets/detail-workspace-icon"
+    assert project_res.json()["data"]["iconUrl"] == "/assets/detail-project-icon"
+    assert workspace_res.json()["data"]["owner"]["avatarUrl"] == "/assets/detail-owner-avatar"
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_detail_returns_not_found() -> None:
+    app = await _build_app()
+
+    async def _super_admin_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    missing_id = "019db0f5-ffff-7b20-bbe1-8a7380d53f5e"
+
+    async with asgi_client(app) as client:
+        res = await client.get(f"/api/v1/system/directory/users/{missing_id}")
+
+    assert res.status_code == 404
+    assert res.json()["error"] == "NOT_FOUND"

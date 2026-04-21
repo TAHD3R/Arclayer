@@ -227,6 +227,8 @@ export function createOwnerCell<
       displayName?: string | null;
       username?: string;
       email?: string | null;
+      avatarUrl?: string | null;
+      avatar_url?: string | null;
     } | null;
   },
 >(title: string, options?: ColumnOptions): ColumnDef<TData, unknown> {
@@ -244,7 +246,7 @@ export function createOwnerCell<
       const primary = owner.displayName || owner.username;
       return renderCellTooltip(
         <div className="ml-1 flex min-w-0 items-center gap-3">
-          <UserAvatar name={primary} size={28} />
+          <UserAvatar name={primary} assetRef={owner.avatarUrl ?? owner.avatar_url} size={28} />
           <div className="min-w-0">
             <div className="truncate text-sm font-medium text-foreground">{primary}</div>
             {owner.email ? (
@@ -269,6 +271,8 @@ export function createUserIdentityCell<
     displayName?: string | null;
     username: string;
     email?: string | null;
+    avatarUrl?: string | null;
+    avatar_url?: string | null;
   },
 >(title: string, options?: ColumnOptions): ColumnDef<TData, unknown> {
   return {
@@ -284,7 +288,7 @@ export function createUserIdentityCell<
       const primary = user.displayName || user.username;
       return renderCellTooltip(
         <div className="ml-1 flex min-w-0 items-center gap-3">
-          <UserAvatar name={primary} size={28} />
+          <UserAvatar name={primary} assetRef={user.avatarUrl ?? user.avatar_url} size={28} />
           <div className="min-w-0">
             <div className="truncate text-sm font-medium text-foreground">{primary}</div>
             {user.email ? (
@@ -307,6 +311,7 @@ export function createUserIdentityCell<
 export function SystemDirectoryTable<TData>(props: {
   tableHook: SearchableTableHook<TData>;
   text: TableText;
+  onRowClick?: (row: TData) => void;
 }) {
   const { t } = useTranslation(["common"]);
   const [rowHeight] = useDataTableRowHeightPreference({
@@ -344,6 +349,8 @@ export function SystemDirectoryTable<TData>(props: {
       rowHeight={rowHeight}
       wrapHeaders={wrapHeaders}
       refreshing={props.tableHook.isFetching && !props.tableHook.isLoading}
+      rowClassName={() => (props.onRowClick ? "cursor-pointer" : undefined)}
+      onRowClick={props.onRowClick ? (row) => props.onRowClick(row.original) : undefined}
       toolbar={toolbar}
     />
   );

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Archive, FolderKanban, LayoutTemplate, Users } from "lucide-react";
@@ -14,11 +14,13 @@ import {
   SystemDirectoryTable,
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
-import { useSystemDirectoryWorkspacesTable } from "../hooks";
+import { SystemDirectoryDetailsSheet } from "../system-directory-details-sheet";
+import { useSystemDirectoryWorkspaceDetail, useSystemDirectoryWorkspacesTable } from "../hooks";
 
 export function SystemDirectoryWorkspacesPage() {
   const { t } = useTranslation(["settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryWorkspace, unknown>>>(
     () => [
@@ -79,15 +81,28 @@ export function SystemDirectoryWorkspacesPage() {
   );
 
   const tableHook = useSystemDirectoryWorkspacesTable(columns);
+  const detailQuery = useSystemDirectoryWorkspaceDetail(selectedWorkspaceId);
 
   return (
-    <SystemDirectoryTable
-      tableHook={tableHook}
-      text={{
-        emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_EMPTY_TITLE"),
-        emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_EMPTY_DESC"),
-        searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_SEARCH"),
-      }}
-    />
+    <>
+      <SystemDirectoryTable
+        tableHook={tableHook}
+        onRowClick={(row) => setSelectedWorkspaceId(row.workspaceId)}
+        text={{
+          emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_EMPTY_TITLE"),
+          emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_EMPTY_DESC"),
+          searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_SEARCH"),
+        }}
+      />
+      <SystemDirectoryDetailsSheet
+        kind="workspace"
+        open={Boolean(selectedWorkspaceId)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedWorkspaceId(null);
+        }}
+        query={detailQuery}
+        formatDateTime={dateTime.formatDateTime}
+      />
+    </>
   );
 }

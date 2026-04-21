@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Crown, Lock, ShieldCheck, UserCheck, UserMinus } from "lucide-react";
@@ -15,11 +15,13 @@ import {
   SystemDirectoryTable,
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
-import { useSystemDirectoryUsersTable } from "../hooks";
+import { SystemDirectoryDetailsSheet } from "../system-directory-details-sheet";
+import { useSystemDirectoryUserDetail, useSystemDirectoryUsersTable } from "../hooks";
 
 export function SystemDirectoryUsersPage() {
   const { t } = useTranslation(["settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryUser, unknown>>>(
     () => [
@@ -94,15 +96,28 @@ export function SystemDirectoryUsersPage() {
   );
 
   const tableHook = useSystemDirectoryUsersTable(columns);
+  const detailQuery = useSystemDirectoryUserDetail(selectedUserId);
 
   return (
-    <SystemDirectoryTable
-      tableHook={tableHook}
-      text={{
-        emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_EMPTY_TITLE"),
-        emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_EMPTY_DESC"),
-        searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_SEARCH"),
-      }}
-    />
+    <>
+      <SystemDirectoryTable
+        tableHook={tableHook}
+        onRowClick={(row) => setSelectedUserId(row.userId)}
+        text={{
+          emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_EMPTY_TITLE"),
+          emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_EMPTY_DESC"),
+          searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_SEARCH"),
+        }}
+      />
+      <SystemDirectoryDetailsSheet
+        kind="user"
+        open={Boolean(selectedUserId)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedUserId(null);
+        }}
+        query={detailQuery}
+        formatDateTime={dateTime.formatDateTime}
+      />
+    </>
   );
 }

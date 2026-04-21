@@ -5,8 +5,10 @@ export type DirectoryActorSummary = {
   username: string;
   displayName: string | null;
   email: string | null;
+  avatarUrl: string | null;
   user_id?: string;
   display_name?: string | null;
+  avatar_url?: string | null;
 };
 
 export type SystemDirectoryUser = {
@@ -14,6 +16,7 @@ export type SystemDirectoryUser = {
   username: string;
   displayName: string | null;
   email: string | null;
+  avatarUrl: string | null;
   status: string;
   isSuperAdmin: boolean;
   lastLoginAt: string | null;
@@ -24,6 +27,7 @@ export type SystemDirectoryUser = {
   projectMembershipCount: number;
   user_id?: string;
   display_name?: string | null;
+  avatar_url?: string | null;
   is_super_admin?: boolean;
   last_login_at?: string | null;
   created_at?: string;
@@ -95,6 +99,49 @@ export type SystemDirectoryProject = {
   is_active?: boolean;
   created_at?: string;
   member_count?: number;
+};
+
+export type SystemDirectoryUserDetail = SystemDirectoryUser & {
+  updatedAt: string;
+  updated_at?: string;
+};
+
+export type SystemDirectoryOrganizationDetail = SystemDirectoryOrganization & {
+  updatedAt: string;
+  logoUrl: string | null;
+  updated_at?: string;
+  logo_url?: string | null;
+};
+
+export type SystemDirectoryWorkspaceDetail = SystemDirectoryWorkspace & {
+  updatedAt: string;
+  kind: string;
+  iconMode: string;
+  iconColor: string;
+  iconGlyph: string | null;
+  iconEmoji: string | null;
+  iconUrl: string | null;
+  updated_at?: string;
+  icon_mode?: string;
+  icon_color?: string;
+  icon_glyph?: string | null;
+  icon_emoji?: string | null;
+  icon_url?: string | null;
+};
+
+export type SystemDirectoryProjectDetail = SystemDirectoryProject & {
+  updatedAt: string;
+  iconMode: string;
+  iconColor: string;
+  iconGlyph: string | null;
+  iconEmoji: string | null;
+  iconUrl: string | null;
+  updated_at?: string;
+  icon_mode?: string;
+  icon_color?: string;
+  icon_glyph?: string | null;
+  icon_emoji?: string | null;
+  icon_url?: string | null;
 };
 
 export type SystemDirectoryUserPage = PageData<SystemDirectoryUser>;

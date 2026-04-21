@@ -1,20 +1,35 @@
+import { useQuery } from "@tanstack/react-query";
 import { useDataTable } from "@arclayer/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 
 import {
+  getSystemDirectoryOrganizationDetail,
+  getSystemDirectoryProjectDetail,
+  getSystemDirectoryUserDetail,
+  getSystemDirectoryWorkspaceDetail,
   listSystemDirectoryOrganizations,
   listSystemDirectoryProjects,
   listSystemDirectoryUsers,
   listSystemDirectoryWorkspaces,
 } from "@/api/system-directory";
 import type {
+  SystemDirectoryOrganizationDetail,
   SystemDirectoryOrganization,
+  SystemDirectoryProjectDetail,
   SystemDirectoryProject,
+  SystemDirectoryUserDetail,
   SystemDirectoryUser,
+  SystemDirectoryWorkspaceDetail,
   SystemDirectoryWorkspace,
 } from "@/types/api/system-directory";
 
 const QUERY_OPTIONS = {
+  staleTime: 30 * 1000,
+  retry: false,
+  meta: { silent: true },
+} as const;
+
+const DETAIL_QUERY_OPTIONS = {
   staleTime: 30 * 1000,
   retry: false,
   meta: { silent: true },
@@ -78,4 +93,72 @@ export function useSystemDirectoryProjectsTable(
   });
 
   return { tableId, ...tableHook } as const;
+}
+
+export function useSystemDirectoryUserDetail(userId: string | null) {
+  const query = useQuery({
+    queryKey: ["system-directory", "users", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("USER_ID_REQUIRED");
+      return getSystemDirectoryUserDetail(userId);
+    },
+    enabled: Boolean(userId),
+    ...DETAIL_QUERY_OPTIONS,
+  });
+
+  return {
+    ...query,
+    detail: (query.data ?? null) as SystemDirectoryUserDetail | null,
+  } as const;
+}
+
+export function useSystemDirectoryOrganizationDetail(organizationId: string | null) {
+  const query = useQuery({
+    queryKey: ["system-directory", "organizations", organizationId],
+    queryFn: async () => {
+      if (!organizationId) throw new Error("ORGANIZATION_ID_REQUIRED");
+      return getSystemDirectoryOrganizationDetail(organizationId);
+    },
+    enabled: Boolean(organizationId),
+    ...DETAIL_QUERY_OPTIONS,
+  });
+
+  return {
+    ...query,
+    detail: (query.data ?? null) as SystemDirectoryOrganizationDetail | null,
+  } as const;
+}
+
+export function useSystemDirectoryWorkspaceDetail(workspaceId: string | null) {
+  const query = useQuery({
+    queryKey: ["system-directory", "workspaces", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("WORKSPACE_ID_REQUIRED");
+      return getSystemDirectoryWorkspaceDetail(workspaceId);
+    },
+    enabled: Boolean(workspaceId),
+    ...DETAIL_QUERY_OPTIONS,
+  });
+
+  return {
+    ...query,
+    detail: (query.data ?? null) as SystemDirectoryWorkspaceDetail | null,
+  } as const;
+}
+
+export function useSystemDirectoryProjectDetail(projectId: string | null) {
+  const query = useQuery({
+    queryKey: ["system-directory", "projects", projectId],
+    queryFn: async () => {
+      if (!projectId) throw new Error("PROJECT_ID_REQUIRED");
+      return getSystemDirectoryProjectDetail(projectId);
+    },
+    enabled: Boolean(projectId),
+    ...DETAIL_QUERY_OPTIONS,
+  });
+
+  return {
+    ...query,
+    detail: (query.data ?? null) as SystemDirectoryProjectDetail | null,
+  } as const;
 }

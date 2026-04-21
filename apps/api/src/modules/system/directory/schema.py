@@ -15,6 +15,7 @@ class DirectoryActorSummaryOut(BaseSchema):
     username: str = Field(..., description="Username.")
     display_name: str | None = Field(default=None, description="Display name.")
     email: str | None = Field(default=None, description="Email.")
+    avatar_url: str | None = Field(default=None, description="Avatar URL.")
 
 
 class DirectoryUserListItemOut(BaseSchema):
@@ -84,3 +85,32 @@ class DirectoryProjectListItemOut(BaseSchema):
     created_at: datetime = Field(..., description="Created at.")
     owner: DirectoryActorSummaryOut | None = Field(default=None, description="Owner summary.")
     member_count: int = Field(default=0, ge=0, description="Project member count.")
+
+
+class DirectoryUserDetailOut(DirectoryUserListItemOut):
+    updated_at: datetime = Field(..., description="Last update time.")
+    avatar_url: str | None = Field(default=None, description="Avatar URL.")
+
+
+class DirectoryOrganizationDetailOut(DirectoryOrganizationListItemOut):
+    updated_at: datetime = Field(..., description="Last update time.")
+    logo_url: str | None = Field(default=None, description="Organization logo URL.")
+
+
+class DirectoryWorkspaceDetailOut(DirectoryWorkspaceListItemOut):
+    updated_at: datetime = Field(..., description="Last update time.")
+    kind: str = Field(..., description="Workspace kind.")
+    icon_mode: str = Field(..., description="Workspace icon mode.")
+    icon_color: str = Field(..., description="Workspace icon color.")
+    icon_glyph: str | None = Field(default=None, description="Workspace icon glyph.")
+    icon_emoji: str | None = Field(default=None, description="Workspace icon emoji.")
+    icon_url: str | None = Field(default=None, description="Workspace icon URL.")
+
+
+class DirectoryProjectDetailOut(DirectoryProjectListItemOut):
+    updated_at: datetime = Field(..., description="Last update time.")
+    icon_mode: str = Field(..., description="Project icon mode.")
+    icon_color: str = Field(..., description="Project icon color.")
+    icon_glyph: str | None = Field(default=None, description="Project icon glyph.")
+    icon_emoji: str | None = Field(default=None, description="Project icon emoji.")
+    icon_url: str | None = Field(default=None, description="Project icon URL.")

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
 import { FolderKanban, LayoutTemplate, Users } from "lucide-react";
@@ -16,11 +16,13 @@ import {
   SystemDirectoryTable,
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
-import { useSystemDirectoryProjectsTable } from "../hooks";
+import { SystemDirectoryDetailsSheet } from "../system-directory-details-sheet";
+import { useSystemDirectoryProjectDetail, useSystemDirectoryProjectsTable } from "../hooks";
 
 export function SystemDirectoryProjectsPage() {
   const { t } = useTranslation(["settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryProject, unknown>>>(
     () => [
@@ -77,15 +79,28 @@ export function SystemDirectoryProjectsPage() {
   );
 
   const tableHook = useSystemDirectoryProjectsTable(columns);
+  const detailQuery = useSystemDirectoryProjectDetail(selectedProjectId);
 
   return (
-    <SystemDirectoryTable
-      tableHook={tableHook}
-      text={{
-        emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_EMPTY_TITLE"),
-        emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_EMPTY_DESC"),
-        searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_SEARCH"),
-      }}
-    />
+    <>
+      <SystemDirectoryTable
+        tableHook={tableHook}
+        onRowClick={(row) => setSelectedProjectId(row.projectId)}
+        text={{
+          emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_EMPTY_TITLE"),
+          emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_EMPTY_DESC"),
+          searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_PROJECTS_SEARCH"),
+        }}
+      />
+      <SystemDirectoryDetailsSheet
+        kind="project"
+        open={Boolean(selectedProjectId)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedProjectId(null);
+        }}
+        query={detailQuery}
+        formatDateTime={dateTime.formatDateTime}
+      />
+    </>
   );
 }

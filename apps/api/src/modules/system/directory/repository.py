@@ -37,7 +37,7 @@ class SystemDirectoryRepository:
         return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
 
     async def count_organizations(self, *, q: str | None) -> int:
-        return await Organization.filter(_search_q(("name", "slug"), q)).count()
+        return await Organization.filter(deleted_at__isnull=True).filter(_search_q(("name", "slug"), q)).count()
 
     async def list_organizations_page(
         self,
@@ -47,11 +47,11 @@ class SystemDirectoryRepository:
         offset: int,
         limit: int,
     ) -> list[Organization]:
-        queryset = Organization.filter(_search_q(("name", "slug"), q))
+        queryset = Organization.filter(deleted_at__isnull=True).filter(_search_q(("name", "slug"), q))
         return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
 
     async def count_workspaces(self, *, q: str | None) -> int:
-        return await Workspace.filter(_search_q(("name", "description"), q)).count()
+        return await Workspace.filter(deleted_at__isnull=True).filter(_search_q(("name", "description"), q)).count()
 
     async def list_workspaces_page(
         self,
@@ -61,11 +61,25 @@ class SystemDirectoryRepository:
         offset: int,
         limit: int,
     ) -> list[Workspace]:
-        queryset = Workspace.filter(_search_q(("name", "description"), q)).prefetch_related("organization")
+        queryset = (
+            Workspace
+            .filter(deleted_at__isnull=True)
+            .filter(
+                _search_q(("name", "description"), q),
+            )
+            .prefetch_related("organization")
+        )
         return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
 
     async def count_projects(self, *, q: str | None) -> int:
-        return await ProjectRecord.filter(_search_q(("name", "slug", "description"), q)).count()
+        return (
+            await ProjectRecord
+            .filter(workspace__deleted_at__isnull=True)
+            .filter(
+                _search_q(("name", "slug", "description"), q),
+            )
+            .count()
+        )
 
     async def list_projects_page(
         self,
@@ -75,11 +89,42 @@ class SystemDirectoryRepository:
         offset: int,
         limit: int,
     ) -> list[ProjectRecord]:
-        queryset = ProjectRecord.filter(_search_q(("name", "slug", "description"), q)).prefetch_related(
-            "workspace",
-            "workspace__organization",
+        queryset = (
+            ProjectRecord
+            .filter(workspace__deleted_at__isnull=True)
+            .filter(
+                _search_q(("name", "slug", "description"), q),
+            )
+            .prefetch_related("workspace", "workspace__organization")
         )
         return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
+
+    async def get_user_by_id(self, *, user_id: UUID) -> User | None:
+        return await User.filter(id=user_id).get_or_none()
+
+    async def get_organization_by_id(self, *, organization_id: UUID) -> Organization | None:
+        return await Organization.filter(id=organization_id, deleted_at__isnull=True).get_or_none()
+
+    async def get_workspace_by_id(self, *, workspace_id: UUID) -> Workspace | None:
+        return (
+            await Workspace
+            .filter(id=workspace_id, deleted_at__isnull=True)
+            .prefetch_related(
+                "organization",
+            )
+            .get_or_none()
+        )
+
+    async def get_project_by_id(self, *, project_id: UUID) -> ProjectRecord | None:
+        return (
+            await ProjectRecord
+            .filter(id=project_id, workspace__deleted_at__isnull=True)
+            .prefetch_related(
+                "workspace",
+                "workspace__organization",
+            )
+            .get_or_none()
+        )
 
     async def get_users_by_ids(self, *, user_ids: Iterable[UUID]) -> dict[UUID, User]:
         ids = list(set(user_ids))

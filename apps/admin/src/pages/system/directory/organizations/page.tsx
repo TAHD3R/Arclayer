@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Building2, CircleUserRound, FolderKanban, Users } from "lucide-react";
@@ -16,11 +16,16 @@ import {
   SystemDirectoryTable,
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
-import { useSystemDirectoryOrganizationsTable } from "../hooks";
+import { SystemDirectoryDetailsSheet } from "../system-directory-details-sheet";
+import {
+  useSystemDirectoryOrganizationDetail,
+  useSystemDirectoryOrganizationsTable,
+} from "../hooks";
 
 export function SystemDirectoryOrganizationsPage() {
   const { t } = useTranslation(["settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | null>(null);
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryOrganization, unknown>>>(
     () => [
@@ -78,15 +83,28 @@ export function SystemDirectoryOrganizationsPage() {
   );
 
   const tableHook = useSystemDirectoryOrganizationsTable(columns);
+  const detailQuery = useSystemDirectoryOrganizationDetail(selectedOrganizationId);
 
   return (
-    <SystemDirectoryTable
-      tableHook={tableHook}
-      text={{
-        emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_TITLE"),
-        emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_DESC"),
-        searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_SEARCH"),
-      }}
-    />
+    <>
+      <SystemDirectoryTable
+        tableHook={tableHook}
+        onRowClick={(row) => setSelectedOrganizationId(row.organizationId)}
+        text={{
+          emptyTitle: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_TITLE"),
+          emptyDescription: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_DESC"),
+          searchPlaceholder: t("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_SEARCH"),
+        }}
+      />
+      <SystemDirectoryDetailsSheet
+        kind="organization"
+        open={Boolean(selectedOrganizationId)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedOrganizationId(null);
+        }}
+        query={detailQuery}
+        formatDateTime={dateTime.formatDateTime}
+      />
+    </>
   );
 }

@@ -5,14 +5,19 @@ from uuid import UUID
 
 from src.common.services import BaseService
 from src.config import Settings
+from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.models.organization.user import User
 from src.modules.system.directory.repository import SystemDirectoryRepository
 from src.modules.system.directory.schema import (
     DirectoryActorSummaryOut,
+    DirectoryOrganizationDetailOut,
     DirectoryOrganizationListItemOut,
+    DirectoryProjectDetailOut,
     DirectoryProjectListItemOut,
+    DirectoryUserDetailOut,
     DirectoryUserListItemOut,
+    DirectoryWorkspaceDetailOut,
     DirectoryWorkspaceListItemOut,
 )
 
@@ -52,6 +57,7 @@ class SystemDirectoryService(BaseService):
             username=user.username,
             display_name=user.display_name,
             email=user.email,
+            avatar_url=user.avatar_url,
         )
 
     async def list_users(
@@ -93,6 +99,33 @@ class SystemDirectoryService(BaseService):
         ]
         return _build_page(items, total=total, params=params)
 
+    async def get_user_detail(self, *, user_id: UUID) -> DirectoryUserDetailOut:
+        row = await self.repo.get_user_by_id(user_id=user_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+
+        owned_org_counts = await self.repo.count_organizations_by_owner_ids(owner_user_ids=[user_id])
+        org_membership_counts = await self.repo.count_org_memberships_by_user_ids(user_ids=[user_id])
+        workspace_membership_counts = await self.repo.count_workspace_memberships_by_user_ids(user_ids=[user_id])
+        project_membership_counts = await self.repo.count_project_memberships_by_user_ids(user_ids=[user_id])
+
+        return DirectoryUserDetailOut(
+            user_id=row.id,
+            username=row.username,
+            display_name=row.display_name,
+            email=row.email,
+            avatar_url=row.avatar_url,
+            status=row.status,
+            is_super_admin=bool(row.is_super_admin),
+            last_login_at=row.last_login_at,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            owned_organizations_count=owned_org_counts.get(user_id, 0),
+            organization_membership_count=org_membership_counts.get(user_id, 0),
+            workspace_membership_count=workspace_membership_counts.get(user_id, 0),
+            project_membership_count=project_membership_counts.get(user_id, 0),
+        )
+
     async def list_organizations(
         self,
         *,
@@ -130,6 +163,32 @@ class SystemDirectoryService(BaseService):
             for row, owner_id in zip(rows, owner_ids, strict=False)
         ]
         return _build_page(items, total=total, params=params)
+
+    async def get_organization_detail(self, *, organization_id: UUID) -> DirectoryOrganizationDetailOut:
+        row = await self.repo.get_organization_by_id(organization_id=organization_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+
+        owner_id = _user_id(row.owner_user_id)
+        owners = await self.repo.get_users_by_ids(user_ids=[owner_id] if owner_id is not None else [])
+        member_counts = await self.repo.count_org_memberships_by_org_ids(organization_ids=[organization_id])
+        workspace_counts = await self.repo.count_workspaces_by_org_ids(organization_ids=[organization_id])
+        project_counts = await self.repo.count_projects_by_org_ids(organization_ids=[organization_id])
+
+        return DirectoryOrganizationDetailOut(
+            organization_id=row.id,
+            name=row.name,
+            slug=row.slug,
+            kind=row.kind,
+            is_active=bool(row.is_active),
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            logo_url=row.logo_url,
+            owner=self._to_actor(owners.get(owner_id)) if owner_id is not None else None,
+            member_count=member_counts.get(organization_id, 0),
+            workspace_count=workspace_counts.get(organization_id, 0),
+            project_count=project_counts.get(organization_id, 0),
+        )
 
     async def list_workspaces(
         self,
@@ -169,6 +228,37 @@ class SystemDirectoryService(BaseService):
         ]
         return _build_page(items, total=total, params=params)
 
+    async def get_workspace_detail(self, *, workspace_id: UUID) -> DirectoryWorkspaceDetailOut:
+        row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+
+        owner_id = _user_id(row.owner_user_id)
+        owners = await self.repo.get_users_by_ids(user_ids=[owner_id] if owner_id is not None else [])
+        member_counts = await self.repo.count_workspace_memberships_by_workspace_ids(workspace_ids=[workspace_id])
+        project_counts = await self.repo.count_projects_by_workspace_ids(workspace_ids=[workspace_id])
+
+        return DirectoryWorkspaceDetailOut(
+            workspace_id=row.id,
+            organization_id=row.organization_id,
+            organization_name=row.organization.name,
+            name=row.name,
+            description=row.description,
+            kind=row.kind,
+            is_active=bool(row.is_active),
+            is_archived=row.archived_at is not None,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            owner=self._to_actor(owners.get(owner_id)) if owner_id is not None else None,
+            member_count=member_counts.get(workspace_id, 0),
+            project_count=project_counts.get(workspace_id, 0),
+            icon_mode=row.icon_mode,
+            icon_color=row.icon_color,
+            icon_glyph=row.icon_glyph,
+            icon_emoji=row.icon_emoji,
+            icon_url=row.icon_url,
+        )
+
     async def list_projects(
         self,
         *,
@@ -206,3 +296,33 @@ class SystemDirectoryService(BaseService):
             for row, owner_id in zip(rows, owner_ids, strict=False)
         ]
         return _build_page(items, total=total, params=params)
+
+    async def get_project_detail(self, *, project_id: UUID) -> DirectoryProjectDetailOut:
+        row = await self.repo.get_project_by_id(project_id=project_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+
+        owner_id = _user_id(row.created_by_user_id)
+        owners = await self.repo.get_users_by_ids(user_ids=[owner_id] if owner_id is not None else [])
+        member_counts = await self.repo.count_project_memberships_by_project_ids(project_ids=[project_id])
+
+        return DirectoryProjectDetailOut(
+            project_id=row.id,
+            workspace_id=row.workspace_id,
+            workspace_name=row.workspace.name,
+            organization_id=row.workspace.organization_id,
+            organization_name=row.workspace.organization.name,
+            name=row.name,
+            slug=row.slug,
+            description=row.description,
+            is_active=bool(row.is_active),
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            owner=self._to_actor(owners.get(owner_id)) if owner_id is not None else None,
+            member_count=member_counts.get(project_id, 0),
+            icon_mode=row.icon_mode,
+            icon_color=row.icon_color,
+            icon_glyph=row.icon_glyph,
+            icon_emoji=row.icon_emoji,
+            icon_url=row.icon_url,
+        )
