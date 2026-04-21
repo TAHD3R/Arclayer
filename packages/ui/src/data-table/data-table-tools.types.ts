@@ -57,6 +57,7 @@ export type DataTableIconButtonProps = {
   active?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  variant?: "ghost" | "outline";
   children: React.ReactNode;
 };
 

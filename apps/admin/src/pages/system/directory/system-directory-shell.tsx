@@ -6,7 +6,6 @@ import { ForbiddenView } from "@/components/builtin/forbidden-page";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { Button } from "@arclayer/ui/button";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 
 type DirectoryTabKey = "users" | "organizations" | "workspaces" | "projects";
@@ -43,13 +42,6 @@ const DIRECTORY_TAB_ROUTES: readonly DirectoryTabRoute[] = [
     to: "/system/tenants/projects",
   },
 ] as const;
-
-const DIRECTORY_PRIMARY_ACTION_LABELS: Record<DirectoryTabKey, string> = {
-  users: "settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ADD_USER",
-  organizations: "settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ADD_ORGANIZATION",
-  workspaces: "settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ADD_WORKSPACE",
-  projects: "settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ADD_PROJECT",
-};
 
 function resolveDirectoryTab(pathname: string): DirectoryTabKey {
   if (pathname.startsWith("/system/tenants/organizations")) return "organizations";
@@ -103,11 +95,6 @@ export function SystemDirectoryShell(props: { children: ReactNode }) {
         description={t("settings:SETTINGS_SYSTEM_DIRECTORY_DESC")}
         showFavoriteToggle={false}
         contentContainerClassName="min-w-0"
-        action={
-          <Button type="button" size="sm">
-            {t(DIRECTORY_PRIMARY_ACTION_LABELS[activeTab])}
-          </Button>
-        }
         extra={
           <ChromeTabsList>
             {DIRECTORY_TAB_ROUTES.map((item) => (

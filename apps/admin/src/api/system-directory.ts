@@ -34,6 +34,11 @@ type SystemDirectoryListParams = {
   size?: number;
   q?: string;
   ordering?: string;
+  status?: string;
+  isSuperAdmin?: boolean;
+  hasPassword?: boolean;
+  twoFactorEnabled?: boolean;
+  oauthProvider?: string;
 };
 
 function userAvatarUploadPath(userId: string, path: string) {
@@ -46,6 +51,17 @@ function buildQuery(params: SystemDirectoryListParams) {
   if (params.size) query.set("size", String(params.size));
   if (params.q?.trim()) query.set("q", params.q.trim());
   if (params.ordering?.trim()) query.set("ordering", params.ordering.trim());
+  if (params.status?.trim()) query.set("status", params.status.trim());
+  if (typeof params.isSuperAdmin === "boolean") {
+    query.set("is_super_admin", String(params.isSuperAdmin));
+  }
+  if (typeof params.hasPassword === "boolean") {
+    query.set("has_password", String(params.hasPassword));
+  }
+  if (typeof params.twoFactorEnabled === "boolean") {
+    query.set("two_factor_enabled", String(params.twoFactorEnabled));
+  }
+  if (params.oauthProvider?.trim()) query.set("oauth_provider", params.oauthProvider.trim());
   const queryString = query.toString();
   return queryString ? `?${queryString}` : "";
 }

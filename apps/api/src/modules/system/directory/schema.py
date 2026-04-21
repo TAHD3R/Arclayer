@@ -151,3 +151,19 @@ class DirectoryUserResetPasswordRequest(BaseSchema):
         if not re.match(PASSWORD_REGEX, value):
             raise ValueError("New password must contain letters and numbers, and be 8-128 characters long.")
         return value
+
+
+class DirectoryUserListFilters(BaseSchema):
+    status: UserStatus | None = Field(default=None, description="Account status filter.")
+    is_super_admin: bool | None = Field(default=None, description="Super admin permission filter.")
+    has_password: bool | None = Field(default=None, description="Local password filter.")
+    two_factor_enabled: bool | None = Field(default=None, description="Two-factor authentication filter.")
+    oauth_provider: str | None = Field(default=None, description="OAuth provider filter.")
+
+    @field_validator("oauth_provider")
+    @classmethod
+    def normalize_oauth_provider(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().lower()
+        return normalized or None

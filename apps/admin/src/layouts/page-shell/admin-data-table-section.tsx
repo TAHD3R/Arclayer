@@ -3,6 +3,7 @@ import type { Header, Row, Table as ReactTable } from "@tanstack/react-table";
 
 import {
   DataTablePresenter,
+  type DataTableColumnHeaderFilterAction,
   type DataTableInfiniteScrollState,
   type DataTableRowHeight,
 } from "@arclayer/ui/data-table";
@@ -35,6 +36,9 @@ export type AdminDataTableSectionProps<TData> = {
   cellClassName?: (
     cell: import("@tanstack/react-table").Cell<TData, unknown>,
   ) => string | undefined;
+  resolveColumnFilterAction?: (
+    header: Header<TData, unknown>,
+  ) => DataTableColumnHeaderFilterAction | undefined;
   toolbar?: ReactNode;
   footerSlot?: ReactNode;
 };
@@ -57,6 +61,7 @@ export function AdminDataTableSection<TData>({
   onRowClick,
   headerCellClassName,
   cellClassName,
+  resolveColumnFilterAction,
   toolbar,
   footerSlot,
 }: AdminDataTableSectionProps<TData>) {
@@ -114,6 +119,7 @@ export function AdminDataTableSection<TData>({
           onRowClick={onRowClick}
           headerCellClassName={headerCellClassName}
           cellClassName={cellClassName}
+          resolveColumnFilterAction={resolveColumnFilterAction}
         />
       </ContentGuard>
     </div>

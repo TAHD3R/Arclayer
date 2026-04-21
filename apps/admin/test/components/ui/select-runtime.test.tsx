@@ -298,4 +298,27 @@ describe("shared Select", () => {
       ),
     ).not.toThrow();
   });
+
+  it("renders asset sorting before filters", () => {
+    const { container } = render(
+      <AssetsFilterPopover
+        value={{}}
+        onChange={() => undefined}
+        ordering="-created_at"
+        onOrderingChange={() => undefined}
+        tags={[]}
+        tagsLoading={false}
+      />,
+    );
+
+    const controls = Array.from(container.querySelectorAll("button"));
+    const filtersButton = controls.find((button) => button.querySelector("svg.lucide-list-filter"));
+    const sortButton = screen.getByRole("combobox");
+
+    expect(sortButton).toBeTruthy();
+    expect(filtersButton).toBeTruthy();
+    expect(controls.findIndex((button) => button === sortButton)).toBeLessThan(
+      controls.findIndex((button) => button === filtersButton),
+    );
+  });
 });

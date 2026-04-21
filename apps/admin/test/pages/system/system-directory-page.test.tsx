@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -48,7 +48,7 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
       <div>
         <div>{props.emptyTitle}</div>
         <div>{props.emptyDescription}</div>
-        <div>{props.toolbar}</div>
+        <div data-testid="toolbar">{props.toolbar}</div>
         <div>{props.footerSlot}</div>
       </div>
     );
@@ -99,6 +99,26 @@ vi.mock("@arclayer/ui/button", () => ({
     </button>
   ),
 }));
+
+vi.mock("@arclayer/ui/select", () => ({
+  Select: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  SelectTrigger: ({ children }: { children?: React.ReactNode }) => (
+    <button type="button">{children}</button>
+  ),
+  SelectValue: () => <span>sort-value</span>,
+  SelectContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  SelectItem: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock("@arclayer/ui/filters", async () => {
+  const actual =
+    await vi.importActual<typeof import("@arclayer/ui/filters")>("@arclayer/ui/filters");
+  return {
+    ...actual,
+    Filters: ({ trigger }: { trigger?: React.ReactNode }) => <div>{trigger ?? "filters"}</div>,
+    createFilter: vi.fn(),
+  };
+});
 
 vi.mock("@arclayer/ui/data-table", async () => {
   const actual =
@@ -169,10 +189,20 @@ describe("SystemDirectoryUsersPage", () => {
       screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_EMPTY_DESC"),
     ).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_USERS_SEARCH")).toBeInTheDocument();
+    expect(screen.getByText("sort-value")).toBeInTheDocument();
     expect(screen.getByText("common:DATA_TABLE_REFRESH")).toBeInTheDocument();
     expect(
       screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_SELECTED_COUNT"),
     ).toBeInTheDocument();
     expect(adminDataTableSectionMock).toHaveBeenCalled();
+  });
+
+  it("renders sort before filters in the toolbar", () => {
+    renderWithQueryClient(<SystemDirectoryUsersPage />);
+
+    const toolbar = screen.getByTestId("toolbar");
+    const buttons = within(toolbar).getAllByRole("button");
+
+    expect(buttons[0]).toHaveTextContent("sort-value");
   });
 });

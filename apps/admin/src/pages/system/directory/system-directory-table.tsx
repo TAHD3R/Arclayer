@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { type ColumnDef } from "@tanstack/react-table";
+import { type ColumnDef, type Header } from "@tanstack/react-table";
 import { type LucideIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -15,12 +15,14 @@ import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-
 import { BaseTag, SelectedCountTag, UsesCountTag, lucideTagIcon } from "@/components/ui/tags";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
+import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import {
   DataTableToolbarTools,
+  type DataTableColumnHeaderFilterAction,
   useDataTableRowHeightPreference,
   useDataTableWrapHeadersPreference,
 } from "@arclayer/ui/data-table";
@@ -412,6 +414,10 @@ export function SystemDirectoryTable<TData>(props: {
   text: TableText;
   onRowClick?: (row: TData) => void;
   bulkActions?: SystemDirectoryBulkAction[];
+  toolbarLeading?: ReactNode;
+  resolveColumnFilterAction?: (
+    header: Header<TData, unknown>,
+  ) => DataTableColumnHeaderFilterAction | undefined;
 }) {
   const { t } = useTranslation(["common", "settings"]);
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({
@@ -425,17 +431,20 @@ export function SystemDirectoryTable<TData>(props: {
 
   const toolbar = useMemo(
     () => (
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <DataTableSearchInput
-            value={props.tableHook.searchInput}
-            onChange={props.tableHook.setSearchInput}
-            placeholder={props.text.searchPlaceholder}
-            clearLabel={t("common:CLEAR")}
-            className="w-full max-w-sm"
-          />
-        </div>
-        <div className="flex items-center gap-2">
+      <PageExtraToolbar
+        leading={
+          <>
+            <DataTableSearchInput
+              value={props.tableHook.searchInput}
+              onChange={props.tableHook.setSearchInput}
+              placeholder={props.text.searchPlaceholder}
+              clearLabel={t("common:CLEAR")}
+              className="w-full max-w-sm"
+            />
+            {props.toolbarLeading}
+          </>
+        }
+        trailing={
           <DataTableToolbarTools
             table={props.tableHook.table}
             rowHeight={rowHeight}
@@ -447,8 +456,9 @@ export function SystemDirectoryTable<TData>(props: {
             onResetColumnVisibility={props.tableHook.resetColumnVisibility}
             labels={toolsLabels}
           />
-        </div>
-      </div>
+        }
+        trailingClassName="justify-end"
+      />
     ),
     [
       props.tableHook.isFetching,
@@ -459,6 +469,7 @@ export function SystemDirectoryTable<TData>(props: {
       props.tableHook.setSearchInput,
       props.tableHook.table,
       props.text.searchPlaceholder,
+      props.toolbarLeading,
       rowHeight,
       setRowHeight,
       setWrapHeaders,
@@ -541,6 +552,7 @@ export function SystemDirectoryTable<TData>(props: {
       }
       toolbar={toolbar}
       footerSlot={footerSlot}
+      resolveColumnFilterAction={props.resolveColumnFilterAction}
     />
   );
 }

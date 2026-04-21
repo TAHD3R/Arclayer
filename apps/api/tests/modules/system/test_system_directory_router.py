@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+from datetime import datetime
 
 import pytest
 from fastapi import FastAPI
@@ -284,6 +285,88 @@ async def test_system_directory_supports_search() -> None:
     assert orgs_res.status_code == 200
     assert [item["username"] for item in users_res.json()["data"]["items"]] == ["tenant-owner"]
     assert [item["name"] for item in orgs_res.json()["data"]["items"]] == ["Searchable Org"]
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_user_filters_and_sorting() -> None:
+    base_time = datetime(2026, 4, 1, 8, 0, 0)
+    alpha = await User.create(
+        username="alpha",
+        email="alpha@example.com",
+        display_name="Alpha",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+        last_login_at=base_time,
+    )
+    bravo = await User.create(
+        username="bravo",
+        email="bravo@example.com",
+        display_name="Bravo",
+        status=UserStatus.DISABLED,
+        is_super_admin=False,
+        last_login_at=base_time.replace(day=2),
+    )
+    charlie = await User.create(
+        username="charlie",
+        email="charlie@example.com",
+        display_name="Charlie",
+        status=UserStatus.LOCKED,
+        is_super_admin=False,
+        last_login_at=base_time.replace(day=3),
+    )
+    settings = get_settings()
+    await UserCredential.create(user=alpha, password_hash=hash_password("alpha12345", settings.auth))
+    await UserTwoFactor.create(
+        user_id=alpha.id,
+        totp_secret_enc="secret",
+        enabled_at=alpha.created_at,
+        last_totp_counter=None,
+        last_totp_used_at=None,
+    )
+    await OAuthIdentity.create(
+        provider="google",
+        subject="alpha-google",
+        user_id=alpha.id,
+        email=alpha.email,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        active_res = await client.get("/api/v1/system/directory/users", params={"status": "active"})
+        super_admin_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={"is_super_admin": True},
+        )
+        password_res = await client.get("/api/v1/system/directory/users", params={"has_password": True})
+        two_factor_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={"two_factor_enabled": True},
+        )
+        oauth_res = await client.get("/api/v1/system/directory/users", params={"oauth_provider": "any"})
+        local_only_res = await client.get(
+            "/api/v1/system/directory/users",
+            params={"oauth_provider": "none"},
+        )
+        sorted_res = await client.get("/api/v1/system/directory/users", params={"ordering": "username"})
+
+    assert [item["username"] for item in active_res.json()["data"]["items"]] == ["alpha"]
+    assert [item["username"] for item in super_admin_res.json()["data"]["items"]] == ["alpha"]
+    assert [item["username"] for item in password_res.json()["data"]["items"]] == ["alpha"]
+    assert [item["username"] for item in two_factor_res.json()["data"]["items"]] == ["alpha"]
+    assert [item["username"] for item in oauth_res.json()["data"]["items"]] == ["alpha"]
+    assert {item["username"] for item in local_only_res.json()["data"]["items"]} == {"bravo", "charlie"}
+    assert [item["username"] for item in sorted_res.json()["data"]["items"]] == [
+        "alpha",
+        "bravo",
+        "charlie",
+    ]
 
 
 @pytest.mark.usefixtures("db")

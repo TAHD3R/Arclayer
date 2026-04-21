@@ -37,6 +37,7 @@ export function DataTableToolbarTools<TData>(props: DataTableToolbarToolsProps<T
           label={props.labels.refresh}
           disabled={props.refreshing}
           onClick={props.onRefresh}
+          variant="outline"
         >
           <RefreshCw className={props.refreshing ? `${ICON_CLASS} animate-spin` : ICON_CLASS} />
         </IconButton>

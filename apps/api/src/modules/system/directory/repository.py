@@ -13,6 +13,7 @@ from src.models.organization.user import User, UserCredential
 from src.models.projects.membership import ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.modules.system.directory.schema import DirectoryUserListFilters
 
 
 def _search_q(fields: Iterable[str], q: str | None) -> Q:
@@ -31,11 +32,53 @@ def _search_q(fields: Iterable[str], q: str | None) -> Q:
 
 
 class SystemDirectoryRepository:
-    async def count_users(self, *, q: str | None) -> int:
-        return await User.filter(_search_q(("username", "email", "display_name"), q)).count()
+    async def _user_filter_q(self, *, filters: DirectoryUserListFilters) -> Q:
+        query = Q()
+        if filters.status is not None:
+            query &= Q(status=filters.status)
+        if filters.is_super_admin is not None:
+            query &= Q(is_super_admin=filters.is_super_admin)
+        if filters.has_password is not None:
+            rows = await UserCredential.all().values("user_id")
+            ids = [row["user_id"] for row in rows]
+            query &= Q(id__in=ids) if filters.has_password else ~Q(id__in=ids)
+        if filters.two_factor_enabled is not None:
+            rows = await UserTwoFactor.filter(enabled_at__not_isnull=True).values("user_id")
+            ids = [row["user_id"] for row in rows]
+            query &= Q(id__in=ids) if filters.two_factor_enabled else ~Q(id__in=ids)
+        if filters.oauth_provider is not None:
+            if filters.oauth_provider == "any":
+                rows = await OAuthIdentity.all().values("user_id")
+            elif filters.oauth_provider == "none":
+                rows = await OAuthIdentity.all().values("user_id")
+                ids = [row["user_id"] for row in rows]
+                query &= ~Q(id__in=ids)
+                return query
+            else:
+                rows = await OAuthIdentity.filter(provider=filters.oauth_provider).values("user_id")
+            ids = [row["user_id"] for row in rows]
+            query &= Q(id__in=ids)
+        return query
 
-    async def list_users_page(self, *, q: str | None, ordering: str | None, offset: int, limit: int) -> list[User]:
-        queryset = User.filter(_search_q(("username", "email", "display_name"), q))
+    async def count_users(self, *, q: str | None, filters: DirectoryUserListFilters) -> int:
+        return await User.filter(
+            _search_q(("username", "email", "display_name"), q),
+            await self._user_filter_q(filters=filters),
+        ).count()
+
+    async def list_users_page(
+        self,
+        *,
+        q: str | None,
+        ordering: str | None,
+        filters: DirectoryUserListFilters,
+        offset: int,
+        limit: int,
+    ) -> list[User]:
+        queryset = User.filter(
+            _search_q(("username", "email", "display_name"), q),
+            await self._user_filter_q(filters=filters),
+        )
         return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
 
     async def count_organizations(self, *, q: str | None) -> int:

@@ -118,7 +118,7 @@ export function DataTableColumnsPanel<TData>(props: {
       <DropdownCardTrigger asChild>
         <span className="inline-flex">
           <DataTableToolTooltip label={props.labels.columns}>
-            <IconButton label={props.labels.columns} active={open}>
+            <IconButton label={props.labels.columns} active={open} variant="outline">
               <Settings2 className={ICON_CLASS} />
             </IconButton>
           </DataTableToolTooltip>

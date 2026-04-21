@@ -91,9 +91,6 @@ describe("SystemDirectoryShell", () => {
     expect(
       screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_ORGANIZATIONS"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ADD_USER"),
-    ).toBeInTheDocument();
     expect(screen.getByText("directory body")).toBeInTheDocument();
   });
 });

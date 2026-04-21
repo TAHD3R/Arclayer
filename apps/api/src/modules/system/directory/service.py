@@ -24,6 +24,7 @@ from src.modules.system.directory.schema import (
     DirectoryProjectDetailOut,
     DirectoryProjectListItemOut,
     DirectoryUserDetailOut,
+    DirectoryUserListFilters,
     DirectoryUserListItemOut,
     DirectoryUserResetPasswordRequest,
     DirectoryUserUpdateRequest,
@@ -123,11 +124,13 @@ class SystemDirectoryService(BaseService):
         params: PageParams,
         q: str | None,
         ordering: str | None,
+        filters: DirectoryUserListFilters,
     ) -> PageData[DirectoryUserListItemOut]:
-        total = await self.repo.count_users(q=q)
+        total = await self.repo.count_users(q=q, filters=filters)
         rows = await self.repo.list_users_page(
             q=q,
             ordering=ordering,
+            filters=filters,
             offset=params.offset,
             limit=params.limit,
         )

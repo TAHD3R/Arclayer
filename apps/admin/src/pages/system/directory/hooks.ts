@@ -59,6 +59,13 @@ function invalidateSystemDirectoryUsers(queryClient: ReturnType<typeof useQueryC
 
 export function useSystemDirectoryUsersTable(
   columns: Array<ColumnDef<SystemDirectoryUser, unknown>>,
+  extraQuery?: {
+    status?: string;
+    isSuperAdmin?: boolean;
+    hasPassword?: boolean;
+    twoFactorEnabled?: boolean;
+    oauthProvider?: string;
+  },
 ) {
   const tableId = "system-directory-users";
   const tableHook = useDataTable<SystemDirectoryUser>({
@@ -66,6 +73,7 @@ export function useSystemDirectoryUsersTable(
     columns,
     initialState: { pageSize: 20 },
     fetcher: async (params) => listSystemDirectoryUsers(params),
+    extraQuery,
     rowSelection: {
       enabled: true,
       getRowId: (row) => row.userId,

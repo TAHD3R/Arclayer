@@ -218,6 +218,19 @@ export function AssetsFilterPopover(props: {
 
   return (
     <>
+      <Select value={props.ordering} onValueChange={props.onOrderingChange}>
+        <SelectTrigger className="w-[12rem] min-w-[12rem]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end" position="popper">
+          {orderingOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <Filters
         filters={filterItems}
         fields={fields}
@@ -233,19 +246,6 @@ export function AssetsFilterPopover(props: {
           </Button>
         }
       />
-
-      <Select value={props.ordering} onValueChange={props.onOrderingChange}>
-        <SelectTrigger className="w-[12rem] min-w-[12rem]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent align="end" position="popper">
-          {orderingOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
 
       {hasOverrides ? (
         <Button

@@ -12,15 +12,18 @@ import type { DataTableIconButtonProps } from "./data-table-tools.types";
 export const DataTableDefaultIconButton = React.forwardRef<
   HTMLButtonElement,
   DataTableIconButtonProps & { className?: string }
->(function DataTableDefaultIconButton({ label, active, className, ...props }, ref) {
+>(function DataTableDefaultIconButton(
+  { label, active, className, variant = "ghost", ...props },
+  ref,
+) {
   return (
     <ButtonPrimitive
       ref={ref}
       type="button"
       aria-label={label}
       className={cn(
-        buttonVariants({ variant: "ghost", size: "icon" }),
-        active ? "bg-accent" : undefined,
+        buttonVariants({ variant, size: "icon" }),
+        active ? "border-border bg-accent text-accent-foreground" : undefined,
         className,
       )}
       disabled={props.disabled}

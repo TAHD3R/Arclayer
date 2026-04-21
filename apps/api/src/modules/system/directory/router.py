@@ -28,6 +28,7 @@ from src.modules.system.directory.schema import (
     DirectoryProjectDetailOut,
     DirectoryProjectListItemOut,
     DirectoryUserDetailOut,
+    DirectoryUserListFilters,
     DirectoryUserListItemOut,
     DirectoryUserResetPasswordRequest,
     DirectoryUserUpdateRequest,
@@ -88,8 +89,20 @@ async def list_users(
     params: PageParams = Depends(get_page_params),
     q: str | None = Query(default=None, description="Search users by username, email, or display name."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or username."),
+    status: str | None = Query(default=None, description="Filter by account status."),
+    is_super_admin: bool | None = Query(default=None, description="Filter by super admin permission."),
+    has_password: bool | None = Query(default=None, description="Filter by local password configuration."),
+    two_factor_enabled: bool | None = Query(default=None, description="Filter by two-factor authentication."),
+    oauth_provider: str | None = Query(default=None, description="Filter by OAuth linkage. Use any or none."),
 ) -> ResponseModel[PageData[DirectoryUserListItemOut]]:
-    page = await service.list_users(params=params, q=q, ordering=ordering)
+    filters = DirectoryUserListFilters(
+        status=status,
+        is_super_admin=is_super_admin,
+        has_password=has_password,
+        two_factor_enabled=two_factor_enabled,
+        oauth_provider=oauth_provider,
+    )
+    page = await service.list_users(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
 
 
