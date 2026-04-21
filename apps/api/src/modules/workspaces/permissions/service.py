@@ -17,6 +17,9 @@ class PolicyEvaluationService:
     def list_actions_for_permissions(self, permission_codes: Iterable[str]) -> tuple[str, ...]:
         return list_actions_for_permission_codes(permission_codes)
 
+    def list_actions_for_permissions_set(self, permission_codes: Iterable[str]) -> frozenset[str]:
+        return frozenset(self.list_actions_for_permissions(permission_codes))
+
     def evaluate(self, *, context: PermissionContext) -> PermissionDecision:
         definition = self._registry.get(context.action)
         if definition is None:

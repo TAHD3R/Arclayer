@@ -8,6 +8,7 @@ import { GeneralSettingsShell } from "@/pages/projects/settings/site/components/
 const getProjectCoreSettingsMock = vi.fn();
 const patchProjectCoreSettingsMock = vi.fn();
 const getMyProjectAuthzMock = vi.fn();
+const listProjectPermissionActionsMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -26,6 +27,10 @@ vi.mock("@/api/settings", () => ({
 
 vi.mock("@/api/workspaces", () => ({
   getMyProjectAuthz: (...args: unknown[]) => getMyProjectAuthzMock(...args),
+}));
+
+vi.mock("@/api/rbac", () => ({
+  listProjectPermissionActions: (...args: unknown[]) => listProjectPermissionActionsMock(...args),
 }));
 
 vi.mock("@/layouts/page-shell/default-page", () => ({
@@ -99,6 +104,7 @@ describe("GeneralSettingsShell permission consumption", () => {
     getProjectCoreSettingsMock.mockReset();
     patchProjectCoreSettingsMock.mockReset();
     getMyProjectAuthzMock.mockReset();
+    listProjectPermissionActionsMock.mockReset();
 
     getProjectCoreSettingsMock.mockResolvedValue({
       namespace: "core",
@@ -137,6 +143,14 @@ describe("GeneralSettingsShell permission consumption", () => {
       isSuperuser: false,
       permissionCodes: ["system:site:manage"],
     });
+    listProjectPermissionActionsMock.mockResolvedValue([
+      {
+        code: "system:site:manage",
+        description: "Manage site",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:site:manage"],
+      },
+    ]);
   });
 
   it("keeps tabs editable when site management access is granted", async () => {

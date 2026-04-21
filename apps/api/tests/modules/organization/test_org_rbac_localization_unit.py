@@ -11,10 +11,9 @@ from src.models.organization.org_rbac import OrganizationPermission, Organizatio
 from src.modules.organization.rbac import service as rbac_service_module
 from src.modules.organization.rbac.service import (
     _BUILTIN_ROLE_RULES,
-    _ORG_PERMISSION_I18N_KEYS,
-    _ORG_PERMISSION_TEMPLATES,
     OrganizationRBACService,
 )
+from src.modules.workspaces.permissions import get_organization_permission_catalog
 
 
 class _FakeOrganizationRBACRepo:
@@ -80,7 +79,7 @@ async def test_organization_rbac_ensure_defaults_creates_builtin_roles_with_i18n
 
 
 def test_organization_rbac_sensitive_permissions_have_owner_only_defaults() -> None:
-    permission_codes = {code for code, _, _, _ in _ORG_PERMISSION_TEMPLATES}
+    permission_codes = set(get_organization_permission_catalog())
 
     assert "org.workspaces.delete" in permission_codes
     assert "org.settings.assign-default-role" in permission_codes
@@ -99,10 +98,10 @@ def test_organization_rbac_sensitive_permissions_have_owner_only_defaults() -> N
 
 
 def test_organization_rbac_permission_i18n_map_covers_all_templates() -> None:
-    template_codes = {code for code, _, _, _ in _ORG_PERMISSION_TEMPLATES}
-    mapped_codes = set(_ORG_PERMISSION_I18N_KEYS)
+    catalog = get_organization_permission_catalog()
 
-    assert mapped_codes == template_codes
+    assert all(definition.name_i18n for definition in catalog.values())
+    assert all(definition.description_i18n for definition in catalog.values())
 
 
 def test_organization_rbac_localize_permission_uses_i18n_map(monkeypatch: pytest.MonkeyPatch) -> None:

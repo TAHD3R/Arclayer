@@ -18,63 +18,10 @@ from src.models.organization.org_rbac import (
     OrganizationRolePermission,
 )
 from src.modules.organization.rbac.repository import OrganizationRBACRepository
-
-_ORG_PERMISSION_TEMPLATES: list[tuple[str, str, str, str]] = [
-    ("org.members.read", "members", "View members", "View organization member directory."),
-    ("org.members.manage", "members", "Manage members", "Invite, update, and remove organization members."),
-    ("org.invitations.read", "invitations", "View invitations", "View organization invitations."),
-    ("org.invitations.create", "invitations", "Create invitations", "Create organization invitations."),
-    ("org.invitations.revoke", "invitations", "Revoke invitations", "Revoke organization invitations."),
-    ("org.roles.read", "rbac", "View roles", "View organization roles and permissions."),
-    ("org.roles.write", "rbac", "Manage roles", "Create roles and manage organization permission grants."),
-    ("org.workspaces.read", "workspaces", "View workspaces", "View organization workspaces."),
-    ("org.workspaces.manage", "workspaces", "Manage workspaces", "Create and archive organization workspaces."),
-    ("org.workspaces.delete", "workspaces", "Delete workspaces", "Permanently delete organization workspaces."),
-    ("org.settings.read", "settings", "View settings", "View organization settings."),
-    ("org.settings.manage", "settings", "Manage settings", "Update organization-level settings."),
-    (
-        "org.settings.assign-default-role",
-        "settings",
-        "Assign default role to members",
-        "Bulk-assign organization role to all active member users.",
-    ),
-    ("org.settings.delete", "settings", "Delete organization", "Delete organization and all scoped settings."),
-    ("org.assets.read", "assets", "View assets", "View organization asset library."),
-    ("org.assets.manage", "assets", "Manage assets", "Upload and manage organization assets."),
-    ("org.activity.read", "activity", "View activity", "View organization activity and audit trails."),
-]
-
-_ORG_PERMISSION_I18N_KEYS: dict[str, tuple[str, str]] = {
-    "org.members.read": ("ORG_ROLE_PERMISSION_MEMBERS_VIEW", "ORG_ROLE_PERMISSION_MEMBERS_VIEW_DESC"),
-    "org.members.manage": ("ORG_ROLE_PERMISSION_MEMBERS_MANAGE", "ORG_ROLE_PERMISSION_MEMBERS_MANAGE_DESC"),
-    "org.invitations.read": ("ORG_ROLE_PERMISSION_INVITES_VIEW", "ORG_ROLE_PERMISSION_INVITES_VIEW_DESC"),
-    "org.invitations.create": ("ORG_ROLE_PERMISSION_INVITES_CREATE", "ORG_ROLE_PERMISSION_INVITES_CREATE_DESC"),
-    "org.invitations.revoke": ("ORG_ROLE_PERMISSION_INVITES_REVOKE", "ORG_ROLE_PERMISSION_INVITES_REVOKE_DESC"),
-    "org.roles.read": ("ORG_ROLE_PERMISSION_ROLES_VIEW", "ORG_ROLE_PERMISSION_ROLES_VIEW_DESC"),
-    "org.roles.write": ("ORG_ROLE_PERMISSION_ROLES_MANAGE", "ORG_ROLE_PERMISSION_ROLES_MANAGE_DESC"),
-    "org.workspaces.read": ("ORG_ROLE_PERMISSION_WORKSPACES_VIEW", "ORG_ROLE_PERMISSION_WORKSPACES_VIEW_DESC"),
-    "org.workspaces.manage": (
-        "ORG_ROLE_PERMISSION_WORKSPACES_MANAGE",
-        "ORG_ROLE_PERMISSION_WORKSPACES_MANAGE_DESC",
-    ),
-    "org.workspaces.delete": (
-        "ORG_ROLE_PERMISSION_WORKSPACES_DELETE",
-        "ORG_ROLE_PERMISSION_WORKSPACES_DELETE_DESC",
-    ),
-    "org.settings.read": ("ORG_ROLE_PERMISSION_SETTINGS_VIEW", "ORG_ROLE_PERMISSION_SETTINGS_VIEW_DESC"),
-    "org.settings.manage": ("ORG_ROLE_PERMISSION_SETTINGS_MANAGE", "ORG_ROLE_PERMISSION_SETTINGS_MANAGE_DESC"),
-    "org.settings.assign-default-role": (
-        "ORG_ROLE_PERMISSION_SETTINGS_ASSIGN_DEFAULT_ROLE",
-        "ORG_ROLE_PERMISSION_SETTINGS_ASSIGN_DEFAULT_ROLE_DESC",
-    ),
-    "org.settings.delete": ("ORG_ROLE_PERMISSION_SETTINGS_DELETE", "ORG_ROLE_PERMISSION_SETTINGS_DELETE_DESC"),
-    "org.assets.read": ("ORG_ROLE_PERMISSION_ASSETS_VIEW", "ORG_ROLE_PERMISSION_ASSETS_VIEW_DESC"),
-    "org.assets.manage": ("ORG_ROLE_PERMISSION_ASSETS_MANAGE", "ORG_ROLE_PERMISSION_ASSETS_MANAGE_DESC"),
-    "org.activity.read": ("ORG_ROLE_PERMISSION_ACTIVITY_VIEW", "ORG_ROLE_PERMISSION_ACTIVITY_VIEW_DESC"),
-}
+from src.modules.workspaces.permissions import get_organization_permission_catalog
 
 _BUILTIN_ROLE_RULES: dict[str, set[str]] = {
-    "owner": {code for code, _, _, _ in _ORG_PERMISSION_TEMPLATES},
+    "owner": set(get_organization_permission_catalog()),
     "admin": {
         "org.members.read",
         "org.members.manage",
@@ -208,12 +155,14 @@ class OrganizationRBACService(BaseService):
         }
 
     def localize_permission(self, permission: OrganizationPermission) -> dict[str, object]:
-        mapped = _ORG_PERMISSION_I18N_KEYS.get(str(permission.code))
+        definition = get_organization_permission_catalog().get(str(permission.code))
         name = str(permission.name)
         description = str(permission.description or "")
-        if mapped:
-            name = t("common", mapped[0], default=name)
-            description = t("common", mapped[1], default=description)
+        if definition is not None:
+            if definition.name_i18n:
+                name = t("common", definition.name_i18n, default=name)
+            if definition.description_i18n:
+                description = t("common", definition.description_i18n, default=description)
         return {
             "id": permission.id,
             "code": permission.code,
@@ -224,12 +173,12 @@ class OrganizationRBACService(BaseService):
 
     async def ensure_defaults(self, *, organization_id: UUID) -> None:
         permissions: dict[str, OrganizationPermission] = {}
-        for code, module, name, description in _ORG_PERMISSION_TEMPLATES:
+        for code, definition in get_organization_permission_catalog().items():
             row = await self.repo.upsert_permission(
                 code=code,
-                module=module,
-                name=name,
-                description=description,
+                module=str(definition.module or ""),
+                name=str(definition.name or code),
+                description=definition.description,
             )
             permissions[code] = row
 
@@ -292,7 +241,8 @@ class OrganizationRBACService(BaseService):
 
     async def list_permissions(self, *, organization_id: UUID) -> list[OrganizationPermission]:
         await self.ensure_defaults(organization_id=organization_id)
-        return await self.repo.list_permissions()
+        catalog_codes = tuple(sorted(get_organization_permission_catalog()))
+        return await self.repo.list_permissions(codes=catalog_codes)
 
     async def has_permission(
         self,

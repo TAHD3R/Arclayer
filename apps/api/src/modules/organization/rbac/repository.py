@@ -50,8 +50,11 @@ class OrganizationRBACRepository(BaseRepository):
             is_builtin=is_builtin,
         )
 
-    async def list_permissions(self) -> list[OrganizationPermission]:
-        return await OrganizationPermission.all().order_by("module", "name", "code")
+    async def list_permissions(self, *, codes: Sequence[str] | None = None) -> list[OrganizationPermission]:
+        query = OrganizationPermission.all()
+        if codes is not None:
+            query = query.filter(code__in=list(codes))
+        return await query.order_by("module", "name", "code")
 
     async def get_permission_by_code(self, *, code: str) -> OrganizationPermission | None:
         return await OrganizationPermission.get_or_none(code=code)

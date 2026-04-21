@@ -40,6 +40,7 @@ const mocked = vi.hoisted(() => ({
   getMyWorkspaceAuthz: vi.fn(),
   getMyProjectAuthz: vi.fn(),
   listWorkspacePermissionActions: vi.fn(),
+  listProjectPermissionActions: vi.fn(),
   lockHoverPreview: vi.fn(),
 }));
 
@@ -75,6 +76,8 @@ vi.mock("@/api/workspaces", () => ({
 vi.mock("@/api/rbac", () => ({
   listWorkspacePermissionActions: (...args: unknown[]) =>
     mocked.listWorkspacePermissionActions(...args),
+  listProjectPermissionActions: (...args: unknown[]) =>
+    mocked.listProjectPermissionActions(...args),
 }));
 
 vi.mock("@/pages/projects/content/library/article-editor/hooks/api", async (importOriginal) => {
@@ -706,6 +709,20 @@ describe("ContentLibraryPage", () => {
       permissionCodes: ["system:content:manage", "system:content:read"],
     });
     mocked.listWorkspacePermissionActions.mockResolvedValue([
+      {
+        code: "content:items:write",
+        description: "Allow mutating content items via management APIs.",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:content:manage"],
+      },
+      {
+        code: "content:site-builder:write",
+        description: "Allow configuring canvas and site builder workflows.",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:content:manage"],
+      },
+    ]);
+    mocked.listProjectPermissionActions.mockResolvedValue([
       {
         code: "content:items:write",
         description: "Allow mutating content items via management APIs.",

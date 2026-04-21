@@ -14,6 +14,8 @@ from src.modules.workspaces.authz.http.service import ensure_workspace_permissio
 from src.modules.workspaces.authz.schema import AuthzSnapshot
 from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
 from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.permissions import get_permission_action_registry
+from src.modules.workspaces.rbac.schema import WorkspacePermissionActionOut
 from src.modules.workspaces.settings.schema import WorkspaceSettingsDetail, WorkspaceSettingsPatch
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
 
@@ -52,6 +54,28 @@ async def get_project_authz_snapshot(
 ) -> ResponseModel[AuthzSnapshot]:
     snapshot = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=snapshot)
+
+
+@router.get(
+    "/actions",
+    response_model=ResponseModel[list[WorkspacePermissionActionOut]],
+    summary="List canonical permission actions for current project context",
+)
+async def list_project_actions(
+    _ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
+) -> ResponseModel[list[WorkspacePermissionActionOut]]:
+    _ = user_id
+    items = [
+        WorkspacePermissionActionOut(
+            code=action,
+            description=definition.description,
+            subject_kinds=list(definition.subject_kinds),
+            permission_codes=list(definition.permission_codes),
+        )
+        for action, definition in sorted(get_permission_action_registry().items(), key=lambda entry: entry[0])
+    ]
+    return ApiResponse.success(data=items)
 
 
 @router.get(

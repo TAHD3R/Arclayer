@@ -20,7 +20,7 @@ from src.modules.projects.releases.router import router as project_releases_rout
 from src.modules.projects.runtime_bridge.router import router as project_runtime_bridge_router
 from src.modules.system.admin.notifications.router import router as notifications_router
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
-from src.modules.workspaces.permissions import get_permission_action_registry
+from src.modules.workspaces.permissions import get_organization_permission_catalog, get_permission_action_registry
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
 
 
@@ -140,6 +140,16 @@ def test_workspace_action_catalog_includes_delivery_and_workspace_actions() -> N
     assert registry["release:rollback"].permission_codes == ("system:content:publish",)
     assert "delivery:graphql:read" in registry
     assert registry["delivery:graphql:read"].subject_kinds == ("delivery_api_key",)
+
+
+def test_organization_permission_catalog_is_derived_from_unified_registry() -> None:
+    registry = get_organization_permission_catalog()
+
+    assert "org.roles.write" in registry
+    assert registry["org.roles.write"].scope == "org"
+    assert registry["org.roles.write"].permission_codes == ("org.roles.write",)
+    assert registry["org.settings.delete"].default_role_codes == ("owner",)
+    assert registry["org.members.read"].module == "members"
 
 
 def test_content_router_uses_granular_permissions() -> None:

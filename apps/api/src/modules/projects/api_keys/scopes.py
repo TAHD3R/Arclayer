@@ -61,9 +61,11 @@ def build_api_key_access_profile(scopes: Iterable[str | ApiKeyScope]) -> ApiKeyA
     for scope in normalized_scopes:
         permission_codes.update(_SCOPE_TO_MANAGEMENT_PERMISSIONS[scope])
     normalized_scope_set = set(normalized_scopes)
-    granted_actions = {"delivery:read" for scope in normalized_scope_set if scope == ApiKeyScope.DELIVERY_READ} | {
-        "delivery:graphql:read" for scope in normalized_scope_set if scope == ApiKeyScope.GRAPHQL_READ
-    }
+    granted_actions = set(PolicyEvaluationService().list_actions_for_permissions(permission_codes))
+    if ApiKeyScope.DELIVERY_READ in normalized_scope_set:
+        granted_actions.add("delivery:read")
+    if ApiKeyScope.GRAPHQL_READ in normalized_scope_set:
+        granted_actions.add("delivery:graphql:read")
     return ApiKeyAccessProfile(
         scopes=normalized_scopes,
         management_permission_codes=frozenset(sorted(permission_codes)),

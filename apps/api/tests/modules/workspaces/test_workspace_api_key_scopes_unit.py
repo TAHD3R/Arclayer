@@ -22,7 +22,22 @@ def test_build_api_key_access_profile_maps_management_and_delivery_capabilities(
 
     assert profile.delivery_read is True
     assert profile.graphql_read is True
-    assert profile.granted_actions == frozenset({"delivery:graphql:read", "delivery:read"})
+    assert profile.granted_actions == frozenset({
+        "content:items:write",
+        "content:models:read",
+        "content:models:write",
+        "content:routing:read",
+        "content:routing:write",
+        "content:site-builder:write",
+        "delivery:graphql:read",
+        "delivery:read",
+        "release:publish",
+        "release:read",
+        "release:rollback",
+        "system:content:manage",
+        "system:content:publish",
+        "system:content:read",
+    })
     assert profile.management_permission_codes == frozenset({
         "system:content:read",
         "system:content:manage",
@@ -76,6 +91,17 @@ def test_resolve_actions_for_api_key_scopes_returns_delivery_actions() -> None:
     )
 
     assert effective == frozenset({"delivery:graphql:read", "delivery:read"})
+
+
+def test_resolve_actions_for_api_key_scopes_derives_management_actions_from_catalog() -> None:
+    effective = resolve_actions_for_api_key_scopes(
+        scopes=[ApiKeyScope.CONTENT_WRITE, ApiKeyScope.MODELS_READ],
+    )
+
+    assert "content:items:write" in effective
+    assert "content:models:write" in effective
+    assert "content:models:read" in effective
+    assert "delivery:read" not in effective
 
 
 def test_evaluate_api_key_action_checks_delivery_action_grants() -> None:
