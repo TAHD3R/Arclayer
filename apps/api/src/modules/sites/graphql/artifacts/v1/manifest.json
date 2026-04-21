@@ -1,8 +1,32 @@
 {
   "artifactVersion": "1.0.0",
   "hooks": {
-    "queryPostProcessors": [],
-    "schemaFieldProviders": []
+    "queryPostProcessors": [
+      {
+        "description": "Applies the official model protocol query contract to delivery GraphQL records.",
+        "modelKeys": [
+          "article",
+          "category",
+          "page",
+          "reusable-section"
+        ],
+        "name": "official-protocol-query-contract",
+        "phase": "query"
+      }
+    ],
+    "schemaFieldProviders": [
+      {
+        "description": "Projects official model protocol system fields into the delivery GraphQL schema.",
+        "modelKeys": [
+          "article",
+          "category",
+          "page",
+          "reusable-section"
+        ],
+        "name": "official-protocol-system-fields",
+        "phase": "schema"
+      }
+    ]
   },
   "perspectives": [
     "published",
@@ -24,8 +48,48 @@
         },
         "listQueryName": "articles",
         "modelKey": "article",
+        "queryContract": {
+          "filters": [
+            {
+              "fieldKey": "slug",
+              "operator": "exact",
+              "publicName": "slug"
+            },
+            {
+              "fieldKey": "title",
+              "operator": "contains",
+              "publicName": "titleContains"
+            },
+            {
+              "fieldKey": "revision_state",
+              "operator": "exact",
+              "publicName": "revisionState"
+            }
+          ],
+          "postProcessor": "official-protocol-query-contract",
+          "schemaFieldProvider": "official-protocol-system-fields",
+          "sorts": [
+            {
+              "fieldKey": "title",
+              "publicName": "TITLE"
+            },
+            {
+              "fieldKey": "slug",
+              "publicName": "SLUG"
+            },
+            {
+              "fieldKey": "revision",
+              "publicName": "REVISION"
+            }
+          ]
+        },
         "sdkDataType": "ArticleEntriesQueryData",
         "sdkVariablesType": "ArticleEntriesQueryVariables",
+        "singleQuery": {
+          "argument": "slug",
+          "name": "articleBySlug",
+          "resolver": "get_record_by_slug"
+        },
         "singleQueryArgument": "slug",
         "singleQueryName": "articleBySlug",
         "sortInput": {
@@ -82,8 +146,48 @@
         },
         "listQueryName": "categories",
         "modelKey": "category",
+        "queryContract": {
+          "filters": [
+            {
+              "fieldKey": "slug",
+              "operator": "exact",
+              "publicName": "slug"
+            },
+            {
+              "fieldKey": "name",
+              "operator": "contains",
+              "publicName": "nameContains"
+            },
+            {
+              "fieldKey": "revision_state",
+              "operator": "exact",
+              "publicName": "revisionState"
+            }
+          ],
+          "postProcessor": "official-protocol-query-contract",
+          "schemaFieldProvider": "official-protocol-system-fields",
+          "sorts": [
+            {
+              "fieldKey": "name",
+              "publicName": "NAME"
+            },
+            {
+              "fieldKey": "slug",
+              "publicName": "SLUG"
+            },
+            {
+              "fieldKey": "revision",
+              "publicName": "REVISION"
+            }
+          ]
+        },
         "sdkDataType": "CategoryEntriesQueryData",
         "sdkVariablesType": "CategoryEntriesQueryVariables",
+        "singleQuery": {
+          "argument": "slug",
+          "name": "categoryBySlug",
+          "resolver": "get_record_by_slug"
+        },
         "singleQueryArgument": "slug",
         "singleQueryName": "categoryBySlug",
         "sortInput": {
@@ -128,8 +232,48 @@
         },
         "listQueryName": "pages",
         "modelKey": "page",
+        "queryContract": {
+          "filters": [
+            {
+              "fieldKey": "path",
+              "operator": "exact",
+              "publicName": "path"
+            },
+            {
+              "fieldKey": "title",
+              "operator": "contains",
+              "publicName": "titleContains"
+            },
+            {
+              "fieldKey": "revision_state",
+              "operator": "exact",
+              "publicName": "revisionState"
+            }
+          ],
+          "postProcessor": "official-protocol-query-contract",
+          "schemaFieldProvider": "official-protocol-system-fields",
+          "sorts": [
+            {
+              "fieldKey": "title",
+              "publicName": "TITLE"
+            },
+            {
+              "fieldKey": "path",
+              "publicName": "PATH"
+            },
+            {
+              "fieldKey": "revision",
+              "publicName": "REVISION"
+            }
+          ]
+        },
         "sdkDataType": "PageEntriesQueryData",
         "sdkVariablesType": "PageEntriesQueryVariables",
+        "singleQuery": {
+          "argument": "path",
+          "name": "pageEntryByPath",
+          "resolver": "get_page_record_by_path"
+        },
         "singleQueryArgument": "path",
         "singleQueryName": "pageEntryByPath",
         "sortInput": {
@@ -174,8 +318,48 @@
         },
         "listQueryName": "reusableSections",
         "modelKey": "reusable-section",
+        "queryContract": {
+          "filters": [
+            {
+              "fieldKey": "section_key",
+              "operator": "exact",
+              "publicName": "sectionKey"
+            },
+            {
+              "fieldKey": "title",
+              "operator": "contains",
+              "publicName": "titleContains"
+            },
+            {
+              "fieldKey": "revision_state",
+              "operator": "exact",
+              "publicName": "revisionState"
+            }
+          ],
+          "postProcessor": "official-protocol-query-contract",
+          "schemaFieldProvider": "official-protocol-system-fields",
+          "sorts": [
+            {
+              "fieldKey": "title",
+              "publicName": "TITLE"
+            },
+            {
+              "fieldKey": "section_key",
+              "publicName": "SECTION_KEY"
+            },
+            {
+              "fieldKey": "revision",
+              "publicName": "REVISION"
+            }
+          ]
+        },
         "sdkDataType": "ReusableSectionEntriesQueryData",
         "sdkVariablesType": "ReusableSectionEntriesQueryVariables",
+        "singleQuery": {
+          "argument": "alias",
+          "name": "reusableSectionByAlias",
+          "resolver": "get_reusable_section_record_by_alias"
+        },
         "singleQueryArgument": "alias",
         "singleQueryName": "reusableSectionByAlias",
         "sortInput": {

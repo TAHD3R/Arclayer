@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -11,6 +11,39 @@ class OfficialModelFieldDefinition:
     scalar: str
     required: bool
     config: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class OfficialModelGraphQLSingleQuery:
+    name: str
+    argument: str
+    resolver: str
+
+
+@dataclass(frozen=True)
+class OfficialModelGraphQLFilterDefinition:
+    public_name: str
+    field_key: str
+    operator: Literal["exact", "contains"]
+
+
+@dataclass(frozen=True)
+class OfficialModelGraphQLSortDefinition:
+    public_name: str
+    field_key: str
+
+
+@dataclass(frozen=True)
+class OfficialModelGraphQLPolicy:
+    enabled: bool
+    entry_type: str
+    list_query: str
+    single_query: OfficialModelGraphQLSingleQuery
+    filters: tuple[OfficialModelGraphQLFilterDefinition, ...]
+    sorts: tuple[OfficialModelGraphQLSortDefinition, ...]
+    custom_fields_container: str = "customFields"
+    schema_field_provider: str = "official-protocol-system-fields"
+    query_post_processor: str = "official-protocol-query-contract"
 
 
 @dataclass(frozen=True)
@@ -30,6 +63,7 @@ class OfficialModelProtocol:
     starter_pack_policy: dict[str, Any] | None
     surface_policy: dict[str, Any] | None
     workflow_policy: dict[str, Any] | None
+    graphql_policy: OfficialModelGraphQLPolicy
     system_fields: tuple[OfficialModelFieldDefinition, ...]
     protocol_version: int = 1
     system_managed: bool = True
@@ -58,6 +92,26 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
         starter_pack_policy={"mode": "article"},
         surface_policy={"allowedSurfaces": ["writing", "structured"]},
         workflow_policy={"states": ["draft", "published"], "initial_state": "draft"},
+        graphql_policy=OfficialModelGraphQLPolicy(
+            enabled=True,
+            entry_type="ArticleEntry",
+            list_query="articles",
+            single_query=OfficialModelGraphQLSingleQuery(
+                name="articleBySlug",
+                argument="slug",
+                resolver="get_record_by_slug",
+            ),
+            filters=(
+                OfficialModelGraphQLFilterDefinition("slug", "slug", "exact"),
+                OfficialModelGraphQLFilterDefinition("titleContains", "title", "contains"),
+                OfficialModelGraphQLFilterDefinition("revisionState", "revision_state", "exact"),
+            ),
+            sorts=(
+                OfficialModelGraphQLSortDefinition("TITLE", "title"),
+                OfficialModelGraphQLSortDefinition("SLUG", "slug"),
+                OfficialModelGraphQLSortDefinition("REVISION", "revision"),
+            ),
+        ),
         system_fields=(
             OfficialModelFieldDefinition(key="title", label="Title", scalar="text", required=True),
             OfficialModelFieldDefinition(key="slug", label="Slug", scalar="text", required=True),
@@ -95,6 +149,26 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
         starter_pack_policy={"mode": "page"},
         surface_policy={"allowedSurfaces": ["canvas", "structured"]},
         workflow_policy={"states": ["draft", "published"], "initial_state": "draft"},
+        graphql_policy=OfficialModelGraphQLPolicy(
+            enabled=True,
+            entry_type="PageEntry",
+            list_query="pages",
+            single_query=OfficialModelGraphQLSingleQuery(
+                name="pageEntryByPath",
+                argument="path",
+                resolver="get_page_record_by_path",
+            ),
+            filters=(
+                OfficialModelGraphQLFilterDefinition("path", "path", "exact"),
+                OfficialModelGraphQLFilterDefinition("titleContains", "title", "contains"),
+                OfficialModelGraphQLFilterDefinition("revisionState", "revision_state", "exact"),
+            ),
+            sorts=(
+                OfficialModelGraphQLSortDefinition("TITLE", "title"),
+                OfficialModelGraphQLSortDefinition("PATH", "path"),
+                OfficialModelGraphQLSortDefinition("REVISION", "revision"),
+            ),
+        ),
         system_fields=(
             OfficialModelFieldDefinition(key="title", label="Title", scalar="text", required=True),
             OfficialModelFieldDefinition(key="path", label="Path", scalar="text", required=True),
@@ -122,6 +196,26 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
         starter_pack_policy={"mode": "section"},
         surface_policy={"allowedSurfaces": ["canvas", "structured"]},
         workflow_policy={"states": ["draft", "published"], "initial_state": "draft"},
+        graphql_policy=OfficialModelGraphQLPolicy(
+            enabled=True,
+            entry_type="ReusableSectionEntry",
+            list_query="reusableSections",
+            single_query=OfficialModelGraphQLSingleQuery(
+                name="reusableSectionByAlias",
+                argument="alias",
+                resolver="get_reusable_section_record_by_alias",
+            ),
+            filters=(
+                OfficialModelGraphQLFilterDefinition("sectionKey", "section_key", "exact"),
+                OfficialModelGraphQLFilterDefinition("titleContains", "title", "contains"),
+                OfficialModelGraphQLFilterDefinition("revisionState", "revision_state", "exact"),
+            ),
+            sorts=(
+                OfficialModelGraphQLSortDefinition("TITLE", "title"),
+                OfficialModelGraphQLSortDefinition("SECTION_KEY", "section_key"),
+                OfficialModelGraphQLSortDefinition("REVISION", "revision"),
+            ),
+        ),
         system_fields=(
             OfficialModelFieldDefinition(key="title", label="Title", scalar="text", required=True),
             OfficialModelFieldDefinition(
@@ -154,6 +248,26 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
         starter_pack_policy={"mode": "category"},
         surface_policy={"allowedSurfaces": ["structured"]},
         workflow_policy={"states": ["draft", "published"], "initial_state": "draft"},
+        graphql_policy=OfficialModelGraphQLPolicy(
+            enabled=True,
+            entry_type="CategoryEntry",
+            list_query="categories",
+            single_query=OfficialModelGraphQLSingleQuery(
+                name="categoryBySlug",
+                argument="slug",
+                resolver="get_record_by_slug",
+            ),
+            filters=(
+                OfficialModelGraphQLFilterDefinition("slug", "slug", "exact"),
+                OfficialModelGraphQLFilterDefinition("nameContains", "name", "contains"),
+                OfficialModelGraphQLFilterDefinition("revisionState", "revision_state", "exact"),
+            ),
+            sorts=(
+                OfficialModelGraphQLSortDefinition("NAME", "name"),
+                OfficialModelGraphQLSortDefinition("SLUG", "slug"),
+                OfficialModelGraphQLSortDefinition("REVISION", "revision"),
+            ),
+        ),
         system_fields=(
             OfficialModelFieldDefinition(key="name", label="Name", scalar="text", required=True),
             OfficialModelFieldDefinition(key="slug", label="Slug", scalar="text", required=True),

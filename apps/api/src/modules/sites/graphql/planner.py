@@ -5,6 +5,7 @@ from typing import Literal
 from uuid import UUID
 
 from src.core.exceptions import BadRequest
+from src.modules.sites.graphql.registry import get_graphql_model_schema, list_graphql_model_schemas
 
 GraphQLPerspective = Literal["published", "preview"]
 GraphQLSortDirection = Literal["asc", "desc"]
@@ -40,28 +41,26 @@ class GraphQLQueryPlan:
         return max(self.limit, 0)
 
 
-_MODEL_QUERY_RULES: dict[str, GraphQLQueryRule] = {
-    "article": GraphQLQueryRule(
-        exact_filter_fields=frozenset({"slug", "revision_state"}),
-        contains_filter_fields=frozenset({"title"}),
-        sort_fields=frozenset({"title", "slug", "revision"}),
-    ),
-    "page": GraphQLQueryRule(
-        exact_filter_fields=frozenset({"path", "revision_state"}),
-        contains_filter_fields=frozenset({"title"}),
-        sort_fields=frozenset({"title", "path", "revision"}),
-    ),
-    "reusable-section": GraphQLQueryRule(
-        exact_filter_fields=frozenset({"section_key", "revision_state"}),
-        contains_filter_fields=frozenset({"title"}),
-        sort_fields=frozenset({"title", "section_key", "revision"}),
-    ),
-    "category": GraphQLQueryRule(
-        exact_filter_fields=frozenset({"slug", "revision_state"}),
-        contains_filter_fields=frozenset({"name"}),
-        sort_fields=frozenset({"name", "slug", "revision"}),
-    ),
-}
+def _query_rule_for_model(model_key: str) -> GraphQLQueryRule | None:
+    schema = get_graphql_model_schema(model_key)
+    if schema is None:
+        return None
+    return GraphQLQueryRule(
+        exact_filter_fields=frozenset(item.field_key for item in schema.filters if item.operator == "exact"),
+        contains_filter_fields=frozenset(item.field_key for item in schema.filters if item.operator == "contains"),
+        sort_fields=frozenset(item.field_key for item in schema.sorts),
+    )
+
+
+def list_graphql_query_rules() -> dict[str, GraphQLQueryRule]:
+    return {
+        schema.model_key: GraphQLQueryRule(
+            exact_filter_fields=frozenset(item.field_key for item in schema.filters if item.operator == "exact"),
+            contains_filter_fields=frozenset(item.field_key for item in schema.filters if item.operator == "contains"),
+            sort_fields=frozenset(item.field_key for item in schema.sorts),
+        )
+        for schema in list_graphql_model_schemas()
+    }
 
 
 def _assert_query_fields_allowed(
@@ -71,7 +70,7 @@ def _assert_query_fields_allowed(
     contains_filters: dict[str, str],
     sort_field: str | None,
 ) -> None:
-    rule = _MODEL_QUERY_RULES.get(model_key)
+    rule = _query_rule_for_model(model_key)
     rejected_exact_filters = sorted(set(exact_filters) - (rule.exact_filter_fields if rule is not None else set()))
     rejected_contains_filters = sorted(
         set(contains_filters) - (rule.contains_filter_fields if rule is not None else set())

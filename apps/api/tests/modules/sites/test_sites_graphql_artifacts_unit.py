@@ -52,10 +52,24 @@ def test_graphql_registry_manifest_is_sdk_and_artifact_friendly() -> None:
     assert models["reusable-section"]["listQueryName"] == "reusableSections"
 
 
-def test_graphql_hooks_manifest_defaults_to_explicit_empty_contracts() -> None:
+def test_graphql_hooks_manifest_projects_protocol_contract_hooks() -> None:
     assert graphql_hooks_manifest() == {
-        "queryPostProcessors": [],
-        "schemaFieldProviders": [],
+        "queryPostProcessors": [
+            {
+                "description": "Applies the official model protocol query contract to delivery GraphQL records.",
+                "modelKeys": ["article", "category", "page", "reusable-section"],
+                "name": "official-protocol-query-contract",
+                "phase": "query",
+            }
+        ],
+        "schemaFieldProviders": [
+            {
+                "description": "Projects official model protocol system fields into the delivery GraphQL schema.",
+                "modelKeys": ["article", "category", "page", "reusable-section"],
+                "name": "official-protocol-system-fields",
+                "phase": "schema",
+            }
+        ],
     }
 
 

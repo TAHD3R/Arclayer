@@ -20,6 +20,7 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelOut,
     ContentModelProtocolKey,
 )
+from src.modules.projects.content.models.protocol_registry import get_official_model_protocol
 
 _KNOWN_PROTOCOL_KEYS = {"article", "page", "reusable-section", "category"}
 
@@ -124,6 +125,42 @@ def _registry_capabilities(capabilities: Iterable[str]) -> ContentModelCapabilit
     )
 
 
+def _graphql_policy(record: ContentModelDefinitionRecord, capabilities: list[str]) -> dict[str, Any]:
+    protocol = get_official_model_protocol(record.protocol_key or record.key)
+    if protocol is None:
+        return {
+            "enabled": "queryable" in capabilities,
+            "relationSchema": _relation_schema(
+                cast(Iterable[ContentModelRelationRecord], getattr(record, "relations", []))
+            ),
+            "viewSchema": _view_schema(cast(Iterable[ContentModelViewRecord], getattr(record, "views", []))),
+        }
+
+    policy = protocol.graphql_policy
+    return {
+        "customFieldsContainer": policy.custom_fields_container,
+        "enabled": policy.enabled,
+        "entryType": policy.entry_type,
+        "filters": [
+            {"fieldKey": item.field_key, "operator": item.operator, "publicName": item.public_name}
+            for item in policy.filters
+        ],
+        "listQuery": policy.list_query,
+        "queryPostProcessor": policy.query_post_processor,
+        "relationSchema": _relation_schema(
+            cast(Iterable[ContentModelRelationRecord], getattr(record, "relations", []))
+        ),
+        "schemaFieldProvider": policy.schema_field_provider,
+        "singleQuery": {
+            "argument": policy.single_query.argument,
+            "name": policy.single_query.name,
+            "resolver": policy.single_query.resolver,
+        },
+        "sorts": [{"fieldKey": item.field_key, "publicName": item.public_name} for item in policy.sorts],
+        "viewSchema": _view_schema(cast(Iterable[ContentModelViewRecord], getattr(record, "views", []))),
+    }
+
+
 def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOut:
     fields = cast(Iterable[ContentModelFieldRecord], getattr(record, "fields", []))
     relations = cast(Iterable[ContentModelRelationRecord], getattr(record, "relations", []))
@@ -175,11 +212,7 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
                 "seo": record.seo_policy,
                 "surface": defaults.surface_policy,
             },
-            graphql_policy={
-                "enabled": "queryable" in capabilities,
-                "relationSchema": _relation_schema(relations),
-                "viewSchema": _view_schema(views),
-            },
+            graphql_policy=_graphql_policy(record, capabilities),
         ),
         field_schema=_field_schema(fields),
         relation_schema=_relation_schema(relations),

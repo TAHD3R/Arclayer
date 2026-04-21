@@ -36,54 +36,49 @@ class GraphQLQueryInputDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+class GraphQLQueryFilterDefinition:
+    public_name: str
+    field_key: str
+    operator: Literal["exact", "contains"]
+
+
+@dataclass(frozen=True, slots=True)
+class GraphQLQuerySortDefinition:
+    public_name: str
+    field_key: str
+
+
+@dataclass(frozen=True, slots=True)
+class GraphQLSingleQueryDefinition:
+    query_name: str
+    argument: str
+    resolver: str
+
+
+@dataclass(frozen=True, slots=True)
 class GraphQLModelSchemaDefinition:
     model_key: str
     entry_type: str
     list_query_name: str
-    single_query_name: str
-    single_query_argument: str
+    single_query: GraphQLSingleQueryDefinition
     filter_input: GraphQLQueryInputDefinition
     sort_input: GraphQLQueryInputDefinition
+    filters: tuple[GraphQLQueryFilterDefinition, ...]
+    sorts: tuple[GraphQLQuerySortDefinition, ...]
     system_fields: tuple[GraphQLFieldDefinition, ...]
     custom_fields_container: str
+    schema_field_provider: str
+    query_post_processor: str
     sdk_data_type: str
     sdk_variables_type: str
 
+    @property
+    def single_query_name(self) -> str:
+        return self.single_query.query_name
 
-_ENTRY_TYPE_BY_MODEL_KEY = {
-    "article": "ArticleEntry",
-    "category": "CategoryEntry",
-    "page": "PageEntry",
-    "reusable-section": "ReusableSectionEntry",
-}
-
-_LIST_QUERY_BY_MODEL_KEY = {
-    "article": "articles",
-    "category": "categories",
-    "page": "pages",
-    "reusable-section": "reusableSections",
-}
-
-_SINGLE_QUERY_BY_MODEL_KEY = {
-    "article": ("articleBySlug", "slug"),
-    "category": ("categoryBySlug", "slug"),
-    "page": ("pageEntryByPath", "path"),
-    "reusable-section": ("reusableSectionByAlias", "alias"),
-}
-
-_FILTER_FIELDS_BY_MODEL_KEY = {
-    "article": ("slug", "titleContains", "revisionState"),
-    "category": ("slug", "nameContains", "revisionState"),
-    "page": ("path", "titleContains", "revisionState"),
-    "reusable-section": ("sectionKey", "titleContains", "revisionState"),
-}
-
-_SORT_FIELDS_BY_MODEL_KEY = {
-    "article": ("TITLE", "SLUG", "REVISION"),
-    "category": ("NAME", "SLUG", "REVISION"),
-    "page": ("TITLE", "PATH", "REVISION"),
-    "reusable-section": ("TITLE", "SECTION_KEY", "REVISION"),
-}
+    @property
+    def single_query_argument(self) -> str:
+        return self.single_query.argument
 
 
 def _pascal_case(value: str) -> str:
@@ -100,21 +95,36 @@ def _field_scalar(source_scalar: str) -> GraphQLFieldScalar:
 
 
 def _build_model_schema(protocol: OfficialModelProtocol) -> GraphQLModelSchemaDefinition:
-    single_query_name, single_query_argument = _SINGLE_QUERY_BY_MODEL_KEY[protocol.key]
     pascal_key = _pascal_case(protocol.key)
+    graphql_policy = protocol.graphql_policy
     return GraphQLModelSchemaDefinition(
         model_key=protocol.key,
-        entry_type=_ENTRY_TYPE_BY_MODEL_KEY[protocol.key],
-        list_query_name=_LIST_QUERY_BY_MODEL_KEY[protocol.key],
-        single_query_name=single_query_name,
-        single_query_argument=single_query_argument,
+        entry_type=graphql_policy.entry_type,
+        list_query_name=graphql_policy.list_query,
+        single_query=GraphQLSingleQueryDefinition(
+            query_name=graphql_policy.single_query.name,
+            argument=graphql_policy.single_query.argument,
+            resolver=graphql_policy.single_query.resolver,
+        ),
         filter_input=GraphQLQueryInputDefinition(
             input_name=f"{pascal_key}FilterInput",
-            fields=_FILTER_FIELDS_BY_MODEL_KEY[protocol.key],
+            fields=tuple(item.public_name for item in graphql_policy.filters),
         ),
         sort_input=GraphQLQueryInputDefinition(
             input_name=f"{pascal_key}SortInput",
-            fields=_SORT_FIELDS_BY_MODEL_KEY[protocol.key],
+            fields=tuple(item.public_name for item in graphql_policy.sorts),
+        ),
+        filters=tuple(
+            GraphQLQueryFilterDefinition(
+                public_name=item.public_name,
+                field_key=item.field_key,
+                operator=item.operator,
+            )
+            for item in graphql_policy.filters
+        ),
+        sorts=tuple(
+            GraphQLQuerySortDefinition(public_name=item.public_name, field_key=item.field_key)
+            for item in graphql_policy.sorts
         ),
         system_fields=tuple(
             GraphQLFieldDefinition(
@@ -125,7 +135,9 @@ def _build_model_schema(protocol: OfficialModelProtocol) -> GraphQLModelSchemaDe
             )
             for field in protocol.system_fields
         ),
-        custom_fields_container="customFields",
+        custom_fields_container=graphql_policy.custom_fields_container,
+        schema_field_provider=graphql_policy.schema_field_provider,
+        query_post_processor=graphql_policy.query_post_processor,
         sdk_data_type=f"{pascal_key}EntriesQueryData",
         sdk_variables_type=f"{pascal_key}EntriesQueryVariables",
     )
@@ -135,8 +147,12 @@ def list_graphql_model_schemas() -> tuple[GraphQLModelSchemaDefinition, ...]:
     return tuple(
         _build_model_schema(protocol)
         for protocol in sorted(list_official_model_protocols(), key=lambda item: item.key)
-        if protocol.key in _ENTRY_TYPE_BY_MODEL_KEY
+        if protocol.graphql_policy.enabled
     )
+
+
+def get_graphql_model_schema(model_key: str) -> GraphQLModelSchemaDefinition | None:
+    return next((schema for schema in list_graphql_model_schemas() if schema.model_key == model_key), None)
 
 
 def graphql_schema_registry_manifest() -> dict[str, object]:
@@ -153,11 +169,29 @@ def graphql_schema_registry_manifest() -> dict[str, object]:
                 "modelKey": model.model_key,
                 "sdkDataType": model.sdk_data_type,
                 "sdkVariablesType": model.sdk_variables_type,
-                "singleQueryArgument": model.single_query_argument,
-                "singleQueryName": model.single_query_name,
+                "singleQuery": {
+                    "argument": model.single_query.argument,
+                    "name": model.single_query.query_name,
+                    "resolver": model.single_query.resolver,
+                },
+                "singleQueryArgument": model.single_query.argument,
+                "singleQueryName": model.single_query.query_name,
                 "sortInput": {
                     "fields": list(model.sort_input.fields),
                     "name": model.sort_input.input_name,
+                },
+                "queryContract": {
+                    "filters": [
+                        {
+                            "fieldKey": item.field_key,
+                            "operator": item.operator,
+                            "publicName": item.public_name,
+                        }
+                        for item in model.filters
+                    ],
+                    "postProcessor": model.query_post_processor,
+                    "schemaFieldProvider": model.schema_field_provider,
+                    "sorts": [{"fieldKey": item.field_key, "publicName": item.public_name} for item in model.sorts],
                 },
                 "systemFields": [
                     {

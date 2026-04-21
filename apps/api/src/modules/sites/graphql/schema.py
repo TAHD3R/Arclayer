@@ -11,12 +11,21 @@ from strawberry.scalars import JSON
 from src.common.types.json_types import JsonValue
 from src.core.exceptions import APIError
 from src.modules.sites.delivery.schema import DeliveryGlobalSetOut, DeliveryPageOut, DeliverySectionOut
+from src.modules.sites.graphql.registry import (
+    GraphQLModelSchemaDefinition,
+    get_graphql_model_schema,
+    list_graphql_model_schemas,
+)
 from src.modules.sites.graphql.service import (
     GraphQLPerspective,
     SiteGraphQLContext,
     StructuredContentRecord,
     graphql_error_extensions,
 )
+
+_SCHEMA_BY_MODEL_KEY: dict[str, GraphQLModelSchemaDefinition] = {
+    schema.model_key: schema for schema in list_graphql_model_schemas()
+}
 
 
 class Perspective(enum.Enum):
@@ -278,6 +287,36 @@ def _contains_filters(payload: dict[str, str | None]) -> dict[str, str]:
     return {key: value.strip().lower() for key, value in payload.items() if isinstance(value, str) and value.strip()}
 
 
+def _required_model_schema(model_key: str) -> GraphQLModelSchemaDefinition:
+    schema = _SCHEMA_BY_MODEL_KEY.get(model_key) or get_graphql_model_schema(model_key)
+    if schema is None:
+        raise RuntimeError(f"GraphQL model schema is not registered: {model_key}")
+    return schema
+
+
+def _query_filter_payload(model_key: str, filter_input: object | None, operator: str) -> dict[str, str]:
+    if filter_input is None:
+        return {}
+    schema = _required_model_schema(model_key)
+    payload: dict[str, str | None] = {}
+    for definition in schema.filters:
+        if definition.operator != operator:
+            continue
+        payload[definition.field_key] = getattr(filter_input, _snake_case(definition.public_name), None)
+    if operator == "contains":
+        return _contains_filters(payload)
+    return _exact_filters(payload)
+
+
+def _snake_case(value: str) -> str:
+    chars: list[str] = []
+    for index, char in enumerate(value):
+        if char.isupper() and index > 0:
+            chars.append("_")
+        chars.append(char.lower())
+    return "".join(chars)
+
+
 def _raise_graphql_error(exc: APIError) -> None:
     raise GraphQLError(exc.message, extensions=graphql_error_extensions(exc)) from exc
 
@@ -485,6 +524,90 @@ def _to_category_entry(record: StructuredContentRecord) -> CategoryEntry:
     )
 
 
+_ENTRY_BUILDERS = {
+    "article": _to_article_entry,
+    "category": _to_category_entry,
+    "page": _to_page_entry,
+    "reusable-section": _to_reusable_section_entry,
+}
+
+
+def _to_model_entry(model_key: str, record: StructuredContentRecord) -> Any:
+    return _ENTRY_BUILDERS[model_key](record)
+
+
+async def _list_model_entries(
+    *,
+    info: strawberry.Info[SiteGraphQLContext, None],
+    model_key: str,
+    perspective: Perspective,
+    preview_token: str | None,
+    filter_input: object | None,
+    sort_input: object | None,
+    limit: int,
+    offset: int,
+) -> list[Any]:
+    resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
+    sort_field: str | None = None
+    sort_direction = "asc"
+    if sort_input is not None:
+        typed_sort_input = cast(Any, sort_input)
+        sort_field = typed_sort_input.field.value
+        sort_direction = typed_sort_input.direction.value
+    try:
+        records = await info.context.graphql.list_records(
+            site_id=info.context.site_id,
+            model_key=model_key,
+            perspective=resolved,
+            exact_filters=_query_filter_payload(model_key, filter_input, "exact"),
+            contains_filters=_query_filter_payload(model_key, filter_input, "contains"),
+            sort_field=sort_field,
+            sort_direction=sort_direction,
+            limit=limit,
+            offset=offset,
+        )
+    except APIError as exc:
+        _raise_graphql_error(exc)
+    return [_to_model_entry(model_key, record) for record in records]
+
+
+async def _get_single_model_entry(
+    *,
+    info: strawberry.Info[SiteGraphQLContext, None],
+    model_key: str,
+    lookup_value: str,
+    perspective: Perspective,
+    preview_token: str | None,
+) -> Any | None:
+    resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
+    schema = _required_model_schema(model_key)
+    try:
+        if schema.single_query.resolver == "get_record_by_slug":
+            record = await info.context.graphql.get_record_by_slug(
+                site_id=info.context.site_id,
+                model_key=model_key,
+                slug=lookup_value,
+                perspective=resolved,
+            )
+        elif schema.single_query.resolver == "get_page_record_by_path":
+            record = await info.context.graphql.get_page_record_by_path(
+                site_id=info.context.site_id,
+                path=lookup_value,
+                perspective=resolved,
+            )
+        elif schema.single_query.resolver == "get_reusable_section_record_by_alias":
+            record = await info.context.graphql.get_reusable_section_record_by_alias(
+                site_id=info.context.site_id,
+                alias=lookup_value,
+                perspective=resolved,
+            )
+        else:
+            raise RuntimeError(f"GraphQL single query resolver is not registered: {schema.single_query.resolver}")
+    except APIError as exc:
+        _raise_graphql_error(exc)
+    return _to_model_entry(model_key, record) if record is not None else None
+
+
 @strawberry.type
 class Query:
     @strawberry.field
@@ -571,17 +694,13 @@ class Query:
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
     ) -> ArticleEntry | None:
-        resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
-        try:
-            record = await info.context.graphql.get_record_by_slug(
-                site_id=info.context.site_id,
-                model_key="article",
-                slug=slug,
-                perspective=resolved,
-            )
-        except APIError as exc:
-            _raise_graphql_error(exc)
-        return _to_article_entry(record) if record is not None else None
+        return await _get_single_model_entry(
+            info=info,
+            model_key="article",
+            lookup_value=slug,
+            perspective=perspective,
+            preview_token=preview_token,
+        )
 
     @strawberry.field
     async def articles(
@@ -594,27 +713,16 @@ class Query:
         limit: int = 20,
         offset: int = 0,
     ) -> list[ArticleEntry]:
-        resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
-        try:
-            records = await info.context.graphql.list_records(
-                site_id=info.context.site_id,
-                model_key="article",
-                perspective=resolved,
-                exact_filters=_exact_filters({
-                    "slug": filter.slug if filter is not None else None,
-                    "revision_state": filter.revision_state if filter is not None else None,
-                }),
-                contains_filters=_contains_filters({
-                    "title": filter.title_contains if filter is not None else None,
-                }),
-                sort_field=sort.field.value if sort is not None else None,
-                sort_direction=sort.direction.value if sort is not None else "asc",
-                limit=limit,
-                offset=offset,
-            )
-        except APIError as exc:
-            _raise_graphql_error(exc)
-        return [_to_article_entry(record) for record in records]
+        return await _list_model_entries(
+            info=info,
+            model_key="article",
+            perspective=perspective,
+            preview_token=preview_token,
+            filter_input=filter,
+            sort_input=sort,
+            limit=limit,
+            offset=offset,
+        )
 
     @strawberry.field
     async def page_entry_by_path(
@@ -624,16 +732,13 @@ class Query:
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
     ) -> PageEntry | None:
-        resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
-        try:
-            record = await info.context.graphql.get_page_record_by_path(
-                site_id=info.context.site_id,
-                path=path,
-                perspective=resolved,
-            )
-        except APIError as exc:
-            _raise_graphql_error(exc)
-        return _to_page_entry(record) if record is not None else None
+        return await _get_single_model_entry(
+            info=info,
+            model_key="page",
+            lookup_value=path,
+            perspective=perspective,
+            preview_token=preview_token,
+        )
 
     @strawberry.field
     async def pages(
@@ -646,27 +751,16 @@ class Query:
         limit: int = 20,
         offset: int = 0,
     ) -> list[PageEntry]:
-        resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
-        try:
-            records = await info.context.graphql.list_records(
-                site_id=info.context.site_id,
-                model_key="page",
-                perspective=resolved,
-                exact_filters=_exact_filters({
-                    "path": filter.path if filter is not None else None,
-                    "revision_state": filter.revision_state if filter is not None else None,
-                }),
-                contains_filters=_contains_filters({
-                    "title": filter.title_contains if filter is not None else None,
-                }),
-                sort_field=sort.field.value if sort is not None else None,
-                sort_direction=sort.direction.value if sort is not None else "asc",
-                limit=limit,
-                offset=offset,
-            )
-        except APIError as exc:
-            _raise_graphql_error(exc)
-        return [_to_page_entry(record) for record in records]
+        return await _list_model_entries(
+            info=info,
+            model_key="page",
+            perspective=perspective,
+            preview_token=preview_token,
+            filter_input=filter,
+            sort_input=sort,
+            limit=limit,
+            offset=offset,
+        )
 
     @strawberry.field
     async def reusable_section_by_alias(
@@ -676,16 +770,13 @@ class Query:
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
     ) -> ReusableSectionEntry | None:
-        resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
-        try:
-            record = await info.context.graphql.get_reusable_section_record_by_alias(
-                site_id=info.context.site_id,
-                alias=alias,
-                perspective=resolved,
-            )
-        except APIError as exc:
-            _raise_graphql_error(exc)
-        return _to_reusable_section_entry(record) if record is not None else None
+        return await _get_single_model_entry(
+            info=info,
+            model_key="reusable-section",
+            lookup_value=alias,
+            perspective=perspective,
+            preview_token=preview_token,
+        )
 
     @strawberry.field
     async def reusable_sections(
@@ -698,27 +789,16 @@ class Query:
         limit: int = 20,
         offset: int = 0,
     ) -> list[ReusableSectionEntry]:
-        resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
-        try:
-            records = await info.context.graphql.list_records(
-                site_id=info.context.site_id,
-                model_key="reusable-section",
-                perspective=resolved,
-                exact_filters=_exact_filters({
-                    "section_key": filter.section_key if filter is not None else None,
-                    "revision_state": filter.revision_state if filter is not None else None,
-                }),
-                contains_filters=_contains_filters({
-                    "title": filter.title_contains if filter is not None else None,
-                }),
-                sort_field=sort.field.value if sort is not None else None,
-                sort_direction=sort.direction.value if sort is not None else "asc",
-                limit=limit,
-                offset=offset,
-            )
-        except APIError as exc:
-            _raise_graphql_error(exc)
-        return [_to_reusable_section_entry(record) for record in records]
+        return await _list_model_entries(
+            info=info,
+            model_key="reusable-section",
+            perspective=perspective,
+            preview_token=preview_token,
+            filter_input=filter,
+            sort_input=sort,
+            limit=limit,
+            offset=offset,
+        )
 
     @strawberry.field
     async def category_by_slug(
@@ -728,17 +808,13 @@ class Query:
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
     ) -> CategoryEntry | None:
-        resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
-        try:
-            record = await info.context.graphql.get_record_by_slug(
-                site_id=info.context.site_id,
-                model_key="category",
-                slug=slug,
-                perspective=resolved,
-            )
-        except APIError as exc:
-            _raise_graphql_error(exc)
-        return _to_category_entry(record) if record is not None else None
+        return await _get_single_model_entry(
+            info=info,
+            model_key="category",
+            lookup_value=slug,
+            perspective=perspective,
+            preview_token=preview_token,
+        )
 
     @strawberry.field
     async def categories(
@@ -751,27 +827,16 @@ class Query:
         limit: int = 20,
         offset: int = 0,
     ) -> list[CategoryEntry]:
-        resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
-        try:
-            records = await info.context.graphql.list_records(
-                site_id=info.context.site_id,
-                model_key="category",
-                perspective=resolved,
-                exact_filters=_exact_filters({
-                    "slug": filter.slug if filter is not None else None,
-                    "revision_state": filter.revision_state if filter is not None else None,
-                }),
-                contains_filters=_contains_filters({
-                    "name": filter.name_contains if filter is not None else None,
-                }),
-                sort_field=sort.field.value if sort is not None else None,
-                sort_direction=sort.direction.value if sort is not None else "asc",
-                limit=limit,
-                offset=offset,
-            )
-        except APIError as exc:
-            _raise_graphql_error(exc)
-        return [_to_category_entry(record) for record in records]
+        return await _list_model_entries(
+            info=info,
+            model_key="category",
+            perspective=perspective,
+            preview_token=preview_token,
+            filter_input=filter,
+            sort_input=sort,
+            limit=limit,
+            offset=offset,
+        )
 
 
 schema = strawberry.Schema(query=Query)

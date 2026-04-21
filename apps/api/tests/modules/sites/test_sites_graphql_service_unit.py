@@ -16,11 +16,11 @@ from src.modules.projects.content.runtime import (
     DocumentRuntimeMetadata,
 )
 from src.modules.sites.graphql.planner import (
-    _MODEL_QUERY_RULES,
     GraphQLQueryPlan,
     GraphQLQueryRule,
     _assert_query_fields_allowed,
     build_graphql_query_plan,
+    list_graphql_query_rules,
 )
 from src.modules.sites.graphql.service import (
     AuthenticatedDeliveryKey,
@@ -121,7 +121,7 @@ def test_record_matches_all_supports_exact_and_contains_filters() -> None:
 
 
 def test_query_rules_cover_builtin_graphql_models() -> None:
-    assert _MODEL_QUERY_RULES == {
+    assert list_graphql_query_rules() == {
         "article": GraphQLQueryRule(
             exact_filter_fields=frozenset({"slug", "revision_state"}),
             contains_filter_fields=frozenset({"title"}),

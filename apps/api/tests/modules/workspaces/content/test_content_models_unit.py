@@ -139,8 +139,15 @@ def test_official_model_registry_defines_v1_protocol_surface() -> None:
         "published_at",
     ]
     assert protocols["page"].default_surface == "canvas"
+    assert protocols["page"].graphql_policy.list_query == "pages"
+    assert protocols["page"].graphql_policy.single_query.name == "pageEntryByPath"
     assert protocols["reusable-section"].system_managed is True
     assert protocols["article"].routing_policy == {"mode": "none"}
+    assert [filter.public_name for filter in protocols["article"].graphql_policy.filters] == [
+        "slug",
+        "titleContains",
+        "revisionState",
+    ]
     assert protocols["category"].routing_policy == {"mode": "single", "slug_field": "slug"}
 
 
