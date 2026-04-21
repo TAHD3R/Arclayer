@@ -11,6 +11,7 @@ from src.modules.auth.limits.service import REGISTER_RATE_LIMIT
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.service import AuthService
 from src.modules.auth.sessions.request_context import build_auth_request_context
+from src.modules.system.directory.router import router as system_directory_router
 from src.modules.system.mail.router import router as system_mail_router
 from src.modules.system.rbac.router import router as system_rbac_router
 from src.modules.system.schema import (
@@ -95,6 +96,7 @@ async def bootstrap_instance(
 # They live under `/api/v1/system/*` and are guarded directly by super-admin checks
 # rather than the org-scoped RBAC engine.
 router.include_router(system_settings_router, prefix="/settings")
+router.include_router(system_directory_router, prefix="/directory")
 router.include_router(system_mail_router, prefix="/mail")
 router.include_router(system_rbac_router, prefix="/rbac")
 router.include_router(system_activity_router, prefix="/activity")

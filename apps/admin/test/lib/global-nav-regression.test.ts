@@ -36,6 +36,11 @@ describe("global nav regression", () => {
       to: "/system",
     });
     expect(configurationItem?.disabled).toBeUndefined();
+    const tenantsItem = platformItem?.children?.find(
+      (item) => item.key === "global.platform.tenants",
+    );
+    expect(tenantsItem?.to).toBe("/system/tenants");
+    expect(tenantsItem?.disabled).toBeUndefined();
   });
 
   test("only exposes platform to super admins while keeping projects visible", () => {

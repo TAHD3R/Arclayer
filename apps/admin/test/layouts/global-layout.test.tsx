@@ -219,6 +219,7 @@ describe("GlobalLayout", () => {
     expect(navKeys).toContain("global.projects");
     expect(navKeys).toContain("global.platform");
     expect(navKeys).toContain("global.platform.overview");
+    expect(navKeys).toContain("global.platform.tenants");
   });
 
   it("includes the resources placeholder before projects in global navigation", () => {

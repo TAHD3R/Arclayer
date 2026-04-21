@@ -54,7 +54,6 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
         labelKey: "nav:NAV_GLOBAL_PLATFORM_TENANTS",
         to: "/system/tenants",
         icon: Users,
-        disabled: true,
       },
       {
         key: "global.platform.plans",

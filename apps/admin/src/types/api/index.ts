@@ -81,5 +81,16 @@ export type {
   ProjectUpdateInput,
 } from "./projects";
 export type { SystemBootstrapPayload, SystemInstanceSetupStatus, SystemRuntime } from "./system";
+export type {
+  DirectoryActorSummary,
+  SystemDirectoryOrganization,
+  SystemDirectoryOrganizationPage,
+  SystemDirectoryProject,
+  SystemDirectoryProjectPage,
+  SystemDirectoryUser,
+  SystemDirectoryUserPage,
+  SystemDirectoryWorkspace,
+  SystemDirectoryWorkspacePage,
+} from "./system-directory";
 
 export * from "@arclayer/openapi/admin-types";

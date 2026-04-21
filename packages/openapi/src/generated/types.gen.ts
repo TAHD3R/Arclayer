@@ -4014,6 +4014,317 @@ export type DeliveryStyleOut = {
 };
 
 /**
+ * DirectoryActorSummaryOut
+ */
+export type DirectoryActorSummaryOut = {
+    /**
+     * Displayname
+     *
+     * Display name.
+     */
+    displayName?: string | null;
+    /**
+     * Email
+     *
+     * Email.
+     */
+    email?: string | null;
+    /**
+     * Userid
+     *
+     * User id.
+     */
+    userId: string;
+    /**
+     * Username
+     *
+     * Username.
+     */
+    username: string;
+};
+
+/**
+ * DirectoryOrganizationListItemOut
+ */
+export type DirectoryOrganizationListItemOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Isactive
+     *
+     * Whether the organization is active.
+     */
+    isActive?: boolean;
+    /**
+     * Organization kind.
+     */
+    kind: OrganizationKind;
+    /**
+     * Membercount
+     *
+     * Active member count.
+     */
+    memberCount?: number;
+    /**
+     * Name
+     *
+     * Organization name.
+     */
+    name: string;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Owner summary.
+     */
+    owner?: DirectoryActorSummaryOut | null;
+    /**
+     * Projectcount
+     *
+     * Project count.
+     */
+    projectCount?: number;
+    /**
+     * Slug
+     *
+     * Organization slug.
+     */
+    slug: string;
+    /**
+     * Workspacecount
+     *
+     * Workspace count.
+     */
+    workspaceCount?: number;
+};
+
+/**
+ * DirectoryProjectListItemOut
+ */
+export type DirectoryProjectListItemOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Description
+     *
+     * Project description.
+     */
+    description?: string | null;
+    /**
+     * Isactive
+     *
+     * Whether the project is active.
+     */
+    isActive?: boolean;
+    /**
+     * Membercount
+     *
+     * Project member count.
+     */
+    memberCount?: number;
+    /**
+     * Name
+     *
+     * Project name.
+     */
+    name: string;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Organizationname
+     *
+     * Organization name.
+     */
+    organizationName: string;
+    /**
+     * Owner summary.
+     */
+    owner?: DirectoryActorSummaryOut | null;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Slug
+     *
+     * Project slug.
+     */
+    slug: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+    /**
+     * Workspacename
+     *
+     * Workspace name.
+     */
+    workspaceName: string;
+};
+
+/**
+ * DirectoryUserListItemOut
+ */
+export type DirectoryUserListItemOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Displayname
+     *
+     * Display name.
+     */
+    displayName?: string | null;
+    /**
+     * Email
+     *
+     * Email.
+     */
+    email?: string | null;
+    /**
+     * Issuperadmin
+     *
+     * Whether the user is a super admin.
+     */
+    isSuperAdmin?: boolean;
+    /**
+     * Lastloginat
+     *
+     * Last login time.
+     */
+    lastLoginAt?: string | null;
+    /**
+     * Organizationmembershipcount
+     *
+     * Active organization memberships for the user.
+     */
+    organizationMembershipCount?: number;
+    /**
+     * Ownedorganizationscount
+     *
+     * Organizations owned by the user.
+     */
+    ownedOrganizationsCount?: number;
+    /**
+     * Projectmembershipcount
+     *
+     * Project memberships for the user.
+     */
+    projectMembershipCount?: number;
+    status: UserStatus;
+    /**
+     * Userid
+     *
+     * User id.
+     */
+    userId: string;
+    /**
+     * Username
+     *
+     * Username.
+     */
+    username: string;
+    /**
+     * Workspacemembershipcount
+     *
+     * Active workspace memberships for the user.
+     */
+    workspaceMembershipCount?: number;
+};
+
+/**
+ * DirectoryWorkspaceListItemOut
+ */
+export type DirectoryWorkspaceListItemOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Description
+     *
+     * Workspace description.
+     */
+    description?: string | null;
+    /**
+     * Isactive
+     *
+     * Whether the workspace is active.
+     */
+    isActive?: boolean;
+    /**
+     * Isarchived
+     *
+     * Whether the workspace is archived.
+     */
+    isArchived?: boolean;
+    /**
+     * Membercount
+     *
+     * Active member count.
+     */
+    memberCount?: number;
+    /**
+     * Name
+     *
+     * Workspace name.
+     */
+    name: string;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Organizationname
+     *
+     * Organization name.
+     */
+    organizationName: string;
+    /**
+     * Owner summary.
+     */
+    owner?: DirectoryActorSummaryOut | null;
+    /**
+     * Projectcount
+     *
+     * Project count.
+     */
+    projectCount?: number;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
  * EmailCheckOut
  *
  * Email existence precheck result.
@@ -5800,6 +6111,13 @@ export type OrganizationInviteLinkRenewResult = {
 };
 
 /**
+ * OrganizationKind
+ *
+ * Organization identity kind.
+ */
+export type OrganizationKind = 'personal' | 'team';
+
+/**
  * OrganizationLocalizationOut
  */
 export type OrganizationLocalizationOut = {
@@ -7069,6 +7387,198 @@ export type PageDataContentVersionOut = {
      * Current page items.
      */
     items?: Array<ContentVersionOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[DirectoryOrganizationListItemOut]
+ */
+export type PageDataDirectoryOrganizationListItemOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<DirectoryOrganizationListItemOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[DirectoryProjectListItemOut]
+ */
+export type PageDataDirectoryProjectListItemOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<DirectoryProjectListItemOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[DirectoryUserListItemOut]
+ */
+export type PageDataDirectoryUserListItemOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<DirectoryUserListItemOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[DirectoryWorkspaceListItemOut]
+ */
+export type PageDataDirectoryWorkspaceListItemOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<DirectoryWorkspaceListItemOut>;
     /**
      * Next
      *
@@ -11472,6 +11982,106 @@ export type ResponseModelPageDataContentModelOut = {
  */
 export type ResponseModelPageDataContentVersionOut = {
     data?: PageDataContentVersionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[DirectoryOrganizationListItemOut]]
+ */
+export type ResponseModelPageDataDirectoryOrganizationListItemOut = {
+    data?: PageDataDirectoryOrganizationListItemOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[DirectoryProjectListItemOut]]
+ */
+export type ResponseModelPageDataDirectoryProjectListItemOut = {
+    data?: PageDataDirectoryProjectListItemOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[DirectoryUserListItemOut]]
+ */
+export type ResponseModelPageDataDirectoryUserListItemOut = {
+    data?: PageDataDirectoryUserListItemOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[DirectoryWorkspaceListItemOut]]
+ */
+export type ResponseModelPageDataDirectoryWorkspaceListItemOut = {
+    data?: PageDataDirectoryWorkspaceListItemOut | null;
     /**
      * Error
      */
@@ -24782,6 +25392,206 @@ export type InternalSystemGetActivityDetailResponses = {
 };
 
 export type InternalSystemGetActivityDetailResponse = InternalSystemGetActivityDetailResponses[keyof InternalSystemGetActivityDetailResponses];
+
+export type InternalSystemListOrganizationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * Search organizations by name or slug.
+         */
+        q?: string | null;
+        /**
+         * Ordering
+         *
+         * Ordering fields, for example -created_at or name.
+         */
+        ordering?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/directory/organizations';
+};
+
+export type InternalSystemListOrganizationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListOrganizationsError = InternalSystemListOrganizationsErrors[keyof InternalSystemListOrganizationsErrors];
+
+export type InternalSystemListOrganizationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataDirectoryOrganizationListItemOut;
+};
+
+export type InternalSystemListOrganizationsResponse = InternalSystemListOrganizationsResponses[keyof InternalSystemListOrganizationsResponses];
+
+export type InternalSystemListProjectsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * Search projects by name, slug, or description.
+         */
+        q?: string | null;
+        /**
+         * Ordering
+         *
+         * Ordering fields, for example -created_at or name.
+         */
+        ordering?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/directory/projects';
+};
+
+export type InternalSystemListProjectsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListProjectsError = InternalSystemListProjectsErrors[keyof InternalSystemListProjectsErrors];
+
+export type InternalSystemListProjectsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataDirectoryProjectListItemOut;
+};
+
+export type InternalSystemListProjectsResponse = InternalSystemListProjectsResponses[keyof InternalSystemListProjectsResponses];
+
+export type InternalSystemListUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * Search users by username, email, or display name.
+         */
+        q?: string | null;
+        /**
+         * Ordering
+         *
+         * Ordering fields, for example -created_at or username.
+         */
+        ordering?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/directory/users';
+};
+
+export type InternalSystemListUsersErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListUsersError = InternalSystemListUsersErrors[keyof InternalSystemListUsersErrors];
+
+export type InternalSystemListUsersResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataDirectoryUserListItemOut;
+};
+
+export type InternalSystemListUsersResponse = InternalSystemListUsersResponses[keyof InternalSystemListUsersResponses];
+
+export type InternalSystemListWorkspacesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * Search workspaces by name or description.
+         */
+        q?: string | null;
+        /**
+         * Ordering
+         *
+         * Ordering fields, for example -created_at or name.
+         */
+        ordering?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/directory/workspaces';
+};
+
+export type InternalSystemListWorkspacesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListWorkspacesError = InternalSystemListWorkspacesErrors[keyof InternalSystemListWorkspacesErrors];
+
+export type InternalSystemListWorkspacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataDirectoryWorkspaceListItemOut;
+};
+
+export type InternalSystemListWorkspacesResponse = InternalSystemListWorkspacesResponses[keyof InternalSystemListWorkspacesResponses];
 
 export type InternalSystemSendTestEmailData = {
     body: MailTestRequest;
