@@ -779,3 +779,254 @@ async def test_system_directory_rejects_self_delete() -> None:
 
     assert res.status_code == 400
     assert res.json()["error"] == "CANNOT_DELETE_SELF"
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_filters_and_governs_organizations_workspaces_and_projects() -> None:
+    acting_admin = await User.create(
+        username="directory-admin",
+        email="directory-admin@example.com",
+        display_name="Directory Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    owner = await User.create(
+        username="directory-owner",
+        email="directory-owner@example.com",
+        display_name="Directory Owner",
+        status=UserStatus.ACTIVE,
+    )
+    replacement_owner = await User.create(
+        username="replacement-owner",
+        email="replacement-owner@example.com",
+        display_name="Replacement Owner",
+        status=UserStatus.ACTIVE,
+    )
+    organization = await Organization.create(
+        name="Bravo Org",
+        slug="bravo-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=owner.id,
+        is_active=True,
+    )
+    personal_organization = await Organization.create(
+        name="Personal Org",
+        slug="personal-org",
+        kind=OrganizationKind.PERSONAL,
+        owner_user_id=owner.id,
+        is_active=False,
+    )
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=owner.id,
+        role=OrgRole.OWNER,
+        role_code=OrgRole.OWNER.value,
+        status="active",
+    )
+    workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Zulu Workspace",
+        description="Workspace before update",
+        owner_user_id=owner.id,
+        created_by_user_id=owner.id,
+        is_active=True,
+    )
+    archived_workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Archived Workspace",
+        description="Already archived",
+        owner_user_id=owner.id,
+        created_by_user_id=owner.id,
+        is_active=False,
+        archived_at=datetime(2026, 4, 2, 8, 0, 0),
+        archived_by_user_id=acting_admin.id,
+    )
+    project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="zulu-project",
+        name="Zulu Project",
+        description="Project before update",
+        created_by_user_id=owner.id,
+        is_active=True,
+    )
+    disabled_project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="disabled-project",
+        name="Disabled Project",
+        description="Disabled project",
+        created_by_user_id=owner.id,
+        is_active=False,
+    )
+    await WorkspaceMembership.create(
+        workspace_id=workspace.id,
+        user_id=owner.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    await WorkspaceMembership.create(
+        workspace_id=workspace.id,
+        user_id=replacement_owner.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    await ProjectMembership.create(
+        project_id=project.id,
+        user_id=owner.id,
+        role=ProjectMemberRole.OWNER,
+        created_by_user_id=owner.id,
+    )
+    await ProjectMembership.create(
+        project_id=project.id,
+        user_id=replacement_owner.id,
+        role=ProjectMemberRole.EDITOR,
+        created_by_user_id=owner.id,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        org_kind_res = await client.get("/api/v1/system/directory/organizations", params={"kind": "team"})
+        org_inactive_res = await client.get(
+            "/api/v1/system/directory/organizations",
+            params={"is_active": False},
+        )
+        workspace_archived_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"is_archived": True},
+        )
+        workspace_org_res = await client.get(
+            "/api/v1/system/directory/workspaces",
+            params={"organization_id": str(organization.id)},
+        )
+        project_workspace_res = await client.get(
+            "/api/v1/system/directory/projects",
+            params={"workspace_id": str(workspace.id)},
+        )
+        project_inactive_res = await client.get(
+            "/api/v1/system/directory/projects",
+            params={"is_active": False},
+        )
+
+        update_org_res = await client.patch(
+            f"/api/v1/system/directory/organizations/{organization.id}",
+            json={
+                "name": "Alpha Org",
+                "slug": "alpha-org",
+                "ownerUserId": str(replacement_owner.id),
+            },
+        )
+        disable_org_res = await client.post(f"/api/v1/system/directory/organizations/{organization.id}/disable")
+        enable_org_res = await client.post(f"/api/v1/system/directory/organizations/{organization.id}/enable")
+
+        update_workspace_res = await client.patch(
+            f"/api/v1/system/directory/workspaces/{workspace.id}",
+            json={
+                "name": "Alpha Workspace",
+                "description": "Workspace after update",
+                "iconMode": "emoji",
+                "iconEmoji": "🚀",
+                "iconColor": "#112233",
+            },
+        )
+        archive_workspace_res = await client.post(f"/api/v1/system/directory/workspaces/{workspace.id}/archive")
+        restore_workspace_res = await client.post(f"/api/v1/system/directory/workspaces/{workspace.id}/restore")
+        disable_workspace_res = await client.post(f"/api/v1/system/directory/workspaces/{workspace.id}/disable")
+        enable_workspace_res = await client.post(f"/api/v1/system/directory/workspaces/{workspace.id}/enable")
+
+        update_project_res = await client.patch(
+            f"/api/v1/system/directory/projects/{project.id}",
+            json={
+                "name": "Alpha Project",
+                "slug": "alpha-project",
+                "description": "Project after update",
+                "iconMode": "glyph",
+                "iconGlyph": "rocket",
+                "iconColor": "#334455",
+            },
+        )
+        disable_project_res = await client.post(f"/api/v1/system/directory/projects/{project.id}/disable")
+        enable_project_res = await client.post(f"/api/v1/system/directory/projects/{project.id}/enable")
+        delete_project_res = await client.request(
+            "DELETE",
+            f"/api/v1/system/directory/projects/{disabled_project.id}",
+            json={"confirmName": "Disabled Project"},
+        )
+
+    assert org_kind_res.status_code == 200
+    assert [item["name"] for item in org_kind_res.json()["data"]["items"]] == ["Bravo Org"]
+    assert org_inactive_res.status_code == 200
+    assert [item["name"] for item in org_inactive_res.json()["data"]["items"]] == ["Personal Org"]
+
+    assert workspace_archived_res.status_code == 200
+    assert [item["name"] for item in workspace_archived_res.json()["data"]["items"]] == ["Archived Workspace"]
+    assert workspace_org_res.status_code == 200
+    assert {item["name"] for item in workspace_org_res.json()["data"]["items"]} == {
+        "Zulu Workspace",
+        "Archived Workspace",
+    }
+
+    assert project_workspace_res.status_code == 200
+    assert {item["name"] for item in project_workspace_res.json()["data"]["items"]} == {
+        "Zulu Project",
+        "Disabled Project",
+    }
+    assert project_inactive_res.status_code == 200
+    assert [item["name"] for item in project_inactive_res.json()["data"]["items"]] == ["Disabled Project"]
+
+    assert update_org_res.status_code == 200
+    assert update_org_res.json()["data"]["name"] == "Alpha Org"
+    assert update_org_res.json()["data"]["slug"] == "alpha-org"
+    assert update_org_res.json()["data"]["owner"]["username"] == "replacement-owner"
+    assert disable_org_res.status_code == 200
+    assert disable_org_res.json()["data"]["isActive"] is False
+    assert enable_org_res.status_code == 200
+    assert enable_org_res.json()["data"]["isActive"] is True
+
+    assert update_workspace_res.status_code == 200
+    assert update_workspace_res.json()["data"]["name"] == "Alpha Workspace"
+    assert update_workspace_res.json()["data"]["description"] == "Workspace after update"
+    assert update_workspace_res.json()["data"]["iconEmoji"] == "🚀"
+    assert archive_workspace_res.status_code == 200
+    assert archive_workspace_res.json()["data"]["isArchived"] is True
+    assert restore_workspace_res.status_code == 200
+    assert restore_workspace_res.json()["data"]["isArchived"] is False
+    assert disable_workspace_res.status_code == 200
+    assert disable_workspace_res.json()["data"]["isActive"] is False
+    assert enable_workspace_res.status_code == 200
+    assert enable_workspace_res.json()["data"]["isActive"] is True
+
+    assert update_project_res.status_code == 200
+    assert update_project_res.json()["data"]["name"] == "Alpha Project"
+    assert update_project_res.json()["data"]["slug"] == "alpha-project"
+    assert update_project_res.json()["data"]["iconGlyph"] == "rocket"
+    assert disable_project_res.status_code == 200
+    assert disable_project_res.json()["data"]["isActive"] is False
+    assert enable_project_res.status_code == 200
+    assert enable_project_res.json()["data"]["isActive"] is True
+    assert delete_project_res.status_code == 200
+    assert delete_project_res.json()["data"] is None
+
+    refreshed_org = await Organization.get(id=organization.id)
+    refreshed_workspace = await Workspace.get(id=workspace.id)
+    refreshed_project = await ProjectRecord.get(id=project.id)
+    assert refreshed_org.owner_user_id == replacement_owner.id
+    replacement_membership = await OrgMembership.get(
+        organization_id=organization.id,
+        user_id=replacement_owner.id,
+    )
+    previous_owner_membership = await OrgMembership.get(
+        organization_id=organization.id,
+        user_id=owner.id,
+    )
+    assert replacement_membership.role == OrgRole.OWNER
+    assert previous_owner_membership.role == OrgRole.ADMIN
+    assert refreshed_workspace.name == "Alpha Workspace"
+    assert refreshed_workspace.icon_emoji == "🚀"
+    assert refreshed_project.name == "Alpha Project"
+    assert refreshed_project.slug == "alpha-project"
+    assert refreshed_project.icon_glyph == "rocket"
+    assert await ProjectRecord.filter(id=disabled_project.id).count() == 0

@@ -86,7 +86,6 @@ describe("SystemDirectoryShell", () => {
     );
 
     expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TITLE")).toBeInTheDocument();
-    expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_DESC")).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_USERS")).toBeInTheDocument();
     expect(
       screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_ORGANIZATIONS"),

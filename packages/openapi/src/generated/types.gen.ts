@@ -4050,6 +4050,18 @@ export type DirectoryActorSummaryOut = {
 };
 
 /**
+ * DirectoryDeleteRequest
+ */
+export type DirectoryDeleteRequest = {
+    /**
+     * Confirmname
+     *
+     * Current entity name confirmation for destructive delete.
+     */
+    confirmName: string;
+};
+
+/**
  * DirectoryOrganizationDetailOut
  */
 export type DirectoryOrganizationDetailOut = {
@@ -4183,6 +4195,30 @@ export type DirectoryOrganizationListItemOut = {
      * Workspace count.
      */
     workspaceCount?: number;
+};
+
+/**
+ * DirectoryOrganizationUpdateRequest
+ */
+export type DirectoryOrganizationUpdateRequest = {
+    /**
+     * Name
+     *
+     * Organization name.
+     */
+    name?: string | null;
+    /**
+     * Owneruserid
+     *
+     * Organization owner user id.
+     */
+    ownerUserId?: string | null;
+    /**
+     * Slug
+     *
+     * Organization slug.
+     */
+    slug?: string | null;
 };
 
 /**
@@ -4371,6 +4407,58 @@ export type DirectoryProjectListItemOut = {
      * Workspace name.
      */
     workspaceName: string;
+};
+
+/**
+ * DirectoryProjectUpdateRequest
+ */
+export type DirectoryProjectUpdateRequest = {
+    /**
+     * Description
+     *
+     * Project description.
+     */
+    description?: string | null;
+    /**
+     * Iconcolor
+     *
+     * Project icon background color.
+     */
+    iconColor?: string | null;
+    /**
+     * Iconemoji
+     *
+     * Project icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Project icon glyph id.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Project icon presentation mode.
+     */
+    iconMode?: WorkspaceIconMode | null;
+    /**
+     * Iconurl
+     *
+     * Project icon URL.
+     */
+    iconUrl?: string | null;
+    /**
+     * Name
+     *
+     * Project name.
+     */
+    name?: string | null;
+    /**
+     * Slug
+     *
+     * Project slug.
+     */
+    slug?: string | null;
 };
 
 /**
@@ -4789,6 +4877,52 @@ export type DirectoryWorkspaceListItemOut = {
      * Workspace id.
      */
     workspaceId: string;
+};
+
+/**
+ * DirectoryWorkspaceUpdateRequest
+ */
+export type DirectoryWorkspaceUpdateRequest = {
+    /**
+     * Description
+     *
+     * Workspace description.
+     */
+    description?: string | null;
+    /**
+     * Iconcolor
+     *
+     * Workspace icon background color.
+     */
+    iconColor?: string | null;
+    /**
+     * Iconemoji
+     *
+     * Workspace icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Workspace icon glyph id.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Workspace icon presentation mode.
+     */
+    iconMode?: WorkspaceIconMode | null;
+    /**
+     * Iconurl
+     *
+     * Workspace icon URL.
+     */
+    iconUrl?: string | null;
+    /**
+     * Name
+     *
+     * Workspace name.
+     */
+    name?: string | null;
 };
 
 /**
@@ -26009,6 +26143,18 @@ export type InternalSystemListOrganizationsData = {
          */
         ordering?: string | null;
         /**
+         * Kind
+         *
+         * Filter by organization kind.
+         */
+        kind?: string | null;
+        /**
+         * Is Active
+         *
+         * Filter by active state.
+         */
+        is_active?: boolean | null;
+        /**
          * Page
          *
          * Page number (1-based).
@@ -26042,6 +26188,36 @@ export type InternalSystemListOrganizationsResponses = {
 
 export type InternalSystemListOrganizationsResponse = InternalSystemListOrganizationsResponses[keyof InternalSystemListOrganizationsResponses];
 
+export type InternalSystemDeleteOrganizationData = {
+    body: DirectoryDeleteRequest;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/organizations/{organization_id}';
+};
+
+export type InternalSystemDeleteOrganizationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDeleteOrganizationError = InternalSystemDeleteOrganizationErrors[keyof InternalSystemDeleteOrganizationErrors];
+
+export type InternalSystemDeleteOrganizationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type InternalSystemDeleteOrganizationResponse = InternalSystemDeleteOrganizationResponses[keyof InternalSystemDeleteOrganizationResponses];
+
 export type InternalSystemGetOrganizationDetailData = {
     body?: never;
     path: {
@@ -26072,6 +26248,96 @@ export type InternalSystemGetOrganizationDetailResponses = {
 
 export type InternalSystemGetOrganizationDetailResponse = InternalSystemGetOrganizationDetailResponses[keyof InternalSystemGetOrganizationDetailResponses];
 
+export type InternalSystemUpdateOrganizationData = {
+    body: DirectoryOrganizationUpdateRequest;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/organizations/{organization_id}';
+};
+
+export type InternalSystemUpdateOrganizationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateOrganizationError = InternalSystemUpdateOrganizationErrors[keyof InternalSystemUpdateOrganizationErrors];
+
+export type InternalSystemUpdateOrganizationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryOrganizationDetailOut;
+};
+
+export type InternalSystemUpdateOrganizationResponse = InternalSystemUpdateOrganizationResponses[keyof InternalSystemUpdateOrganizationResponses];
+
+export type InternalSystemDisableOrganizationData = {
+    body?: never;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/organizations/{organization_id}/disable';
+};
+
+export type InternalSystemDisableOrganizationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDisableOrganizationError = InternalSystemDisableOrganizationErrors[keyof InternalSystemDisableOrganizationErrors];
+
+export type InternalSystemDisableOrganizationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryOrganizationDetailOut;
+};
+
+export type InternalSystemDisableOrganizationResponse = InternalSystemDisableOrganizationResponses[keyof InternalSystemDisableOrganizationResponses];
+
+export type InternalSystemEnableOrganizationData = {
+    body?: never;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/organizations/{organization_id}/enable';
+};
+
+export type InternalSystemEnableOrganizationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemEnableOrganizationError = InternalSystemEnableOrganizationErrors[keyof InternalSystemEnableOrganizationErrors];
+
+export type InternalSystemEnableOrganizationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryOrganizationDetailOut;
+};
+
+export type InternalSystemEnableOrganizationResponse = InternalSystemEnableOrganizationResponses[keyof InternalSystemEnableOrganizationResponses];
+
 export type InternalSystemListProjectsData = {
     body?: never;
     path?: never;
@@ -26088,6 +26354,24 @@ export type InternalSystemListProjectsData = {
          * Ordering fields, for example -created_at or name.
          */
         ordering?: string | null;
+        /**
+         * Organization Id
+         *
+         * Filter by organization id.
+         */
+        organization_id?: string | null;
+        /**
+         * Workspace Id
+         *
+         * Filter by workspace id.
+         */
+        workspace_id?: string | null;
+        /**
+         * Is Active
+         *
+         * Filter by active state.
+         */
+        is_active?: boolean | null;
         /**
          * Page
          *
@@ -26122,6 +26406,36 @@ export type InternalSystemListProjectsResponses = {
 
 export type InternalSystemListProjectsResponse = InternalSystemListProjectsResponses[keyof InternalSystemListProjectsResponses];
 
+export type InternalSystemDeleteProjectData = {
+    body: DirectoryDeleteRequest;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/projects/{project_id}';
+};
+
+export type InternalSystemDeleteProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDeleteProjectError = InternalSystemDeleteProjectErrors[keyof InternalSystemDeleteProjectErrors];
+
+export type InternalSystemDeleteProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type InternalSystemDeleteProjectResponse = InternalSystemDeleteProjectResponses[keyof InternalSystemDeleteProjectResponses];
+
 export type InternalSystemGetProjectDetailData = {
     body?: never;
     path: {
@@ -26152,6 +26466,96 @@ export type InternalSystemGetProjectDetailResponses = {
 
 export type InternalSystemGetProjectDetailResponse = InternalSystemGetProjectDetailResponses[keyof InternalSystemGetProjectDetailResponses];
 
+export type InternalSystemUpdateProjectData = {
+    body: DirectoryProjectUpdateRequest;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/projects/{project_id}';
+};
+
+export type InternalSystemUpdateProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateProjectError = InternalSystemUpdateProjectErrors[keyof InternalSystemUpdateProjectErrors];
+
+export type InternalSystemUpdateProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryProjectDetailOut;
+};
+
+export type InternalSystemUpdateProjectResponse = InternalSystemUpdateProjectResponses[keyof InternalSystemUpdateProjectResponses];
+
+export type InternalSystemDisableProjectData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/projects/{project_id}/disable';
+};
+
+export type InternalSystemDisableProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDisableProjectError = InternalSystemDisableProjectErrors[keyof InternalSystemDisableProjectErrors];
+
+export type InternalSystemDisableProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryProjectDetailOut;
+};
+
+export type InternalSystemDisableProjectResponse = InternalSystemDisableProjectResponses[keyof InternalSystemDisableProjectResponses];
+
+export type InternalSystemEnableProjectData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/projects/{project_id}/enable';
+};
+
+export type InternalSystemEnableProjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemEnableProjectError = InternalSystemEnableProjectErrors[keyof InternalSystemEnableProjectErrors];
+
+export type InternalSystemEnableProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryProjectDetailOut;
+};
+
+export type InternalSystemEnableProjectResponse = InternalSystemEnableProjectResponses[keyof InternalSystemEnableProjectResponses];
+
 export type InternalSystemListUsersData = {
     body?: never;
     path?: never;
@@ -26168,6 +26572,36 @@ export type InternalSystemListUsersData = {
          * Ordering fields, for example -created_at or username.
          */
         ordering?: string | null;
+        /**
+         * Status
+         *
+         * Filter by account status.
+         */
+        status?: string | null;
+        /**
+         * Is Super Admin
+         *
+         * Filter by super admin permission.
+         */
+        is_super_admin?: boolean | null;
+        /**
+         * Has Password
+         *
+         * Filter by local password configuration.
+         */
+        has_password?: boolean | null;
+        /**
+         * Two Factor Enabled
+         *
+         * Filter by two-factor authentication.
+         */
+        two_factor_enabled?: boolean | null;
+        /**
+         * Oauth Provider
+         *
+         * Filter by OAuth linkage. Use any or none.
+         */
+        oauth_provider?: string | null;
         /**
          * Page
          *
@@ -26775,6 +27209,24 @@ export type InternalSystemListWorkspacesData = {
          */
         ordering?: string | null;
         /**
+         * Organization Id
+         *
+         * Filter by organization id.
+         */
+        organization_id?: string | null;
+        /**
+         * Is Archived
+         *
+         * Filter by archive state.
+         */
+        is_archived?: boolean | null;
+        /**
+         * Is Active
+         *
+         * Filter by active state.
+         */
+        is_active?: boolean | null;
+        /**
          * Page
          *
          * Page number (1-based).
@@ -26808,6 +27260,36 @@ export type InternalSystemListWorkspacesResponses = {
 
 export type InternalSystemListWorkspacesResponse = InternalSystemListWorkspacesResponses[keyof InternalSystemListWorkspacesResponses];
 
+export type InternalSystemDeleteWorkspaceData = {
+    body: DirectoryDeleteRequest;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/workspaces/{workspace_id}';
+};
+
+export type InternalSystemDeleteWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDeleteWorkspaceError = InternalSystemDeleteWorkspaceErrors[keyof InternalSystemDeleteWorkspaceErrors];
+
+export type InternalSystemDeleteWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type InternalSystemDeleteWorkspaceResponse = InternalSystemDeleteWorkspaceResponses[keyof InternalSystemDeleteWorkspaceResponses];
+
 export type InternalSystemGetWorkspaceDetailData = {
     body?: never;
     path: {
@@ -26837,6 +27319,156 @@ export type InternalSystemGetWorkspaceDetailResponses = {
 };
 
 export type InternalSystemGetWorkspaceDetailResponse = InternalSystemGetWorkspaceDetailResponses[keyof InternalSystemGetWorkspaceDetailResponses];
+
+export type InternalSystemUpdateWorkspaceData = {
+    body: DirectoryWorkspaceUpdateRequest;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/workspaces/{workspace_id}';
+};
+
+export type InternalSystemUpdateWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateWorkspaceError = InternalSystemUpdateWorkspaceErrors[keyof InternalSystemUpdateWorkspaceErrors];
+
+export type InternalSystemUpdateWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryWorkspaceDetailOut;
+};
+
+export type InternalSystemUpdateWorkspaceResponse = InternalSystemUpdateWorkspaceResponses[keyof InternalSystemUpdateWorkspaceResponses];
+
+export type InternalSystemArchiveWorkspaceData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/workspaces/{workspace_id}/archive';
+};
+
+export type InternalSystemArchiveWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemArchiveWorkspaceError = InternalSystemArchiveWorkspaceErrors[keyof InternalSystemArchiveWorkspaceErrors];
+
+export type InternalSystemArchiveWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryWorkspaceDetailOut;
+};
+
+export type InternalSystemArchiveWorkspaceResponse = InternalSystemArchiveWorkspaceResponses[keyof InternalSystemArchiveWorkspaceResponses];
+
+export type InternalSystemDisableWorkspaceData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/workspaces/{workspace_id}/disable';
+};
+
+export type InternalSystemDisableWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDisableWorkspaceError = InternalSystemDisableWorkspaceErrors[keyof InternalSystemDisableWorkspaceErrors];
+
+export type InternalSystemDisableWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryWorkspaceDetailOut;
+};
+
+export type InternalSystemDisableWorkspaceResponse = InternalSystemDisableWorkspaceResponses[keyof InternalSystemDisableWorkspaceResponses];
+
+export type InternalSystemEnableWorkspaceData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/workspaces/{workspace_id}/enable';
+};
+
+export type InternalSystemEnableWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemEnableWorkspaceError = InternalSystemEnableWorkspaceErrors[keyof InternalSystemEnableWorkspaceErrors];
+
+export type InternalSystemEnableWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryWorkspaceDetailOut;
+};
+
+export type InternalSystemEnableWorkspaceResponse = InternalSystemEnableWorkspaceResponses[keyof InternalSystemEnableWorkspaceResponses];
+
+export type InternalSystemRestoreWorkspaceData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/directory/workspaces/{workspace_id}/restore';
+};
+
+export type InternalSystemRestoreWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemRestoreWorkspaceError = InternalSystemRestoreWorkspaceErrors[keyof InternalSystemRestoreWorkspaceErrors];
+
+export type InternalSystemRestoreWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDirectoryWorkspaceDetailOut;
+};
+
+export type InternalSystemRestoreWorkspaceResponse = InternalSystemRestoreWorkspaceResponses[keyof InternalSystemRestoreWorkspaceResponses];
 
 export type InternalSystemSendTestEmailData = {
     body: MailTestRequest;

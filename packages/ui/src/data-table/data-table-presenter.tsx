@@ -9,7 +9,6 @@ import { Button } from "@arclayer/ui/button";
 import { DataTablePresenterBody } from "./data-table-presenter-body";
 import { DataTablePresenterHeader } from "./data-table-presenter-header";
 import { DataTableRefreshOverlay } from "./data-table-refresh-overlay";
-import { DataTableScrollOverflowGradient } from "./data-table-scroll-overflow-gradient";
 import { useNormalizedDataTableColumnOrder } from "./data-table-column-settings-utils";
 import type { DataTableColumnHeaderFilterAction } from "./data-table-column-header-menu";
 import type { DataTableColumnMenuLabels } from "./data-table-tools.types";
@@ -19,7 +18,6 @@ import {
   type DataTableInfiniteScrollState,
   type DataTableRowHeight,
 } from "./types";
-import { useScrollOverflow } from "./use-scroll-overflow";
 
 type DataTableToolbarSlots = {
   fullWidth?: React.ReactNode;
@@ -99,10 +97,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const canScrollRight = useScrollOverflow(scrollRef);
-
-  const rightPinnedWidth = table.getRightLeafColumns().reduce((sum, col) => sum + col.getSize(), 0);
-  const hasRightPinned = rightPinnedWidth > 0;
 
   useNormalizedDataTableColumnOrder(table);
 
@@ -193,12 +187,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
             refreshing ? "pointer-events-none opacity-90" : "",
           )}
         >
-          <DataTableScrollOverflowGradient
-            enabled={hasRightPinned}
-            visible={canScrollRight}
-            rightOffset={rightPinnedWidth}
-          />
-
           <table className={cn("min-w-full caption-bottom text-callout", tableClassName)}>
             <DataTablePresenterHeader
               table={table}

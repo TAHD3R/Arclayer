@@ -1,36 +1,55 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from datetime import UTC, datetime
 from math import ceil
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
 from src.common.services import BaseService
+from src.common.utils.slug import slugify
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.models.organization.org_membership import OrgRole
+from src.models.organization.organization import OrganizationKind
 from src.models.organization.user import User, UserStatus
 from src.modules.auth.account_deletion.guard import AccountDeletionGuard
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import hash_password
 from src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.modules.organization.repository import OrganizationRepository
+from src.modules.organization.settings.service import OrganizationSettingsService
+from src.modules.organization.workspaces.service import OrganizationWorkspaceService
+from src.modules.projects.schema import ProjectUpdateRequest
+from src.modules.projects.service import ProjectService
 from src.modules.system.directory.repository import SystemDirectoryRepository
 from src.modules.system.directory.schema import (
     DirectoryActorSummaryOut,
+    DirectoryDeleteRequest,
     DirectoryOrganizationDetailOut,
+    DirectoryOrganizationListFilters,
     DirectoryOrganizationListItemOut,
+    DirectoryOrganizationUpdateRequest,
     DirectoryProjectDetailOut,
+    DirectoryProjectListFilters,
     DirectoryProjectListItemOut,
+    DirectoryProjectUpdateRequest,
     DirectoryUserDetailOut,
     DirectoryUserListFilters,
     DirectoryUserListItemOut,
     DirectoryUserResetPasswordRequest,
     DirectoryUserUpdateRequest,
     DirectoryWorkspaceDetailOut,
+    DirectoryWorkspaceListFilters,
     DirectoryWorkspaceListItemOut,
+    DirectoryWorkspaceUpdateRequest,
 )
+from src.modules.workspaces.schema import WorkspaceUpdateRequest
+from src.modules.workspaces.service import WorkspaceService
 from src.platform.cache.valkey import ValkeyClientLike
 
 
@@ -55,13 +74,25 @@ def _user_id(value: object | None) -> UUID | None:
     return UUID(str(value))
 
 
+def _normalize_slug_value(value: str, *, fallback: str) -> str:
+    normalized = slugify(value)[:64]
+    if normalized == "asset" or not normalized:
+        normalized = slugify(fallback)[:64] or "entity"
+    return normalized
+
+
 class SystemDirectoryService(BaseService):
     def __init__(self, settings: Settings, *, valkey: ValkeyClientLike | None = None) -> None:
         super().__init__(settings)
         self.repo = SystemDirectoryRepository()
         self.user_repo = UserRepository()
+        self.organization_repo = OrganizationRepository()
         self.auth_service = AuthService(settings, valkey=valkey, user_repo=self.user_repo)
         self.two_factor_service = AuthTwoFactorService(settings)
+        self.workspace_service = WorkspaceService(settings)
+        self.project_service = ProjectService(settings)
+        self.organization_settings_service = OrganizationSettingsService(settings)
+        self.organization_workspace_service = OrganizationWorkspaceService(settings)
 
     @staticmethod
     def _to_actor(user: User | None) -> DirectoryActorSummaryOut | None:
@@ -345,13 +376,26 @@ class SystemDirectoryService(BaseService):
         params: PageParams,
         q: str | None,
         ordering: str | None,
+        filters: DirectoryOrganizationListFilters,
     ) -> PageData[DirectoryOrganizationListItemOut]:
-        total = await self.repo.count_organizations(q=q)
-        rows = await self.repo.list_organizations_page(
-            q=q,
-            ordering=ordering,
-            offset=params.offset,
-            limit=params.limit,
+        count_sort_requested = ordering in {
+            "member_count",
+            "-member_count",
+            "workspace_count",
+            "-workspace_count",
+            "project_count",
+            "-project_count",
+        }
+        rows = (
+            await self.repo.list_organizations_all(q=q, ordering=ordering, filters=filters)
+            if count_sort_requested
+            else await self.repo.list_organizations_page(
+                q=q,
+                ordering=ordering,
+                filters=filters,
+                offset=params.offset,
+                limit=params.limit,
+            )
         )
         organization_ids = [UUID(str(row.id)) for row in rows]
         owner_ids = [_user_id(row.owner_user_id) for row in rows]
@@ -359,7 +403,6 @@ class SystemDirectoryService(BaseService):
         member_counts = await self.repo.count_org_memberships_by_org_ids(organization_ids=organization_ids)
         workspace_counts = await self.repo.count_workspaces_by_org_ids(organization_ids=organization_ids)
         project_counts = await self.repo.count_projects_by_org_ids(organization_ids=organization_ids)
-
         items = [
             DirectoryOrganizationListItemOut(
                 organization_id=row.id,
@@ -375,6 +418,12 @@ class SystemDirectoryService(BaseService):
             )
             for row, owner_id in zip(rows, owner_ids, strict=False)
         ]
+        if count_sort_requested:
+            items = self._sort_organization_items(items=items, ordering=ordering)
+            total = len(items)
+            items = items[params.offset : params.offset + params.limit]
+            return _build_page(items, total=total, params=params)
+        total = await self.repo.count_organizations(q=q, filters=filters)
         return _build_page(items, total=total, params=params)
 
     async def get_organization_detail(self, *, organization_id: UUID) -> DirectoryOrganizationDetailOut:
@@ -409,13 +458,19 @@ class SystemDirectoryService(BaseService):
         params: PageParams,
         q: str | None,
         ordering: str | None,
+        filters: DirectoryWorkspaceListFilters,
     ) -> PageData[DirectoryWorkspaceListItemOut]:
-        total = await self.repo.count_workspaces(q=q)
-        rows = await self.repo.list_workspaces_page(
-            q=q,
-            ordering=ordering,
-            offset=params.offset,
-            limit=params.limit,
+        count_sort_requested = ordering in {"member_count", "-member_count", "project_count", "-project_count"}
+        rows = (
+            await self.repo.list_workspaces_all(q=q, ordering=ordering, filters=filters)
+            if count_sort_requested
+            else await self.repo.list_workspaces_page(
+                q=q,
+                ordering=ordering,
+                filters=filters,
+                offset=params.offset,
+                limit=params.limit,
+            )
         )
         workspace_ids = [UUID(str(row.id)) for row in rows]
         owner_ids = [_user_id(row.owner_user_id) for row in rows]
@@ -439,6 +494,12 @@ class SystemDirectoryService(BaseService):
             )
             for row, owner_id in zip(rows, owner_ids, strict=False)
         ]
+        if count_sort_requested:
+            items = self._sort_workspace_items(items=items, ordering=ordering)
+            total = len(items)
+            items = items[params.offset : params.offset + params.limit]
+            return _build_page(items, total=total, params=params)
+        total = await self.repo.count_workspaces(q=q, filters=filters)
         return _build_page(items, total=total, params=params)
 
     async def get_workspace_detail(self, *, workspace_id: UUID) -> DirectoryWorkspaceDetailOut:
@@ -478,13 +539,19 @@ class SystemDirectoryService(BaseService):
         params: PageParams,
         q: str | None,
         ordering: str | None,
+        filters: DirectoryProjectListFilters,
     ) -> PageData[DirectoryProjectListItemOut]:
-        total = await self.repo.count_projects(q=q)
-        rows = await self.repo.list_projects_page(
-            q=q,
-            ordering=ordering,
-            offset=params.offset,
-            limit=params.limit,
+        count_sort_requested = ordering in {"member_count", "-member_count"}
+        rows = (
+            await self.repo.list_projects_all(q=q, ordering=ordering, filters=filters)
+            if count_sort_requested
+            else await self.repo.list_projects_page(
+                q=q,
+                ordering=ordering,
+                filters=filters,
+                offset=params.offset,
+                limit=params.limit,
+            )
         )
         project_ids = [UUID(str(row.id)) for row in rows]
         owner_ids = [_user_id(row.created_by_user_id) for row in rows]
@@ -508,6 +575,12 @@ class SystemDirectoryService(BaseService):
             )
             for row, owner_id in zip(rows, owner_ids, strict=False)
         ]
+        if count_sort_requested:
+            items = self._sort_project_items(items=items, ordering=ordering)
+            total = len(items)
+            items = items[params.offset : params.offset + params.limit]
+            return _build_page(items, total=total, params=params)
+        total = await self.repo.count_projects(q=q, filters=filters)
         return _build_page(items, total=total, params=params)
 
     async def get_project_detail(self, *, project_id: UUID) -> DirectoryProjectDetailOut:
@@ -539,3 +612,281 @@ class SystemDirectoryService(BaseService):
             icon_emoji=row.icon_emoji,
             icon_url=row.icon_url,
         )
+
+    async def update_organization(
+        self,
+        *,
+        organization_id: UUID,
+        payload: DirectoryOrganizationUpdateRequest,
+    ) -> DirectoryOrganizationDetailOut:
+        row = await self.repo.get_organization_by_id(organization_id=organization_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+
+        updates: dict[str, object | None] = {}
+        model_fields_set = getattr(payload, "model_fields_set", set())
+
+        if "name" in model_fields_set:
+            name = str(payload.name or "").strip()
+            if not name:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_ORGANIZATION_NAME")
+            updates["name"] = name
+
+        if "slug" in model_fields_set:
+            next_slug = _normalize_slug_value(str(payload.slug or ""), fallback=str(payload.name or row.name))
+            if await self.repo.organization_slug_exists(slug=next_slug, exclude_organization_id=organization_id):
+                raise Conflict(message=t("errors", "BAD_REQUEST"), error="ORGANIZATION_SLUG_EXISTS")
+            updates["slug"] = next_slug
+
+        if "owner_user_id" in model_fields_set:
+            owner_user_id = _user_id(payload.owner_user_id)
+            if owner_user_id is None:
+                updates["owner_user_id"] = None
+            else:
+                owner = await self.repo.get_user_by_id(user_id=owner_user_id)
+                if owner is None:
+                    raise NotFound(error="NOT_FOUND")
+                await self.organization_repo.ensure_org_membership(
+                    user_id=owner_user_id,
+                    organization_id=organization_id,
+                    role=OrgRole.OWNER,
+                )
+                updates["owner_user_id"] = owner.id
+                await self._downgrade_previous_owner_membership(
+                    organization_id=organization_id,
+                    previous_owner_id=_user_id(row.owner_user_id),
+                    next_owner_id=owner_user_id,
+                    organization_kind=row.kind,
+                )
+
+        if updates:
+            for field, value in updates.items():
+                setattr(row, field, value)
+            await row.save(update_fields=[*sorted(updates.keys()), "updated_at"])
+
+        return await self.get_organization_detail(organization_id=organization_id)
+
+    async def set_organization_enabled(
+        self,
+        *,
+        organization_id: UUID,
+        enabled: bool,
+    ) -> DirectoryOrganizationDetailOut:
+        row = await self.repo.get_organization_by_id(organization_id=organization_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+        if bool(row.is_active) != enabled:
+            row.is_active = enabled
+            await row.save(update_fields=["is_active", "updated_at"])
+        return await self.get_organization_detail(organization_id=organization_id)
+
+    async def update_workspace(
+        self,
+        *,
+        workspace_id: UUID,
+        payload: DirectoryWorkspaceUpdateRequest,
+        actor_user_id: UUID,
+    ) -> DirectoryWorkspaceDetailOut:
+        workspace = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
+        if workspace is None:
+            raise NotFound(error="NOT_FOUND")
+        service_payload = payload.model_dump(exclude_none=False, by_alias=False)
+        detail = await self.workspace_service.update_workspace(
+            organization_id=UUID(str(workspace.organization_id)),
+            workspace_id=workspace_id,
+            payload=WorkspaceUpdateRequest(**service_payload),
+            actor_user_id=actor_user_id,
+        )
+        return await self.get_workspace_detail(workspace_id=UUID(str(detail.id)))
+
+    async def set_workspace_enabled(
+        self,
+        *,
+        workspace_id: UUID,
+        enabled: bool,
+    ) -> DirectoryWorkspaceDetailOut:
+        row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+        if bool(row.is_active) != enabled:
+            row.is_active = enabled
+            await row.save(update_fields=["is_active", "updated_at"])
+        return await self.get_workspace_detail(workspace_id=workspace_id)
+
+    async def archive_workspace(
+        self,
+        *,
+        workspace_id: UUID,
+        acting_user_id: UUID,
+    ) -> DirectoryWorkspaceDetailOut:
+        row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+        if row.archived_at is None:
+            row.archived_at = datetime.now(UTC)
+            row.archived_by_user_id = acting_user_id
+            await row.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"])
+        return await self.get_workspace_detail(workspace_id=workspace_id)
+
+    async def restore_workspace(
+        self,
+        *,
+        workspace_id: UUID,
+        acting_user_id: UUID,
+    ) -> DirectoryWorkspaceDetailOut:
+        row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+        if row.archived_at is not None or row.archived_by_user_id is not None:
+            row.archived_at = None
+            row.archived_by_user_id = None
+            await row.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"])
+        return await self.get_workspace_detail(workspace_id=workspace_id)
+
+    async def update_project(
+        self,
+        *,
+        project_id: UUID,
+        payload: DirectoryProjectUpdateRequest,
+    ) -> DirectoryProjectDetailOut:
+        service_payload = ProjectUpdateRequest(**payload.model_dump(exclude_none=False, by_alias=False))
+        await self.project_service.update_project(project_id=project_id, payload=service_payload)
+        return await self.get_project_detail(project_id=project_id)
+
+    async def set_project_enabled(
+        self,
+        *,
+        project_id: UUID,
+        enabled: bool,
+    ) -> DirectoryProjectDetailOut:
+        row = await self.repo.get_project_by_id(project_id=project_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+        if bool(row.is_active) != enabled:
+            row.is_active = enabled
+            await row.save(update_fields=["is_active", "updated_at"])
+        return await self.get_project_detail(project_id=project_id)
+
+    async def delete_project(
+        self,
+        *,
+        project_id: UUID,
+        payload: DirectoryDeleteRequest,
+        acting_user_id: UUID,
+    ) -> None:
+        row = await self.repo.get_project_by_id(project_id=project_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+        normalized_confirm_name = str(payload.confirm_name or "").strip()
+        if normalized_confirm_name != str(row.name):
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="PROJECT_DELETE_CONFIRM_NAME_MISMATCH")
+        await self.project_service.delete_project(project_id=project_id)
+
+    async def delete_organization(
+        self,
+        *,
+        organization_id: UUID,
+        payload: DirectoryDeleteRequest,
+    ) -> None:
+        await self.organization_settings_service.delete_organization(
+            organization_id=organization_id,
+            confirm_name=payload.confirm_name,
+        )
+
+    async def delete_workspace(
+        self,
+        *,
+        workspace_id: UUID,
+        payload: DirectoryDeleteRequest,
+        acting_user_id: UUID,
+    ) -> None:
+        row = await self.repo.get_workspace_by_id(workspace_id=workspace_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+        await self.organization_workspace_service.delete_workspace(
+            organization_id=UUID(str(row.organization_id)),
+            workspace_id=workspace_id,
+            user_id=acting_user_id,
+            org_role=OrgRole.OWNER,
+            confirm_name=payload.confirm_name,
+        )
+
+    async def _downgrade_previous_owner_membership(
+        self,
+        *,
+        organization_id: UUID,
+        previous_owner_id: UUID | None,
+        next_owner_id: UUID | None,
+        organization_kind: str | OrganizationKind,
+    ) -> None:
+        if previous_owner_id is None or previous_owner_id == next_owner_id:
+            return
+        if str(organization_kind) == OrganizationKind.PERSONAL.value:
+            return
+        membership = await self.repo.get_org_membership(organization_id=organization_id, user_id=previous_owner_id)
+        if membership is None:
+            return
+        membership.role = OrgRole.ADMIN
+        membership.role_code = OrgRole.ADMIN.value
+        await membership.save(update_fields=["role", "role_code", "updated_at"])
+
+    def _sort_organization_items(
+        self,
+        *,
+        items: list[DirectoryOrganizationListItemOut],
+        ordering: str | None,
+    ) -> list[DirectoryOrganizationListItemOut]:
+        return self._sort_items_with_key(
+            items=items,
+            ordering=ordering,
+            accessors={
+                "member_count": lambda item: item.member_count,
+                "workspace_count": lambda item: item.workspace_count,
+                "project_count": lambda item: item.project_count,
+            },
+        )
+
+    def _sort_workspace_items(
+        self,
+        *,
+        items: list[DirectoryWorkspaceListItemOut],
+        ordering: str | None,
+    ) -> list[DirectoryWorkspaceListItemOut]:
+        return self._sort_items_with_key(
+            items=items,
+            ordering=ordering,
+            accessors={
+                "member_count": lambda item: item.member_count,
+                "project_count": lambda item: item.project_count,
+            },
+        )
+
+    def _sort_project_items(
+        self,
+        *,
+        items: list[DirectoryProjectListItemOut],
+        ordering: str | None,
+    ) -> list[DirectoryProjectListItemOut]:
+        return self._sort_items_with_key(
+            items=items,
+            ordering=ordering,
+            accessors={"member_count": lambda item: item.member_count},
+        )
+
+    def _sort_items_with_key[T](
+        self,
+        *,
+        items: list[T],
+        ordering: str | None,
+        accessors: dict[str, Callable[[T], object]],
+    ) -> list[T]:
+        ordered = list(items)
+        parts = [part.strip() for part in str(ordering or "").split(",") if part.strip()]
+        for raw in reversed(parts):
+            desc = raw.startswith("-")
+            field = raw[1:] if desc else raw
+            accessor = accessors.get(field)
+            if accessor is None:
+                continue
+            ordered.sort(key=lambda item, getter=accessor: getter(item), reverse=desc)
+        return ordered

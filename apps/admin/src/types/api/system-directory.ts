@@ -68,6 +68,11 @@ export type SystemDirectoryWorkspace = {
   organizationName: string;
   name: string;
   description: string | null;
+  iconMode?: string | null;
+  iconColor?: string | null;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
+  iconUrl?: string | null;
   isActive: boolean;
   isArchived: boolean;
   createdAt: string;
@@ -77,6 +82,11 @@ export type SystemDirectoryWorkspace = {
   workspace_id?: string;
   organization_id?: string;
   organization_name?: string;
+  icon_mode?: string | null;
+  icon_color?: string | null;
+  icon_glyph?: string | null;
+  icon_emoji?: string | null;
+  icon_url?: string | null;
   is_active?: boolean;
   is_archived?: boolean;
   created_at?: string;
@@ -93,6 +103,11 @@ export type SystemDirectoryProject = {
   name: string;
   slug: string;
   description: string | null;
+  iconMode?: string | null;
+  iconColor?: string | null;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
+  iconUrl?: string | null;
   isActive: boolean;
   createdAt: string;
   owner: DirectoryActorSummary | null;
@@ -102,6 +117,11 @@ export type SystemDirectoryProject = {
   workspace_name?: string;
   organization_id?: string;
   organization_name?: string;
+  icon_mode?: string | null;
+  icon_color?: string | null;
+  icon_glyph?: string | null;
+  icon_emoji?: string | null;
+  icon_url?: string | null;
   is_active?: boolean;
   created_at?: string;
   member_count?: number;

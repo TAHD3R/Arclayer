@@ -149,7 +149,11 @@ export function DebounceSelect<ValueType extends DebounceSelectOption = Debounce
         </button>
       </PopoverTrigger>
 
-      <PopoverContent align="start" sideOffset={8} className="w-[22rem] max-w-[90vw] p-0">
+      <PopoverContent
+        align="start"
+        sideOffset={8}
+        className="w-[min(var(--radix-popover-trigger-width),90vw)] min-w-[min(var(--radix-popover-trigger-width),90vw)] p-0"
+      >
         <Command shouldFilter={false}>
           <CommandInput
             value={search}

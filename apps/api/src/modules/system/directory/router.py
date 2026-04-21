@@ -23,17 +23,24 @@ from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import require_super_admin
 from src.modules.system.directory.schema import (
+    DirectoryDeleteRequest,
     DirectoryOrganizationDetailOut,
+    DirectoryOrganizationListFilters,
     DirectoryOrganizationListItemOut,
+    DirectoryOrganizationUpdateRequest,
     DirectoryProjectDetailOut,
+    DirectoryProjectListFilters,
     DirectoryProjectListItemOut,
+    DirectoryProjectUpdateRequest,
     DirectoryUserDetailOut,
     DirectoryUserListFilters,
     DirectoryUserListItemOut,
     DirectoryUserResetPasswordRequest,
     DirectoryUserUpdateRequest,
     DirectoryWorkspaceDetailOut,
+    DirectoryWorkspaceListFilters,
     DirectoryWorkspaceListItemOut,
+    DirectoryWorkspaceUpdateRequest,
 )
 from src.modules.system.directory.service import SystemDirectoryService
 from src.platform.cache.valkey import get_valkey
@@ -387,8 +394,11 @@ async def list_organizations(
     params: PageParams = Depends(get_page_params),
     q: str | None = Query(default=None, description="Search organizations by name or slug."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
+    kind: str | None = Query(default=None, description="Filter by organization kind."),
+    is_active: bool | None = Query(default=None, description="Filter by active state."),
 ) -> ResponseModel[PageData[DirectoryOrganizationListItemOut]]:
-    page = await service.list_organizations(params=params, q=q, ordering=ordering)
+    filters = DirectoryOrganizationListFilters(kind=kind, is_active=is_active)
+    page = await service.list_organizations(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
 
 
@@ -405,6 +415,60 @@ async def get_organization_detail(
     return ApiResponse.success(data=detail)
 
 
+@router.patch(
+    "/organizations/{organization_id}",
+    response_model=ResponseModel[DirectoryOrganizationDetailOut],
+    summary="Update organization metadata in the system directory",
+)
+async def update_organization(
+    organization_id: PublicUUID,
+    payload: DirectoryOrganizationUpdateRequest,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryOrganizationDetailOut]:
+    detail = await service.update_organization(organization_id=organization_id, payload=payload)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/organizations/{organization_id}/disable",
+    response_model=ResponseModel[DirectoryOrganizationDetailOut],
+    summary="Disable organization in the system directory",
+)
+async def disable_organization(
+    organization_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryOrganizationDetailOut]:
+    detail = await service.set_organization_enabled(organization_id=organization_id, enabled=False)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/organizations/{organization_id}/enable",
+    response_model=ResponseModel[DirectoryOrganizationDetailOut],
+    summary="Enable organization in the system directory",
+)
+async def enable_organization(
+    organization_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryOrganizationDetailOut]:
+    detail = await service.set_organization_enabled(organization_id=organization_id, enabled=True)
+    return ApiResponse.success(data=detail)
+
+
+@router.delete(
+    "/organizations/{organization_id}",
+    response_model=ResponseModel[None],
+    summary="Delete organization in the system directory",
+)
+async def delete_organization(
+    organization_id: PublicUUID,
+    payload: DirectoryDeleteRequest,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[None]:
+    await service.delete_organization(organization_id=organization_id, payload=payload)
+    return ApiResponse.success(data=None)
+
+
 @router.get(
     "/workspaces",
     response_model=ResponseModel[PageData[DirectoryWorkspaceListItemOut]],
@@ -415,8 +479,16 @@ async def list_workspaces(
     params: PageParams = Depends(get_page_params),
     q: str | None = Query(default=None, description="Search workspaces by name or description."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
+    organization_id: PublicUUID | None = Query(default=None, description="Filter by organization id."),
+    is_archived: bool | None = Query(default=None, description="Filter by archive state."),
+    is_active: bool | None = Query(default=None, description="Filter by active state."),
 ) -> ResponseModel[PageData[DirectoryWorkspaceListItemOut]]:
-    page = await service.list_workspaces(params=params, q=q, ordering=ordering)
+    filters = DirectoryWorkspaceListFilters(
+        organization_id=organization_id,
+        is_archived=is_archived,
+        is_active=is_active,
+    )
+    page = await service.list_workspaces(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
 
 
@@ -433,6 +505,98 @@ async def get_workspace_detail(
     return ApiResponse.success(data=detail)
 
 
+@router.patch(
+    "/workspaces/{workspace_id}",
+    response_model=ResponseModel[DirectoryWorkspaceDetailOut],
+    summary="Update workspace metadata in the system directory",
+)
+async def update_workspace(
+    workspace_id: PublicUUID,
+    payload: DirectoryWorkspaceUpdateRequest,
+    acting_user: User = Depends(require_super_admin),
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryWorkspaceDetailOut]:
+    detail = await service.update_workspace(
+        workspace_id=workspace_id,
+        payload=payload,
+        actor_user_id=acting_user.id,
+    )
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/archive",
+    response_model=ResponseModel[DirectoryWorkspaceDetailOut],
+    summary="Archive workspace in the system directory",
+)
+async def archive_workspace(
+    workspace_id: PublicUUID,
+    acting_user: User = Depends(require_super_admin),
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryWorkspaceDetailOut]:
+    detail = await service.archive_workspace(workspace_id=workspace_id, acting_user_id=acting_user.id)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/restore",
+    response_model=ResponseModel[DirectoryWorkspaceDetailOut],
+    summary="Restore workspace in the system directory",
+)
+async def restore_workspace(
+    workspace_id: PublicUUID,
+    acting_user: User = Depends(require_super_admin),
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryWorkspaceDetailOut]:
+    detail = await service.restore_workspace(workspace_id=workspace_id, acting_user_id=acting_user.id)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/disable",
+    response_model=ResponseModel[DirectoryWorkspaceDetailOut],
+    summary="Disable workspace in the system directory",
+)
+async def disable_workspace(
+    workspace_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryWorkspaceDetailOut]:
+    detail = await service.set_workspace_enabled(workspace_id=workspace_id, enabled=False)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/enable",
+    response_model=ResponseModel[DirectoryWorkspaceDetailOut],
+    summary="Enable workspace in the system directory",
+)
+async def enable_workspace(
+    workspace_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryWorkspaceDetailOut]:
+    detail = await service.set_workspace_enabled(workspace_id=workspace_id, enabled=True)
+    return ApiResponse.success(data=detail)
+
+
+@router.delete(
+    "/workspaces/{workspace_id}",
+    response_model=ResponseModel[None],
+    summary="Delete workspace in the system directory",
+)
+async def delete_workspace(
+    workspace_id: PublicUUID,
+    payload: DirectoryDeleteRequest,
+    acting_user: User = Depends(require_super_admin),
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[None]:
+    await service.delete_workspace(
+        workspace_id=workspace_id,
+        payload=payload,
+        acting_user_id=acting_user.id,
+    )
+    return ApiResponse.success(data=None)
+
+
 @router.get(
     "/projects",
     response_model=ResponseModel[PageData[DirectoryProjectListItemOut]],
@@ -443,8 +607,16 @@ async def list_projects(
     params: PageParams = Depends(get_page_params),
     q: str | None = Query(default=None, description="Search projects by name, slug, or description."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
+    organization_id: PublicUUID | None = Query(default=None, description="Filter by organization id."),
+    workspace_id: PublicUUID | None = Query(default=None, description="Filter by workspace id."),
+    is_active: bool | None = Query(default=None, description="Filter by active state."),
 ) -> ResponseModel[PageData[DirectoryProjectListItemOut]]:
-    page = await service.list_projects(params=params, q=q, ordering=ordering)
+    filters = DirectoryProjectListFilters(
+        organization_id=organization_id,
+        workspace_id=workspace_id,
+        is_active=is_active,
+    )
+    page = await service.list_projects(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
 
 
@@ -459,3 +631,62 @@ async def get_project_detail(
 ) -> ResponseModel[DirectoryProjectDetailOut]:
     detail = await service.get_project_detail(project_id=project_id)
     return ApiResponse.success(data=detail)
+
+
+@router.patch(
+    "/projects/{project_id}",
+    response_model=ResponseModel[DirectoryProjectDetailOut],
+    summary="Update project metadata in the system directory",
+)
+async def update_project(
+    project_id: PublicUUID,
+    payload: DirectoryProjectUpdateRequest,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryProjectDetailOut]:
+    detail = await service.update_project(project_id=project_id, payload=payload)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/projects/{project_id}/disable",
+    response_model=ResponseModel[DirectoryProjectDetailOut],
+    summary="Disable project in the system directory",
+)
+async def disable_project(
+    project_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryProjectDetailOut]:
+    detail = await service.set_project_enabled(project_id=project_id, enabled=False)
+    return ApiResponse.success(data=detail)
+
+
+@router.post(
+    "/projects/{project_id}/enable",
+    response_model=ResponseModel[DirectoryProjectDetailOut],
+    summary="Enable project in the system directory",
+)
+async def enable_project(
+    project_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[DirectoryProjectDetailOut]:
+    detail = await service.set_project_enabled(project_id=project_id, enabled=True)
+    return ApiResponse.success(data=detail)
+
+
+@router.delete(
+    "/projects/{project_id}",
+    response_model=ResponseModel[None],
+    summary="Delete project in the system directory",
+)
+async def delete_project(
+    project_id: PublicUUID,
+    payload: DirectoryDeleteRequest,
+    acting_user: User = Depends(require_super_admin),
+    service: SystemDirectoryService = Depends(get_directory_service),
+) -> ResponseModel[None]:
+    await service.delete_project(
+        project_id=project_id,
+        payload=payload,
+        acting_user_id=acting_user.id,
+    )
+    return ApiResponse.success(data=None)

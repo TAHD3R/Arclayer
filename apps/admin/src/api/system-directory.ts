@@ -29,6 +29,33 @@ type ResetSystemDirectoryUserPasswordPayload = {
   newPassword: string;
 };
 
+type UpdateSystemDirectoryOrganizationPayload = {
+  name?: string | null;
+  slug?: string | null;
+  ownerUserId?: string | null;
+};
+
+type UpdateSystemDirectoryWorkspacePayload = {
+  name?: string | null;
+  description?: string | null;
+  iconMode?: "initials" | "glyph" | "emoji" | "image" | null;
+  iconColor?: string | null;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
+  iconUrl?: string | null;
+};
+
+type UpdateSystemDirectoryProjectPayload = {
+  name?: string | null;
+  slug?: string | null;
+  description?: string | null;
+  iconMode?: "initials" | "glyph" | "emoji" | "image" | null;
+  iconColor?: string | null;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
+  iconUrl?: string | null;
+};
+
 type SystemDirectoryListParams = {
   page?: number;
   size?: number;
@@ -39,6 +66,11 @@ type SystemDirectoryListParams = {
   hasPassword?: boolean;
   twoFactorEnabled?: boolean;
   oauthProvider?: string;
+  kind?: string;
+  isActive?: boolean;
+  organizationId?: string;
+  workspaceId?: string;
+  isArchived?: boolean;
 };
 
 function userAvatarUploadPath(userId: string, path: string) {
@@ -62,6 +94,15 @@ function buildQuery(params: SystemDirectoryListParams) {
     query.set("two_factor_enabled", String(params.twoFactorEnabled));
   }
   if (params.oauthProvider?.trim()) query.set("oauth_provider", params.oauthProvider.trim());
+  if (params.kind?.trim()) query.set("kind", params.kind.trim());
+  if (typeof params.isActive === "boolean") {
+    query.set("is_active", String(params.isActive));
+  }
+  if (params.organizationId?.trim()) query.set("organization_id", params.organizationId.trim());
+  if (params.workspaceId?.trim()) query.set("workspace_id", params.workspaceId.trim());
+  if (typeof params.isArchived === "boolean") {
+    query.set("is_archived", String(params.isArchived));
+  }
   const queryString = query.toString();
   return queryString ? `?${queryString}` : "";
 }
@@ -251,14 +292,149 @@ export async function getSystemDirectoryOrganizationDetail(
   );
 }
 
+export async function updateSystemDirectoryOrganization(
+  organizationId: string,
+  payload: UpdateSystemDirectoryOrganizationPayload,
+): Promise<SystemDirectoryOrganizationDetail> {
+  return api.patch<SystemDirectoryOrganizationDetail>(
+    `/system/directory/organizations/${organizationId}`,
+    {
+      name: payload.name,
+      slug: payload.slug,
+      ownerUserId: payload.ownerUserId,
+    },
+  );
+}
+
+export async function disableSystemDirectoryOrganization(
+  organizationId: string,
+): Promise<SystemDirectoryOrganizationDetail> {
+  return api.post<SystemDirectoryOrganizationDetail>(
+    `/system/directory/organizations/${organizationId}/disable`,
+  );
+}
+
+export async function enableSystemDirectoryOrganization(
+  organizationId: string,
+): Promise<SystemDirectoryOrganizationDetail> {
+  return api.post<SystemDirectoryOrganizationDetail>(
+    `/system/directory/organizations/${organizationId}/enable`,
+  );
+}
+
+export async function deleteSystemDirectoryOrganization(
+  organizationId: string,
+  payload: { confirmName: string },
+): Promise<void> {
+  await apiRequest<unknown>(`/system/directory/organizations/${organizationId}`, {
+    method: "DELETE",
+    body: payload,
+  });
+}
+
 export async function getSystemDirectoryWorkspaceDetail(
   workspaceId: string,
 ): Promise<SystemDirectoryWorkspaceDetail> {
   return api.get<SystemDirectoryWorkspaceDetail>(`/system/directory/workspaces/${workspaceId}`);
 }
 
+export async function updateSystemDirectoryWorkspace(
+  workspaceId: string,
+  payload: UpdateSystemDirectoryWorkspacePayload,
+): Promise<SystemDirectoryWorkspaceDetail> {
+  return api.patch<SystemDirectoryWorkspaceDetail>(`/system/directory/workspaces/${workspaceId}`, {
+    name: payload.name,
+    description: payload.description,
+    iconMode: payload.iconMode,
+    iconColor: payload.iconColor,
+    iconGlyph: payload.iconGlyph,
+    iconEmoji: payload.iconEmoji,
+    iconUrl: payload.iconUrl,
+  });
+}
+
+export async function archiveSystemDirectoryWorkspace(
+  workspaceId: string,
+): Promise<SystemDirectoryWorkspaceDetail> {
+  return api.post<SystemDirectoryWorkspaceDetail>(
+    `/system/directory/workspaces/${workspaceId}/archive`,
+  );
+}
+
+export async function restoreSystemDirectoryWorkspace(
+  workspaceId: string,
+): Promise<SystemDirectoryWorkspaceDetail> {
+  return api.post<SystemDirectoryWorkspaceDetail>(
+    `/system/directory/workspaces/${workspaceId}/restore`,
+  );
+}
+
+export async function disableSystemDirectoryWorkspace(
+  workspaceId: string,
+): Promise<SystemDirectoryWorkspaceDetail> {
+  return api.post<SystemDirectoryWorkspaceDetail>(
+    `/system/directory/workspaces/${workspaceId}/disable`,
+  );
+}
+
+export async function enableSystemDirectoryWorkspace(
+  workspaceId: string,
+): Promise<SystemDirectoryWorkspaceDetail> {
+  return api.post<SystemDirectoryWorkspaceDetail>(
+    `/system/directory/workspaces/${workspaceId}/enable`,
+  );
+}
+
+export async function deleteSystemDirectoryWorkspace(
+  workspaceId: string,
+  payload: { confirmName: string },
+): Promise<void> {
+  await apiRequest<unknown>(`/system/directory/workspaces/${workspaceId}`, {
+    method: "DELETE",
+    body: payload,
+  });
+}
+
 export async function getSystemDirectoryProjectDetail(
   projectId: string,
 ): Promise<SystemDirectoryProjectDetail> {
   return api.get<SystemDirectoryProjectDetail>(`/system/directory/projects/${projectId}`);
+}
+
+export async function updateSystemDirectoryProject(
+  projectId: string,
+  payload: UpdateSystemDirectoryProjectPayload,
+): Promise<SystemDirectoryProjectDetail> {
+  return api.patch<SystemDirectoryProjectDetail>(`/system/directory/projects/${projectId}`, {
+    name: payload.name,
+    slug: payload.slug,
+    description: payload.description,
+    iconMode: payload.iconMode,
+    iconColor: payload.iconColor,
+    iconGlyph: payload.iconGlyph,
+    iconEmoji: payload.iconEmoji,
+    iconUrl: payload.iconUrl,
+  });
+}
+
+export async function disableSystemDirectoryProject(
+  projectId: string,
+): Promise<SystemDirectoryProjectDetail> {
+  return api.post<SystemDirectoryProjectDetail>(`/system/directory/projects/${projectId}/disable`);
+}
+
+export async function enableSystemDirectoryProject(
+  projectId: string,
+): Promise<SystemDirectoryProjectDetail> {
+  return api.post<SystemDirectoryProjectDetail>(`/system/directory/projects/${projectId}/enable`);
+}
+
+export async function deleteSystemDirectoryProject(
+  projectId: string,
+  payload: { confirmName: string },
+): Promise<void> {
+  await apiRequest<unknown>(`/system/directory/projects/${projectId}`, {
+    method: "DELETE",
+    body: payload,
+  });
 }

@@ -92,7 +92,6 @@ export function SystemDirectoryShell(props: { children: ReactNode }) {
     >
       <DefaultPage
         title={t("settings:SETTINGS_SYSTEM_DIRECTORY_TITLE")}
-        description={t("settings:SETTINGS_SYSTEM_DIRECTORY_DESC")}
         showFavoriteToggle={false}
         contentContainerClassName="min-w-0"
         extra={

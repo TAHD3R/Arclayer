@@ -13,7 +13,39 @@ from src.models.organization.user import User, UserCredential
 from src.models.projects.membership import ProjectMembership
 from src.models.projects.project import ProjectRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
-from src.modules.system.directory.schema import DirectoryUserListFilters
+from src.modules.system.directory.schema import (
+    DirectoryOrganizationListFilters,
+    DirectoryProjectListFilters,
+    DirectoryUserListFilters,
+    DirectoryWorkspaceListFilters,
+)
+
+_USER_ALLOWED_ORDER_FIELDS = {
+    "created_at": "created_at",
+    "username": "username",
+    "email": "email",
+    "status": "status",
+    "is_super_admin": "is_super_admin",
+    "last_login_at": "last_login_at",
+}
+_ORGANIZATION_ALLOWED_ORDER_FIELDS = {
+    "created_at": "created_at",
+    "name": "name",
+    "slug": "slug",
+    "kind": "kind",
+}
+_WORKSPACE_ALLOWED_ORDER_FIELDS = {
+    "created_at": "created_at",
+    "name": "name",
+    "organization_name": "organization__name",
+}
+_PROJECT_ALLOWED_ORDER_FIELDS = {
+    "created_at": "created_at",
+    "name": "name",
+    "slug": "slug",
+    "workspace_name": "workspace__name",
+    "organization_name": "workspace__organization__name",
+}
 
 
 def _search_q(fields: Iterable[str], q: str | None) -> Q:
@@ -29,6 +61,21 @@ def _search_q(fields: Iterable[str], q: str | None) -> Q:
     for predicate in predicates[1:]:
         merged |= predicate
     return merged
+
+
+def _normalize_ordering(value: str | None, allowed: dict[str, str], default: str) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        key = raw[1:] if desc else raw
+        mapped = allowed.get(key)
+        if mapped is None:
+            continue
+        fields.append(f"-{mapped}" if desc else mapped)
+    return fields or [default]
 
 
 class SystemDirectoryRepository:
@@ -79,30 +126,101 @@ class SystemDirectoryRepository:
             _search_q(("username", "email", "display_name"), q),
             await self._user_filter_q(filters=filters),
         )
-        return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
+        return (
+            await queryset
+            .order_by(*_normalize_ordering(ordering, _USER_ALLOWED_ORDER_FIELDS, "-created_at"))
+            .offset(offset)
+            .limit(limit)
+        )
 
-    async def count_organizations(self, *, q: str | None) -> int:
-        return await Organization.filter(deleted_at__isnull=True).filter(_search_q(("name", "slug"), q)).count()
+    def _organization_filter_q(self, *, filters: DirectoryOrganizationListFilters) -> Q:
+        query = Q()
+        if filters.kind is not None:
+            query &= Q(kind=filters.kind)
+        if filters.is_active is not None:
+            query &= Q(is_active=filters.is_active)
+        return query
+
+    def _workspace_filter_q(self, *, filters: DirectoryWorkspaceListFilters) -> Q:
+        query = Q()
+        if filters.organization_id is not None:
+            query &= Q(organization_id=filters.organization_id)
+        if filters.is_active is not None:
+            query &= Q(is_active=filters.is_active)
+        if filters.is_archived is True:
+            query &= Q(archived_at__not_isnull=True)
+        elif filters.is_archived is False:
+            query &= Q(archived_at__isnull=True)
+        return query
+
+    def _project_filter_q(self, *, filters: DirectoryProjectListFilters) -> Q:
+        query = Q()
+        if filters.organization_id is not None:
+            query &= Q(workspace__organization_id=filters.organization_id)
+        if filters.workspace_id is not None:
+            query &= Q(workspace_id=filters.workspace_id)
+        if filters.is_active is not None:
+            query &= Q(is_active=filters.is_active)
+        return query
+
+    async def count_organizations(self, *, q: str | None, filters: DirectoryOrganizationListFilters) -> int:
+        return (
+            await Organization
+            .filter(deleted_at__isnull=True)
+            .filter(_search_q(("name", "slug"), q), self._organization_filter_q(filters=filters))
+            .count()
+        )
 
     async def list_organizations_page(
         self,
         *,
         q: str | None,
         ordering: str | None,
+        filters: DirectoryOrganizationListFilters,
         offset: int,
         limit: int,
     ) -> list[Organization]:
-        queryset = Organization.filter(deleted_at__isnull=True).filter(_search_q(("name", "slug"), q))
-        return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
+        queryset = Organization.filter(deleted_at__isnull=True).filter(
+            _search_q(("name", "slug"), q), self._organization_filter_q(filters=filters)
+        )
+        return (
+            await queryset
+            .order_by(*_normalize_ordering(ordering, _ORGANIZATION_ALLOWED_ORDER_FIELDS, "-created_at"))
+            .offset(offset)
+            .limit(limit)
+        )
 
-    async def count_workspaces(self, *, q: str | None) -> int:
-        return await Workspace.filter(deleted_at__isnull=True).filter(_search_q(("name", "description"), q)).count()
+    async def list_organizations_all(
+        self,
+        *,
+        q: str | None,
+        ordering: str | None,
+        filters: DirectoryOrganizationListFilters,
+    ) -> list[Organization]:
+        queryset = Organization.filter(deleted_at__isnull=True).filter(
+            _search_q(("name", "slug"), q), self._organization_filter_q(filters=filters)
+        )
+        return await queryset.order_by(
+            *_normalize_ordering(ordering, _ORGANIZATION_ALLOWED_ORDER_FIELDS, "-created_at")
+        )
+
+    async def count_workspaces(self, *, q: str | None, filters: DirectoryWorkspaceListFilters) -> int:
+        return (
+            await Workspace
+            .filter(deleted_at__isnull=True)
+            .filter(
+                _search_q(("name", "description", "organization__name"), q),
+                self._workspace_filter_q(filters=filters),
+            )
+            .count()
+        )
 
     async def list_workspaces_page(
         self,
         *,
         q: str | None,
         ordering: str | None,
+        filters: DirectoryWorkspaceListFilters,
         offset: int,
         limit: int,
     ) -> list[Workspace]:
@@ -110,18 +228,43 @@ class SystemDirectoryRepository:
             Workspace
             .filter(deleted_at__isnull=True)
             .filter(
-                _search_q(("name", "description"), q),
+                _search_q(("name", "description", "organization__name"), q),
+                self._workspace_filter_q(filters=filters),
             )
             .prefetch_related("organization")
         )
-        return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
+        return (
+            await queryset
+            .order_by(*_normalize_ordering(ordering, _WORKSPACE_ALLOWED_ORDER_FIELDS, "-created_at"))
+            .offset(offset)
+            .limit(limit)
+        )
 
-    async def count_projects(self, *, q: str | None) -> int:
+    async def list_workspaces_all(
+        self,
+        *,
+        q: str | None,
+        ordering: str | None,
+        filters: DirectoryWorkspaceListFilters,
+    ) -> list[Workspace]:
+        return (
+            await Workspace
+            .filter(deleted_at__isnull=True)
+            .filter(
+                _search_q(("name", "description", "organization__name"), q),
+                self._workspace_filter_q(filters=filters),
+            )
+            .prefetch_related("organization")
+            .order_by(*_normalize_ordering(ordering, _WORKSPACE_ALLOWED_ORDER_FIELDS, "-created_at"))
+        )
+
+    async def count_projects(self, *, q: str | None, filters: DirectoryProjectListFilters) -> int:
         return (
             await ProjectRecord
             .filter(workspace__deleted_at__isnull=True)
             .filter(
-                _search_q(("name", "slug", "description"), q),
+                _search_q(("name", "slug", "description", "workspace__name", "workspace__organization__name"), q),
+                self._project_filter_q(filters=filters),
             )
             .count()
         )
@@ -131,6 +274,7 @@ class SystemDirectoryRepository:
         *,
         q: str | None,
         ordering: str | None,
+        filters: DirectoryProjectListFilters,
         offset: int,
         limit: int,
     ) -> list[ProjectRecord]:
@@ -138,17 +282,44 @@ class SystemDirectoryRepository:
             ProjectRecord
             .filter(workspace__deleted_at__isnull=True)
             .filter(
-                _search_q(("name", "slug", "description"), q),
+                _search_q(("name", "slug", "description", "workspace__name", "workspace__organization__name"), q),
+                self._project_filter_q(filters=filters),
             )
             .prefetch_related("workspace", "workspace__organization")
         )
-        return await queryset.order_by(ordering or "-created_at").offset(offset).limit(limit)
+        return (
+            await queryset
+            .order_by(*_normalize_ordering(ordering, _PROJECT_ALLOWED_ORDER_FIELDS, "-created_at"))
+            .offset(offset)
+            .limit(limit)
+        )
+
+    async def list_projects_all(
+        self,
+        *,
+        q: str | None,
+        ordering: str | None,
+        filters: DirectoryProjectListFilters,
+    ) -> list[ProjectRecord]:
+        return (
+            await ProjectRecord
+            .filter(workspace__deleted_at__isnull=True)
+            .filter(
+                _search_q(("name", "slug", "description", "workspace__name", "workspace__organization__name"), q),
+                self._project_filter_q(filters=filters),
+            )
+            .prefetch_related("workspace", "workspace__organization")
+            .order_by(*_normalize_ordering(ordering, _PROJECT_ALLOWED_ORDER_FIELDS, "-created_at"))
+        )
 
     async def get_user_by_id(self, *, user_id: UUID) -> User | None:
         return await User.filter(id=user_id).get_or_none()
 
     async def get_organization_by_id(self, *, organization_id: UUID) -> Organization | None:
         return await Organization.filter(id=organization_id, deleted_at__isnull=True).get_or_none()
+
+    async def get_org_membership(self, *, organization_id: UUID, user_id: UUID) -> OrgMembership | None:
+        return await OrgMembership.get_or_none(organization_id=organization_id, user_id=user_id)
 
     async def get_workspace_by_id(self, *, workspace_id: UUID) -> Workspace | None:
         return (
@@ -170,6 +341,24 @@ class SystemDirectoryRepository:
             )
             .get_or_none()
         )
+
+    async def organization_slug_exists(self, *, slug: str, exclude_organization_id: UUID | None = None) -> bool:
+        query = Organization.filter(slug=slug, deleted_at__isnull=True)
+        if exclude_organization_id is not None:
+            query = query.exclude(id=exclude_organization_id)
+        return await query.exists()
+
+    async def project_slug_exists(
+        self,
+        *,
+        workspace_id: UUID,
+        slug: str,
+        exclude_project_id: UUID | None = None,
+    ) -> bool:
+        query = ProjectRecord.filter(workspace_id=workspace_id, slug=slug, workspace__deleted_at__isnull=True)
+        if exclude_project_id is not None:
+            query = query.exclude(id=exclude_project_id)
+        return await query.exists()
 
     async def get_users_by_ids(self, *, user_ids: Iterable[UUID]) -> dict[UUID, User]:
         ids = list(set(user_ids))

@@ -44,7 +44,7 @@ describe("data-table-presenter-utils", () => {
       column: buildPinnedColumn(56),
     } as Parameters<typeof resolveCellPinStyle>[0];
 
-    expect(resolveCellPinStyle(cell).className).toContain("bg-inherit");
+    expect(resolveCellPinStyle(cell).className).toContain("bg-background");
     expect(resolveCellPinStyle(cell).className).not.toContain("border-l");
     expect(resolveCellPinStyle(cell).style).toMatchObject({
       width: 56,
