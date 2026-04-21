@@ -55,7 +55,7 @@ async def create_project_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.workspace_ctx)
+    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.project_ctx)
     return ApiResponse.success(
         data=await service.create_view(
             workspace_id=ctx.workspace_id,
@@ -78,7 +78,7 @@ async def patch_project_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.workspace_ctx)
+    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.project_ctx)
     return ApiResponse.success(
         data=await service.update_view(
             workspace_id=ctx.workspace_id,
@@ -102,7 +102,7 @@ async def move_project_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.workspace_ctx)
+    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.project_ctx)
     return ApiResponse.success(
         data=await service.move_view(
             workspace_id=ctx.workspace_id,
@@ -125,7 +125,7 @@ async def delete_project_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.workspace_ctx)
+    can_manage = await resolve_can_manage_project_views(user_id=user_id, ctx=ctx.project_ctx)
     return ApiResponse.success(
         data=await service.delete_view(
             workspace_id=ctx.workspace_id,

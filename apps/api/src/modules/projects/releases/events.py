@@ -9,8 +9,8 @@ from src.common.types.public_uuid import PublicUUID
 from src.common.utils.public_ids import decode_public_id
 from src.core.events import Event, events
 from src.core.logging import get_logger
+from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.releases.schema import ReleaseOut
-from src.modules.workspaces.http.schema import WorkspaceContext
 
 logger = get_logger(__name__)
 _FATAL_EVENT_ERRORS = (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit)
@@ -38,7 +38,7 @@ def _normalize_public_or_uuid(value: PublicUUID | UUID | str | None) -> UUID | N
 async def publish_project_release_event(
     *,
     actor_user_id: UUID,
-    ctx: WorkspaceContext,
+    project_ctx: ProjectRequestContext,
     event_name: str,
     payload: ReleaseOut,
     project_id: UUID | None = None,
@@ -48,7 +48,7 @@ async def publish_project_release_event(
         "entity_id": str(_normalize_public_or_uuid(payload.id)),
         "entity_type": "release",
         "is_active": payload.is_active,
-        "organization_id": str(ctx.organization_id),
+        "organization_id": str(project_ctx.organization_id),
         "previous_active_release_id": (
             str(_normalize_public_or_uuid(previous_active_release_id))
             if previous_active_release_id is not None
@@ -57,7 +57,7 @@ async def publish_project_release_event(
         "project_id": str(project_id) if project_id is not None else None,
         "release_number": payload.release_number,
         "site_id": str(_normalize_public_or_uuid(payload.site_id)),
-        "workspace_id": str(ctx.workspace_id),
+        "workspace_id": str(project_ctx.workspace_id),
     }
     try:
         await events.publish_and_wait(

@@ -9,10 +9,9 @@ from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.router_helpers import (
-    get_project_runtime_bridge_service,
     get_project_runtime_context,
-    require_project_workspace_permission,
-    workspace_context_from_project,
+    get_project_runtime_service,
+    require_project_permission,
 )
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
@@ -26,7 +25,7 @@ from src.modules.projects.releases.schema import (
     ReleaseRollbackOut,
 )
 from src.modules.projects.releases.service import ProjectReleasesService
-from src.modules.projects.runtime_bridge.service import ProjectRuntimeBridgeService
+from src.modules.projects.runtime.service import ProjectRuntimeService
 
 router = APIRouter(prefix="/projects/{project_id}/releases", tags=["domain.projects.releases"])
 
@@ -36,18 +35,18 @@ router = APIRouter(prefix="/projects/{project_id}/releases", tags=["domain.proje
     response_model=ResponseModel[ReleaseListOut],
     response_model_exclude_none=True,
     summary="List project releases",
-    dependencies=[require_project_workspace_permission("system:content:read")],
+    dependencies=[require_project_permission("system:content:read")],
 )
 async def list_project_releases(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    runtime_bridge_service: Annotated[ProjectRuntimeBridgeService, Depends(get_project_runtime_bridge_service)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectReleasesService, Depends(get_project_releases_service)],
 ) -> ResponseModel[ReleaseListOut]:
     runtime_context = await get_project_runtime_context(
         ctx=ctx,
         actor_user_id=actor_user_id,
-        runtime_bridge_service=runtime_bridge_service,
+        runtime_service=runtime_service,
     )
     data = await service.list_releases_out(workspace_id=runtime_context.workspace_id, site_id=runtime_context.site_id)
     return ApiResponse.success(data=data)
@@ -58,18 +57,18 @@ async def list_project_releases(
     response_model=ResponseModel[ReleaseDryRunOut],
     response_model_exclude_none=True,
     summary="Preview project release readiness and diagnostics",
-    dependencies=[require_project_workspace_permission("system:content:read")],
+    dependencies=[require_project_permission("system:content:read")],
 )
 async def get_project_release_dry_run(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    runtime_bridge_service: Annotated[ProjectRuntimeBridgeService, Depends(get_project_runtime_bridge_service)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectReleasesService, Depends(get_project_releases_service)],
 ) -> ResponseModel[ReleaseDryRunOut]:
     runtime_context = await get_project_runtime_context(
         ctx=ctx,
         actor_user_id=actor_user_id,
-        runtime_bridge_service=runtime_bridge_service,
+        runtime_service=runtime_service,
     )
     data = await service.get_release_dry_run_out(
         workspace_id=runtime_context.workspace_id,
@@ -83,19 +82,19 @@ async def get_project_release_dry_run(
     response_model=ResponseModel[ReleaseOut],
     response_model_exclude_none=True,
     summary="Get project release",
-    dependencies=[require_project_workspace_permission("system:content:read")],
+    dependencies=[require_project_permission("system:content:read")],
 )
 async def get_project_release(
     release_id: PublicUUID,
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    runtime_bridge_service: Annotated[ProjectRuntimeBridgeService, Depends(get_project_runtime_bridge_service)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectReleasesService, Depends(get_project_releases_service)],
 ) -> ResponseModel[ReleaseOut]:
     runtime_context = await get_project_runtime_context(
         ctx=ctx,
         actor_user_id=actor_user_id,
-        runtime_bridge_service=runtime_bridge_service,
+        runtime_service=runtime_service,
     )
     data = await service.get_release_out(
         workspace_id=runtime_context.workspace_id,
@@ -110,18 +109,18 @@ async def get_project_release(
     response_model=ResponseModel[ReleasePublishOut],
     response_model_exclude_none=True,
     summary="Publish a new project release",
-    dependencies=[require_project_workspace_permission("system:content:publish")],
+    dependencies=[require_project_permission("system:content:publish")],
 )
 async def publish_project_release(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    runtime_bridge_service: Annotated[ProjectRuntimeBridgeService, Depends(get_project_runtime_bridge_service)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectReleasesService, Depends(get_project_releases_service)],
 ) -> ResponseModel[ReleasePublishOut]:
     runtime_context = await get_project_runtime_context(
         ctx=ctx,
         actor_user_id=actor_user_id,
-        runtime_bridge_service=runtime_bridge_service,
+        runtime_service=runtime_service,
     )
     data = await service.publish_release_out(
         workspace_id=runtime_context.workspace_id,
@@ -130,7 +129,7 @@ async def publish_project_release(
     )
     await publish_project_release_event(
         actor_user_id=actor_user_id,
-        ctx=workspace_context_from_project(ctx),
+        project_ctx=ctx,
         event_name="project.release.published",
         payload=data.release,
         project_id=ctx.project_id,
@@ -143,19 +142,19 @@ async def publish_project_release(
     response_model=ResponseModel[ReleaseRollbackOut],
     response_model_exclude_none=True,
     summary="Rollback a project release",
-    dependencies=[require_project_workspace_permission("system:content:publish")],
+    dependencies=[require_project_permission("system:content:publish")],
 )
 async def rollback_project_release(
     release_id: PublicUUID,
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    runtime_bridge_service: Annotated[ProjectRuntimeBridgeService, Depends(get_project_runtime_bridge_service)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectReleasesService, Depends(get_project_releases_service)],
 ) -> ResponseModel[ReleaseRollbackOut]:
     runtime_context = await get_project_runtime_context(
         ctx=ctx,
         actor_user_id=actor_user_id,
-        runtime_bridge_service=runtime_bridge_service,
+        runtime_service=runtime_service,
     )
     data = await service.rollback_release_out(
         workspace_id=runtime_context.workspace_id,
@@ -164,7 +163,7 @@ async def rollback_project_release(
     )
     await publish_project_release_event(
         actor_user_id=actor_user_id,
-        ctx=workspace_context_from_project(ctx),
+        project_ctx=ctx,
         event_name="project.release.rolled_back",
         payload=data.release,
         project_id=ctx.project_id,

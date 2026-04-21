@@ -24,7 +24,7 @@ from src.modules.projects.content.models.canonical_service import (
     ProjectContentCanonicalModelsService,
 )
 from src.modules.projects.content.models.repository import ProjectContentModelsRepository
-from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.projects.http.schema import ProjectRequestContext
 
 
 class ContentModelMutationOut(BaseSchema):
@@ -132,7 +132,7 @@ def get_event_bus(request: Request) -> EventBus:
 async def publish_content_model_activity_event(
     *,
     actor_user_id: UUID | None,
-    ctx: WorkspaceContext,
+    project_ctx: ProjectRequestContext,
     entity_id: UUID,
     event_bus: EventBus,
     result: ContentModelMutationResult,
@@ -168,8 +168,8 @@ async def publish_content_model_activity_event(
             Event(
                 name="project.content.model.updated",
                 payload={
-                    "organization_id": str(ctx.organization_id),
-                    "workspace_id": str(ctx.workspace_id),
+                    "organization_id": str(project_ctx.organization_id),
+                    "workspace_id": str(project_ctx.workspace_id),
                     "entity_type": "content_model",
                     "entity_id": str(entity_id),
                     **properties,

@@ -9,6 +9,7 @@ from src.core.exceptions import NotFound
 from src.models.projects.runtime import ProjectRuntimeRecord
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.runtime.schema import ProjectRuntimeBridgeOut, RuntimePreviewTokenOut
+from src.modules.projects.runtime.site.schema import ProjectRuntimeSiteOut
 from src.modules.sites.preview.tokens.schema import SitePreviewTokenOut
 
 
@@ -96,6 +97,18 @@ class ProjectRuntimeService:
             kind=context.kind,
             name=context.name,
             slug=context.slug,
+            defaultLocale=context.default_locale,
+            fallbackLocale=context.fallback_locale,
+            isActive=context.is_active,
+        )
+
+    @staticmethod
+    def to_project_site_out(context: ProjectRuntimeContext) -> ProjectRuntimeSiteOut:
+        return ProjectRuntimeSiteOut(
+            siteId=context.site_id,
+            workspaceId=context.workspace_id,
+            slug=context.slug,
+            name=context.name,
             defaultLocale=context.default_locale,
             fallbackLocale=context.fallback_locale,
             isActive=context.is_active,

@@ -12,7 +12,7 @@ from src.core.i18n import t
 from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
 from src.modules.projects.content.items.read_service import ProjectContentCanonicalItemReadService
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
-from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.projects.http.schema import ProjectRequestContext
 
 
 def get_event_bus(request: Request) -> EventBus:
@@ -36,7 +36,7 @@ def get_project_content_canonical_item_reads() -> ProjectContentCanonicalItemRea
 async def publish_content_activity_event(
     *,
     actor_user_id: UUID | None,
-    ctx: WorkspaceContext,
+    project_ctx: ProjectRequestContext,
     entity_id: UUID,
     entity_type: str,
     event_bus: EventBus,
@@ -48,8 +48,8 @@ async def publish_content_activity_event(
             Event(
                 name=event_name,
                 payload={
-                    "organization_id": str(ctx.organization_id),
-                    "workspace_id": str(ctx.workspace_id),
+                    "organization_id": str(project_ctx.organization_id),
+                    "workspace_id": str(project_ctx.workspace_id),
                     "entity_type": entity_type,
                     "entity_id": str(entity_id),
                     **(properties or {}),

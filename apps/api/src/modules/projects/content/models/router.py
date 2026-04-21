@@ -138,7 +138,7 @@ async def update_project_content_model(
         raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
     await publish_content_model_activity_event(
         actor_user_id=actor_user_id,
-        ctx=ctx.workspace_ctx,
+        project_ctx=ctx.project_ctx,
         entity_id=UUID(str(record.record.id)),
         event_bus=event_bus,
         result=record,

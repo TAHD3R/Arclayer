@@ -52,7 +52,7 @@ async def _publish_project_content_activity_event(
 ) -> None:
     await publish_content_activity_event(
         actor_user_id=actor_user_id,
-        ctx=ctx.workspace_ctx,
+        project_ctx=ctx.project_ctx,
         entity_id=entity_id,
         entity_type=entity_type,
         event_bus=event_bus,

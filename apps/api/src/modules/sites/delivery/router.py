@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 from fastapi import Response as FastAPIResponse
 
 from src.common.types.public_uuid import PublicUUID
-from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
-from src.core.logging import get_logger
 from src.modules.sites.delivery.schema import (
     DeliveryGlobalSetOut,
     DeliveryMenuOut,
@@ -19,34 +17,12 @@ from src.modules.sites.delivery.schema import (
     DeliverySectionOut,
     DeliveryStyleOut,
 )
-from src.modules.sites.service import SiteService
-from src.platform.cache.valkey import get_valkey
+from src.modules.sites.runtime.delivery_kernel import (
+    SiteRuntimeDeliveryKernel,
+    get_site_runtime_delivery_kernel,
+)
 
 router = APIRouter(prefix="/sites/{site_id}/delivery", tags=["external.sites.delivery"])
-logger = get_logger(__name__)
-
-
-def _get_site_service(
-    request: Request,
-    settings: Settings = Depends(get_settings),
-) -> SiteService:
-    try:
-        valkey = get_valkey(request)
-    except RuntimeError:
-        valkey = None
-    return SiteService(settings, valkey=valkey)
-
-
-_CACHE_PUBLIC = "public, max-age=60, stale-while-revalidate=300"
-_CACHE_PREVIEW = "no-store"
-
-
-def _cache_for_perspective(perspective: DeliveryPerspective) -> str:
-    return _CACHE_PREVIEW if perspective == "preview" else _CACHE_PUBLIC
-
-
-def _mode_for_perspective(perspective: DeliveryPerspective) -> Literal["public", "preview"]:
-    return "preview" if perspective == "preview" else "public"
 
 
 @router.get(
@@ -59,12 +35,11 @@ async def get_delivery_menu(
     site_id: PublicUUID,
     menu_key: str,
     raw_response: FastAPIResponse,
-    service: Annotated[SiteService, Depends(_get_site_service)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
 ) -> ResponseModel[DeliveryMenuOut]:
     """Get a menu by key (public)."""
-    raw_response.headers["cache-control"] = _CACHE_PUBLIC
-    data = await service.delivery_get_menu(site_id=site_id, menu_key=menu_key)
-    return ApiResponse.success(data=data)
+    raw_response.headers["cache-control"] = kernel.cache_for_perspective("published")
+    return ApiResponse.success(data=await kernel.get_delivery_menu(site_id=site_id, menu_key=menu_key))
 
 
 @router.get(
@@ -76,12 +51,11 @@ async def get_delivery_menu(
 async def get_delivery_style(
     site_id: PublicUUID,
     raw_response: FastAPIResponse,
-    service: Annotated[SiteService, Depends(_get_site_service)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
 ) -> ResponseModel[DeliveryStyleOut]:
     """Get effective site style (public)."""
-    raw_response.headers["cache-control"] = _CACHE_PUBLIC
-    data = await service.delivery_get_style(site_id=site_id)
-    return ApiResponse.success(data=data)
+    raw_response.headers["cache-control"] = kernel.cache_for_perspective("published")
+    return ApiResponse.success(data=await kernel.get_delivery_style(site_id=site_id))
 
 
 @router.get(
@@ -94,34 +68,20 @@ async def resolve_delivery_page(
     site_id: PublicUUID,
     path: Annotated[str, Query(..., description="Request pathname (e.g. /blog/hello).")],
     raw_response: FastAPIResponse,
-    service: Annotated[SiteService, Depends(_get_site_service)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
     token: Annotated[str | None, Query(description="Preview token (required when perspective=preview).")] = None,
 ) -> ResponseModel[DeliveryPageOut]:
     """Resolve a page by request path."""
-    await service.assert_preview_access_async(site_id=site_id, mode=_mode_for_perspective(perspective), token=token)
-    raw_response.headers["cache-control"] = _cache_for_perspective(perspective)
-    data = await service.delivery_resolve_page(site_id=site_id, path=path, perspective=perspective)
-    if data is None:
-        logger.warning(
-            "Delivery page route not found",
+    raw_response.headers["cache-control"] = kernel.cache_for_perspective(perspective)
+    return ApiResponse.success(
+        data=await kernel.resolve_delivery_page(
+            site_id=site_id,
             path=path,
             perspective=perspective,
-            site_id=str(site_id),
+            token=token,
         )
-        from src.core.exceptions import NotFound
-
-        raise NotFound("Route not found", error="PAGE_ROUTE_NOT_FOUND")
-    logger.info(
-        "Delivery page resolved",
-        page_id=str(data.match.page_id) if data.match.page_id is not None else None,
-        path=path,
-        perspective=perspective,
-        revision=data.match.revision,
-        revision_state=data.match.revision_state,
-        site_id=str(site_id),
     )
-    return ApiResponse.success(data=data)
 
 
 @router.get(
@@ -134,33 +94,20 @@ async def get_delivery_page_by_id(
     site_id: PublicUUID,
     page_id: PublicUUID,
     raw_response: FastAPIResponse,
-    service: Annotated[SiteService, Depends(_get_site_service)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
     token: Annotated[str | None, Query(description="Preview token (required when perspective=preview).")] = None,
 ) -> ResponseModel[DeliveryPageOut]:
     """Get a page by id."""
-    await service.assert_preview_access_async(site_id=site_id, mode=_mode_for_perspective(perspective), token=token)
-    raw_response.headers["cache-control"] = _cache_for_perspective(perspective)
-    data = await service.delivery_get_page_by_id(site_id=site_id, page_id=page_id, perspective=perspective)
-    if data is None:
-        logger.warning(
-            "Delivery page lookup failed",
-            page_id=str(page_id),
+    raw_response.headers["cache-control"] = kernel.cache_for_perspective(perspective)
+    return ApiResponse.success(
+        data=await kernel.get_delivery_page_by_id(
+            site_id=site_id,
+            page_id=page_id,
             perspective=perspective,
-            site_id=str(site_id),
+            token=token,
         )
-        from src.core.exceptions import NotFound
-
-        raise NotFound("Page not found", error="PAGE_NOT_FOUND")
-    logger.info(
-        "Delivery page fetched by id",
-        page_id=str(page_id),
-        perspective=perspective,
-        revision=data.match.revision,
-        revision_state=data.match.revision_state,
-        site_id=str(site_id),
     )
-    return ApiResponse.success(data=data)
 
 
 @router.get(
@@ -173,15 +120,20 @@ async def get_delivery_section_by_alias(
     site_id: PublicUUID,
     alias: str,
     raw_response: FastAPIResponse,
-    service: Annotated[SiteService, Depends(_get_site_service)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
     token: Annotated[str | None, Query(description="Preview token (required when perspective=preview).")] = None,
 ) -> ResponseModel[DeliverySectionOut]:
     """Get a reusable section by alias."""
-    await service.assert_preview_access_async(site_id=site_id, mode=_mode_for_perspective(perspective), token=token)
-    raw_response.headers["cache-control"] = _cache_for_perspective(perspective)
-    data = await service.delivery_get_section_by_alias(site_id=site_id, alias=alias, perspective=perspective)
-    return ApiResponse.success(data=data)
+    raw_response.headers["cache-control"] = kernel.cache_for_perspective(perspective)
+    return ApiResponse.success(
+        data=await kernel.get_delivery_section_by_alias(
+            site_id=site_id,
+            alias=alias,
+            perspective=perspective,
+            token=token,
+        )
+    )
 
 
 @router.get(
@@ -194,12 +146,17 @@ async def resolve_delivery_global_set(
     site_id: PublicUUID,
     key: str,
     raw_response: FastAPIResponse,
-    service: Annotated[SiteService, Depends(_get_site_service)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
     token: Annotated[str | None, Query(description="Preview token (required when perspective=preview).")] = None,
 ) -> ResponseModel[DeliveryGlobalSetOut]:
     """Resolve a global set by key."""
-    await service.assert_preview_access_async(site_id=site_id, mode=_mode_for_perspective(perspective), token=token)
-    raw_response.headers["cache-control"] = _cache_for_perspective(perspective)
-    data = await service.delivery_get_global_set(site_id=site_id, key=key, perspective=perspective)
-    return ApiResponse.success(data=data)
+    raw_response.headers["cache-control"] = kernel.cache_for_perspective(perspective)
+    return ApiResponse.success(
+        data=await kernel.get_delivery_global_set(
+            site_id=site_id,
+            key=key,
+            perspective=perspective,
+            token=token,
+        )
+    )
