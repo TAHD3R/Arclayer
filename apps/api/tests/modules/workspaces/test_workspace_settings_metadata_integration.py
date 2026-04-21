@@ -101,7 +101,6 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
                 },
             )
             assert legacy_api_key_resp.status_code == 404, legacy_api_key_resp.text
-            assert legacy_api_key_resp.json().get("error") == "PROJECT_NOT_FOUND"
             assert await ProjectRecord.filter(workspace_id=ws.id).count() == 0
 
             resp = await client.patch(

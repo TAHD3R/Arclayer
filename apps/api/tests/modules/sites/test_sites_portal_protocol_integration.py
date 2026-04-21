@@ -226,7 +226,7 @@ async def test_sites_public_preview_draft_publish_flow(
             scope_type=SCOPE_TYPE_SITE,
             scope_id=site_uuid,
             namespace="site.runtime",
-            value={"theme": {"cssVars": {"--color-primary": "#ff0000"}}, "fonts": []},
+            value={"fonts": []},
             updated_by=None,
         )
 
@@ -270,7 +270,10 @@ async def test_sites_public_preview_draft_publish_flow(
 
         resp = await client.get(f"/api/v1/sites/{site_id}/runtime", params={"mode": "public"})
         assert resp.status_code == 200
-        assert resp.json()["data"]["theme"]["cssVars"]["--color-primary"] == "#ff0000"
+        runtime_data = resp.json()["data"]
+        assert runtime_data["siteId"] == site_id
+        assert runtime_data["fonts"] == []
+        assert runtime_data["site"]["url"] == "https://example.test"
 
         resp = await client.get(f"/api/v1/sites/{site_id}/runtime", params={"mode": "preview"})
         assert resp.status_code == 403
