@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useEditorScrollRef } from "platejs/react";
 
 import { deleteContentItem, duplicateContentItem, patchContentItemWorkflow } from "@/api/content";
-import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import {
   projectContentLibraryItemPath,
   projectContentLibraryPath,
@@ -43,7 +43,7 @@ const ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY = "content-library-article-editor
 const WORKFLOW_TRANSITION_STAGES = ["in_review", "changes_requested", "approved"] as const;
 
 type ContentLibraryArticleEditorShellProps = {
-  workspaceId: string;
+  projectId: string;
   itemId: string;
   mode: "split" | "page";
   title: string;
@@ -239,7 +239,7 @@ function ArticleEditorWorkflowLane(props: {
 
 function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
   const { t } = useTranslation(["content", "common"]);
-  const permissionAccess = useWorkspacePermissionAccess(props.workspaceId);
+  const permissionAccess = useProjectPermissionAccess(props.projectId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isHydrated } = useContentLibraryArticleEditorDocumentState();
@@ -251,10 +251,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   const showShellSkeleton = Boolean(props.isLoading);
   const showBodySkeleton = Boolean(props.isLoading) || !isHydrated;
   const permissionReady = permissionAccess.authzQuery.isFetched;
-  const canPublish =
-    !permissionReady ||
-    permissionAccess.hasPermission("system:content:publish") ||
-    permissionAccess.hasAction("system:content:publish");
+  const canPublish = !permissionReady || permissionAccess.hasAction("release:publish");
   const publishAccessHint = canPublish ? null : t("CONTENT_LIBRARY_PUBLISH_NO_ACCESS_DESC");
   const textLaneClass = getContentLibraryArticleEditorTextLaneClass(props.mode);
   const coverImageUrl = React.useMemo(
@@ -264,45 +261,45 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   React.useEffect(() => {
     if (props.mode !== "page" || typeof window === "undefined") return;
     const pendingPanel = window.sessionStorage.getItem(ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY);
-    if (pendingPanel !== `${props.workspaceId}:${props.itemId}:updates`) return;
+    if (pendingPanel !== `${props.projectId}:${props.itemId}:updates`) return;
     window.sessionStorage.removeItem(ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY);
     setUpdatesOpen(true);
-  }, [props.itemId, props.mode, props.workspaceId]);
+  }, [props.itemId, props.mode, props.projectId]);
   const duplicateMutation = useMutation({
-    mutationFn: async () => duplicateContentItem(props.workspaceId, props.itemId),
+    mutationFn: async () => duplicateContentItem(props.projectId, props.itemId),
     onSuccess: async (nextItem) => {
       notifySuccessText(t("content:CONTENT_LIBRARY_DUPLICATE_SUCCESS"));
       await queryClient.invalidateQueries({
-        queryKey: buildContentLibraryItemsQueryKey(props.workspaceId),
+        queryKey: buildContentLibraryItemsQueryKey(props.projectId),
       });
       await navigate({
-        to: projectContentLibraryItemPath(props.workspaceId, nextItem.id),
+        to: projectContentLibraryItemPath(props.projectId, nextItem.id),
       });
     },
     onError: (error) => notifyError(error),
   });
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      await deleteContentItem(props.workspaceId, props.itemId);
+      await deleteContentItem(props.projectId, props.itemId);
     },
     onSuccess: async () => {
       notifySuccessText(t("content:CONTENT_LIBRARY_DELETE_SUCCESS"));
       await queryClient.invalidateQueries({
-        queryKey: buildContentLibraryItemsQueryKey(props.workspaceId),
+        queryKey: buildContentLibraryItemsQueryKey(props.projectId),
       });
       if (props.mode === "split") {
         props.onClose?.();
         return;
       }
       await navigate({
-        to: projectContentLibraryPath(props.workspaceId),
+        to: projectContentLibraryPath(props.projectId),
       } as never);
     },
     onError: (error) => notifyError(error),
   });
   const workflowMutation = useMutation({
     mutationFn: async (stage: (typeof WORKFLOW_TRANSITION_STAGES)[number]) =>
-      patchContentItemWorkflow(props.workspaceId, props.itemId, {
+      patchContentItemWorkflow(props.projectId, props.itemId, {
         stage,
         summary: t(`CONTENT_LIBRARY_WORKFLOW_SUMMARY_${stage.toUpperCase()}`),
       }),
@@ -315,7 +312,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
       });
       notifySuccessText(t("CONTENT_LIBRARY_WORKFLOW_UPDATE_SUCCESS"));
       await queryClient.invalidateQueries({
-        queryKey: buildContentLibraryItemsQueryKey(props.workspaceId),
+        queryKey: buildContentLibraryItemsQueryKey(props.projectId),
       });
     },
     onError: (error) => notifyError(error),
@@ -328,13 +325,13 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem(
         ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY,
-        `${props.workspaceId}:${props.itemId}:updates`,
+        `${props.projectId}:${props.itemId}:updates`,
       );
     }
     await navigate({
-      to: projectContentLibraryItemPath(props.workspaceId, props.itemId),
+      to: projectContentLibraryItemPath(props.projectId, props.itemId),
     });
-  }, [navigate, props.itemId, props.mode, props.workspaceId]);
+  }, [navigate, props.itemId, props.mode, props.projectId]);
 
   return (
     <>
@@ -465,7 +462,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
                     <div className="absolute right-4 top-4 opacity-0 transition-opacity duration-150 group-hover/cover:opacity-100 group-focus-within/cover:opacity-100">
                       <ContentLibraryCoverPickerPopover
-                        workspaceId={props.workspaceId}
+                        workspaceId={props.projectId}
                         value={props.coverAssetId}
                         open={coverPopoverOpen}
                         onOpenChange={setCoverPopoverOpen}
@@ -498,7 +495,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
-                            workspaceId={props.workspaceId}
+                            workspaceId={props.projectId}
                             value={props.coverAssetId}
                             open={coverPopoverOpen}
                             onOpenChange={setCoverPopoverOpen}
@@ -571,7 +568,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
-                            workspaceId={props.workspaceId}
+                            workspaceId={props.projectId}
                             value={props.coverAssetId}
                             open={coverPopoverOpen}
                             onOpenChange={setCoverPopoverOpen}
@@ -648,7 +645,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         mode={props.mode}
         open={historyOpen}
         onOpenChange={setHistoryOpen}
-        workspaceId={props.workspaceId}
+        workspaceId={props.projectId}
       />
       {props.mode === "page" ? (
         <ContentLibraryArticleEditorUpdatesPanel
@@ -656,7 +653,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
           open={updatesOpen}
           onOpenChange={setUpdatesOpen}
           runtime={props.runtime}
-          workspaceId={props.workspaceId}
+          workspaceId={props.projectId}
         />
       ) : null}
     </>
@@ -666,12 +663,12 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
 export function ContentLibraryArticleEditorShell(props: ContentLibraryArticleEditorShellProps) {
   return (
     <ContentLibraryArticleEditorDocumentProvider
-      workspaceId={props.workspaceId}
-      editorIdentity={`${props.workspaceId}:${props.itemId}`}
+      workspaceId={props.projectId}
+      editorIdentity={`${props.projectId}:${props.itemId}`}
       document={props.bodyDocument}
       onChange={props.onBodyDocumentChange}
     >
-      <ContentLibraryArticleEditorDateLocalizationProvider workspaceId={props.workspaceId}>
+      <ContentLibraryArticleEditorDateLocalizationProvider workspaceId={props.projectId}>
         <ContentLibraryArticleEditorShellInner {...props} />
       </ContentLibraryArticleEditorDateLocalizationProvider>
     </ContentLibraryArticleEditorDocumentProvider>

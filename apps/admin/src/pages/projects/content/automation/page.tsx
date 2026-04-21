@@ -442,9 +442,7 @@ export function ContentAutomationPage(props: { projectId: string }) {
   const permissionAccess = useProjectPermissionAccess(props.projectId);
   const [draft, setDraft] = useState<FlowDraft>(() => createEmptyDraft());
   const canManage =
-    !permissionAccess.authzQuery.isFetched ||
-    permissionAccess.hasPermission("system:automation:manage") ||
-    permissionAccess.hasAction("system:automation:manage");
+    !permissionAccess.authzQuery.isFetched || permissionAccess.hasAction("automation:manage");
 
   const catalogQuery = useQuery({
     queryKey: buildAutomationCatalogQueryKey(props.projectId),

@@ -145,7 +145,7 @@ describe("GeneralSettingsShell permission consumption", () => {
     });
     listProjectPermissionActionsMock.mockResolvedValue([
       {
-        code: "system:site:manage",
+        code: "site:manage",
         description: "Manage site",
         subjectKinds: ["workspace_member"],
         permissionCodes: ["system:site:manage"],

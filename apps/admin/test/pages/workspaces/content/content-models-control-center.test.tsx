@@ -8,8 +8,8 @@ import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/
 const listAllContentModelsMock = vi.fn();
 const getContentModelImpactPreviewMock = vi.fn();
 const patchContentModelMock = vi.fn();
-const getMyWorkspaceAuthzMock = vi.fn();
-const listWorkspacePermissionActionsMock = vi.fn();
+const getMyProjectAuthzMock = vi.fn();
+const listProjectPermissionActionsMock = vi.fn();
 
 vi.mock("@/api/content", () => ({
   buildContentModelsGovernanceQueryKey: (...args: unknown[]) => [
@@ -24,12 +24,11 @@ vi.mock("@/api/content", () => ({
 }));
 
 vi.mock("@/api/workspaces", () => ({
-  getMyWorkspaceAuthz: (...args: unknown[]) => getMyWorkspaceAuthzMock(...args),
+  getMyProjectAuthz: (...args: unknown[]) => getMyProjectAuthzMock(...args),
 }));
 
 vi.mock("@/api/rbac", () => ({
-  listWorkspacePermissionActions: (...args: unknown[]) =>
-    listWorkspacePermissionActionsMock(...args),
+  listProjectPermissionActions: (...args: unknown[]) => listProjectPermissionActionsMock(...args),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -216,15 +215,14 @@ describe("ContentModelsControlCenterPage", () => {
     listAllContentModelsMock.mockReset();
     getContentModelImpactPreviewMock.mockReset();
     patchContentModelMock.mockReset();
-    getMyWorkspaceAuthzMock.mockReset();
-    listWorkspacePermissionActionsMock.mockReset();
-    getMyWorkspaceAuthzMock.mockResolvedValue({
-      userId: "user-1",
-      roleCodes: ["admin"],
+    getMyProjectAuthzMock.mockReset();
+    listProjectPermissionActionsMock.mockReset();
+    getMyProjectAuthzMock.mockResolvedValue({
+      projectId: "project-1",
       permissionCodes: ["system:content:manage"],
       isSuperuser: false,
     });
-    listWorkspacePermissionActionsMock.mockResolvedValue([
+    listProjectPermissionActionsMock.mockResolvedValue([
       {
         code: "content:models:write",
         permissionCodes: ["system:content:manage"],
@@ -666,9 +664,8 @@ describe("ContentModelsControlCenterPage", () => {
   });
 
   test("disables model default editing when workspace action access is missing", async () => {
-    getMyWorkspaceAuthzMock.mockResolvedValue({
-      userId: "user-1",
-      roleCodes: ["viewer"],
+    getMyProjectAuthzMock.mockResolvedValue({
+      projectId: "project-1",
       permissionCodes: ["system:content:read"],
       isSuperuser: false,
     });

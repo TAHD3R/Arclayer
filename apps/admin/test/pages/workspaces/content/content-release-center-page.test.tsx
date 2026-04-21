@@ -11,8 +11,8 @@ const mocked = vi.hoisted(() => ({
   listProjectReleases: vi.fn(),
   publishProjectRelease: vi.fn(),
   rollbackProjectRelease: vi.fn(),
-  getMyWorkspaceAuthz: vi.fn(),
-  listWorkspacePermissionActions: vi.fn(),
+  getMyProjectAuthz: vi.fn(),
+  listProjectPermissionActions: vi.fn(),
 }));
 
 vi.mock("@/api/content", () => ({
@@ -23,12 +23,12 @@ vi.mock("@/api/content", () => ({
 }));
 
 vi.mock("@/api/workspaces", () => ({
-  getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
+  getMyProjectAuthz: (...args: unknown[]) => mocked.getMyProjectAuthz(...args),
 }));
 
 vi.mock("@/api/rbac", () => ({
-  listWorkspacePermissionActions: (...args: unknown[]) =>
-    mocked.listWorkspacePermissionActions(...args),
+  listProjectPermissionActions: (...args: unknown[]) =>
+    mocked.listProjectPermissionActions(...args),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -72,14 +72,14 @@ function renderPage() {
 describe("content-release-center-page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "project-1",
+    mocked.getMyProjectAuthz.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:publish"],
     });
-    mocked.listWorkspacePermissionActions.mockResolvedValue([
+    mocked.listProjectPermissionActions.mockResolvedValue([
       {
-        code: "system:content:publish",
+        code: "release:publish",
         description: "Publish content entries through the shared lifecycle workflow.",
         subjectKinds: ["workspace_member"],
         permissionCodes: ["system:content:publish"],

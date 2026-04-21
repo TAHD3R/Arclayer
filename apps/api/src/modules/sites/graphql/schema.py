@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+from dataclasses import dataclass
 from typing import Any, cast
 from uuid import UUID
 
@@ -20,12 +21,21 @@ from src.modules.sites.graphql.service import (
     GraphQLPerspective,
     SiteGraphQLContext,
     StructuredContentRecord,
+    _extract_system_field,
     graphql_error_extensions,
 )
 
 _SCHEMA_BY_MODEL_KEY: dict[str, GraphQLModelSchemaDefinition] = {
     schema.model_key: schema for schema in list_graphql_model_schemas()
 }
+_GRAPHQL_SCALAR_TYPES: dict[str, Any] = {
+    "Boolean": bool,
+    "Float": float,
+    "Int": int,
+    "JSON": JSON,
+    "String": str,
+}
+_QUERY_MODEL_ORDER: tuple[str, ...] = ("article", "page", "reusable-section", "category")
 
 
 class Perspective(enum.Enum):
@@ -135,148 +145,109 @@ class GraphQLGlobalSet:
     items: list[GraphQLGlobalSetItem]
 
 
-@strawberry.type
-class ArticleEntry:
-    id: str
-    locale: str
-    revision: int
-    revision_state: str
-    draft_revision: int
-    published_revision: int | None
-    title: str | None
-    slug: str | None
-    summary: str | None
-    content: str | None
-    published_at: str | None
-    custom_fields: JSON
-
-
-@strawberry.type
-class PageEntry:
-    id: str
-    locale: str
-    revision: int
-    revision_state: str
-    draft_revision: int
-    published_revision: int | None
-    title: str | None
-    path: str | None
-    route_pattern: str | None
-    custom_fields: JSON
-
-
-@strawberry.type
-class ReusableSectionEntry:
-    id: str
-    locale: str
-    revision: int
-    revision_state: str
-    draft_revision: int
-    published_revision: int | None
-    title: str | None
-    section_key: str | None
-    props_defaults: JSON | None
-    custom_fields: JSON
-
-
-@strawberry.type
-class CategoryEntry:
-    id: str
-    locale: str
-    revision: int
-    revision_state: str
-    draft_revision: int
-    published_revision: int | None
-    name: str | None
-    slug: str | None
-    description: str | None
-    custom_fields: JSON
-
-
 @strawberry.enum
 class GraphQLSortDirection(enum.Enum):
     ASC = "asc"
     DESC = "desc"
 
 
-@strawberry.enum
-class ArticleSortField(enum.Enum):
-    TITLE = "title"
-    SLUG = "slug"
-    REVISION = "revision"
+@dataclass(frozen=True, slots=True)
+class GraphQLModelRuntimeTypes:
+    entry_type: type[Any]
+    filter_input_type: type[Any]
+    sort_enum: type[enum.Enum]
+    sort_input_type: type[Any]
 
 
-@strawberry.enum
-class PageSortField(enum.Enum):
-    TITLE = "title"
-    PATH = "path"
-    REVISION = "revision"
+def _snake_case(value: str) -> str:
+    chars: list[str] = []
+    for index, char in enumerate(value):
+        if char.isupper() and index > 0:
+            chars.append("_")
+        chars.append(char.lower())
+    return "".join(chars)
 
 
-@strawberry.enum
-class ReusableSectionSortField(enum.Enum):
-    TITLE = "title"
-    SECTION_KEY = "section_key"
-    REVISION = "revision"
+def _optional_annotation(annotation: Any) -> object:
+    return annotation | None
 
 
-@strawberry.enum
-class CategorySortField(enum.Enum):
-    NAME = "name"
-    SLUG = "slug"
-    REVISION = "revision"
+def _sort_enum_name(schema: GraphQLModelSchemaDefinition) -> str:
+    return schema.sort_input.input_name.removesuffix("Input") + "Field"
 
 
-@strawberry.input
-class ArticleFilterInput:
-    slug: str | None = None
-    title_contains: str | None = None
-    revision_state: str | None = None
+def _build_entry_type(schema: GraphQLModelSchemaDefinition) -> type[Any]:
+    annotations: dict[str, object] = {
+        "id": str,
+        "locale": str,
+        "revision": int,
+        "revision_state": str,
+        "draft_revision": int,
+        "published_revision": int | None,
+    }
+    for field in schema.system_fields:
+        field_annotation = _GRAPHQL_SCALAR_TYPES[field.scalar]
+        annotations[_snake_case(field.field_name)] = _optional_annotation(field_annotation)
+    annotations["custom_fields"] = JSON
+    entry_type = strawberry.type(type(schema.entry_type, (), {"__annotations__": annotations, "__module__": __name__}))
+    globals()[schema.entry_type] = entry_type
+    return entry_type
 
 
-@strawberry.input
-class PageFilterInput:
-    path: str | None = None
-    title_contains: str | None = None
-    revision_state: str | None = None
+def _build_filter_input_type(schema: GraphQLModelSchemaDefinition) -> type[Any]:
+    field_names = tuple(_snake_case(item.public_name) for item in schema.filters)
+    annotations = dict.fromkeys(field_names, str | None)
+    attrs: dict[str, object] = {"__annotations__": annotations, "__module__": __name__}
+    attrs.update(dict.fromkeys(field_names))
+    input_type = strawberry.input(type(schema.filter_input.input_name, (), attrs))
+    globals()[schema.filter_input.input_name] = input_type
+    return input_type
 
 
-@strawberry.input
-class ReusableSectionFilterInput:
-    section_key: str | None = None
-    title_contains: str | None = None
-    revision_state: str | None = None
+def _build_sort_enum(schema: GraphQLModelSchemaDefinition) -> type[enum.Enum]:
+    sort_enum = strawberry.enum(
+        enum.Enum(_sort_enum_name(schema), {item.public_name: item.field_key for item in schema.sorts})
+    )
+    globals()[sort_enum.__name__] = sort_enum
+    return sort_enum
 
 
-@strawberry.input
-class CategoryFilterInput:
-    slug: str | None = None
-    name_contains: str | None = None
-    revision_state: str | None = None
+def _build_sort_input_type(schema: GraphQLModelSchemaDefinition, sort_enum: type[enum.Enum]) -> type[Any]:
+    input_type = strawberry.input(
+        type(
+            schema.sort_input.input_name,
+            (),
+            {
+                "__annotations__": {
+                    "field": sort_enum,
+                    "direction": GraphQLSortDirection,
+                },
+                "__module__": __name__,
+                "direction": GraphQLSortDirection.ASC,
+            },
+        )
+    )
+    globals()[schema.sort_input.input_name] = input_type
+    return input_type
 
 
-@strawberry.input
-class ArticleSortInput:
-    field: ArticleSortField
-    direction: GraphQLSortDirection = GraphQLSortDirection.ASC
+def _build_model_runtime_types() -> dict[str, GraphQLModelRuntimeTypes]:
+    runtime_types: dict[str, GraphQLModelRuntimeTypes] = {}
+    for schema in list_graphql_model_schemas():
+        entry_type = _build_entry_type(schema)
+        filter_input_type = _build_filter_input_type(schema)
+        sort_enum = _build_sort_enum(schema)
+        sort_input_type = _build_sort_input_type(schema, sort_enum)
+        runtime_types[schema.model_key] = GraphQLModelRuntimeTypes(
+            entry_type=entry_type,
+            filter_input_type=filter_input_type,
+            sort_enum=sort_enum,
+            sort_input_type=sort_input_type,
+        )
+    return runtime_types
 
 
-@strawberry.input
-class PageSortInput:
-    field: PageSortField
-    direction: GraphQLSortDirection = GraphQLSortDirection.ASC
-
-
-@strawberry.input
-class ReusableSectionSortInput:
-    field: ReusableSectionSortField
-    direction: GraphQLSortDirection = GraphQLSortDirection.ASC
-
-
-@strawberry.input
-class CategorySortInput:
-    field: CategorySortField
-    direction: GraphQLSortDirection = GraphQLSortDirection.ASC
+_MODEL_RUNTIME_TYPES = _build_model_runtime_types()
 
 
 def _exact_filters(payload: dict[str, str | None]) -> dict[str, str]:
@@ -306,15 +277,6 @@ def _query_filter_payload(model_key: str, filter_input: object | None, operator:
     if operator == "contains":
         return _contains_filters(payload)
     return _exact_filters(payload)
-
-
-def _snake_case(value: str) -> str:
-    chars: list[str] = []
-    for index, char in enumerate(value):
-        if char.isupper() and index > 0:
-            chars.append("_")
-        chars.append(char.lower())
-    return "".join(chars)
 
 
 def _raise_graphql_error(exc: APIError) -> None:
@@ -459,81 +421,38 @@ def _to_global_set(payload: DeliveryGlobalSetOut) -> GraphQLGlobalSet:
     )
 
 
-def _to_article_entry(record: StructuredContentRecord) -> ArticleEntry:
-    return ArticleEntry(
-        id=str(record.item_id),
-        locale=record.locale,
-        revision=record.revision,
-        revision_state=record.revision_state,
-        draft_revision=record.draft_revision,
-        published_revision=record.published_revision,
-        title=record.title,
-        slug=record.slug,
-        summary=record.fields.get("summary"),
-        content=record.fields.get("content"),
-        published_at=record.fields.get("published_at"),
-        custom_fields=_as_json(record.custom_fields),
-    )
-
-
-def _to_page_entry(record: StructuredContentRecord) -> PageEntry:
+def _page_entry_field_value(record: StructuredContentRecord, field_key: str) -> Any:
+    if field_key == "path":
+        return record.route_path or _extract_system_field(model_key="page", fields=record.fields, field_key=field_key)
     route_pattern = (
         record.route_path if record.route_contract and record.route_contract.get("mode") == "dynamic" else None
     )
-    return PageEntry(
-        id=str(record.item_id),
-        locale=record.locale,
-        revision=record.revision,
-        revision_state=record.revision_state,
-        draft_revision=record.draft_revision,
-        published_revision=record.published_revision,
-        title=record.title,
-        path=record.route_path or record.fields.get("path"),
-        route_pattern=route_pattern or record.fields.get("route_pattern"),
-        custom_fields=_as_json(record.custom_fields),
-    )
+    if field_key == "route_pattern":
+        return route_pattern or _extract_system_field(model_key="page", fields=record.fields, field_key=field_key)
+    return _extract_system_field(model_key="page", fields=record.fields, field_key=field_key)
 
 
-def _to_reusable_section_entry(record: StructuredContentRecord) -> ReusableSectionEntry:
-    return ReusableSectionEntry(
-        id=str(record.item_id),
-        locale=record.locale,
-        revision=record.revision,
-        revision_state=record.revision_state,
-        draft_revision=record.draft_revision,
-        published_revision=record.published_revision,
-        title=record.title,
-        section_key=record.fields.get("section_key"),
-        props_defaults=_as_optional_json(cast(dict[str, Any] | None, record.fields.get("props_defaults"))),
-        custom_fields=_as_json(record.custom_fields),
-    )
-
-
-def _to_category_entry(record: StructuredContentRecord) -> CategoryEntry:
-    return CategoryEntry(
-        id=str(record.item_id),
-        locale=record.locale,
-        revision=record.revision,
-        revision_state=record.revision_state,
-        draft_revision=record.draft_revision,
-        published_revision=record.published_revision,
-        name=record.fields.get("name"),
-        slug=record.slug,
-        description=record.fields.get("description"),
-        custom_fields=_as_json(record.custom_fields),
-    )
-
-
-_ENTRY_BUILDERS = {
-    "article": _to_article_entry,
-    "category": _to_category_entry,
-    "page": _to_page_entry,
-    "reusable-section": _to_reusable_section_entry,
-}
+def _model_entry_field_value(model_key: str, field_key: str, record: StructuredContentRecord) -> Any:
+    if model_key == "page":
+        return _page_entry_field_value(record, field_key)
+    return _extract_system_field(model_key=model_key, fields=record.fields, field_key=field_key)
 
 
 def _to_model_entry(model_key: str, record: StructuredContentRecord) -> Any:
-    return _ENTRY_BUILDERS[model_key](record)
+    schema = _required_model_schema(model_key)
+    runtime_types = _MODEL_RUNTIME_TYPES[model_key]
+    payload: dict[str, Any] = {
+        "id": str(record.item_id),
+        "locale": record.locale,
+        "revision": record.revision,
+        "revision_state": record.revision_state,
+        "draft_revision": record.draft_revision,
+        "published_revision": record.published_revision,
+        "custom_fields": _as_json(record.custom_fields),
+    }
+    for field in schema.system_fields:
+        payload[_snake_case(field.field_name)] = _model_entry_field_value(model_key, field.source_key, record)
+    return runtime_types.entry_type(**payload)
 
 
 async def _list_model_entries(
@@ -608,8 +527,94 @@ async def _get_single_model_entry(
     return _to_model_entry(model_key, record) if record is not None else None
 
 
-@strawberry.type
-class Query:
+def _build_single_query_field(
+    schema: GraphQLModelSchemaDefinition,
+) -> Any:
+    function_name = f"_resolve_{schema.model_key.replace('-', '_')}_single"
+    argument_name = schema.single_query_argument
+    namespace: dict[str, Any] = {
+        "__name__": __name__,
+        "DeliveryPerspectiveEnum": DeliveryPerspectiveEnum,
+        "Perspective": Perspective,
+        "SiteGraphQLContext": SiteGraphQLContext,
+        "_get_single_model_entry": _get_single_model_entry,
+        "strawberry": strawberry,
+    }
+    exec(
+        f"""
+async def {function_name}(self, info: strawberry.Info[SiteGraphQLContext, None], {argument_name}: str, perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED, preview_token: str | None = None) -> {schema.entry_type} | None:
+    return await _get_single_model_entry(
+        info=info,
+        model_key={schema.model_key!r},
+        lookup_value={argument_name},
+        perspective=perspective,
+        preview_token=preview_token,
+    )
+""",
+        namespace,
+    )
+    resolver = namespace[function_name]
+    resolver.__module__ = __name__
+    return strawberry.field(name=schema.single_query_name, resolver=resolver)
+
+
+def _build_list_query_field(
+    schema: GraphQLModelSchemaDefinition,
+    *,
+    filter_input_type: type[Any],
+    sort_input_type: type[Any],
+) -> Any:
+    function_name = f"_resolve_{schema.model_key.replace('-', '_')}_list"
+    namespace: dict[str, Any] = {
+        "__name__": __name__,
+        "DeliveryPerspectiveEnum": DeliveryPerspectiveEnum,
+        "Perspective": Perspective,
+        "SiteGraphQLContext": SiteGraphQLContext,
+        "_list_model_entries": _list_model_entries,
+        "strawberry": strawberry,
+    }
+    exec(
+        f"""
+async def {function_name}(self, info: strawberry.Info[SiteGraphQLContext, None], perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED, preview_token: str | None = None, filter: {filter_input_type.__name__} | None = None, sort: {sort_input_type.__name__} | None = None, limit: int = 20, offset: int = 0) -> list[{schema.entry_type}]:
+    return await _list_model_entries(
+        info=info,
+        model_key={schema.model_key!r},
+        perspective=perspective,
+        preview_token=preview_token,
+        filter_input=filter,
+        sort_input=sort,
+        limit=limit,
+        offset=offset,
+    )
+""",
+        namespace,
+    )
+    resolver = namespace[function_name]
+    resolver.__module__ = __name__
+    return strawberry.field(name=schema.list_query_name, resolver=resolver)
+
+
+def _build_model_query_fields() -> dict[str, object]:
+    fields: dict[str, object] = {}
+    ordered_schemas = [
+        _required_model_schema(model_key) for model_key in _QUERY_MODEL_ORDER if model_key in _SCHEMA_BY_MODEL_KEY
+    ]
+    ordered_schemas.extend(
+        schema for schema in list_graphql_model_schemas() if schema.model_key not in set(_QUERY_MODEL_ORDER)
+    )
+    for schema in ordered_schemas:
+        runtime_types = _MODEL_RUNTIME_TYPES[schema.model_key]
+        prefix = schema.model_key.replace("-", "_")
+        fields[f"{prefix}_single"] = _build_single_query_field(schema)
+        fields[f"{prefix}_list"] = _build_list_query_field(
+            schema,
+            filter_input_type=runtime_types.filter_input_type,
+            sort_input_type=runtime_types.sort_input_type,
+        )
+    return fields
+
+
+class QueryBase:
     @strawberry.field
     async def resolve_page(
         self,
@@ -686,157 +691,22 @@ class Query:
             _raise_graphql_error(exc)
         return _to_global_set(payload)
 
-    @strawberry.field
-    async def article_by_slug(
-        self,
-        info: strawberry.Info[SiteGraphQLContext, None],
-        slug: str,
-        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
-        preview_token: str | None = None,
-    ) -> ArticleEntry | None:
-        return await _get_single_model_entry(
-            info=info,
-            model_key="article",
-            lookup_value=slug,
-            perspective=perspective,
-            preview_token=preview_token,
-        )
 
-    @strawberry.field
-    async def articles(
-        self,
-        info: strawberry.Info[SiteGraphQLContext, None],
-        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
-        preview_token: str | None = None,
-        filter: ArticleFilterInput | None = None,
-        sort: ArticleSortInput | None = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> list[ArticleEntry]:
-        return await _list_model_entries(
-            info=info,
-            model_key="article",
-            perspective=perspective,
-            preview_token=preview_token,
-            filter_input=filter,
-            sort_input=sort,
-            limit=limit,
-            offset=offset,
-        )
+def _base_query_fields() -> dict[str, object]:
+    return {name: value for name, value in QueryBase.__dict__.items() if not name.startswith("__")}
 
-    @strawberry.field
-    async def page_entry_by_path(
-        self,
-        info: strawberry.Info[SiteGraphQLContext, None],
-        path: str,
-        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
-        preview_token: str | None = None,
-    ) -> PageEntry | None:
-        return await _get_single_model_entry(
-            info=info,
-            model_key="page",
-            lookup_value=path,
-            perspective=perspective,
-            preview_token=preview_token,
-        )
 
-    @strawberry.field
-    async def pages(
-        self,
-        info: strawberry.Info[SiteGraphQLContext, None],
-        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
-        preview_token: str | None = None,
-        filter: PageFilterInput | None = None,
-        sort: PageSortInput | None = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> list[PageEntry]:
-        return await _list_model_entries(
-            info=info,
-            model_key="page",
-            perspective=perspective,
-            preview_token=preview_token,
-            filter_input=filter,
-            sort_input=sort,
-            limit=limit,
-            offset=offset,
-        )
-
-    @strawberry.field
-    async def reusable_section_by_alias(
-        self,
-        info: strawberry.Info[SiteGraphQLContext, None],
-        alias: str,
-        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
-        preview_token: str | None = None,
-    ) -> ReusableSectionEntry | None:
-        return await _get_single_model_entry(
-            info=info,
-            model_key="reusable-section",
-            lookup_value=alias,
-            perspective=perspective,
-            preview_token=preview_token,
-        )
-
-    @strawberry.field
-    async def reusable_sections(
-        self,
-        info: strawberry.Info[SiteGraphQLContext, None],
-        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
-        preview_token: str | None = None,
-        filter: ReusableSectionFilterInput | None = None,
-        sort: ReusableSectionSortInput | None = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> list[ReusableSectionEntry]:
-        return await _list_model_entries(
-            info=info,
-            model_key="reusable-section",
-            perspective=perspective,
-            preview_token=preview_token,
-            filter_input=filter,
-            sort_input=sort,
-            limit=limit,
-            offset=offset,
-        )
-
-    @strawberry.field
-    async def category_by_slug(
-        self,
-        info: strawberry.Info[SiteGraphQLContext, None],
-        slug: str,
-        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
-        preview_token: str | None = None,
-    ) -> CategoryEntry | None:
-        return await _get_single_model_entry(
-            info=info,
-            model_key="category",
-            lookup_value=slug,
-            perspective=perspective,
-            preview_token=preview_token,
-        )
-
-    @strawberry.field
-    async def categories(
-        self,
-        info: strawberry.Info[SiteGraphQLContext, None],
-        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
-        preview_token: str | None = None,
-        filter: CategoryFilterInput | None = None,
-        sort: CategorySortInput | None = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> list[CategoryEntry]:
-        return await _list_model_entries(
-            info=info,
-            model_key="category",
-            perspective=perspective,
-            preview_token=preview_token,
-            filter_input=filter,
-            sort_input=sort,
-            limit=limit,
-            offset=offset,
-        )
+Query = strawberry.type(
+    type(
+        "Query",
+        (),
+        {
+            "__module__": __name__,
+            **_base_query_fields(),
+            **_build_model_query_fields(),
+        },
+    )
+)
 
 
 schema = strawberry.Schema(query=Query)

@@ -10,11 +10,10 @@ const mocked = vi.hoisted(() => ({
   createProjectAutomationFlow: vi.fn(),
   deleteProjectAutomationFlow: vi.fn(),
   getMyProjectAuthz: vi.fn(),
-  getMyWorkspaceAuthz: vi.fn(),
   getProjectAutomationCatalog: vi.fn(),
   listProjectAutomationFlows: vi.fn(),
   listProjectAutomationRuns: vi.fn(),
-  listWorkspacePermissionActions: vi.fn(),
+  listProjectPermissionActions: vi.fn(),
   updateProjectAutomationFlow: vi.fn(),
 }));
 
@@ -37,12 +36,11 @@ vi.mock("@/api/automation", () => ({
 
 vi.mock("@/api/workspaces", () => ({
   getMyProjectAuthz: (...args: unknown[]) => mocked.getMyProjectAuthz(...args),
-  getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
 }));
 
 vi.mock("@/api/rbac", () => ({
-  listWorkspacePermissionActions: (...args: unknown[]) =>
-    mocked.listWorkspacePermissionActions(...args),
+  listProjectPermissionActions: (...args: unknown[]) =>
+    mocked.listProjectPermissionActions(...args),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -182,15 +180,18 @@ describe("content-automation-page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocked.getMyProjectAuthz.mockResolvedValue({
-      workspaceId: "workspace-1",
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:automation:manage"],
     });
-    mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "project-1",
-      isSuperuser: false,
-      permissionCodes: ["system:automation:manage"],
-    });
+    mocked.listProjectPermissionActions.mockResolvedValue([
+      {
+        code: "automation:manage",
+        description: "Allow managing automation flows and operations.",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:automation:manage"],
+      },
+    ]);
     mocked.getProjectAutomationCatalog.mockResolvedValue(buildCatalog());
     mocked.listProjectAutomationFlows.mockResolvedValue({ items: [buildFlow()] });
     mocked.listProjectAutomationRuns.mockResolvedValue({ items: [buildRun()] });

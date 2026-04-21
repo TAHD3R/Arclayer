@@ -18,14 +18,14 @@ from src.modules.projects.api_keys.schema import (
 )
 from src.modules.projects.api_keys.service import ProjectApiKeysService
 from src.modules.projects.http.router_helpers import (
-    get_project_runtime_bridge_service,
     get_project_runtime_context,
-    require_project_workspace_permission,
+    get_project_runtime_service,
+    require_project_permission,
     workspace_context_from_project,
 )
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
-from src.modules.projects.runtime_bridge.service import ProjectRuntimeBridgeService
+from src.modules.projects.runtime.service import ProjectRuntimeService
 
 router = APIRouter(prefix="/projects/{project_id}/api-keys", tags=["domain.projects.api_keys"])
 
@@ -38,13 +38,23 @@ def get_project_api_keys_service(settings: Settings = Depends(get_settings)) -> 
     "",
     response_model=ResponseModel[ApiKeyListOut],
     summary="List project service and delivery API keys",
-    dependencies=[require_project_workspace_permission("system:keys:read")],
+    dependencies=[require_project_permission("system:keys:read")],
 )
 async def list_project_api_keys(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectApiKeysService, Depends(get_project_api_keys_service)],
 ) -> ResponseModel[ApiKeyListOut]:
-    data = await service.list_workspace_keys_out(workspace_id=ctx.workspace_id)
+    runtime_context = await get_project_runtime_context(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_service=runtime_service,
+    )
+    data = await service.list_project_site_keys_out(
+        workspace_id=runtime_context.workspace_id,
+        site_id=runtime_context.site_id,
+    )
     return ApiResponse.success(data=data)
 
 
@@ -52,21 +62,21 @@ async def list_project_api_keys(
     "",
     response_model=ResponseModel[ApiKeyCreateOut],
     summary="Create a project service or delivery API key",
-    dependencies=[require_project_workspace_permission("system:keys:manage")],
+    dependencies=[require_project_permission("system:keys:manage")],
 )
 async def create_project_api_key(
     payload: ProjectApiKeyCreateIn,
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    runtime_bridge_service: Annotated[ProjectRuntimeBridgeService, Depends(get_project_runtime_bridge_service)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectApiKeysService, Depends(get_project_api_keys_service)],
 ) -> ResponseModel[ApiKeyCreateOut]:
     runtime_context = await get_project_runtime_context(
         ctx=ctx,
         actor_user_id=actor_user_id,
-        runtime_bridge_service=runtime_bridge_service,
+        runtime_service=runtime_service,
     )
-    data = await service.create_workspace_key_out(
+    data = await service.create_project_site_key_out(
         workspace_id=runtime_context.workspace_id,
         site_id=runtime_context.site_id,
         actor_user_id=actor_user_id,
@@ -85,14 +95,25 @@ async def create_project_api_key(
     "/{key_id}",
     response_model=ResponseModel[ApiKeyOut],
     summary="Get a project service or delivery API key",
-    dependencies=[require_project_workspace_permission("system:keys:read")],
+    dependencies=[require_project_permission("system:keys:read")],
 )
 async def get_project_api_key(
     key_id: PublicUUID,
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectApiKeysService, Depends(get_project_api_keys_service)],
 ) -> ResponseModel[ApiKeyOut]:
-    data = await service.get_workspace_key_out(workspace_id=ctx.workspace_id, key_id=key_id)
+    runtime_context = await get_project_runtime_context(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_service=runtime_service,
+    )
+    data = await service.get_project_site_key_out(
+        workspace_id=runtime_context.workspace_id,
+        site_id=runtime_context.site_id,
+        key_id=key_id,
+    )
     return ApiResponse.success(data=data)
 
 
@@ -100,15 +121,25 @@ async def get_project_api_key(
     "/{key_id}/revoke",
     response_model=ResponseModel[ApiKeyOut],
     summary="Revoke a project service or delivery API key",
-    dependencies=[require_project_workspace_permission("system:keys:manage")],
+    dependencies=[require_project_permission("system:keys:manage")],
 )
 async def revoke_project_api_key(
     key_id: PublicUUID,
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectApiKeysService, Depends(get_project_api_keys_service)],
 ) -> ResponseModel[ApiKeyOut]:
-    data = await service.revoke_workspace_key_out(workspace_id=ctx.workspace_id, key_id=key_id)
+    runtime_context = await get_project_runtime_context(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_service=runtime_service,
+    )
+    data = await service.revoke_project_site_key_out(
+        workspace_id=runtime_context.workspace_id,
+        site_id=runtime_context.site_id,
+        key_id=key_id,
+    )
     await publish_api_key_event(
         actor_user_id=actor_user_id,
         event_name="project.api_key.revoked",
@@ -122,15 +153,25 @@ async def revoke_project_api_key(
     "/{key_id}/rotate",
     response_model=ResponseModel[ApiKeyCreateOut],
     summary="Rotate a project service or delivery API key",
-    dependencies=[require_project_workspace_permission("system:keys:manage")],
+    dependencies=[require_project_permission("system:keys:manage")],
 )
 async def rotate_project_api_key(
     key_id: PublicUUID,
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectApiKeysService, Depends(get_project_api_keys_service)],
 ) -> ResponseModel[ApiKeyCreateOut]:
-    data = await service.rotate_workspace_key_out(workspace_id=ctx.workspace_id, key_id=key_id)
+    runtime_context = await get_project_runtime_context(
+        ctx=ctx,
+        actor_user_id=actor_user_id,
+        runtime_service=runtime_service,
+    )
+    data = await service.rotate_project_site_key_out(
+        workspace_id=runtime_context.workspace_id,
+        site_id=runtime_context.site_id,
+        key_id=key_id,
+    )
     await publish_api_key_event(
         actor_user_id=actor_user_id,
         event_name="project.api_key.rotated",

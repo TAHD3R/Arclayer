@@ -114,10 +114,7 @@ export function GeneralSettingsShell({
   );
 
   const permissionReady = permissionAccess.authzQuery.isFetched;
-  const canManageSiteSettings =
-    !permissionReady ||
-    permissionAccess.hasPermission("system:site:manage") ||
-    permissionAccess.hasAction("system:site:manage");
+  const canManageSiteSettings = !permissionReady || permissionAccess.hasAction("site:manage");
   const projectDisabled =
     projectCoreQuery.isFetching || saveProjectMutation.isPending || !canManageSiteSettings;
   const loadError = useMemo(() => {

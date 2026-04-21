@@ -537,10 +537,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   const viewMode: ContentLibraryViewMode = manualViewMode ?? (autoCardMode ? "card" : "table");
   const permissionReady = !projectId || permissionAccess.authzQuery.isFetched;
   const canManageContent =
-    !projectId ||
-    !permissionReady ||
-    permissionAccess.hasAction("content:items:write") ||
-    permissionAccess.hasPermission("system:content:manage");
+    !projectId || !permissionReady || permissionAccess.hasAction("content:items:write");
   const modelsQuery = useQuery({
     queryKey: buildContentLibraryModelsQueryKey(projectId ? String(projectId) : null),
     enabled: Boolean(projectId),

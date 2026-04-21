@@ -25,9 +25,9 @@ import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const mocked = vi.hoisted(() => ({
   loadContentLibraryArticleEditorSnapshot: vi.fn(),
-  getCoreSettings: vi.fn(),
-  getMyWorkspaceAuthz: vi.fn(),
-  listWorkspacePermissionActions: vi.fn(),
+  getProjectCoreSettings: vi.fn(),
+  getMyProjectAuthz: vi.fn(),
+  listProjectPermissionActions: vi.fn(),
   saveContentItemDraftVersion: vi.fn(),
   patchContentItemVersion: vi.fn(),
   patchContentItemWorkflow: vi.fn(),
@@ -95,16 +95,16 @@ vi.mock("@/api/content", () => ({
 }));
 
 vi.mock("@/api/settings", () => ({
-  getCoreSettings: (...args: unknown[]) => mocked.getCoreSettings(...args),
+  getProjectCoreSettings: (...args: unknown[]) => mocked.getProjectCoreSettings(...args),
 }));
 
 vi.mock("@/api/workspaces", () => ({
-  getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
+  getMyProjectAuthz: (...args: unknown[]) => mocked.getMyProjectAuthz(...args),
 }));
 
 vi.mock("@/api/rbac", () => ({
-  listWorkspacePermissionActions: (...args: unknown[]) =>
-    mocked.listWorkspacePermissionActions(...args),
+  listProjectPermissionActions: (...args: unknown[]) =>
+    mocked.listProjectPermissionActions(...args),
 }));
 
 vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
@@ -338,30 +338,30 @@ function buildEditorRuntime(
 
 describe("content-library-article-editor-page", () => {
   beforeEach(() => {
-    mocked.getMyWorkspaceAuthz.mockReset();
-    mocked.listWorkspacePermissionActions.mockReset();
+    mocked.getMyProjectAuthz.mockReset();
+    mocked.listProjectPermissionActions.mockReset();
     mocked.loadContentLibraryArticleEditorSnapshot.mockReset();
-    mocked.getCoreSettings.mockReset();
+    mocked.getProjectCoreSettings.mockReset();
     mocked.saveContentItemDraftVersion.mockReset();
     mocked.patchContentItemVersion.mockReset();
     mocked.patchContentItemWorkflow.mockReset();
     mocked.publishContentItemVersion.mockReset();
     renderStats.providerDocuments.length = 0;
     renderStats.toolbarRenders = 0;
-    mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "ws-1",
+    mocked.getMyProjectAuthz.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage", "system:content:publish"],
     });
-    mocked.listWorkspacePermissionActions.mockResolvedValue([
+    mocked.listProjectPermissionActions.mockResolvedValue([
       {
-        code: "system:content:publish",
+        code: "release:publish",
         description: "Publish content entries through the shared lifecycle workflow.",
         subjectKinds: ["workspace_member"],
         permissionCodes: ["system:content:publish"],
       },
     ]);
-    mocked.getCoreSettings.mockResolvedValue({
+    mocked.getProjectCoreSettings.mockResolvedValue({
       namespace: "core",
       value: {
         content_strategy: {
@@ -426,7 +426,7 @@ describe("content-library-article-editor-page", () => {
     );
     mocked.patchContentItemVersion.mockImplementation(
       async (
-        _workspaceId: string,
+        _projectId: string,
         itemId: string,
         versionNumber: number,
         payload: {
@@ -664,8 +664,8 @@ describe("content-library-article-editor-page", () => {
 
   it("disables publish when the workspace lacks publish access", async () => {
     mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
-    mocked.getMyWorkspaceAuthz.mockResolvedValueOnce({
-      workspaceId: "ws-1",
+    mocked.getMyProjectAuthz.mockResolvedValueOnce({
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage"],
     });
@@ -688,7 +688,7 @@ describe("content-library-article-editor-page", () => {
 
     renderWithQuery(
       <ContentLibraryArticleEditorShell
-        workspaceId="ws-1"
+        projectId="project-1"
         itemId="content-1"
         mode="split"
         title="Test article"
@@ -768,7 +768,7 @@ describe("content-library-article-editor-page", () => {
 
     renderWithQuery(
       <ContentLibraryArticleEditorShell
-        workspaceId="ws-1"
+        projectId="project-1"
         itemId="content-1"
         mode="page"
         title="Test article"
@@ -800,7 +800,7 @@ describe("content-library-article-editor-page", () => {
     );
 
     await waitFor(() => {
-      expect(mocked.patchContentItemWorkflow).toHaveBeenCalledWith("ws-1", "content-1", {
+      expect(mocked.patchContentItemWorkflow).toHaveBeenCalledWith("project-1", "content-1", {
         stage: "approved",
         summary: "CONTENT_LIBRARY_WORKFLOW_SUMMARY_APPROVED",
       });

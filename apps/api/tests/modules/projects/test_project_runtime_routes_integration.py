@@ -203,3 +203,60 @@ async def test_project_api_keys_bind_to_runtime_site_bridge(
         assert runtime_preview_res.json()["data"]["siteId"] == project_site_id
 
     get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_project_api_keys_are_isolated_per_project_runtime_site(
+    monkeypatch,
+    tmp_path,
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    monkeypatch.setenv("SECURITY__MASTER_KEY_PATH", str(tmp_path / "master.key"))
+    get_settings.cache_clear()
+    ensure_master_key(get_settings().security.master_key_path)
+
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, first_project_id):
+        second_create_res = await client.post(
+            "/api/v1/projects",
+            json={
+                "workspaceId": workspace_id,
+                "name": "Second Test Project",
+                "slug": "second-test-project",
+            },
+        )
+        assert second_create_res.status_code == 201, second_create_res.text
+        second_project_id = second_create_res.json()["data"]["id"]
+
+        first_create_res = await client.post(
+            f"/api/v1/projects/{first_project_id}/api-keys",
+            json={
+                **_project_api_key_payload(),
+                "name": "First Project Key",
+            },
+        )
+        assert first_create_res.status_code == 200, first_create_res.text
+        first_key = first_create_res.json()["data"]["key"]
+
+        second_create_res = await client.post(
+            f"/api/v1/projects/{second_project_id}/api-keys",
+            json={
+                **_project_api_key_payload(),
+                "name": "Second Project Key",
+            },
+        )
+        assert second_create_res.status_code == 200, second_create_res.text
+        second_key = second_create_res.json()["data"]["key"]
+
+        first_list_res = await client.get(f"/api/v1/projects/{first_project_id}/api-keys")
+        assert first_list_res.status_code == 200, first_list_res.text
+        assert [item["id"] for item in first_list_res.json()["data"]["items"]] == [first_key["id"]]
+
+        second_list_res = await client.get(f"/api/v1/projects/{second_project_id}/api-keys")
+        assert second_list_res.status_code == 200, second_list_res.text
+        assert [item["id"] for item in second_list_res.json()["data"]["items"]] == [second_key["id"]]
+
+        forbidden_detail = await client.get(f"/api/v1/projects/{first_project_id}/api-keys/{second_key['id']}")
+        assert forbidden_detail.status_code == 404, forbidden_detail.text
+
+    get_settings.cache_clear()

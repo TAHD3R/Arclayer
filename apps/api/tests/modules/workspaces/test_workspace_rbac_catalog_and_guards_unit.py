@@ -17,7 +17,7 @@ from src.modules.projects.content.routing.router import router as project_routin
 from src.modules.projects.domains.router import router as project_domains_router
 from src.modules.projects.publish.router import router as project_publish_router
 from src.modules.projects.releases.router import router as project_releases_router
-from src.modules.projects.runtime_bridge.router import router as project_runtime_bridge_router
+from src.modules.projects.runtime.router import project_router as project_runtime_router
 from src.modules.system.admin.notifications.router import router as notifications_router
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.workspaces.permissions import get_organization_permission_catalog, get_permission_action_registry
@@ -132,6 +132,10 @@ def test_workspace_action_catalog_includes_delivery_and_workspace_actions() -> N
     assert registry["content:routing:read"].permission_codes == ("system:content:read",)
     assert "content:routing:write" in registry
     assert registry["content:routing:write"].permission_codes == ("system:content:manage",)
+    assert "site:read" in registry
+    assert registry["site:read"].permission_codes == ("system:site:read",)
+    assert "site:manage" in registry
+    assert registry["site:manage"].permission_codes == ("system:site:manage",)
     assert "release:read" in registry
     assert registry["release:read"].permission_codes == ("system:content:read",)
     assert "release:publish" in registry
@@ -187,9 +191,9 @@ def test_content_router_uses_granular_permissions() -> None:
 
 
 def test_site_router_uses_granular_permissions() -> None:
-    site_read = _route_permissions(project_runtime_bridge_router, path="/projects/{project_id}/site", method="GET")
+    site_read = _route_permissions(project_runtime_router, path="/projects/{project_id}/site", method="GET")
     site_preview = _route_permissions(
-        project_runtime_bridge_router,
+        project_runtime_router,
         path="/projects/{project_id}/site/preview-tokens",
         method="POST",
     )
@@ -197,6 +201,11 @@ def test_site_router_uses_granular_permissions() -> None:
     assert site_read == {"system:site:read"}
     assert site_preview == {"system:site:manage"}
     assert "admin:access" not in site_read | site_preview
+
+
+def test_project_router_excludes_runtime_bridge_mounts() -> None:
+    router_source = (Path(__file__).resolve().parents[3] / "src" / "modules" / "projects" / "router.py").read_text()
+    assert "projects_runtime_bridge_router" not in router_source
 
 
 def test_project_api_key_router_uses_granular_permissions() -> None:

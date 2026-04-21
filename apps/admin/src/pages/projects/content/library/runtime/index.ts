@@ -110,56 +110,56 @@ type ContentLibraryArticleEditorRuntimeItem = Pick<
   publishReadiness?: AdminContentItemPublishReadiness | null;
 };
 
-export function buildContentLibraryItemsQueryKey(workspaceId: string | null) {
-  return ["content-library-runtime", "items", "all", workspaceId] as const;
+export function buildContentLibraryItemsQueryKey(projectId: string | null) {
+  return ["content-library-runtime", "items", "all", projectId] as const;
 }
 
-export function buildContentLibraryModelsQueryKey(workspaceId: string | null) {
-  return ["content-library-runtime", "models", "all", workspaceId] as const;
+export function buildContentLibraryModelsQueryKey(projectId: string | null) {
+  return ["content-library-runtime", "models", "all", projectId] as const;
 }
 
-export function buildContentLibraryViewsQueryKey(workspaceId: string | null) {
-  return ["content-library-runtime", "views", workspaceId] as const;
+export function buildContentLibraryViewsQueryKey(projectId: string | null) {
+  return ["content-library-runtime", "views", projectId] as const;
 }
 
-export function buildContentLibraryItemQueryKey(workspaceId: string | null, itemId: string | null) {
-  return ["content-library-runtime", "item", workspaceId, itemId] as const;
+export function buildContentLibraryItemQueryKey(projectId: string | null, itemId: string | null) {
+  return ["content-library-runtime", "item", projectId, itemId] as const;
 }
 
 export function buildContentLibraryVersionHistoryQueryKey(
-  workspaceId: string | null,
+  projectId: string | null,
   itemId: string | null,
 ) {
-  return ["content-library-runtime", "item", workspaceId, itemId, "versions"] as const;
+  return ["content-library-runtime", "item", projectId, itemId, "versions"] as const;
 }
 
-export function loadContentLibraryItems(workspaceId: string): Promise<AdminContentItem[]> {
-  return listAllContentItems(workspaceId);
+export function loadContentLibraryItems(projectId: string): Promise<AdminContentItem[]> {
+  return listAllContentItems(projectId);
 }
 
-export function loadContentLibraryModels(workspaceId: string): Promise<AdminContentModel[]> {
-  return listAllContentModels(workspaceId);
+export function loadContentLibraryModels(projectId: string): Promise<AdminContentModel[]> {
+  return listAllContentModels(projectId);
 }
 
 export function loadContentLibraryViewsState(
-  workspaceId: string,
+  projectId: string,
 ): Promise<AdminContentLibraryViewsState> {
-  return getContentLibraryViews(workspaceId);
+  return getContentLibraryViews(projectId);
 }
 
 export function loadContentLibraryItemRuntime(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
 ): Promise<AdminContentItem> {
-  return getContentItem(workspaceId, itemId);
+  return getContentItem(projectId, itemId);
 }
 
 export function loadContentLibraryVersionHistory(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
   params: ListAdminContentVersionsParams = {},
 ): Promise<PageData<AdminContentVersion>> {
-  return listContentItemVersions(workspaceId, itemId, {
+  return listContentItemVersions(projectId, itemId, {
     page: params.page ?? 1,
     size: params.size ?? CONTENT_LIBRARY_VERSION_HISTORY_PAGE_SIZE,
   });
@@ -371,16 +371,16 @@ export function findArticleEditorPresentation(
 }
 
 export async function loadContentLibraryArticleEditorSnapshot(
-  workspaceId: string,
+  projectId: string,
   itemId: string,
 ): Promise<ContentLibraryArticleEditorSnapshot> {
-  const item = await loadContentLibraryItemRuntime(workspaceId, itemId);
+  const item = await loadContentLibraryItemRuntime(projectId, itemId);
   const [draftVersion, publishedVersion] = await Promise.all([
     item.draftVersion > 0
-      ? getContentItemVersion(workspaceId, itemId, item.draftVersion)
+      ? getContentItemVersion(projectId, itemId, item.draftVersion)
       : Promise.resolve(null),
     item.publishedVersion
-      ? getContentItemVersion(workspaceId, itemId, item.publishedVersion)
+      ? getContentItemVersion(projectId, itemId, item.publishedVersion)
       : Promise.resolve(null),
   ]);
 

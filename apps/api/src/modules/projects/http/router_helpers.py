@@ -10,10 +10,6 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.projects.runtime.service import ProjectRuntimeContext, ProjectRuntimeService
-from src.modules.projects.runtime_bridge.service import (
-    ProjectRuntimeBridgeContext,
-    ProjectRuntimeBridgeService,
-)
 from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
 from src.modules.workspaces.http.schema import WorkspaceContext
 
@@ -22,12 +18,6 @@ def get_project_runtime_service(
     settings: Settings = Depends(get_settings),
 ) -> ProjectRuntimeService:
     return ProjectRuntimeService(settings)
-
-
-def get_project_runtime_bridge_service(
-    settings: Settings = Depends(get_settings),
-) -> ProjectRuntimeBridgeService:
-    return ProjectRuntimeBridgeService(settings)
 
 
 def workspace_context_from_project(ctx: ProjectRequestContext) -> WorkspaceContext:
@@ -54,7 +44,7 @@ async def ensure_project_permission_granted(
     await ensure_workspace_permission_granted(
         permission,
         user_id=user_id,
-        ctx=workspace_context_from_project(ctx),
+        ctx=ctx,
         error_code=error_code,
     )
 
@@ -74,32 +64,13 @@ def require_project_permission(permission: str, *, error_code: str = "PERMISSION
     return Depends(_dep)
 
 
-def require_project_workspace_permission(permission: str):
-    async def _dep(
-        ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
-        user_id: Annotated[UUID, Depends(get_current_user_id)],
-    ) -> None:
-        await ensure_project_permission_granted(
-            permission,
-            user_id=user_id,
-            ctx=ctx,
-        )
-
-    return Depends(_dep)
-
-
 async def get_project_runtime_context(
     *,
     ctx: ProjectRequestContext,
     actor_user_id: UUID,
-    runtime_service: ProjectRuntimeService | None = None,
-    runtime_bridge_service: ProjectRuntimeBridgeService | None = None,
-) -> ProjectRuntimeContext | ProjectRuntimeBridgeContext:
-    if runtime_service is not None:
-        return await runtime_service.get_context_by_project(
-            project_id=ctx.project_id,
-            actor_user_id=actor_user_id,
-        )
-    if runtime_bridge_service is not None:
-        return await runtime_bridge_service.get_context(project_id=ctx.project_id, actor_user_id=actor_user_id)
-    raise ValueError("Project runtime context requires a runtime service or runtime bridge service")
+    runtime_service: ProjectRuntimeService,
+) -> ProjectRuntimeContext:
+    return await runtime_service.get_context_by_project(
+        project_id=ctx.project_id,
+        actor_user_id=actor_user_id,
+    )

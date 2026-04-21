@@ -15,16 +15,15 @@ vi.mock("@/layouts/page-shell/default-page", () => ({
   DefaultPage: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 
-const getMyWorkspaceAuthzMock = vi.fn();
-const listWorkspacePermissionActionsMock = vi.fn();
+const getMyProjectAuthzMock = vi.fn();
+const listProjectPermissionActionsMock = vi.fn();
 
 vi.mock("@/api/workspaces", () => ({
-  getMyWorkspaceAuthz: (...args: unknown[]) => getMyWorkspaceAuthzMock(...args),
+  getMyProjectAuthz: (...args: unknown[]) => getMyProjectAuthzMock(...args),
 }));
 
 vi.mock("@/api/rbac", () => ({
-  listWorkspacePermissionActions: (...args: unknown[]) =>
-    listWorkspacePermissionActionsMock(...args),
+  listProjectPermissionActions: (...args: unknown[]) => listProjectPermissionActionsMock(...args),
 }));
 
 function renderWithQuery(node: ReactElement) {
@@ -39,12 +38,12 @@ function renderWithQuery(node: ReactElement) {
 
 describe("ContentSiteBuilderPage", () => {
   test("shows read-only builder guidance when content management access is missing", async () => {
-    getMyWorkspaceAuthzMock.mockResolvedValue({
-      workspaceId: "ws-1",
+    getMyProjectAuthzMock.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:read"],
     });
-    listWorkspacePermissionActionsMock.mockResolvedValue([
+    listProjectPermissionActionsMock.mockResolvedValue([
       {
         code: "content:site-builder:write",
         description: "Allow configuring canvas and site builder workflows.",
@@ -90,12 +89,12 @@ describe("ContentSiteBuilderPage", () => {
   });
 
   test("renders a real site builder shell even without an active canvas item", () => {
-    getMyWorkspaceAuthzMock.mockResolvedValue({
-      workspaceId: "ws-1",
+    getMyProjectAuthzMock.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage", "system:content:read"],
     });
-    listWorkspacePermissionActionsMock.mockResolvedValue([
+    listProjectPermissionActionsMock.mockResolvedValue([
       {
         code: "content:site-builder:write",
         description: "Allow configuring canvas and site builder workflows.",
@@ -111,12 +110,12 @@ describe("ContentSiteBuilderPage", () => {
   });
 
   test("renders in-surface boundary UI when canvas capabilities are incomplete", () => {
-    getMyWorkspaceAuthzMock.mockResolvedValue({
-      workspaceId: "ws-1",
+    getMyProjectAuthzMock.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage", "system:content:read"],
     });
-    listWorkspacePermissionActionsMock.mockResolvedValue([
+    listProjectPermissionActionsMock.mockResolvedValue([
       {
         code: "content:site-builder:write",
         description: "Allow configuring canvas and site builder workflows.",

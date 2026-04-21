@@ -38,6 +38,15 @@ class PolicyEvaluationService:
                 matched_actions=[context.action],
             )
 
+        allowed_subject_kinds = {str(kind).strip() for kind in definition.subject_kinds if str(kind).strip()}
+        subject_kind = str(context.subject_kind).strip()
+        if allowed_subject_kinds and subject_kind not in allowed_subject_kinds:
+            return PermissionDecision(
+                action=context.action,
+                allowed=False,
+                reason="SUBJECT_KIND_FORBIDDEN",
+            )
+
         direct_action_grants = {str(action).strip() for action in context.granted_actions if str(action).strip()}
         if context.action in direct_action_grants:
             return PermissionDecision(

@@ -35,7 +35,7 @@ class PermissionContext(BaseSchema):
 class PermissionDecision(BaseSchema):
     action: str = Field(..., description="Canonical action code.")
     allowed: bool = Field(..., description="Whether the action is allowed.")
-    reason: str = Field(..., description="Decision reason code.")
+    reason: str = Field(..., description="Decision reason code, including subject-kind mismatches.")
     matched_permission_codes: list[str] = Field(
         default_factory=list, description="Permission grants used by the decision."
     )

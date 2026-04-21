@@ -25,7 +25,7 @@ const mocked = vi.hoisted(() => ({
   saveContentItemDraftVersion: vi.fn(),
   patchContentItemVersion: vi.fn(),
   publishContentItemVersion: vi.fn(),
-  getCoreSettings: vi.fn(),
+  getProjectCoreSettings: vi.fn(),
   archiveContentItem: vi.fn(),
   deleteContentItem: vi.fn(),
   duplicateContentItem: vi.fn(),
@@ -65,7 +65,7 @@ vi.mock("@/api/content", () => ({
 }));
 
 vi.mock("@/api/settings", () => ({
-  getCoreSettings: (...args: unknown[]) => mocked.getCoreSettings(...args),
+  getProjectCoreSettings: (...args: unknown[]) => mocked.getProjectCoreSettings(...args),
 }));
 
 vi.mock("@/api/workspaces", () => ({
@@ -589,7 +589,7 @@ describe("ContentLibraryPage", () => {
       token: "preview-token",
       expiresAtMs: 123,
     });
-    mocked.getCoreSettings.mockResolvedValue({
+    mocked.getProjectCoreSettings.mockResolvedValue({
       namespace: "core",
       value: {
         content_strategy: {

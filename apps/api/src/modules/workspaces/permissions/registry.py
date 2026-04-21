@@ -226,6 +226,20 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         scope=PermissionScope.WORKSPACE.value,
     ),
     PermissionActionDefinition(
+        code="site:read",
+        description="Allow reading project site runtime settings.",
+        permission_codes=("system:site:read",),
+        subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
+        scope=PermissionScope.WORKSPACE.value,
+    ),
+    PermissionActionDefinition(
+        code="site:manage",
+        description="Allow managing project site runtime settings.",
+        permission_codes=("system:site:manage",),
+        subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
+        scope=PermissionScope.WORKSPACE.value,
+    ),
+    PermissionActionDefinition(
         code="release:read",
         description="Allow reading workspace release history and status.",
         permission_codes=("system:content:read",),

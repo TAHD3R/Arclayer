@@ -59,3 +59,16 @@ def test_policy_evaluation_service_rejects_unregistered_action() -> None:
 
     assert decision.allowed is False
     assert decision.reason == "ACTION_UNREGISTERED"
+
+
+def test_policy_evaluation_service_rejects_subject_kind_mismatch() -> None:
+    decision = PolicyEvaluationService().evaluate(
+        context=PermissionContext(
+            action="delivery:graphql:read",
+            subject_kind=PermissionSubjectKind.WORKSPACE_MEMBER,
+            granted_actions=["delivery:graphql:read"],
+        )
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "SUBJECT_KIND_FORBIDDEN"

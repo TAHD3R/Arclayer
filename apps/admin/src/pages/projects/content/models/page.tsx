@@ -387,9 +387,7 @@ export function ContentModelsControlCenterPage(props: { projectId: string }) {
     preview !== null && previewPayloadKey !== null && previewPayloadKey === currentPayloadKey;
   const hasPendingChanges = Boolean(currentPayload && Object.keys(currentPayload).length > 0);
   const hasStalePreview = hasPendingChanges && !previewIsCurrent && preview !== null;
-  const canManageModels =
-    permissionAccess.hasAction("content:models:write") ||
-    permissionAccess.hasPermission("system:content:manage");
+  const canManageModels = permissionAccess.hasAction("content:models:write");
   const contractRegistry = selectedModel?.contractRegistry;
   const systemFields = contractRegistry?.boundaries?.systemFields ?? [];
   const customFields = contractRegistry?.boundaries?.customFields ?? [];

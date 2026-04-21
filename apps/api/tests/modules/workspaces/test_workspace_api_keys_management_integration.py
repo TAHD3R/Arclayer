@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -214,5 +214,54 @@ async def test_workspace_delivery_key_requires_delivery_scope_and_perspective(
         created = valid_res.json()["data"]
         assert created["secretToken"].startswith("ark_deliv_")
         assert created["key"]["deliveryPerspective"] == "preview"
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_project_api_key_routes_are_site_scoped_per_project(
+    monkeypatch,
+    tmp_path,
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    monkeypatch.setenv("SECURITY__MASTER_KEY_PATH", str(tmp_path / "master.key"))
+    get_settings.cache_clear()
+    ensure_master_key(get_settings().security.master_key_path)
+
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        create_project_res = await client.post(
+            "/api/v1/projects",
+            json={
+                "workspaceId": workspace_id,
+                "name": "Second Project",
+                "slug": f"second-project-{uuid4().hex[:8]}",
+            },
+        )
+        assert create_project_res.status_code == 201, create_project_res.text
+        second_project_id = create_project_res.json()["data"]["id"]
+
+        second_create_res = await client.post(
+            f"/api/v1/projects/{second_project_id}/api-keys",
+            json=_project_api_key_payload(),
+        )
+        assert second_create_res.status_code == 200, second_create_res.text
+        second_key_id = second_create_res.json()["data"]["key"]["id"]
+
+        first_list_res = await client.get(f"/api/v1/projects/{project_id}/api-keys")
+        assert first_list_res.status_code == 200, first_list_res.text
+        assert first_list_res.json()["data"]["items"] == []
+
+        first_detail_res = await client.get(f"/api/v1/projects/{project_id}/api-keys/{second_key_id}")
+        assert first_detail_res.status_code == 404, first_detail_res.text
+        assert first_detail_res.json()["error"] == "API_KEY_NOT_FOUND"
+
+        first_revoke_res = await client.post(f"/api/v1/projects/{project_id}/api-keys/{second_key_id}/revoke")
+        assert first_revoke_res.status_code == 404, first_revoke_res.text
+        assert first_revoke_res.json()["error"] == "API_KEY_NOT_FOUND"
+
+        first_rotate_res = await client.post(f"/api/v1/projects/{project_id}/api-keys/{second_key_id}/rotate")
+        assert first_rotate_res.status_code == 404, first_rotate_res.text
+        assert first_rotate_res.json()["error"] == "API_KEY_NOT_FOUND"
 
     get_settings.cache_clear()

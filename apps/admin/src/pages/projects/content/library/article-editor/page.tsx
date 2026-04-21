@@ -5,7 +5,7 @@ import { useContentLibraryArticleEditor } from "./hooks/use-content-library-arti
 
 export function ContentLibraryArticleEditorPage(props: { projectId: string; itemId: string }) {
   const editor = useContentLibraryArticleEditor({
-    workspaceId: props.projectId,
+    projectId: props.projectId,
     itemId: props.itemId,
   });
 
@@ -21,7 +21,7 @@ export function ContentLibraryArticleEditorPage(props: { projectId: string; item
         data-project-id={props.projectId}
       >
         <ContentLibraryArticleEditorShell
-          workspaceId={props.projectId}
+          projectId={props.projectId}
           itemId={props.itemId}
           mode="page"
           title={editor.title}

@@ -6,7 +6,7 @@ import {
   publishContentItemVersion,
   saveContentItemDraftVersion,
 } from "@/api/content";
-import { getCoreSettings } from "@/api/settings";
+import { getProjectCoreSettings } from "@/api/settings";
 import { readProjectContentStrategy } from "@/lib/settings/project-content-strategy";
 import type {
   AdminContentBootstrapPresetState,
@@ -267,7 +267,7 @@ function useLatestValue<T>(value: T) {
 }
 
 export function useContentLibraryArticleEditor(params: {
-  workspaceId: string;
+  projectId: string;
   itemId: string;
   initialTitle?: string;
   initialSummary?: string;
@@ -305,9 +305,9 @@ export function useContentLibraryArticleEditor(params: {
   const [publishedVersionNumber, setPublishedVersionNumber] = React.useState<number | null>(null);
 
   const contentStrategyQuery = useQuery({
-    queryKey: ["settings", "workspace", "core", params.workspaceId],
-    enabled: Boolean(params.workspaceId),
-    queryFn: async () => getCoreSettings(params.workspaceId),
+    queryKey: ["settings", "project", "core", params.projectId],
+    enabled: Boolean(params.projectId),
+    queryFn: async () => getProjectCoreSettings(params.projectId),
     staleTime: 5 * 60 * 1000,
     meta: { silent: true },
   });
@@ -432,7 +432,7 @@ export function useContentLibraryArticleEditor(params: {
       const request =
         currentVersionNumberRef.current && currentVersionStateRef.current === "draft"
           ? patchContentItemVersion(
-              params.workspaceId,
+              params.projectId,
               params.itemId,
               currentVersionNumberRef.current,
               {
@@ -440,7 +440,7 @@ export function useContentLibraryArticleEditor(params: {
                 ...payload,
               },
             )
-          : saveContentItemDraftVersion(params.workspaceId, params.itemId, {
+          : saveContentItemDraftVersion(params.projectId, params.itemId, {
               expectedVersion: currentVersionNumberRef.current,
               changeSummary: "Update article draft",
               ...payload,
@@ -482,7 +482,7 @@ export function useContentLibraryArticleEditor(params: {
       currentVersionNumberRef,
       currentVersionStateRef,
       params.itemId,
-      params.workspaceId,
+      params.projectId,
       publishedVersionNumber,
       readCurrentDraft,
       showSavedFeedback,
@@ -524,7 +524,7 @@ export function useContentLibraryArticleEditor(params: {
     clearSaveFeedbackTimer();
     setSaveState("hidden");
 
-    void loadContentLibraryArticleEditorSnapshot(params.workspaceId, params.itemId)
+    void loadContentLibraryArticleEditorSnapshot(params.projectId, params.itemId)
       .then((snapshot) => {
         if (!active) return;
         const nextDraft = buildDraftFromVersion({
@@ -576,7 +576,7 @@ export function useContentLibraryArticleEditor(params: {
     params.initialSummary,
     params.initialTitle,
     params.itemId,
-    params.workspaceId,
+    params.projectId,
   ]);
 
   React.useEffect(() => {
@@ -663,7 +663,7 @@ export function useContentLibraryArticleEditor(params: {
       if (!versionNumber) return;
 
       const publishedVersion = await publishContentItemVersion(
-        params.workspaceId,
+        params.projectId,
         params.itemId,
         versionNumber,
       );
@@ -686,7 +686,7 @@ export function useContentLibraryArticleEditor(params: {
     applyPersistedVersion,
     currentVersionNumberRef,
     params.itemId,
-    params.workspaceId,
+    params.projectId,
     persistDraft,
     readCurrentDraft,
   ]);

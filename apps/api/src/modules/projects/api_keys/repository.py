@@ -22,10 +22,10 @@ class ProjectApiKeysRepository:
             .all()
         )
 
-    async def list_workspace_keys(self, *, workspace_id: UUID) -> list[ApiKeyRecord]:
+    async def list_project_site_keys(self, *, workspace_id: UUID, site_id: UUID) -> list[ApiKeyRecord]:
         return (
             await ApiKeyRecord
-            .filter(workspace_id=workspace_id)
+            .filter(workspace_id=workspace_id, site_id=site_id)
             .exclude(key_family=ApiKeyFamily.PERSONAL_MANAGEMENT)
             .order_by("-created_at", "-id")
             .all()
@@ -38,10 +38,10 @@ class ProjectApiKeysRepository:
             key_family=ApiKeyFamily.PERSONAL_MANAGEMENT,
         ).first()
 
-    async def get_workspace_key(self, *, workspace_id: UUID, key_id: UUID) -> ApiKeyRecord | None:
+    async def get_project_site_key(self, *, workspace_id: UUID, site_id: UUID, key_id: UUID) -> ApiKeyRecord | None:
         return (
             await ApiKeyRecord
-            .filter(id=key_id, workspace_id=workspace_id)
+            .filter(id=key_id, workspace_id=workspace_id, site_id=site_id)
             .exclude(key_family=ApiKeyFamily.PERSONAL_MANAGEMENT)
             .first()
         )

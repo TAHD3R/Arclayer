@@ -113,3 +113,14 @@ def test_evaluate_api_key_action_checks_delivery_action_grants() -> None:
 
     assert decision.allowed is True
     assert decision.reason == "ACTION_GRANTED"
+
+
+def test_evaluate_api_key_action_rejects_delivery_action_for_workspace_subject() -> None:
+    decision = evaluate_api_key_action(
+        action="delivery:graphql:read",
+        subject_kind=PermissionSubjectKind.WORKSPACE_API_KEY,
+        scopes=[ApiKeyScope.GRAPHQL_READ],
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "SUBJECT_KIND_FORBIDDEN"

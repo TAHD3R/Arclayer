@@ -104,11 +104,11 @@ class ProjectApiKeysService(BaseService):
         )
         return ApiKeyCreateOut(key=self._to_out(updated), secret_token=generated.token)
 
-    async def list_workspace_keys_out(self, *, workspace_id: UUID) -> ApiKeyListOut:
-        rows = await self.repo.list_workspace_keys(workspace_id=workspace_id)
+    async def list_project_site_keys_out(self, *, workspace_id: UUID, site_id: UUID) -> ApiKeyListOut:
+        rows = await self.repo.list_project_site_keys(workspace_id=workspace_id, site_id=site_id)
         return ApiKeyListOut(items=[self._to_out(row) for row in rows])
 
-    async def create_workspace_key_out(
+    async def create_project_site_key_out(
         self,
         *,
         workspace_id: UUID,
@@ -147,7 +147,7 @@ class ProjectApiKeysService(BaseService):
             expires_at=self._normalize_expires_at(payload.expires_at),
         )
         self.logger.info(
-            "Workspace API key created",
+            "Project site API key created",
             actor_user_id=str(actor_user_id),
             delivery_perspective=delivery_perspective.value if delivery_perspective is not None else None,
             key_family=family.value,
@@ -158,25 +158,32 @@ class ProjectApiKeysService(BaseService):
         )
         return ApiKeyCreateOut(key=self._to_out(record), secret_token=generated.token)
 
-    async def get_workspace_key_out(self, *, workspace_id: UUID, key_id: UUID) -> ApiKeyOut:
-        record = await self.repo.get_workspace_key(workspace_id=workspace_id, key_id=key_id)
+    async def get_project_site_key_out(self, *, workspace_id: UUID, site_id: UUID, key_id: UUID) -> ApiKeyOut:
+        record = await self.repo.get_project_site_key(workspace_id=workspace_id, site_id=site_id, key_id=key_id)
         return self._to_out(self._require_record(record, error="API_KEY_NOT_FOUND"))
 
-    async def revoke_workspace_key_out(self, *, workspace_id: UUID, key_id: UUID) -> ApiKeyOut:
-        record = await self.repo.get_workspace_key(workspace_id=workspace_id, key_id=key_id)
+    async def revoke_project_site_key_out(self, *, workspace_id: UUID, site_id: UUID, key_id: UUID) -> ApiKeyOut:
+        record = await self.repo.get_project_site_key(workspace_id=workspace_id, site_id=site_id, key_id=key_id)
         row = self._require_record(record, error="API_KEY_NOT_FOUND")
         self._ensure_not_revoked(row)
         updated = await self.repo.update_key(row, fields={"revoked_at": datetime.now(tz=UTC)})
         self.logger.info(
-            "Workspace API key revoked",
+            "Project site API key revoked",
             key_family=str(updated.key_family),
             key_id=str(updated.id),
+            site_id=str(site_id),
             workspace_id=str(workspace_id),
         )
         return self._to_out(updated)
 
-    async def rotate_workspace_key_out(self, *, workspace_id: UUID, key_id: UUID) -> ApiKeyCreateOut:
-        record = await self.repo.get_workspace_key(workspace_id=workspace_id, key_id=key_id)
+    async def rotate_project_site_key_out(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        key_id: UUID,
+    ) -> ApiKeyCreateOut:
+        record = await self.repo.get_project_site_key(workspace_id=workspace_id, site_id=site_id, key_id=key_id)
         row = self._require_record(record, error="API_KEY_NOT_FOUND")
         self._ensure_not_revoked(row)
         generated = self._mint_key(ApiKeyFamily(str(row.key_family)))
@@ -190,10 +197,11 @@ class ProjectApiKeysService(BaseService):
             },
         )
         self.logger.info(
-            "Workspace API key rotated",
+            "Project site API key rotated",
             key_family=str(updated.key_family),
             key_id=str(updated.id),
             new_token_public_id=updated.token_public_id,
+            site_id=str(site_id),
             workspace_id=str(workspace_id),
         )
         return ApiKeyCreateOut(key=self._to_out(updated), secret_token=generated.token)

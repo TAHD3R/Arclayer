@@ -22,7 +22,7 @@ from src.modules.projects.members_schema import ProjectMemberOut, ProjectMemberR
 from src.modules.projects.members_service import ProjectMembersService
 from src.modules.projects.publish.router import router as projects_publish_router
 from src.modules.projects.releases.router import router as projects_releases_router
-from src.modules.projects.runtime_bridge.router import router as projects_runtime_bridge_router
+from src.modules.projects.runtime.router import project_router as projects_runtime_router
 from src.modules.projects.schema import (
     ProjectArchiveResult,
     ProjectCreateRequest,
@@ -41,7 +41,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access,
 
 router = APIRouter(tags=["domain.projects"])
 router.include_router(projects_governance_router)
-router.include_router(projects_runtime_bridge_router)
+router.include_router(projects_runtime_router)
 router.include_router(projects_api_keys_router)
 router.include_router(projects_releases_router)
 router.include_router(projects_publish_router)

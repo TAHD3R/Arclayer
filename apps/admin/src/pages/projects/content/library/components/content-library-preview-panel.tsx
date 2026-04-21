@@ -159,7 +159,7 @@ function ContentLibraryArticlePreview(props: {
 }) {
   const { t } = useTranslation("content");
   const editor = useContentLibraryArticleEditor({
-    workspaceId: props.projectId,
+    projectId: props.projectId,
     itemId: props.row.id,
     initialTitle: props.initialTitle,
     initialSummary: props.initialSummary,
@@ -172,7 +172,7 @@ function ContentLibraryArticlePreview(props: {
       aria-label={t("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")}
     >
       <ContentLibraryArticleEditorShell
-        workspaceId={props.projectId}
+        projectId={props.projectId}
         itemId={props.row.id}
         mode="split"
         title={editor.title}
