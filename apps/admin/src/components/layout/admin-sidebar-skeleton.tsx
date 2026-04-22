@@ -9,9 +9,9 @@ function SidebarNavRowSkeleton(props: { textWidthClassName: string }) {
       className={cn(
         "h-10 flex w-full min-w-0 items-center gap-2 overflow-hidden rounded-lg",
         "p-2 pl-5",
-        "group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:mx-auto",
-        "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
-        "group-data-[collapsible=icon]:pl-0",
+        "[[data-collapsible=icon][data-motion-phase=idle]_&]:size-8 [[data-collapsible=icon][data-motion-phase=idle]_&]:mx-auto",
+        "[[data-collapsible=icon][data-motion-phase=idle]_&]:justify-center [[data-collapsible=icon][data-motion-phase=idle]_&]:gap-0",
+        "[[data-collapsible=icon][data-motion-phase=idle]_&]:pl-0",
       )}
     >
       <Skeleton className="size-5 shrink-0 rounded-md" />
@@ -27,16 +27,21 @@ export function AdminSidebarHeaderSkeleton() {
       className={cn(
         "w-full min-w-0",
         "flex items-center gap-2",
-        "group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1",
+        "[[data-collapsible=icon][data-motion-phase=idle]_&]:flex-col [[data-collapsible=icon][data-motion-phase=idle]_&]:items-center [[data-collapsible=icon][data-motion-phase=idle]_&]:gap-1",
       )}
     >
       <Skeleton
         className={cn(
           "h-10 min-w-0 flex-1 rounded-lg",
-          "group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:flex-none",
+          "[[data-collapsible=icon][data-motion-phase=idle]_&]:w-10 [[data-collapsible=icon][data-motion-phase=idle]_&]:flex-none",
         )}
       />
-      <Skeleton className={cn("h-10 w-10 rounded-lg", "group-data-[collapsible=icon]:w-10")} />
+      <Skeleton
+        className={cn(
+          "h-10 w-10 rounded-lg",
+          "[[data-collapsible=icon][data-motion-phase=idle]_&]:w-10",
+        )}
+      />
     </div>
   );
 }
@@ -48,7 +53,7 @@ export function AdminSidebarAccountSkeleton() {
       className={cn(
         "h-16 w-full",
         "flex items-center justify-start gap-3 px-5",
-        "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
+        "[[data-collapsible=icon][data-motion-phase=idle]_&]:justify-center [[data-collapsible=icon][data-motion-phase=idle]_&]:px-0",
         "animate-pulse",
       )}
     >

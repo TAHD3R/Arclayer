@@ -141,24 +141,33 @@ const sidebarTriggerShellClassName = cn(
   "flex items-center gap-0",
   "group-hover:gap-2 group-focus-within:gap-2",
   "overflow-hidden",
-  "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+  "transition-[gap] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
+);
+
+const sidebarTriggerTextClassName = cn(
+  "min-w-0 flex-1 overflow-hidden whitespace-nowrap",
+  "transition-[max-width] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
+  "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+  "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:pointer-events-none",
+  "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:flex-none",
+  "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
 );
 
 const sidebarTriggerButtonClassName = cn(
   SIDEBAR_TRIGGER_HEIGHT_CLASSNAME,
   "group/panel-trigger",
-  "min-w-0 flex-1 group-data-[collapsible=icon]:flex-none",
+  "min-w-0 flex-1",
   "!flex !items-center !justify-start gap-2",
-  "group-data-[collapsible=icon]:gap-0",
-  "rounded-lg !pl-1 !pr-2 !py-1 group-data-[collapsible=icon]:px-0",
+  "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:gap-2",
+  "rounded-md !pl-1 !pr-2 !py-1",
   "!border-0",
   "!bg-transparent !text-label-secondary",
   "hover:!bg-accent/40 hover:!text-label-primary",
   "data-[state=open]:!bg-accent/50 data-[state=open]:!text-label-primary",
-  "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+  "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
   "!text-left",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-  "group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center",
+  "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:w-full",
 );
 
 export const headerTriggerButtonClassName = cn(
@@ -629,13 +638,7 @@ function SidebarWorkspaceTrigger(props: {
         {...workspaceAvatarPropsFromIdentity(props.workspaceIdentity)}
       />
 
-      <div
-        className={cn(
-          "min-w-0 flex-1 overflow-hidden",
-          NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-          "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
-        )}
-      >
+      <div className={sidebarTriggerTextClassName}>
         <TruncatedText
           text={props.workspaceTriggerText}
           className="text-callout font-semibold text-label-primary"
@@ -658,12 +661,14 @@ type AdminWorkspaceSwitcherProps = {
   className?: string;
   variant?: "sidebar" | "header";
   showSidebarToggle?: boolean;
+  forceVisible?: boolean;
 };
 
 export function AdminWorkspaceSwitcher({
   className,
   variant = "sidebar",
   showSidebarToggle = true,
+  forceVisible = false,
 }: AdminWorkspaceSwitcherProps = {}) {
   const { t } = useTranslation(["common"]);
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -699,7 +704,7 @@ export function AdminWorkspaceSwitcher({
     pathname.startsWith("/projects/") || pathname === "/projects" || pathname === "/projects/";
   const isHeaderVariant = variant === "header";
 
-  if (!isWorkspaceScopeRoute && !isHeaderVariant) {
+  if (!forceVisible && !isWorkspaceScopeRoute && !isHeaderVariant) {
     return null;
   }
 
@@ -753,7 +758,7 @@ export function AdminWorkspaceSwitcher({
           <div
             className={cn(
               sidebarTriggerShellClassName,
-              "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+              "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:justify-start [[data-collapsible=icon]:not([data-hover-preview=true])_&]:gap-0",
             )}
           >
             <SidebarWorkspaceTrigger

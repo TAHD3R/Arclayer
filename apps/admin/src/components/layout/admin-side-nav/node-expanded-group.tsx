@@ -49,6 +49,7 @@ const COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "motion-reduce:animate-none",
   "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
+  "group-data-[motion-phase=collapsing]:hidden",
 );
 
 const NAV_CHEVRON_CLASSNAME =

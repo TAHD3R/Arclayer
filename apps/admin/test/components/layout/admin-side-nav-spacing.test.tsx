@@ -240,10 +240,10 @@ describe("AdminSiderNav spacing", () => {
     expect(dashboardLabel?.className).toContain("duration-[280ms]");
     expect(teamLabel?.className).toContain("duration-[280ms]");
     expect(dashboardLabel?.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
     );
     expect(teamLabel?.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
     );
   });
 
@@ -265,7 +265,7 @@ describe("AdminSiderNav spacing", () => {
     expect(document.querySelector('[data-slot="admin-side-nav-group-marker"]')).not.toBeNull();
     expect(groupRow).toHaveClass("!pl-3", "!pr-2.5", "h-9", "rounded-md", "text-callout");
     expect(groupLabel?.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
     );
     expect(groupChevronWrapper).toHaveClass("ml-auto");
     expect(groupChevronWrapper?.className).toContain(
@@ -297,14 +297,14 @@ describe("AdminSiderNav spacing", () => {
     const favoritesControls = favoritesRow?.lastElementChild;
 
     expect(favoritesLabel?.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
     );
     expect(favoritesControls?.className).toContain(
       "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
     );
   });
 
-  it("centers collapsed root icons with symmetric horizontal padding", () => {
+  it("centers collapsed root icons only after the sidebar reaches steady collapsed state", () => {
     renderWithQueryClient(
       <SidebarProvider defaultOpen={false} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
@@ -317,10 +317,10 @@ describe("AdminSiderNav spacing", () => {
     const iconWrapper = teamButton.querySelector("span.size-5");
 
     expect(teamButton.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:!px-1.5",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:!px-1.5",
     );
     expect(teamButton.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:justify-center",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:justify-center",
     );
     expect(iconWrapper?.className).not.toContain("group-data-[collapsible=icon]:mx-auto");
   });

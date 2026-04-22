@@ -45,10 +45,13 @@ vi.mock("@/components/layout/admin-command-trigger", () => ({
 
 vi.mock("@/components/layout/admin-logo", () => ({
   AdminFullLogo: () => <div data-testid="sidebar-brand-logo" />,
+  AdminLogo: () => <div data-testid="sidebar-brand-icon-logo" />,
 }));
 
 vi.mock("@/components/layout/admin-workspace-switcher", () => ({
-  AdminWorkspaceSwitcher: () => <div data-testid="sidebar-workspace-switcher" />,
+  AdminWorkspaceSwitcher: (props: { variant?: "sidebar" | "header" }) => (
+    <div data-testid="sidebar-workspace-switcher" data-variant={props.variant} />
+  ),
 }));
 
 vi.mock("@/components/ui/gradual-blur", () => ({
@@ -213,6 +216,10 @@ describe("AdminSidebarShell", () => {
 
     expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-workspace-switcher")).toHaveAttribute(
+      "data-variant",
+      "sidebar",
+    );
     expect(
       within(brandingRow as HTMLElement).getByRole("button", { name: "Toggle sidebar" }),
     ).toBeInTheDocument();
@@ -224,16 +231,61 @@ describe("AdminSidebarShell", () => {
     expect(tablist.className).toContain("h-9");
     expect(tablist.className).toContain("w-full");
     expect(tablist.className).toContain("justify-start");
+    expect(tablist.className).toContain("rounded-full");
     expect(browseTab).toHaveAttribute("data-state", "active");
     expect(chatTab).toHaveAttribute("data-state", "inactive");
     expect(browseTab.className).toContain("h-9");
     expect(browseTab.className).toContain("min-w-9");
+    expect(browseTab.className).toContain("rounded-full");
+    expect(browseTab.className).toContain("hover:bg-accent/40");
+    expect(browseTab.className).toContain("data-[state=active]:bg-accent/40");
     expect(browseTab.className).toContain("data-[state=active]:px-3");
     expect(chatTab.className).toContain("data-[state=inactive]:w-9");
     expect(browseTab).toHaveTextContent("common:SIDEBAR_TOP_TAB_BROWSE");
     expect(chatTab).toHaveTextContent("common:SIDEBAR_TOP_TAB_CHAT");
     expect(chatTab.querySelector("span:last-child")?.className).toContain("hidden");
     expect(screen.getByTestId("sidebar-command-trigger")).toBeInTheDocument();
+  });
+
+  it("hides top header rows immediately when a fixed-open sidebar starts collapsing", () => {
+    vi.useFakeTimers();
+
+    try {
+      const { container } = renderWithSidebar(
+        <AdminSidebarShell
+          showNavSkeleton={false}
+          showOrgNavErrorOverlay={false}
+          mainItems={[]}
+          collapsible="icon"
+        />,
+      );
+
+      const sidebar = container.querySelector<HTMLElement>('[data-slot="sidebar"]');
+      const brandingRow = container.querySelector<HTMLElement>(
+        '[data-slot="sidebar-header"] > div',
+      );
+      const toggleButton = within(brandingRow as HTMLElement).getByRole("button", {
+        name: "Toggle sidebar",
+      });
+
+      expect(sidebar).not.toBeNull();
+      expect(
+        screen.getByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
+
+      fireEvent.click(toggleButton);
+
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
+      expect(screen.queryByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" })).toBeNull();
+      expect(screen.getByTestId("sidebar-brand-icon-logo")).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("hides the top tabs in collapsed state and shows them during hover preview", () => {
@@ -256,8 +308,9 @@ describe("AdminSidebarShell", () => {
       );
 
       expect(screen.queryByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" })).toBeNull();
+      expect(screen.getByTestId("sidebar-brand-icon-logo")).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
       expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
-      expect(screen.queryByTestId("sidebar-workspace-switcher")).toBeNull();
       expect(sidebarContainer).not.toBeNull();
 
       act(() => {
@@ -269,7 +322,9 @@ describe("AdminSidebarShell", () => {
       expect(
         screen.getByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" }),
       ).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
       expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-brand-icon-logo")).toBeInTheDocument();
 
       act(() => {
         fireEvent.pointerLeave(sidebarContainer!);
@@ -277,7 +332,9 @@ describe("AdminSidebarShell", () => {
       });
 
       expect(screen.queryByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" })).toBeNull();
-      expect(screen.queryByTestId("sidebar-workspace-switcher")).toBeNull();
+      expect(screen.getByTestId("sidebar-brand-icon-logo")).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -422,22 +479,22 @@ describe("AdminSidebarShell", () => {
       act(() => {
         vi.advanceTimersByTime(1);
       });
-      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-hover-preview", "");
       expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
-      expect(sidebar).toHaveAttribute("data-collapsible", "");
+      expect(sidebar).toHaveAttribute("data-collapsible", "icon");
 
       act(() => {
         vi.advanceTimersByTime(140);
       });
-      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
 
       act(() => {
         vi.advanceTimersByTime(139);
       });
-      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
 
       act(() => {
@@ -576,13 +633,7 @@ describe("AdminSidebarShell", () => {
       });
 
       expect(sidebar).toHaveAttribute("data-state", "expanded");
-
-      act(() => {
-        vi.runOnlyPendingTimers();
-      });
-
-      expect(sidebar).toHaveAttribute("data-state", "expanded");
-      expect(sidebar).toHaveAttribute("data-hover-preview", "");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "true");
 
       act(() => {
         vi.runOnlyPendingTimers();
@@ -590,6 +641,7 @@ describe("AdminSidebarShell", () => {
 
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
       expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "");
     } finally {
       vi.useRealTimers();
     }

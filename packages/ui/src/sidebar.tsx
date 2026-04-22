@@ -33,7 +33,6 @@ const SIDEBAR_HOVER_OPEN_DELAY_MS = 70;
 const SIDEBAR_HOVER_CLOSE_DELAY_MS = 180;
 const SIDEBAR_EXPAND_TRANSITION_MS = 280;
 const SIDEBAR_LABEL_ENTER_DELAY_MS = 170;
-const SIDEBAR_COLLAPSE_VISUAL_DELAY_MS = SIDEBAR_EXPAND_TRANSITION_MS;
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
@@ -102,12 +101,10 @@ function SidebarProvider({
   const [openMobile, setOpenMobile] = React.useState(false);
   const [hoverOpen, setHoverOpen] = React.useState(false);
   const [hoverIntent, setHoverIntent] = React.useState(false);
-  const [collapseVisualHold, setCollapseVisualHold] = React.useState(false);
   const [motionPhase, setMotionPhase] = React.useState<"idle" | "expanding" | "collapsing">("idle");
   const [hoverPreviewLockCount, setHoverPreviewLockCount] = React.useState(0);
   const hoverOpenTimerRef = React.useRef<number | null>(null);
   const hoverCloseTimerRef = React.useRef<number | null>(null);
-  const collapseVisualTimerRef = React.useRef<number | null>(null);
   const motionPhaseTimerRef = React.useRef<number | null>(null);
   const previousOpenRef = React.useRef(openProp ?? defaultOpen);
   const previousHoverOpenRef = React.useRef(false);
@@ -160,26 +157,11 @@ function SidebarProvider({
     hoverCloseTimerRef.current = null;
   }, []);
 
-  const clearCollapseVisualTimer = React.useCallback(() => {
-    if (collapseVisualTimerRef.current === null) return;
-    window.clearTimeout(collapseVisualTimerRef.current);
-    collapseVisualTimerRef.current = null;
-  }, []);
-
   const clearMotionPhaseTimer = React.useCallback(() => {
     if (motionPhaseTimerRef.current === null) return;
     window.clearTimeout(motionPhaseTimerRef.current);
     motionPhaseTimerRef.current = null;
   }, []);
-
-  const startCollapseVisualHold = React.useCallback(() => {
-    setCollapseVisualHold(true);
-    clearCollapseVisualTimer();
-    collapseVisualTimerRef.current = window.setTimeout(() => {
-      setCollapseVisualHold(false);
-      collapseVisualTimerRef.current = null;
-    }, SIDEBAR_COLLAPSE_VISUAL_DELAY_MS);
-  }, [clearCollapseVisualTimer]);
 
   const startMotionPhase = React.useCallback(
     (phase: "expanding" | "collapsing", durationMs: number) => {
@@ -251,29 +233,19 @@ function SidebarProvider({
     if (!open) return;
     setHoverIntent(false);
     setHoverOpen(false);
-    setCollapseVisualHold(false);
     clearHoverOpenTimer();
     clearHoverCloseTimer();
-    clearCollapseVisualTimer();
-  }, [clearCollapseVisualTimer, clearHoverCloseTimer, clearHoverOpenTimer, open]);
+  }, [clearHoverCloseTimer, clearHoverOpenTimer, open]);
 
   React.useEffect(() => {
     if (!isMobile) return;
     setHoverIntent(false);
     setHoverOpen(false);
-    setCollapseVisualHold(false);
     setMotionPhase("idle");
     clearHoverOpenTimer();
     clearHoverCloseTimer();
-    clearCollapseVisualTimer();
     clearMotionPhaseTimer();
-  }, [
-    clearCollapseVisualTimer,
-    clearHoverCloseTimer,
-    clearHoverOpenTimer,
-    clearMotionPhaseTimer,
-    isMobile,
-  ]);
+  }, [clearHoverCloseTimer, clearHoverOpenTimer, clearMotionPhaseTimer, isMobile]);
 
   React.useEffect(() => {
     const wasOpen = previousOpenRef.current;
@@ -288,9 +260,8 @@ function SidebarProvider({
     }
     if (!wasOpen) return;
 
-    startCollapseVisualHold();
     startMotionPhase("collapsing", SIDEBAR_EXPAND_TRANSITION_MS);
-  }, [isMobile, open, startCollapseVisualHold, startMotionPhase]);
+  }, [isMobile, open, startMotionPhase]);
 
   React.useEffect(() => {
     const wasHoverOpen = previousHoverOpenRef.current;
@@ -300,23 +271,13 @@ function SidebarProvider({
       if (!wasHoverOpen && !open) {
         startMotionPhase("expanding", SIDEBAR_LABEL_ENTER_DELAY_MS);
       }
-      setCollapseVisualHold(false);
-      clearCollapseVisualTimer();
       return;
     }
     if (isMobile || open) return;
     if (!wasHoverOpen) return;
 
-    startCollapseVisualHold();
     startMotionPhase("collapsing", SIDEBAR_EXPAND_TRANSITION_MS);
-  }, [
-    clearCollapseVisualTimer,
-    hoverOpen,
-    isMobile,
-    open,
-    startCollapseVisualHold,
-    startMotionPhase,
-  ]);
+  }, [hoverOpen, isMobile, open, startMotionPhase]);
 
   React.useEffect(() => {
     const previousLockCount = previousHoverPreviewLockCountRef.current;
@@ -347,10 +308,9 @@ function SidebarProvider({
       hoverPreviewLockIdsRef.current.clear();
       clearHoverOpenTimer();
       clearHoverCloseTimer();
-      clearCollapseVisualTimer();
       clearMotionPhaseTimer();
     };
-  }, [clearCollapseVisualTimer, clearHoverCloseTimer, clearHoverOpenTimer, clearMotionPhaseTimer]);
+  }, [clearHoverCloseTimer, clearHoverOpenTimer, clearMotionPhaseTimer]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -369,7 +329,7 @@ function SidebarProvider({
   // - visual state drives labels, tooltips, and hover-preview presentation
   // - layout state drives the reserved page width
   const layoutState = open ? "expanded" : "collapsed";
-  const visualState = open || hoverOpen || collapseVisualHold ? "expanded" : "collapsed";
+  const visualState = open || hoverOpen ? "expanded" : "collapsed";
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({

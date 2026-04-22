@@ -5,8 +5,8 @@ import type { AdminNavItem } from "@/types/admin-nav";
 export const NAV_ITEM_HEIGHT_CLASSNAME = "h-9";
 export const NAV_ITEM_RADIUS_CLASSNAME = "rounded-md";
 export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
-  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:!px-1.5 [[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:!py-1.5 [[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:justify-center";
-export const NAV_ITEM_BUTTON_PADDING_CLASSNAME = "!pl-3 !pr-2.5 !py-1.5";
+  "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:!px-1.5 [[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:!py-1.5 [[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:justify-center";
+export const NAV_ITEM_BUTTON_PADDING_CLASSNAME = "!px-2.5 !py-1.5";
 export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1 group-data-[collapsible=icon]:gap-1";
 export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-0 gap-1 pl-7 border-l-0";
 export const NAV_SUBTREE_GUIDE_CLASSNAME = cn("relative");

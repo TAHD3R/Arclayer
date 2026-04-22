@@ -5,7 +5,7 @@ import { MessageCircle, PanelLeft as PanelLeftIcon, PanelsTopLeft } from "lucide
 import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
-import { AdminFullLogo } from "@/components/layout/admin-logo";
+import { AdminFullLogo, AdminLogo } from "@/components/layout/admin-logo";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminSidebarMainMenuSkeleton } from "@/components/layout/admin-sidebar-skeleton";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
@@ -116,36 +116,53 @@ function AdminSidebarBranding() {
   return (
     <SidebarHeader className="gap-0 px-0 py-2">
       <div className="flex items-center gap-2 px-4 py-2 pr-3">
-        <AdminFullLogo
-          to="/"
-          ariaLabel="Arclayer"
-          width={108}
-          className="h-8 justify-start"
-          imgClassName="h-8 w-auto object-contain"
-        />
+        <div className="relative flex h-8 w-[108px] shrink-0 items-center justify-start overflow-hidden">
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 flex items-center justify-start transition-opacity duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
+              showExpandedHeaderRows ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            <AdminFullLogo
+              to="/"
+              ariaLabel="Arclayer"
+              width={108}
+              className="h-8 justify-start"
+              imgClassName="h-8 w-auto object-contain"
+            />
+          </div>
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 flex items-center justify-start transition-opacity duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
+              showExpandedHeaderRows ? "pointer-events-none opacity-0" : "opacity-100",
+            )}
+          >
+            <AdminLogo to="/" ariaLabel="Arclayer" size={28} />
+          </div>
+        </div>
         <button
           type="button"
           aria-label={t("common:SIDEBAR_TOGGLE")}
           onClick={toggleSidebar}
           className={cn(
             "ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-transparent text-label-secondary",
-            "transition-[background-color,color,border-color] duration-200",
+            "transition-[opacity,background-color,color,border-color] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
             "hover:bg-accent/60 hover:text-label-primary",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            showExpandedHeaderRows ? "opacity-100" : "pointer-events-none opacity-0",
           )}
         >
           <PanelLeftIcon className="size-4" aria-hidden="true" />
         </button>
       </div>
-      {showExpandedHeaderRows ? (
-        <div className="px-2 pt-2">
-          <AdminWorkspaceSwitcher
-            variant="header"
-            showSidebarToggle={false}
-            className="flex w-full min-w-0"
-          />
-        </div>
-      ) : null}
+      <div className="px-2 pt-2">
+        <AdminWorkspaceSwitcher
+          variant="sidebar"
+          showSidebarToggle={false}
+          forceVisible
+          className="flex w-full min-w-0"
+        />
+      </div>
     </SidebarHeader>
   );
 }
@@ -188,16 +205,17 @@ function AdminSidebarTopTabs(props: {
           <TabsList
             aria-label={t("common:SIDEBAR_TOP_TABS_LABEL")}
             className={cn(
-              "h-9 w-full justify-start gap-1 rounded-xl bg-transparent p-0 text-label-secondary",
+              "h-9 w-full justify-start gap-1 rounded-full bg-transparent p-0 text-label-secondary",
             )}
           >
             <Tooltip>
               <TabsTrigger
                 value="browse"
                 className={cn(
-                  "h-9 min-w-9 rounded-xl border border-transparent bg-transparent text-callout font-semibold",
+                  "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
                   "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
-                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:bg-accent/70 data-[state=active]:px-3 data-[state=active]:text-label-primary data-[state=active]:shadow-sm",
+                  "hover:bg-accent/40 hover:text-label-primary",
+                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:bg-accent/40 data-[state=active]:px-3 data-[state=active]:text-label-primary",
                   "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
                 )}
               >
@@ -216,9 +234,10 @@ function AdminSidebarTopTabs(props: {
               <TabsTrigger
                 value="chat"
                 className={cn(
-                  "h-9 min-w-9 rounded-xl border border-transparent bg-transparent text-callout font-semibold",
+                  "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
                   "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
-                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:bg-accent/70 data-[state=active]:px-3 data-[state=active]:text-label-primary data-[state=active]:shadow-sm",
+                  "hover:bg-accent/40 hover:text-label-primary",
+                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:bg-accent/40 data-[state=active]:px-3 data-[state=active]:text-label-primary",
                   "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
                 )}
               >

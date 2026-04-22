@@ -1191,6 +1191,10 @@ describe("AdminSiderNav collapsed groups", () => {
     await user.click(screen.getByRole("button", { name: "Toggle sidebar" }));
 
     expect(collapsibleContent).toHaveAttribute("data-state", "closed");
+
+    await waitForCollapsedRender();
+
+    expect(collapsibleContent).toHaveAttribute("data-state", "closed");
   });
 
   it("keeps root labels rendered during the sidebar transition phase and hides them at steady collapsed state", async () => {
@@ -1211,7 +1215,7 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(sidebar).toHaveAttribute("data-motion-phase", "collapsing");
     expect(labelContainer.className).toContain("[[data-motion-phase=collapsing]_&]:opacity-0");
     expect(labelContainer.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
     );
   });
 

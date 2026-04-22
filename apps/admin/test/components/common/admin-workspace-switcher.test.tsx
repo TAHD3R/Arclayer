@@ -347,6 +347,20 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     });
   });
 
+  it("sidebar forceVisible: renders the sidebar trigger outside project routes", async () => {
+    mockPathname = "/settings/personal/profile";
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher forceVisible />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "Select workspace",
+    });
+
+    expect(trigger.className).toContain("group/panel-trigger");
+    expect(trigger.className).toContain("rounded-md");
+    expect(trigger.className).toContain("!justify-start");
+  });
+
   it("global scope: trigger uses the last selected workspace", async () => {
     mockPathname = "/projects";
     useWorkspaceStore.setState({
