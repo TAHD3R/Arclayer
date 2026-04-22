@@ -89,9 +89,15 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
 }));
 
 vi.mock("@/components/layout/admin-topbar", () => ({
-  AdminTopbar: (props: { navItems: Array<{ key: string }> }) => {
+  AdminTopbar: (props: {
+    notificationOpen: boolean;
+    showNotificationsBadge: boolean;
+    unreadCount: number;
+    onNotificationToggle: () => void;
+    leadingMode?: string;
+  }) => {
     topbarSpy(props);
-    return <div data-testid="admin-topbar" data-nav-count={props.navItems.length} />;
+    return <div data-testid="admin-topbar" data-leading-mode={props.leadingMode ?? "none"} />;
   },
 }));
 
@@ -188,20 +194,17 @@ describe("GlobalLayout", () => {
       "data-sidebar-collapsible",
       "icon",
     );
-    expect(topbarSpy.mock.calls[0]?.[0]?.sidebarToggleMode).toBe("always");
+    expect(screen.getByTestId("admin-topbar")).toHaveAttribute("data-leading-mode", "none");
   });
 
   it("keeps projects visible while hiding platform from non-super-admin global navigation", () => {
     renderWithQueryClient(<GlobalLayout />);
 
-    const navKeys = topbarSpy.mock.calls[0]?.[0]?.navItems?.map(
+    const navKeys = sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.map(
       (item: { key: string }) => item.key,
     );
     expect(navKeys).toContain("global.projects");
     expect(navKeys).not.toContain("global.platform");
-    expect(
-      sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.map((item: { key: string }) => item.key),
-    ).toContain("global.projects");
   });
 
   it("shows platform alongside projects when the current user is a super admin", () => {
@@ -215,7 +218,7 @@ describe("GlobalLayout", () => {
 
     renderWithQueryClient(<GlobalLayout />);
 
-    const navKeys = collectNavKeys(topbarSpy.mock.calls[0]?.[0]?.navItems ?? []);
+    const navKeys = collectNavKeys(sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems ?? []);
     expect(navKeys).toContain("global.projects");
     expect(navKeys).toContain("global.platform");
     expect(navKeys).toContain("global.platform.overview");
@@ -225,7 +228,7 @@ describe("GlobalLayout", () => {
   it("includes the resources placeholder before projects in global navigation", () => {
     renderWithQueryClient(<GlobalLayout />);
 
-    const navKeys = topbarSpy.mock.calls[0]?.[0]?.navItems?.map(
+    const navKeys = sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.map(
       (item: { key: string }) => item.key,
     );
 

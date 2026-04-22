@@ -1,5 +1,5 @@
 import * as React from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
@@ -27,6 +27,30 @@ vi.mock("@/components/layout/admin-sidebar-skeleton", () => ({
   AdminSidebarMainMenuSkeleton: () => <div data-testid="admin-sidebar-main-skeleton" />,
 }));
 
+vi.mock("@/hooks/use-admin-command-palette", () => ({
+  useAdminCommandPalette: () => ({
+    sections: [],
+    query: "",
+    setQuery: vi.fn(),
+    emptyText: "empty",
+    onSelectEntry: vi.fn(),
+  }),
+}));
+
+vi.mock("@/components/layout/admin-command-trigger", () => ({
+  AdminCommandTrigger: (props: { variant?: "pill" | "icon" }) => (
+    <div data-testid={props.variant === "icon" ? "sidebar-command-trigger" : "command-trigger"} />
+  ),
+}));
+
+vi.mock("@/components/layout/admin-logo", () => ({
+  AdminFullLogo: () => <div data-testid="sidebar-brand-logo" />,
+}));
+
+vi.mock("@/components/layout/admin-workspace-switcher", () => ({
+  AdminWorkspaceSwitcher: () => <div data-testid="sidebar-workspace-switcher" />,
+}));
+
 vi.mock("@/components/ui/gradual-blur", () => ({
   default: () => null,
 }));
@@ -35,7 +59,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => {
       if (key === "common:SIDEBAR_TOGGLE") return "Toggle sidebar";
-      if (key === "common:SIDEBAR_RESIZE") return "Resize sidebar";
+      if (key === "common:SIDEBAR_RESIZE") return "Toggle sidebar";
       return key;
     },
   }),
@@ -108,7 +132,7 @@ describe("AdminSidebarShell", () => {
   });
 
   it("does not show a tooltip when hovering the shared sidebar rail", async () => {
-    renderWithSidebar(
+    const { container } = renderWithSidebar(
       <AdminSidebarShell
         showNavSkeleton={false}
         showOrgNavErrorOverlay={false}
@@ -117,7 +141,9 @@ describe("AdminSidebarShell", () => {
       />,
     );
 
-    const rail = screen.getByRole("button", { name: "Resize sidebar" });
+    const rail = container.querySelector<HTMLButtonElement>('[data-sidebar="rail"]');
+    expect(rail).not.toBeNull();
+    if (!rail) throw new Error("Missing sidebar rail");
     fireEvent.mouseEnter(rail, { clientX: 80, clientY: 120 });
     fireEvent.mouseMove(rail, { clientX: 96, clientY: 144 });
 
@@ -127,7 +153,7 @@ describe("AdminSidebarShell", () => {
   });
 
   it("renders the shared sidebar rail when the desktop sidebar is collapsible", () => {
-    renderWithSidebar(
+    const { container } = renderWithSidebar(
       <AdminSidebarShell
         showNavSkeleton={false}
         showOrgNavErrorOverlay={false}
@@ -137,13 +163,172 @@ describe("AdminSidebarShell", () => {
     );
 
     const rail = document.querySelector<HTMLButtonElement>('[data-sidebar="rail"]');
+    const wrapper = container.querySelector<HTMLElement>('[data-slot="sidebar-wrapper"]');
     expect(rail).not.toBeNull();
+    expect(wrapper).not.toBeNull();
     if (!rail) throw new Error("Missing sidebar rail");
-    expect(rail.className).toContain("cursor-col-resize");
+    if (!wrapper) throw new Error("Missing sidebar wrapper");
+    expect(rail.className).toContain("cursor-pointer");
+    expect(wrapper.getAttribute("style")).toContain("--sidebar-width: 273px");
+  });
+
+  it("clicks the shared sidebar rail to collapse the desktop sidebar", () => {
+    const { container } = renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    const rail = container.querySelector<HTMLButtonElement>('[data-sidebar="rail"]');
+    const sidebar = container.querySelector<HTMLElement>('[data-slot="sidebar"]');
+
+    expect(rail).not.toBeNull();
+    expect(sidebar).not.toBeNull();
+    if (!rail) throw new Error("Missing sidebar rail");
+    expect(sidebar).toHaveAttribute("data-layout-state", "expanded");
+
+    fireEvent.click(rail);
+
+    expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+  });
+
+  it("renders full-width browse/chat tabs at the top of the sidebar", () => {
+    const { container } = renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    const header = container.querySelector('[data-slot="sidebar-header"]');
+    const brandingRow = header?.firstElementChild as HTMLElement | null;
+    const tablist = screen.getByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" });
+    const browseTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" });
+    const chatTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_CHAT" });
+
+    expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
+    expect(
+      within(brandingRow as HTMLElement).getByRole("button", { name: "Toggle sidebar" }),
+    ).toBeInTheDocument();
+    expect(header?.className).toContain("py-2");
+    expect(header?.className).toContain("px-0");
+    expect(brandingRow?.className).toContain("px-4");
+    expect(brandingRow?.className).toContain("py-2");
+    expect(brandingRow?.className).toContain("pr-3");
+    expect(tablist.className).toContain("h-9");
+    expect(tablist.className).toContain("w-full");
+    expect(tablist.className).toContain("justify-start");
+    expect(browseTab).toHaveAttribute("data-state", "active");
+    expect(chatTab).toHaveAttribute("data-state", "inactive");
+    expect(browseTab.className).toContain("h-9");
+    expect(browseTab.className).toContain("min-w-9");
+    expect(browseTab.className).toContain("data-[state=active]:px-3");
+    expect(chatTab.className).toContain("data-[state=inactive]:w-9");
+    expect(browseTab).toHaveTextContent("common:SIDEBAR_TOP_TAB_BROWSE");
+    expect(chatTab).toHaveTextContent("common:SIDEBAR_TOP_TAB_CHAT");
+    expect(chatTab.querySelector("span:last-child")?.className).toContain("hidden");
+    expect(screen.getByTestId("sidebar-command-trigger")).toBeInTheDocument();
+  });
+
+  it("hides the top tabs in collapsed state and shows them during hover preview", () => {
+    vi.useFakeTimers();
+
+    try {
+      const view = render(
+        <SidebarProvider defaultOpen={false} className="h-screen">
+          <AdminSidebarShell
+            showNavSkeleton={false}
+            showOrgNavErrorOverlay={false}
+            mainItems={[]}
+            collapsible="icon"
+          />
+        </SidebarProvider>,
+      );
+
+      const sidebarContainer = view.container.querySelector<HTMLElement>(
+        '[data-slot="sidebar-container"]',
+      );
+
+      expect(screen.queryByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" })).toBeNull();
+      expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
+      expect(screen.queryByTestId("sidebar-workspace-switcher")).toBeNull();
+      expect(sidebarContainer).not.toBeNull();
+
+      act(() => {
+        fireEvent.pointerEnter(sidebarContainer!);
+        fireEvent.pointerMove(sidebarContainer!);
+        vi.advanceTimersByTime(70);
+      });
+
+      expect(
+        screen.getByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-workspace-switcher")).toBeInTheDocument();
+
+      act(() => {
+        fireEvent.pointerLeave(sidebarContainer!);
+        vi.advanceTimersByTime(180);
+      });
+
+      expect(screen.queryByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" })).toBeNull();
+      expect(screen.queryByTestId("sidebar-workspace-switcher")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clicking the shared sidebar rail during hover preview collapses the sidebar", () => {
+    vi.useFakeTimers();
+
+    try {
+      const { container } = render(
+        <SidebarProvider defaultOpen={false} className="h-screen">
+          <AdminSidebarShell
+            showNavSkeleton={false}
+            showOrgNavErrorOverlay={false}
+            mainItems={[]}
+            collapsible="icon"
+          />
+        </SidebarProvider>,
+      );
+
+      const sidebar = container.querySelector<HTMLElement>('[data-slot="sidebar"]');
+      const sidebarContainer = container.querySelector<HTMLElement>(
+        '[data-slot="sidebar-container"]',
+      );
+      const rail = container.querySelector<HTMLButtonElement>('[data-sidebar="rail"]');
+
+      expect(sidebar).not.toBeNull();
+      expect(sidebarContainer).not.toBeNull();
+      expect(rail).not.toBeNull();
+      if (!rail) throw new Error("Missing sidebar rail");
+
+      act(() => {
+        fireEvent.pointerEnter(sidebarContainer!);
+        fireEvent.pointerMove(sidebarContainer!);
+        vi.advanceTimersByTime(70);
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "true");
+
+      fireEvent.click(rail);
+
+      expect(sidebar).toHaveAttribute("data-layout-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-hover-preview", "");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not render the sidebar rail when the sidebar is fixed", () => {
-    renderWithSidebar(
+    const { container } = renderWithSidebar(
       <AdminSidebarShell
         showNavSkeleton={false}
         showOrgNavErrorOverlay={false}
@@ -152,7 +337,7 @@ describe("AdminSidebarShell", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Resize sidebar" })).toBeNull();
+    expect(container.querySelector('[data-sidebar="rail"]')).toBeNull();
   });
 
   it("temporarily expands a collapsed desktop sidebar after the hover threshold and collapses after the leave delay", () => {

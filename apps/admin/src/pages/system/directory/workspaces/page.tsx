@@ -208,7 +208,7 @@ export function SystemDirectoryWorkspacesPage() {
               iconEmoji={row.iconEmoji}
               assetRef={row.iconUrl}
             />
-            <div className="min-w-0">
+            <div className="ml-1 min-w-0">
               {renderTagWithTooltip(row.name, {
                 className: "max-w-full",
                 textClassName: "max-w-[14rem]",
@@ -598,24 +598,28 @@ export function SystemDirectoryWorkspacesPage() {
           {
             key: "archive",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ARCHIVE_WORKSPACE"),
+            icon: <Archive className="size-4" />,
             disabled: selectedUnarchived.length === 0,
             onClick: () => setConfirmAction({ kind: "archive", workspaces: selectedUnarchived }),
           },
           {
             key: "restore",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESTORE_WORKSPACE"),
+            icon: <Undo2 className="size-4" />,
             disabled: selectedArchived.length === 0,
             onClick: () => setConfirmAction({ kind: "restore", workspaces: selectedArchived }),
           },
           {
             key: "disable",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_WORKSPACE"),
+            icon: <PowerOff className="size-4" />,
             disabled: selectedActive.length === 0,
             onClick: () => setConfirmAction({ kind: "disable", workspaces: selectedActive }),
           },
           {
             key: "enable",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_WORKSPACE"),
+            icon: <Power className="size-4" />,
             disabled: selectedInactive.length === 0,
             onClick: () => setConfirmAction({ kind: "enable", workspaces: selectedInactive }),
           },

@@ -105,13 +105,19 @@ vi.mock("@/pages/workspaces/assets/components/assets-view-overlays", () => ({
     t,
     selectedCount,
     canManageAssets,
+    onClearSelection,
   }: {
     t: (key: string) => string;
     selectedCount: number;
     canManageAssets?: boolean;
+    onClearSelection: () => void;
   }) =>
     selectedCount > 0 ? (
-      <button type="button" data-can-manage-assets={String(canManageAssets)}>
+      <button
+        type="button"
+        data-can-manage-assets={String(canManageAssets)}
+        onClick={onClearSelection}
+      >
         {t("assets:ASSET_CLEAR_SELECTION")}
       </button>
     ) : null,
@@ -370,6 +376,27 @@ describe("AssetsPageView", () => {
     expect(
       screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }),
     ).toBeInTheDocument();
+  });
+
+  it("clears selection from the footer toolbar action", async () => {
+    const user = userEvent.setup();
+    const setSelection = vi.fn();
+    controllerState.current = createControllerStub({
+      selectedIds: new Set(["asset-1"]),
+      setSelection,
+      assetsQuery: {
+        isLoading: false,
+        refetch: vi.fn(),
+        data: { pages: [{ total: 2 }] },
+      },
+    });
+
+    renderWithQueryClient(<AssetsPageView />);
+
+    await user.click(screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }));
+
+    expect(setSelection).toHaveBeenCalledTimes(1);
+    expect(setSelection).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it("enters read-only mode when asset management access is missing", async () => {

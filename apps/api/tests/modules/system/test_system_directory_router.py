@@ -16,7 +16,13 @@ from src.models.organization.organization import Organization, OrganizationKind
 from src.models.organization.user import User, UserCredential, UserStatus
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.models.projects.project import ProjectRecord
-from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.models.system.rbac import Role
+from src.models.workspaces.workspace import (
+    Workspace,
+    WorkspaceMembership,
+    WorkspaceMembershipRole,
+    WorkspaceMembershipStatus,
+)
 from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password, verify_password
@@ -239,6 +245,90 @@ async def test_system_directory_lists_all_entities() -> None:
     assert any(item["name"] == "Alpha Org" and item["memberCount"] == 2 for item in org_items)
     assert any(item["name"] == "Alpha Workspace" and item["projectCount"] == 1 for item in workspace_items)
     assert any(item["name"] == "Alpha Project" and item["memberCount"] == 1 for item in project_items)
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_workspace_and_project_lists_include_owner_and_icon_fields() -> None:
+    owner = await User.create(
+        username="icon-owner",
+        email="icon-owner@example.com",
+        display_name="Icon Owner",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    organization = await Organization.create(
+        name="Icon Org",
+        slug="icon-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=owner.id,
+    )
+    workspace = await Workspace.create(
+        organization_id=organization.id,
+        name="Icon Workspace",
+        description="Workspace with glyph icon",
+        owner_user_id=None,
+        created_by_user_id=owner.id,
+        icon_mode="glyph",
+        icon_glyph="rocket",
+        icon_color="#112233",
+    )
+    project = await ProjectRecord.create(
+        workspace_id=workspace.id,
+        slug="icon-project",
+        name="Icon Project",
+        description="Project with glyph icon",
+        created_by_user_id=owner.id,
+        icon_mode="glyph",
+        icon_glyph="rocket",
+        icon_color="#445566",
+    )
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=owner.id,
+        role=OrgRole.OWNER,
+        role_code=OrgRole.OWNER.value,
+        status="active",
+    )
+    workspace_membership = await WorkspaceMembership.create(
+        workspace_id=workspace.id,
+        user_id=owner.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    owner_role = await Role.get(workspace_id=workspace.id, code="owner")
+    await WorkspaceMembershipRole.get_or_create(membership_id=workspace_membership.id, role_id=owner_role.id)
+    await ProjectMembership.create(
+        project_id=project.id,
+        user_id=owner.id,
+        role=ProjectMemberRole.OWNER,
+        created_by_user_id=owner.id,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        workspace_res = await client.get("/api/v1/system/directory/workspaces")
+        project_res = await client.get("/api/v1/system/directory/projects")
+
+    assert workspace_res.status_code == 200
+    assert project_res.status_code == 200
+
+    workspace_item = workspace_res.json()["data"]["items"][0]
+    project_item = project_res.json()["data"]["items"][0]
+
+    assert workspace_item["owner"]["username"] == "icon-owner"
+    assert workspace_item["iconMode"] == "glyph"
+    assert workspace_item["iconGlyph"] == "rocket"
+    assert workspace_item["iconColor"] == "#112233"
+    assert project_item["owner"]["username"] == "icon-owner"
+    assert project_item["iconMode"] == "glyph"
+    assert project_item["iconGlyph"] == "rocket"
+    assert project_item["iconColor"] == "#445566"
 
 
 @pytest.mark.usefixtures("db")
@@ -757,6 +847,146 @@ async def test_system_directory_deletes_user_account_with_account_cleanup() -> N
 
 
 @pytest.mark.usefixtures("db")
+async def test_system_directory_deletes_user_account_with_owned_entities_cascade() -> None:
+    acting_admin = await User.create(
+        username="cascade-admin",
+        email="cascade-admin@example.com",
+        display_name="Cascade Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    managed_user = await User.create(
+        username="cascade-target",
+        email="cascade-target@example.com",
+        display_name="Cascade Target",
+        status=UserStatus.ACTIVE,
+        token_version=3,
+    )
+    shared_owner = await User.create(
+        username="shared-owner",
+        email="shared-owner@example.com",
+        display_name="Shared Owner",
+        status=UserStatus.ACTIVE,
+    )
+
+    owned_org = await Organization.create(
+        name="Owned Org",
+        slug="owned-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=managed_user.id,
+    )
+    await OrgMembership.create(
+        organization_id=owned_org.id,
+        user_id=managed_user.id,
+        role=OrgRole.OWNER,
+        role_code=OrgRole.OWNER.value,
+        status="active",
+    )
+    owned_org_workspace = await Workspace.create(
+        organization_id=owned_org.id,
+        name="Owned Org Workspace",
+        owner_user_id=managed_user.id,
+        created_by_user_id=managed_user.id,
+    )
+    await ProjectRecord.create(
+        workspace_id=owned_org_workspace.id,
+        slug="owned-org-project",
+        name="Owned Org Project",
+        created_by_user_id=managed_user.id,
+    )
+
+    shared_org = await Organization.create(
+        name="Shared Org",
+        slug="shared-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=shared_owner.id,
+    )
+    await OrgMembership.create(
+        organization_id=shared_org.id,
+        user_id=shared_owner.id,
+        role=OrgRole.OWNER,
+        role_code=OrgRole.OWNER.value,
+        status="active",
+    )
+    await OrgMembership.create(
+        organization_id=shared_org.id,
+        user_id=managed_user.id,
+        role=OrgRole.ADMIN,
+        role_code=OrgRole.ADMIN.value,
+        status="active",
+    )
+    owned_workspace = await Workspace.create(
+        organization_id=shared_org.id,
+        name="Owned Workspace",
+        owner_user_id=None,
+        created_by_user_id=managed_user.id,
+    )
+    owned_workspace_membership = await WorkspaceMembership.create(
+        workspace_id=owned_workspace.id,
+        user_id=managed_user.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    owned_workspace_role = await Role.get(workspace_id=owned_workspace.id, code="owner")
+    await WorkspaceMembershipRole.get_or_create(
+        membership_id=owned_workspace_membership.id,
+        role_id=owned_workspace_role.id,
+    )
+
+    shared_workspace = await Workspace.create(
+        organization_id=shared_org.id,
+        name="Shared Workspace",
+        owner_user_id=shared_owner.id,
+        created_by_user_id=shared_owner.id,
+    )
+    await WorkspaceMembership.create(
+        workspace_id=shared_workspace.id,
+        user_id=shared_owner.id,
+        status=WorkspaceMembershipStatus.ACTIVE,
+    )
+    created_project = await ProjectRecord.create(
+        workspace_id=shared_workspace.id,
+        slug="created-project",
+        name="Created Project",
+        created_by_user_id=managed_user.id,
+    )
+    shared_project = await ProjectRecord.create(
+        workspace_id=shared_workspace.id,
+        slug="shared-project",
+        name="Shared Project",
+        created_by_user_id=shared_owner.id,
+    )
+    await ProjectMembership.create(
+        project_id=shared_project.id,
+        user_id=managed_user.id,
+        role=ProjectMemberRole.EDITOR,
+        created_by_user_id=shared_owner.id,
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        res = await client.delete(f"/api/v1/system/directory/users/{managed_user.id}")
+
+    assert res.status_code == 200, res.text
+    assert await Organization.filter(id=owned_org.id).count() == 0
+    assert await Workspace.filter(id=owned_workspace.id).count() == 0
+    assert await ProjectRecord.filter(id=created_project.id).count() == 0
+    assert await Workspace.filter(id=shared_workspace.id).count() == 1
+    assert await ProjectRecord.filter(id=shared_project.id).count() == 1
+
+    deleted = await User.get(id=managed_user.id)
+    assert deleted.username.startswith("deleted_")
+    assert deleted.status == UserStatus.DISABLED
+    assert deleted.token_version == 4
+
+
+@pytest.mark.usefixtures("db")
 async def test_system_directory_rejects_self_delete() -> None:
     acting_admin = await User.create(
         username="delete-self-admin",
@@ -821,6 +1051,13 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
         user_id=owner.id,
         role=OrgRole.OWNER,
         role_code=OrgRole.OWNER.value,
+        status="active",
+    )
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=replacement_owner.id,
+        role=OrgRole.MEMBER,
+        role_code=OrgRole.MEMBER.value,
         status="active",
     )
     workspace = await Workspace.create(
@@ -1030,3 +1267,90 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
     assert refreshed_project.slug == "alpha-project"
     assert refreshed_project.icon_glyph == "rocket"
     assert await ProjectRecord.filter(id=disabled_project.id).count() == 0
+
+
+@pytest.mark.usefixtures("db")
+async def test_system_directory_lists_owner_candidates_from_active_org_members_only() -> None:
+    acting_admin = await User.create(
+        username="owner-candidate-admin",
+        email="owner-candidate-admin@example.com",
+        display_name="Owner Candidate Admin",
+        status=UserStatus.ACTIVE,
+        is_super_admin=True,
+    )
+    current_owner = await User.create(
+        username="owner-candidate-owner",
+        email="owner-candidate-owner@example.com",
+        display_name="Current Owner",
+        status=UserStatus.ACTIVE,
+    )
+    member = await User.create(
+        username="owner-candidate-member",
+        email="owner-candidate-member@example.com",
+        display_name="Candidate Member",
+        status=UserStatus.ACTIVE,
+    )
+    disabled_member = await User.create(
+        username="owner-candidate-disabled",
+        email="owner-candidate-disabled@example.com",
+        display_name="Disabled Member",
+        status=UserStatus.ACTIVE,
+    )
+    outsider = await User.create(
+        username="owner-candidate-outsider",
+        email="owner-candidate-outsider@example.com",
+        display_name="Outsider",
+        status=UserStatus.ACTIVE,
+    )
+    organization = await Organization.create(
+        name="Candidates Org",
+        slug="candidates-org",
+        kind=OrganizationKind.TEAM,
+        owner_user_id=current_owner.id,
+    )
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=current_owner.id,
+        role=OrgRole.OWNER,
+        role_code=OrgRole.OWNER.value,
+        status="active",
+    )
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=member.id,
+        role=OrgRole.MEMBER,
+        role_code=OrgRole.MEMBER.value,
+        status="active",
+    )
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=disabled_member.id,
+        role=OrgRole.ADMIN,
+        role_code=OrgRole.ADMIN.value,
+        status="disabled",
+    )
+
+    app = await _build_app()
+
+    async def _super_admin_override() -> User:
+        return acting_admin
+
+    app.dependency_overrides[get_current_user] = _super_admin_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+
+    async with asgi_client(app) as client:
+        candidates_res = await client.get(
+            f"/api/v1/system/directory/organizations/{organization.id}/owner-candidates",
+        )
+        invalid_owner_res = await client.patch(
+            f"/api/v1/system/directory/organizations/{organization.id}",
+            json={"ownerUserId": str(outsider.id)},
+        )
+
+    assert candidates_res.status_code == 200
+    assert {item["username"] for item in candidates_res.json()["data"]} == {
+        "owner-candidate-owner",
+        "owner-candidate-member",
+    }
+    assert invalid_owner_res.status_code == 400
+    assert invalid_owner_res.json()["error"] == "ORGANIZATION_OWNER_MEMBER_REQUIRED"

@@ -13,10 +13,9 @@ import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import type { CommandScope } from "@/lib/command/command-types";
 
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
-const TOPBAR_HEIGHT_REM = "3.5rem";
-
 type AdminSceneTopbarRenderProps = {
   notificationOpen: boolean;
   showNotificationsBadge: boolean;
@@ -28,6 +27,7 @@ type AdminSceneLayoutProps = PropsWithChildren<{
   notificationQueryScope: string;
   renderTopbar: (props: AdminSceneTopbarRenderProps) => ReactNode;
   mainItems: readonly AdminNavItem[];
+  commandScope?: CommandScope;
   favoriteWorkspaceBase?: string | null;
   resolvePermissionName?: (code: string) => string | null;
   showNavSkeleton?: boolean;
@@ -45,6 +45,7 @@ export function AdminSceneLayout({
   notificationQueryScope,
   renderTopbar,
   mainItems,
+  commandScope,
   favoriteWorkspaceBase,
   resolvePermissionName,
   showNavSkeleton = false,
@@ -91,34 +92,33 @@ export function AdminSceneLayout({
       style={
         {
           "--sidebar-width-icon": `${SIDEBAR_COLLAPSED_WIDTH_PX}px`,
-          "--admin-topbar-height": TOPBAR_HEIGHT_REM,
         } as CSSProperties
       }
     >
       <RouteProgress />
-      <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">
-        {renderTopbar({
-          notificationOpen: notificationPanelOpen,
-          showNotificationsBadge,
-          unreadCount: notificationPreviewQuery.data?.unreadCount ?? 0,
-          onNotificationToggle: () => setNotificationPanelOpen(!notificationPanelOpen),
-        })}
+      <div className="flex h-screen min-h-0 w-full flex-1 bg-background">
+        <AdminSidebarShell
+          showNavSkeleton={showNavSkeleton}
+          showOrgNavErrorOverlay={showOrgNavErrorOverlay}
+          mainItems={mainItems}
+          commandScope={commandScope}
+          favoriteWorkspaceBase={favoriteWorkspaceBase}
+          resolvePermissionName={resolvePermissionName}
+          pathnameOverride={sidebarPathnameOverride}
+          collapsible={sidebarCollapsible}
+        />
 
-        <div className="flex min-h-0 flex-1">
-          <AdminSidebarShell
-            showNavSkeleton={showNavSkeleton}
-            showOrgNavErrorOverlay={showOrgNavErrorOverlay}
-            mainItems={mainItems}
-            favoriteWorkspaceBase={favoriteWorkspaceBase}
-            resolvePermissionName={resolvePermissionName}
-            pathnameOverride={sidebarPathnameOverride}
-            collapsible={sidebarCollapsible}
-            className="top-(--admin-topbar-height) inset-y-auto bottom-0 h-[calc(100svh-var(--admin-topbar-height))]"
-          />
+        <div className="relative flex min-w-0 flex-1 flex-col">
+          {renderTopbar({
+            notificationOpen: notificationPanelOpen,
+            showNotificationsBadge,
+            unreadCount: notificationPreviewQuery.data?.unreadCount ?? 0,
+            onNotificationToggle: () => setNotificationPanelOpen(!notificationPanelOpen),
+          })}
 
-          <div className="relative flex min-w-0 flex-1">
+          <div className="relative flex min-h-0 flex-1">
             <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden bg-background">
-              <div className="flex-1 min-h-0 overflow-auto">
+              <div className="flex min-h-0 flex-1 flex-col overflow-auto">
                 <ContentGuard
                   loading={loading}
                   error={error}

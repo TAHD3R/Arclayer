@@ -194,17 +194,14 @@ export function GlobalLayout() {
       notificationQueryScope="global-shell"
       renderTopbar={(topbar) => (
         <AdminTopbar
-          navItems={navItems}
-          commandScope={GLOBAL_COMMAND_SCOPE}
           notificationOpen={topbar.notificationOpen}
           showNotificationsBadge={topbar.showNotificationsBadge}
           unreadCount={topbar.unreadCount}
           onNotificationToggle={topbar.onNotificationToggle}
-          leadingMode="workspace-switcher"
-          sidebarToggleMode="always"
         />
       )}
       mainItems={navItems}
+      commandScope={GLOBAL_COMMAND_SCOPE}
       sidebarCollapsible="icon"
     >
       <Outlet />

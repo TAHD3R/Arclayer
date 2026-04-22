@@ -7,18 +7,11 @@ import { SidebarProvider } from "@arclayer/ui/sidebar";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 import userEvent from "@testing-library/user-event";
 
-const { fullLogoMock } = vi.hoisted(() => ({
-  fullLogoMock: vi.fn((props: { hoverLabel?: string }) => (
-    <div data-testid="full-logo" data-hover-label={props.hoverLabel ?? ""} />
-  )),
-}));
-
 vi.mock("lucide-react", async () => {
   const actual = await vi.importActual<typeof import("lucide-react")>("lucide-react");
   return {
     ...actual,
     Bell: (props: React.ComponentProps<"svg">) => <svg data-testid="bell-icon" {...props} />,
-    Menu: (props: React.ComponentProps<"svg">) => <svg data-testid="menu-icon" {...props} />,
   };
 });
 
@@ -28,26 +21,8 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-admin-command-palette", () => ({
-  useAdminCommandPalette: () => ({
-    sections: [],
-    query: "",
-    setQuery: vi.fn(),
-    emptyText: "empty",
-    onSelectEntry: vi.fn(),
-  }),
-}));
-
-vi.mock("@/components/layout/admin-command-trigger", () => ({
-  AdminCommandTrigger: () => <div data-testid="command-trigger" />,
-}));
-
 vi.mock("@/components/layout/admin-account-menu", () => ({
   AdminAccountMenu: () => <div data-testid="account-menu" />,
-}));
-
-vi.mock("@/components/layout/admin-logo", () => ({
-  AdminFullLogo: (props: { hoverLabel?: string }) => fullLogoMock(props),
 }));
 
 vi.mock("@/components/layout/admin-workspace-switcher", () => ({
@@ -90,11 +65,6 @@ function renderWithSidebar(node: React.ReactElement) {
   );
 }
 
-function expectStaticHamburgerIcon() {
-  const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
-  expect(toggleButton.querySelector("[data-testid='menu-icon']")).not.toBeNull();
-}
-
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {
     writable: true,
@@ -113,20 +83,12 @@ beforeAll(() => {
 
 describe("topbar sidebar toggle icon", () => {
   beforeEach(async () => {
-    fullLogoMock.mockClear();
     await setPathname("/");
   });
 
-  it("AdminTopbar 使用 lucide-react 的静态 Menu icon", () => {
+  it("AdminTopbar 默认只保留右侧操作区", () => {
     renderWithSidebar(
       <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "none",
-          pathname: "/",
-          workspaceId: null,
-          organizationId: null,
-        }}
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -134,192 +96,16 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    expectStaticHamburgerIcon();
+    expect(screen.queryByTestId("workspace-switcher")).toBeNull();
+    expect(screen.queryByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toBeNull();
+    expect(screen.getByTestId("account-menu")).toBeInTheDocument();
   });
 
-  it("AdminTopbar 在首页不向 logo 注入返回首页 hover 文案", () => {
-    renderWithSidebar(
-      <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "none",
-          pathname: "/",
-          workspaceId: null,
-          organizationId: null,
-        }}
-        notificationOpen={false}
-        showNotificationsBadge={false}
-        unreadCount={0}
-        onNotificationToggle={() => undefined}
-      />,
-    );
-
-    expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "");
-  });
-
-  it("AdminTopbar 在 global projects 场景不向 logo 注入返回首页 hover 文案", async () => {
-    await setPathname("/projects");
-
-    renderWithSidebar(
-      <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "none",
-          pathname: "/projects",
-          workspaceId: null,
-          organizationId: null,
-        }}
-        notificationOpen={false}
-        showNotificationsBadge={false}
-        unreadCount={0}
-        onNotificationToggle={() => undefined}
-      />,
-    );
-
-    expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "");
-  });
-
-  it("AdminTopbar 在 global system 场景不向 logo 注入返回首页 hover 文案", async () => {
-    await setPathname("/system/access");
-
-    renderWithSidebar(
-      <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "none",
-          pathname: "/system/access",
-          workspaceId: null,
-          organizationId: null,
-        }}
-        notificationOpen={false}
-        showNotificationsBadge={false}
-        unreadCount={0}
-        onNotificationToggle={() => undefined}
-      />,
-    );
-
-    expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "");
-  });
-
-  it("AdminTopbar 在非 global nav 场景向 logo 注入返回首页 hover 文案", async () => {
-    await setPathname("/notifications");
-
-    renderWithSidebar(
-      <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "workspace",
-          pathname: "/notifications",
-          workspaceId: "ws-1",
-          organizationId: null,
-        }}
-        notificationOpen={false}
-        showNotificationsBadge={false}
-        unreadCount={0}
-        onNotificationToggle={() => undefined}
-      />,
-    );
-
-    expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "common:GO_HOME");
-  });
-
-  it("AdminTopbar 在 workspace 桌面场景可将 sidebar toggle 收敛为仅移动端显示", async () => {
+  it("AdminTopbar 不再在 topbar 中间渲染 command trigger", async () => {
     await setPathname("/projects/ws-1");
 
     renderWithSidebar(
       <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "workspace",
-          pathname: "/projects/ws-1",
-          workspaceId: "ws-1",
-          organizationId: null,
-        }}
-        notificationOpen={false}
-        showNotificationsBadge={false}
-        unreadCount={0}
-        onNotificationToggle={() => undefined}
-        sidebarToggleMode="mobile-only"
-      />,
-    );
-
-    const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
-    expect(toggleButton.className).toContain("md:hidden");
-  });
-
-  it("AdminTopbar 在常驻 sidebar toggle 模式下使用 collapsed sidebar 宽度", async () => {
-    await setPathname("/projects/ws-1");
-
-    renderWithSidebar(
-      <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "workspace",
-          pathname: "/projects/ws-1",
-          workspaceId: "ws-1",
-          organizationId: null,
-        }}
-        notificationOpen={false}
-        showNotificationsBadge={false}
-        unreadCount={0}
-        onNotificationToggle={() => undefined}
-        sidebarToggleMode="always"
-      />,
-    );
-
-    const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
-    expect(toggleButton).toHaveAttribute("data-variant", "ghost");
-    expect(toggleButton).toHaveAttribute("data-size", "icon-lg");
-    expect(toggleButton.className).toContain("relative");
-    expect(toggleButton.className).toContain("size-10");
-    expect(toggleButton.className).toContain("border-transparent");
-    expect(toggleButton.className).not.toContain("md:hidden");
-    expect(toggleButton.closest(".grid")).toHaveClass("p-2");
-  });
-
-  it("AdminTopbar 的 sidebar toggle 在 hover 时显示 tooltip", async () => {
-    const user = userEvent.setup();
-
-    renderWithSidebar(
-      <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "workspace",
-          pathname: "/projects/ws-1",
-          workspaceId: "ws-1",
-          organizationId: null,
-        }}
-        notificationOpen={false}
-        showNotificationsBadge={false}
-        unreadCount={0}
-        onNotificationToggle={() => undefined}
-        sidebarToggleMode="always"
-      />,
-    );
-
-    const trigger = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
-
-    await user.hover(trigger);
-
-    await waitFor(() => {
-      expect(document.body.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(
-        "common:SIDEBAR_TOGGLE",
-      );
-    });
-  });
-
-  it("AdminTopbar 将 command trigger 宽度收窄", async () => {
-    await setPathname("/projects/ws-1");
-
-    renderWithSidebar(
-      <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "workspace",
-          pathname: "/projects/ws-1",
-          workspaceId: "ws-1",
-          organizationId: null,
-        }}
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -327,11 +113,10 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    const commandShell = screen.getByTestId("command-trigger").parentElement;
-    expect(commandShell).toHaveClass("max-w-[24rem]");
+    expect(screen.queryByTestId("command-trigger")).toBeNull();
   });
 
-  it("UserCenterTopbar 使用 lucide-react 的静态 Menu icon", () => {
+  it("UserCenterTopbar 同样移除 topbar 折叠按钮", () => {
     renderWithSidebar(
       <UserCenterTopbar
         notificationOpen={false}
@@ -341,26 +126,7 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    expectStaticHamburgerIcon();
-  });
-
-  it("UserCenterTopbar 在桌面场景不再用隐藏 toggle 占位，而是直接按导航内容线对齐 logo", () => {
-    renderWithSidebar(
-      <UserCenterTopbar
-        notificationOpen={false}
-        showNotificationsBadge={false}
-        unreadCount={0}
-        onNotificationToggle={() => undefined}
-      />,
-    );
-
-    const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
-    expect(toggleButton.className).toContain("md:hidden");
-    expect(toggleButton.className).not.toContain("md:invisible");
-
-    const logo = screen.getByTestId("full-logo");
-    const leading = logo.parentElement?.parentElement;
-    expect(leading).toHaveClass("md:pl-3");
+    expect(screen.queryByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toBeNull();
   });
 
   it("UserCenterTopbar 使用工作区返回入口替代账号设置标题与描述", () => {
@@ -393,15 +159,12 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    expect(screen.getByTestId("full-logo")).toBeInTheDocument();
-    expect(screen.queryByTestId("command-trigger")).toBeNull();
+    expect(screen.getByTestId("account-menu")).toBeInTheDocument();
   });
 
-  it("UserCenterTopbar 可在 notifications 场景显示中间 command trigger", async () => {
+  it("UserCenterTopbar 维持顶部精简结构，只显示返回入口和右侧操作区", () => {
     renderWithSidebar(
       <UserCenterTopbar
-        navItems={[]}
-        showCommandTrigger
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -409,9 +172,8 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId("command-trigger")).toBeInTheDocument();
-    });
+    expect(screen.queryByText("command-trigger")).toBeNull();
+    expect(screen.getByTestId("account-menu")).toBeInTheDocument();
   });
 
   it("AdminTopbar 的通知按钮在 hover 时显示 tooltip", async () => {
@@ -419,13 +181,6 @@ describe("topbar sidebar toggle icon", () => {
 
     renderWithSidebar(
       <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "none",
-          pathname: "/projects",
-          workspaceId: null,
-          organizationId: null,
-        }}
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -446,16 +201,9 @@ describe("topbar sidebar toggle icon", () => {
     });
   });
 
-  it("AdminTopbar 在通知按钮右侧渲染 Help Center 占位按钮", () => {
+  it("AdminTopbar 将 workspace switcher 保持在左侧，trailing 只保留通知与账号菜单", () => {
     renderWithSidebar(
       <AdminTopbar
-        navItems={[]}
-        commandScope={{
-          kind: "none",
-          pathname: "/projects",
-          workspaceId: null,
-          organizationId: null,
-        }}
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -467,10 +215,14 @@ describe("topbar sidebar toggle icon", () => {
     expect(trailing).not.toBeNull();
     if (!trailing) throw new Error("Missing topbar trailing container");
 
-    const actionButtons = within(trailing).getAllByRole("button");
-    expect(actionButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
-      "notifications:NOTIFICATIONS_OPEN_CENTER",
-      "account:ACCOUNT_HELP_CENTER",
+    const children = Array.from(trailing.children);
+    expect(children.map((child) => child.getAttribute("data-testid"))).toEqual([
+      null,
+      "account-menu",
     ]);
+    expect(children[0]).toHaveAttribute("aria-label", "notifications:NOTIFICATIONS_OPEN_CENTER");
+    expect(
+      within(trailing.parentElement as HTMLElement).queryByTestId("workspace-switcher"),
+    ).toBeNull();
   });
 });

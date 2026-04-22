@@ -133,8 +133,8 @@ describe("AdminSiderNav spacing", () => {
     const menu = container.querySelector('[data-slot="sidebar-menu"]');
 
     expect(menu).not.toBeNull();
-    expect(menu).toHaveClass("gap-1.5");
-    expect(menu).toHaveClass("group-data-[collapsible=icon]:gap-2.5");
+    expect(menu).toHaveClass("gap-1");
+    expect(menu).toHaveClass("group-data-[collapsible=icon]:gap-1");
   });
 
   it("keeps collapsed section markers on the same divider row contract while revealing text in expanded state", () => {
@@ -154,10 +154,10 @@ describe("AdminSiderNav spacing", () => {
     expect(groupMarker).not.toBeNull();
     expect(groupMarkerDivider).not.toBeNull();
     expect(groupLabel).not.toBeNull();
-    expect(groupMarker).toHaveClass("py-3");
+    expect(groupMarker).toHaveClass("py-2");
     expect(groupMarker?.className).toContain("group-data-[state=expanded]:px-3");
-    expect(groupMarker?.className).toContain("group-data-[state=expanded]:pt-4");
-    expect(groupMarker?.className).toContain("group-data-[state=expanded]:pb-2");
+    expect(groupMarker?.className).toContain("group-data-[state=expanded]:pt-3");
+    expect(groupMarker?.className).toContain("group-data-[state=expanded]:pb-1");
     expect(groupMarkerDivider).toHaveClass("border-b", "border-sidebar-border");
     expect(groupMarkerDivider?.className).toContain("group-data-[state=expanded]:opacity-0");
     expect(groupLabel).toHaveClass("text-xs", "font-semibold");
@@ -179,10 +179,10 @@ describe("AdminSiderNav spacing", () => {
     const dividerRow = document.querySelector('[data-slot="admin-side-nav-divider"]');
 
     expect(dividerRow).not.toBeNull();
-    expect(dividerRow).toHaveClass("py-3");
+    expect(dividerRow).toHaveClass("py-2");
     expect(dividerRow?.className).not.toContain("group-data-[state=expanded]:px-3");
-    expect(dividerRow?.className).not.toContain("group-data-[state=expanded]:pt-4");
-    expect(dividerRow?.className).not.toContain("group-data-[state=expanded]:pb-2");
+    expect(dividerRow?.className).not.toContain("group-data-[state=expanded]:pt-3");
+    expect(dividerRow?.className).not.toContain("group-data-[state=expanded]:pb-1");
     expect(dividerRow?.firstElementChild).toHaveClass("border-b", "border-sidebar-border");
   });
 
@@ -201,7 +201,7 @@ describe("AdminSiderNav spacing", () => {
     expect(sidebarInner).not.toBeNull();
     expect(sidebarInner?.className).not.toContain("items-start");
     expect(sidebarInner?.className).not.toContain("items-end");
-    expect(groupMarker).toHaveClass("py-3");
+    expect(groupMarker).toHaveClass("py-2");
   });
 
   it("uses the updated nav item padding, height, and active styling", () => {
@@ -229,7 +229,7 @@ describe("AdminSiderNav spacing", () => {
     expect(dashboardRow?.className).not.toContain("data-[active=true]:bg-accent/50");
 
     expect(teamRow).toHaveClass("h-9", "rounded-md", "!pl-3", "!pr-2.5", "!py-1.5", "text-callout");
-    expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:size-9!");
+    expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:size-8!");
     expect(teamRow?.className).toContain("data-[active=true]:bg-transparent");
 
     const dashboardLabel = dashboardButton.querySelector("span.min-w-0.flex-1");
@@ -237,13 +237,13 @@ describe("AdminSiderNav spacing", () => {
 
     expect(dashboardLabel).not.toBeNull();
     expect(teamLabel).not.toBeNull();
-    expect(dashboardLabel?.className).toContain("duration-250");
-    expect(teamLabel?.className).toContain("duration-250");
+    expect(dashboardLabel?.className).toContain("duration-[280ms]");
+    expect(teamLabel?.className).toContain("duration-[280ms]");
     expect(dashboardLabel?.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
     );
     expect(teamLabel?.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
     );
   });
 
@@ -265,7 +265,7 @@ describe("AdminSiderNav spacing", () => {
     expect(document.querySelector('[data-slot="admin-side-nav-group-marker"]')).not.toBeNull();
     expect(groupRow).toHaveClass("!pl-3", "!pr-2.5", "h-9", "rounded-md", "text-callout");
     expect(groupLabel?.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
     );
     expect(groupChevronWrapper).toHaveClass("ml-auto");
     expect(groupChevronWrapper?.className).toContain(
@@ -297,7 +297,7 @@ describe("AdminSiderNav spacing", () => {
     const favoritesControls = favoritesRow?.lastElementChild;
 
     expect(favoritesLabel?.className).toContain(
-      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
+      "[[data-layout-collapsible=icon]:not([data-hover-preview=true])[data-motion-phase=idle]_&]:max-w-0",
     );
     expect(favoritesControls?.className).toContain(
       "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:w-0",
@@ -347,7 +347,7 @@ describe("AdminSiderNav spacing", () => {
     expect(subtree).toHaveClass("ml-0", "pl-7", "border-l-0");
     expect(subtree?.parentElement?.className).not.toContain("before:left-4");
     expect(subtree?.parentElement?.className).not.toContain("before:bg-border/60");
-    expect(submenuButton).toHaveClass("[&:not([data-highlight])]:hover:bg-transparent");
+    expect(submenuButton).toHaveClass("hover:bg-transparent");
   });
 
   it("keeps fixed sidebars on the correct border edge when collapsible is none", () => {

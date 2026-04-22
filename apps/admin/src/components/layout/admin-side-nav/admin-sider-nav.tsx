@@ -68,11 +68,11 @@ function NavGroupMarker(props: { label: string }) {
     <li
       data-slot="admin-side-nav-group-marker"
       className={cn(
-        "relative overflow-hidden py-3",
+        "relative overflow-hidden py-2",
         "transition-[padding] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
         "group-data-[state=expanded]:px-3",
-        "group-data-[state=expanded]:pt-4",
-        "group-data-[state=expanded]:pb-2",
+        "group-data-[state=expanded]:pt-3",
+        "group-data-[state=expanded]:pb-1",
       )}
       aria-hidden="true"
     >
@@ -101,7 +101,7 @@ function NavGroupMarker(props: { label: string }) {
 
 function NavDivider() {
   return (
-    <li data-slot="admin-side-nav-divider" className="py-3" aria-hidden="true">
+    <li data-slot="admin-side-nav-divider" className="py-2" aria-hidden="true">
       <div className="border-b border-sidebar-border" />
     </li>
   );

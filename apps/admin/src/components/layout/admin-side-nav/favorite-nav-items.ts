@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 import { ChevronRight } from "lucide-react";
 
-import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
+import { PROJECT_NAV_ITEMS } from "@/constants/menu/project";
 import type { FavoriteNode } from "@/types/stores/favorites";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { normalizePath } from "./nav-utils";
@@ -106,7 +106,7 @@ function buildTemplateIndex(items: readonly AdminNavItem[], t: TFunction): Favor
     }
   };
 
-  workspaceWalk(WORKSPACE_NAV_ITEMS);
+  workspaceWalk(PROJECT_NAV_ITEMS);
   return { exactByPath, workspaceBySuffix };
 }
 

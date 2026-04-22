@@ -26,6 +26,7 @@
     "@reui": "https://reui.io/r/{style}/{name}.json",
     "@magicui": "https://magicui.design/r/{name}",
     "@fonttrio": "https://www.fonttrio.xyz/r/{name}.json",
-    "@plate": "https://platejs.org/r/{name}.json"
+    "@plate": "https://platejs.org/r/{name}.json",
+    "@kokonutui": "https://kokonutui.com/r/{name}.json"
   }
 }

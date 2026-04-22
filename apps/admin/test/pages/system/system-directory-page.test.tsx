@@ -46,6 +46,7 @@ vi.mock("@/api/system-directory", () => ({
   enableSystemDirectoryUser: vi.fn(),
   deleteSystemDirectoryUser: vi.fn(),
   getSystemDirectoryOrganizationDetail: vi.fn(),
+  listSystemDirectoryOrganizationOwnerCandidates: vi.fn().mockResolvedValue([]),
   updateSystemDirectoryOrganization: vi.fn(),
   disableSystemDirectoryOrganization: vi.fn(),
   enableSystemDirectoryOrganization: vi.fn(),

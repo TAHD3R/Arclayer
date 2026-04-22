@@ -3,7 +3,7 @@ import { type PropsWithChildren, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { getWorkspaceNavItems } from "@/constants/menu/workspaces";
+import { getProjectNavItems } from "@/constants/menu/project";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -66,9 +66,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const workspaceNav = useMemo(
     () =>
       workspaceBase && currentProjectId
-        ? mapWorkspaceNavItems(getWorkspaceNavItems(), `/projects/${currentProjectId}`)
+        ? mapWorkspaceNavItems(getProjectNavItems(), `/projects/${currentProjectId}`)
         : workspaceBase
-          ? mapWorkspaceNavItems(getWorkspaceNavItems(), workspaceBase)
+          ? mapWorkspaceNavItems(getProjectNavItems(), workspaceBase)
           : [],
     [currentProjectId, workspaceBase],
   );
@@ -165,15 +165,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
   return (
     <AdminSceneLayout
       notificationQueryScope="admin"
-      renderTopbar={(topbar) => (
-        <AdminTopbar
-          navItems={mainItems}
-          commandScope={commandScope}
-          sidebarToggleMode="always"
-          {...topbar}
-        />
-      )}
+      renderTopbar={(topbar) => <AdminTopbar {...topbar} />}
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
+      commandScope={commandScope}
       favoriteWorkspaceBase={
         isWorkspaceScopeRoute
           ? currentProjectId

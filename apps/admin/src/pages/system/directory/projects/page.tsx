@@ -212,7 +212,7 @@ export function SystemDirectoryProjectsPage() {
               iconEmoji={row.iconEmoji}
               assetRef={row.iconUrl}
             />
-            <div className="min-w-0">
+            <div className="ml-1 min-w-0">
               {renderTagWithTooltip(row.name, {
                 className: "max-w-full",
                 textClassName: "max-w-[14rem]",
@@ -554,12 +554,14 @@ export function SystemDirectoryProjectsPage() {
           {
             key: "disable",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_PROJECT"),
+            icon: <PowerOff className="size-4" />,
             disabled: selectedActive.length === 0,
             onClick: () => setConfirmAction({ kind: "disable", projects: selectedActive }),
           },
           {
             key: "enable",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_PROJECT"),
+            icon: <ShieldCheck className="size-4" />,
             disabled: selectedInactive.length === 0,
             onClick: () => setConfirmAction({ kind: "enable", projects: selectedInactive }),
           },

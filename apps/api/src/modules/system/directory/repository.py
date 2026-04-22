@@ -367,6 +367,42 @@ class SystemDirectoryRepository:
         rows = await User.filter(id__in=ids)
         return {UUID(str(row.id)): row for row in rows}
 
+    async def list_organization_owner_candidates(
+        self,
+        *,
+        organization_id: UUID,
+        q: str | None,
+        limit: int = 20,
+    ) -> list[User]:
+        rows = (
+            await OrgMembership
+            .filter(organization_id=organization_id, status="active", user__status="active")
+            .select_related("user")
+            .order_by("role", "created_at", "id")
+            .all()
+        )
+        needle = str(q or "").strip().lower()
+        candidates: list[User] = []
+        seen: set[UUID] = set()
+        for row in rows:
+            user = row.user
+            user_id = UUID(str(user.id))
+            if user_id in seen:
+                continue
+            if needle:
+                haystacks = (
+                    str(user.username or "").lower(),
+                    str(user.email or "").lower(),
+                    str(user.display_name or "").lower(),
+                )
+                if all(needle not in haystack for haystack in haystacks):
+                    continue
+            seen.add(user_id)
+            candidates.append(user)
+            if len(candidates) >= limit:
+                break
+        return candidates
+
     async def get_users_with_credentials_by_ids(self, *, user_ids: Iterable[UUID]) -> dict[UUID, User]:
         ids = list(set(user_ids))
         if not ids:
@@ -431,6 +467,69 @@ class SystemDirectoryRepository:
 
     async def delete_user_project_memberships(self, *, user_id: UUID) -> int:
         return await ProjectMembership.filter(user_id=user_id).delete()
+
+    async def list_owned_organization_ids_by_user(self, *, user_id: UUID) -> list[UUID]:
+        rows = await Organization.filter(owner_user_id=user_id, deleted_at__isnull=True).values_list("id", flat=True)
+        return [UUID(str(row)) for row in rows]
+
+    async def list_owned_workspace_ids_by_user(self, *, user_id: UUID) -> list[UUID]:
+        from src.modules.system.rbac.constants.service import ROLE_OWNER
+
+        membership_rows = await WorkspaceMembership.filter(
+            user_id=user_id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+            workspace__deleted_at__isnull=True,
+            membership_roles__role__code=ROLE_OWNER,
+        ).values_list("workspace_id", flat=True)
+        workspace_rows = await Workspace.filter(owner_user_id=user_id, deleted_at__isnull=True).values_list(
+            "id",
+            flat=True,
+        )
+        return sorted({UUID(str(row)) for row in [*membership_rows, *workspace_rows]})
+
+    async def list_created_project_ids_by_user(self, *, user_id: UUID) -> list[UUID]:
+        rows = await ProjectRecord.filter(
+            created_by_user_id=user_id,
+            workspace__deleted_at__isnull=True,
+        ).values_list("id", flat=True)
+        return [UUID(str(row)) for row in rows]
+
+    async def delete_workspaces_by_ids(self, *, workspace_ids: Iterable[UUID]) -> int:
+        ids = list(set(workspace_ids))
+        if not ids:
+            return 0
+        return await Workspace.filter(id__in=ids).delete()
+
+    async def delete_projects_by_ids(self, *, project_ids: Iterable[UUID]) -> int:
+        ids = list(set(project_ids))
+        if not ids:
+            return 0
+        return await ProjectRecord.filter(id__in=ids).delete()
+
+    async def list_workspace_owner_user_ids(self, *, workspace_ids: Iterable[UUID]) -> dict[UUID, UUID]:
+        from src.modules.system.rbac.constants.service import ROLE_OWNER
+
+        ids = list(set(workspace_ids))
+        if not ids:
+            return {}
+        rows = (
+            await WorkspaceMembership
+            .filter(
+                workspace_id__in=ids,
+                status=WorkspaceMembershipStatus.ACTIVE,
+                membership_roles__role__code=ROLE_OWNER,
+                membership_roles__role__workspace_id__in=ids,
+            )
+            .order_by("created_at", "id")
+            .values("workspace_id", "user_id")
+        )
+        owner_ids_by_workspace: dict[UUID, UUID] = {}
+        for row in rows:
+            workspace_id = UUID(str(row["workspace_id"]))
+            if workspace_id in owner_ids_by_workspace:
+                continue
+            owner_ids_by_workspace[workspace_id] = UUID(str(row["user_id"]))
+        return owner_ids_by_workspace
 
     async def count_organizations_by_owner_ids(self, *, owner_user_ids: Iterable[UUID]) -> dict[UUID, int]:
         ids = list(set(owner_user_ids))

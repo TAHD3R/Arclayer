@@ -742,6 +742,7 @@ export function SystemDirectoryUsersPage() {
           {
             key: "reset-password",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_RESET_PASSWORD"),
+            icon: <KeyRound className="size-4" />,
             disabled: selectedUserIds.length !== 1,
             onClick: () => {
               if (selectedUsers.length !== 1) return;
@@ -751,23 +752,27 @@ export function SystemDirectoryUsersPage() {
           {
             key: "revoke-sessions",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_REVOKE_LOGIN_SESSIONS"),
+            icon: <UserMinus className="size-4" />,
             onClick: () => openConfirmDialog("revoke", selectedUsers),
           },
           {
             key: "send-reset-password-email",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_SEND_RESET_PASSWORD_EMAIL"),
+            icon: <Mail className="size-4" />,
             disabled: selectedUserIds.length !== 1 || !selectedUsers[0]?.email,
             onClick: () => openConfirmDialog("sendResetPasswordEmail", selectedUsers.slice(0, 1)),
           },
           {
             key: "disable",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_ACCOUNT"),
+            icon: <ShieldOff className="size-4" />,
             disabled: selectedEnabledUsers.length === 0,
             onClick: () => openConfirmDialog("disable", selectedEnabledUsers),
           },
           {
             key: "enable",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_ACCOUNT"),
+            icon: <ShieldCheck className="size-4" />,
             disabled: selectedDisabledUsers.length === 0,
             onClick: () => openConfirmDialog("enable", selectedDisabledUsers),
           },

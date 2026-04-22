@@ -94,10 +94,10 @@ describe("project boundary contract", () => {
       existsSync(resolve(repoRoot, relativePath)),
     );
 
-    const workspaceNavSource = read("apps/admin/src/constants/menu/workspaces.ts");
-    if (workspaceNavSource.includes('to: "/settings/members"')) {
+    const projectNavSource = read("apps/admin/src/constants/menu/project.ts");
+    if (projectNavSource.includes('to: "/settings/members"')) {
       violations.push(
-        "apps/admin/src/constants/menu/workspaces.ts points Project Settings to members",
+        "apps/admin/src/constants/menu/project.ts points Project Settings to members",
       );
     }
 

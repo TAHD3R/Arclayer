@@ -14,7 +14,7 @@ import {
   UserRoundCog,
 } from "lucide-react";
 
-import { listSystemDirectoryUsers } from "@/api/system-directory";
+import { listSystemDirectoryOrganizationOwnerCandidates } from "@/api/system-directory";
 import {
   buildFiltersFromOperatorAwareState,
   buildOperatorAwareFilterState,
@@ -208,6 +208,20 @@ export function SystemDirectoryOrganizationsPage() {
                 icon: Building2,
               }),
         { id: "kind", sortKey: "kind" },
+      ),
+      createCustomColumn<SystemDirectoryOrganization>(
+        t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_STATUS"),
+        (row) =>
+          renderTag(
+            row.isActive
+              ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTIVE")
+              : t("settings:SETTINGS_SYSTEM_DIRECTORY_STATUS_DISABLED"),
+            {
+              tone: row.isActive ? "green" : "red",
+              icon: row.isActive ? Power : PowerOff,
+            },
+          ),
+        { id: "status" },
       ),
       createOwnerCell<SystemDirectoryOrganization>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_OWNER"),
@@ -488,20 +502,24 @@ export function SystemDirectoryOrganizationsPage() {
           {
             key: "disable-organizations",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_ORGANIZATION"),
+            icon: <PowerOff className="size-4" />,
             disabled: selectedActive.length === 0,
             onClick: () => setConfirmAction({ kind: "disable", organizations: selectedActive }),
           },
           {
             key: "enable-organizations",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_ORGANIZATION"),
+            icon: <Power className="size-4" />,
             disabled: selectedInactive.length === 0,
             onClick: () => setConfirmAction({ kind: "enable", organizations: selectedInactive }),
           },
           {
             key: "delete-organizations",
             label: t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_ORGANIZATION"),
+            icon: <Trash2 className="size-4" />,
             disabled: selectedDeletable.length === 0,
             onClick: () => setConfirmAction({ kind: "delete", organizations: selectedDeletable }),
+            variant: "destructive",
           },
         ]}
       />
@@ -527,13 +545,12 @@ export function SystemDirectoryOrganizationsPage() {
         }}
         organization={ownerTarget}
         fetchUsers={async (search) => {
-          const page = await listSystemDirectoryUsers({
+          if (!ownerTarget) return [];
+          return listSystemDirectoryOrganizationOwnerCandidates(ownerTarget.organizationId, {
             page: 1,
             size: 20,
             q: search,
-            ordering: "username",
           });
-          return page.items;
         }}
         pending={governance.updateOrganizationMutation.isPending}
         onSubmit={async (values) => {

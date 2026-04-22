@@ -55,7 +55,7 @@ const NAV_CHEVRON_CLASSNAME =
   "shrink-0 text-label-secondary transform-gpu transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
 
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
-  "relative z-10 h-9 rounded-md text-callout text-label-secondary",
+  "relative z-10 h-8 rounded-md text-callout text-label-secondary",
   "transition-[color,background-color] duration-200 ease-out",
   "hover:bg-accent/40 hover:text-label-primary",
   "focus:bg-accent/40 focus:text-label-primary",

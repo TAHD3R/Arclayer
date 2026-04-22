@@ -12,7 +12,7 @@ import {
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
-const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
+const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
   {
     key: "dashboard",
     label: "Overview",
@@ -58,20 +58,20 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
         activeMatchPaths: ["/content/create"],
         icon: LibraryBig,
       },
-      {
-        key: "content.releases",
-        label: "Release Center",
-        labelKey: "nav:NAV_CONTENT_RELEASES",
-        to: "/content/releases",
-        icon: History,
-      },
-      {
-        key: "content.automation",
-        label: "Automations",
-        labelKey: "nav:NAV_CONTENT_AUTOMATION",
-        to: "/content/automation",
-        icon: Zap,
-      },
+      // {
+      //   key: "content.releases",
+      //   label: "Release Center",
+      //   labelKey: "nav:NAV_CONTENT_RELEASES",
+      //   to: "/content/releases",
+      //   icon: History,
+      // },
+      // {
+      //   key: "content.automation",
+      //   label: "Automations",
+      //   labelKey: "nav:NAV_CONTENT_AUTOMATION",
+      //   to: "/content/automation",
+      //   icon: Zap,
+      // },
       {
         key: "settings.site",
         label: "Site Settings",
@@ -113,62 +113,46 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
   //     },
   //   ],
   // },
-  // {
-  //   key: "analytics",
-  //   label: "Analytics",
-  //   labelKey: "nav:NAV_SECTION_ANALYTICS",
-  //   icon: History,
-  //   children: [
-  //     {
-  //       key: "analytics.highlights",
-  //       label: "Highlights",
-  //       labelKey: "nav:NAV_ANALYTICS_HIGHLIGHTS",
-  //       to: "/analytics/highlights",
-  //       icon: LayoutDashboard,
-  //       disabled: true,
-  //     },
-  //     {
-  //       key: "analytics.real-time",
-  //       label: "Real-time",
-  //       labelKey: "nav:NAV_ANALYTICS_REAL_TIME",
-  //       to: "/analytics/real-time",
-  //       icon: History,
-  //       disabled: true,
-  //     },
-  //     {
-  //       key: "analytics.traffic",
-  //       label: "Traffic",
-  //       labelKey: "nav:NAV_ANALYTICS_TRAFFIC",
-  //       to: "/analytics/traffic",
-  //       icon: Globe,
-  //       disabled: true,
-  //     },
-  //     {
-  //       key: "analytics.behavior",
-  //       label: "Behavior",
-  //       labelKey: "nav:NAV_ANALYTICS_BEHAVIOR",
-  //       to: "/analytics/behavior",
-  //       icon: History,
-  //       disabled: true,
-  //     },
-  //     {
-  //       key: "analytics.insights",
-  //       label: "Insights",
-  //       labelKey: "nav:NAV_ANALYTICS_INSIGHTS",
-  //       to: "/analytics/insights",
-  //       icon: LibraryBig,
-  //       disabled: true,
-  //     },
-  //     {
-  //       key: "analytics.benchmarks",
-  //       label: "Benchmarks",
-  //       labelKey: "nav:NAV_ANALYTICS_BENCHMARKS",
-  //       to: "/analytics/benchmarks",
-  //       icon: Boxes,
-  //       disabled: true,
-  //     },
-  //   ],
-  // },
+  {
+    key: "analytics",
+    label: "Analytics",
+    labelKey: "nav:NAV_SECTION_ANALYTICS",
+    icon: History,
+    children: [
+      {
+        key: "analytics.highlights",
+        label: "Highlights",
+        labelKey: "nav:NAV_ANALYTICS_HIGHLIGHTS",
+        to: "/analytics/highlights",
+        icon: LayoutDashboard,
+        disabled: true,
+      },
+      {
+        key: "analytics.real-time",
+        label: "Real-time",
+        labelKey: "nav:NAV_ANALYTICS_REAL_TIME",
+        to: "/analytics/real-time",
+        icon: History,
+        disabled: true,
+      },
+      {
+        key: "analytics.traffic",
+        label: "Traffic",
+        labelKey: "nav:NAV_ANALYTICS_TRAFFIC",
+        to: "/analytics/traffic",
+        icon: Globe,
+        disabled: true,
+      },
+      {
+        key: "analytics.insights",
+        label: "Insights",
+        labelKey: "nav:NAV_ANALYTICS_INSIGHTS",
+        to: "/analytics/insights",
+        icon: LibraryBig,
+        disabled: true,
+      },
+    ],
+  },
   // {
   //   key: "customers.leads",
   //   label: "Customers & Leads",
@@ -201,38 +185,38 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
   //     },
   //   ],
   // },
-  // {
-  //   key: "apps",
-  //   label: "Apps",
-  //   labelKey: "nav:NAV_SECTION_APPS",
-  //   icon: Boxes,
-  //   children: [
-  //     {
-  //       key: "apps.manage",
-  //       label: "Manage Apps",
-  //       labelKey: "nav:NAV_APPS_MANAGE",
-  //       to: "/apps/manage",
-  //       icon: Boxes,
-  //       disabled: true,
-  //     },
-  //     {
-  //       key: "apps.market",
-  //       label: "App Market",
-  //       labelKey: "nav:NAV_APPS_MARKET",
-  //       to: "/apps/market",
-  //       icon: LibraryBig,
-  //       disabled: true,
-  //     },
-  //   ],
-  // },
-  // {
-  //   key: "automations",
-  //   label: "Automations",
-  //   labelKey: "nav:NAV_AUTOMATIONS",
-  //   to: "/automations",
-  //   icon: Zap,
-  //   disabled: true,
-  // },
+  {
+    key: "apps",
+    label: "Apps",
+    labelKey: "nav:NAV_SECTION_APPS",
+    icon: Boxes,
+    children: [
+      {
+        key: "apps.manage",
+        label: "Manage Apps",
+        labelKey: "nav:NAV_APPS_MANAGE",
+        to: "/apps/manage",
+        icon: Boxes,
+        disabled: true,
+      },
+      {
+        key: "apps.market",
+        label: "App Market",
+        labelKey: "nav:NAV_APPS_MARKET",
+        to: "/apps/market",
+        icon: LibraryBig,
+        disabled: true,
+      },
+    ],
+  },
+  {
+    key: "automations",
+    label: "Automations",
+    labelKey: "nav:NAV_AUTOMATIONS",
+    to: "/automations",
+    icon: Zap,
+    disabled: true,
+  },
   {
     key: "activity",
     label: "Activity",
@@ -250,9 +234,9 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
   },
 ] as const;
 
-export function getWorkspaceNavItems(): AdminNavItem[] {
-  return BASE_WORKSPACE_NAV_ITEMS;
+export function getProjectNavItems(): AdminNavItem[] {
+  return BASE_PROJECT_NAV_ITEMS;
 }
 
-export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = getWorkspaceNavItems();
-export const ADMIN_NAV_ITEMS: AdminNavItem[] = WORKSPACE_NAV_ITEMS;
+export const PROJECT_NAV_ITEMS: AdminNavItem[] = getProjectNavItems();
+export const ADMIN_NAV_ITEMS: AdminNavItem[] = PROJECT_NAV_ITEMS;

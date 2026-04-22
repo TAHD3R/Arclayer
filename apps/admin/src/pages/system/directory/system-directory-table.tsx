@@ -3,21 +3,20 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef, type Header } from "@tanstack/react-table";
 import { type LucideIcon } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 
 import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
+import { FloatingBulkToolbar } from "@/components/common/floating-bulk-toolbar";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { BaseTag, SelectedCountTag, UsesCountTag, lucideTagIcon } from "@/components/ui/tags";
+import { BaseTag, UsesCountTag, lucideTagIcon } from "@/components/ui/tags";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { cn } from "@arclayer/lib/utils";
-import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import {
@@ -62,8 +61,11 @@ type TextCellOptions = ColumnOptions & {
 export type SystemDirectoryBulkAction = {
   key: string;
   label: string;
+  icon: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  tooltip?: string;
+  variant?: React.ComponentProps<(typeof import("@arclayer/ui/button"))["Button"]>["variant"];
 };
 
 const SELECT_COLUMN_WIDTH = 52;
@@ -479,81 +481,43 @@ export function SystemDirectoryTable<TData>(props: {
     ],
   );
 
-  const footerSlot =
-    selectedCount > 0 ? (
-      <AnimatePresence>
-        <motion.div
-          key="system-directory-selection-toolbar"
-          className="pointer-events-none sticky bottom-0 z-30 mt-auto w-full"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          transition={{ duration: 0.12, ease: "easeOut" }}
-        >
-          <div className="pointer-events-auto w-full border-t border-border bg-background">
-            <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 pt-3 pb-5 sm:px-6 lg:px-8">
-              <div className="flex min-w-0 items-center gap-3">
-                <SelectedCountTag
-                  label={t("settings:SETTINGS_SYSTEM_DIRECTORY_SELECTED_COUNT", {
-                    count: selectedCount,
-                  })}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => props.tableHook.table.resetRowSelection()}
-                >
-                  {t("common:DATA_TABLE_CLEAR_SELECTION")}
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {props.bulkActions?.map((action) => (
-                  <Button
-                    key={action.key}
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={action.disabled}
-                    onClick={action.onClick}
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-    ) : null;
-
   return (
-    <AdminDataTableSection
-      table={props.tableHook.table}
-      emptyText={t("common:EMPTY_DESC")}
-      emptyTitle={props.text.emptyTitle}
-      emptyDescription={props.text.emptyDescription}
-      loading={props.tableHook.isLoading}
-      error={props.tableHook.error}
-      onRetry={() => void props.tableHook.refetch()}
-      t={(key, options) => t(key, options)}
-      rowHeight={rowHeight}
-      wrapHeaders={wrapHeaders}
-      refreshing={props.tableHook.isFetching && !props.tableHook.isLoading}
-      rowClassName={() => (props.onRowClick ? "cursor-pointer" : undefined)}
-      onRowClick={
-        props.onRowClick
-          ? (row) => {
-              const onRowClick = props.onRowClick;
-              if (!onRowClick) return;
-              onRowClick(row.original);
-            }
-          : undefined
-      }
-      toolbar={toolbar}
-      footerSlot={footerSlot}
-      resolveColumnFilterAction={props.resolveColumnFilterAction}
-    />
+    <>
+      <AdminDataTableSection
+        table={props.tableHook.table}
+        emptyText={t("common:EMPTY_DESC")}
+        emptyTitle={props.text.emptyTitle}
+        emptyDescription={props.text.emptyDescription}
+        loading={props.tableHook.isLoading}
+        error={props.tableHook.error}
+        onRetry={() => void props.tableHook.refetch()}
+        t={(key, options) => t(key, options)}
+        rowHeight={rowHeight}
+        wrapHeaders={wrapHeaders}
+        refreshing={props.tableHook.isFetching && !props.tableHook.isLoading}
+        rowClassName={() => (props.onRowClick ? "cursor-pointer" : undefined)}
+        onRowClick={
+          props.onRowClick
+            ? (row) => {
+                const onRowClick = props.onRowClick;
+                if (!onRowClick) return;
+                onRowClick(row.original);
+              }
+            : undefined
+        }
+        toolbar={toolbar}
+        resolveColumnFilterAction={props.resolveColumnFilterAction}
+      />
+      <FloatingBulkToolbar
+        visible={selectedCount > 0}
+        selectedLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_SELECTED_COUNT", {
+          count: selectedCount,
+        })}
+        clearLabel={t("common:DATA_TABLE_CLEAR_SELECTION")}
+        onClear={() => props.tableHook.table.resetRowSelection()}
+        actions={props.bulkActions ?? []}
+      />
+    </>
   );
 }
 

@@ -122,7 +122,7 @@ export function DebounceSelect<ValueType extends DebounceSelectOption = Debounce
         >
           <span className="flex min-w-0 items-center gap-2">
             {triggerAvatar}
-            <span className={cn("truncate", !value && "text-label-secondary")}>
+            <span className={cn("min-w-0 flex-1", !value && "text-label-secondary")}>
               {value?.label ?? placeholder}
             </span>
           </span>
@@ -187,7 +187,7 @@ export function DebounceSelect<ValueType extends DebounceSelectOption = Debounce
                     size={24}
                     style={{ flexShrink: 0 }}
                   />
-                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  <span className="min-w-0 flex-1">{option.label}</span>
                   {isActive ? <Check className="size-4 text-primary" /> : null}
                 </CommandItem>
               );

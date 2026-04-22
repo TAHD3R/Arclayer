@@ -84,8 +84,31 @@ function CommandTriggerButton(props: {
   label: string;
   ariaLabel: string;
   onClick: () => void;
+  variant?: "pill" | "icon";
   className?: string;
 }) {
+  if (props.variant === "icon") {
+    return (
+      <ButtonPrimitive
+        type="button"
+        tapScale={1}
+        aria-label={props.ariaLabel}
+        onClick={props.onClick}
+        data-state={props.open ? "open" : "closed"}
+        className={cn(
+          "inline-flex size-10 items-center justify-center rounded-xl border border-transparent bg-transparent text-label-secondary",
+          TRANSITION_CLASSNAME,
+          "hover:bg-accent/70 hover:text-label-primary",
+          "data-[state=open]:bg-card data-[state=open]:text-label-primary data-[state=open]:shadow-sm",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          props.className,
+        )}
+      >
+        <Search className="size-4 shrink-0" aria-hidden="true" />
+      </ButtonPrimitive>
+    );
+  }
+
   return (
     <ButtonPrimitive
       type="button"
@@ -203,6 +226,7 @@ export function AdminCommandTrigger(props: {
   onQueryChange: (query: string) => void;
   emptyText: string;
   onSelectEntry: (entry: CommandEntry) => void;
+  variant?: "pill" | "icon";
   className?: string;
 }) {
   const { t } = useTranslation("command");
@@ -243,6 +267,7 @@ export function AdminCommandTrigger(props: {
         label={t("COMMAND_TRIGGER_LABEL")}
         ariaLabel={t("COMMAND_TRIGGER_ARIA_LABEL")}
         onClick={() => setOpen(true)}
+        variant={props.variant}
         className={props.className}
       />
 

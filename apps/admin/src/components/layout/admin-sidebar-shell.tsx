@@ -1,18 +1,33 @@
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 
+import { MessageCircle, PanelLeft as PanelLeftIcon, PanelsTopLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
+import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
+import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminSidebarMainMenuSkeleton } from "@/components/layout/admin-sidebar-skeleton";
+import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import GradualBlur from "@/components/ui/gradual-blur";
-import { Sidebar, SidebarContent, SidebarRail } from "@arclayer/ui/sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarRail,
+  useSidebar,
+} from "@arclayer/ui/sidebar";
+import { Tabs, TabsList, TabsTrigger } from "@arclayer/ui/tabs";
 import { cn } from "@arclayer/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
+import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
+import type { CommandScope } from "@/lib/command/command-types";
 
 export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;
   showOrgNavErrorOverlay: boolean;
   mainItems: readonly AdminNavItem[];
+  commandScope?: CommandScope;
   favoriteWorkspaceBase?: string | null;
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
@@ -86,6 +101,154 @@ function useSidebarBottomBlurState(args: { showMenuSkeleton: boolean; mainItemCo
   };
 }
 
+type SidebarTopTab = "browse" | "chat";
+
+function useSidebarExpandedHeaderRows() {
+  const { motionPhase, state } = useSidebar();
+  return state !== "collapsed" && motionPhase !== "collapsing";
+}
+
+function AdminSidebarBranding() {
+  const { t } = useTranslation("common");
+  const { toggleSidebar } = useSidebar();
+  const showExpandedHeaderRows = useSidebarExpandedHeaderRows();
+
+  return (
+    <SidebarHeader className="gap-0 px-0 py-2">
+      <div className="flex items-center gap-2 px-4 py-2 pr-3">
+        <AdminFullLogo
+          to="/"
+          ariaLabel="Arclayer"
+          width={108}
+          className="h-8 justify-start"
+          imgClassName="h-8 w-auto object-contain"
+        />
+        <button
+          type="button"
+          aria-label={t("common:SIDEBAR_TOGGLE")}
+          onClick={toggleSidebar}
+          className={cn(
+            "ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-transparent text-label-secondary",
+            "transition-[background-color,color,border-color] duration-200",
+            "hover:bg-accent/60 hover:text-label-primary",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <PanelLeftIcon className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+      {showExpandedHeaderRows ? (
+        <div className="px-2 pt-2">
+          <AdminWorkspaceSwitcher
+            variant="header"
+            showSidebarToggle={false}
+            className="flex w-full min-w-0"
+          />
+        </div>
+      ) : null}
+    </SidebarHeader>
+  );
+}
+
+function AdminSidebarTopTabs(props: {
+  navItems: readonly AdminNavItem[];
+  commandScope?: CommandScope;
+}) {
+  const { t } = useTranslation("common");
+  const showExpandedHeaderRows = useSidebarExpandedHeaderRows();
+  const [tab, setTab] = useState<SidebarTopTab>("browse");
+  const commandPalette = useAdminCommandPalette({
+    navItems: props.navItems,
+    scope:
+      props.commandScope ??
+      ({
+        kind: "none",
+        pathname: "/",
+        workspaceId: null,
+        organizationId: null,
+      } as const),
+  });
+  const handleTabChange = (next: string) => {
+    if (next === "browse" || next === "chat") {
+      setTab(next);
+    }
+  };
+
+  if (!showExpandedHeaderRows) {
+    return null;
+  }
+
+  const browseLabel = t("common:SIDEBAR_TOP_TAB_BROWSE");
+  const chatLabel = t("common:SIDEBAR_TOP_TAB_CHAT");
+
+  return (
+    <div className="px-2 py-2 pr-3">
+      <div className="flex items-center gap-2">
+        <Tabs value={tab} onValueChange={handleTabChange} className="min-w-0 flex-1">
+          <TabsList
+            aria-label={t("common:SIDEBAR_TOP_TABS_LABEL")}
+            className={cn(
+              "h-9 w-full justify-start gap-1 rounded-xl bg-transparent p-0 text-label-secondary",
+            )}
+          >
+            <Tooltip>
+              <TabsTrigger
+                value="browse"
+                className={cn(
+                  "h-9 min-w-9 rounded-xl border border-transparent bg-transparent text-callout font-semibold",
+                  "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
+                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:bg-accent/70 data-[state=active]:px-3 data-[state=active]:text-label-primary data-[state=active]:shadow-sm",
+                  "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
+                )}
+              >
+                <TooltipTrigger asChild focusTrigger={false}>
+                  <span className="inline-flex items-center justify-center">
+                    <PanelsTopLeft className="size-4 shrink-0" aria-hidden="true" />
+                  </span>
+                </TooltipTrigger>
+                <span className={cn("truncate", tab === "browse" ? "inline" : "hidden")}>
+                  {browseLabel}
+                </span>
+              </TabsTrigger>
+              <TooltipContent hidden={tab === "browse"}>{browseLabel}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TabsTrigger
+                value="chat"
+                className={cn(
+                  "h-9 min-w-9 rounded-xl border border-transparent bg-transparent text-callout font-semibold",
+                  "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
+                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:bg-accent/70 data-[state=active]:px-3 data-[state=active]:text-label-primary data-[state=active]:shadow-sm",
+                  "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
+                )}
+              >
+                <TooltipTrigger asChild focusTrigger={false}>
+                  <span className="inline-flex items-center justify-center">
+                    <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
+                  </span>
+                </TooltipTrigger>
+                <span className={cn("truncate", tab === "chat" ? "inline" : "hidden")}>
+                  {chatLabel}
+                </span>
+              </TabsTrigger>
+              <TooltipContent hidden={tab === "chat"}>{chatLabel}</TooltipContent>
+            </Tooltip>
+          </TabsList>
+        </Tabs>
+        <AdminCommandTrigger
+          sections={commandPalette.sections}
+          query={commandPalette.query}
+          onQueryChange={commandPalette.setQuery}
+          emptyText={commandPalette.emptyText}
+          onSelectEntry={commandPalette.onSelectEntry}
+          variant="icon"
+          className="h-8 w-8 shrink-0 rounded-xl"
+        />
+      </div>
+    </div>
+  );
+}
+
 function AdminSidebarContentArea(props: {
   showMenuSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
@@ -143,6 +306,7 @@ export function AdminSidebarShell({
   showNavSkeleton,
   showOrgNavErrorOverlay,
   mainItems,
+  commandScope,
   favoriteWorkspaceBase,
   resolvePermissionName,
   pathnameOverride,
@@ -158,8 +322,10 @@ export function AdminSidebarShell({
     <Sidebar
       collapsible={collapsible}
       animateOnHover={false}
-      className={cn("relative isolate z-40", className)}
+      className={cn("relative isolate z-40 h-screen", className)}
     >
+      <AdminSidebarBranding />
+      <AdminSidebarTopTabs navItems={mainItems} commandScope={commandScope} />
       <AdminSidebarContentArea
         showMenuSkeleton={showMenuSkeleton}
         mainItems={mainItems}

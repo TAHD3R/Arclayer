@@ -38,6 +38,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     scopeKey,
     active,
     setActive,
+    setSelection,
     selectedIds,
     uploadOpen,
     setUploadOpen,

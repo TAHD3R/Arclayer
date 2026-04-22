@@ -19,7 +19,7 @@ function createQueryClient() {
 }
 
 describe("AssetsViewOverlays", () => {
-  it("在选中资源时应渲染为页面容器内始终可见的底部 sticky toolbar", () => {
+  it("在选中资源时应渲染为底部居中的浮动 toolbar", () => {
     const queryClient = createQueryClient();
 
     render(
@@ -42,17 +42,15 @@ describe("AssetsViewOverlays", () => {
 
     const toolbar = screen
       .getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" })
-      .closest(".sticky");
-    const surface = toolbar?.firstElementChild;
+      .closest("[data-slot='floating-bulk-toolbar']");
+    const surface = toolbar?.querySelector("[data-slot='floating-toolbar']");
 
     expect(screen.getByText("assets:ASSET_SELECTED_COUNT")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }),
     ).toBeInTheDocument();
-    expect(toolbar).toHaveClass("sticky", "bottom-0", "w-full");
-    expect(toolbar).not.toHaveClass("pb-6");
-    expect(surface).toHaveClass("border-t");
-    expect(surface).not.toHaveClass("border-b-0", "rounded-none");
+    expect(toolbar).toHaveClass("fixed", "inset-x-0", "justify-center");
+    expect(surface).toHaveClass("rounded-2xl", "border");
   });
 
   it("disables bulk write actions in read-only asset mode", () => {

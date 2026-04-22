@@ -19,9 +19,9 @@ import {
   type DebounceSelectOption,
 } from "@/pages/workspaces/shared/activity/components/debounce-select";
 import type {
+  DirectoryActorSummary,
   SystemDirectoryOrganization,
   SystemDirectoryProject,
-  SystemDirectoryUser,
   SystemDirectoryWorkspace,
 } from "@/types/api/system-directory";
 import {
@@ -73,14 +73,14 @@ type WorkspaceRoleValues = {
 };
 
 type OwnerSelectOption = DebounceSelectOption & {
-  user: SystemDirectoryUser;
+  user: DirectoryActorSummary;
 };
 
-function resolveUserDisplayName(user: SystemDirectoryUser): string {
+function resolveUserDisplayName(user: DirectoryActorSummary): string {
   return user.displayName || user.username || user.email || user.userId;
 }
 
-function createOwnerSelectOption(user: SystemDirectoryUser): OwnerSelectOption {
+function createOwnerSelectOption(user: DirectoryActorSummary): OwnerSelectOption {
   const primary = resolveUserDisplayName(user);
   return {
     value: user.userId,
@@ -273,7 +273,7 @@ export function AssignOrganizationOwnerDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organization: SystemDirectoryOrganization | null;
-  fetchUsers: (search: string) => Promise<SystemDirectoryUser[]>;
+  fetchUsers: (search: string) => Promise<DirectoryActorSummary[]>;
   pending: boolean;
   onSubmit: (values: { ownerUserId: string }) => Promise<void>;
 }) {
@@ -353,6 +353,7 @@ export function AssignOrganizationOwnerDialog(props: {
                   value={selectedOwner}
                   disabled={props.pending}
                   allowClear
+                  className="h-auto min-h-14 items-start py-2"
                   placeholder={t("settings:SETTINGS_SYSTEM_DIRECTORY_ASSIGN_OWNER_SEARCH")}
                   emptyText={t("settings:SETTINGS_SYSTEM_DIRECTORY_ASSIGN_OWNER_EMPTY")}
                   fetchOptions={async (search) => {

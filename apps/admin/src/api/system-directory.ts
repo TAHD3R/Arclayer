@@ -1,5 +1,6 @@
 import { api, apiRequest } from "@/lib/http";
 import type {
+  DirectoryActorSummary,
   SystemDirectoryOrganizationDetail,
   SystemDirectoryOrganizationPage,
   SystemDirectoryProjectDetail,
@@ -289,6 +290,15 @@ export async function getSystemDirectoryOrganizationDetail(
 ): Promise<SystemDirectoryOrganizationDetail> {
   return api.get<SystemDirectoryOrganizationDetail>(
     `/system/directory/organizations/${organizationId}`,
+  );
+}
+
+export async function listSystemDirectoryOrganizationOwnerCandidates(
+  organizationId: string,
+  params: Pick<SystemDirectoryListParams, "q" | "page" | "size"> = {},
+): Promise<DirectoryActorSummary[]> {
+  return api.get<DirectoryActorSummary[]>(
+    `/system/directory/organizations/${organizationId}/owner-candidates${buildQuery(params)}`,
   );
 }
 

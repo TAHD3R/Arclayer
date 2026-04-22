@@ -16,7 +16,6 @@ from src.core.i18n import t
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.organization import OrganizationKind
 from src.models.organization.user import User, UserStatus
-from src.modules.auth.account_deletion.guard import AccountDeletionGuard
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import hash_password
@@ -360,7 +359,7 @@ class SystemDirectoryService(BaseService):
         if row.id == acting_user_id:
             raise BadRequest(message=t("errors", "CANNOT_DELETE_SELF"), error="CANNOT_DELETE_SELF")
 
-        await AccountDeletionGuard().ensure_deletable(user_id=user_id)
+        await self._delete_owned_entities_for_user(user_id=user_id)
         await self.auth_service.invalidate_user_sessions(user=row)
         await self.repo.delete_user_linked_oauth_identities(user_id=user_id)
         await self.repo.delete_user_two_factor(user_id=user_id)
@@ -369,6 +368,21 @@ class SystemDirectoryService(BaseService):
         await self.repo.delete_user_project_memberships(user_id=user_id)
         await self.repo.delete_user_credentials(user_id=user_id)
         await self.user_repo.anonymize_user(row)
+
+    async def list_organization_owner_candidates(
+        self,
+        *,
+        organization_id: UUID,
+        q: str | None,
+    ) -> list[DirectoryActorSummaryOut]:
+        row = await self.repo.get_organization_by_id(organization_id=organization_id)
+        if row is None:
+            raise NotFound(error="NOT_FOUND")
+        candidates = await self.repo.list_organization_owner_candidates(
+            organization_id=organization_id,
+            q=q,
+        )
+        return [actor for actor in (self._to_actor(user) for user in candidates) if actor is not None]
 
     async def list_organizations(
         self,
@@ -473,7 +487,8 @@ class SystemDirectoryService(BaseService):
             )
         )
         workspace_ids = [UUID(str(row.id)) for row in rows]
-        owner_ids = [_user_id(row.owner_user_id) for row in rows]
+        owner_ids_by_workspace = await self.repo.list_workspace_owner_user_ids(workspace_ids=workspace_ids)
+        owner_ids = [owner_ids_by_workspace.get(UUID(str(row.id))) or _user_id(row.owner_user_id) for row in rows]
         owners = await self.repo.get_users_by_ids(user_ids=[owner_id for owner_id in owner_ids if owner_id is not None])
         member_counts = await self.repo.count_workspace_memberships_by_workspace_ids(workspace_ids=workspace_ids)
         project_counts = await self.repo.count_projects_by_workspace_ids(workspace_ids=workspace_ids)
@@ -485,6 +500,11 @@ class SystemDirectoryService(BaseService):
                 organization_name=row.organization.name,
                 name=row.name,
                 description=row.description,
+                icon_mode=row.icon_mode,
+                icon_color=row.icon_color,
+                icon_glyph=row.icon_glyph,
+                icon_emoji=row.icon_emoji,
+                icon_url=row.icon_url,
                 is_active=bool(row.is_active),
                 is_archived=row.archived_at is not None,
                 created_at=row.created_at,
@@ -507,7 +527,9 @@ class SystemDirectoryService(BaseService):
         if row is None:
             raise NotFound(error="NOT_FOUND")
 
-        owner_id = _user_id(row.owner_user_id)
+        owner_id = (await self.repo.list_workspace_owner_user_ids(workspace_ids=[workspace_id])).get(
+            workspace_id,
+        ) or _user_id(row.owner_user_id)
         owners = await self.repo.get_users_by_ids(user_ids=[owner_id] if owner_id is not None else [])
         member_counts = await self.repo.count_workspace_memberships_by_workspace_ids(workspace_ids=[workspace_id])
         project_counts = await self.repo.count_projects_by_workspace_ids(workspace_ids=[workspace_id])
@@ -568,6 +590,11 @@ class SystemDirectoryService(BaseService):
                 name=row.name,
                 slug=row.slug,
                 description=row.description,
+                icon_mode=row.icon_mode,
+                icon_color=row.icon_color,
+                icon_glyph=row.icon_glyph,
+                icon_emoji=row.icon_emoji,
+                icon_url=row.icon_url,
                 is_active=bool(row.is_active),
                 created_at=row.created_at,
                 owner=self._to_actor(owners.get(owner_id)) if owner_id is not None else None,
@@ -646,11 +673,24 @@ class SystemDirectoryService(BaseService):
                 owner = await self.repo.get_user_by_id(user_id=owner_user_id)
                 if owner is None:
                     raise NotFound(error="NOT_FOUND")
-                await self.organization_repo.ensure_org_membership(
-                    user_id=owner_user_id,
+                if owner.status != UserStatus.ACTIVE:
+                    raise BadRequest(
+                        message=t("errors", "BAD_REQUEST"),
+                        error="ORGANIZATION_OWNER_INACTIVE_USER",
+                    )
+                membership = await self.repo.get_org_membership(
                     organization_id=organization_id,
-                    role=OrgRole.OWNER,
+                    user_id=owner_user_id,
                 )
+                if membership is None or str(membership.status).lower() != "active":
+                    raise BadRequest(
+                        message=t("errors", "BAD_REQUEST"),
+                        error="ORGANIZATION_OWNER_MEMBER_REQUIRED",
+                    )
+                if membership.role != OrgRole.OWNER or str(membership.role_code or "") != OrgRole.OWNER.value:
+                    membership.role = OrgRole.OWNER
+                    membership.role_code = OrgRole.OWNER.value
+                    await membership.save(update_fields=["role", "role_code", "updated_at"])
                 updates["owner_user_id"] = owner.id
                 await self._downgrade_previous_owner_membership(
                     organization_id=organization_id,
@@ -829,6 +869,25 @@ class SystemDirectoryService(BaseService):
         membership.role = OrgRole.ADMIN
         membership.role_code = OrgRole.ADMIN.value
         await membership.save(update_fields=["role", "role_code", "updated_at"])
+
+    async def _delete_owned_entities_for_user(self, *, user_id: UUID) -> None:
+        project_ids = await self.repo.list_created_project_ids_by_user(user_id=user_id)
+        if project_ids:
+            await self.repo.delete_projects_by_ids(project_ids=project_ids)
+
+        workspace_ids = await self.repo.list_owned_workspace_ids_by_user(user_id=user_id)
+        if workspace_ids:
+            await self.repo.delete_workspaces_by_ids(workspace_ids=workspace_ids)
+
+        organization_ids = await self.repo.list_owned_organization_ids_by_user(user_id=user_id)
+        for organization_id in organization_ids:
+            organization = await self.repo.get_organization_by_id(organization_id=organization_id)
+            if organization is None:
+                continue
+            await self.organization_settings_service.delete_organization(
+                organization_id=organization_id,
+                confirm_name=str(organization.name),
+            )
 
     def _sort_organization_items(
         self,

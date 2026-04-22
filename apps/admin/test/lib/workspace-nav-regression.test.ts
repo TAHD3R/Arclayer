@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { ADMIN_NAV_ITEMS, getWorkspaceNavItems } from "@/constants/menu/workspaces";
+import { ADMIN_NAV_ITEMS, getProjectNavItems } from "@/constants/menu/project";
 
 function listWorkspaceNavTargets(items = ADMIN_NAV_ITEMS): string[] {
   const out: string[] = [];
@@ -34,8 +34,6 @@ describe("workspace nav regression", () => {
       "/assets",
       "/content/models",
       "/content/library",
-      "/content/releases",
-      "/content/automation",
       "/settings/general",
       "/activity",
       "/settings/general",
@@ -57,6 +55,9 @@ describe("workspace nav regression", () => {
       "dashboard",
       "inbox",
       "website",
+      "analytics",
+      "apps",
+      "automations",
       "activity",
       "settings.project",
     ]);
@@ -71,26 +72,22 @@ describe("workspace nav regression", () => {
 
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "website")?.children?.map((item) => item.key),
-    ).toEqual([
-      "assets",
-      "content.models",
-      "content.library",
-      "content.releases",
-      "content.automation",
-      "settings.site",
-    ]);
+    ).toEqual(["assets", "content.models", "content.library", "settings.site"]);
   });
 
   test("returns the project-first workspace nav tree", () => {
-    const workspaceNav = getWorkspaceNavItems();
+    const projectNav = getProjectNavItems();
 
-    expect(workspaceNav.map((item) => item.key)).toEqual([
+    expect(projectNav.map((item) => item.key)).toEqual([
       "dashboard",
       "inbox",
       "website",
+      "analytics",
+      "apps",
+      "automations",
       "activity",
       "settings.project",
     ]);
-    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/settings/general");
+    expect(listWorkspaceNavTargets(projectNav)).toContain("/settings/general");
   });
 });

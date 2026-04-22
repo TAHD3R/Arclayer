@@ -61,7 +61,7 @@ import {
   type WorkspaceAvatarIdentity,
 } from "@/components/common/entity-avatar";
 import { GLOBAL_NAV_ITEMS } from "@/constants/menu/global";
-import { getWorkspaceNavItems } from "@/constants/menu/workspaces";
+import { getProjectNavItems } from "@/constants/menu/project";
 import { buildFavoriteOverlayEmbedHref } from "@/lib/routing/favorite-overlay";
 import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
 import { extractWorkspaceBaseFromPath, mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
@@ -264,7 +264,7 @@ function buildFavoriteOverlayBreadcrumbSegments(
   const normalizedPath = normalizePath(path);
   const workspaceBase = extractWorkspaceBaseFromPath(path);
   if (workspaceBase) {
-    const navItems = mapWorkspaceNavItems(getWorkspaceNavItems(), workspaceBase);
+    const navItems = mapWorkspaceNavItems(getProjectNavItems(), workspaceBase);
     const trail = findActiveTrailNodes(navItems, normalizedPath);
     const workspaceSegment: FavoriteOverlayBreadcrumbSegment = {
       key: `workspace:${workspaceBase}`,

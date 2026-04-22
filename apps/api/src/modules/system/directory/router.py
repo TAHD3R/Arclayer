@@ -23,6 +23,7 @@ from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import require_super_admin
 from src.modules.system.directory.schema import (
+    DirectoryActorSummaryOut,
     DirectoryDeleteRequest,
     DirectoryOrganizationDetailOut,
     DirectoryOrganizationListFilters,
@@ -400,6 +401,25 @@ async def list_organizations(
     filters = DirectoryOrganizationListFilters(kind=kind, is_active=is_active)
     page = await service.list_organizations(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
+
+
+@router.get(
+    "/organizations/{organization_id}/owner-candidates",
+    response_model=ResponseModel[list[DirectoryActorSummaryOut]],
+    summary="List organization owner candidates in the system directory",
+)
+async def list_organization_owner_candidates(
+    organization_id: PublicUUID,
+    service: SystemDirectoryService = Depends(get_directory_service),
+    q: str | None = Query(
+        default=None, description="Search active organization members by username, email, or display name."
+    ),
+) -> ResponseModel[list[DirectoryActorSummaryOut]]:
+    candidates = await service.list_organization_owner_candidates(
+        organization_id=organization_id,
+        q=q,
+    )
+    return ApiResponse.success(data=candidates)
 
 
 @router.get(

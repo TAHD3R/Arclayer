@@ -1,10 +1,8 @@
 import { FolderInput, Settings2, Trash2 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 
+import { FloatingBulkToolbar } from "@/components/common/floating-bulk-toolbar";
 import type { AdminAssetFolder } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import { Button } from "@arclayer/ui/button";
-import { SelectedCountTag } from "@/components/ui/tags";
 import { AssetPreviewDialog, type AssetPreviewWorkspaceBreadcrumb } from "./asset-preview-dialog";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";
 import { CreateAssetFolderDialog } from "./create-asset-folder-dialog";
@@ -122,59 +120,36 @@ export function AssetsSelectionToolbar(
 ) {
   const canManageAssets = props.canManageAssets !== false;
   return (
-    <AnimatePresence>
-      {props.selectedCount > 0 ? (
-        <motion.div
-          key="assets-selection-toolbar"
-          className="pointer-events-none sticky bottom-0 z-30 mt-auto w-full"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          transition={{ duration: 0.12, ease: "easeOut" }}
-        >
-          <div className="pointer-events-auto w-full border-t border-border bg-background">
-            <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 pt-3 pb-5 sm:px-6 lg:px-8">
-              <div className="flex min-w-0 items-center gap-3">
-                <SelectedCountTag
-                  label={props.t("assets:ASSET_SELECTED_COUNT", { count: props.selectedCount })}
-                />
-                <Button variant="ghost" size="sm" onClick={props.onClearSelection}>
-                  {props.t("assets:ASSET_CLEAR_SELECTION")}
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={props.onOpenMove}
-                  disabled={!canManageAssets || props.bulkMovePending}
-                >
-                  <FolderInput size={16} />
-                  {props.t("assets:ASSET_ACTION_MOVE")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={props.onOpenEditAccess}
-                  disabled={!canManageAssets || props.bulkUpdatePending}
-                >
-                  <Settings2 size={16} />
-                  {props.t("assets:ASSET_ACTION_EDIT_ACCESS")}
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={props.onOpenBulkDelete}
-                  disabled={!canManageAssets || props.bulkDeletePending}
-                >
-                  <Trash2 size={16} />
-                  {props.t("assets:ASSET_ACTION_DELETE_SELECTED")}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+    <FloatingBulkToolbar
+      visible={props.selectedCount > 0}
+      selectedLabel={props.t("assets:ASSET_SELECTED_COUNT", { count: props.selectedCount })}
+      clearLabel={props.t("assets:ASSET_CLEAR_SELECTION")}
+      onClear={props.onClearSelection}
+      actions={[
+        {
+          key: "move",
+          label: props.t("assets:ASSET_ACTION_MOVE"),
+          icon: <FolderInput size={16} />,
+          onClick: props.onOpenMove,
+          disabled: !canManageAssets || props.bulkMovePending,
+        },
+        {
+          key: "edit-access",
+          label: props.t("assets:ASSET_ACTION_EDIT_ACCESS"),
+          icon: <Settings2 size={16} />,
+          onClick: props.onOpenEditAccess,
+          disabled: !canManageAssets || props.bulkUpdatePending,
+        },
+        {
+          key: "delete",
+          label: props.t("assets:ASSET_ACTION_DELETE_SELECTED"),
+          icon: <Trash2 size={16} />,
+          onClick: props.onOpenBulkDelete,
+          disabled: !canManageAssets || props.bulkDeletePending,
+          variant: "destructive",
+        },
+      ]}
+    />
   );
 }
 

@@ -6,7 +6,7 @@ import { Activity, Home, LayoutGrid, Settings, UserPlus, Users } from "lucide-re
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
+import { PROJECT_NAV_ITEMS } from "@/constants/menu/project";
 import { mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
@@ -1216,7 +1216,7 @@ describe("AdminSiderNav collapsed groups", () => {
   });
 
   it("marks Content -> Contents active for the content create route alias", async () => {
-    const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/projects/ws-1");
+    const workspaceItems = mapWorkspaceNavItems(PROJECT_NAV_ITEMS, "/projects/ws-1");
 
     renderTreeNav({
       items: workspaceItems,
@@ -1236,7 +1236,7 @@ describe("AdminSiderNav collapsed groups", () => {
 
   it("updates the active branch when pathnameOverride changes between workspace source pages", async () => {
     mockPathname = "/settings/personal/profile";
-    const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/projects/ws-1");
+    const workspaceItems = mapWorkspaceNavItems(PROJECT_NAV_ITEMS, "/projects/ws-1");
 
     const view = renderTreeNav({
       items: workspaceItems,
