@@ -198,8 +198,8 @@ def test_site_router_uses_granular_permissions() -> None:
         method="POST",
     )
 
-    assert site_read == {"system:site:read"}
-    assert site_preview == {"system:site:manage"}
+    assert site_read == {"project:site:read"}
+    assert site_preview == {"project:site:manage"}
     assert "admin:access" not in site_read | site_preview
 
 
@@ -230,9 +230,9 @@ def test_project_api_key_router_uses_granular_permissions() -> None:
         method="GET",
     )
 
-    assert list_keys == {"system:keys:read"}
-    assert create_key == {"system:keys:manage"}
-    assert rotate_key == {"system:keys:manage"}
+    assert list_keys == {"project:api-keys:read"}
+    assert create_key == {"project:api-keys:manage"}
+    assert rotate_key == {"project:api-keys:manage"}
     assert list_actions == {"rbac:permissions:read"}
     assert "admin:access" not in list_keys | create_key | rotate_key | list_actions
 
@@ -254,9 +254,9 @@ def test_project_releases_router_uses_granular_permissions() -> None:
         method="POST",
     )
 
-    assert list_releases == {"system:content:read"}
-    assert publish_release == {"system:content:publish"}
-    assert rollback_release == {"system:content:publish"}
+    assert list_releases == {"project:release:read"}
+    assert publish_release == {"project:release:publish"}
+    assert rollback_release == {"project:release:rollback"}
     assert "admin:access" not in list_releases | publish_release | rollback_release
 
 
@@ -272,8 +272,8 @@ def test_project_publish_router_uses_granular_permissions() -> None:
         method="GET",
     )
 
-    assert impact_permissions == {"system:content:read"}
-    assert preview_contract_permissions == {"system:content:read"}
+    assert impact_permissions == {"project:release:read"}
+    assert preview_contract_permissions == {"project:release:read"}
     assert "admin:access" not in impact_permissions | preview_contract_permissions
 
 
@@ -331,8 +331,8 @@ def test_assets_domains_and_notifications_use_granular_permissions() -> None:
     assert usages_list == {"system:assets:read"}
     assert usages_upsert == {"system:assets:read", "system:assets:manage"}
     assert upload_init == {"system:assets:manage"}
-    assert domains_list == {"system:domains:read"}
-    assert domains_create == {"system:domains:manage"}
+    assert domains_list == {"project:domains:read"}
+    assert domains_create == {"project:domains:manage"}
     assert notif_seed == {"system:notifications:read", "system:notifications:manage"}
 
 

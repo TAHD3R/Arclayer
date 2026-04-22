@@ -31,7 +31,7 @@ router = APIRouter(prefix="/projects/{project_id}/publish", tags=["domain.projec
     response_model=ResponseModel[PublishImpactOut],
     response_model_exclude_none=True,
     summary="Preview project publish impact",
-    dependencies=[require_project_permission("system:content:read")],
+    dependencies=[require_project_permission("project:release:read")],
 )
 async def get_project_publish_impact(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -53,7 +53,7 @@ async def get_project_publish_impact(
     response_model=ResponseModel[PublishExportContractOut],
     response_model_exclude_none=True,
     summary="Read preview contract from project publish artifacts",
-    dependencies=[require_project_permission("system:content:read")],
+    dependencies=[require_project_permission("project:release:read")],
 )
 async def get_project_publish_preview_contract(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],

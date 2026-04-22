@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
-from src.common.constants.rbac import ROLE_OWNER
 from src.common.protocols.tortoise import HasProjectId
 from src.config import Settings
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams
+from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
-from src.models.system.rbac import Role
+from src.models.workspaces.workspace import Workspace
 from src.modules.projects.members_repository import ProjectMembersRepository
 from src.modules.projects.members_schema import ProjectMemberOut, ProjectMemberRoleUpdateRequest
 
@@ -30,22 +30,27 @@ class ProjectMembersService:
         if existing:
             return
 
-        workspace_user_ids = await self.repo.get_workspace_member_user_ids(workspace_id=workspace_id)
-        if not workspace_user_ids:
-            return
+        workspace = await Workspace.get_or_none(id=workspace_id)
+        if workspace is None:
+            raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
+
+        workspace_user_ids = set(await self.repo.get_workspace_member_user_ids(workspace_id=workspace_id))
 
         owner_user_ids = {
             UUID(str(value))
-            for value in await Role.filter(
-                workspace_id=workspace_id,
-                code=ROLE_OWNER,
-                workspace_membership_roles__membership__workspace_id=workspace_id,
-                workspace_membership_roles__membership__status="active",
-            ).values_list("workspace_membership_roles__membership__user_id", flat=True)
+            for value in await OrgMembership.filter(
+                organization_id=workspace.organization_id,
+                status="active",
+                role=OrgRole.OWNER,
+            ).values_list("user_id", flat=True)
+            if value is not None
         }
+        member_user_ids = workspace_user_ids | owner_user_ids | {actor_user_id}
+        if not member_user_ids:
+            return
 
         rows = []
-        for user_id in workspace_user_ids:
+        for user_id in sorted(member_user_ids):
             role = ProjectMemberRole.OWNER if user_id in owner_user_ids else ProjectMemberRole.VIEWER
             rows.append(
                 ProjectMembership(

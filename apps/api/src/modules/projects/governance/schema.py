@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from src.modules.projects.authz.schema import ProjectPermissionActionOut
+from src.modules.projects.authz.schema import ProjectAuthzSnapshot, ProjectPermissionActionOut
 
-__all__ = ["ProjectPermissionActionOut"]
+__all__ = ["ProjectAuthzSnapshot", "ProjectPermissionActionOut"]

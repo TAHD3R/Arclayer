@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.models.system.rbac import PermissionScope
 from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.projects.governance.router import list_project_actions
 from src.modules.projects.http.schema import ProjectRequestContext
@@ -30,16 +31,27 @@ def _project_context() -> ProjectRequestContext:
 def test_project_action_catalog_exposes_project_surface_actions() -> None:
     registry = get_project_action_catalog()
 
-    assert "system:content:read" in registry
-    assert registry["system:content:read"].permission_codes == ("system:content:read",)
-    assert "site:manage" in registry
-    assert registry["site:manage"].permission_codes == ("system:site:manage",)
-    assert "content:routing:write" in registry
-    assert registry["content:routing:write"].permission_codes == ("system:content:manage",)
-    assert "automation:manage" in registry
-    assert registry["automation:manage"].permission_codes == ("system:automation:manage",)
-    assert "delivery:graphql:read" in registry
-    assert registry["delivery:graphql:read"].subject_kinds == ("delivery_api_key",)
+    assert "project:settings:read" in registry
+    assert registry["project:settings:read"].permission_codes == ("system:settings:read",)
+    assert registry["project:settings:read"].scope == PermissionScope.PROJECT.value
+    assert "project:settings:manage" in registry
+    assert registry["project:settings:manage"].permission_codes == ("system:settings:manage",)
+    assert "workspace_member" in registry["project:settings:manage"].subject_kinds
+    assert "project:team:members:read" in registry
+    assert registry["project:team:members:read"].permission_codes == ("team:members:read",)
+    assert "project:team:roles:manage" in registry
+    assert registry["project:team:roles:manage"].permission_codes == ("team:members:roles:manage",)
+    assert "project:site:manage" in registry
+    assert registry["project:site:manage"].permission_codes == ("system:site:manage",)
+    assert registry["project:site:manage"].scope == PermissionScope.PROJECT.value
+    assert "project:content:routing:write" in registry
+    assert registry["project:content:routing:write"].permission_codes == ("system:content:manage",)
+    assert "project:automation:manage" in registry
+    assert registry["project:automation:manage"].permission_codes == ("system:automation:manage",)
+    assert "project:api-keys:manage" in registry
+    assert registry["project:api-keys:manage"].permission_codes == ("system:keys:manage",)
+    assert "project:delivery:graphql:read" in registry
+    assert registry["project:delivery:graphql:read"].subject_kinds == ("delivery_api_key",)
 
 
 @pytest.mark.asyncio
@@ -49,7 +61,7 @@ async def test_project_actions_route_uses_project_action_catalog(monkeypatch: py
     monkeypatch.setattr(
         "src.modules.projects.governance.router.get_project_action_catalog",
         lambda: {
-            "site:manage": get_project_action_catalog()["site:manage"],
+            "project:settings:manage": get_project_action_catalog()["project:settings:manage"],
         },
     )
 
@@ -57,5 +69,5 @@ async def test_project_actions_route_uses_project_action_catalog(monkeypatch: py
 
     assert response.data is not None
     assert len(response.data) == 1
-    assert response.data[0].code == "site:manage"
-    assert response.data[0].permission_codes == ["system:site:manage"]
+    assert response.data[0].code == "project:settings:manage"
+    assert response.data[0].permission_codes == ["system:settings:manage"]

@@ -35,7 +35,7 @@ router = APIRouter(prefix="/projects/{project_id}/releases", tags=["domain.proje
     response_model=ResponseModel[ReleaseListOut],
     response_model_exclude_none=True,
     summary="List project releases",
-    dependencies=[require_project_permission("system:content:read")],
+    dependencies=[require_project_permission("project:release:read")],
 )
 async def list_project_releases(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -57,7 +57,7 @@ async def list_project_releases(
     response_model=ResponseModel[ReleaseDryRunOut],
     response_model_exclude_none=True,
     summary="Preview project release readiness and diagnostics",
-    dependencies=[require_project_permission("system:content:read")],
+    dependencies=[require_project_permission("project:release:read")],
 )
 async def get_project_release_dry_run(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -82,7 +82,7 @@ async def get_project_release_dry_run(
     response_model=ResponseModel[ReleaseOut],
     response_model_exclude_none=True,
     summary="Get project release",
-    dependencies=[require_project_permission("system:content:read")],
+    dependencies=[require_project_permission("project:release:read")],
 )
 async def get_project_release(
     release_id: PublicUUID,
@@ -109,7 +109,7 @@ async def get_project_release(
     response_model=ResponseModel[ReleasePublishOut],
     response_model_exclude_none=True,
     summary="Publish a new project release",
-    dependencies=[require_project_permission("system:content:publish")],
+    dependencies=[require_project_permission("project:release:publish")],
 )
 async def publish_project_release(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -142,7 +142,7 @@ async def publish_project_release(
     response_model=ResponseModel[ReleaseRollbackOut],
     response_model_exclude_none=True,
     summary="Rollback a project release",
-    dependencies=[require_project_permission("system:content:publish")],
+    dependencies=[require_project_permission("project:release:rollback")],
 )
 async def rollback_project_release(
     release_id: PublicUUID,

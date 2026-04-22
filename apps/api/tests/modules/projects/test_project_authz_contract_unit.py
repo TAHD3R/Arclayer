@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 
 from src.common.utils.public_ids import encode_uuid
+from src.models.projects.membership import ProjectMemberRole
 from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.projects.authz.schema import ProjectAuthzSnapshot, ProjectPermissionActionOut
-from src.modules.projects.authz.service import get_project_authz_snapshot, project_context_to_workspace_context
+from src.modules.projects.authz.service import get_project_authz_snapshot
 from src.modules.projects.http.schema import ProjectRequestContext
-from src.modules.workspaces.authz.schema import AuthzSnapshot
+from src.modules.projects.permissions.service import (
+    get_project_action_codes_for_role,
+    get_project_permission_codes_for_role,
+)
 from src.modules.workspaces.http.schema import WorkspaceAccessType
 
 
@@ -58,55 +63,69 @@ def test_project_authz_snapshot_uses_project_scope_and_camel_case_output() -> No
 
 def test_project_permission_action_out_uses_project_shape() -> None:
     item = ProjectPermissionActionOut(
-        code="site:manage",
-        description="Manage project site runtime settings.",
+        code="project:settings:manage",
+        description="Manage project-level settings.",
         subject_kinds=["workspace_member", "personal_api_key"],
-        permission_codes=["system:site:manage"],
+        permission_codes=["system:settings:manage"],
     )
 
     assert item.model_dump(mode="json", by_alias=True) == {
-        "code": "site:manage",
-        "description": "Manage project site runtime settings.",
+        "code": "project:settings:manage",
+        "description": "Manage project-level settings.",
         "subjectKinds": ["workspace_member", "personal_api_key"],
-        "permissionCodes": ["system:site:manage"],
+        "permissionCodes": ["system:settings:manage"],
     }
 
 
-def test_project_context_to_workspace_context_preserves_workspace_access_fields() -> None:
-    ctx = _project_context()
+def test_project_role_permission_mapping_uses_project_member_role() -> None:
+    owner_actions = set(get_project_action_codes_for_role(ProjectMemberRole.OWNER))
+    editor_actions = set(get_project_action_codes_for_role(ProjectMemberRole.EDITOR))
+    viewer_actions = set(get_project_action_codes_for_role(ProjectMemberRole.VIEWER))
+    owner_permissions = set(get_project_permission_codes_for_role(ProjectMemberRole.OWNER))
+    editor_permissions = set(get_project_permission_codes_for_role(ProjectMemberRole.EDITOR))
+    viewer_permissions = set(get_project_permission_codes_for_role(ProjectMemberRole.VIEWER))
 
-    workspace_ctx = project_context_to_workspace_context(ctx)
+    assert "project:settings:read" in owner_actions
+    assert "project:settings:manage" in owner_actions
+    assert "project:team:members:read" in owner_actions
+    assert "project:team:roles:manage" in owner_actions
+    assert "project:settings:manage" not in editor_actions
+    assert "project:team:roles:manage" not in editor_actions
+    assert "project:settings:read" in viewer_actions
+    assert "project:team:members:read" in viewer_actions
+    assert "project:api-keys:manage" in owner_actions
+    assert "project:api-keys:manage" not in editor_actions
+    assert "project:automation:manage" in owner_actions
+    assert "project:automation:manage" not in editor_actions
 
-    assert workspace_ctx.workspace_id == ctx.workspace_id
-    assert workspace_ctx.organization_id == ctx.organization_id
-    assert workspace_ctx.workspace_kind == ctx.workspace_kind
-    assert workspace_ctx.access_type == ctx.access_type
-    assert workspace_ctx.org_membership_id == ctx.org_membership_id
-    assert workspace_ctx.is_org_owner is True
-    assert workspace_ctx.workspace_membership_id == ctx.workspace_membership_id
-    assert workspace_ctx.visible_only is False
-    assert workspace_ctx.is_creator_admin is True
+    assert "system:settings:manage" in owner_permissions
+    assert "team:members:roles:manage" in owner_permissions
+    assert "system:keys:manage" in owner_permissions
+    assert "admin:users:write" not in owner_permissions
+    assert "system:settings:manage" not in editor_permissions
+    assert "system:content:manage" in editor_permissions
+    assert "team:members:roles:manage" not in editor_permissions
+    assert "system:keys:manage" not in editor_permissions
+    assert "system:content:manage" not in viewer_permissions
+    assert "system:settings:read" in viewer_permissions
+    assert "team:members:read" in viewer_permissions
+    assert "team:members:roles:manage" not in viewer_permissions
 
 
 @pytest.mark.asyncio
-async def test_get_project_authz_snapshot_wraps_workspace_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_project_authz_snapshot_reads_project_membership(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx = _project_context()
     user_id = uuid4()
     expected_user_id = user_id
 
-    async def fake_build_workspace_authz_snapshot(*, user_id, workspace_id):
+    async def fake_get_membership(*, project_id, user_id):
+        assert project_id == ctx.project_id
         assert user_id == expected_user_id
-        assert workspace_id == ctx.workspace_id
-        return AuthzSnapshot(
-            user_id=user_id,
-            role_codes=["owner"],
-            permission_codes=["system:site:manage"],
-            is_superuser=True,
-        )
+        return SimpleNamespace(role=ProjectMemberRole.EDITOR)
 
     monkeypatch.setattr(
-        "src.modules.projects.authz.service._build_workspace_authz_snapshot",
-        fake_build_workspace_authz_snapshot,
+        "src.modules.projects.authz.service.ProjectMembership.get_or_none",
+        fake_get_membership,
     )
 
     snapshot = await get_project_authz_snapshot(ctx=ctx, user_id=user_id)
@@ -115,6 +134,58 @@ async def test_get_project_authz_snapshot_wraps_workspace_snapshot(monkeypatch: 
     assert snapshot.workspace_id == ctx.workspace_id
     assert snapshot.user_id == user_id
     assert snapshot.scope == "project"
+    assert snapshot.role_codes == ["editor"]
+    assert set(snapshot.permission_codes) == set(get_project_permission_codes_for_role(ProjectMemberRole.EDITOR))
+    assert "team:members:roles:manage" not in snapshot.permission_codes
+    assert "admin:users:write" not in snapshot.permission_codes
+    assert snapshot.is_superuser is False
+
+
+@pytest.mark.asyncio
+async def test_get_project_authz_snapshot_owner_has_explicit_grants_without_superuser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ctx = _project_context()
+    user_id = uuid4()
+    expected_user_id = user_id
+
+    async def fake_get_membership(*, project_id, user_id):
+        assert project_id == ctx.project_id
+        assert user_id == expected_user_id
+        return SimpleNamespace(role=ProjectMemberRole.OWNER)
+
+    monkeypatch.setattr(
+        "src.modules.projects.authz.service.ProjectMembership.get_or_none",
+        fake_get_membership,
+    )
+
+    snapshot = await get_project_authz_snapshot(ctx=ctx, user_id=user_id)
+
     assert snapshot.role_codes == ["owner"]
-    assert snapshot.permission_codes == ["system:site:manage"]
-    assert snapshot.is_superuser is True
+    assert "system:settings:manage" in snapshot.permission_codes
+    assert "system:keys:manage" in snapshot.permission_codes
+    assert snapshot.is_superuser is False
+
+
+@pytest.mark.asyncio
+async def test_get_project_authz_snapshot_without_membership_returns_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _project_context()
+    user_id = uuid4()
+    expected_user_id = user_id
+
+    async def fake_get_membership(*, project_id, user_id):
+        assert project_id == ctx.project_id
+        assert user_id == expected_user_id
+        return None
+
+    monkeypatch.setattr(
+        "src.modules.projects.authz.service.ProjectMembership.get_or_none",
+        fake_get_membership,
+    )
+
+    snapshot = await get_project_authz_snapshot(ctx=ctx, user_id=user_id)
+
+    assert snapshot.project_id == ctx.project_id
+    assert snapshot.role_codes == []
+    assert snapshot.permission_codes == []
+    assert snapshot.is_superuser is False

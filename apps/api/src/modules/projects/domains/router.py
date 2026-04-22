@@ -54,7 +54,7 @@ async def _get_project_site_id(
     response_model=ResponseModel[PageData[SiteDomainOut]],
     response_model_exclude_none=True,
     summary="List project custom domains",
-    dependencies=[require_project_permission("system:domains:read")],
+    dependencies=[require_project_permission("project:domains:read")],
 )
 async def list_project_domains(
     params: PageParams = Depends(get_page_params),
@@ -79,7 +79,7 @@ async def list_project_domains(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Bind a project custom domain",
-    dependencies=[require_project_permission("system:domains:manage")],
+    dependencies=[require_project_permission("project:domains:manage")],
 )
 async def create_project_domain(
     payload: Annotated[SiteDomainCreateIn, Body(description="Project custom domain binding request.")],
@@ -108,7 +108,7 @@ async def create_project_domain(
     response_model=ResponseModel[SiteDomainVerifyOut],
     response_model_exclude_none=True,
     summary="Verify a project custom domain via DNS TXT",
-    dependencies=[require_project_permission("system:domains:manage")],
+    dependencies=[require_project_permission("project:domains:manage")],
 )
 async def verify_project_domain(
     domain_id: Annotated[PublicUUID, Path(..., description="Domain record id.")],
@@ -140,7 +140,7 @@ async def verify_project_domain(
     response_model=ResponseModel[SiteDomainOut],
     response_model_exclude_none=True,
     summary="Update a project custom domain binding",
-    dependencies=[require_project_permission("system:domains:manage")],
+    dependencies=[require_project_permission("project:domains:manage")],
 )
 async def update_project_domain(
     domain_id: Annotated[PublicUUID, Path(..., description="Domain record id.")],
@@ -168,7 +168,7 @@ async def update_project_domain(
     response_model=ResponseModel[SiteDomainDeleteOut],
     response_model_exclude_none=True,
     summary="Unbind a project custom domain",
-    dependencies=[require_project_permission("system:domains:manage")],
+    dependencies=[require_project_permission("project:domains:manage")],
 )
 async def delete_project_domain(
     domain_id: Annotated[PublicUUID, Path(..., description="Domain record id.")],

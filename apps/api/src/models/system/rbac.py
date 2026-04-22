@@ -12,6 +12,7 @@ class PermissionScope(StrEnum):
 
     ORG = "org"
     WORKSPACE = "workspace"
+    PROJECT = "project"
 
 
 # RBAC role (workspace-scoped).

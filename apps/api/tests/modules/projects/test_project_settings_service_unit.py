@@ -6,8 +6,9 @@ from uuid import uuid4
 import pytest
 
 from src.config import get_settings
-from src.modules.projects.settings.events import PROJECT_CORE_SETTINGS_UPDATED_EVENT
 from src.modules.projects.settings.service import ProjectSettingsService
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.scopes import SCOPE_TYPE_PROJECT
 
 
 class _FakeSettingRecord:
@@ -38,19 +39,20 @@ async def test_project_settings_service_get_core_detail_returns_project_schema(m
         fake_get_or_none,
     )
 
-    detail = await service.get_core_detail(project_id=uuid4(), workspace_id=uuid4())
+    detail = await service.get_core_detail(project_id=uuid4())
 
     assert detail.namespace == "core"
     assert detail.value["site"]["name"] == "Arclayer"
 
 
 @pytest.mark.asyncio
-async def test_project_settings_service_patch_core_emits_project_event(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_project_settings_service_patch_core_creates_project_scoped_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = ProjectSettingsService(settings)
     project_id = uuid4()
-    workspace_id = uuid4()
     updated_by = uuid4()
     captured: dict[str, object] = {}
 
@@ -61,15 +63,6 @@ async def test_project_settings_service_patch_core_emits_project_event(monkeypat
     async def fake_create(**kwargs):
         captured["create"] = kwargs
         return _FakeSettingRecord(kwargs["value"])
-
-    class _FakeWebhooksService:
-        def __init__(self, _settings) -> None:
-            pass
-
-        def emit_workspace_event_fire_and_forget(self, *, workspace_id, event, payload) -> None:
-            captured["workspace_id"] = workspace_id
-            captured["event"] = event
-            captured["payload"] = payload
 
     monkeypatch.setattr(
         "src.modules.projects.settings.service.SettingRecord.get_or_none",
@@ -83,24 +76,19 @@ async def test_project_settings_service_patch_core_emits_project_event(monkeypat
         "src.modules.projects.settings.service.validate_config_schema",
         lambda *args, **kwargs: None,
     )
-    monkeypatch.setattr(
-        "src.modules.projects.settings.service.WebhooksService",
-        _FakeWebhooksService,
-    )
 
     detail = await service.patch_core(
         project_id=project_id,
-        workspace_id=workspace_id,
         patch={"site": {"name": "Arclayer"}},
         updated_by=updated_by,
     )
 
     assert detail.namespace == "core"
-    assert captured["event"] == PROJECT_CORE_SETTINGS_UPDATED_EVENT
-    assert captured["workspace_id"] == workspace_id
-    assert captured["payload"] == {
-        "project_id": str(project_id),
-        "workspace_id": str(workspace_id),
-        "namespace": "core",
-        "paths": ["site.name"],
+    assert detail.value == {"site": {"name": "Arclayer"}}
+    assert captured["create"] == {
+        "scope_type": SCOPE_TYPE_PROJECT,
+        "scope_id": project_id,
+        "namespace": CORE_SETTINGS_NAMESPACE,
+        "value": {"site": {"name": "Arclayer"}},
+        "updated_by": updated_by,
     }

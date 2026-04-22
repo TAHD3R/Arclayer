@@ -79,7 +79,7 @@ async def create_runtime_preview_token(
     response_model=ResponseModel[ProjectRuntimeSiteOut],
     response_model_exclude_none=True,
     summary="Get project site",
-    dependencies=[require_project_permission("system:site:read")],
+    dependencies=[require_project_permission("project:site:read")],
 )
 async def get_project_site_runtime(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -96,7 +96,7 @@ async def get_project_site_runtime(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Issue a preview token for a project site",
-    dependencies=[require_project_permission("system:site:manage")],
+    dependencies=[require_project_permission("project:site:manage")],
 )
 async def create_project_site_preview_token(
     payload: Annotated[SitePreviewTokenCreateIn, Body(description="Preview token request.")],

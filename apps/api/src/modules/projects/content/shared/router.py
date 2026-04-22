@@ -63,7 +63,7 @@ async def require_project_content_read_context(
     runtime_service: ProjectRuntimeService = Depends(get_project_runtime_service),
 ) -> ProjectContentRouteContext:
     return await _build_project_content_route_context(
-        permission="system:content:read",
+        permission="project:content:read",
         ctx=ctx,
         user_id=user_id,
         runtime_service=runtime_service,
@@ -76,7 +76,7 @@ async def require_project_content_manage_context(
     runtime_service: ProjectRuntimeService = Depends(get_project_runtime_service),
 ) -> ProjectContentRouteContext:
     return await _build_project_content_route_context(
-        permission="system:content:manage",
+        permission="project:content:manage",
         ctx=ctx,
         user_id=user_id,
         runtime_service=runtime_service,
@@ -89,7 +89,7 @@ async def require_project_content_publish_context(
     runtime_service: ProjectRuntimeService = Depends(get_project_runtime_service),
 ) -> ProjectContentRouteContext:
     return await _build_project_content_route_context(
-        permission="system:content:publish",
+        permission="project:content:publish",
         ctx=ctx,
         user_id=user_id,
         runtime_service=runtime_service,

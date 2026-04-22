@@ -21,7 +21,7 @@ def get_content_library_views_service(
 async def resolve_can_manage_project_views(*, user_id: UUID, ctx: ProjectRequestContext) -> bool:
     try:
         await ensure_project_permission_granted(
-            "system:content:manage",
+            "project:content:manage",
             user_id=user_id,
             ctx=ctx,
         )

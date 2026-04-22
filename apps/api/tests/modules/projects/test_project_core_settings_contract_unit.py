@@ -37,14 +37,12 @@ class _FakeProjectSettingsService(ProjectSettingsService):
     def __init__(self) -> None:
         pass
 
-    async def get_core_detail(self, *, project_id, workspace_id) -> ProjectSettingsDetail:
+    async def get_core_detail(self, *, project_id) -> ProjectSettingsDetail:
         assert project_id
-        assert workspace_id
         return ProjectSettingsDetail(namespace="core", value={"site": {"name": "Arclayer"}}, secrets={})
 
-    async def patch_core(self, *, project_id, workspace_id, patch, updated_by) -> ProjectSettingsDetail:
+    async def patch_core(self, *, project_id, patch, updated_by) -> ProjectSettingsDetail:
         assert project_id
-        assert workspace_id
         assert updated_by
         return ProjectSettingsDetail(namespace="core", value=patch, secrets={})
 
@@ -55,7 +53,7 @@ async def test_project_core_settings_route_returns_project_detail(monkeypatch: p
     user_id = uuid4()
 
     async def fake_ensure(permission, *, user_id, ctx, error_code="PERMISSION_DENIED"):
-        assert permission == "system:settings:read"
+        assert permission == "project:settings:read"
         assert user_id
         assert ctx.project_id
         assert error_code == "PERMISSION_DENIED"
@@ -82,7 +80,7 @@ async def test_project_core_settings_patch_route_uses_project_service(monkeypatc
     user_id = uuid4()
 
     async def fake_ensure(permission, *, user_id, ctx, error_code="PERMISSION_DENIED"):
-        assert permission == "system:settings:manage"
+        assert permission == "project:settings:manage"
         assert user_id
         assert ctx.project_id
         assert error_code == "PERMISSION_DENIED"

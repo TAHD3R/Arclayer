@@ -38,7 +38,7 @@ def get_project_api_keys_service(settings: Settings = Depends(get_settings)) -> 
     "",
     response_model=ResponseModel[ApiKeyListOut],
     summary="List project service and delivery API keys",
-    dependencies=[require_project_permission("system:keys:read")],
+    dependencies=[require_project_permission("project:api-keys:read")],
 )
 async def list_project_api_keys(
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
@@ -62,7 +62,7 @@ async def list_project_api_keys(
     "",
     response_model=ResponseModel[ApiKeyCreateOut],
     summary="Create a project service or delivery API key",
-    dependencies=[require_project_permission("system:keys:manage")],
+    dependencies=[require_project_permission("project:api-keys:manage")],
 )
 async def create_project_api_key(
     payload: ProjectApiKeyCreateIn,
@@ -95,7 +95,7 @@ async def create_project_api_key(
     "/{key_id}",
     response_model=ResponseModel[ApiKeyOut],
     summary="Get a project service or delivery API key",
-    dependencies=[require_project_permission("system:keys:read")],
+    dependencies=[require_project_permission("project:api-keys:read")],
 )
 async def get_project_api_key(
     key_id: PublicUUID,
@@ -121,7 +121,7 @@ async def get_project_api_key(
     "/{key_id}/revoke",
     response_model=ResponseModel[ApiKeyOut],
     summary="Revoke a project service or delivery API key",
-    dependencies=[require_project_permission("system:keys:manage")],
+    dependencies=[require_project_permission("project:api-keys:manage")],
 )
 async def revoke_project_api_key(
     key_id: PublicUUID,
@@ -153,7 +153,7 @@ async def revoke_project_api_key(
     "/{key_id}/rotate",
     response_model=ResponseModel[ApiKeyCreateOut],
     summary="Rotate a project service or delivery API key",
-    dependencies=[require_project_permission("system:keys:manage")],
+    dependencies=[require_project_permission("project:api-keys:manage")],
 )
 async def rotate_project_api_key(
     key_id: PublicUUID,

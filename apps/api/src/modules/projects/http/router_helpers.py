@@ -11,7 +11,6 @@ from src.modules.projects.authz.router_helpers import (
 from src.modules.projects.authz.router_helpers import (
     require_project_permission as require_project_authz_permission,
 )
-from src.modules.projects.authz.service import project_context_to_workspace_context
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.runtime.service import ProjectRuntimeContext, ProjectRuntimeService
 from src.modules.workspaces.http.schema import WorkspaceContext
@@ -24,7 +23,17 @@ def get_project_runtime_service(
 
 
 def workspace_context_from_project(ctx: ProjectRequestContext) -> WorkspaceContext:
-    return project_context_to_workspace_context(ctx)
+    return WorkspaceContext(
+        workspace_id=ctx.workspace_id,
+        organization_id=ctx.organization_id,
+        workspace_kind=ctx.workspace_kind,
+        access_type=ctx.access_type,
+        org_membership_id=ctx.org_membership_id,
+        is_org_owner=ctx.is_org_owner,
+        workspace_membership_id=ctx.workspace_membership_id,
+        visible_only=ctx.visible_only,
+        is_creator_admin=ctx.is_creator_admin,
+    )
 
 
 async def ensure_project_permission_granted(

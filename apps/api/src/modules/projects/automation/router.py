@@ -55,7 +55,7 @@ async def list_project_automation_catalog(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ProjectAutomationService, Depends(get_project_automation_service)],
 ) -> ResponseModel[AutomationCatalogOut]:
-    await _require_project_automation_permission("system:automation:read", ctx=ctx, user_id=user_id)
+    await _require_project_automation_permission("project:automation:read", ctx=ctx, user_id=user_id)
     return ApiResponse.success(data=await service.get_project_catalog_out())
 
 
@@ -70,7 +70,7 @@ async def list_project_automation_flows(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ProjectAutomationService, Depends(get_project_automation_service)],
 ) -> ResponseModel[AutomationFlowListOut]:
-    await _require_project_automation_permission("system:automation:read", ctx=ctx, user_id=user_id)
+    await _require_project_automation_permission("project:automation:read", ctx=ctx, user_id=user_id)
     data = await service.list_project_flows_out(workspace_id=ctx.workspace_id, project_id=ctx.project_id)
     return ApiResponse.success(data=data)
 
@@ -89,7 +89,7 @@ async def create_project_automation_flow(
     service: Annotated[ProjectAutomationService, Depends(get_project_automation_service)],
 ) -> ResponseModel[AutomationFlowOut]:
     await _require_project_automation_permission(
-        "system:automation:manage",
+        "project:automation:manage",
         ctx=ctx,
         user_id=actor_user_id,
     )
@@ -116,7 +116,7 @@ async def update_project_automation_flow(
     service: Annotated[ProjectAutomationService, Depends(get_project_automation_service)],
 ) -> ResponseModel[AutomationFlowOut]:
     await _require_project_automation_permission(
-        "system:automation:manage",
+        "project:automation:manage",
         ctx=ctx,
         user_id=actor_user_id,
     )
@@ -142,7 +142,7 @@ async def delete_project_automation_flow(
     service: Annotated[ProjectAutomationService, Depends(get_project_automation_service)],
 ) -> ResponseModel[None]:
     await _require_project_automation_permission(
-        "system:automation:manage",
+        "project:automation:manage",
         ctx=ctx,
         user_id=actor_user_id,
     )
@@ -166,7 +166,7 @@ async def list_project_automation_runs(
     service: Annotated[ProjectAutomationService, Depends(get_project_automation_service)],
     limit: int = Query(default=50, ge=1, le=100),
 ) -> ResponseModel[AutomationRunListOut]:
-    await _require_project_automation_permission("system:automation:read", ctx=ctx, user_id=user_id)
+    await _require_project_automation_permission("project:automation:read", ctx=ctx, user_id=user_id)
     data = await service.list_project_runs_out(
         workspace_id=ctx.workspace_id,
         project_id=ctx.project_id,
@@ -187,7 +187,7 @@ async def get_project_automation_run(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ProjectAutomationService, Depends(get_project_automation_service)],
 ) -> ResponseModel[AutomationRunOut]:
-    await _require_project_automation_permission("system:automation:read", ctx=ctx, user_id=user_id)
+    await _require_project_automation_permission("project:automation:read", ctx=ctx, user_id=user_id)
     data = await service.get_project_run_out(
         workspace_id=ctx.workspace_id,
         project_id=ctx.project_id,

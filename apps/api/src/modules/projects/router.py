@@ -190,7 +190,7 @@ async def get_project_danger_capabilities(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectDangerCapabilitiesOut]:
     try:
-        await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+        await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
         can_manage_settings = True
     except Forbidden:
         can_manage_settings = False
@@ -214,7 +214,7 @@ async def update_project(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectDetailOut]:
-    await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+    await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
     service = ProjectService(settings)
     detail = await service.update_project(project_id=ctx.project_id, payload=payload)
     return ApiResponse.success(data=detail)
@@ -230,7 +230,7 @@ async def archive_project(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectArchiveResult]:
-    await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+    await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
     service = ProjectService(settings)
     out = await service.archive_project(project_id=ctx.project_id)
     return ApiResponse.success(data=out)
@@ -246,7 +246,7 @@ async def unarchive_project(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectArchiveResult]:
-    await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+    await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
     service = ProjectService(settings)
     out = await service.unarchive_project(project_id=ctx.project_id)
     return ApiResponse.success(data=out)
@@ -269,7 +269,7 @@ async def delete_project(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectDeleteResult]:
-    await require_project_team_permission("system:settings:manage", ctx=ctx, user_id=user_id)
+    await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
     service = ProjectService(settings)
     detail = await service.get_project_detail(project_id=ctx.project_id)
     if (confirm_name or "").strip() != detail.project.name:
@@ -290,7 +290,7 @@ async def list_project_members(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[ProjectMemberOut]]:
-    await require_project_team_permission("team:members:read", ctx=ctx, user_id=user_id)
+    await require_project_team_permission("project:team:members:read", ctx=ctx, user_id=user_id)
     service = ProjectMembersService(settings)
     page = await service.list_members(
         project_id=ctx.project_id,
@@ -314,7 +314,7 @@ async def update_project_member_role(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[ProjectMemberOut]:
-    await require_project_team_permission("team:members:roles:manage", ctx=ctx, user_id=user_id)
+    await require_project_team_permission("project:team:roles:manage", ctx=ctx, user_id=user_id)
     service = ProjectMembersService(settings)
     member = await service.update_member_role(
         project_id=ctx.project_id,

@@ -189,16 +189,14 @@ class ProjectRepository(BaseRepository):
         if workspace is None:
             raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
 
-        workspace_user_ids = [
+        workspace_user_ids = {
             UUID(str(value))
             for value in await WorkspaceMembership.filter(
                 workspace_id=workspace_id,
                 status=WorkspaceMembershipStatus.ACTIVE,
             ).values_list("user_id", flat=True)
             if value is not None
-        ]
-        if not workspace_user_ids:
-            return
+        }
 
         owner_user_ids = {
             UUID(str(value))
@@ -209,6 +207,9 @@ class ProjectRepository(BaseRepository):
             ).values_list("user_id", flat=True)
             if value is not None
         }
+        member_user_ids = workspace_user_ids | owner_user_ids | {actor_user_id}
+        if not member_user_ids:
+            return
 
         rows = [
             ProjectMembership(
@@ -217,7 +218,7 @@ class ProjectRepository(BaseRepository):
                 role=ProjectMemberRole.OWNER if user_id in owner_user_ids else ProjectMemberRole.VIEWER,
                 created_by_user_id=actor_user_id,
             )
-            for user_id in workspace_user_ids
+            for user_id in sorted(member_user_ids)
         ]
         if rows:
             await ProjectMembership.bulk_create(rows, ignore_conflicts=True)
