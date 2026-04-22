@@ -1,5 +1,4 @@
-import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { Inbox, MessageCircle, PanelLeft as PanelLeftIcon, PanelsTopLeft } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -12,7 +11,6 @@ import { AdminFullLogo, AdminLogo } from "@/components/layout/admin-logo";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminSidebarMainMenuSkeleton } from "@/components/layout/admin-sidebar-skeleton";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
-import GradualBlur from "@/components/ui/gradual-blur";
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +20,7 @@ import {
 } from "@arclayer/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@arclayer/ui/tabs";
 import { cn } from "@arclayer/lib/utils";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import type { CommandScope } from "@/lib/command/command-types";
@@ -43,6 +42,8 @@ export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;
   showOrgNavErrorOverlay: boolean;
   mainItems: readonly AdminNavItem[];
+  showInboxBadge?: boolean;
+  unreadInboxCount?: number;
   commandScope?: CommandScope;
   browseProjects?: readonly SidebarBrowseProject[];
   activeBrowseProjectId?: string | null;
@@ -53,71 +54,6 @@ export type AdminSidebarShellProps = {
   railAriaLabel?: string;
   className?: string;
 };
-
-function shouldShowBottomBlur(el: HTMLElement): boolean {
-  const hasOverflow = el.scrollHeight > el.clientHeight + 1;
-  if (!hasOverflow) return false;
-  const remaining = el.scrollHeight - el.clientHeight - el.scrollTop;
-  return remaining > 1;
-}
-
-function resolveSidebarContentPaddingPx(el: HTMLElement): { left: number; right: number } {
-  const sidebarContentEl = el.closest('[data-slot="sidebar-content"]') as HTMLElement | null;
-  if (!sidebarContentEl) return { left: 0, right: 0 };
-
-  const styles = window.getComputedStyle(sidebarContentEl);
-  const left = Number.parseFloat(styles.paddingLeft) || 0;
-  const right = Number.parseFloat(styles.paddingRight) || 0;
-
-  return { left, right };
-}
-
-function useSidebarBottomBlurState(args: { showMenuSkeleton: boolean; mainItemCount: number }) {
-  const navScrollRef = useRef<HTMLDivElement>(null);
-  const [showNavBottomBlur, setShowNavBottomBlur] = useState(false);
-  const [sidebarContentPadding, setSidebarContentPadding] = useState(() => ({ left: 0, right: 0 }));
-
-  useEffect(() => {
-    const el = navScrollRef.current;
-    if (!el) return;
-
-    const updateScroll = () => {
-      const next = shouldShowBottomBlur(el);
-      setShowNavBottomBlur((prev) => (prev === next ? prev : next));
-    };
-    const updatePadding = () => {
-      const next = resolveSidebarContentPaddingPx(el);
-      setSidebarContentPadding((prev) =>
-        prev.left === next.left && prev.right === next.right ? prev : next,
-      );
-    };
-
-    updatePadding();
-    updateScroll();
-    el.addEventListener("scroll", updateScroll, { passive: true });
-
-    const resizeObserver = new ResizeObserver(() => {
-      updatePadding();
-      updateScroll();
-    });
-    resizeObserver.observe(el);
-
-    return () => {
-      el.removeEventListener("scroll", updateScroll);
-      resizeObserver.disconnect();
-    };
-  }, [args.showMenuSkeleton, args.mainItemCount]);
-
-  return {
-    navScrollRef,
-    showNavBottomBlur,
-    blurStyle: {
-      left: -sidebarContentPadding.left,
-      right: "auto",
-      width: `calc(100% + ${sidebarContentPadding.left + sidebarContentPadding.right}px)`,
-    } satisfies CSSProperties,
-  };
-}
 
 type SidebarTopTab = "browse" | "inbox" | "chat";
 const BROWSE_TAB_ACTIVE_MAX_WIDTH_CLASSNAME = "data-[state=active]:max-w-[7rem]";
@@ -198,6 +134,8 @@ function AdminSidebarTopTabs(props: {
   value: SidebarTopTab;
   onValueChange: (next: SidebarTopTab) => void;
   navItems: readonly AdminNavItem[];
+  showInboxBadge?: boolean;
+  unreadInboxCount?: number;
   commandScope?: CommandScope;
   browseProjects?: readonly SidebarBrowseProject[];
   activeBrowseProjectId?: string | null;
@@ -228,6 +166,21 @@ function AdminSidebarTopTabs(props: {
   const browseLabel = t("common:SIDEBAR_TOP_TAB_BROWSE");
   const inboxLabel = t("nav:NAV_INBOX");
   const chatLabel = t("common:SIDEBAR_TOP_TAB_CHAT");
+  const unreadInboxCount = props.showInboxBadge ? (props.unreadInboxCount ?? 0) : 0;
+  const showUnreadInboxBadge = unreadInboxCount > 0;
+  const unreadInboxCountLabel = unreadInboxCount > 99 ? "99+" : String(unreadInboxCount);
+  const inboxTabClassName = cn(
+    "relative h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
+    "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
+    GHOST_HOVER_CLASSNAME,
+    "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
+    showUnreadInboxBadge ? "data-[state=active]:pr-6" : undefined,
+    GHOST_ACTIVE_CLASSNAME,
+    showUnreadInboxBadge
+      ? "data-[state=inactive]:w-11 data-[state=inactive]:justify-center data-[state=inactive]:px-0"
+      : "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0",
+    "data-[state=inactive]:text-label-secondary",
+  );
   const activeBrowseProject =
     props.activeBrowseProjectId != null
       ? ((props.browseProjects ?? []).find(
@@ -282,22 +235,29 @@ function AdminSidebarTopTabs(props: {
               </TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TabsTrigger
-                value="inbox"
-                className={cn(
-                  "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
-                  "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
-                  GHOST_HOVER_CLASSNAME,
-                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
-                  GHOST_ACTIVE_CLASSNAME,
-                  "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
-                )}
-              >
+              <TabsTrigger value="inbox" className={inboxTabClassName}>
                 <TooltipTrigger asChild focusTrigger={false}>
                   <span className="inline-flex items-center justify-center">
                     <Inbox className="size-4 shrink-0" aria-hidden="true" />
                   </span>
                 </TooltipTrigger>
+                {showUnreadInboxBadge ? (
+                  props.value === "inbox" ? (
+                    <span
+                      data-testid="sidebar-inbox-count-badge"
+                      className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white"
+                      aria-hidden="true"
+                    >
+                      {unreadInboxCountLabel}
+                    </span>
+                  ) : (
+                    <span
+                      data-testid="sidebar-inbox-dot"
+                      className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500"
+                      aria-hidden="true"
+                    />
+                  )
+                ) : null}
                 <span className={cn("truncate", props.value === "inbox" ? "inline" : "hidden")}>
                   {inboxLabel}
                 </span>
@@ -352,11 +312,6 @@ function AdminSidebarContentArea(props: {
   pathnameOverride?: string;
 }) {
   const { t } = useTranslation(["common"]);
-  const bottomBlur = useSidebarBottomBlurState({
-    showMenuSkeleton: props.showMenuSkeleton,
-    mainItemCount: props.mainItems.length,
-  });
-
   const mainMenu = props.showMenuSkeleton ? (
     <AdminSidebarMainMenuSkeleton />
   ) : (
@@ -370,43 +325,27 @@ function AdminSidebarContentArea(props: {
   );
 
   const browseContent = (
-    <div className="relative flex min-h-0 flex-1">
-      <div
-        ref={bottomBlur.navScrollRef}
-        className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none"
-      >
-        {mainMenu}
-      </div>
-      {bottomBlur.showNavBottomBlur ? (
-        <GradualBlur
-          target="parent"
-          position="bottom"
-          height="4rem"
-          strength={2}
-          divCount={5}
-          curve="bezier"
-          exponential={false}
-          opacity={0.75}
-          zIndex={20}
-          className="pointer-events-none"
-          style={bottomBlur.blurStyle}
-        />
-      ) : null}
+    <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none">{mainMenu}</div>
     </div>
   );
 
   const chatContent = (
-    <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6">
-      <div className="mx-auto flex max-w-[14rem] flex-col items-center text-center">
-        <MessageCircle className="mb-4 size-5 text-label-secondary" aria-hidden="true" />
-        <h3 className="text-callout font-semibold text-label-primary">
-          <span>{t("common:SIDEBAR_CHAT_EMPTY_TITLE")}</span>
+    <Empty className="min-h-0 flex-1 gap-0 px-4 py-6">
+      <EmptyHeader className="max-w-[14rem] gap-0">
+        <EmptyMedia variant="icon" className="mb-4 text-label-secondary">
+          <MessageCircle className="size-5" aria-hidden="true" />
+        </EmptyMedia>
+        <h3>
+          <EmptyTitle className="text-callout font-semibold text-label-primary">
+            <span>{t("common:SIDEBAR_CHAT_EMPTY_TITLE")}</span>
+          </EmptyTitle>
         </h3>
-        <p className="mt-2 text-footnote leading-6 text-label-secondary">
+        <EmptyDescription className="mt-2 text-footnote leading-6">
           {t("common:SIDEBAR_CHAT_EMPTY_DESC")}
-        </p>
-      </div>
-    </div>
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 
   const activeContent =
@@ -442,6 +381,8 @@ export function AdminSidebarShell({
   showNavSkeleton,
   showOrgNavErrorOverlay,
   mainItems,
+  showInboxBadge,
+  unreadInboxCount,
   commandScope,
   browseProjects,
   activeBrowseProjectId,
@@ -468,6 +409,8 @@ export function AdminSidebarShell({
         value={activeTab}
         onValueChange={setActiveTab}
         navItems={mainItems}
+        showInboxBadge={showInboxBadge}
+        unreadInboxCount={unreadInboxCount}
         commandScope={commandScope}
         browseProjects={browseProjects}
         activeBrowseProjectId={activeBrowseProjectId}

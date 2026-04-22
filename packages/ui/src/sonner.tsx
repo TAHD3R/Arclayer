@@ -18,7 +18,7 @@ const TOAST_WIDTH = "min(28rem, calc(100vw - 2rem))";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
-  const { closeButton, position, toastOptions, ...restProps } = props;
+  const { closeButton, position, toastOptions, expand, visibleToasts, ...restProps } = props;
   const mergedToastOptions: ToasterProps["toastOptions"] = {
     ...toastOptions,
     classNames: {
@@ -45,6 +45,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       position={position ?? "top-right"}
+      expand={expand ?? false}
+      visibleToasts={visibleToasts ?? 3}
       closeButton={closeButton ?? true}
       className="toaster group "
       toastOptions={mergedToastOptions}

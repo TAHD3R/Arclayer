@@ -1,22 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Archive, BellRing, CircleDot, Rows3, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { archiveNotification, listNotifications, markNotificationRead } from "@/api/notifications";
-import { listMyWorkspaces } from "@/api/workspaces";
+import { listNotifications } from "@/api/notifications";
 import { NotificationCard } from "@/components/common/notification-card";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
+import { useNotificationActions } from "@/hooks/use-notification-actions";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { notifyErrorText } from "@/lib/notifications";
-import { resolveNotificationTarget } from "@/lib/routing/notification-target";
 import { buildNotificationsSourceSearch } from "@/lib/routing/notifications-source";
 import type { NotificationItem } from "@/types/api";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@arclayer/ui/select";
 import { Skeleton } from "@arclayer/ui/skeleton";
 import { Spinner } from "@arclayer/ui/spinner";
@@ -93,26 +92,14 @@ export function AdminSidebarInbox() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const settingsScreen = useSettingsScreen();
-  const queryClient = useQueryClient();
   const nowMs = useNowTick(60_000);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [filterMode, setFilterMode] = useState<SidebarInboxFilterMode>("unread-only");
   const [filterOpen, setFilterOpen] = useState(false);
+  const { archiveItem, deleteItem, markRead, openTarget } = useNotificationActions();
 
   const primaryStatus = filterModeToPrimaryStatus(filterMode);
   const includeArchivedUpdates = filterMode === "all-updates";
-
-  const workspacesQuery = useQuery({
-    queryKey: ["workspaces", "me", "list", "sidebar-inbox"],
-    queryFn: listMyWorkspaces,
-    staleTime: 60 * 1000,
-    meta: { silent: true },
-  });
-
-  const accessibleWorkspaceIds = useMemo(
-    () => new Set((workspacesQuery.data?.items ?? []).map((item) => String(item.workspaceId))),
-    [workspacesQuery.data?.items],
-  );
 
   const inboxSourceSearch = useMemo(
     () =>
@@ -248,41 +235,16 @@ export function AdminSidebarInbox() {
     return () => observer.disconnect();
   }, [archivedListQuery, includeArchivedUpdates, primaryListQuery]);
 
-  const invalidateNotifications = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-  };
-
   const handleMarkRead = async (item: NotificationItem) => {
-    if (item.readAt) return;
-    await markNotificationRead(item.id);
-    await invalidateNotifications();
+    await markRead(item);
   };
 
   const handleArchive = async (item: NotificationItem) => {
-    await archiveNotification(item.id);
-    await invalidateNotifications();
+    await archiveItem(item);
   };
 
   const handleOpenTarget = async (item: NotificationItem) => {
-    const target = resolveNotificationTarget(item);
-    if (!target) return;
-
-    const isAccessibleWorkspace = accessibleWorkspaceIds.has(String(item.workspaceId));
-    if (workspacesQuery.isSuccess && !isAccessibleWorkspace) {
-      notifyErrorText(t("NOTIFICATIONS_TARGET_FORBIDDEN"));
-      return;
-    }
-
-    if (!item.readAt) {
-      await handleMarkRead(item);
-    }
-
-    if (target.type === "settings") {
-      settingsScreen.openSettings(target.target);
-      return;
-    }
-
-    void navigate({ to: target.to as never });
+    await openTarget(item);
   };
 
   const filterContent = (
@@ -329,13 +291,19 @@ export function AdminSidebarInbox() {
           {isInitialLoading ? (
             <SidebarInboxListSkeleton />
           ) : showEmptyState ? (
-            <div className="flex min-h-full items-center justify-center px-4 py-6">
-              <div className="mx-auto flex max-w-[14rem] flex-col items-center text-center">
-                <BellRing className="mb-4 size-5 text-label-secondary" aria-hidden="true" />
-                <h3 className="text-callout font-semibold text-label-primary">{emptyTitle}</h3>
-                <p className="mt-2 text-footnote leading-6 text-label-secondary">
+            <Empty className="min-h-full gap-0 px-4 py-6">
+              <EmptyHeader className="max-w-[14rem] gap-0">
+                <EmptyMedia variant="icon" className="mb-4 text-label-secondary">
+                  <BellRing className="size-5" aria-hidden="true" />
+                </EmptyMedia>
+                <h3>
+                  <EmptyTitle className="text-callout font-semibold text-label-primary">
+                    {emptyTitle}
+                  </EmptyTitle>
+                </h3>
+                <EmptyDescription className="mt-2 text-footnote leading-6">
                   {emptyDescription}
-                </p>
+                </EmptyDescription>
                 <SelectTrigger asChild aria-label={t("NOTIFICATIONS_EDIT_FILTER")}>
                   <Button
                     type="button"
@@ -347,8 +315,8 @@ export function AdminSidebarInbox() {
                     <span>{t("NOTIFICATIONS_EDIT_FILTER")}</span>
                   </Button>
                 </SelectTrigger>
-              </div>
-            </div>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <ContentGuard
               loading={false}
@@ -370,6 +338,7 @@ export function AdminSidebarInbox() {
                     onNavigate={() => void handleOpenTarget(item)}
                     onMarkRead={item.readAt ? undefined : () => void handleMarkRead(item)}
                     onArchive={item.archivedAt ? undefined : () => void handleArchive(item)}
+                    onDelete={() => void deleteItem(item)}
                   />
                 ))}
 

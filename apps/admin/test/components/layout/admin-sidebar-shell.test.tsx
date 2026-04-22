@@ -336,6 +336,56 @@ describe("AdminSidebarShell", () => {
     });
   });
 
+  it("shows a compact dot on the inactive inbox tab when unread updates are waiting", () => {
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        showInboxBadge
+        unreadInboxCount={128}
+        collapsible="icon"
+      />,
+    );
+
+    const inboxTab = screen.getByRole("tab", { name: "Inbox" });
+    const dot = within(inboxTab).getByTestId("sidebar-inbox-dot");
+
+    expect(dot).toHaveClass("absolute", "right-1.5", "top-1.5", "bg-red-500");
+    expect(inboxTab.className).toContain("data-[state=inactive]:w-11");
+    expect(inboxTab.className).toContain("data-[state=active]:pr-6");
+  });
+
+  it("shows a capped unread count badge on the active inbox tab", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        showInboxBadge
+        unreadInboxCount={128}
+        collapsible="icon"
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Inbox" }));
+
+    const inboxTab = screen.getByRole("tab", { name: "Inbox" });
+    const badge = within(inboxTab).getByTestId("sidebar-inbox-count-badge");
+
+    expect(badge).toHaveTextContent("99+");
+    expect(badge).toHaveClass(
+      "absolute",
+      "right-2",
+      "top-1.5",
+      "bg-red-500",
+      "text-[9px]",
+      "font-semibold",
+    );
+  });
+
   it("hides top header rows immediately when a fixed-open sidebar starts collapsing", () => {
     vi.useFakeTimers();
 

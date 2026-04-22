@@ -65,23 +65,13 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
   }: {
     children: React.ReactNode;
     mainItems: Array<{ key: string }>;
-    renderTopbar?: (props: {
-      notificationOpen: boolean;
-      showNotificationsBadge: boolean;
-      unreadCount: number;
-      onNotificationToggle: () => void;
-    }) => React.ReactNode;
+    renderTopbar?: () => React.ReactNode;
     sidebarCollapsible?: "icon" | "none";
   }) => {
     sceneLayoutSpy({ mainItems, sidebarCollapsible });
     return (
       <div data-testid="admin-scene-layout" data-sidebar-collapsible={sidebarCollapsible}>
-        {renderTopbar?.({
-          notificationOpen: false,
-          showNotificationsBadge: false,
-          unreadCount: 0,
-          onNotificationToggle: vi.fn(),
-        })}
+        {renderTopbar?.()}
         {children}
       </div>
     );
@@ -89,13 +79,7 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
 }));
 
 vi.mock("@/components/layout/admin-topbar", () => ({
-  AdminTopbar: (props: {
-    notificationOpen: boolean;
-    showNotificationsBadge: boolean;
-    unreadCount: number;
-    onNotificationToggle: () => void;
-    leadingMode?: string;
-  }) => {
+  AdminTopbar: (props: { leadingMode?: string }) => {
     topbarSpy(props);
     return <div data-testid="admin-topbar" data-leading-mode={props.leadingMode ?? "none"} />;
   },

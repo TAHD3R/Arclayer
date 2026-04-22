@@ -97,10 +97,7 @@ export function useNotifications() {
   // --- Handlers ---
 
   const invalidateNotificationQueries = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["notifications", "preview"] }),
-      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] }),
-    ]);
+    await queryClient.invalidateQueries({ queryKey: ["notifications"] });
   };
   const markRead = async (n: NotificationItem) => {
     const readAt = new Date().toISOString();

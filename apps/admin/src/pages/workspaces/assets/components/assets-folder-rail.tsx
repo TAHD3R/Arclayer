@@ -36,7 +36,7 @@ type AssetsFolderRailProps = {
 export function AssetsFolderRail(props: AssetsFolderRailProps) {
   return (
     <aside className="w-full min-w-0">
-      <div className="pl-8 pb-8">
+      <div className="pr-8 pb-8">
         <AssetsFolderRailFolderSection
           t={props.t}
           folders={props.folders}

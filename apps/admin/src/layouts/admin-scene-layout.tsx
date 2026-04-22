@@ -1,34 +1,29 @@
 import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { getUnreadNotificationPreview } from "@/api/notifications";
+import { NotificationToastContent } from "@/components/common/notification-toast-content";
 import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
-import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
 import {
   AdminSidebarShell,
   type SidebarBrowseProject,
 } from "@/components/layout/admin-sidebar-shell";
+import { useNotificationActions } from "@/hooks/use-notification-actions";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { RouteTransition } from "@/components/layout/route-transition";
 import type { AdminNavItem } from "@/types/admin-nav";
-import { useToggle } from "@arclayer/hooks/use-toggle";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
-import { useTranslation } from "react-i18next";
+import { message } from "@arclayer/ui/admin-toast";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { CommandScope } from "@/lib/command/command-types";
 
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
-type AdminSceneTopbarRenderProps = {
-  notificationOpen: boolean;
-  showNotificationsBadge: boolean;
-  unreadCount: number;
-  onNotificationToggle: () => void;
-};
-
+const NOTIFICATION_TOAST_PREVIEW_LIMIT = 20;
 type AdminSceneLayoutProps = PropsWithChildren<{
-  notificationQueryScope: string;
-  renderTopbar: (props: AdminSceneTopbarRenderProps) => ReactNode;
+  renderTopbar: () => ReactNode;
   mainItems: readonly AdminNavItem[];
   commandScope?: CommandScope;
   browseProjects?: readonly SidebarBrowseProject[];
@@ -47,7 +42,6 @@ type AdminSceneLayoutProps = PropsWithChildren<{
 }>;
 
 export function AdminSceneLayout({
-  notificationQueryScope,
   renderTopbar,
   mainItems,
   commandScope,
@@ -66,26 +60,116 @@ export function AdminSceneLayout({
   routeTransitionClassName = "w-full",
   children,
 }: AdminSceneLayoutProps) {
-  const { t } = useTranslation(["notifications"]);
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
   const storedSidebarOpen = usePreferencesStore((s) => s.sidebarOpen);
   const sidebarWidthPx = usePreferencesStore((s) => s.sidebarWidthPx);
-  const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
   const setSidebarOpen = usePreferencesStore((s) => s.setSidebarOpen);
   const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
-  const [notificationPanelOpen, , setNotificationPanelOpen] = useToggle(false);
   const sidebarOpen = sidebarCollapsible === "none" ? true : storedSidebarOpen;
+  const hasHydratedNotificationPreviewRef = useRef(false);
+  const seenNotificationPreviewIdsRef = useRef<Set<string>>(new Set());
+  const { archiveItem, deleteItem, markRead, openTarget } = useNotificationActions();
 
   const notificationPreviewQuery = useQuery({
-    queryKey: ["notifications", "preview", notificationQueryScope, sessionVersion],
+    queryKey: ["notifications", "preview", sessionVersion],
     enabled: Boolean(accessToken),
-    queryFn: () => getUnreadNotificationPreview({ limit: 1 }),
+    queryFn: () => getUnreadNotificationPreview({ limit: NOTIFICATION_TOAST_PREVIEW_LIMIT }),
     staleTime: 30 * 1000,
     meta: { silent: true },
   });
+
+  useEffect(() => {
+    hasHydratedNotificationPreviewRef.current = false;
+    seenNotificationPreviewIdsRef.current = new Set();
+  }, [accessToken, sessionVersion]);
+
+  useEffect(() => {
+    const preview = notificationPreviewQuery.data;
+    if (!preview) return;
+
+    const latestIds = new Set(preview.items.map((item) => item.id));
+    if (!hasHydratedNotificationPreviewRef.current) {
+      hasHydratedNotificationPreviewRef.current = true;
+      seenNotificationPreviewIdsRef.current = latestIds;
+      return;
+    }
+
+    const nextUnreadItems = preview.items.filter(
+      (item) => !seenNotificationPreviewIdsRef.current.has(item.id),
+    );
+
+    for (const item of nextUnreadItems.reverse()) {
+      let toastId: string | number | undefined;
+      const dismissToast = () => {
+        if (toastId === undefined) return;
+        toast.dismiss(toastId);
+      };
+
+      toastId = message.info(
+        {
+          title: (
+            <button
+              type="button"
+              className="block min-w-0 max-w-full truncate text-left text-headline font-semibold text-label-primary transition-colors hover:text-primary"
+              onClick={() => {
+                void (async () => {
+                  if (await openTarget(item)) {
+                    dismissToast();
+                  }
+                })();
+              }}
+            >
+              {item.title}
+            </button>
+          ),
+          description: (
+            <NotificationToastContent
+              item={item}
+              showTitle={false}
+              onOpenTarget={async () => {
+                if (await openTarget(item)) {
+                  dismissToast();
+                }
+              }}
+              onMarkRead={
+                item.readAt
+                  ? undefined
+                  : async () => {
+                      if (await markRead(item)) {
+                        dismissToast();
+                      }
+                    }
+              }
+              onArchive={
+                item.archivedAt
+                  ? undefined
+                  : async () => {
+                      if (await archiveItem(item)) {
+                        dismissToast();
+                      }
+                    }
+              }
+              onDelete={async () => {
+                if (await deleteItem(item)) {
+                  dismissToast();
+                }
+              }}
+            />
+          ),
+        },
+        {
+          duration: 12_000,
+        },
+      );
+    }
+
+    seenNotificationPreviewIdsRef.current = new Set([
+      ...seenNotificationPreviewIdsRef.current,
+      ...latestIds,
+    ]);
+  }, [archiveItem, deleteItem, markRead, notificationPreviewQuery.data, openTarget]);
 
   return (
     <SidebarProvider
@@ -114,16 +198,13 @@ export function AdminSceneLayout({
           favoriteWorkspaceBase={favoriteWorkspaceBase}
           resolvePermissionName={resolvePermissionName}
           pathnameOverride={sidebarPathnameOverride}
+          showInboxBadge={showNotificationsBadge}
+          unreadInboxCount={notificationPreviewQuery.data?.unreadCount ?? 0}
           collapsible={sidebarCollapsible}
         />
 
         <div className="relative flex min-w-0 flex-1 flex-col">
-          {renderTopbar({
-            notificationOpen: notificationPanelOpen,
-            showNotificationsBadge,
-            unreadCount: notificationPreviewQuery.data?.unreadCount ?? 0,
-            onNotificationToggle: () => setNotificationPanelOpen(!notificationPanelOpen),
-          })}
+          {renderTopbar()}
 
           <div className="relative flex min-h-0 flex-1">
             <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden bg-background">
@@ -139,14 +220,6 @@ export function AdminSceneLayout({
                 </ContentGuard>
               </div>
             </SidebarInset>
-
-            <AdminNotificationsShell
-              open={notificationPanelOpen}
-              pinned={notificationPanelPinned}
-              closeAriaLabel={t("notifications:NOTIFICATIONS_PANEL_CLOSE")}
-              onPinnedChange={setNotificationPanelPinned}
-              onClose={() => setNotificationPanelOpen(false)}
-            />
           </div>
         </div>
       </div>

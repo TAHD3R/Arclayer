@@ -26,6 +26,8 @@ describe("shared Toaster", () => {
     render(<Toaster richColors />);
 
     expect(capturedProps?.position).toBe("top-right");
+    expect(capturedProps?.expand).toBe(false);
+    expect(capturedProps?.visibleToasts).toBe(3);
     expect(capturedProps?.closeButton).toBe(true);
     expect(capturedProps?.className).toBe("toaster group ");
     expect(capturedProps?.toastOptions).toMatchObject({

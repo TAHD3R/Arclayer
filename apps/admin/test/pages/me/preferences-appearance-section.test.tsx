@@ -13,7 +13,6 @@ describe("UserAppearanceSection", () => {
   beforeEach(() => {
     usePreferencesStore.setState({
       themePreference: "light",
-      notificationPanelPinned: false,
       showNotificationsBadge: true,
       reduceMotion: false,
       contrastMore: false,
@@ -25,7 +24,7 @@ describe("UserAppearanceSection", () => {
     render(<UserAppearanceSection />);
 
     expect(screen.getByRole("combobox")).toBeInTheDocument();
-    expect(screen.getAllByRole("switch")).toHaveLength(4);
+    expect(screen.getAllByRole("switch")).toHaveLength(3);
     expect(screen.queryByText("ME_PREF_SIDEBAR_NAVIGATION_TITLE")).toBeNull();
     expect(screen.queryByText("ME_PREF_SIDEBAR_FAVORITES_TITLE")).toBeNull();
     expect(screen.queryByText("ME_PREF_TEXT_SIZE_TITLE")).toBeNull();

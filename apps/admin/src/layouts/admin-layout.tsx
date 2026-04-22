@@ -181,8 +181,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   return (
     <AdminSceneLayout
-      notificationQueryScope="admin"
-      renderTopbar={(topbar) => <AdminTopbar {...topbar} />}
+      renderTopbar={() => <AdminTopbar />}
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
       commandScope={commandScope}
       browseProjects={projectsQuery.data ?? []}

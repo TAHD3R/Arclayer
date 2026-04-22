@@ -191,15 +191,7 @@ export function GlobalLayout() {
 
   return (
     <AdminSceneLayout
-      notificationQueryScope="global-shell"
-      renderTopbar={(topbar) => (
-        <AdminTopbar
-          notificationOpen={topbar.notificationOpen}
-          showNotificationsBadge={topbar.showNotificationsBadge}
-          unreadCount={topbar.unreadCount}
-          onNotificationToggle={topbar.onNotificationToggle}
-        />
-      )}
+      renderTopbar={() => <AdminTopbar />}
       mainItems={navItems}
       commandScope={GLOBAL_COMMAND_SCOPE}
       activeBrowseProjectId={null}

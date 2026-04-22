@@ -298,7 +298,6 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   contrastMore: false,
   fontScalePreference: null,
   fontWeightPreference: null,
-  notificationPanelPinned: false,
   sidebarOpen: true,
   sidebarWidthPx: DEFAULT_SIDEBAR_WIDTH_PX,
   showNotificationsBadge: true,
@@ -415,11 +414,6 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     writeStorageJson(STORAGE_KEYS.workspaceLocaleCache, current);
   },
 
-  setNotificationPanelPinned: (pinned) => {
-    writeStorageItem(STORAGE_KEYS.notificationPanelPinned, String(pinned));
-    set({ notificationPanelPinned: pinned });
-  },
-
   setSidebarOpen: (open) => {
     writeStorageItem(STORAGE_KEYS.sidebarOpen, String(open));
     set({ sidebarOpen: Boolean(open) });
@@ -465,7 +459,6 @@ export function initializePreferences() {
   applyThemeModeToDom(initialThemeMode);
   applyLocaleToDom(initialLocaleState.locale);
 
-  const notificationPanelPinned = readStorageItem(STORAGE_KEYS.notificationPanelPinned) === "true";
   const sidebarOpenStored = readStorageItem(STORAGE_KEYS.sidebarOpen);
   const sidebarOpen = sidebarOpenStored ? sidebarOpenStored === "true" : true;
   const sidebarWidthPx = normalizeSidebarWidthPx(readStorageItem(STORAGE_KEYS.sidebarWidthPx));
@@ -504,7 +497,6 @@ export function initializePreferences() {
     contrastMore,
     fontScalePreference,
     fontWeightPreference,
-    notificationPanelPinned,
     sidebarOpen,
     sidebarWidthPx,
     showNotificationsBadge,

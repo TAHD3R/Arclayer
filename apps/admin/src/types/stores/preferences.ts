@@ -32,8 +32,6 @@ export interface PreferencesState {
   setFontWeightPreference: (weight: number | null) => void;
   setEffectiveLocale: (locale: AppLocale) => void;
   cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
-  notificationPanelPinned: boolean;
-  setNotificationPanelPinned: (pinned: boolean) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   sidebarWidthPx: number;

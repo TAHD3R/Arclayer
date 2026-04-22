@@ -19,7 +19,6 @@ export const STORAGE_KEYS = {
   commandRecent: "arclayer:admin:commandRecent",
   assetsRecent: "arclayer:admin:assetsRecent",
   assetsFolderRailOpen: "arclayer:admin:assetsFolderRailOpen",
-  notificationPanelPinned: "arclayer:admin:notificationPanelPinned",
   sidebarOpen: "arclayer:admin:sidebarOpen",
   sidebarWidthPx: "arclayer:admin:sidebarWidthPx",
   showNotificationsBadge: "arclayer:admin:showNotificationsBadge",

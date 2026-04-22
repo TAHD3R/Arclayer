@@ -28,8 +28,6 @@ export function UserAppearanceSection() {
   const { t } = useTranslation("account");
 
   const themePreference = usePreferencesStore((s) => s.themePreference);
-  const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
-  const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
   const setShowNotificationsBadge = usePreferencesStore((s) => s.setShowNotificationsBadge);
   const reduceMotion = usePreferencesStore((s) => s.reduceMotion);
@@ -75,13 +73,6 @@ export function UserAppearanceSection() {
         description={t("ME_PREF_CONTRAST_DESC")}
         onCheckedChange={setContrastMore}
         title={t("ME_PREF_CONTRAST_TITLE")}
-      />
-
-      <PreferenceSwitchRow
-        checked={notificationPanelPinned}
-        description={t("ME_PREF_NOTIFICATIONS_PANEL_PIN_DESC")}
-        onCheckedChange={setNotificationPanelPinned}
-        title={t("ME_PREF_NOTIFICATIONS_PANEL_PIN_TITLE")}
       />
 
       <PreferenceSwitchRow

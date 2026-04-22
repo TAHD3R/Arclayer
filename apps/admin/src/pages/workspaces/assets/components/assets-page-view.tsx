@@ -194,7 +194,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
 
   const sideSlots = showCardSidebar
     ? {
-        right: {
+        left: {
           title: t("assets:ASSET_FOLDER_PANEL_TITLE"),
           mobileLabel: t("assets:ASSET_FOLDER_PANEL_TITLE"),
           minWidth: "16rem",
