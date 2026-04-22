@@ -181,6 +181,7 @@ describe("content-automation-page", () => {
     vi.clearAllMocks();
     mocked.getMyProjectAuthz.mockResolvedValue({
       projectId: "project-1",
+      workspaceId: "ws-1",
       isSuperuser: false,
       permissionCodes: ["system:automation:manage"],
     });

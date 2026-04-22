@@ -25,10 +25,10 @@ import { cn } from "@arclayer/lib/utils";
 function VersionHistoryList(props: {
   items: AdminContentVersion[];
   loading: boolean;
-  workspaceId: string;
+  projectId: string;
 }) {
   const { t } = useTranslation("content");
-  const dateTime = useAdminDateTimeFormatter({ workspaceId: props.workspaceId });
+  const dateTime = useAdminDateTimeFormatter({ projectId: props.projectId });
 
   if (props.loading) {
     return (
@@ -95,20 +95,20 @@ export function ContentLibraryArticleEditorVersionHistorySurface(props: {
   mode: "page" | "split";
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  workspaceId: string;
+  projectId: string;
 }) {
   const { t } = useTranslation(["content", "common"]);
   const versionsQuery = useQuery({
-    queryKey: buildContentLibraryVersionHistoryQueryKey(props.workspaceId, props.itemId),
+    queryKey: buildContentLibraryVersionHistoryQueryKey(props.projectId, props.itemId),
     enabled: props.open,
-    queryFn: () => loadContentLibraryVersionHistory(props.workspaceId, props.itemId),
+    queryFn: () => loadContentLibraryVersionHistory(props.projectId, props.itemId),
     staleTime: 15_000,
   });
   const body = (
     <VersionHistoryList
       items={versionsQuery.data?.items ?? []}
       loading={versionsQuery.isLoading}
-      workspaceId={props.workspaceId}
+      projectId={props.projectId}
     />
   );
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter
 from fastapi.routing import APIRoute
 
@@ -50,3 +52,8 @@ def test_project_automation_router_uses_project_context_dependencies() -> None:
     assert "get_project_context" in dependency_names
     assert "get_current_user_id" in dependency_names
     assert "get_project_automation_service" in dependency_names
+
+
+def test_project_automation_router_does_not_keep_workspace_projection_helper() -> None:
+    source = Path(__file__).resolve().parents[3] / "src" / "modules" / "projects" / "automation" / "router.py"
+    assert "_to_workspace_context" not in source.read_text(encoding="utf-8")

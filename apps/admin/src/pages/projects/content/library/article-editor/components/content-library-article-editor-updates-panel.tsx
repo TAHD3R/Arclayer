@@ -41,25 +41,27 @@ function UpdatesDiagnosticBadge(props: { diagnostic: ContentLibraryRuntimeDiagno
 }
 
 export function ContentLibraryArticleEditorUpdatesPanel(props: {
+  activityWorkspaceId: string | null;
   itemId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   runtime: Pick<ContentLibraryArticleEditorRuntimeState, "currentView" | "diagnostics">;
-  workspaceId: string;
 }) {
   const { t } = useTranslation(["content", "common"]);
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const updatesQuery = useInfiniteQuery({
-    queryKey: ["activity", "content-item", props.workspaceId, props.itemId],
-    enabled: props.open,
+    queryKey: ["activity", "content-item", props.activityWorkspaceId, props.itemId],
+    enabled: props.open && Boolean(props.activityWorkspaceId),
     initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      listWorkspaceActivity(props.workspaceId, {
+    queryFn: ({ pageParam }) => {
+      if (!props.activityWorkspaceId) throw new Error("activityWorkspaceId is required");
+      return listWorkspaceActivity(props.activityWorkspaceId, {
         entityId: props.itemId,
         entityType: CONTENT_ITEM_ACTIVITY_ENTITY_TYPE,
         page: typeof pageParam === "number" ? pageParam : 1,
         size: 20,
-      }),
+      });
+    },
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     staleTime: 15_000,
   });

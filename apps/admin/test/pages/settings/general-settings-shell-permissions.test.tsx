@@ -112,7 +112,7 @@ describe("GeneralSettingsShell permission consumption", () => {
         site: {
           name: "Arclayer",
           subtitle: "Stories",
-          description: "Workspace site",
+          description: "Project site",
           url: "https://example.com",
           contact_email: "team@example.com",
         },

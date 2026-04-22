@@ -1,4 +1,5 @@
-import type { SettingsDetail } from "@/types/api";
+import type { ProjectSettingsDetail } from "@/types/api";
+import type { SettingsDetail } from "@/types/api/settings";
 
 import type { GeneralSettingsFormValues, StorageProvider } from "@/types/settings-general";
 import type { TitlePolicy, TitlePolicyPart } from "@/types/site-seo";
@@ -12,7 +13,7 @@ import { pickBool, pickNumber, pickString, pickStringArray } from "./utils";
  * - Secret 字段（如 s3_secret_access_key）由 API 掩码；UI 只允许“设置新值”，因此初始值固定为空串。
  */
 export function buildGeneralSettingsInitialValues(params: {
-  project?: SettingsDetail;
+  project?: ProjectSettingsDetail;
   system?: SettingsDetail;
 }): GeneralSettingsFormValues {
   const projectValue = params.project?.value;

@@ -1,15 +1,27 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 
 import { listProjectPermissionActions, listWorkspacePermissionActions } from "@/api/rbac";
 import { getMyProjectAuthz, getMyWorkspaceAuthz } from "@/api/workspaces";
+import type { AuthzSnapshot, ProjectAuthzSnapshot, ProjectPermissionAction } from "@/types/api";
 import type { WorkspacePermissionAction } from "@/types/api/rbac";
 
-type UseWorkspacePermissionAccessResult = {
-  authzQuery: ReturnType<typeof useQuery>;
-  actionsQuery: ReturnType<typeof useQuery>;
+type PermissionActionLike = {
+  code: string;
+  permissionCodes?: string[] | null;
+};
+
+type AuthzLike = {
+  isSuperuser?: boolean | null;
+  permissionCodes?: string[] | null;
+  workspaceId?: string | null;
+};
+
+type UsePermissionAccessResult<TAction extends PermissionActionLike, TAuthz extends AuthzLike> = {
+  authzQuery: UseQueryResult<TAuthz, Error>;
+  actionsQuery: UseQueryResult<TAction[], Error>;
   permissionCodes: string[];
-  actionCatalog: WorkspacePermissionAction[];
+  actionCatalog: TAction[];
   isSuperuser: boolean;
   hasPermission: (permissionCode: string) => boolean;
   hasAction: (actionCode: string) => boolean;
@@ -17,8 +29,8 @@ type UseWorkspacePermissionAccessResult = {
 
 export function useWorkspacePermissionAccess(
   workspaceId: string | null | undefined,
-): UseWorkspacePermissionAccessResult {
-  const authzQuery = useQuery({
+): UsePermissionAccessResult<WorkspacePermissionAction, AuthzSnapshot> {
+  const authzQuery = useQuery<AuthzSnapshot, Error>({
     queryKey: ["workspace", "authz", workspaceId],
     enabled: Boolean(workspaceId),
     queryFn: async () => {
@@ -30,7 +42,7 @@ export function useWorkspacePermissionAccess(
     meta: { silent: true },
   });
 
-  const actionsQuery = useQuery({
+  const actionsQuery = useQuery<WorkspacePermissionAction[], Error>({
     queryKey: ["workspace", "permission-actions", workspaceId],
     enabled: Boolean(workspaceId),
     queryFn: async () => {
@@ -51,7 +63,9 @@ export function useWorkspacePermissionAccess(
       new Map(
         actionCatalog.map((action) => [
           action.code,
-          (action.permissionCodes ?? []).filter((code) => String(code || "").trim().length > 0),
+          (action.permissionCodes ?? []).filter(
+            (code: string) => String(code || "").trim().length > 0,
+          ),
         ]),
       ),
     [actionCatalog],
@@ -79,8 +93,8 @@ export function useWorkspacePermissionAccess(
 
 export function useProjectPermissionAccess(
   projectId: string | null | undefined,
-): UseWorkspacePermissionAccessResult {
-  const authzQuery = useQuery({
+): UsePermissionAccessResult<ProjectPermissionAction, ProjectAuthzSnapshot> {
+  const authzQuery = useQuery<ProjectAuthzSnapshot, Error>({
     queryKey: ["project", "authz", projectId],
     enabled: Boolean(projectId),
     queryFn: async () => {
@@ -92,7 +106,7 @@ export function useProjectPermissionAccess(
     meta: { silent: true },
   });
 
-  const actionsQuery = useQuery({
+  const actionsQuery = useQuery<ProjectPermissionAction[], Error>({
     queryKey: ["project", "permission-actions", projectId],
     enabled: Boolean(projectId),
     queryFn: async () => {
@@ -113,7 +127,9 @@ export function useProjectPermissionAccess(
       new Map(
         actionCatalog.map((action) => [
           action.code,
-          (action.permissionCodes ?? []).filter((code) => String(code || "").trim().length > 0),
+          (action.permissionCodes ?? []).filter(
+            (code: string) => String(code || "").trim().length > 0,
+          ),
         ]),
       ),
     [actionCatalog],
@@ -125,7 +141,6 @@ export function useProjectPermissionAccess(
   const hasAction = (actionCode: string) => {
     if (isSuperuser) return true;
     const mappedPermissions = actionPermissionMap.get(String(actionCode || "").trim()) ?? [];
-    if (mappedPermissions.length === 0) return false;
     return mappedPermissions.some((permissionCode) => permissionCodeSet.has(permissionCode));
   };
 

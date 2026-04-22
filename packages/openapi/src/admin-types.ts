@@ -123,6 +123,7 @@ export type MyWorkspaceListResult = Omit<Generated.MyWorkspaceListResult, "items
   items: MyWorkspace[];
 };
 export type AuthzSnapshot = Generated.AuthzSnapshot;
+export type ProjectAuthzSnapshot = Generated.ProjectAuthzSnapshot;
 export type WorkspaceDetail = Generated.WorkspaceDetailOut;
 export type WorkspaceRolePolicy = Generated.WorkspaceRolePolicyOut;
 export type WorkspaceAssignRoleResult = Generated.WorkspaceAssignRoleToMembersResult;
@@ -173,6 +174,9 @@ export type OrganizationMemberListParams =
 export type OrganizationPermission = Generated.OrganizationPermissionOut;
 export type OrganizationRbacMatrix = Generated.OrganizationRbacMatrixOut;
 export type OrganizationRole = Generated.OrganizationRoleOut;
+export type ProjectPermissionAction = Generated.ProjectPermissionActionOut;
+export type ProjectSettingsDetail = Generated.ProjectSettingsDetail;
+export type ProjectSettingsPatch = Generated.ProjectSettingsPatch;
 
 export type AdminAssetSummary = Generated.AdminAssetSummaryOut;
 export type AdminAssetFolder = Generated.AdminAssetFolderOut;

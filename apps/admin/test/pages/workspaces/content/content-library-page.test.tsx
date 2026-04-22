@@ -579,9 +579,9 @@ describe("ContentLibraryPage", () => {
       },
     });
     useWorkspaceStore.setState({
-      currentWorkspaceId: "project-1",
+      currentWorkspaceId: "ws-1",
       currentProjectId: "project-1",
-      lastWorkspaceId: "project-1",
+      lastWorkspaceId: "ws-1",
       lastProjectId: "project-1",
     });
     mocked.issueProjectSitePreviewToken.mockResolvedValue({
@@ -605,7 +605,7 @@ describe("ContentLibraryPage", () => {
       },
     });
     mocked.getContentItemVersion.mockImplementation(
-      async (_workspaceId: string, itemId: string, versionNumber: number) => ({
+      async (_projectId: string, itemId: string, versionNumber: number) => ({
         itemId,
         versionNumber,
         state: versionNumber === 3 ? "draft" : "published",
@@ -619,10 +619,10 @@ describe("ContentLibraryPage", () => {
       }),
     );
     mocked.loadContentLibraryArticleEditorSnapshot.mockImplementation(
-      async (_workspaceId: string, itemId: string) => ({
+      async (_projectId: string, itemId: string) => ({
         item: {
           id: itemId,
-          workspaceId: "project-1",
+          workspaceId: "ws-1",
           siteId: "site-1",
           modelId: "model-1",
           modelKey: itemId === "content-1" ? "page" : "article",
@@ -672,7 +672,7 @@ describe("ContentLibraryPage", () => {
     };
     mocked.getContentLibraryViews.mockResolvedValue(initialViewsState);
     mocked.createContentLibraryView.mockImplementation(
-      async (_workspaceId: string, payload: Record<string, unknown>) => {
+      async (_projectId: string, payload: Record<string, unknown>) => {
         const nextState = {
           items: [
             {
@@ -705,6 +705,7 @@ describe("ContentLibraryPage", () => {
     });
     mocked.getMyProjectAuthz.mockResolvedValue({
       projectId: "project-1",
+      workspaceId: "ws-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage", "system:content:read"],
     });
@@ -1509,6 +1510,7 @@ describe("ContentLibraryPage", () => {
   test("falls back to read-only actions when content management access is missing", async () => {
     mocked.getMyProjectAuthz.mockResolvedValue({
       projectId: "project-1",
+      workspaceId: "ws-1",
       isSuperuser: false,
       permissionCodes: ["system:content:read"],
     });

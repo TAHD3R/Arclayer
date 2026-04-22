@@ -11,7 +11,6 @@ import { Textarea } from "@arclayer/ui/textarea";
 
 import { SettingSwitchBlock } from "@/components/settings/setting-switch-block";
 import { isValidEmail } from "@/lib/settings/general/utils";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type {
   GeneralSettingsFormValues,
   GeneralSettingsTabBaseProps,
@@ -117,10 +116,13 @@ function buildDefaultLocalePatch(nextLocale: string, initialLocale: string) {
   return { site_localization: { default_locale: nextLocale, locale: nextLocale } };
 }
 
-export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
+type SiteSettingsTabProps = GeneralSettingsTabBaseProps & {
+  assetWorkspaceId: string | null;
+};
+
+export function SiteSettingsTab(props: SiteSettingsTabProps) {
   const { disabled, form, initialValues, patch, savingKey, withSavingKey } = props;
   const { t } = useTranslation();
-  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const watchedValues = useWatch({ control: form.control }) as Partial<GeneralSettingsFormValues>;
   const values = { ...initialValues, ...watchedValues };
 
@@ -625,7 +627,7 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
               uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
               uploadPurpose="site_logo"
               withSavingKey={withSavingKey}
-              workspaceId={workspaceId}
+              assetWorkspaceId={props.assetWorkspaceId}
               urlField="siteLogoUrl"
             />
 
@@ -649,7 +651,7 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
               uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
               uploadPurpose="favicon"
               withSavingKey={withSavingKey}
-              workspaceId={workspaceId}
+              assetWorkspaceId={props.assetWorkspaceId}
               urlField="siteFaviconUrl"
             />
 

@@ -199,11 +199,11 @@ export interface ManagementSdk {
     get(input: { projectId: string }): Promise<ManagementResult<openapi.ProjectRuntimeSiteOut>>;
     getCoreSettings(input: {
       projectId: string;
-    }): Promise<ManagementResult<openapi.WorkspaceSettingsDetail>>;
+    }): Promise<ManagementResult<openapi.ProjectSettingsDetail>>;
     patchCoreSettings(input: {
-      body: openapi.WorkspaceSettingsPatch;
+      body: openapi.ProjectSettingsPatch;
       projectId: string;
-    }): Promise<ManagementResult<openapi.WorkspaceSettingsDetail>>;
+    }): Promise<ManagementResult<openapi.ProjectSettingsDetail>>;
   };
 }
 
@@ -490,17 +490,17 @@ export const createManagementSdk = (options: ManagementSdkOptions): ManagementSd
     site: {
       get: ({ projectId }) =>
         invoke<openapi.ProjectRuntimeSiteOut>(
-          openapi.domainProjectsGetProjectSite as OpenApiOperation<openapi.ProjectRuntimeSiteOut>,
+          openapi.domainProjectsGetProjectSiteRuntime as OpenApiOperation<openapi.ProjectRuntimeSiteOut>,
           { path: { project_id: projectId } },
         ),
       getCoreSettings: ({ projectId }) =>
-        invoke<openapi.WorkspaceSettingsDetail>(
-          openapi.domainProjectsGetProjectCoreSettings as OpenApiOperation<openapi.WorkspaceSettingsDetail>,
+        invoke<openapi.ProjectSettingsDetail>(
+          openapi.domainProjectsGetProjectCoreSettings as OpenApiOperation<openapi.ProjectSettingsDetail>,
           { path: { project_id: projectId } },
         ),
       patchCoreSettings: ({ projectId, body }) =>
-        invoke<openapi.WorkspaceSettingsDetail>(
-          openapi.domainProjectsPatchProjectCoreSettings as OpenApiOperation<openapi.WorkspaceSettingsDetail>,
+        invoke<openapi.ProjectSettingsDetail>(
+          openapi.domainProjectsPatchProjectCoreSettings as OpenApiOperation<openapi.ProjectSettingsDetail>,
           { body, path: { project_id: projectId } },
         ),
       createPreviewToken: ({ projectId, body }) =>

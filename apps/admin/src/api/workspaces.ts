@@ -2,6 +2,7 @@ import { api } from "@/lib/http";
 import { projectPath, workspacePath, toQueryString } from "@/lib/api";
 import type {
   AuthzSnapshot,
+  ProjectAuthzSnapshot,
   LeaveWorkspaceResult,
   MyWorkspaceListResult,
   OnboardingWorkspaceCreatePayload,
@@ -27,8 +28,8 @@ export async function getMyWorkspaceAuthz(workspaceId: string): Promise<AuthzSna
   return api.get<AuthzSnapshot>(workspacePath(workspaceId, "/me/authz"));
 }
 
-export async function getMyProjectAuthz(projectId: string): Promise<AuthzSnapshot> {
-  return api.get<AuthzSnapshot>(projectPath(projectId, "/me/authz"));
+export async function getMyProjectAuthz(projectId: string): Promise<ProjectAuthzSnapshot> {
+  return api.get<ProjectAuthzSnapshot>(projectPath(projectId, "/me/authz"));
 }
 
 export async function getWorkspaceDetail(workspaceId: string): Promise<WorkspaceDetail> {

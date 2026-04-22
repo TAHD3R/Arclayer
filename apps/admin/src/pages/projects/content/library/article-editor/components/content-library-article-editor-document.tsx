@@ -56,11 +56,11 @@ type MediaUrlDialogState = MediaInsertDialogState & {
 };
 
 type ContentLibraryArticleEditorDocumentProviderProps = {
+  assetWorkspaceId: string | null;
   children: React.ReactNode;
   document?: Record<string, unknown>;
   editorIdentity: string;
   onChange?: (value: Record<string, unknown>) => void;
-  workspaceId: string;
 };
 
 type ContentLibraryArticleEditorDocumentState = {
@@ -415,9 +415,12 @@ export function ContentLibraryArticleEditorDocumentProvider(
           if (params.mediaType === editor.getType("file")) return "file";
           return "video";
         })();
+        if (!props.assetWorkspaceId) {
+          throw new Error("ASSET_SCOPE_NOT_SELECTED");
+        }
 
         const assetId = await uploadSingleAssetFromFile({
-          scope: { id: props.workspaceId, type: "workspace" },
+          scope: { id: props.assetWorkspaceId, type: "workspace" },
           purpose: getMediaUploadPurpose(kind),
           file: params.file,
           t,
@@ -437,7 +440,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
         };
       },
     }),
-    [editor, props.workspaceId, t],
+    [editor, props.assetWorkspaceId, t],
   );
 
   return (
@@ -547,51 +550,53 @@ export function ContentLibraryArticleEditorDocumentProvider(
                     </SettingDialogField>
                   </form>
                 </SettingDialog>
-                <AssetPickerDialog
-                  open={mediaLibraryDialog.open}
-                  onOpenChange={(open) =>
-                    setMediaLibraryDialog((current) => ({
-                      ...current,
-                      open,
-                      replacePath: open ? current.replacePath : undefined,
-                    }))
-                  }
-                  scope={{ id: props.workspaceId, type: "workspace" }}
-                  mode="single"
-                  mimePrefix={getAssetPickerMimePrefix(mediaLibraryDialog.kind)}
-                  uploadPurpose={getMediaUploadPurpose(mediaLibraryDialog.kind)}
-                  title={t("CONTENT_LIBRARY_EDITOR_SELECT_FROM_LIBRARY")}
-                  onConfirm={({ assetIds }) => {
-                    const assetId = assetIds[0];
-                    if (!assetId) return;
-
-                    const url = resolveAssetRefToPublicUrlPath(assetId);
-                    if (!url) {
-                      throw new Error(`Failed to resolve library asset URL for ${assetId}`);
+                {props.assetWorkspaceId ? (
+                  <AssetPickerDialog
+                    open={mediaLibraryDialog.open}
+                    onOpenChange={(open) =>
+                      setMediaLibraryDialog((current) => ({
+                        ...current,
+                        open,
+                        replacePath: open ? current.replacePath : undefined,
+                      }))
                     }
+                    scope={{ id: props.assetWorkspaceId, type: "workspace" }}
+                    mode="single"
+                    mimePrefix={getAssetPickerMimePrefix(mediaLibraryDialog.kind)}
+                    uploadPurpose={getMediaUploadPurpose(mediaLibraryDialog.kind)}
+                    title={t("CONTENT_LIBRARY_EDITOR_SELECT_FROM_LIBRARY")}
+                    onConfirm={({ assetIds }) => {
+                      const assetId = assetIds[0];
+                      if (!assetId) return;
 
-                    insertOrReplaceMediaNode({
-                      editor,
-                      node: buildMediaNode({
-                        name:
-                          mediaLibraryDialog.kind === "file"
-                            ? deriveFileNameFromUrl(url)
-                            : undefined,
-                        type: editor.getType(
-                          getMediaInsertConfig(mediaLibraryDialog.kind, t).nodeType,
-                        ),
-                        url,
-                      }),
-                      replacePath: mediaLibraryDialog.replacePath,
-                    });
+                      const url = resolveAssetRefToPublicUrlPath(assetId);
+                      if (!url) {
+                        throw new Error(`Failed to resolve library asset URL for ${assetId}`);
+                      }
 
-                    setMediaLibraryDialog((current) => ({
-                      ...current,
-                      open: false,
-                      replacePath: undefined,
-                    }));
-                  }}
-                />
+                      insertOrReplaceMediaNode({
+                        editor,
+                        node: buildMediaNode({
+                          name:
+                            mediaLibraryDialog.kind === "file"
+                              ? deriveFileNameFromUrl(url)
+                              : undefined,
+                          type: editor.getType(
+                            getMediaInsertConfig(mediaLibraryDialog.kind, t).nodeType,
+                          ),
+                          url,
+                        }),
+                        replacePath: mediaLibraryDialog.replacePath,
+                      });
+
+                      setMediaLibraryDialog((current) => ({
+                        ...current,
+                        open: false,
+                        replacePath: undefined,
+                      }));
+                    }}
+                  />
+                ) : null}
               </MediaUploadProvider>
             </ArticleEditorCommandProvider>
           </Plate>

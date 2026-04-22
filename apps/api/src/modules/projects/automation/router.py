@@ -9,6 +9,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.projects.authz.router_helpers import ensure_project_permission_granted
 from src.modules.projects.automation.schema import (
     AutomationCatalogOut,
     AutomationFlowCreateIn,
@@ -21,24 +22,8 @@ from src.modules.projects.automation.schema import (
 from src.modules.projects.automation.service import ProjectAutomationService
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
-from src.modules.workspaces.authz.http.service import ensure_workspace_permission_granted
-from src.modules.workspaces.http.schema import WorkspaceContext
 
 router = APIRouter(prefix="/projects/{project_id}/automation", tags=["domain.projects.automation"])
-
-
-def _to_workspace_context(ctx: ProjectRequestContext) -> WorkspaceContext:
-    return WorkspaceContext(
-        workspace_id=ctx.workspace_id,
-        organization_id=ctx.organization_id,
-        workspace_kind=ctx.workspace_kind,
-        access_type=ctx.access_type,
-        org_membership_id=ctx.org_membership_id,
-        is_org_owner=ctx.is_org_owner,
-        workspace_membership_id=ctx.workspace_membership_id,
-        visible_only=ctx.visible_only,
-        is_creator_admin=ctx.is_creator_admin,
-    )
 
 
 async def _require_project_automation_permission(
@@ -47,10 +32,10 @@ async def _require_project_automation_permission(
     ctx: ProjectRequestContext,
     user_id: UUID,
 ) -> None:
-    await ensure_workspace_permission_granted(
+    await ensure_project_permission_granted(
         permission,
         user_id=user_id,
-        ctx=_to_workspace_context(ctx),
+        ctx=ctx,
         error_code="PERMISSION_DENIED",
     )
 

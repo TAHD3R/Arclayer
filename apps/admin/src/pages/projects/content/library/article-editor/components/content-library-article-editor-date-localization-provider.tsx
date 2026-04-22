@@ -32,10 +32,10 @@ function getRelativeDateKey(params: { offsetDays: number; timeZone: string }) {
 
 export function ContentLibraryArticleEditorDateLocalizationProvider(props: {
   children: React.ReactNode;
-  workspaceId: string;
+  projectId: string;
 }) {
   const { t } = useTranslation("content");
-  const formatter = useAdminDateTimeFormatter({ workspaceId: props.workspaceId });
+  const formatter = useAdminDateTimeFormatter({ projectId: props.projectId });
 
   const localization = React.useMemo<DateNodeLocalization>(() => {
     const timeZone = formatter.localization.timeZone;

@@ -21,6 +21,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 import { ContentLibraryArticleEditorPage } from "@/pages/projects/content/library/article-editor/page";
 import { ContentLibraryArticleEditorShell } from "@/pages/projects/content/library/article-editor/components/content-library-article-editor-shell";
 import type { ContentLibraryArticleEditorRuntimeState } from "@/pages/projects/content/library/runtime";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const mocked = vi.hoisted(() => ({
@@ -35,8 +36,13 @@ const mocked = vi.hoisted(() => ({
 }));
 
 const renderStats = vi.hoisted(() => ({
+  coverPickerAssetWorkspaceIds: [] as Array<string | null>,
+  dateLocalizationProjectIds: [] as string[],
+  documentProviderAssetWorkspaceIds: [] as Array<string | null>,
   providerDocuments: [] as Array<Record<string, unknown> | undefined>,
   toolbarRenders: 0,
+  updatesPanelWorkspaceIds: [] as Array<string | null>,
+  versionHistoryProjectIds: [] as string[],
 }));
 
 vi.mock("react-i18next", () => ({
@@ -115,10 +121,12 @@ vi.mock(
   "@/pages/projects/content/library/article-editor/components/content-library-article-editor-document",
   () => ({
     ContentLibraryArticleEditorDocumentProvider: (props: {
+      assetWorkspaceId?: string | null;
       children?: ReactNode;
       document?: Record<string, unknown>;
       onChange?: (value: Record<string, unknown>) => void;
     }) => {
+      renderStats.documentProviderAssetWorkspaceIds.push(props.assetWorkspaceId ?? null);
       renderStats.providerDocuments.push(props.document);
       return (
         <>
@@ -142,6 +150,52 @@ vi.mock(
       isHydrated: true,
       scrollContainerRef: { current: null },
     }),
+  }),
+);
+
+vi.mock(
+  "@/pages/projects/content/library/article-editor/components/content-library-cover-picker-popover",
+  () => ({
+    ContentLibraryCoverPickerPopover: (props: {
+      assetWorkspaceId?: string | null;
+      children?: ReactNode;
+    }) => {
+      renderStats.coverPickerAssetWorkspaceIds.push(props.assetWorkspaceId ?? null);
+      return <>{props.children}</>;
+    },
+  }),
+);
+
+vi.mock(
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-date-localization-provider",
+  () => ({
+    ContentLibraryArticleEditorDateLocalizationProvider: (props: {
+      children?: ReactNode;
+      projectId: string;
+    }) => {
+      renderStats.dateLocalizationProjectIds.push(props.projectId);
+      return <>{props.children}</>;
+    },
+  }),
+);
+
+vi.mock(
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-updates-panel",
+  () => ({
+    ContentLibraryArticleEditorUpdatesPanel: (props: { activityWorkspaceId?: string | null }) => {
+      renderStats.updatesPanelWorkspaceIds.push(props.activityWorkspaceId ?? null);
+      return null;
+    },
+  }),
+);
+
+vi.mock(
+  "@/pages/projects/content/library/article-editor/components/content-library-article-editor-version-history-surface",
+  () => ({
+    ContentLibraryArticleEditorVersionHistorySurface: (props: { projectId: string }) => {
+      renderStats.versionHistoryProjectIds.push(props.projectId);
+      return null;
+    },
   }),
 );
 
@@ -346,10 +400,22 @@ describe("content-library-article-editor-page", () => {
     mocked.patchContentItemVersion.mockReset();
     mocked.patchContentItemWorkflow.mockReset();
     mocked.publishContentItemVersion.mockReset();
+    renderStats.coverPickerAssetWorkspaceIds.length = 0;
+    renderStats.dateLocalizationProjectIds.length = 0;
+    renderStats.documentProviderAssetWorkspaceIds.length = 0;
     renderStats.providerDocuments.length = 0;
     renderStats.toolbarRenders = 0;
+    renderStats.updatesPanelWorkspaceIds.length = 0;
+    renderStats.versionHistoryProjectIds.length = 0;
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "ws-1",
+      currentProjectId: "project-1",
+      lastWorkspaceId: "ws-1",
+      lastProjectId: "project-1",
+    });
     mocked.getMyProjectAuthz.mockResolvedValue({
       projectId: "project-1",
+      workspaceId: "ws-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage", "system:content:publish"],
     });
@@ -614,6 +680,21 @@ describe("content-library-article-editor-page", () => {
     });
   });
 
+  it("routes project and workspace ids to the matching editor surfaces", async () => {
+    mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
+
+    renderWithQuery(<ContentLibraryArticleEditorPage projectId="project-1" itemId="content-1" />);
+
+    await screen.findByDisplayValue("Launch memo");
+
+    expect(renderStats.documentProviderAssetWorkspaceIds).toContain("ws-1");
+    expect(renderStats.coverPickerAssetWorkspaceIds.length).toBeGreaterThan(0);
+    expect(renderStats.coverPickerAssetWorkspaceIds.every((value) => value === "ws-1")).toBe(true);
+    expect(renderStats.dateLocalizationProjectIds).toContain("project-1");
+    expect(renderStats.versionHistoryProjectIds).toContain("project-1");
+    expect(renderStats.updatesPanelWorkspaceIds).toContain("ws-1");
+  });
+
   it("publishes the latest draft version from the editor toolbar", async () => {
     const user = userEvent.setup();
     mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
@@ -666,6 +747,7 @@ describe("content-library-article-editor-page", () => {
     mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
     mocked.getMyProjectAuthz.mockResolvedValueOnce({
       projectId: "project-1",
+      workspaceId: "ws-1",
       isSuperuser: false,
       permissionCodes: ["system:content:manage"],
     });

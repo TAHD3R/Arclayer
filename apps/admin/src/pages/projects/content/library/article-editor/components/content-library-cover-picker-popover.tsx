@@ -170,7 +170,7 @@ function resolveAssetPreviewUrl(asset: {
 }
 
 export function ContentLibraryCoverPickerPopover(props: {
-  workspaceId: string;
+  assetWorkspaceId: string | null;
   value: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -180,13 +180,15 @@ export function ContentLibraryCoverPickerPopover(props: {
   return (
     <Popover open={props.open} onOpenChange={props.onOpenChange}>
       <PopoverTrigger asChild>{props.children}</PopoverTrigger>
-      {props.open ? <ContentLibraryCoverPickerPopoverContent {...props} /> : null}
+      {props.open && props.assetWorkspaceId ? (
+        <ContentLibraryCoverPickerPopoverContent {...props} />
+      ) : null}
     </Popover>
   );
 }
 
 function ContentLibraryCoverPickerPopoverContent(props: {
-  workspaceId: string;
+  assetWorkspaceId: string | null;
   value: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -201,8 +203,8 @@ function ContentLibraryCoverPickerPopoverContent(props: {
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
   const scope = React.useMemo<AssetScopeRef>(
-    () => ({ type: "workspace", id: String(props.workspaceId) }),
-    [props.workspaceId],
+    () => ({ type: "workspace", id: props.assetWorkspaceId ?? "" }),
+    [props.assetWorkspaceId],
   );
 
   const explorer = useAssetsExplorerController({

@@ -13,6 +13,7 @@ from src.core.events import Event, events
 from src.core.logging import get_logger
 from src.models.organization.org_membership import OrgMembership
 from src.modules.projects.api_keys.schema import ApiKeyOut
+from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.workspaces.http.schema import WorkspaceContext
 
 logger = get_logger(__name__)
@@ -41,7 +42,7 @@ async def publish_api_key_event(
     actor_user_id: UUID,
     event_name: str,
     key: ApiKeyOut,
-    ctx: WorkspaceContext | None = None,
+    ctx: ProjectRequestContext | WorkspaceContext | None = None,
     organization_id: UUID | None = None,
 ) -> None:
     key_id = coerce_api_key_event_uuid(key.id)
@@ -59,7 +60,11 @@ async def publish_api_key_event(
     }
     if organization_id is not None:
         payload["organization_id"] = str(organization_id)
-    if ctx is not None:
+    if isinstance(ctx, ProjectRequestContext):
+        payload["project_id"] = str(ctx.project_id)
+        payload["organization_id"] = str(ctx.organization_id)
+        payload["workspace_id"] = str(ctx.workspace_id)
+    elif ctx is not None:
         payload["organization_id"] = str(ctx.organization_id)
         payload["workspace_id"] = str(ctx.workspace_id)
 

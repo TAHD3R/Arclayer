@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getOrganizationCoreSettings } from "@/api/organization-settings";
 import { getCoreSettings } from "@/api/settings";
+import { getProjectCoreSettings } from "@/api/settings";
 import type { AppLocale } from "@/lib/i18n";
 import { pickBool, pickString } from "@/lib/settings/general/utils";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
@@ -64,14 +65,49 @@ export type ResolveAdminLocalizationSnapshotParams = {
   browserTimeZone: string;
 };
 
+export type AdminDateTimeFormatterParams = {
+  projectId?: string | null;
+  workspaceId?: string | null;
+};
+
+export function resolveAdminDateTimeContext(
+  params: AdminDateTimeFormatterParams | undefined,
+  workspaceIdFromStore: string | null | undefined,
+): { projectId: string | null; workspaceId: string | null } {
+  const projectId =
+    params && Object.prototype.hasOwnProperty.call(params, "projectId")
+      ? (params.projectId ?? null)
+      : null;
+  if (params && Object.prototype.hasOwnProperty.call(params, "workspaceId")) {
+    return {
+      projectId,
+      workspaceId: params.workspaceId ?? null,
+    };
+  }
+  return {
+    projectId,
+    workspaceId: workspaceIdFromStore ?? null,
+  };
+}
+
 export function resolveAdminDateTimeWorkspaceId(
-  params: { workspaceId?: string | null } | undefined,
+  params: AdminDateTimeFormatterParams | undefined,
   workspaceIdFromStore: string | null | undefined,
 ): string | null {
-  if (params && Object.prototype.hasOwnProperty.call(params, "workspaceId")) {
-    return params.workspaceId ?? null;
-  }
-  return workspaceIdFromStore ?? null;
+  return resolveAdminDateTimeContext(params, workspaceIdFromStore).workspaceId;
+}
+
+function readLocalizationCandidate(
+  value: Record<string, unknown> | undefined,
+  section: "site_localization" | "workspace_localization",
+): LocalizationCandidate {
+  const locale = (pickString(value, [section, "locale"]) as AppLocale | undefined) ?? undefined;
+  const timeZone = pickString(value, [section, "timezone"]) ?? undefined;
+  const dateFormat = pickString(value, [section, "date_format"]) ?? undefined;
+  const useBrowserTimeZone = pickBool(value, [section, "use_browser_timezone"]);
+  const useRelativeDateTime = pickBool(value, [section, "use_relative_datetime"]);
+
+  return { locale, timeZone, dateFormat, useBrowserTimeZone, useRelativeDateTime };
 }
 
 export function formatAdminDateTimeValue(params: {
@@ -127,52 +163,49 @@ export function resolveAdminLocalizationSnapshot(
   };
 }
 
-export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null }) {
+export function useAdminDateTimeFormatter(params?: AdminDateTimeFormatterParams) {
   const workspaceIdFromStore = useWorkspaceStore((state) => state.currentWorkspaceId);
   const preferencesLocale = usePreferencesStore((state) => state.locale);
   const preferencesTimeZone = usePreferencesStore((state) => state.timeZonePreference);
 
-  const workspaceId = resolveAdminDateTimeWorkspaceId(params, workspaceIdFromStore);
+  const { projectId, workspaceId } = resolveAdminDateTimeContext(params, workspaceIdFromStore);
+  const contextId = projectId || workspaceId;
 
-  const workspaceQuery = useQuery({
-    queryKey: ["settings", "workspace", "core", workspaceId],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => getCoreSettings(String(workspaceId)),
+  const contextQuery = useQuery({
+    queryKey: projectId
+      ? ["settings", "project", "core", projectId]
+      : ["settings", "workspace", "core", workspaceId],
+    enabled: Boolean(contextId),
+    queryFn: async () => {
+      if (projectId) return getProjectCoreSettings(projectId);
+      return getCoreSettings(String(workspaceId));
+    },
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const workspaceLocalization = useMemo<LocalizationCandidate>(() => {
-    const value = workspaceQuery.data?.value;
-    const locale =
-      (pickString(value, ["workspace_localization", "locale"]) as AppLocale | undefined) ??
-      undefined;
-    const timeZone = pickString(value, ["workspace_localization", "timezone"]) ?? undefined;
-    const dateFormat = pickString(value, ["workspace_localization", "date_format"]) ?? undefined;
-    const useBrowserTimeZone = pickBool(value, ["workspace_localization", "use_browser_timezone"]);
-    const useRelativeDateTime = pickBool(value, [
-      "workspace_localization",
-      "use_relative_datetime",
-    ]);
-
-    return { locale, timeZone, dateFormat, useBrowserTimeZone, useRelativeDateTime };
-  }, [workspaceQuery.data?.value]);
+  const contextLocalization = useMemo<LocalizationCandidate>(() => {
+    return readLocalizationCandidate(
+      contextQuery.data?.value,
+      projectId ? "site_localization" : "workspace_localization",
+    );
+  }, [contextQuery.data?.value, projectId]);
 
   const shouldFetchOrganizationLocalization = useMemo(() => {
-    if (!workspaceId) return true;
-    if (workspaceQuery.isLoading) return false;
-    if (workspaceQuery.isError) return true;
-    return !hasCompleteLocalization(workspaceLocalization);
+    if (!contextId) return true;
+    if (contextQuery.isLoading) return false;
+    if (contextQuery.isError) return true;
+    return !hasCompleteLocalization(contextLocalization);
   }, [
-    workspaceId,
-    workspaceLocalization.dateFormat,
-    workspaceLocalization.locale,
-    workspaceLocalization.timeZone,
-    workspaceLocalization.useBrowserTimeZone,
-    workspaceLocalization.useRelativeDateTime,
-    workspaceQuery.isError,
-    workspaceQuery.isLoading,
+    contextId,
+    contextLocalization.dateFormat,
+    contextLocalization.locale,
+    contextLocalization.timeZone,
+    contextLocalization.useBrowserTimeZone,
+    contextLocalization.useRelativeDateTime,
+    contextQuery.isError,
+    contextQuery.isLoading,
   ]);
 
   const organizationQuery = useQuery({
@@ -206,13 +239,13 @@ export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null
 
   const localization = useMemo(() => {
     return resolveAdminLocalizationSnapshot({
-      workspaceLocalization,
+      workspaceLocalization: contextLocalization,
       organizationLocalization,
       preferencesLocale,
       preferencesTimeZone,
       browserTimeZone: getBrowserTimeZone(),
     });
-  }, [organizationLocalization, preferencesLocale, preferencesTimeZone, workspaceLocalization]);
+  }, [contextLocalization, organizationLocalization, preferencesLocale, preferencesTimeZone]);
 
   const formatFromDate = useCallback(
     (date: Date | null, options: FormatDateTimeOptions = {}): string => {
@@ -254,17 +287,18 @@ export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null
     [formatFromDate],
   );
 
-  const isLoading = workspaceQuery.isLoading || organizationQuery.isLoading;
-  const isFetching = workspaceQuery.isFetching || organizationQuery.isFetching;
+  const isLoading = contextQuery.isLoading || organizationQuery.isLoading;
+  const isFetching = contextQuery.isFetching || organizationQuery.isFetching;
   const isError = shouldFetchOrganizationLocalization
-    ? organizationQuery.isError && (!workspaceId || workspaceQuery.isError)
-    : workspaceQuery.isError;
-  const error = isError ? (organizationQuery.error ?? workspaceQuery.error) : null;
+    ? organizationQuery.isError && (!contextId || contextQuery.isError)
+    : contextQuery.isError;
+  const error = isError ? (organizationQuery.error ?? contextQuery.error) : null;
   const refetch = shouldFetchOrganizationLocalization
     ? organizationQuery.refetch
-    : workspaceQuery.refetch;
+    : contextQuery.refetch;
 
   return {
+    projectId,
     workspaceId,
     localization,
     formatFromDate,

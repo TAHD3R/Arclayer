@@ -12,6 +12,9 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.api_keys.router import router as projects_api_keys_router
+from src.modules.projects.authz.router_helpers import (
+    ensure_project_permission_granted as ensure_project_authz_permission_granted,
+)
 from src.modules.projects.automation.router import router as projects_automation_router
 from src.modules.projects.content.router import router as projects_content_router
 from src.modules.projects.domains.router import router as projects_domains_router
@@ -77,20 +80,10 @@ async def require_project_team_permission(
     ctx: ProjectRequestContext,
     user_id: UUID,
 ) -> None:
-    await ensure_workspace_permission_granted(
+    await ensure_project_authz_permission_granted(
         permission,
         user_id=user_id,
-        ctx=WorkspaceContext(
-            workspace_id=ctx.workspace_id,
-            organization_id=ctx.organization_id,
-            workspace_kind=ctx.workspace_kind,
-            access_type=ctx.access_type,
-            org_membership_id=ctx.org_membership_id,
-            is_org_owner=ctx.is_org_owner,
-            workspace_membership_id=ctx.workspace_membership_id,
-            visible_only=ctx.visible_only,
-            is_creator_admin=ctx.is_creator_admin,
-        ),
+        ctx=ctx,
         error_code="PERMISSION_DENIED",
     )
 

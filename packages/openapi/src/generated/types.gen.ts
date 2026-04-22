@@ -9401,6 +9401,54 @@ export type ProjectArchiveResult = {
 };
 
 /**
+ * ProjectAuthzSnapshot
+ */
+export type ProjectAuthzSnapshot = {
+    /**
+     * Issuperuser
+     *
+     * Whether user is a superuser for this project scope.
+     */
+    isSuperuser?: boolean;
+    /**
+     * Permissioncodes
+     *
+     * Effective permission codes.
+     */
+    permissionCodes?: Array<string>;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Rolecodes
+     *
+     * Effective role codes.
+     */
+    roleCodes?: Array<string>;
+    /**
+     * Scope
+     *
+     * Authorization scope.
+     */
+    scope?: 'project';
+    /**
+     * Userid
+     *
+     * Current user id.
+     */
+    userId: string;
+    /**
+     * Workspaceid
+     *
+     * Backing workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
  * ProjectCreateRequest
  */
 export type ProjectCreateRequest = {
@@ -9871,6 +9919,36 @@ export type ProjectOut = {
 };
 
 /**
+ * ProjectPermissionActionOut
+ */
+export type ProjectPermissionActionOut = {
+    /**
+     * Code
+     *
+     * Canonical project action code.
+     */
+    code: string;
+    /**
+     * Description
+     *
+     * Action description.
+     */
+    description?: string | null;
+    /**
+     * Permissioncodes
+     *
+     * Backing permission codes.
+     */
+    permissionCodes?: Array<string>;
+    /**
+     * Subjectkinds
+     *
+     * Supported subject kinds.
+     */
+    subjectKinds?: Array<string>;
+};
+
+/**
  * ProjectRuntimeOut
  */
 export type ProjectRuntimeOut = {
@@ -9954,6 +10032,54 @@ export type ProjectRuntimeSiteOut = {
      * Workspace id.
      */
     workspaceId: string;
+};
+
+/**
+ * ProjectSettingsDetail
+ */
+export type ProjectSettingsDetail = {
+    /**
+     * Namespace
+     *
+     * Settings namespace.
+     */
+    namespace: string;
+    /**
+     * Secrets
+     *
+     * Secret field set state by path.
+     */
+    secrets?: {
+        [key: string]: boolean;
+    };
+    /**
+     * Updatedat
+     *
+     * Last update time.
+     */
+    updatedAt?: string | null;
+    /**
+     * Value
+     *
+     * Masked settings value.
+     */
+    value?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * ProjectSettingsPatch
+ */
+export type ProjectSettingsPatch = {
+    /**
+     * Patch
+     *
+     * Merge patch payload.
+     */
+    patch?: {
+        [key: string]: unknown;
+    };
 };
 
 /**
@@ -13410,6 +13536,31 @@ export type ResponseModelProjectArchiveResult = {
 };
 
 /**
+ * ResponseModel[ProjectAuthzSnapshot]
+ */
+export type ResponseModelProjectAuthzSnapshot = {
+    data?: ProjectAuthzSnapshot | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ProjectDangerCapabilitiesOut]
  */
 export type ResponseModelProjectDangerCapabilitiesOut = {
@@ -13564,6 +13715,31 @@ export type ResponseModelProjectMemberOut = {
  */
 export type ResponseModelProjectRuntimeSiteOut = {
     data?: ProjectRuntimeSiteOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectSettingsDetail]
+ */
+export type ResponseModelProjectSettingsDetail = {
+    data?: ProjectSettingsDetail | null;
     /**
      * Error
      */
@@ -14970,6 +15146,34 @@ export type ResponseModelListHierarchyNodeOut = {
      * Data
      */
     data?: Array<HierarchyNodeOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[list[ProjectPermissionActionOut]]
+ */
+export type ResponseModelListProjectPermissionActionOut = {
+    /**
+     * Data
+     */
+    data?: Array<ProjectPermissionActionOut> | null;
     /**
      * Error
      */
@@ -22612,7 +22816,7 @@ export type DomainProjectsListProjectActionsResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelListWorkspacePermissionActionOut;
+    200: ResponseModelListProjectPermissionActionOut;
 };
 
 export type DomainProjectsListProjectActionsResponse = DomainProjectsListProjectActionsResponses[keyof DomainProjectsListProjectActionsResponses];
@@ -24554,7 +24758,7 @@ export type DomainProjectsGetProjectAuthzSnapshotResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelAuthzSnapshot;
+    200: ResponseModelProjectAuthzSnapshot;
 };
 
 export type DomainProjectsGetProjectAuthzSnapshotResponse = DomainProjectsGetProjectAuthzSnapshotResponses[keyof DomainProjectsGetProjectAuthzSnapshotResponses];
@@ -24905,13 +25109,13 @@ export type DomainProjectsGetProjectCoreSettingsResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelWorkspaceSettingsDetail;
+    200: ResponseModelProjectSettingsDetail;
 };
 
 export type DomainProjectsGetProjectCoreSettingsResponse = DomainProjectsGetProjectCoreSettingsResponses[keyof DomainProjectsGetProjectCoreSettingsResponses];
 
 export type DomainProjectsPatchProjectCoreSettingsData = {
-    body: WorkspaceSettingsPatch;
+    body: ProjectSettingsPatch;
     path: {
         /**
          * Project Id
@@ -24937,7 +25141,7 @@ export type DomainProjectsPatchProjectCoreSettingsResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelWorkspaceSettingsDetail;
+    200: ResponseModelProjectSettingsDetail;
 };
 
 export type DomainProjectsPatchProjectCoreSettingsResponse = DomainProjectsPatchProjectCoreSettingsResponses[keyof DomainProjectsPatchProjectCoreSettingsResponses];

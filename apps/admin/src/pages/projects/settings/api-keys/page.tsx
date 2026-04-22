@@ -241,7 +241,7 @@ function ApiKeyRow(props: {
 export function ProjectApiKeysSettingsPage(props: { projectId: string }) {
   const { t } = useTranslation(["account", "common"]);
   const queryClient = useQueryClient();
-  const { formatDateTime } = useAdminDateTimeFormatter();
+  const { formatDateTime } = useAdminDateTimeFormatter({ projectId: props.projectId });
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

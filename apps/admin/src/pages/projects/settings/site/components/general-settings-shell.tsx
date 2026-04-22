@@ -158,6 +158,7 @@ export function GeneralSettingsShell({
       <Form {...form}>
         <ChromeTabsContent value="basics">
           <SiteSettingsTab
+            assetWorkspaceId={permissionAccess.authzQuery.data?.workspaceId ?? null}
             form={form}
             initialValues={initialValues}
             disabled={projectDisabled}

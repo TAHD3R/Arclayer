@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
 
-from src.modules.workspaces.authz.schema import AuthzSnapshot
+from src.modules.projects.authz.schema import ProjectAuthzSnapshot
 from src.modules.workspaces.permissions import (
     PermissionContext,
     PermissionDecision,
@@ -77,7 +77,7 @@ def build_api_key_access_profile(scopes: Iterable[str | ApiKeyScope]) -> ApiKeyA
 
 def resolve_personal_management_permissions(
     *,
-    authz_snapshot: AuthzSnapshot,
+    authz_snapshot: ProjectAuthzSnapshot,
     scopes: Iterable[str | ApiKeyScope],
 ) -> frozenset[str]:
     profile = build_api_key_access_profile(scopes)
@@ -99,7 +99,7 @@ def evaluate_api_key_action(
     action: str,
     subject_kind: PermissionSubjectKind,
     scopes: Iterable[str | ApiKeyScope],
-    authz_snapshot: AuthzSnapshot | None = None,
+    authz_snapshot: ProjectAuthzSnapshot | None = None,
 ) -> PermissionDecision:
     profile = build_api_key_access_profile(scopes)
     effective_permission_codes = (

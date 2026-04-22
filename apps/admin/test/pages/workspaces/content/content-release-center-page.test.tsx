@@ -74,6 +74,7 @@ describe("content-release-center-page", () => {
     vi.clearAllMocks();
     mocked.getMyProjectAuthz.mockResolvedValue({
       projectId: "project-1",
+      workspaceId: "ws-1",
       isSuperuser: false,
       permissionCodes: ["system:content:publish"],
     });

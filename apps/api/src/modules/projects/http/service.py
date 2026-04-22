@@ -11,10 +11,10 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.repository import ProjectRepository
 from src.modules.workspaces.http.service import (
-    _find_active_org_membership,
-    _require_active_workspace,
-    _resolve_guest_workspace_context,
-    _resolve_member_workspace_context,
+    find_active_org_membership,
+    require_active_workspace,
+    resolve_guest_workspace_context,
+    resolve_member_workspace_context,
 )
 
 
@@ -27,18 +27,18 @@ async def get_project_context(
     repo = ProjectRepository()
     project = await repo.get_project_by_id(project_id=project_id)
     workspace_id = UUID(str(cast(HasWorkspaceId, project).workspace_id))
-    workspace = await _require_active_workspace(workspace_id=workspace_id)
+    workspace = await require_active_workspace(workspace_id=workspace_id)
     organization_id = UUID(str(cast(HasOrganizationId, workspace).organization_id))
 
-    orgm = await _find_active_org_membership(organization_id=organization_id, user_id=user_id)
+    orgm = await find_active_org_membership(organization_id=organization_id, user_id=user_id)
     if orgm is None:
-        workspace_ctx = await _resolve_guest_workspace_context(
+        workspace_ctx = await resolve_guest_workspace_context(
             workspace=workspace,
             organization_id=organization_id,
             user_id=user_id,
         )
     else:
-        workspace_ctx = await _resolve_member_workspace_context(
+        workspace_ctx = await resolve_member_workspace_context(
             workspace=workspace,
             organization_id=organization_id,
             user_id=user_id,

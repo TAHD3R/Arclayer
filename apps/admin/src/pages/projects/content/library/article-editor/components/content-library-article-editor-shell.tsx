@@ -240,6 +240,7 @@ function ArticleEditorWorkflowLane(props: {
 function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
   const { t } = useTranslation(["content", "common"]);
   const permissionAccess = useProjectPermissionAccess(props.projectId);
+  const assetWorkspaceId = permissionAccess.authzQuery.data?.workspaceId ?? null;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isHydrated } = useContentLibraryArticleEditorDocumentState();
@@ -462,7 +463,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
                     <div className="absolute right-4 top-4 opacity-0 transition-opacity duration-150 group-hover/cover:opacity-100 group-focus-within/cover:opacity-100">
                       <ContentLibraryCoverPickerPopover
-                        workspaceId={props.projectId}
+                        assetWorkspaceId={assetWorkspaceId}
                         value={props.coverAssetId}
                         open={coverPopoverOpen}
                         onOpenChange={setCoverPopoverOpen}
@@ -495,7 +496,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
-                            workspaceId={props.projectId}
+                            assetWorkspaceId={assetWorkspaceId}
                             value={props.coverAssetId}
                             open={coverPopoverOpen}
                             onOpenChange={setCoverPopoverOpen}
@@ -568,7 +569,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
-                            workspaceId={props.projectId}
+                            assetWorkspaceId={assetWorkspaceId}
                             value={props.coverAssetId}
                             open={coverPopoverOpen}
                             onOpenChange={setCoverPopoverOpen}
@@ -645,15 +646,15 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         mode={props.mode}
         open={historyOpen}
         onOpenChange={setHistoryOpen}
-        workspaceId={props.projectId}
+        projectId={props.projectId}
       />
       {props.mode === "page" ? (
         <ContentLibraryArticleEditorUpdatesPanel
+          activityWorkspaceId={assetWorkspaceId}
           itemId={props.itemId}
           open={updatesOpen}
           onOpenChange={setUpdatesOpen}
           runtime={props.runtime}
-          workspaceId={props.projectId}
         />
       ) : null}
     </>
@@ -661,14 +662,17 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
 }
 
 export function ContentLibraryArticleEditorShell(props: ContentLibraryArticleEditorShellProps) {
+  const permissionAccess = useProjectPermissionAccess(props.projectId);
+  const assetWorkspaceId = permissionAccess.authzQuery.data?.workspaceId ?? null;
+
   return (
     <ContentLibraryArticleEditorDocumentProvider
-      workspaceId={props.projectId}
+      assetWorkspaceId={assetWorkspaceId}
       editorIdentity={`${props.projectId}:${props.itemId}`}
       document={props.bodyDocument}
       onChange={props.onBodyDocumentChange}
     >
-      <ContentLibraryArticleEditorDateLocalizationProvider workspaceId={props.projectId}>
+      <ContentLibraryArticleEditorDateLocalizationProvider projectId={props.projectId}>
         <ContentLibraryArticleEditorShellInner {...props} />
       </ContentLibraryArticleEditorDateLocalizationProvider>
     </ContentLibraryArticleEditorDocumentProvider>

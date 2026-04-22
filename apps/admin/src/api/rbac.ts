@@ -1,7 +1,7 @@
 import { api } from "@/lib/http";
 import { projectPath, toQueryString, workspacePath } from "@/lib/api";
 
-import type { PageData, Permission, RbacMatrix, Role } from "@/types/api";
+import type { PageData, Permission, ProjectPermissionAction, RbacMatrix, Role } from "@/types/api";
 import type { WorkspacePermissionAction } from "@/types/api/rbac";
 
 export async function listWorkspaceRoles(
@@ -38,8 +38,8 @@ export async function listWorkspacePermissionActions(
 
 export async function listProjectPermissionActions(
   projectId: string,
-): Promise<WorkspacePermissionAction[]> {
-  return api.get<WorkspacePermissionAction[]>(projectPath(projectId, "/actions"));
+): Promise<ProjectPermissionAction[]> {
+  return api.get<ProjectPermissionAction[]>(projectPath(projectId, "/actions"));
 }
 
 export async function createWorkspaceRoleFromTemplate(input: {

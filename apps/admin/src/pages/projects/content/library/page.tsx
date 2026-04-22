@@ -496,7 +496,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   const projectId = props.projectId ?? projectIdFromStore;
   const sidebar = useSidebar();
   const queryClient = useQueryClient();
-  const dateTime = useAdminDateTimeFormatter();
+  const dateTime = useAdminDateTimeFormatter({ projectId });
   const permissionAccess = useProjectPermissionAccess(projectId);
   const autoCardMode = useContentLibraryCardMode();
   const [manualViewMode, setManualViewMode] = React.useState<ContentLibraryViewMode | null>(null);

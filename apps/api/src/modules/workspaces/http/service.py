@@ -66,6 +66,10 @@ async def _find_active_org_membership(*, organization_id: UUID, user_id: UUID) -
     )
 
 
+async def find_active_org_membership(*, organization_id: UUID, user_id: UUID) -> OrgMembership | None:
+    return await _find_active_org_membership(organization_id=organization_id, user_id=user_id)
+
+
 async def _find_active_workspace_membership(*, workspace_id: UUID, user_id: UUID) -> WorkspaceMembership | None:
     return await WorkspaceMembership.get_or_none(
         workspace_id=workspace_id,
@@ -138,6 +142,19 @@ async def _resolve_guest_workspace_context(
     )
 
 
+async def resolve_guest_workspace_context(
+    *,
+    workspace: Workspace,
+    organization_id: UUID,
+    user_id: UUID,
+) -> WorkspaceContext:
+    return await _resolve_guest_workspace_context(
+        workspace=workspace,
+        organization_id=organization_id,
+        user_id=user_id,
+    )
+
+
 async def _resolve_member_workspace_context(
     *,
     workspace: Workspace,
@@ -177,6 +194,25 @@ async def _resolve_member_workspace_context(
         visible_only=visible_only,
         is_creator_admin=is_creator_admin,
     )
+
+
+async def resolve_member_workspace_context(
+    *,
+    workspace: Workspace,
+    organization_id: UUID,
+    user_id: UUID,
+    orgm: OrgMembership,
+) -> WorkspaceContext:
+    return await _resolve_member_workspace_context(
+        workspace=workspace,
+        organization_id=organization_id,
+        user_id=user_id,
+        orgm=orgm,
+    )
+
+
+async def require_active_workspace(*, workspace_id: PublicUUID) -> Workspace:
+    return await _require_active_workspace(workspace_id=workspace_id)
 
 
 async def get_workspace_context(
