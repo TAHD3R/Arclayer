@@ -19,6 +19,12 @@ const translations = {
 const useSearchMock = vi.fn();
 const useNavigateMock = vi.fn();
 const projectsContentSectionMock = vi.fn();
+const workspaceStoreState = {
+  currentWorkspaceId: null as string | null,
+  lastWorkspaceId: null as string | null,
+  setCurrentWorkspaceId: vi.fn(),
+  setCurrentProjectId: vi.fn(),
+};
 
 vi.mock("@tanstack/react-router", () => ({
   useSearch: () => useSearchMock(),
@@ -76,7 +82,8 @@ vi.mock("@arclayer/ui/data-table", () => ({
 }));
 
 vi.mock("@/stores/use-workspace-store", () => ({
-  useWorkspaceStore: () => vi.fn(),
+  useWorkspaceStore: (selector: (state: typeof workspaceStoreState) => unknown) =>
+    selector(workspaceStoreState),
 }));
 
 vi.mock("@/pages/usercenter/projects/components/usercenter-projects-dialogs", () => ({
