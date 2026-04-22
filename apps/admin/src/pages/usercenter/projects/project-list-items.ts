@@ -62,6 +62,21 @@ export function mapProjectToListItem(project: ProjectListItem): UserCenterProjec
   };
 }
 
+export function mapProjectListItemToSidebarBrowseProject(project: UserCenterProjectListItem) {
+  return {
+    projectId: project.projectId,
+    workspaceId: project.workspaceId,
+    name: project.name,
+    description: project.description,
+    enterable: project.enterable,
+    iconMode: project.iconMode,
+    iconColor: project.iconColor,
+    iconGlyph: project.iconGlyph ?? null,
+    iconEmoji: project.iconEmoji ?? null,
+    iconUrl: project.iconUrl,
+  };
+}
+
 export function paginateProjectList(
   items: readonly UserCenterProjectListItem[],
   page: number,

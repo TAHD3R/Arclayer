@@ -41,18 +41,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import type { CommandScope } from "@/lib/command/command-types";
 import { projectHomePath } from "@/lib/routing/workspace-routing";
+import type { ProjectAvatarIdentity } from "@/components/common/project-avatar";
 
-export type SidebarBrowseProject = {
+export type SidebarBrowseProject = ProjectAvatarIdentity & {
   projectId: string;
   workspaceId: string;
   name: string;
   description?: string | null;
   enterable: boolean;
-  iconMode?: "initials" | "glyph" | "emoji" | "image" | null;
-  iconColor?: string | null;
-  iconGlyph?: string | null;
-  iconEmoji?: string | null;
-  iconUrl?: string | null;
 };
 
 export type AdminSidebarShellProps = {

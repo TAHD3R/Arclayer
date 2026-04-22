@@ -49,8 +49,8 @@ vi.mock("@arclayer/ui/tooltip", () => ({
   TooltipContent: (props: { children: React.ReactNode }) => <div>{props.children}</div>,
 }));
 
-vi.mock("@/pages/projects/content/library/components/content-library-view-mode-toggle", () => ({
-  ContentLibraryViewModeToggle: () => <div data-testid="content-library-view-mode-toggle" />,
+vi.mock("@/components/common/view-mode-toggle", () => ({
+  ViewModeToggle: () => <div data-testid="content-library-view-mode-toggle" />,
 }));
 
 describe("ContentLibraryToolbar", () => {

@@ -4,6 +4,10 @@ import type { Table as ReactTable } from "@tanstack/react-table";
 import type { AdminAssetTag } from "@/types/api";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import {
+  ViewModeToggle,
+  type ViewMode as AssetsViewMode,
+} from "@/components/common/view-mode-toggle";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import {
   DataTableToolbarTools,
@@ -11,7 +15,6 @@ import {
   type DataTableToolsLabels,
 } from "@arclayer/ui/data-table";
 import { AssetsFilterPopover } from "./assets-filter-popover";
-import { AssetsViewModeToggle, type AssetsViewMode } from "./assets-view-mode-toggle";
 
 interface AssetsFilterValue {
   mimePrefix?: string;
@@ -91,11 +94,7 @@ export function AssetsViewHeader<TData = unknown>(props: AssetsViewHeaderProps<T
             />
           ) : null}
 
-          <AssetsViewModeToggle
-            t={props.t}
-            value={props.viewMode}
-            onChange={props.onViewModeChange}
-          />
+          <ViewModeToggle t={props.t} value={props.viewMode} onChange={props.onViewModeChange} />
         </>
       }
       trailingClassName="justify-end"

@@ -9,10 +9,10 @@ import {
 
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import { ViewModeToggle } from "@/components/common/view-mode-toggle";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 
 import type { UserCenterProjectsTranslateFn, UserCenterProjectsViewMode } from "../types";
-import { ProjectsViewModeToggle } from "./projects-view-mode-toggle";
 
 interface UserCenterProjectsToolbarProps {
   t: UserCenterProjectsTranslateFn;
@@ -62,11 +62,7 @@ export function UserCenterProjectsToolbar(props: UserCenterProjectsToolbarProps)
             />
           ) : null}
 
-          <ProjectsViewModeToggle
-            t={props.t}
-            value={props.viewMode}
-            onChange={props.onViewModeChange}
-          />
+          <ViewModeToggle t={props.t} value={props.viewMode} onChange={props.onViewModeChange} />
 
           <DataTableSearchInput
             value={props.searchInput}

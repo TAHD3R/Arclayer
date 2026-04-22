@@ -18,7 +18,10 @@ import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { extractWorkspaceBaseFromPath, mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
-import { mapProjectToListItem } from "@/pages/usercenter/projects/project-list-items";
+import {
+  mapProjectListItemToSidebarBrowseProject,
+  mapProjectToListItem,
+} from "@/pages/usercenter/projects/project-list-items";
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
@@ -84,6 +87,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
     retry: false,
     meta: { silent: true },
   });
+
+  const browseProjects = useMemo(
+    () => (projectsQuery.data ?? []).map(mapProjectListItemToSidebarBrowseProject),
+    [projectsQuery.data],
+  );
 
   const workspaceNav = useMemo(
     () =>
@@ -189,7 +197,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       renderTopbar={() => <AdminTopbar />}
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
       commandScope={commandScope}
-      browseProjects={projectsQuery.data ?? []}
+      browseProjects={browseProjects}
       activeBrowseProjectId={currentProjectId}
       favoriteWorkspaceBase={
         isWorkspaceScopeRoute

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 
 import { getWorkspaceDetail } from "@/api/workspaces";
+import { type ViewMode as AssetsViewMode } from "@/components/common/view-mode-toggle";
 import { ColumnsPage } from "@/layouts/page-shell/columns-page";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
@@ -19,7 +20,6 @@ import { AssetsFolderRail } from "./assets-folder-rail";
 import { AssetsViewDndSurface } from "./assets-view-dnd-surface";
 import { AssetsViewHeader } from "./assets-view-header";
 import { AssetsViewMasonrySection } from "./assets-view-masonry-section";
-import type { AssetsViewMode } from "./assets-view-mode-toggle";
 import { AssetsSelectionToolbar, AssetsViewOverlays } from "./assets-view-overlays";
 import { AssetsViewTableSection, useAssetsViewTableController } from "./assets-view-table-section";
 

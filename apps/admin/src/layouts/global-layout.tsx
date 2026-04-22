@@ -10,7 +10,10 @@ import { ProjectActionDialogs } from "@/pages/usercenter/projects/components/use
 import { ProjectActionsDropdown } from "@/pages/usercenter/projects/components/project-actions-dropdown";
 import { ProjectInlineNameEditor } from "@/pages/usercenter/projects/components/project-inline-name-editor";
 import { useProjectMenuActions } from "@/pages/usercenter/projects/hooks/use-project-menu-actions";
-import { mapProjectToListItem } from "@/pages/usercenter/projects/project-list-items";
+import {
+  mapProjectListItemToSidebarBrowseProject,
+  mapProjectToListItem,
+} from "@/pages/usercenter/projects/project-list-items";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
 import { resolveGlobalNavItems } from "@/constants/menu/global";
@@ -87,6 +90,11 @@ export function GlobalLayout() {
     retry: false,
     meta: { silent: true },
   });
+
+  const browseProjects = useMemo(
+    () => (projectsQuery.data ?? []).map(mapProjectListItemToSidebarBrowseProject),
+    [projectsQuery.data],
+  );
 
   const projectChildren = useMemo(
     () =>
@@ -194,7 +202,7 @@ export function GlobalLayout() {
       renderTopbar={() => <AdminTopbar />}
       mainItems={navItems}
       commandScope={GLOBAL_COMMAND_SCOPE}
-      browseProjects={projectsQuery.data ?? []}
+      browseProjects={browseProjects}
       activeBrowseProjectId={null}
       sidebarCollapsible="icon"
     >

@@ -382,6 +382,53 @@ describe("AdminSidebarShell", () => {
     expect(within(menu).getByRole("menuitem", { name: "nav:NAV_HOME" })).toBeInTheDocument();
   });
 
+  it("renders real project icons for both the active browse pill and dropdown items", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        browseProjects={[
+          {
+            projectId: "project-alpha",
+            workspaceId: "workspace-alpha",
+            name: "Project Alpha",
+            description: "Primary publishing surface",
+            enterable: true,
+            iconMode: "image",
+            iconUrl: "/assets/project-alpha-icon",
+          },
+          {
+            projectId: "project-beta",
+            workspaceId: "workspace-alpha",
+            name: "Project Beta",
+            description: "Secondary sandbox",
+            enterable: true,
+            iconMode: "glyph",
+            iconColor: "#123456",
+            iconGlyph: "rocket",
+          },
+        ]}
+        activeBrowseProjectId="project-alpha"
+        collapsible="icon"
+      />,
+    );
+
+    const browseTab = screen.getByRole("tab", { name: "Project Alpha Project Alpha" });
+    expect(browseTab.querySelector('img[alt="Project Alpha"]')).not.toBeNull();
+
+    await user.click(browseTab);
+
+    const menu = screen.getByRole("menu");
+    const projectAlphaItem = within(menu).getByRole("menuitem", { name: /Project Alpha/ });
+    const projectBetaItem = within(menu).getByRole("menuitem", { name: /Project Beta/ });
+
+    expect(projectAlphaItem.querySelector('img[alt="Project Alpha"]')).not.toBeNull();
+    expect(projectBetaItem.querySelector("svg")).not.toBeNull();
+  });
+
   it("navigates from the browse dropdown to another project and home", async () => {
     const user = userEvent.setup();
 

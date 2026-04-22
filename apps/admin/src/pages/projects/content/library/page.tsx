@@ -18,6 +18,7 @@ import {
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
+import { type ViewMode as ContentLibraryViewMode } from "@/components/common/view-mode-toggle";
 import { PageMainRegion } from "@/layouts/page-shell/page-main-region";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
@@ -59,7 +60,6 @@ import { ContentLibraryPreviewPanel } from "./components/content-library-preview
 import { ContentLibrarySelectionToolbar } from "./components/content-library-selection-toolbar";
 import { ContentLibraryToolbar } from "./components/content-library-toolbar";
 import { ContentLibraryViewFormDialog } from "./components/content-library-view-form-dialog";
-import { type ContentLibraryViewMode } from "./components/content-library-view-mode-toggle";
 import {
   type ContentLibraryPrototypeViewDraft,
   createContentLibraryPrototypeViewDraft,

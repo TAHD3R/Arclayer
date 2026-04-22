@@ -28,6 +28,7 @@ import {
   patchAsset,
   updateAssetFolder,
 } from "@/api/assets";
+import { type ViewMode as AssetsViewMode } from "@/components/common/view-mode-toggle";
 import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, type AssetSelectionState } from "@/lib/assets/asset-selection";
@@ -37,7 +38,6 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAssetsExplorerController } from "../components/explorer/use-assets-explorer-controller";
 import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import type { AssetsViewMode } from "../components/assets-view-mode-toggle";
 import {
   DND_ROOT_ID,
   parseAssetItemDndId,

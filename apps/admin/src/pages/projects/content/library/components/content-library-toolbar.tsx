@@ -34,6 +34,10 @@ import { Badge } from "@arclayer/ui/badge";
 
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import {
+  ViewModeToggle,
+  type ViewMode as ContentLibraryViewMode,
+} from "@/components/common/view-mode-toggle";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
 import type {
@@ -42,10 +46,6 @@ import type {
   ContentLibraryRole,
   ContentLibraryToolbarFilters,
 } from "../types";
-import {
-  ContentLibraryViewModeToggle,
-  type ContentLibraryViewMode,
-} from "./content-library-view-mode-toggle";
 import { ContentLibraryCreateViewPopover } from "./content-library-create-view-popover";
 import type { ContentLibraryPrototypeViewDraft } from "./content-library-view-form";
 
@@ -564,11 +564,7 @@ export function ContentLibraryToolbar<TData>(props: {
               labels={props.toolsLabels}
               components={{ IconButton: DataTableToolbarAntdIconButton }}
             />
-            <ContentLibraryViewModeToggle
-              t={t}
-              value={props.viewMode}
-              onChange={props.onViewModeChange}
-            />
+            <ViewModeToggle t={t} value={props.viewMode} onChange={props.onViewModeChange} />
           </>
         }
         leadingClassName="items-center"

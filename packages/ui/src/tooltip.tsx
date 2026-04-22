@@ -50,7 +50,7 @@ function TooltipContent({
   return (
     <TooltipContentPrimitive
       className={cn(
-        "w-fit rounded-md border border-border/70 bg-accent text-popover-foreground shadow-lg shadow-black/5",
+        "w-fit rounded-md border border-[hsl(210_10%_14%)]/70 bg-[hsl(220_15%_8%)] text-[hsl(220_15%_92%)] shadow-lg shadow-black/20",
         className,
       )}
       {...props}
@@ -59,7 +59,7 @@ function TooltipContent({
         <motion.div layout={layout}>{children}</motion.div>
       </motion.div>
       <TooltipArrowPrimitive
-        className="fill-popover size-3 data-[side='bottom']:translate-y-[1px] data-[side='right']:translate-x-[1px] data-[side='left']:translate-x-[-1px] data-[side='top']:translate-y-[-1px]"
+        className="size-3 fill-[hsl(220_15%_8%)] data-[side='bottom']:translate-y-[1px] data-[side='right']:translate-x-[1px] data-[side='left']:translate-x-[-1px] data-[side='top']:translate-y-[-1px]"
         tipRadius={2}
       />
     </TooltipContentPrimitive>
