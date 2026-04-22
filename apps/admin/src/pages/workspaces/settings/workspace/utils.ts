@@ -9,16 +9,11 @@ export function resolveWorkspaceSettingsTabNavigation(
   currentSearchStr = "",
 ): WorkspaceSettingsTabNavigation {
   const search = buildFavoriteOverlaySearchUpdater(currentSearchStr);
-  const to = "/projects/$projectId/settings/general";
+  const to =
+    tab === "content"
+      ? "/projects/$projectId/content/general"
+      : "/projects/$projectId/settings/general";
   const params = { projectId };
-
-  if (tab === "content") {
-    return {
-      to,
-      params,
-      ...(search ? { search } : {}),
-    };
-  }
   return {
     to,
     params,

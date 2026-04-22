@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
-from src.common.protocols.tortoise import HasWorkspaceId
+from src.common.protocols.tortoise import HasProjectId
 from src.core.exceptions import Conflict
 from src.models.system.setting import SettingRecord
 from src.modules.sites import schema as sites_schema
@@ -14,7 +14,7 @@ from src.modules.sites.namespaces.service import (
 )
 from src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from src.settings.scopes import SCOPE_TYPE_WORKSPACE
+from src.settings.scopes import SCOPE_TYPE_PROJECT
 
 if TYPE_CHECKING:
     from src.config import Settings
@@ -57,10 +57,10 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
             out[kk] = str(v)
         return out
 
-    async def _load_workspace_core_settings(self, *, workspace_id: UUID) -> dict[str, object]:
+    async def _load_project_core_settings(self, *, project_id: UUID) -> dict[str, object]:
         rec = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_WORKSPACE,
-            scope_id=workspace_id,
+            scope_type=SCOPE_TYPE_PROJECT,
+            scope_id=project_id,
             namespace=CORE_SETTINGS_NAMESPACE,
         )
         if rec is None or not isinstance(rec.value, dict):
@@ -172,11 +172,11 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
             raise Conflict("Site runtime requires database storage", error="SITE_RUNTIME_DB_REQUIRED")
 
         site = await self._repo.get_site_by_id(site_id=site_id)
-        workspace_id = UUID(str(cast(HasWorkspaceId, site).workspace_id))
-        core_value = await self._load_workspace_core_settings(workspace_id=workspace_id)
+        project_id = UUID(str(cast(HasProjectId, site).project_id))
+        core_value = await self._load_project_core_settings(project_id=project_id)
 
-        default_locale, fallback_locale, supported_locales = await self._read_workspace_site_localization(
-            workspace_id=workspace_id,
+        default_locale, fallback_locale, supported_locales = await self._read_project_site_localization(
+            project_id=project_id,
             site=site,
         )
         resolved_locale = self._normalize_locale_tag(str(locale or "")) or default_locale

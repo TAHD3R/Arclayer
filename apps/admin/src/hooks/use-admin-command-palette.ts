@@ -16,6 +16,7 @@ import {
   resolveRecentCommandEntries,
 } from "@/lib/command/entry-utils";
 import { buildAdminNavCommandEntries } from "@/lib/command/nav-command-items";
+import { normalizeLegacyProjectSettingsPath } from "@/lib/routing/legacy-project-settings-paths";
 import { resolveCommandSections, type CommandSource } from "@/lib/command/source-registry";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { useCommandRecentStore } from "@/stores/use-command-recent-store";
@@ -101,6 +102,11 @@ export function useAdminCommandPalette(props: {
   const recentRecords = useCommandRecentStore((state) => state.records);
   const recordRecent = useCommandRecentStore((state) => state.record);
 
+  const normalizedFavoritePaths = useMemo(
+    () => new Set(favoritePaths.map((path) => normalizeLegacyProjectSettingsPath(path))),
+    [favoritePaths],
+  );
+
   const pageEntries = useMemo(
     () => buildAdminNavCommandEntries(props.navItems, t),
     [i18n.language, i18n.resolvedLanguage, props.navItems, t],
@@ -109,9 +115,9 @@ export function useAdminCommandPalette(props: {
   const favoriteEntries = useMemo(
     () =>
       pageEntries.filter(
-        (entry) => entry.action.type === "navigate" && favoritePaths.includes(entry.action.to),
+        (entry) => entry.action.type === "navigate" && normalizedFavoritePaths.has(entry.action.to),
       ),
-    [favoritePaths, pageEntries],
+    [normalizedFavoritePaths, pageEntries],
   );
 
   const recentEntries = useMemo(

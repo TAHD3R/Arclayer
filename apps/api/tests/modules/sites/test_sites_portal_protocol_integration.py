@@ -6,7 +6,7 @@ from src.common.utils.public_ids import decode_public_id
 from src.models.sites.site_domain import SiteDomainRecord
 from src.models.system.setting import SettingRecord
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from src.settings.scopes import SCOPE_TYPE_SITE, SCOPE_TYPE_WORKSPACE
+from src.settings.scopes import SCOPE_TYPE_PROJECT, SCOPE_TYPE_SITE
 from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
 
 pytestmark = pytest.mark.integration
@@ -200,10 +200,10 @@ async def test_sites_public_preview_draft_publish_flow(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
-        workspace_uuid = decode_public_id(workspace_id)
+        project_uuid = decode_public_id(project_id)
         await SettingRecord.create(
-            scope_type=SCOPE_TYPE_WORKSPACE,
-            scope_id=workspace_uuid,
+            scope_type=SCOPE_TYPE_PROJECT,
+            scope_id=project_uuid,
             namespace=CORE_SETTINGS_NAMESPACE,
             value={"site": {"url": "https://example.test"}},
             updated_by=None,

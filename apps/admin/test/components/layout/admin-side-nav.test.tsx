@@ -1248,7 +1248,7 @@ describe("AdminSiderNav collapsed groups", () => {
     const view = renderTreeNav({
       items: workspaceItems,
       favoriteWorkspaceBase: "/projects/ws-1",
-      pathnameOverride: "/projects/ws-1/settings/general",
+      pathnameOverride: "/projects/ws-1/content/general",
     });
 
     expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
@@ -1270,6 +1270,25 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
       "data-active",
       "true",
+    );
+  });
+
+  it("keeps Project Settings active for the project API tab route", async () => {
+    const workspaceItems = mapWorkspaceNavItems(PROJECT_NAV_ITEMS, "/projects/ws-1");
+
+    renderTreeNav({
+      items: workspaceItems,
+      favoriteWorkspaceBase: "/projects/ws-1",
+      pathnameOverride: "/projects/ws-1/settings/api",
+    });
+
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_PROJECT" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
+      "data-active",
+      "false",
     );
   });
 

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 from xml.sax.saxutils import escape as xml_escape
 
+from src.common.protocols.tortoise import HasProjectId
 from src.common.services import BaseService
 from src.core.exceptions import Conflict
 from src.models.system.setting import SettingRecord
 from src.modules.sites.repository import SitesRepository
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from src.settings.scopes import SCOPE_TYPE_WORKSPACE
+from src.settings.scopes import SCOPE_TYPE_PROJECT
 
 
 class PublishingSitemapService(BaseService):
@@ -36,24 +38,22 @@ class PublishingSitemapService(BaseService):
 
         site = await self._repo.get_site_by_id(site_id=site_id)
 
-        workspace_id = getattr(site, "workspace_id", None)
-        ws_id = UUID(str(workspace_id)) if workspace_id is not None else None
+        project_id = UUID(str(cast(HasProjectId, site).project_id))
 
         base = "https://example.test" if self.settings.app_env == "test" else "https://example.invalid"
-        if ws_id is not None:
-            rec = await SettingRecord.get_or_none(
-                scope_type=SCOPE_TYPE_WORKSPACE,
-                scope_id=ws_id,
-                namespace=CORE_SETTINGS_NAMESPACE,
-            )
-            value = rec.value if rec is not None and isinstance(rec.value, dict) else {}
-            site_cfg = value.get("site") if isinstance(value, dict) else None
-            raw_url = site_cfg.get("url") if isinstance(site_cfg, dict) else None
-            if isinstance(raw_url, str) and raw_url.strip():
-                candidate = raw_url.strip().rstrip("/")
-                if "://" not in candidate:
-                    candidate = f"http://{candidate}"
-                base = candidate
+        rec = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_PROJECT,
+            scope_id=project_id,
+            namespace=CORE_SETTINGS_NAMESPACE,
+        )
+        value = rec.value if rec is not None and isinstance(rec.value, dict) else {}
+        site_cfg = value.get("site") if isinstance(value, dict) else None
+        raw_url = site_cfg.get("url") if isinstance(site_cfg, dict) else None
+        if isinstance(raw_url, str) and raw_url.strip():
+            candidate = raw_url.strip().rstrip("/")
+            if "://" not in candidate:
+                candidate = f"http://{candidate}"
+            base = candidate
         paths = await self._repo.list_public_sitemap_paths(site_id=site_id)
 
         lines: list[str] = [

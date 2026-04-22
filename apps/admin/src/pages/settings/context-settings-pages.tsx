@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SETTINGS_WORKSPACE_NAV_ITEMS } from "@/constants/menu/settings";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { ProjectApiKeysSettingsPage as ProjectApiKeysSettingsSurface } from "@/pages/projects/settings/api-keys/page";
 import { ProjectDomainSettingsPage as ProjectDomainSettingsSurface } from "@/pages/projects/settings/domain/page";
-import { GeneralSiteSettingsPage } from "@/pages/projects/settings/site/basics/page";
+import { ProjectSettingsPage as ProjectSettingsSurface } from "@/pages/projects/settings/project/page";
 import { GeneralLocalizationSettingsPage } from "@/pages/projects/settings/site/localization/page";
 import { WorkspacePermissionsSettingsPage } from "@/pages/workspaces/settings/workspace/permissions/page";
 import { WorkspaceSettingsBasicsView } from "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-view";
@@ -141,7 +140,7 @@ export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
 }
 
 export function ProjectGeneralSettingsPage(props: { projectId: string }) {
-  return <GeneralSiteSettingsPage projectId={props.projectId} />;
+  return <ProjectSettingsSurface activeTab="general" projectId={props.projectId} />;
 }
 
 export function ProjectLocalizationSettingsPage(props: { projectId: string }) {
@@ -174,7 +173,7 @@ export function ProjectSeoSettingsPage() {
 }
 
 export function ProjectApiKeysSettingsPage(props: { projectId: string }) {
-  return <ProjectApiKeysSettingsSurface projectId={props.projectId} />;
+  return <ProjectSettingsSurface activeTab="api" projectId={props.projectId} />;
 }
 
 export function ProjectRuntimeSettingsPage() {

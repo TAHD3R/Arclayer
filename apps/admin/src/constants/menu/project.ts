@@ -67,7 +67,8 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
         key: "settings.site",
         label: "Site Settings",
         labelKey: "nav:NAV_SETTINGS_SITE",
-        to: "/settings/general",
+        to: "/content/general",
+        activeMatchPaths: ["/content/localization", "/content/domain"],
         icon: Globe,
       },
     ],
@@ -221,6 +222,7 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     label: "Project Settings",
     labelKey: "nav:NAV_SETTINGS_PROJECT",
     to: "/settings/general",
+    activeMatchPaths: ["/settings/api", "/settings/api-keys"],
     icon: Settings2,
   },
 ] as const;

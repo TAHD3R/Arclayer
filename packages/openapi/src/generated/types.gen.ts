@@ -9401,54 +9401,6 @@ export type ProjectArchiveResult = {
 };
 
 /**
- * ProjectAuthzSnapshot
- */
-export type ProjectAuthzSnapshot = {
-    /**
-     * Issuperuser
-     *
-     * Whether user is a superuser for this project scope.
-     */
-    isSuperuser?: boolean;
-    /**
-     * Permissioncodes
-     *
-     * Effective permission codes.
-     */
-    permissionCodes?: Array<string>;
-    /**
-     * Projectid
-     *
-     * Project id.
-     */
-    projectId: string;
-    /**
-     * Rolecodes
-     *
-     * Effective role codes.
-     */
-    roleCodes?: Array<string>;
-    /**
-     * Scope
-     *
-     * Authorization scope.
-     */
-    scope?: 'project';
-    /**
-     * Userid
-     *
-     * Current user id.
-     */
-    userId: string;
-    /**
-     * Workspaceid
-     *
-     * Backing workspace id.
-     */
-    workspaceId: string;
-};
-
-/**
  * ProjectCreateRequest
  */
 export type ProjectCreateRequest = {
@@ -9916,36 +9868,6 @@ export type ProjectOut = {
      * Workspace id.
      */
     workspaceId: string;
-};
-
-/**
- * ProjectPermissionActionOut
- */
-export type ProjectPermissionActionOut = {
-    /**
-     * Code
-     *
-     * Canonical project action code.
-     */
-    code: string;
-    /**
-     * Description
-     *
-     * Action description.
-     */
-    description?: string | null;
-    /**
-     * Permissioncodes
-     *
-     * Backing permission codes.
-     */
-    permissionCodes?: Array<string>;
-    /**
-     * Subjectkinds
-     *
-     * Supported subject kinds.
-     */
-    subjectKinds?: Array<string>;
 };
 
 /**
@@ -13536,31 +13458,6 @@ export type ResponseModelProjectArchiveResult = {
 };
 
 /**
- * ResponseModel[ProjectAuthzSnapshot]
- */
-export type ResponseModelProjectAuthzSnapshot = {
-    data?: ProjectAuthzSnapshot | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[ProjectDangerCapabilitiesOut]
  */
 export type ResponseModelProjectDangerCapabilitiesOut = {
@@ -15146,34 +15043,6 @@ export type ResponseModelListHierarchyNodeOut = {
      * Data
      */
     data?: Array<HierarchyNodeOut> | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[list[ProjectPermissionActionOut]]
- */
-export type ResponseModelListProjectPermissionActionOut = {
-    /**
-     * Data
-     */
-    data?: Array<ProjectPermissionActionOut> | null;
     /**
      * Error
      */
@@ -22816,7 +22685,7 @@ export type DomainProjectsListProjectActionsResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelListProjectPermissionActionOut;
+    200: ResponseModelListWorkspacePermissionActionOut;
 };
 
 export type DomainProjectsListProjectActionsResponse = DomainProjectsListProjectActionsResponses[keyof DomainProjectsListProjectActionsResponses];
@@ -24758,7 +24627,7 @@ export type DomainProjectsGetProjectAuthzSnapshotResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelProjectAuthzSnapshot;
+    200: ResponseModelAuthzSnapshot;
 };
 
 export type DomainProjectsGetProjectAuthzSnapshotResponse = DomainProjectsGetProjectAuthzSnapshotResponses[keyof DomainProjectsGetProjectAuthzSnapshotResponses];

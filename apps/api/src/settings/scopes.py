@@ -5,6 +5,7 @@ from uuid import UUID
 SCOPE_TYPE_SYSTEM = "system"
 SCOPE_TYPE_ORG = "org"
 SCOPE_TYPE_WORKSPACE = "workspace"
+SCOPE_TYPE_PROJECT = "project"
 SCOPE_TYPE_SITE = "site"
 SCOPE_TYPE_USER = "user"
 

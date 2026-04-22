@@ -238,7 +238,7 @@ function ApiKeyRow(props: {
   );
 }
 
-export function ProjectApiKeysSettingsPage(props: { projectId: string }) {
+export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?: boolean }) {
   const { t } = useTranslation(["account", "common"]);
   const queryClient = useQueryClient();
   const { formatDateTime } = useAdminDateTimeFormatter({ projectId: props.projectId });
@@ -318,23 +318,24 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string }) {
     }
   };
 
-  return (
-    <DefaultPage
-      title={t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
-      description={t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
-      showFavoriteToggle={false}
-      pageFrame="full"
-      largeViewportGutters={false}
-      className="min-h-full"
-      contentClassName="min-h-full"
-      contentContainerClassName="min-h-full"
+  const content = (
+    <ContentGuard
+      loading={apiKeysQuery.isLoading}
+      loadingVariant="form"
+      error={apiKeysQuery.error}
+      onRetry={apiKeysQuery.isError ? () => void apiKeysQuery.refetch() : undefined}
     >
-      <ContentGuard
-        loading={apiKeysQuery.isLoading}
-        loadingVariant="form"
-        error={apiKeysQuery.error}
-        onRetry={apiKeysQuery.isError ? () => void apiKeysQuery.refetch() : undefined}
-      >
+      <div className="grid gap-6">
+        {!props.embedded ? null : (
+          <div className="max-w-3xl">
+            <div className="text-sm font-semibold text-foreground">
+              {t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
+            </div>
+            <div className="mt-1 text-sm leading-6 text-muted-foreground">
+              {t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
+            </div>
+          </div>
+        )}
         <div className="grid gap-6">
           <SecretRevealPanel reveal={secretReveal} onDismiss={() => setSecretReveal(null)} />
 
@@ -405,7 +406,26 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string }) {
             )}
           </div>
         </div>
-      </ContentGuard>
+      </div>
+    </ContentGuard>
+  );
+
+  if (props.embedded) {
+    return content;
+  }
+
+  return (
+    <DefaultPage
+      title={t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
+      description={t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
+      showFavoriteToggle={false}
+      pageFrame="full"
+      largeViewportGutters={false}
+      className="min-h-full"
+      contentClassName="min-h-full"
+      contentContainerClassName="min-h-full"
+    >
+      {content}
     </DefaultPage>
   );
 }

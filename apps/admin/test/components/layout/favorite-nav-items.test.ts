@@ -207,14 +207,44 @@ describe("resolveFavoriteNavItems", () => {
 
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/w/ws-1/settings/site/basics",
-        label: "Site Settings",
+        path: "/projects/ws-1/content/general",
+        label: "nav:NAV_SETTINGS_SITE",
         isCurrentWorkspace: true,
       }),
       expect.objectContaining({
         path: "/w/ws-1/settings/workspace/basics",
         label: "Workspace Settings",
         isCurrentWorkspace: true,
+      }),
+    ]);
+  });
+
+  it("canonicalizes migrated project site settings favorites onto the current content routes", () => {
+    const favorites = resolveFavoriteNavItems({
+      favorites: [
+        {
+          id: "item:/projects/ws-9/settings/localization",
+          type: "item",
+          path: "/projects/ws-9/settings/localization",
+        },
+        {
+          id: "item:/projects/ws-9/settings/domain",
+          type: "item",
+          path: "/projects/ws-9/settings/domain",
+        },
+      ],
+      items: [],
+      t: ((key: string) => key) as TFunction,
+    });
+
+    expect(flattenFavoriteNavItems(favorites)).toEqual([
+      expect.objectContaining({
+        path: "/projects/ws-9/content/localization",
+        label: "nav:NAV_SETTINGS_SITE",
+      }),
+      expect.objectContaining({
+        path: "/projects/ws-9/content/domain",
+        label: "nav:NAV_SETTINGS_SITE",
       }),
     ]);
   });

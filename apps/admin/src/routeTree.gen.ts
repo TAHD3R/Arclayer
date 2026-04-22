@@ -37,11 +37,15 @@ import { Route as ProjectsProjectIdSettingsRuntimeIndexRouteImport } from './rou
 import { Route as ProjectsProjectIdSettingsLocalizationIndexRouteImport } from './routes/projects/$projectId/settings/localization/index'
 import { Route as ProjectsProjectIdSettingsGeneralIndexRouteImport } from './routes/projects/$projectId/settings/general/index'
 import { Route as ProjectsProjectIdSettingsDomainIndexRouteImport } from './routes/projects/$projectId/settings/domain/index'
+import { Route as ProjectsProjectIdSettingsApiIndexRouteImport } from './routes/projects/$projectId/settings/api/index'
 import { Route as ProjectsProjectIdSettingsApiKeysIndexRouteImport } from './routes/projects/$projectId/settings/api-keys/index'
 import { Route as ProjectsProjectIdContentSiteBuilderIndexRouteImport } from './routes/projects/$projectId/content/site-builder/index'
 import { Route as ProjectsProjectIdContentReleasesIndexRouteImport } from './routes/projects/$projectId/content/releases/index'
 import { Route as ProjectsProjectIdContentModelsIndexRouteImport } from './routes/projects/$projectId/content/models/index'
+import { Route as ProjectsProjectIdContentLocalizationIndexRouteImport } from './routes/projects/$projectId/content/localization/index'
 import { Route as ProjectsProjectIdContentLibraryIndexRouteImport } from './routes/projects/$projectId/content/library/index'
+import { Route as ProjectsProjectIdContentGeneralIndexRouteImport } from './routes/projects/$projectId/content/general/index'
+import { Route as ProjectsProjectIdContentDomainIndexRouteImport } from './routes/projects/$projectId/content/domain/index'
 import { Route as ProjectsProjectIdContentCreateIndexRouteImport } from './routes/projects/$projectId/content/create/index'
 import { Route as ProjectsProjectIdContentAutomationIndexRouteImport } from './routes/projects/$projectId/content/automation/index'
 import { Route as ProjectsProjectIdContentLibraryItemIdIndexRouteImport } from './routes/projects/$projectId/content/library/$itemId/index'
@@ -214,6 +218,12 @@ const ProjectsProjectIdSettingsDomainIndexRoute =
     path: '/settings/domain/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
+const ProjectsProjectIdSettingsApiIndexRoute =
+  ProjectsProjectIdSettingsApiIndexRouteImport.update({
+    id: '/settings/api/',
+    path: '/settings/api/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
 const ProjectsProjectIdSettingsApiKeysIndexRoute =
   ProjectsProjectIdSettingsApiKeysIndexRouteImport.update({
     id: '/settings/api-keys/',
@@ -250,6 +260,16 @@ const ProjectsProjectIdContentModelsIndexRoute =
       (d) => d.Route,
     ),
   )
+const ProjectsProjectIdContentLocalizationIndexRoute =
+  ProjectsProjectIdContentLocalizationIndexRouteImport.update({
+    id: '/content/localization/',
+    path: '/content/localization/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/content/localization/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdContentLibraryIndexRoute =
   ProjectsProjectIdContentLibraryIndexRouteImport.update({
     id: '/content/library/',
@@ -257,6 +277,26 @@ const ProjectsProjectIdContentLibraryIndexRoute =
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any).lazy(() =>
     import('./routes/projects/$projectId/content/library/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const ProjectsProjectIdContentGeneralIndexRoute =
+  ProjectsProjectIdContentGeneralIndexRouteImport.update({
+    id: '/content/general/',
+    path: '/content/general/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/content/general/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const ProjectsProjectIdContentDomainIndexRoute =
+  ProjectsProjectIdContentDomainIndexRouteImport.update({
+    id: '/content/domain/',
+    path: '/content/domain/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/content/domain/index.lazy').then(
       (d) => d.Route,
     ),
   )
@@ -317,11 +357,15 @@ export interface FileRoutesByFullPath {
   '/system/tenants/workspaces/': typeof SystemTenantsWorkspacesIndexRoute
   '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
+  '/projects/$projectId/content/domain/': typeof ProjectsProjectIdContentDomainIndexRoute
+  '/projects/$projectId/content/general/': typeof ProjectsProjectIdContentGeneralIndexRoute
   '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
+  '/projects/$projectId/content/localization/': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models/': typeof ProjectsProjectIdContentModelsIndexRoute
   '/projects/$projectId/content/releases/': typeof ProjectsProjectIdContentReleasesIndexRoute
   '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
+  '/projects/$projectId/settings/api/': typeof ProjectsProjectIdSettingsApiIndexRoute
   '/projects/$projectId/settings/domain/': typeof ProjectsProjectIdSettingsDomainIndexRoute
   '/projects/$projectId/settings/general/': typeof ProjectsProjectIdSettingsGeneralIndexRoute
   '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
@@ -353,11 +397,15 @@ export interface FileRoutesByTo {
   '/system/tenants/workspaces': typeof SystemTenantsWorkspacesIndexRoute
   '/projects/$projectId/content/automation': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create': typeof ProjectsProjectIdContentCreateIndexRoute
+  '/projects/$projectId/content/domain': typeof ProjectsProjectIdContentDomainIndexRoute
+  '/projects/$projectId/content/general': typeof ProjectsProjectIdContentGeneralIndexRoute
   '/projects/$projectId/content/library': typeof ProjectsProjectIdContentLibraryIndexRoute
+  '/projects/$projectId/content/localization': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models': typeof ProjectsProjectIdContentModelsIndexRoute
   '/projects/$projectId/content/releases': typeof ProjectsProjectIdContentReleasesIndexRoute
   '/projects/$projectId/content/site-builder': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
+  '/projects/$projectId/settings/api': typeof ProjectsProjectIdSettingsApiIndexRoute
   '/projects/$projectId/settings/domain': typeof ProjectsProjectIdSettingsDomainIndexRoute
   '/projects/$projectId/settings/general': typeof ProjectsProjectIdSettingsGeneralIndexRoute
   '/projects/$projectId/settings/localization': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
@@ -392,11 +440,15 @@ export interface FileRoutesById {
   '/system/tenants/workspaces/': typeof SystemTenantsWorkspacesIndexRoute
   '/projects/$projectId/content/automation/': typeof ProjectsProjectIdContentAutomationIndexRoute
   '/projects/$projectId/content/create/': typeof ProjectsProjectIdContentCreateIndexRoute
+  '/projects/$projectId/content/domain/': typeof ProjectsProjectIdContentDomainIndexRoute
+  '/projects/$projectId/content/general/': typeof ProjectsProjectIdContentGeneralIndexRoute
   '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
+  '/projects/$projectId/content/localization/': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models/': typeof ProjectsProjectIdContentModelsIndexRoute
   '/projects/$projectId/content/releases/': typeof ProjectsProjectIdContentReleasesIndexRoute
   '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
+  '/projects/$projectId/settings/api/': typeof ProjectsProjectIdSettingsApiIndexRoute
   '/projects/$projectId/settings/domain/': typeof ProjectsProjectIdSettingsDomainIndexRoute
   '/projects/$projectId/settings/general/': typeof ProjectsProjectIdSettingsGeneralIndexRoute
   '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
@@ -432,11 +484,15 @@ export interface FileRouteTypes {
     | '/system/tenants/workspaces/'
     | '/projects/$projectId/content/automation/'
     | '/projects/$projectId/content/create/'
+    | '/projects/$projectId/content/domain/'
+    | '/projects/$projectId/content/general/'
     | '/projects/$projectId/content/library/'
+    | '/projects/$projectId/content/localization/'
     | '/projects/$projectId/content/models/'
     | '/projects/$projectId/content/releases/'
     | '/projects/$projectId/content/site-builder/'
     | '/projects/$projectId/settings/api-keys/'
+    | '/projects/$projectId/settings/api/'
     | '/projects/$projectId/settings/domain/'
     | '/projects/$projectId/settings/general/'
     | '/projects/$projectId/settings/localization/'
@@ -468,11 +524,15 @@ export interface FileRouteTypes {
     | '/system/tenants/workspaces'
     | '/projects/$projectId/content/automation'
     | '/projects/$projectId/content/create'
+    | '/projects/$projectId/content/domain'
+    | '/projects/$projectId/content/general'
     | '/projects/$projectId/content/library'
+    | '/projects/$projectId/content/localization'
     | '/projects/$projectId/content/models'
     | '/projects/$projectId/content/releases'
     | '/projects/$projectId/content/site-builder'
     | '/projects/$projectId/settings/api-keys'
+    | '/projects/$projectId/settings/api'
     | '/projects/$projectId/settings/domain'
     | '/projects/$projectId/settings/general'
     | '/projects/$projectId/settings/localization'
@@ -506,11 +566,15 @@ export interface FileRouteTypes {
     | '/system/tenants/workspaces/'
     | '/projects/$projectId/content/automation/'
     | '/projects/$projectId/content/create/'
+    | '/projects/$projectId/content/domain/'
+    | '/projects/$projectId/content/general/'
     | '/projects/$projectId/content/library/'
+    | '/projects/$projectId/content/localization/'
     | '/projects/$projectId/content/models/'
     | '/projects/$projectId/content/releases/'
     | '/projects/$projectId/content/site-builder/'
     | '/projects/$projectId/settings/api-keys/'
+    | '/projects/$projectId/settings/api/'
     | '/projects/$projectId/settings/domain/'
     | '/projects/$projectId/settings/general/'
     | '/projects/$projectId/settings/localization/'
@@ -728,6 +792,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdSettingsDomainIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/settings/api/': {
+      id: '/projects/$projectId/settings/api/'
+      path: '/settings/api'
+      fullPath: '/projects/$projectId/settings/api/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsApiIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/settings/api-keys/': {
       id: '/projects/$projectId/settings/api-keys/'
       path: '/settings/api-keys'
@@ -756,11 +827,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdContentModelsIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/content/localization/': {
+      id: '/projects/$projectId/content/localization/'
+      path: '/content/localization'
+      fullPath: '/projects/$projectId/content/localization/'
+      preLoaderRoute: typeof ProjectsProjectIdContentLocalizationIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/content/library/': {
       id: '/projects/$projectId/content/library/'
       path: '/content/library'
       fullPath: '/projects/$projectId/content/library/'
       preLoaderRoute: typeof ProjectsProjectIdContentLibraryIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/general/': {
+      id: '/projects/$projectId/content/general/'
+      path: '/content/general'
+      fullPath: '/projects/$projectId/content/general/'
+      preLoaderRoute: typeof ProjectsProjectIdContentGeneralIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/content/domain/': {
+      id: '/projects/$projectId/content/domain/'
+      path: '/content/domain'
+      fullPath: '/projects/$projectId/content/domain/'
+      preLoaderRoute: typeof ProjectsProjectIdContentDomainIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/content/create/': {
@@ -825,11 +917,15 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdSettingsIndexRoute: typeof ProjectsProjectIdSettingsIndexRoute
   ProjectsProjectIdContentAutomationIndexRoute: typeof ProjectsProjectIdContentAutomationIndexRoute
   ProjectsProjectIdContentCreateIndexRoute: typeof ProjectsProjectIdContentCreateIndexRoute
+  ProjectsProjectIdContentDomainIndexRoute: typeof ProjectsProjectIdContentDomainIndexRoute
+  ProjectsProjectIdContentGeneralIndexRoute: typeof ProjectsProjectIdContentGeneralIndexRoute
   ProjectsProjectIdContentLibraryIndexRoute: typeof ProjectsProjectIdContentLibraryIndexRoute
+  ProjectsProjectIdContentLocalizationIndexRoute: typeof ProjectsProjectIdContentLocalizationIndexRoute
   ProjectsProjectIdContentModelsIndexRoute: typeof ProjectsProjectIdContentModelsIndexRoute
   ProjectsProjectIdContentReleasesIndexRoute: typeof ProjectsProjectIdContentReleasesIndexRoute
   ProjectsProjectIdContentSiteBuilderIndexRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   ProjectsProjectIdSettingsApiKeysIndexRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRoute
+  ProjectsProjectIdSettingsApiIndexRoute: typeof ProjectsProjectIdSettingsApiIndexRoute
   ProjectsProjectIdSettingsDomainIndexRoute: typeof ProjectsProjectIdSettingsDomainIndexRoute
   ProjectsProjectIdSettingsGeneralIndexRoute: typeof ProjectsProjectIdSettingsGeneralIndexRoute
   ProjectsProjectIdSettingsLocalizationIndexRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRoute
@@ -847,8 +943,14 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
     ProjectsProjectIdContentAutomationIndexRoute,
   ProjectsProjectIdContentCreateIndexRoute:
     ProjectsProjectIdContentCreateIndexRoute,
+  ProjectsProjectIdContentDomainIndexRoute:
+    ProjectsProjectIdContentDomainIndexRoute,
+  ProjectsProjectIdContentGeneralIndexRoute:
+    ProjectsProjectIdContentGeneralIndexRoute,
   ProjectsProjectIdContentLibraryIndexRoute:
     ProjectsProjectIdContentLibraryIndexRoute,
+  ProjectsProjectIdContentLocalizationIndexRoute:
+    ProjectsProjectIdContentLocalizationIndexRoute,
   ProjectsProjectIdContentModelsIndexRoute:
     ProjectsProjectIdContentModelsIndexRoute,
   ProjectsProjectIdContentReleasesIndexRoute:
@@ -857,6 +959,8 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
     ProjectsProjectIdContentSiteBuilderIndexRoute,
   ProjectsProjectIdSettingsApiKeysIndexRoute:
     ProjectsProjectIdSettingsApiKeysIndexRoute,
+  ProjectsProjectIdSettingsApiIndexRoute:
+    ProjectsProjectIdSettingsApiIndexRoute,
   ProjectsProjectIdSettingsDomainIndexRoute:
     ProjectsProjectIdSettingsDomainIndexRoute,
   ProjectsProjectIdSettingsGeneralIndexRoute:

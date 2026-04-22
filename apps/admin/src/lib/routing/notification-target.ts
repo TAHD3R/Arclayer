@@ -1,5 +1,6 @@
 import type { NotificationItem } from "@/types/api";
 import type { SettingsSectionTarget } from "@/lib/settings/settings-screen";
+import { normalizeLegacyProjectSettingsPath } from "@/lib/routing/legacy-project-settings-paths";
 
 export type NotificationTarget =
   | Readonly<{ type: "navigate"; to: string }>
@@ -59,7 +60,9 @@ export function resolveNotificationTarget(item: NotificationItem): NotificationT
   if (!workspaceId || !targetTo) return null;
 
   if (targetTo === "/") return navigateTarget(`/projects/${workspaceId}/`);
-  if (targetTo.startsWith("/projects/")) return navigateTarget(targetTo);
+  if (targetTo.startsWith("/projects/")) {
+    return navigateTarget(normalizeLegacyProjectSettingsPath(targetTo));
+  }
   if (targetTo.startsWith("/settings/workspace/")) return resolveWorkspaceSettingsTarget(targetTo);
   if (targetTo.startsWith("/w/")) {
     const projectPath = targetTo.replace(`/w/${workspaceId}`, `/projects/${workspaceId}`);
@@ -75,22 +78,7 @@ export function resolveNotificationTarget(item: NotificationItem): NotificationT
     if (projectPath === `/projects/${workspaceId}/settings/workspace`) {
       return settingsTarget({ screen: "workspace.general" });
     }
-    return navigateTarget(
-      projectPath
-        .replace(
-          `/projects/${workspaceId}/settings/site/basics`,
-          `/projects/${workspaceId}/settings/general`,
-        )
-        .replace(
-          `/projects/${workspaceId}/settings/site/localization`,
-          `/projects/${workspaceId}/settings/localization`,
-        )
-        .replace(
-          `/projects/${workspaceId}/settings/site`,
-          `/projects/${workspaceId}/settings/general`,
-        )
-        .replace(`/projects/${workspaceId}/settings/seo`, `/projects/${workspaceId}/settings/seo`),
-    );
+    return navigateTarget(normalizeLegacyProjectSettingsPath(projectPath));
   }
   if (targetTo.startsWith("/o/")) return resolveLegacyOrganizationTarget(targetTo, workspaceId);
 

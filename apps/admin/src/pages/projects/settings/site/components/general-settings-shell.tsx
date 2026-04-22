@@ -34,7 +34,7 @@ type GeneralSettingsPageProps = {
 };
 
 type GeneralSettingsTabNavigation = {
-  to: "/projects/$projectId/settings/general" | "/projects/$projectId/settings/localization";
+  to: "/projects/$projectId/content/general" | "/projects/$projectId/content/localization";
   params: { projectId: string };
 };
 
@@ -44,12 +44,12 @@ function resolveGeneralSettingsTabNavigation(
 ): GeneralSettingsTabNavigation {
   if (tab === "localization") {
     return {
-      to: "/projects/$projectId/settings/localization",
+      to: "/projects/$projectId/content/localization",
       params: { projectId },
     };
   }
   return {
-    to: "/projects/$projectId/settings/general",
+    to: "/projects/$projectId/content/general",
     params: { projectId },
   };
 }

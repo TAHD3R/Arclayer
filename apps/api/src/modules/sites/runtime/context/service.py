@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
-from src.common.protocols.tortoise import HasWorkspaceId
+from src.common.protocols.tortoise import HasProjectId
 from src.core.exceptions import Conflict, NotFound
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
@@ -29,9 +29,9 @@ class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):
         return raw or None
 
     async def _to_site_resolve_out(self, *, site) -> sites_schema.SiteResolveOut:
-        workspace_id = UUID(str(cast(HasWorkspaceId, site).workspace_id))
-        default_locale, fallback_locale, supported_locales = await self._read_workspace_site_localization(
-            workspace_id=workspace_id,
+        project_id = UUID(str(cast(HasProjectId, site).project_id))
+        default_locale, fallback_locale, supported_locales = await self._read_project_site_localization(
+            project_id=project_id,
             site=site,
         )
         return sites_schema.SiteResolveOut(

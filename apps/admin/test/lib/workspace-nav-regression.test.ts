@@ -33,7 +33,7 @@ describe("workspace nav regression", () => {
       "/assets",
       "/content/models",
       "/content/library",
-      "/settings/general",
+      "/content/general",
       "/activity",
       "/settings/general",
     ]);
@@ -85,6 +85,7 @@ describe("workspace nav regression", () => {
       "activity",
       "settings.project",
     ]);
+    expect(listWorkspaceNavTargets(projectNav)).toContain("/content/general");
     expect(listWorkspaceNavTargets(projectNav)).toContain("/settings/general");
   });
 });

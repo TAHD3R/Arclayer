@@ -1,13 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { ProjectLocalizationSettingsPage } from "@/pages/settings/context-settings-pages";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/projects/$projectId/settings/localization/")({
-  staticData: { titleKey: "account:SETTINGS_NAV_PROJECT_LOCALIZATION" },
-  component: RouteComponent,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/projects/$projectId/content/localization",
+      params,
+      replace: true,
+    });
+  },
 });
-
-function RouteComponent() {
-  const { projectId } = Route.useParams();
-  return <ProjectLocalizationSettingsPage projectId={projectId} />;
-}

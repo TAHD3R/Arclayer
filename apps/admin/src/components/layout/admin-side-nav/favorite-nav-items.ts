@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import { ChevronRight } from "lucide-react";
 
 import { PROJECT_NAV_ITEMS } from "@/constants/menu/project";
+import { normalizeLegacyProjectSettingsPath } from "@/lib/routing/legacy-project-settings-paths";
 import type { FavoriteNode } from "@/types/stores/favorites";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { normalizePath } from "./nav-utils";
@@ -81,11 +82,15 @@ function buildTemplateIndex(items: readonly AdminNavItem[], t: TFunction): Favor
 
   const walk = (nodes: readonly AdminNavItem[]) => {
     for (const item of nodes) {
-      if (item.to) {
-        exactByPath.set(normalizePath(item.to), {
-          label: item.labelKey ? t(item.labelKey) : item.label,
-          Icon: item.icon,
-        });
+      const template = {
+        label: item.labelKey ? t(item.labelKey) : item.label,
+        Icon: item.icon,
+      };
+      const candidates = [item.to, ...(item.activeMatchPaths ?? [])].filter(
+        (value): value is string => Boolean(value),
+      );
+      for (const candidate of candidates) {
+        exactByPath.set(normalizePath(candidate), template);
       }
 
       if (item.children?.length) walk(item.children);
@@ -96,11 +101,15 @@ function buildTemplateIndex(items: readonly AdminNavItem[], t: TFunction): Favor
 
   const workspaceWalk = (nodes: readonly AdminNavItem[]) => {
     for (const item of nodes) {
-      if (item.to) {
-        workspaceBySuffix.set(normalizePath(item.to), {
-          label: item.labelKey ? t(item.labelKey) : item.label,
-          Icon: item.icon,
-        });
+      const template = {
+        label: item.labelKey ? t(item.labelKey) : item.label,
+        Icon: item.icon,
+      };
+      const candidates = [item.to, ...(item.activeMatchPaths ?? [])].filter(
+        (value): value is string => Boolean(value),
+      );
+      for (const candidate of candidates) {
+        workspaceBySuffix.set(normalizePath(candidate), template);
       }
       if (item.children?.length) workspaceWalk(item.children);
     }
@@ -112,6 +121,8 @@ function buildTemplateIndex(items: readonly AdminNavItem[], t: TFunction): Favor
 
 function isWithinWorkspace(path: string, workspaceBase: string | null): boolean {
   if (!workspaceBase) return false;
+  const pathWorkspaceBase = parseWorkspaceBase(path);
+  if (pathWorkspaceBase) return pathWorkspaceBase === workspaceBase;
   return path === workspaceBase || path.startsWith(`${workspaceBase}/`);
 }
 
@@ -120,7 +131,7 @@ function resolveFavoriteItem(
   templates: FavoriteTemplateIndex,
   workspaceBase: string | null,
 ): FavoriteNavLeaf | null {
-  const normalizedPath = normalizePath(path);
+  const normalizedPath = normalizeLegacyProjectSettingsPath(path);
   const globalExactTemplate = templates.exactByPath.get(normalizedPath);
   const globalAncestorTemplate = findNearestAncestorTemplate(normalizedPath, templates.exactByPath);
   const workspaceSuffix = parseWorkspaceSuffix(normalizedPath);
@@ -161,7 +172,9 @@ export function resolveFavoriteNavItems(params: {
   t: TFunction;
   workspaceBase?: string | null;
 }): FavoriteNavNode[] {
-  const workspaceBase = params.workspaceBase ? normalizePath(params.workspaceBase) : null;
+  const workspaceBase = params.workspaceBase
+    ? (parseWorkspaceBase(params.workspaceBase) ?? normalizePath(params.workspaceBase))
+    : null;
   const templates = buildTemplateIndex(params.items, params.t);
 
   const walk = (nodes: readonly FavoriteNode[]): FavoriteNavNode[] => {
@@ -204,7 +217,9 @@ export function flattenFavoriteNavItems(nodes: readonly FavoriteNavNode[]): Favo
 }
 
 function favoriteNodeMatchesPath(node: FavoriteNavNode, pathname: string): boolean {
-  if (node.type === "item") return normalizePath(node.path) === normalizePath(pathname);
+  if (node.type === "item") {
+    return normalizePath(node.path) === normalizeLegacyProjectSettingsPath(pathname);
+  }
   return node.children.some((child) => favoriteNodeMatchesPath(child, pathname));
 }
 
@@ -219,7 +234,7 @@ export function buildFavoriteAdminChildren(
         label: node.label,
         icon: node.Icon,
         to: node.path,
-        isActive: normalizePath(node.path) === normalizePath(pathname),
+        isActive: normalizePath(node.path) === normalizeLegacyProjectSettingsPath(pathname),
       };
     }
 

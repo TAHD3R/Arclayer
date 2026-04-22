@@ -38,12 +38,12 @@ describe("resolveNotificationTarget", () => {
     });
   });
 
-  it("normalizes legacy workspace site settings to project settings", () => {
+  it("normalizes legacy workspace site settings to website content settings", () => {
     expect(
       resolveNotificationTarget(makeNotification("/w/project-1/settings/site/basics")),
     ).toEqual({
       type: "navigate",
-      to: "/projects/project-1/settings/general",
+      to: "/projects/project-1/content/general",
     });
   });
 });

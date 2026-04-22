@@ -113,6 +113,16 @@ vi.mock("@/pages/projects/settings/site/basics/page", () => ({
   ),
 }));
 
+vi.mock("@/pages/projects/settings/project/page", () => ({
+  ProjectSettingsPage: (props: { activeTab: string; projectId: string }) => (
+    <div
+      data-testid="project-settings-page"
+      data-active-tab={props.activeTab}
+      data-project-id={props.projectId}
+    />
+  ),
+}));
+
 vi.mock("@/pages/projects/settings/site/localization/page", () => ({
   GeneralLocalizationSettingsPage: (props: { projectId: string }) => (
     <div data-testid="general-localization-settings-page" data-project-id={props.projectId} />
@@ -159,10 +169,14 @@ describe("context settings pages", () => {
     );
   });
 
-  it("renders project general settings through the site settings page with project context", () => {
+  it("renders project general settings through the project settings shell with project context", () => {
     renderWithQueryClient(<ProjectGeneralSettingsPage projectId="project-1" />);
 
-    expect(screen.getByTestId("general-site-settings-page")).toHaveAttribute(
+    expect(screen.getByTestId("project-settings-page")).toHaveAttribute(
+      "data-active-tab",
+      "general",
+    );
+    expect(screen.getByTestId("project-settings-page")).toHaveAttribute(
       "data-project-id",
       "project-1",
     );

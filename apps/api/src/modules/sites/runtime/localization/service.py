@@ -4,7 +4,7 @@ from uuid import UUID
 
 from src.models.system.setting import SettingRecord
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from src.settings.scopes import SCOPE_TYPE_WORKSPACE
+from src.settings.scopes import SCOPE_TYPE_PROJECT
 
 
 class SiteRuntimeLocalizationMixin:
@@ -37,15 +37,15 @@ class SiteRuntimeLocalizationMixin:
             out.append(norm)
         return out
 
-    async def _read_workspace_site_localization(
+    async def _read_project_site_localization(
         self,
         *,
-        workspace_id: UUID,
+        project_id: UUID,
         site: object,
     ) -> tuple[str, str, list[str]]:
         rec = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_WORKSPACE,
-            scope_id=workspace_id,
+            scope_type=SCOPE_TYPE_PROJECT,
+            scope_id=project_id,
             namespace=CORE_SETTINGS_NAMESPACE,
         )
         value = rec.value if rec is not None and isinstance(rec.value, dict) else {}
