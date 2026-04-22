@@ -30,7 +30,6 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav aligned with live workspace routes", () => {
     expect(listWorkspaceNavTargets()).toEqual([
       "/",
-      "/notifications",
       "/assets",
       "/content/models",
       "/content/library",
@@ -53,7 +52,6 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav tree aligned with the approved IA", () => {
     expect(ADMIN_NAV_ITEMS.map((item) => item.key)).toEqual([
       "dashboard",
-      "inbox",
       "website",
       "analytics",
       "apps",
@@ -80,7 +78,6 @@ describe("workspace nav regression", () => {
 
     expect(projectNav.map((item) => item.key)).toEqual([
       "dashboard",
-      "inbox",
       "website",
       "analytics",
       "apps",

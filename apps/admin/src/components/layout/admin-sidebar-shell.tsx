@@ -1,10 +1,13 @@
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import { MessageCircle, PanelLeft as PanelLeftIcon, PanelsTopLeft } from "lucide-react";
+import { Inbox, MessageCircle, PanelLeft as PanelLeftIcon, PanelsTopLeft } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
+import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
+import { AdminSidebarInbox } from "@/components/layout/admin-sidebar-inbox";
 import { AdminFullLogo, AdminLogo } from "@/components/layout/admin-logo";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminSidebarMainMenuSkeleton } from "@/components/layout/admin-sidebar-skeleton";
@@ -23,11 +26,26 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import type { CommandScope } from "@/lib/command/command-types";
 
+export type SidebarBrowseProject = {
+  projectId: string;
+  workspaceId: string;
+  name: string;
+  description?: string | null;
+  enterable: boolean;
+  iconMode?: "initials" | "glyph" | "emoji" | "image" | null;
+  iconColor?: string | null;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
+  iconUrl?: string | null;
+};
+
 export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;
   showOrgNavErrorOverlay: boolean;
   mainItems: readonly AdminNavItem[];
   commandScope?: CommandScope;
+  browseProjects?: readonly SidebarBrowseProject[];
+  activeBrowseProjectId?: string | null;
   favoriteWorkspaceBase?: string | null;
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
@@ -101,7 +119,16 @@ function useSidebarBottomBlurState(args: { showMenuSkeleton: boolean; mainItemCo
   };
 }
 
-type SidebarTopTab = "browse" | "chat";
+type SidebarTopTab = "browse" | "inbox" | "chat";
+const BROWSE_TAB_ACTIVE_MAX_WIDTH_CLASSNAME = "data-[state=active]:max-w-[7rem]";
+const GHOST_HOVER_CLASSNAME =
+  "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50";
+const GHOST_ACTIVE_CLASSNAME =
+  "data-[state=active]:bg-accent data-[state=active]:text-accent-foreground dark:data-[state=active]:bg-accent/50";
+const SIDEBAR_CONTENT_TRANSITION = {
+  duration: 0.2,
+  ease: [0.22, 1, 0.36, 1],
+} as const;
 
 function useSidebarExpandedHeaderRows() {
   const { motionPhase, state } = useSidebar();
@@ -168,12 +195,15 @@ function AdminSidebarBranding() {
 }
 
 function AdminSidebarTopTabs(props: {
+  value: SidebarTopTab;
+  onValueChange: (next: SidebarTopTab) => void;
   navItems: readonly AdminNavItem[];
   commandScope?: CommandScope;
+  browseProjects?: readonly SidebarBrowseProject[];
+  activeBrowseProjectId?: string | null;
 }) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation(["common"]);
   const showExpandedHeaderRows = useSidebarExpandedHeaderRows();
-  const [tab, setTab] = useState<SidebarTopTab>("browse");
   const commandPalette = useAdminCommandPalette({
     navItems: props.navItems,
     scope:
@@ -186,8 +216,8 @@ function AdminSidebarTopTabs(props: {
       } as const),
   });
   const handleTabChange = (next: string) => {
-    if (next === "browse" || next === "chat") {
-      setTab(next);
+    if (next === "browse" || next === "inbox" || next === "chat") {
+      props.onValueChange(next);
     }
   };
 
@@ -196,12 +226,29 @@ function AdminSidebarTopTabs(props: {
   }
 
   const browseLabel = t("common:SIDEBAR_TOP_TAB_BROWSE");
+  const inboxLabel = t("nav:NAV_INBOX");
   const chatLabel = t("common:SIDEBAR_TOP_TAB_CHAT");
+  const activeBrowseProject =
+    props.activeBrowseProjectId != null
+      ? ((props.browseProjects ?? []).find(
+          (project) => project.projectId === props.activeBrowseProjectId,
+        ) ?? null)
+      : null;
+  const browseTabDisplayLabel = activeBrowseProject?.name || browseLabel;
+  const browseTabClassName = cn(
+    "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
+    "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
+    GHOST_HOVER_CLASSNAME,
+    "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
+    GHOST_ACTIVE_CLASSNAME,
+    "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
+    BROWSE_TAB_ACTIVE_MAX_WIDTH_CLASSNAME,
+  );
 
   return (
     <div className="px-2 py-2 pr-3">
       <div className="flex items-center gap-2">
-        <Tabs value={tab} onValueChange={handleTabChange} className="min-w-0 flex-1">
+        <Tabs value={props.value} onValueChange={handleTabChange} className="min-w-0 flex-1">
           <TabsList
             aria-label={t("common:SIDEBAR_TOP_TABS_LABEL")}
             className={cn(
@@ -209,26 +256,53 @@ function AdminSidebarTopTabs(props: {
             )}
           >
             <Tooltip>
+              <TabsTrigger value="browse" className={browseTabClassName}>
+                <TooltipTrigger asChild focusTrigger={false}>
+                  <span className="inline-flex items-center justify-center">
+                    {activeBrowseProject ? (
+                      <ProjectAvatar
+                        name={browseTabDisplayLabel}
+                        size={18}
+                        className="shrink-0 rounded-sm ring-0"
+                        {...projectAvatarPropsFromIdentity(activeBrowseProject)}
+                      />
+                    ) : (
+                      <PanelsTopLeft className="size-4 shrink-0" aria-hidden="true" />
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <span
+                  className={cn("min-w-0 truncate", props.value === "browse" ? "inline" : "hidden")}
+                >
+                  {browseTabDisplayLabel}
+                </span>
+              </TabsTrigger>
+              <TooltipContent hidden={props.value === "browse"}>
+                {browseTabDisplayLabel}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
               <TabsTrigger
-                value="browse"
+                value="inbox"
                 className={cn(
                   "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
                   "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
-                  "hover:bg-accent/40 hover:text-label-primary",
-                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:bg-accent/40 data-[state=active]:px-3 data-[state=active]:text-label-primary",
+                  GHOST_HOVER_CLASSNAME,
+                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
+                  GHOST_ACTIVE_CLASSNAME,
                   "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
                 )}
               >
                 <TooltipTrigger asChild focusTrigger={false}>
                   <span className="inline-flex items-center justify-center">
-                    <PanelsTopLeft className="size-4 shrink-0" aria-hidden="true" />
+                    <Inbox className="size-4 shrink-0" aria-hidden="true" />
                   </span>
                 </TooltipTrigger>
-                <span className={cn("truncate", tab === "browse" ? "inline" : "hidden")}>
-                  {browseLabel}
+                <span className={cn("truncate", props.value === "inbox" ? "inline" : "hidden")}>
+                  {inboxLabel}
                 </span>
               </TabsTrigger>
-              <TooltipContent hidden={tab === "browse"}>{browseLabel}</TooltipContent>
+              <TooltipContent hidden={props.value === "inbox"}>{inboxLabel}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TabsTrigger
@@ -236,8 +310,9 @@ function AdminSidebarTopTabs(props: {
                 className={cn(
                   "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
                   "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
-                  "hover:bg-accent/40 hover:text-label-primary",
-                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:bg-accent/40 data-[state=active]:px-3 data-[state=active]:text-label-primary",
+                  GHOST_HOVER_CLASSNAME,
+                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
+                  GHOST_ACTIVE_CLASSNAME,
                   "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
                 )}
               >
@@ -246,11 +321,11 @@ function AdminSidebarTopTabs(props: {
                     <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
                   </span>
                 </TooltipTrigger>
-                <span className={cn("truncate", tab === "chat" ? "inline" : "hidden")}>
+                <span className={cn("truncate", props.value === "chat" ? "inline" : "hidden")}>
                   {chatLabel}
                 </span>
               </TabsTrigger>
-              <TooltipContent hidden={tab === "chat"}>{chatLabel}</TooltipContent>
+              <TooltipContent hidden={props.value === "chat"}>{chatLabel}</TooltipContent>
             </Tooltip>
           </TabsList>
         </Tabs>
@@ -269,12 +344,14 @@ function AdminSidebarTopTabs(props: {
 }
 
 function AdminSidebarContentArea(props: {
+  activeTab: SidebarTopTab;
   showMenuSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
 }) {
+  const { t } = useTranslation(["common"]);
   const bottomBlur = useSidebarBottomBlurState({
     showMenuSkeleton: props.showMenuSkeleton,
     mainItemCount: props.mainItems.length,
@@ -292,30 +369,70 @@ function AdminSidebarContentArea(props: {
     />
   );
 
+  const browseContent = (
+    <div className="relative flex min-h-0 flex-1">
+      <div
+        ref={bottomBlur.navScrollRef}
+        className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none"
+      >
+        {mainMenu}
+      </div>
+      {bottomBlur.showNavBottomBlur ? (
+        <GradualBlur
+          target="parent"
+          position="bottom"
+          height="4rem"
+          strength={2}
+          divCount={5}
+          curve="bezier"
+          exponential={false}
+          opacity={0.75}
+          zIndex={20}
+          className="pointer-events-none"
+          style={bottomBlur.blurStyle}
+        />
+      ) : null}
+    </div>
+  );
+
+  const chatContent = (
+    <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6">
+      <div className="mx-auto flex max-w-[14rem] flex-col items-center text-center">
+        <MessageCircle className="mb-4 size-5 text-label-secondary" aria-hidden="true" />
+        <h3 className="text-callout font-semibold text-label-primary">
+          <span>{t("common:SIDEBAR_CHAT_EMPTY_TITLE")}</span>
+        </h3>
+        <p className="mt-2 text-footnote leading-6 text-label-secondary">
+          {t("common:SIDEBAR_CHAT_EMPTY_DESC")}
+        </p>
+      </div>
+    </div>
+  );
+
+  const activeContent =
+    props.activeTab === "browse" ? (
+      browseContent
+    ) : props.activeTab === "inbox" ? (
+      <AdminSidebarInbox />
+    ) : (
+      chatContent
+    );
+
   return (
-    <SidebarContent className="relative z-10 px-2 overflow-hidden scrollbar-none">
-      <div className="relative flex min-h-0 flex-1">
-        <div
-          ref={bottomBlur.navScrollRef}
-          className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none"
-        >
-          {mainMenu}
-        </div>
-        {bottomBlur.showNavBottomBlur ? (
-          <GradualBlur
-            target="parent"
-            position="bottom"
-            height="4rem"
-            strength={2}
-            divCount={5}
-            curve="bezier"
-            exponential={false}
-            opacity={0.75}
-            zIndex={20}
-            className="pointer-events-none"
-            style={bottomBlur.blurStyle}
-          />
-        ) : null}
+    <SidebarContent className="relative z-10 overflow-hidden px-2 scrollbar-none">
+      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={props.activeTab}
+            className="flex min-h-0 min-w-0 w-full flex-1"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            transition={SIDEBAR_CONTENT_TRANSITION}
+          >
+            {activeContent}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </SidebarContent>
   );
@@ -326,6 +443,8 @@ export function AdminSidebarShell({
   showOrgNavErrorOverlay,
   mainItems,
   commandScope,
+  browseProjects,
+  activeBrowseProjectId,
   favoriteWorkspaceBase,
   resolvePermissionName,
   pathnameOverride,
@@ -336,6 +455,7 @@ export function AdminSidebarShell({
   const { t } = useTranslation("common");
   const showFailureSkeleton = showOrgNavErrorOverlay;
   const showMenuSkeleton = showNavSkeleton || showFailureSkeleton;
+  const [activeTab, setActiveTab] = useState<SidebarTopTab>("browse");
 
   return (
     <Sidebar
@@ -344,8 +464,16 @@ export function AdminSidebarShell({
       className={cn("relative isolate z-40 h-screen", className)}
     >
       <AdminSidebarBranding />
-      <AdminSidebarTopTabs navItems={mainItems} commandScope={commandScope} />
+      <AdminSidebarTopTabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        navItems={mainItems}
+        commandScope={commandScope}
+        browseProjects={browseProjects}
+        activeBrowseProjectId={activeBrowseProjectId}
+      />
       <AdminSidebarContentArea
+        activeTab={activeTab}
         showMenuSkeleton={showMenuSkeleton}
         mainItems={mainItems}
         favoriteWorkspaceBase={favoriteWorkspaceBase}

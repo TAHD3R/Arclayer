@@ -25,6 +25,7 @@ interface NotificationCardProps {
   onArchive?: () => void;
   /** Compact mode for popup panel — hides category icon column */
   compact?: boolean;
+  layoutMode?: "default" | "sidebar-inbox";
 }
 
 function pickCategoryIcon(category: NotificationCategory) {
@@ -43,6 +44,7 @@ export function NotificationCard({
   onDelete,
   onArchive,
   compact = false,
+  layoutMode = "default",
 }: NotificationCardProps) {
   const { t } = useTranslation("notifications");
   const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
@@ -58,7 +60,7 @@ export function NotificationCard({
       variant={isRead ? "muted" : "default"}
       className={cn(
         "w-full min-w-0 cursor-pointer rounded-md border-0 transition-[background-color,box-shadow,opacity] duration-150",
-        "hover:bg-accent/40 hover: active:bg-accent/60",
+        "hover:bg-accent/40 active:bg-accent/60",
       )}
       role="button"
       tabIndex={0}
@@ -77,7 +79,7 @@ export function NotificationCard({
         </ItemMedia>
       ) : null}
 
-      <ItemContent>
+      <ItemContent className="min-w-0">
         <ItemHeader>
           <ItemTitle className="min-w-0 flex-1">
             <span
@@ -92,62 +94,68 @@ export function NotificationCard({
         </ItemHeader>
         {item.body ? (
           <ItemDescription
-            className={cn(isRead ? "text-label-secondary/80!" : "text-label-secondary!")}
+            className={cn("min-w-0", isRead ? "text-label-secondary/80!" : "text-label-secondary!")}
           >
             {item.body}
           </ItemDescription>
         ) : null}
-      </ItemContent>
-
-      <div className="ml-auto flex flex-col items-end gap-2">
-        {timeText ? (
-          <span className="shrink-0 text-footnote text-label-secondary">{timeText}</span>
-        ) : null}
-        <div className="flex items-center gap-1">
-          {!isRead && onMarkRead ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("NOTIFICATIONS_MARK_AS_READ")}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onMarkRead();
-              }}
-            >
-              <Check className="size-4" aria-hidden="true" />
-            </Button>
-          ) : null}
-          {!item.archivedAt && onArchive ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("NOTIFICATIONS_ARCHIVE")}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onArchive();
-              }}
-            >
-              <Archive className="size-4" aria-hidden="true" />
-            </Button>
-          ) : null}
-          {onDelete ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("NOTIFICATIONS_DELETE")}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onDelete();
-              }}
-            >
-              <Trash2 className="size-4" aria-hidden="true" />
-            </Button>
-          ) : null}
+        <div
+          className={cn(
+            "mt-2 flex min-w-0 items-center justify-between gap-2",
+            layoutMode === "sidebar-inbox" ? "pt-0.5" : undefined,
+          )}
+        >
+          {timeText ? (
+            <span className="min-w-0 truncate text-footnote text-label-secondary">{timeText}</span>
+          ) : (
+            <span />
+          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {!isRead && onMarkRead ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("NOTIFICATIONS_MARK_AS_READ")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onMarkRead();
+                }}
+              >
+                <Check className="size-4" aria-hidden="true" />
+              </Button>
+            ) : null}
+            {!item.archivedAt && onArchive ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("NOTIFICATIONS_ARCHIVE")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onArchive();
+                }}
+              >
+                <Archive className="size-4" aria-hidden="true" />
+              </Button>
+            ) : null}
+            {onDelete ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("NOTIFICATIONS_DELETE")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete();
+                }}
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </ItemContent>
     </Item>
   );
 }

@@ -3,6 +3,7 @@ import { type PropsWithChildren, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
+import { listProjects } from "@/api/projects";
 import { getProjectNavItems } from "@/constants/menu/project";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -17,6 +18,7 @@ import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { extractWorkspaceBaseFromPath, mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
+import { mapProjectToListItem } from "@/pages/usercenter/projects/project-list-items";
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
@@ -59,6 +61,21 @@ export function AdminLayout({ children }: PropsWithChildren) {
     enabled: Boolean(accessToken && effectiveWorkspaceId && isWorkspaceScopeRoute),
     queryFn: async () => getWorkspaceDetail(String(effectiveWorkspaceId)),
     staleTime: 5 * 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const projectsQuery = useQuery({
+    queryKey: ["global-nav", "projects", sessionVersion],
+    enabled: Boolean(accessToken),
+    queryFn: async () => {
+      const items = await listProjects({ archived: false, page: 1, size: 100 });
+
+      return items.items
+        .map(mapProjectToListItem)
+        .sort((left, right) => left.name.localeCompare(right.name));
+    },
+    staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
   });
@@ -168,6 +185,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
       renderTopbar={(topbar) => <AdminTopbar {...topbar} />}
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
       commandScope={commandScope}
+      browseProjects={projectsQuery.data ?? []}
+      activeBrowseProjectId={currentProjectId}
       favoriteWorkspaceBase={
         isWorkspaceScopeRoute
           ? currentProjectId
@@ -178,7 +197,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       resolvePermissionName={resolvePermissionName}
       showNavSkeleton={false}
       sidebarCollapsible="icon"
-      loading={Boolean(isWorkspaceScopeRoute && workspaceDetailQuery.isLoading)}
+      loading={false}
       error={isWorkspaceScopeRoute ? workspaceDetailQuery.error : null}
       onRetry={
         isWorkspaceScopeRoute

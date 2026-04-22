@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
 import { AdminLayout } from "@/layouts/admin-layout";
+import { getWorkspaceDetail } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -66,6 +67,10 @@ vi.mock("@/hooks/use-workspace-localization", () => ({
   }),
 }));
 
+vi.mock("@/api/workspaces", () => ({
+  getWorkspaceDetail: vi.fn(),
+}));
+
 vi.mock("@/layouts/admin-scene-layout", () => ({
   AdminSceneLayout: (props: Record<string, unknown> & { children?: ReactNode }) => {
     capturedSceneProps.push(props);
@@ -100,6 +105,7 @@ function latestSceneProps() {
     mainItems: Array<{ key: string }>;
     favoriteWorkspaceBase?: string | null;
     sidebarPathnameOverride?: string;
+    loading?: boolean;
   };
 }
 
@@ -143,6 +149,10 @@ describe("sidebar route state wiring", () => {
       cacheWorkspaceLocale: vi.fn(),
     });
     useWorkspaceStore.setState({ currentWorkspaceId: null, lastWorkspaceId: null });
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "workspace-1",
+      organizationId: "org-1",
+    } as Awaited<ReturnType<typeof getWorkspaceDetail>>);
   });
 
   it("derives workspace sidebar items from the pathname even before workspace store hydration", () => {
@@ -158,16 +168,36 @@ describe("sidebar route state wiring", () => {
     expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
     expect(props.mainItems.map((item) => item.key)).toEqual([
       "dashboard",
-      "inbox",
       "website",
-      "marketing",
       "analytics",
-      "customers.leads",
       "apps",
       "automations",
       "activity",
-      "settings.workspace",
+      "settings.project",
     ]);
+  });
+
+  it("keeps the project shell visible while workspace detail is still loading", () => {
+    vi.mocked(getWorkspaceDetail).mockImplementation(
+      () => new Promise(() => undefined) as ReturnType<typeof getWorkspaceDetail>,
+    );
+    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "workspace-1",
+      currentProjectId: "ws-1",
+    });
+
+    renderWithQueryClient(
+      <AdminLayout>
+        <div>content</div>
+      </AdminLayout>,
+    );
+
+    const props = latestSceneProps();
+
+    expect(screen.getByTestId("scene-layout")).toBeInTheDocument();
+    expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
+    expect(props.loading).toBe(false);
   });
 
   it("renders route content without the admin scene shell in favorite overlay content-only mode", () => {

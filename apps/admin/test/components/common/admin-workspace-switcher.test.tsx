@@ -284,7 +284,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       const avatarImage = trigger.querySelector('img[alt="Workspace Alpha"]');
       expect(avatarImage).toBeTruthy();
       expect(avatarImage).toHaveAttribute("src", "https://example.com/workspace-alpha-icon.png");
-      expect(avatarImage?.parentElement).toHaveClass("rounded-md");
+      expect(avatarImage?.parentElement).toHaveClass("rounded-sm");
     });
   });
 
@@ -338,11 +338,17 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(trigger.className).toContain("!h-10");
     expect(trigger.className).toContain("inline-flex");
     expect(trigger.className).toContain("border-transparent");
+    expect(trigger.className).toContain("hover:bg-accent");
+    expect(trigger.className).toContain("hover:text-accent-foreground");
+    expect(trigger.className).toContain("dark:hover:bg-accent/50");
+    expect(trigger.className).toContain("data-[state=open]:bg-accent");
+    expect(trigger.className).toContain("data-[state=open]:text-accent-foreground");
+    expect(trigger.className).toContain("dark:data-[state=open]:bg-accent/50");
 
     await waitFor(() => {
       const avatar = trigger.querySelector('div[aria-label="Workspace Alpha"]');
       expect(avatar).toBeTruthy();
-      expect(avatar).toHaveClass("rounded-md");
+      expect(avatar).toHaveClass("rounded-sm");
       expect(avatar).toHaveStyle({ width: "28px", height: "28px" });
     });
   });
@@ -359,6 +365,12 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(trigger.className).toContain("group/panel-trigger");
     expect(trigger.className).toContain("rounded-md");
     expect(trigger.className).toContain("!justify-start");
+    expect(trigger.className).toContain("hover:!bg-accent");
+    expect(trigger.className).toContain("hover:!text-accent-foreground");
+    expect(trigger.className).toContain("dark:hover:!bg-accent/50");
+    expect(trigger.className).toContain("data-[state=open]:!bg-accent");
+    expect(trigger.className).toContain("data-[state=open]:!text-accent-foreground");
+    expect(trigger.className).toContain("dark:data-[state=open]:!bg-accent/50");
   });
 
   it("global scope: trigger uses the last selected workspace", async () => {
@@ -431,6 +443,12 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     const workspaceAlphaButton = within(panel).getByRole("button", {
       name: /Workspace Alpha/,
     });
+    expect(workspaceAlphaButton.className).toContain("hover:bg-accent");
+    expect(workspaceAlphaButton.className).toContain("hover:text-accent-foreground");
+    expect(workspaceAlphaButton.className).toContain("dark:hover:bg-accent/50");
+    expect(workspaceAlphaButton.className).toContain("bg-accent");
+    expect(workspaceAlphaButton.className).toContain("text-accent-foreground");
+    expect(workspaceAlphaButton.className).toContain("dark:bg-accent/50");
     expect(within(workspaceAlphaButton).getByText("3 members")).toBeInTheDocument();
     expect(within(workspaceAlphaButton).getByAltText("Ada Lovelace")).toBeInTheDocument();
     expect(within(workspaceAlphaButton).getByAltText("Grace Hopper")).toBeInTheDocument();
@@ -519,6 +537,9 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(
       within(panel).queryByRole("button", { name: "Open organization workspaces" }),
     ).not.toBeInTheDocument();
+    expect(settingsButton.className).toContain("hover:bg-accent");
+    expect(settingsButton.className).toContain("hover:text-accent-foreground");
+    expect(settingsButton.className).toContain("dark:hover:bg-accent/50");
 
     const buttons = within(panel).getAllByRole("button");
     expect(buttons.indexOf(settingsButton)).toBeGreaterThan(buttons.indexOf(workspaceBetaButton));

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
@@ -54,6 +55,10 @@ vi.mock("@/components/layout/admin-workspace-switcher", () => ({
   ),
 }));
 
+vi.mock("@/components/layout/admin-sidebar-inbox", () => ({
+  AdminSidebarInbox: () => <div data-testid="sidebar-inbox-content">Inbox content</div>,
+}));
+
 vi.mock("@/components/ui/gradual-blur", () => ({
   default: () => null,
 }));
@@ -63,6 +68,7 @@ vi.mock("react-i18next", () => ({
     t: (key: string) => {
       if (key === "common:SIDEBAR_TOGGLE") return "Toggle sidebar";
       if (key === "common:SIDEBAR_RESIZE") return "Toggle sidebar";
+      if (key === "nav:NAV_INBOX") return "Inbox";
       return key;
     },
   }),
@@ -172,7 +178,7 @@ describe("AdminSidebarShell", () => {
     if (!rail) throw new Error("Missing sidebar rail");
     if (!wrapper) throw new Error("Missing sidebar wrapper");
     expect(rail.className).toContain("cursor-pointer");
-    expect(wrapper.getAttribute("style")).toContain("--sidebar-width: 273px");
+    expect(wrapper.getAttribute("style")).toContain("--sidebar-width: 280px");
   });
 
   it("clicks the shared sidebar rail to collapse the desktop sidebar", () => {
@@ -212,6 +218,7 @@ describe("AdminSidebarShell", () => {
     const brandingRow = header?.firstElementChild as HTMLElement | null;
     const tablist = screen.getByRole("tablist", { name: "common:SIDEBAR_TOP_TABS_LABEL" });
     const browseTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" });
+    const inboxTab = screen.getByRole("tab", { name: "Inbox" });
     const chatTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_CHAT" });
 
     expect(screen.getByTestId("sidebar-brand-logo")).toBeInTheDocument();
@@ -233,18 +240,100 @@ describe("AdminSidebarShell", () => {
     expect(tablist.className).toContain("justify-start");
     expect(tablist.className).toContain("rounded-full");
     expect(browseTab).toHaveAttribute("data-state", "active");
+    expect(inboxTab).toHaveAttribute("data-state", "inactive");
     expect(chatTab).toHaveAttribute("data-state", "inactive");
     expect(browseTab.className).toContain("h-9");
     expect(browseTab.className).toContain("min-w-9");
     expect(browseTab.className).toContain("rounded-full");
-    expect(browseTab.className).toContain("hover:bg-accent/40");
-    expect(browseTab.className).toContain("data-[state=active]:bg-accent/40");
+    expect(browseTab.className).toContain("hover:bg-accent");
+    expect(browseTab.className).toContain("hover:text-accent-foreground");
+    expect(browseTab.className).toContain("dark:hover:bg-accent/50");
+    expect(browseTab.className).toContain("data-[state=active]:bg-accent");
+    expect(browseTab.className).toContain("data-[state=active]:text-accent-foreground");
+    expect(browseTab.className).toContain("dark:data-[state=active]:bg-accent/50");
     expect(browseTab.className).toContain("data-[state=active]:px-3");
+    expect(inboxTab.className).toContain("data-[state=inactive]:w-9");
     expect(chatTab.className).toContain("data-[state=inactive]:w-9");
     expect(browseTab).toHaveTextContent("common:SIDEBAR_TOP_TAB_BROWSE");
+    expect(inboxTab).toHaveTextContent("Inbox");
     expect(chatTab).toHaveTextContent("common:SIDEBAR_TOP_TAB_CHAT");
+    expect(inboxTab.querySelector("span:last-child")?.className).toContain("hidden");
     expect(chatTab.querySelector("span:last-child")?.className).toContain("hidden");
     expect(screen.getByTestId("sidebar-command-trigger")).toBeInTheDocument();
+  });
+
+  it("renders the active project identity inside the browse pill with a max width cap", () => {
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        browseProjects={[
+          {
+            projectId: "project-alpha",
+            workspaceId: "workspace-alpha",
+            name: "Project Alpha",
+            description: "Primary publishing surface",
+            enterable: true,
+            iconMode: "emoji",
+            iconEmoji: "A",
+          },
+          {
+            projectId: "project-beta",
+            workspaceId: "workspace-beta",
+            name: "Project Beta",
+            description: "Secondary sandbox",
+            enterable: false,
+          },
+        ]}
+        activeBrowseProjectId="project-alpha"
+        collapsible="icon"
+      />,
+    );
+
+    const browseTab = screen.getByRole("tab", { name: "Project Alpha Project Alpha" });
+
+    expect(browseTab).toHaveTextContent("Project Alpha");
+    expect(browseTab.className).toContain("data-[state=active]:max-w-[7rem]");
+    expect(browseTab.querySelector('[aria-label="Project Alpha"]')).not.toBeNull();
+  });
+
+  it("switches sidebar content between browse, inbox, and chat tabs", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    expect(screen.getByTestId("admin-sider-nav")).toBeInTheDocument();
+    expect(screen.queryByTestId("sidebar-inbox-content")).toBeNull();
+
+    await user.click(screen.getByRole("tab", { name: "Inbox" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("sidebar-inbox-content")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("admin-sider-nav")).toBeNull();
+
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_CHAT" }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "common:SIDEBAR_CHAT_EMPTY_TITLE" }),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText((content) => content.includes("common:SIDEBAR_CHAT_EMPTY_DESC")),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("sidebar-inbox-content")).toBeNull();
+
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("admin-sider-nav")).toBeInTheDocument();
+    });
   });
 
   it("hides top header rows immediately when a fixed-open sidebar starts collapsing", () => {

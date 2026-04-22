@@ -123,6 +123,8 @@
   "SIDEBAR_TOP_TABS_LABEL": "侧边栏视图",
   "SIDEBAR_TOP_TAB_BROWSE": "浏览",
   "SIDEBAR_TOP_TAB_CHAT": "聊天",
+  "SIDEBAR_CHAT_EMPTY_TITLE": "聊天即将开放",
+  "SIDEBAR_CHAT_EMPTY_DESC": "侧边栏聊天能力准备好后，会在这里显示会话内容。",
   "SIDEBAR_RAIL_TOOLTIP": "展开或收起侧边栏",
   "SIDEBAR_RAIL_TOOLTIP_SHORTCUT": "点击或 {{shortcut}}",
   "ORG_INVITATIONS_DESC": "跟踪组织邀请并管理邀请生命周期。",

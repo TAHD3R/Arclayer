@@ -202,6 +202,7 @@ export function GlobalLayout() {
       )}
       mainItems={navItems}
       commandScope={GLOBAL_COMMAND_SCOPE}
+      activeBrowseProjectId={null}
       sidebarCollapsible="icon"
     >
       <Outlet />

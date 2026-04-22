@@ -4,7 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getUnreadNotificationPreview } from "@/api/notifications";
 import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
-import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
+import {
+  AdminSidebarShell,
+  type SidebarBrowseProject,
+} from "@/components/layout/admin-sidebar-shell";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { RouteTransition } from "@/components/layout/route-transition";
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -28,6 +31,8 @@ type AdminSceneLayoutProps = PropsWithChildren<{
   renderTopbar: (props: AdminSceneTopbarRenderProps) => ReactNode;
   mainItems: readonly AdminNavItem[];
   commandScope?: CommandScope;
+  browseProjects?: readonly SidebarBrowseProject[];
+  activeBrowseProjectId?: string | null;
   favoriteWorkspaceBase?: string | null;
   resolvePermissionName?: (code: string) => string | null;
   showNavSkeleton?: boolean;
@@ -46,6 +51,8 @@ export function AdminSceneLayout({
   renderTopbar,
   mainItems,
   commandScope,
+  browseProjects,
+  activeBrowseProjectId,
   favoriteWorkspaceBase,
   resolvePermissionName,
   showNavSkeleton = false,
@@ -102,6 +109,8 @@ export function AdminSceneLayout({
           showOrgNavErrorOverlay={showOrgNavErrorOverlay}
           mainItems={mainItems}
           commandScope={commandScope}
+          browseProjects={browseProjects}
+          activeBrowseProjectId={activeBrowseProjectId}
           favoriteWorkspaceBase={favoriteWorkspaceBase}
           resolvePermissionName={resolvePermissionName}
           pathnameOverride={sidebarPathnameOverride}

@@ -3,7 +3,6 @@ import {
   Globe,
   History,
   Images,
-  Inbox,
   LayoutDashboard,
   LibraryBig,
   Settings2,
@@ -19,14 +18,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_DASHBOARD",
     to: "/",
     icon: LayoutDashboard,
-  },
-  {
-    key: "inbox",
-    label: "Inbox",
-    labelKey: "nav:NAV_INBOX",
-    to: "/notifications",
-    icon: Inbox,
-    insertStarredAfter: true,
   },
   {
     key: "website",

@@ -94,13 +94,7 @@ export function AdminTopbar(props: {
   const leadingMode = props.leadingMode ?? "none";
 
   return (
-    <header
-      className={cn(
-        "relative z-30 border-b border-border inset-y-auto",
-        "bg-header",
-        props.className,
-      )}
-    >
+    <header className={cn("relative z-30 inset-y-auto", "bg-header", props.className)}>
       <div
         className={cn(
           "flex items-center gap-4",

@@ -71,6 +71,7 @@ function SelectTrigger({
   className,
   size = "default",
   children,
+  asChild = false,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default";
@@ -82,6 +83,21 @@ function SelectTrigger({
     },
     [portalContext],
   );
+
+  if (asChild) {
+    return (
+      <SelectPrimitive.Trigger
+        ref={handleTriggerRef}
+        asChild
+        data-slot="select-trigger"
+        data-size={size}
+        className={className}
+        {...props}
+      >
+        {children}
+      </SelectPrimitive.Trigger>
+    );
+  }
 
   return (
     <SelectPrimitive.Trigger

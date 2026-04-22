@@ -58,6 +58,14 @@ const INTERACTION_TRANSITION_CLASSNAME = cn(
   INTERACTION_EASING,
   "motion-reduce:transition-none",
 );
+const GHOST_HOVER_CLASSNAME =
+  "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50";
+const GHOST_OPEN_CLASSNAME =
+  "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground dark:data-[state=open]:bg-accent/50";
+const GHOST_SELECTED_CLASSNAME = "bg-accent text-accent-foreground dark:bg-accent/50";
+const GHOST_ACTIVE_PRESS_CLASSNAME =
+  "active:!bg-accent active:!text-accent-foreground dark:active:!bg-accent/50";
+
 function TruncatedText(props: { text: string; className?: string }) {
   return <span className={cn("block w-full min-w-0 truncate", props.className)}>{props.text}</span>;
 }
@@ -99,7 +107,7 @@ const panelMenuButtonClassName = cn(
   "min-h-11 rounded-xl",
   "text-label-secondary",
   INTERACTION_TRANSITION_CLASSNAME,
-  "hover:bg-accent/80 hover:text-label-primary",
+  GHOST_HOVER_CLASSNAME,
   "active:scale-[0.992]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
@@ -130,8 +138,10 @@ function PanelMenuButton(props: {
 
 export const breadcrumbTriggerClassName = cn(
   "flex items-center gap-1 rounded-md px-1.5 py-0.5",
-  "text-label-secondary border-0 bg-transparent hover:bg-accent hover:text-label-primary",
-  "data-[state=open]:bg-accent data-[state=open]:text-label-primary transition-colors",
+  "text-label-secondary border-0 bg-transparent",
+  GHOST_HOVER_CLASSNAME,
+  GHOST_OPEN_CLASSNAME,
+  "transition-colors",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 
@@ -162,8 +172,8 @@ const sidebarTriggerButtonClassName = cn(
   "rounded-md !pl-1 !pr-2 !py-1",
   "!border-0",
   "!bg-transparent !text-label-secondary",
-  "hover:!bg-accent/40 hover:!text-label-primary",
-  "data-[state=open]:!bg-accent/50 data-[state=open]:!text-label-primary",
+  "hover:!bg-accent hover:!text-accent-foreground dark:hover:!bg-accent/50",
+  "data-[state=open]:!bg-accent data-[state=open]:!text-accent-foreground dark:data-[state=open]:!bg-accent/50",
   "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
   "!text-left",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -176,16 +186,17 @@ export const headerTriggerButtonClassName = cn(
   "inline-flex max-w-full min-w-0 items-center gap-2 rounded-md border border-transparent",
   "bg-transparent px-2 text-label-secondary ",
   "transition-[border-color,background-color,color] duration-200",
-  "hover:bg-accent/60 hover:text-label-primary",
-  "data-[state=open]:border-border/60 data-[state=open]:bg-accent/70 data-[state=open]:text-label-primary",
+  GHOST_HOVER_CLASSNAME,
+  "data-[state=open]:border-border/60",
+  GHOST_OPEN_CLASSNAME,
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 
 const collapseButtonBaseClassName = cn(
   SIDEBAR_TRIGGER_HEIGHT_CLASSNAME,
   "!border-0 !bg-transparent !text-label-secondary",
-  "hover:!bg-accent/40 hover:!text-label-primary",
-  "active:!bg-accent/50 active:!text-label-primary",
+  "hover:!bg-accent hover:!text-accent-foreground dark:hover:!bg-accent/50",
+  GHOST_ACTIVE_PRESS_CLASSNAME,
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 
@@ -390,7 +401,7 @@ function WorkspacePickerSection(props: {
               onClick={() => props.onSelect(workspace)}
               className={cn(
                 "min-h-[4.5rem] items-start rounded-none px-3 py-2.5",
-                selected && "bg-accent/80 text-label-primary",
+                selected && GHOST_SELECTED_CLASSNAME,
               )}
             >
               <WorkspacePickerItemContent workspace={workspace} selected={selected} />

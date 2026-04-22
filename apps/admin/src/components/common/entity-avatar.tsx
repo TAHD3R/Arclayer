@@ -130,7 +130,7 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
   return (
     <div
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted text-footnote font-medium text-label-secondary ring-1 ring-border/60",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted text-footnote font-semibold text-label-secondary ring-1 ring-border/60",
         kind === "emoji" && "text-[0.95em]",
         props.className,
       )}
