@@ -10,6 +10,7 @@ import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-q
 import { Button } from "@arclayer/ui/button";
 import { readStorageItem, writeStorageItem } from "@/lib/storage";
 import type { AdminAssetFolder, AdminAssetTag, WorkspaceDetail } from "@/types/api";
+import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import { clearSelection } from "@/lib/assets/asset-selection";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -106,7 +107,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     openDeleteFolderDialog,
     openAssetDetails,
   } = controller;
-  const setActiveAsset = (next: Parameters<typeof setActive>[0]) => {
+  const setActiveAsset = (next: AssetMasonryItem | null) => {
     if (next) {
       openAssetDetails(next);
       return;

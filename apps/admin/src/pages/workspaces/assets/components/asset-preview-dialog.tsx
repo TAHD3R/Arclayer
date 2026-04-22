@@ -141,7 +141,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
     currentIndex >= 0 && currentIndex < props.items.length - 1
       ? props.items[currentIndex + 1]
       : null;
-  const moreMenuItems = useMemo(() => {
+  const moreMenuItems = useMemo<AssetMoreMenuItem[]>(() => {
     const items = buildAssetMoreMenuItems({
       t: controller.t,
       asset: active,
@@ -154,7 +154,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
         (item.key === "edit_asset" || item.key === "edit_access" || item.key === "delete")
       ) {
         return {
-          type: "item",
+          type: "item" as const,
           key: item.key,
           label: item.label,
           icon: item.icon,

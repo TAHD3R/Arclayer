@@ -210,6 +210,8 @@ function AdminSidebarTopTabs(props: {
   }, [activeBrowseProject, props.browseProjects]);
   const browseTabDisplayLabel = activeBrowseProject?.name || browseLabel;
   const isBrowseActive = props.value === "browse";
+  const isInboxActive = props.value === "inbox";
+  const isChatActive = props.value === "chat";
   const browseTabClassName = cn(
     "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
     "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
@@ -373,7 +375,7 @@ function AdminSidebarTopTabs(props: {
                         />
                       )
                     ) : null}
-                    <span className={cn("truncate", props.value === "inbox" ? "inline" : "hidden")}>
+                    <span className={cn("truncate", isInboxActive ? "inline" : "hidden")}>
                       {inboxLabel}
                     </span>
                   </TabsTrigger>,
@@ -386,7 +388,7 @@ function AdminSidebarTopTabs(props: {
                     </span>
                   </TooltipTrigger>
                   {showUnreadInboxBadge ? (
-                    props.value === "inbox" ? (
+                    isInboxActive ? (
                       <span
                         data-testid="sidebar-inbox-count-badge"
                         className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white"
@@ -402,15 +404,15 @@ function AdminSidebarTopTabs(props: {
                       />
                     )
                   ) : null}
-                  <span className={cn("truncate", props.value === "inbox" ? "inline" : "hidden")}>
+                  <span className={cn("truncate", isInboxActive ? "inline" : "hidden")}>
                     {inboxLabel}
                   </span>
                 </TabsTrigger>
               )}
-              <TooltipContent hidden={props.value === "inbox"}>{inboxLabel}</TooltipContent>
+              <TooltipContent hidden={isInboxActive}>{inboxLabel}</TooltipContent>
             </Tooltip>
             <Tooltip>
-              {props.value === "chat" ? (
+              {isChatActive ? (
                 renderActivePillFrame(
                   <TabsTrigger
                     value="chat"
@@ -428,7 +430,7 @@ function AdminSidebarTopTabs(props: {
                         <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
                       </span>
                     </TooltipTrigger>
-                    <span className={cn("truncate", props.value === "chat" ? "inline" : "hidden")}>
+                    <span className={cn("truncate", isChatActive ? "inline" : "hidden")}>
                       {chatLabel}
                     </span>
                   </TabsTrigger>,
@@ -450,12 +452,12 @@ function AdminSidebarTopTabs(props: {
                       <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
                     </span>
                   </TooltipTrigger>
-                  <span className={cn("truncate", props.value === "chat" ? "inline" : "hidden")}>
+                  <span className={cn("truncate", isChatActive ? "inline" : "hidden")}>
                     {chatLabel}
                   </span>
                 </TabsTrigger>
               )}
-              <TooltipContent hidden={props.value === "chat"}>{chatLabel}</TooltipContent>
+              <TooltipContent hidden={isChatActive}>{chatLabel}</TooltipContent>
             </Tooltip>
           </TabsList>
         </Tabs>

@@ -8,7 +8,10 @@ import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
-import { FloatingBulkToolbar } from "@/components/common/floating-bulk-toolbar";
+import {
+  FloatingBulkToolbar,
+  type FloatingBulkToolbarAction,
+} from "@/components/common/floating-bulk-toolbar";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
@@ -65,7 +68,7 @@ export type SystemDirectoryBulkAction = {
   onClick: () => void;
   disabled?: boolean;
   tooltip?: string;
-  variant?: React.ComponentProps<(typeof import("@arclayer/ui/button"))["Button"]>["variant"];
+  variant?: FloatingBulkToolbarAction["variant"];
 };
 
 const SELECT_COLUMN_WIDTH = 52;

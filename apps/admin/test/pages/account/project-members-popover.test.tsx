@@ -90,10 +90,15 @@ describe("ProjectMembersPopover", () => {
       items: [
         {
           id: "member-1",
+          projectId: "project-1",
+          workspaceId: "workspace-1",
+          userId: "user-1",
           email: "jackson@example.com",
           username: "jackson",
           displayName: "Jackson Samuel",
           avatarUrl: null,
+          userStatus: "active",
+          role: "owner",
         },
       ],
       page: 1,

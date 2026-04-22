@@ -285,28 +285,7 @@ export function AssignOrganizationOwnerDialog(props: {
     if (!props.open) return;
     form.reset({ ownerUserId: props.organization?.owner?.userId ?? "" });
     const owner = props.organization?.owner;
-    setSelectedOwner(
-      owner
-        ? createOwnerSelectOption({
-            userId: owner.userId,
-            username: owner.username,
-            displayName: owner.displayName,
-            email: owner.email,
-            avatarUrl: owner.avatarUrl,
-            status: "active",
-            isSuperAdmin: false,
-            hasPassword: false,
-            twoFactorEnabled: false,
-            linkedOauthProviders: [],
-            lastLoginAt: null,
-            createdAt: "",
-            ownedOrganizationsCount: 0,
-            organizationMembershipCount: 0,
-            workspaceMembershipCount: 0,
-            projectMembershipCount: 0,
-          })
-        : undefined,
-    );
+    setSelectedOwner(owner ? createOwnerSelectOption(owner) : undefined);
   }, [form, props.open, props.organization]);
 
   const onSubmit = form.handleSubmit(async (values) => {

@@ -549,8 +549,11 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(subItem).not.toBeNull();
     if (!subItem) throw new Error("Missing sidebar menu sub item");
 
-    expect(within(subItem).getByRole("button", { name: "Project Alpha" })).toBeInTheDocument();
-    expect(subItem.querySelector("button button")).toBeNull();
+    const subItemElement = subItem as HTMLElement;
+    expect(
+      within(subItemElement).getByRole("button", { name: "Project Alpha" }),
+    ).toBeInTheDocument();
+    expect(subItemElement.querySelector("button button")).toBeNull();
   });
 
   it("switches to expanded-tree behavior when the collapsed sidebar is hover-expanded", async () => {

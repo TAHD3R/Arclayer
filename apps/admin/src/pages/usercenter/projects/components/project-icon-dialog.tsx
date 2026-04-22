@@ -75,7 +75,7 @@ type ProjectIconDialogProps = {
     values: ProjectIconDialogValues;
     setValues: Dispatch<SetStateAction<ProjectIconDialogValues>>;
     pending: boolean;
-    onConfirm: () => Promise<void>;
+    onConfirm: () => Promise<unknown>;
     onClose: () => void;
   };
 };

@@ -58,7 +58,7 @@ interface UserCenterProjectsDialogsProps {
     project: ProjectDangerDialogTarget | null;
     setProject: Dispatch<SetStateAction<ProjectDangerDialogTarget | null>>;
     pending: boolean;
-    onConfirm: (projectId: string) => Promise<void>;
+    onConfirm: (projectId: string) => Promise<unknown>;
   };
   deleteDialog: {
     project: ProjectDangerDialogTarget | null;
@@ -67,7 +67,7 @@ interface UserCenterProjectsDialogsProps {
     setConfirmName: Dispatch<SetStateAction<string>>;
     confirmMatches: boolean;
     pending: boolean;
-    onConfirm: (payload: { projectId: string; confirmName: string }) => Promise<void>;
+    onConfirm: (payload: { projectId: string; confirmName: string }) => Promise<unknown>;
   };
   iconDialog: {
     project: UserCenterProjectListItem | null;
@@ -75,7 +75,7 @@ interface UserCenterProjectsDialogsProps {
     values: ProjectIconDialogValues;
     setValues: Dispatch<SetStateAction<ProjectIconDialogValues>>;
     pending: boolean;
-    onConfirm: () => Promise<void>;
+    onConfirm: () => Promise<unknown>;
     onClose: () => void;
   };
 }

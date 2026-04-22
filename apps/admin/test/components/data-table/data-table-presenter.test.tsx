@@ -311,7 +311,6 @@ describe("DataTablePresenter", () => {
             onLoadMore,
             loadingMoreLabel: "Loading more",
             loadMoreErrorLabel: "Load failed",
-            endLabel: "All loaded",
           }}
         />
       );

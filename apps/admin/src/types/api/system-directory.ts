@@ -1,4 +1,5 @@
 import type { PageData } from "@/types/api/common";
+import type { WorkspaceIconMode } from "@/types/api/workspaces";
 
 export type DirectoryActorSummary = {
   userId: string;
@@ -68,7 +69,7 @@ export type SystemDirectoryWorkspace = {
   organizationName: string;
   name: string;
   description: string | null;
-  iconMode?: string | null;
+  iconMode?: WorkspaceIconMode | null;
   iconColor?: string | null;
   iconGlyph?: string | null;
   iconEmoji?: string | null;
@@ -82,7 +83,7 @@ export type SystemDirectoryWorkspace = {
   workspace_id?: string;
   organization_id?: string;
   organization_name?: string;
-  icon_mode?: string | null;
+  icon_mode?: WorkspaceIconMode | null;
   icon_color?: string | null;
   icon_glyph?: string | null;
   icon_emoji?: string | null;
@@ -103,7 +104,7 @@ export type SystemDirectoryProject = {
   name: string;
   slug: string;
   description: string | null;
-  iconMode?: string | null;
+  iconMode?: WorkspaceIconMode | null;
   iconColor?: string | null;
   iconGlyph?: string | null;
   iconEmoji?: string | null;
@@ -117,7 +118,7 @@ export type SystemDirectoryProject = {
   workspace_name?: string;
   organization_id?: string;
   organization_name?: string;
-  icon_mode?: string | null;
+  icon_mode?: WorkspaceIconMode | null;
   icon_color?: string | null;
   icon_glyph?: string | null;
   icon_emoji?: string | null;
@@ -142,13 +143,13 @@ export type SystemDirectoryOrganizationDetail = SystemDirectoryOrganization & {
 export type SystemDirectoryWorkspaceDetail = SystemDirectoryWorkspace & {
   updatedAt: string;
   kind: string;
-  iconMode: string;
+  iconMode: WorkspaceIconMode;
   iconColor: string;
   iconGlyph: string | null;
   iconEmoji: string | null;
   iconUrl: string | null;
   updated_at?: string;
-  icon_mode?: string;
+  icon_mode?: WorkspaceIconMode;
   icon_color?: string;
   icon_glyph?: string | null;
   icon_emoji?: string | null;
@@ -157,13 +158,13 @@ export type SystemDirectoryWorkspaceDetail = SystemDirectoryWorkspace & {
 
 export type SystemDirectoryProjectDetail = SystemDirectoryProject & {
   updatedAt: string;
-  iconMode: string;
+  iconMode: WorkspaceIconMode;
   iconColor: string;
   iconGlyph: string | null;
   iconEmoji: string | null;
   iconUrl: string | null;
   updated_at?: string;
-  icon_mode?: string;
+  icon_mode?: WorkspaceIconMode;
   icon_color?: string;
   icon_glyph?: string | null;
   icon_emoji?: string | null;

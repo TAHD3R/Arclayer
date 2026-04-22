@@ -9,6 +9,8 @@ export type { CommandRecentState } from "./command-recent";
 export type {
   ThemePreference,
   LocalePreferenceMode,
+  SidebarItemVisibility,
+  SidebarVisibilityItemKey,
   WorkspaceLocaleCache,
   PreferencesState,
 } from "./preferences";

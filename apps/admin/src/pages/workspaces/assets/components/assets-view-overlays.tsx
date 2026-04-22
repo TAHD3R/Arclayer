@@ -22,7 +22,7 @@ import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 interface AssetsViewOverlaysProps {
   t: (key: string, options?: Record<string, unknown>) => string;
   active: AssetMasonryItem | null;
-  setActive: React.Dispatch<React.SetStateAction<AssetMasonryItem | null>>;
+  setActive: (next: AssetMasonryItem | null) => void;
   items: AssetMasonryItem[];
   currentFolderPathLabel: string;
   folderBreadcrumbs: string[];

@@ -250,7 +250,7 @@ beforeEach(() => {
     writable: true,
     value: vi.fn((callback: TimerHandler) => {
       if (typeof callback === "function") {
-        intervalCallbacks.push(callback);
+        intervalCallbacks.push(callback as () => void);
       }
       return intervalCallbacks.length;
     }),
