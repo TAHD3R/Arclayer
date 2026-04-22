@@ -271,6 +271,7 @@
   "ORG_WORKSPACES_DELETE_CONFIRM_TITLE": "Delete workspace",
   "ORG_WORKSPACES_DESC": "Create, enter, and manage organization workspaces.",
   "ORG_WORKSPACES_DESCRIPTION_FALLBACK": "No description",
+  "SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK": "No description",
   "ORG_WORKSPACES_DESCRIPTION_INPUT_LABEL": "Edit workspace description",
   "WORKSPACES_PERSONAL_DESCRIPTION": "Keep your drafts, experiments, and solo work in one private space.",
   "ORG_WORKSPACES_FIELD_DESCRIPTION": "Description",

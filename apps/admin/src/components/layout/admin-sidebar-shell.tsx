@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { Inbox, MessageCircle, PanelLeft as PanelLeftIcon, PanelsTopLeft } from "lucide-react";
+import {
+  House,
+  Inbox,
+  MessageCircle,
+  PanelLeft as PanelLeftIcon,
+  PanelsTopLeft,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "@tanstack/react-router";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
@@ -11,6 +18,15 @@ import { AdminFullLogo, AdminLogo } from "@/components/layout/admin-logo";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminSidebarMainMenuSkeleton } from "@/components/layout/admin-sidebar-skeleton";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuIconItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +40,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@a
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import type { CommandScope } from "@/lib/command/command-types";
+import { projectHomePath } from "@/lib/routing/workspace-routing";
 
 export type SidebarBrowseProject = {
   projectId: string;
@@ -56,6 +73,7 @@ export type AdminSidebarShellProps = {
 };
 
 type SidebarTopTab = "browse" | "inbox" | "chat";
+const ACTIVE_PILL_TAP_SCALE = 0.98;
 const BROWSE_TAB_ACTIVE_MAX_WIDTH_CLASSNAME = "data-[state=active]:max-w-[7rem]";
 const GHOST_HOVER_CLASSNAME =
   "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50";
@@ -141,7 +159,9 @@ function AdminSidebarTopTabs(props: {
   activeBrowseProjectId?: string | null;
 }) {
   const { t } = useTranslation(["common"]);
+  const navigate = useNavigate();
   const showExpandedHeaderRows = useSidebarExpandedHeaderRows();
+  const [browseMenuOpen, setBrowseMenuOpen] = useState(false);
   const commandPalette = useAdminCommandPalette({
     navItems: props.navItems,
     scope:
@@ -158,11 +178,6 @@ function AdminSidebarTopTabs(props: {
       props.onValueChange(next);
     }
   };
-
-  if (!showExpandedHeaderRows) {
-    return null;
-  }
-
   const browseLabel = t("common:SIDEBAR_TOP_TAB_BROWSE");
   const inboxLabel = t("nav:NAV_INBOX");
   const chatLabel = t("common:SIDEBAR_TOP_TAB_CHAT");
@@ -187,7 +202,14 @@ function AdminSidebarTopTabs(props: {
           (project) => project.projectId === props.activeBrowseProjectId,
         ) ?? null)
       : null;
+  const browseMenuProjects = useMemo(() => {
+    if (!activeBrowseProject) return props.browseProjects ?? [];
+    return (props.browseProjects ?? []).filter(
+      (project) => project.workspaceId === activeBrowseProject.workspaceId,
+    );
+  }, [activeBrowseProject, props.browseProjects]);
   const browseTabDisplayLabel = activeBrowseProject?.name || browseLabel;
+  const isBrowseActive = props.value === "browse";
   const browseTabClassName = cn(
     "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
     "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
@@ -196,6 +218,59 @@ function AdminSidebarTopTabs(props: {
     GHOST_ACTIVE_CLASSNAME,
     "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
     BROWSE_TAB_ACTIVE_MAX_WIDTH_CLASSNAME,
+  );
+
+  useEffect(() => {
+    if (!isBrowseActive) {
+      setBrowseMenuOpen(false);
+    }
+  }, [isBrowseActive]);
+
+  const handleBrowseMenuOpenChange = (nextOpen: boolean) => {
+    if (!isBrowseActive && nextOpen) return;
+    setBrowseMenuOpen(nextOpen);
+  };
+
+  const handleProjectSelect = (projectId: string) => {
+    void navigate({ to: projectHomePath(projectId) as never });
+  };
+
+  const handleHomeSelect = () => {
+    void navigate({ to: "/" as never });
+  };
+
+  if (!showExpandedHeaderRows) {
+    return null;
+  }
+
+  const browseTabContent = (
+    <>
+      <TooltipTrigger asChild focusTrigger={false}>
+        <span className="inline-flex items-center justify-center">
+          {activeBrowseProject ? (
+            <ProjectAvatar
+              name={browseTabDisplayLabel}
+              size={18}
+              className="shrink-0 rounded-sm ring-0"
+              {...projectAvatarPropsFromIdentity(activeBrowseProject)}
+            />
+          ) : (
+            <PanelsTopLeft className="size-4 shrink-0" aria-hidden="true" />
+          )}
+        </span>
+      </TooltipTrigger>
+      <span className={cn("min-w-0 truncate", isBrowseActive ? "inline" : "hidden")}>
+        {browseTabDisplayLabel}
+      </span>
+    </>
+  );
+
+  const renderActivePillFrame = (children: React.ReactNode) => (
+    <ButtonPrimitive asChild tapScale={ACTIVE_PILL_TAP_SCALE}>
+      <div data-slot="button" data-active-pill-button="" className="min-w-0">
+        {children}
+      </div>
+    </ButtonPrimitive>
   );
 
   return (
@@ -208,83 +283,178 @@ function AdminSidebarTopTabs(props: {
               "h-9 w-full justify-start gap-1 rounded-full bg-transparent p-0 text-label-secondary",
             )}
           >
-            <Tooltip>
-              <TabsTrigger value="browse" className={browseTabClassName}>
-                <TooltipTrigger asChild focusTrigger={false}>
-                  <span className="inline-flex items-center justify-center">
-                    {activeBrowseProject ? (
-                      <ProjectAvatar
-                        name={browseTabDisplayLabel}
-                        size={18}
-                        className="shrink-0 rounded-sm ring-0"
-                        {...projectAvatarPropsFromIdentity(activeBrowseProject)}
-                      />
-                    ) : (
-                      <PanelsTopLeft className="size-4 shrink-0" aria-hidden="true" />
+            {isBrowseActive ? (
+              <DropdownMenu open={browseMenuOpen} onOpenChange={handleBrowseMenuOpenChange}>
+                <Tooltip>
+                  <DropdownMenuTrigger asChild>
+                    {renderActivePillFrame(
+                      <TabsTrigger value="browse" className={browseTabClassName}>
+                        {browseTabContent}
+                      </TabsTrigger>,
                     )}
-                  </span>
-                </TooltipTrigger>
-                <span
-                  className={cn("min-w-0 truncate", props.value === "browse" ? "inline" : "hidden")}
+                  </DropdownMenuTrigger>
+                  <TooltipContent hidden={isBrowseActive}>{browseTabDisplayLabel}</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent
+                  align="start"
+                  side="bottom"
+                  sideOffset={8}
+                  className="w-[calc(100vw-2rem)] max-w-[16rem]"
                 >
-                  {browseTabDisplayLabel}
-                </span>
-              </TabsTrigger>
-              <TooltipContent hidden={props.value === "browse"}>
-                {browseTabDisplayLabel}
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TabsTrigger value="inbox" className={inboxTabClassName}>
-                <TooltipTrigger asChild focusTrigger={false}>
-                  <span className="inline-flex items-center justify-center">
-                    <Inbox className="size-4 shrink-0" aria-hidden="true" />
-                  </span>
-                </TooltipTrigger>
-                {showUnreadInboxBadge ? (
-                  props.value === "inbox" ? (
-                    <span
-                      data-testid="sidebar-inbox-count-badge"
-                      className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white"
-                      aria-hidden="true"
+                  <DropdownMenuGroup>
+                    {browseMenuProjects.map((project) => (
+                      <DropdownMenuIconItem
+                        key={project.projectId}
+                        icon={
+                          <ProjectAvatar
+                            name={project.name}
+                            size={18}
+                            className="rounded-sm ring-0"
+                            {...projectAvatarPropsFromIdentity(project)}
+                          />
+                        }
+                        disabled={!project.enterable}
+                        onSelect={() => handleProjectSelect(project.projectId)}
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-callout font-medium text-label-primary">
+                            {project.name}
+                          </div>
+                          <div className="truncate text-caption text-label-secondary">
+                            {project.description?.trim() ||
+                              t("common:SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK")}
+                          </div>
+                        </div>
+                      </DropdownMenuIconItem>
+                    ))}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuIconItem
+                      icon={<House className="size-4" />}
+                      onSelect={handleHomeSelect}
                     >
-                      {unreadInboxCountLabel}
+                      {t("nav:NAV_HOME")}
+                    </DropdownMenuIconItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Tooltip>
+                <TabsTrigger value="browse" className={browseTabClassName}>
+                  {browseTabContent}
+                </TabsTrigger>
+                <TooltipContent hidden={isBrowseActive}>{browseTabDisplayLabel}</TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              {props.value === "inbox" ? (
+                renderActivePillFrame(
+                  <TabsTrigger value="inbox" className={inboxTabClassName}>
+                    <TooltipTrigger asChild focusTrigger={false}>
+                      <span className="inline-flex items-center justify-center">
+                        <Inbox className="size-4 shrink-0" aria-hidden="true" />
+                      </span>
+                    </TooltipTrigger>
+                    {showUnreadInboxBadge ? (
+                      props.value === "inbox" ? (
+                        <span
+                          data-testid="sidebar-inbox-count-badge"
+                          className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white"
+                          aria-hidden="true"
+                        >
+                          {unreadInboxCountLabel}
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="sidebar-inbox-dot"
+                          className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500"
+                          aria-hidden="true"
+                        />
+                      )
+                    ) : null}
+                    <span className={cn("truncate", props.value === "inbox" ? "inline" : "hidden")}>
+                      {inboxLabel}
                     </span>
-                  ) : (
-                    <span
-                      data-testid="sidebar-inbox-dot"
-                      className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500"
-                      aria-hidden="true"
-                    />
-                  )
-                ) : null}
-                <span className={cn("truncate", props.value === "inbox" ? "inline" : "hidden")}>
-                  {inboxLabel}
-                </span>
-              </TabsTrigger>
+                  </TabsTrigger>,
+                )
+              ) : (
+                <TabsTrigger value="inbox" className={inboxTabClassName}>
+                  <TooltipTrigger asChild focusTrigger={false}>
+                    <span className="inline-flex items-center justify-center">
+                      <Inbox className="size-4 shrink-0" aria-hidden="true" />
+                    </span>
+                  </TooltipTrigger>
+                  {showUnreadInboxBadge ? (
+                    props.value === "inbox" ? (
+                      <span
+                        data-testid="sidebar-inbox-count-badge"
+                        className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white"
+                        aria-hidden="true"
+                      >
+                        {unreadInboxCountLabel}
+                      </span>
+                    ) : (
+                      <span
+                        data-testid="sidebar-inbox-dot"
+                        className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500"
+                        aria-hidden="true"
+                      />
+                    )
+                  ) : null}
+                  <span className={cn("truncate", props.value === "inbox" ? "inline" : "hidden")}>
+                    {inboxLabel}
+                  </span>
+                </TabsTrigger>
+              )}
               <TooltipContent hidden={props.value === "inbox"}>{inboxLabel}</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TabsTrigger
-                value="chat"
-                className={cn(
-                  "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
-                  "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
-                  GHOST_HOVER_CLASSNAME,
-                  "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
-                  GHOST_ACTIVE_CLASSNAME,
-                  "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
-                )}
-              >
-                <TooltipTrigger asChild focusTrigger={false}>
-                  <span className="inline-flex items-center justify-center">
-                    <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
+              {props.value === "chat" ? (
+                renderActivePillFrame(
+                  <TabsTrigger
+                    value="chat"
+                    className={cn(
+                      "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
+                      "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
+                      GHOST_HOVER_CLASSNAME,
+                      "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
+                      GHOST_ACTIVE_CLASSNAME,
+                      "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
+                    )}
+                  >
+                    <TooltipTrigger asChild focusTrigger={false}>
+                      <span className="inline-flex items-center justify-center">
+                        <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
+                      </span>
+                    </TooltipTrigger>
+                    <span className={cn("truncate", props.value === "chat" ? "inline" : "hidden")}>
+                      {chatLabel}
+                    </span>
+                  </TabsTrigger>,
+                )
+              ) : (
+                <TabsTrigger
+                  value="chat"
+                  className={cn(
+                    "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
+                    "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
+                    GHOST_HOVER_CLASSNAME,
+                    "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
+                    GHOST_ACTIVE_CLASSNAME,
+                    "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0 data-[state=inactive]:text-label-secondary",
+                  )}
+                >
+                  <TooltipTrigger asChild focusTrigger={false}>
+                    <span className="inline-flex items-center justify-center">
+                      <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
+                    </span>
+                  </TooltipTrigger>
+                  <span className={cn("truncate", props.value === "chat" ? "inline" : "hidden")}>
+                    {chatLabel}
                   </span>
-                </TooltipTrigger>
-                <span className={cn("truncate", props.value === "chat" ? "inline" : "hidden")}>
-                  {chatLabel}
-                </span>
-              </TabsTrigger>
+                </TabsTrigger>
+              )}
               <TooltipContent hidden={props.value === "chat"}>{chatLabel}</TooltipContent>
             </Tooltip>
           </TabsList>

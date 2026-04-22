@@ -48,11 +48,14 @@ describe("DropdownMenu", () => {
 
     expect(content).toHaveClass("rounded-md", "p-1");
     expect(content).not.toHaveClass("rounded-xl", "p-2");
-    expect(content).not.toHaveClass(
+    expect(content).toHaveClass(
       "data-[state=open]:animate-in",
       "data-[state=closed]:animate-out",
+      "data-[state=open]:fade-in-0",
+      "data-[state=closed]:fade-out-0",
       "data-[state=open]:zoom-in-95",
       "data-[state=closed]:zoom-out-95",
+      "data-[side=bottom]:slide-in-from-top-2",
     );
     expect(item).toHaveClass("px-2", "py-1.5", "text-footnote");
     expect(item).not.toHaveClass("text-callout");

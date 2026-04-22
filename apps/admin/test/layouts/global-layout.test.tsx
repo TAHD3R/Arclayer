@@ -1,9 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { listProjects } from "@/api/projects";
 import { GlobalLayout } from "@/layouts/global-layout";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
+import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 let mockSearchStr = "";
@@ -60,15 +62,17 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
   AdminSceneLayout: ({
     children,
     mainItems,
+    browseProjects,
     renderTopbar,
     sidebarCollapsible,
   }: {
     children: React.ReactNode;
     mainItems: Array<{ key: string }>;
+    browseProjects?: Array<{ projectId: string; workspaceId: string; name: string }>;
     renderTopbar?: () => React.ReactNode;
     sidebarCollapsible?: "icon" | "none";
   }) => {
-    sceneLayoutSpy({ mainItems, sidebarCollapsible });
+    sceneLayoutSpy({ mainItems, browseProjects, sidebarCollapsible });
     return (
       <div data-testid="admin-scene-layout" data-sidebar-collapsible={sidebarCollapsible}>
         {renderTopbar?.()}
@@ -95,6 +99,10 @@ vi.mock("@/layouts/page-shell/content-guard", () => ({
 
 vi.mock("@/hooks/use-current-user-profile", () => ({
   useCurrentUserProfile: vi.fn(),
+}));
+
+vi.mock("@/api/projects", () => ({
+  listProjects: vi.fn(),
 }));
 
 vi.mock("@/pages/usercenter/projects/hooks/use-project-menu-actions", () => ({
@@ -162,6 +170,16 @@ describe("GlobalLayout", () => {
       setSidebarWidthPx: vi.fn(),
     };
     mockSearchStr = "";
+    useAuthStore.setState({ accessToken: null, sessionVersion: 0 });
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 100,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
     vi.mocked(useCurrentUserProfile).mockReturnValue({
       isSuperAdmin: false,
       isLoading: false,
@@ -237,5 +255,52 @@ describe("GlobalLayout", () => {
 
     expect(usePreferencesStore((state) => state.sidebarWidthPx)).toBe(260);
     expect(screen.getByTestId("outlet")).toBeInTheDocument();
+  });
+
+  it("passes browse projects into the global admin scene layout", async () => {
+    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [
+        {
+          id: "project-alpha",
+          workspaceId: "workspace-alpha",
+          organizationId: "org-alpha",
+          slug: "project-alpha",
+          name: "Project Alpha",
+          description: null,
+          iconMode: "initials",
+          iconColor: "#000000",
+          iconGlyph: null,
+          iconEmoji: null,
+          iconUrl: null,
+          isActive: true,
+          archivedAt: null,
+          archivedByUserId: null,
+          memberCount: 0,
+          membersPreview: [],
+          createdAt: "2026-04-22T00:00:00Z",
+          enterable: true,
+          primaryRuntime: null,
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 100,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+
+    renderWithQueryClient(<GlobalLayout />);
+
+    await waitFor(() => {
+      expect(sceneLayoutSpy.mock.calls.at(-1)?.[0]?.browseProjects).toEqual([
+        expect.objectContaining({
+          projectId: "project-alpha",
+          workspaceId: "workspace-alpha",
+          name: "Project Alpha",
+        }),
+      ]);
+    });
   });
 });

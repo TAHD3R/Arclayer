@@ -66,10 +66,15 @@ export function AdminLayout({ children }: PropsWithChildren) {
   });
 
   const projectsQuery = useQuery({
-    queryKey: ["global-nav", "projects", sessionVersion],
-    enabled: Boolean(accessToken),
+    queryKey: ["workspace-nav", "projects", effectiveWorkspaceId, sessionVersion],
+    enabled: Boolean(accessToken && effectiveWorkspaceId),
     queryFn: async () => {
-      const items = await listProjects({ archived: false, page: 1, size: 100 });
+      const items = await listProjects({
+        archived: false,
+        page: 1,
+        size: 100,
+        workspaceId: String(effectiveWorkspaceId),
+      });
 
       return items.items
         .map(mapProjectToListItem)

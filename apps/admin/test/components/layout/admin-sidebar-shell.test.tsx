@@ -12,8 +12,13 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
-const { navClickSpy } = vi.hoisted(() => ({
+const { navClickSpy, navigateMock } = vi.hoisted(() => ({
   navClickSpy: vi.fn(),
+  navigateMock: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => navigateMock,
 }));
 
 vi.mock("@/components/layout/admin-side-nav", () => ({
@@ -138,6 +143,7 @@ describe("AdminSidebarShell", () => {
 
   beforeEach(() => {
     navClickSpy.mockClear();
+    navigateMock.mockClear();
   });
 
   it("does not show a tooltip when hovering the shared sidebar rail", async () => {
@@ -296,6 +302,165 @@ describe("AdminSidebarShell", () => {
     expect(browseTab).toHaveTextContent("Project Alpha");
     expect(browseTab.className).toContain("data-[state=active]:max-w-[7rem]");
     expect(browseTab.querySelector('[aria-label="Project Alpha"]')).not.toBeNull();
+  });
+
+  it("wraps the active pill with button-style click affordance across browse, inbox, and chat", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    const browseTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" });
+    expect(browseTab.closest("[data-active-pill-button]")).not.toBeNull();
+
+    await user.click(screen.getByRole("tab", { name: "Inbox" }));
+    const inboxTab = screen.getByRole("tab", { name: "Inbox" });
+    expect(inboxTab.closest("[data-active-pill-button]")).not.toBeNull();
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_CHAT" }));
+    const chatTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_CHAT" });
+    expect(chatTab.closest("[data-active-pill-button]")).not.toBeNull();
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("opens a browse dropdown from the active pill and lists workspace projects plus home", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        browseProjects={[
+          {
+            projectId: "project-alpha",
+            workspaceId: "workspace-alpha",
+            name: "Project Alpha",
+            description: "Primary publishing surface",
+            enterable: true,
+            iconMode: "emoji",
+            iconEmoji: "A",
+          },
+          {
+            projectId: "project-beta",
+            workspaceId: "workspace-alpha",
+            name: "Project Beta",
+            description: "Secondary sandbox",
+            enterable: true,
+            iconMode: "emoji",
+            iconEmoji: "B",
+          },
+          {
+            projectId: "project-gamma",
+            workspaceId: "workspace-gamma",
+            name: "Project Gamma",
+            description: "Another workspace",
+            enterable: true,
+          },
+        ]}
+        activeBrowseProjectId="project-alpha"
+        collapsible="icon"
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
+
+    const menu = screen.getByRole("menu");
+
+    expect(within(menu).getByRole("menuitem", { name: /Project Alpha/ })).toBeInTheDocument();
+    expect(within(menu).getByText("Primary publishing surface")).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /Project Beta/ })).toBeInTheDocument();
+    expect(within(menu).getByText("Secondary sandbox")).toBeInTheDocument();
+    expect(within(menu).queryByText("Project Gamma")).toBeNull();
+    expect(within(menu).getByRole("menuitem", { name: "nav:NAV_HOME" })).toBeInTheDocument();
+  });
+
+  it("navigates from the browse dropdown to another project and home", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        browseProjects={[
+          {
+            projectId: "project-alpha",
+            workspaceId: "workspace-alpha",
+            name: "Project Alpha",
+            description: "Primary publishing surface",
+            enterable: true,
+          },
+          {
+            projectId: "project-beta",
+            workspaceId: "workspace-alpha",
+            name: "Project Beta",
+            description: "Secondary sandbox",
+            enterable: true,
+          },
+        ]}
+        activeBrowseProjectId="project-alpha"
+        collapsible="icon"
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
+    await user.click(screen.getByRole("menuitem", { name: /Project Beta/ }));
+
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-beta" });
+
+    await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
+    await user.click(screen.getByRole("menuitem", { name: "nav:NAV_HOME" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/" });
+  });
+
+  it("shows all browse projects in global mode and renders fallback description when missing", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        browseProjects={[
+          {
+            projectId: "project-alpha",
+            workspaceId: "workspace-alpha",
+            name: "Project Alpha",
+            description: null,
+            enterable: true,
+          },
+          {
+            projectId: "project-beta",
+            workspaceId: "workspace-beta",
+            name: "Project Beta",
+            description: "Secondary sandbox",
+            enterable: true,
+          },
+        ]}
+        activeBrowseProjectId={null}
+        collapsible="icon"
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
+
+    const menu = screen.getByRole("menu");
+
+    expect(within(menu).getByRole("menuitem", { name: /Project Alpha/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /Project Beta/ })).toBeInTheDocument();
+    expect(
+      within(menu).getByText("common:SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK"),
+    ).toBeInTheDocument();
+    expect(within(menu).getByText("Secondary sandbox")).toBeInTheDocument();
   });
 
   it("switches sidebar content between browse, inbox, and chat tabs", async () => {

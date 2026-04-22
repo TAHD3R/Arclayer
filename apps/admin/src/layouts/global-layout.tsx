@@ -194,6 +194,7 @@ export function GlobalLayout() {
       renderTopbar={() => <AdminTopbar />}
       mainItems={navItems}
       commandScope={GLOBAL_COMMAND_SCOPE}
+      browseProjects={projectsQuery.data ?? []}
       activeBrowseProjectId={null}
       sidebarCollapsible="icon"
     >
