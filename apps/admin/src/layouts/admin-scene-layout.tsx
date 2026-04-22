@@ -11,7 +11,6 @@ import {
   type SidebarBrowseProject,
 } from "@/components/layout/admin-sidebar-shell";
 import { useNotificationActions } from "@/hooks/use-notification-actions";
-import { RouteProgress } from "@/components/layout/route-progress";
 import { RouteTransition } from "@/components/layout/route-transition";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
@@ -186,7 +185,6 @@ export function AdminSceneLayout({
         } as CSSProperties
       }
     >
-      <RouteProgress />
       <div className="flex h-screen min-h-0 w-full flex-1 bg-background">
         <AdminSidebarShell
           showNavSkeleton={showNavSkeleton}

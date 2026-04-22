@@ -8,7 +8,7 @@ import { listWorkspaceRoles } from "@/api/rbac";
 import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
 import { DataTableInfiniteScrollFooter } from "@/components/common/data-table-infinite-scroll-footer";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -169,7 +169,7 @@ export function TeamMembersView(props: {
     onError: (err) => notifyError(err),
   });
 
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useAdminDateTimeFormatter();
   const membersQuery = useInfiniteQuery<PageData<TeamMember>>({
     queryKey: [...membersSettingsQueryKeyPrefix, searchInput, sort],
     initialPageParam: 1,

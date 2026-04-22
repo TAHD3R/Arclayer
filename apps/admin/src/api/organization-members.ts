@@ -123,9 +123,13 @@ export async function disableOrganizationInviteLink(
 
 export async function listOrganizationInviteLinkParticipants(
   linkId: string,
-  params: { page?: number; size?: number } = {},
+  params: { page?: number; size?: number; q?: string } = {},
 ): Promise<PageData<OrganizationInviteLinkParticipant>> {
-  const query = toQueryString({ page: params.page ?? 1, size: params.size ?? 20 });
+  const query = toQueryString({
+    page: params.page ?? 1,
+    size: params.size ?? 20,
+    q: params.q,
+  });
   return api.get<PageData<OrganizationInviteLinkParticipant>>(
     `${orgInviteLinkPath(linkId, "/participants")}${query}`,
   );

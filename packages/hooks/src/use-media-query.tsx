@@ -1,23 +1,43 @@
 import * as React from "react";
 
-export function useMediaQuery(query: string) {
-  const [value, setValue] = React.useState(false);
-
-  React.useEffect(() => {
-    function onChange(event: MediaQueryListEvent) {
-      setValue(event.matches);
-    }
-
-    const result = matchMedia(query);
-    result.addEventListener("change", onChange);
-    setValue(result.matches);
-
-    return () => result.removeEventListener("change", onChange);
-  }, [query]);
-
-  return value;
+function getMatchMedia(query: string): MediaQueryList | null {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return null;
+  }
+  return window.matchMedia(query);
 }
 
-export function useIsMobile(): boolean {
-  return useMediaQuery("(max-width: 768px)");
+function getSnapshot(query: string): boolean {
+  return getMatchMedia(query)?.matches ?? false;
+}
+
+function subscribe(query: string, onStoreChange: () => void): () => void {
+  const mediaQueryList = getMatchMedia(query);
+  if (!mediaQueryList) {
+    return () => {};
+  }
+
+  const onChange = () => onStoreChange();
+  if (typeof mediaQueryList.addEventListener === "function") {
+    mediaQueryList.addEventListener("change", onChange);
+    return () => {
+      mediaQueryList.removeEventListener("change", onChange);
+    };
+  }
+
+  mediaQueryList.addListener(onChange);
+
+  return () => {
+    mediaQueryList.removeListener(onChange);
+  };
+}
+
+export function useMediaQuery(query: string): boolean {
+  const subscribeToQuery = React.useCallback(
+    (onStoreChange: () => void) => subscribe(query, onStoreChange),
+    [query],
+  );
+  const getQuerySnapshot = React.useCallback(() => getSnapshot(query), [query]);
+
+  return React.useSyncExternalStore(subscribeToQuery, getQuerySnapshot, () => false);
 }

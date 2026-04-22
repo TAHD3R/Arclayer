@@ -15,7 +15,7 @@ import {
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import {
   clearSelection,
   rangeSelect,
@@ -209,7 +209,7 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
     () => ({ keyPrefix: "arclayer:admin:dataTable:visibility", version: "v3" as const }),
     [],
   );
-  const dateTime = useWorkspaceDateTimeFormatter({
+  const dateTime = useAdminDateTimeFormatter({
     workspaceId: controller.workspaceId ?? undefined,
   });
   const tableId = useMemo(

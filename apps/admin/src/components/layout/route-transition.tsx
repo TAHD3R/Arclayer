@@ -1,3 +1,4 @@
+import { useProgress } from "@bprogress/react";
 import { useRouterState } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
@@ -13,6 +14,34 @@ type RouteTransitionProps = PropsWithChildren<{
   pendingMinMs?: number;
   variant?: "slide" | "fade";
 }>;
+
+function useRouteLoadingProgress(isRouteLoading: boolean) {
+  const { start, stop } = useProgress();
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (isRouteLoading && !startedRef.current) {
+      startedRef.current = true;
+      start();
+      return;
+    }
+
+    if (!isRouteLoading && startedRef.current) {
+      startedRef.current = false;
+      stop();
+    }
+  }, [isRouteLoading, start, stop]);
+
+  useEffect(() => {
+    return () => {
+      if (!startedRef.current) {
+        return;
+      }
+      startedRef.current = false;
+      stop();
+    };
+  }, [stop]);
+}
 
 function DefaultRoutePending() {
   return (
@@ -63,16 +92,18 @@ export function RouteTransition({
 }: RouteTransitionProps) {
   const reducedMotion = usePrefersReducedMotion();
 
-  const { resolvedPathname, isPagePending } = useRouterState({
+  const { resolvedPathname, isPagePending, isRouteLoading } = useRouterState({
     select: (s) => ({
       // We intentionally only key by pathname so that search changes (filters, pagination, etc.)
       // do not trigger a full route transition animation.
       resolvedPathname: s.resolvedLocation?.pathname ?? s.location.pathname,
       // Matches can stay pending even after `isLoading` flips; mirror router internals.
       isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
+      isRouteLoading: s.isLoading,
     }),
     structuralSharing: true,
   });
+  useRouteLoadingProgress(isRouteLoading);
 
   // Keep rendering the last fully-resolved route while the next route is pending.
   // This avoids "blank frames" when an exit animation completes before the next

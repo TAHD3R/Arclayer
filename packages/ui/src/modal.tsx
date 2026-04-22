@@ -2,7 +2,7 @@
 
 import React from "react";
 import { cn } from "@arclayer/lib/utils";
-import { useIsMobile } from "@arclayer/hooks/use-media-query";
+import { useIsMobile } from "@arclayer/hooks/use-is-mobile";
 import {
   Dialog,
   DialogClose,

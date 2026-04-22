@@ -128,8 +128,8 @@ vi.mock("platejs/react", async (importOriginal) => {
   };
 });
 
-vi.mock("@/hooks/use-workspace-date-time-formatter", () => ({
-  useWorkspaceDateTimeFormatter: () => ({
+vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
+  useAdminDateTimeFormatter: () => ({
     formatDateTimeOrNull: (value: string | null | undefined) => value ?? null,
   }),
 }));

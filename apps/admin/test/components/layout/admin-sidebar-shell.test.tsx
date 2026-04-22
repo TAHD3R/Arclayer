@@ -64,10 +64,6 @@ vi.mock("@/components/layout/admin-sidebar-inbox", () => ({
   AdminSidebarInbox: () => <div data-testid="sidebar-inbox-content">Inbox content</div>,
 }));
 
-vi.mock("@/components/ui/gradual-blur", () => ({
-  default: () => null,
-}));
-
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => {

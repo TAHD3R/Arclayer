@@ -40,11 +40,3 @@ export function UserLabel(props: UserLabelProps) {
     />
   );
 }
-
-// 兼容旧实现：table columns 常用 render 函数签名。
-export function renderUserLabel(
-  user: UserLabelUser | null,
-  options?: Omit<UserLabelProps, "user">,
-): React.ReactNode {
-  return <UserLabel user={user} {...options} />;
-}

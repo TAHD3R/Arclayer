@@ -21,7 +21,7 @@ import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-
 import { type ViewMode as ContentLibraryViewMode } from "@/components/common/view-mode-toggle";
 import { PageMainRegion } from "@/layouts/page-shell/page-main-region";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type {
@@ -496,7 +496,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   const projectId = props.projectId ?? projectIdFromStore;
   const sidebar = useSidebar();
   const queryClient = useQueryClient();
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useAdminDateTimeFormatter();
   const permissionAccess = useProjectPermissionAccess(projectId);
   const autoCardMode = useContentLibraryCardMode();
   const [manualViewMode, setManualViewMode] = React.useState<ContentLibraryViewMode | null>(null);

@@ -1,1 +1,5 @@
-export { WorkspaceActivityPage } from "./components/workspace-activity-view";
+import { ActivityTimelinePage } from "./components/workspace-activity-view";
+
+export function ProjectActivityPage() {
+  return <ActivityTimelinePage />;
+}

@@ -25,7 +25,7 @@ import {
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { ActivityEvent } from "@/types/api";
 
-export function WorkspaceActivityPage() {
+export function ActivityTimelinePage() {
   const { t } = useTranslation(["nav", "activity"]);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 

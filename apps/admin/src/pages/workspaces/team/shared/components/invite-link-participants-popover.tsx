@@ -18,7 +18,7 @@ import {
   InputGroupInput,
 } from "@arclayer/ui/input-group";
 import { notifyError } from "@/lib/notifications";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { Spinner } from "@arclayer/ui/spinner";
 import { UsesCountTag } from "@/components/ui/tags";
@@ -40,7 +40,7 @@ export function InviteLinkParticipantsPopover(props: {
   lastUsedAt?: string | null;
 }) {
   const { t } = useTranslation(["team", "common"]);
-  const dateTime = useWorkspaceDateTimeFormatter({ workspaceId: props.workspaceId || undefined });
+  const dateTime = useAdminDateTimeFormatter({ workspaceId: props.workspaceId || undefined });
   const [open, setOpen] = React.useState(false);
   const [page, setPage] = React.useState(1);
   const [rawQ, setRawQ] = React.useState("");
@@ -71,7 +71,7 @@ export function InviteLinkParticipantsPopover(props: {
     enabled,
     queryFn: async () => {
       if (isOrg) {
-        return listOrganizationInviteLinkParticipants(props.linkId, { page, size: 10 });
+        return listOrganizationInviteLinkParticipants(props.linkId, { page, size: 10, q });
       }
       return listTeamInviteLinkParticipants(props.workspaceId!, props.linkId, {
         page,

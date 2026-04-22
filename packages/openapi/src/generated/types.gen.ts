@@ -4350,6 +4350,34 @@ export type DirectoryProjectListItemOut = {
      */
     description?: string | null;
     /**
+     * Iconcolor
+     *
+     * Project icon color.
+     */
+    iconColor?: string | null;
+    /**
+     * Iconemoji
+     *
+     * Project icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Project icon glyph.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Project icon mode.
+     */
+    iconMode?: WorkspaceIconMode | null;
+    /**
+     * Iconurl
+     *
+     * Project icon URL.
+     */
+    iconUrl?: string | null;
+    /**
      * Isactive
      *
      * Whether the project is active.
@@ -4825,6 +4853,34 @@ export type DirectoryWorkspaceListItemOut = {
      * Workspace description.
      */
     description?: string | null;
+    /**
+     * Iconcolor
+     *
+     * Workspace icon color.
+     */
+    iconColor?: string | null;
+    /**
+     * Iconemoji
+     *
+     * Workspace icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Workspace icon glyph.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Workspace icon mode.
+     */
+    iconMode?: WorkspaceIconMode | null;
+    /**
+     * Iconurl
+     *
+     * Workspace icon URL.
+     */
+    iconUrl?: string | null;
     /**
      * Isactive
      *
@@ -14879,6 +14935,34 @@ export type ResponseModelWorkspaceTeamMemberStatusResult = {
 };
 
 /**
+ * ResponseModel[list[DirectoryActorSummaryOut]]
+ */
+export type ResponseModelListDirectoryActorSummaryOut = {
+    /**
+     * Data
+     */
+    data?: Array<DirectoryActorSummaryOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[list[HierarchyNodeOut]]
  */
 export type ResponseModelListHierarchyNodeOut = {
@@ -24858,7 +24942,7 @@ export type DomainProjectsPatchProjectCoreSettingsResponses = {
 
 export type DomainProjectsPatchProjectCoreSettingsResponse = DomainProjectsPatchProjectCoreSettingsResponses[keyof DomainProjectsPatchProjectCoreSettingsResponses];
 
-export type DomainProjectsGetProjectSiteData = {
+export type DomainProjectsGetProjectSiteRuntimeData = {
     body?: never;
     path: {
         /**
@@ -24872,23 +24956,23 @@ export type DomainProjectsGetProjectSiteData = {
     url: '/api/v1/projects/{project_id}/site';
 };
 
-export type DomainProjectsGetProjectSiteErrors = {
+export type DomainProjectsGetProjectSiteRuntimeErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type DomainProjectsGetProjectSiteError = DomainProjectsGetProjectSiteErrors[keyof DomainProjectsGetProjectSiteErrors];
+export type DomainProjectsGetProjectSiteRuntimeError = DomainProjectsGetProjectSiteRuntimeErrors[keyof DomainProjectsGetProjectSiteRuntimeErrors];
 
-export type DomainProjectsGetProjectSiteResponses = {
+export type DomainProjectsGetProjectSiteRuntimeResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelProjectRuntimeSiteOut;
 };
 
-export type DomainProjectsGetProjectSiteResponse = DomainProjectsGetProjectSiteResponses[keyof DomainProjectsGetProjectSiteResponses];
+export type DomainProjectsGetProjectSiteRuntimeResponse = DomainProjectsGetProjectSiteRuntimeResponses[keyof DomainProjectsGetProjectSiteRuntimeResponses];
 
 export type DomainProjectsCreateProjectSitePreviewTokenData = {
     /**
@@ -26337,6 +26421,43 @@ export type InternalSystemEnableOrganizationResponses = {
 };
 
 export type InternalSystemEnableOrganizationResponse = InternalSystemEnableOrganizationResponses[keyof InternalSystemEnableOrganizationResponses];
+
+export type InternalSystemListOrganizationOwnerCandidatesData = {
+    body?: never;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: string;
+    };
+    query?: {
+        /**
+         * Q
+         *
+         * Search active organization members by username, email, or display name.
+         */
+        q?: string | null;
+    };
+    url: '/api/v1/system/directory/organizations/{organization_id}/owner-candidates';
+};
+
+export type InternalSystemListOrganizationOwnerCandidatesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListOrganizationOwnerCandidatesError = InternalSystemListOrganizationOwnerCandidatesErrors[keyof InternalSystemListOrganizationOwnerCandidatesErrors];
+
+export type InternalSystemListOrganizationOwnerCandidatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListDirectoryActorSummaryOut;
+};
+
+export type InternalSystemListOrganizationOwnerCandidatesResponse = InternalSystemListOrganizationOwnerCandidatesResponses[keyof InternalSystemListOrganizationOwnerCandidatesResponses];
 
 export type InternalSystemListProjectsData = {
     body?: never;

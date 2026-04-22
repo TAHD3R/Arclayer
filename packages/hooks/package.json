@@ -8,7 +8,6 @@
     "./use-auto-height": "./src/use-auto-height.tsx",
     "./use-client-platform": "./src/use-client-platform.ts",
     "./use-controlled-state": "./src/use-controlled-state.tsx",
-    "./use-data-state": "./src/use-data-state.ts",
     "./use-is-in-view": "./src/use-is-in-view.ts",
     "./use-is-mobile": "./src/use-is-mobile.ts",
     "./use-lock-viewport": "./src/use-lock-viewport.ts",
@@ -18,7 +17,6 @@
     "./use-saving-key": "./src/use-saving-key.ts",
     "./use-toggle": "./src/use-toggle.ts",
     "./use-media-prefers-reduced-motion": "./src/use-media-prefers-reduced-motion.ts",
-    "./use-document-title": "./src/use-document-title.ts",
     "./use-prefers-reduced-motion": "./src/use-prefers-reduced-motion.ts",
     "./use-scene-reveal-transition": "./src/use-scene-reveal-transition.ts"
   },

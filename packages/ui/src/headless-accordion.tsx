@@ -9,7 +9,7 @@ import {
   type DisclosureButtonProps as DisclosureButtonPrimitiveProps,
   type DisclosurePanelProps as DisclosurePanelPrimitiveProps,
   type DisclosureProps as DisclosurePrimitiveProps,
-} from "@arclayer/ui/headless-disclosure";
+} from "./headless-disclosure";
 import { cn } from "@arclayer/lib/utils";
 
 type AccordionProps<TTag extends React.ElementType = "div"> = React.ComponentProps<TTag> & {

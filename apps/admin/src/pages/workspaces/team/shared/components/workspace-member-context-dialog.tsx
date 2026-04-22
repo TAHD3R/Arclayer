@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { listWorkspaceActivity } from "@/api/activity";
 import { getWorkspaceRbacMatrix, listWorkspaceRoles } from "@/api/rbac";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { ActivityDetailDialog } from "@/pages/workspaces/shared/activity/components/activity-detail-dialog";
 import { resolveCatalogEntry } from "@/pages/workspaces/shared/activity/constants";
 import { WorkspaceMemberActivityTab } from "@/pages/workspaces/team/shared/components/member-inspect-activity-tab";
@@ -52,7 +52,7 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
   }, [member]);
 
   const activeMember = member ?? displayMember;
-  const dateTime = useWorkspaceDateTimeFormatter({ workspaceId: props.workspaceId ?? undefined });
+  const dateTime = useAdminDateTimeFormatter({ workspaceId: props.workspaceId ?? undefined });
   const [selectedActivity, setSelectedActivity] = useState<ActivityEvent | null>(null);
   const activityScrollRef = useRef<HTMLDivElement | null>(null);
   const activitySentinelRef = useRef<HTMLDivElement | null>(null);

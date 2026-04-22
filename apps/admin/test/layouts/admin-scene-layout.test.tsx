@@ -13,6 +13,7 @@ const {
   markReadMock,
   openTargetMock,
   toastInfoMock,
+  routeTransitionSpy,
 } = vi.hoisted(() => ({
   adminSidebarShellSpy: vi.fn(),
   getUnreadNotificationPreviewMock: vi.fn(),
@@ -21,6 +22,7 @@ const {
   markReadMock: vi.fn(),
   openTargetMock: vi.fn(),
   toastInfoMock: vi.fn(),
+  routeTransitionSpy: vi.fn(),
 }));
 
 vi.mock("@/api/notifications", () => ({
@@ -34,12 +36,11 @@ vi.mock("@/components/layout/admin-sidebar-shell", () => ({
   },
 }));
 
-vi.mock("@/components/layout/route-progress", () => ({
-  RouteProgress: () => null,
-}));
-
 vi.mock("@/components/layout/route-transition", () => ({
-  RouteTransition: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  RouteTransition: (props: { children?: ReactNode; className?: string }) => {
+    routeTransitionSpy(props);
+    return <>{props.children}</>;
+  },
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
@@ -159,6 +160,11 @@ describe("AdminSceneLayout", () => {
     renderSceneLayout(queryClient);
 
     expect(toastInfoMock).not.toHaveBeenCalled();
+    expect(routeTransitionSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        className: "w-full",
+      }),
+    );
     await waitFor(() => {
       expect(adminSidebarShellSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({

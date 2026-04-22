@@ -19,7 +19,7 @@ import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provi
 import { DataTableInfiniteScrollFooter } from "@/components/common/data-table-infinite-scroll-footer";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { InvitationStatusTag } from "@/components/ui/tags";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
@@ -99,7 +99,7 @@ export function TeamInvitationsView(
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useAdminDateTimeFormatter();
   const [tab, setTab] = React.useState<TabKey>("pending");
 
   const [pendingSearchInput, setPendingSearchInput] = React.useState("");

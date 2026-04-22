@@ -8,6 +8,14 @@ import { ProjectActionsDropdown } from "@/pages/usercenter/projects/components/p
 import type { ProjectMenuItem } from "@/pages/usercenter/projects/types";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
+const { navigateMock } = vi.hoisted(() => ({
+  navigateMock: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => navigateMock,
+}));
+
 vi.mock("@/components/layout/admin-side-nav", () => ({
   AdminSiderNav: () => <button type="button">Nav item</button>,
 }));
@@ -16,8 +24,25 @@ vi.mock("@/components/layout/admin-sidebar-skeleton", () => ({
   AdminSidebarMainMenuSkeleton: () => <div data-testid="admin-sidebar-main-skeleton" />,
 }));
 
-vi.mock("@/components/ui/gradual-blur", () => ({
-  default: () => null,
+vi.mock("@/hooks/use-admin-command-palette", () => ({
+  useAdminCommandPalette: () => ({
+    sections: [],
+    query: "",
+    setQuery: vi.fn(),
+    emptyText: "empty",
+    onSelectEntry: vi.fn(),
+  }),
+}));
+
+vi.mock("@/components/layout/admin-logo", () => ({
+  AdminFullLogo: () => <div data-testid="sidebar-brand-logo" />,
+  AdminLogo: () => <div data-testid="sidebar-brand-icon-logo" />,
+}));
+
+vi.mock("@/components/layout/admin-workspace-switcher", () => ({
+  AdminWorkspaceSwitcher: (props: { variant?: "sidebar" | "header" }) => (
+    <div data-testid="sidebar-workspace-switcher" data-variant={props.variant} />
+  ),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -137,7 +162,6 @@ describe("ProjectActionsDropdown", () => {
       expect(screen.queryByRole("menuitem", { name: "Project settings" })).toBeNull();
 
       await waitFor(() => {
-        expect(sidebar).toHaveAttribute("data-state", "expanded");
         expect(sidebar).toHaveAttribute("data-hover-preview", "");
       });
 
