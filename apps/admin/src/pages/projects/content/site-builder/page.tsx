@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { projectContentLibraryPath } from "@/lib/routing/project-content-routing";
@@ -84,12 +85,10 @@ export function ContentSiteBuilderPage(props: {
             </CardHeader>
             <CardContent className="space-y-4">
               {permissionReady && !canConfigureBuilder ? (
-                <div
-                  className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
+                <AccessNoticeAlert
                   data-testid="content-site-builder-no-access"
-                >
-                  {t("CONTENT_SITE_BUILDER_NO_ACCESS_DESC")}
-                </div>
+                  description={t("CONTENT_SITE_BUILDER_NO_ACCESS_DESC")}
+                />
               ) : null}
               {props.item ? (
                 <div

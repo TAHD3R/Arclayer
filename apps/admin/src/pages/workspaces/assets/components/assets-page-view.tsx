@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { type ViewMode as AssetsViewMode } from "@/components/common/view-mode-toggle";
 import { ColumnsPage } from "@/layouts/page-shell/columns-page";
@@ -332,12 +333,11 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
       >
         <div className="relative flex h-full min-h-0 min-w-0 w-full flex-col">
           {!canManageAssets ? (
-            <div
-              className="mx-4 mt-4 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground sm:mx-6 lg:mx-8"
+            <AccessNoticeAlert
+              className="mx-4 mt-4 sm:mx-6 lg:mx-8"
               data-testid="assets-read-only-notice"
-            >
-              {t("assets:ASSET_LIBRARY_NO_ACCESS_DESC")}
-            </div>
+              description={t("assets:ASSET_LIBRARY_NO_ACCESS_DESC")}
+            />
           ) : null}
           <AssetsViewOverlays
             t={t}

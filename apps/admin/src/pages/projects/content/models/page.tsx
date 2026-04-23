@@ -8,6 +8,7 @@ import {
   listAllContentModels,
   patchContentModel,
 } from "@/api/content";
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError } from "@/lib/notifications";
@@ -739,9 +740,7 @@ export function ContentModelsControlCenterPage(props: { projectId: string }) {
 
             <div className="space-y-6">
               {!canManageModels ? (
-                <div className="rounded-[28px] border border-border/70 bg-muted/30 px-5 py-4 text-sm text-muted-foreground">
-                  {t("CONTENT_MODELS_NO_ACCESS_DESC")}
-                </div>
+                <AccessNoticeAlert description={t("CONTENT_MODELS_NO_ACCESS_DESC")} />
               ) : null}
 
               <GovernancePanel

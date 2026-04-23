@@ -5,6 +5,7 @@ import { Accordion } from "@arclayer/ui/accordion";
 import { useTranslation } from "react-i18next";
 
 import { checkProjectSlugAvailability, getProjectDetail, patchProject } from "@/api/projects";
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
@@ -228,9 +229,10 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
       onRetry={loadError ? () => void detailQuery.refetch() : undefined}
     >
       {permissionReady && !canManageProject ? (
-        <div className="mb-6 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-          {t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
-        </div>
+        <AccessNoticeAlert
+          className="mb-6"
+          description={t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
+        />
       ) : null}
 
       <div className="grid gap-8">

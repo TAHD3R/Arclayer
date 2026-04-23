@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 
 import { getProjectCoreSettings, patchProjectCoreSettings } from "@/api/settings";
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import {
@@ -154,12 +155,11 @@ export function GeneralSettingsShell({
       onRetry={loadError ? () => void projectCoreQuery.refetch() : undefined}
     >
       {permissionReady && !canManageSiteSettings ? (
-        <div
-          className="mb-6 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
+        <AccessNoticeAlert
+          className="mb-6"
           data-testid="general-settings-read-only-notice"
-        >
-          {t("settings:SETTINGS_SITE_SETTINGS_READ_ONLY_DESC")}
-        </div>
+          description={t("settings:SETTINGS_SITE_SETTINGS_READ_ONLY_DESC")}
+        />
       ) : null}
       <Form {...form}>
         <ChromeTabsContent value="basics">

@@ -15,6 +15,7 @@ import {
   updateContentLibraryView,
   unarchiveContentItem,
 } from "@/api/content";
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
@@ -1432,9 +1433,10 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       >
         <div className="flex min-h-0 flex-1 flex-col">
           {permissionReady && !canManageContent ? (
-            <div className="mb-4 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-              {t("content:CONTENT_LIBRARY_NO_ACCESS_DESC")}
-            </div>
+            <AccessNoticeAlert
+              className="mb-4"
+              description={t("content:CONTENT_LIBRARY_NO_ACCESS_DESC")}
+            />
           ) : null}
           {viewMode === "card" && (tableHook.pageData?.items.length ?? 0) > 0 ? (
             <div className="flex min-h-0 flex-col gap-4">

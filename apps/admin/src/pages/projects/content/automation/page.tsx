@@ -13,6 +13,7 @@ import {
   listProjectAutomationRuns,
   updateProjectAutomationFlow,
 } from "@/api/automation";
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { BaseTag } from "@/components/ui/tags";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
@@ -411,9 +412,7 @@ function FlowEditor(props: {
         </label>
 
         {props.showAccessNotice ? (
-          <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
-            {t("CONTENT_AUTOMATION_NO_ACCESS_DESC")}
-          </div>
+          <AccessNoticeAlert description={t("CONTENT_AUTOMATION_NO_ACCESS_DESC")} />
         ) : null}
 
         <div className="flex flex-wrap gap-2">
