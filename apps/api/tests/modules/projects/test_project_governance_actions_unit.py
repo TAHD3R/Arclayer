@@ -36,7 +36,7 @@ def test_project_action_catalog_exposes_project_surface_actions() -> None:
     assert registry["project:settings:read"].scope == PermissionScope.PROJECT.value
     assert "project:settings:manage" in registry
     assert registry["project:settings:manage"].permission_codes == ("system:settings:manage",)
-    assert "workspace_member" in registry["project:settings:manage"].subject_kinds
+    assert "project_member" in registry["project:settings:manage"].subject_kinds
     assert "project:team:members:read" in registry
     assert registry["project:team:members:read"].permission_codes == ("team:members:read",)
     assert "project:team:roles:manage" in registry

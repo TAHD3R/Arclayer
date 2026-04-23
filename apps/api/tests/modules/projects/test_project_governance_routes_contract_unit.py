@@ -62,7 +62,6 @@ async def test_project_governance_authz_route_returns_project_snapshot(monkeypat
     user_id = uuid4()
     expected = ProjectAuthzSnapshot(
         project_id=ctx.project_id,
-        workspace_id=ctx.workspace_id,
         user_id=user_id,
         role_codes=["owner"],
         permission_codes=["system:settings:manage"],

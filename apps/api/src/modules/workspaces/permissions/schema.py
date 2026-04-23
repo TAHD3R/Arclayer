@@ -9,6 +9,7 @@ from src.common.types.public_uuid import PublicUUID
 
 
 class PermissionSubjectKind(StrEnum):
+    PROJECT_MEMBER = "project_member"
     WORKSPACE_MEMBER = "workspace_member"
     PERSONAL_API_KEY = "personal_api_key"
     WORKSPACE_API_KEY = "workspace_api_key"
@@ -19,12 +20,13 @@ class PermissionSubjectKind(StrEnum):
 class PermissionContext(BaseSchema):
     action: str = Field(..., description="Canonical action code.")
     subject_kind: PermissionSubjectKind = Field(..., description="Subject type that requests the action.")
+    project_id: PublicUUID | None = Field(default=None, description="Project scope id.")
     workspace_id: PublicUUID | None = Field(default=None, description="Workspace scope id.")
     site_id: PublicUUID | None = Field(default=None, description="Site scope id.")
     user_id: PublicUUID | None = Field(default=None, description="User id when the subject is user-backed.")
     role_codes: list[str] = Field(default_factory=list, description="Effective role codes.")
     permission_codes: list[str] = Field(default_factory=list, description="Effective permission grants.")
-    is_superuser: bool = Field(default=False, description="Whether the subject has all workspace grants.")
+    is_superuser: bool = Field(default=False, description="Whether the subject has all grants for the active scope.")
     granted_actions: list[str] = Field(
         default_factory=list, description="Direct action grants from API key scopes or similar."
     )

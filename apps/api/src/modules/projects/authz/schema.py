@@ -10,7 +10,6 @@ from src.common.types.public_uuid import PublicUUID
 
 class ProjectAuthzSnapshot(BaseSchema):
     project_id: PublicUUID = Field(..., description="Project id.")
-    workspace_id: PublicUUID = Field(..., description="Backing workspace id.")
     user_id: PublicUUID = Field(..., description="Current user id.")
     scope: Literal["project"] = Field(default="project", description="Authorization scope.")
     role_codes: list[str] = Field(default_factory=list, description="Effective role codes.")

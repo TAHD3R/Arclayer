@@ -36,12 +36,10 @@ def _project_context() -> ProjectRequestContext:
 
 def test_project_authz_snapshot_uses_project_scope_and_camel_case_output() -> None:
     project_id = uuid4()
-    workspace_id = uuid4()
     user_id = uuid4()
 
     snapshot = ProjectAuthzSnapshot(
         project_id=project_id,
-        workspace_id=workspace_id,
         user_id=user_id,
         role_codes=["owner"],
         permission_codes=["system:site:manage"],
@@ -52,7 +50,6 @@ def test_project_authz_snapshot_uses_project_scope_and_camel_case_output() -> No
 
     assert payload == {
         "projectId": encode_uuid(project_id),
-        "workspaceId": encode_uuid(workspace_id),
         "userId": encode_uuid(user_id),
         "scope": "project",
         "roleCodes": ["owner"],
@@ -131,7 +128,6 @@ async def test_get_project_authz_snapshot_reads_project_membership(monkeypatch: 
     snapshot = await get_project_authz_snapshot(ctx=ctx, user_id=user_id)
 
     assert snapshot.project_id == ctx.project_id
-    assert snapshot.workspace_id == ctx.workspace_id
     assert snapshot.user_id == user_id
     assert snapshot.scope == "project"
     assert snapshot.role_codes == ["editor"]

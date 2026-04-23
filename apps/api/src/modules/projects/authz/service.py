@@ -20,7 +20,6 @@ async def get_project_authz_snapshot(
     if membership is None:
         return ProjectAuthzSnapshot(
             project_id=ctx.project_id,
-            workspace_id=ctx.workspace_id,
             user_id=user_id,
             role_codes=[],
             permission_codes=[],
@@ -32,7 +31,6 @@ async def get_project_authz_snapshot(
     permission_codes = list(get_project_permission_codes_for_role(role))
     return ProjectAuthzSnapshot(
         project_id=ctx.project_id,
-        workspace_id=ctx.workspace_id,
         user_id=user_id,
         role_codes=role_codes,
         permission_codes=permission_codes,

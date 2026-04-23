@@ -21,7 +21,6 @@ def _project_snapshot(
 ) -> ProjectAuthzSnapshot:
     return ProjectAuthzSnapshot(
         project_id=uuid4(),
-        workspace_id=uuid4(),
         user_id=uuid4(),
         role_codes=["owner"] if is_superuser else ["editor"],
         permission_codes=permission_codes,

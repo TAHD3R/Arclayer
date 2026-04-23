@@ -39,8 +39,8 @@ async def ensure_project_permission_granted(
     decision = _get_project_policy_evaluator().evaluate(
         context=PermissionContext(
             action=permission,
-            subject_kind=PermissionSubjectKind.WORKSPACE_MEMBER,
-            workspace_id=ctx.workspace_id,
+            subject_kind=PermissionSubjectKind.PROJECT_MEMBER,
+            project_id=ctx.project_id,
             user_id=user_id,
             role_codes=snapshot.role_codes,
             permission_codes=snapshot.permission_codes,

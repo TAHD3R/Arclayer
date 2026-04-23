@@ -9440,12 +9440,6 @@ export type ProjectAuthzSnapshot = {
      * Current user id.
      */
     userId: string;
-    /**
-     * Workspaceid
-     *
-     * Backing workspace id.
-     */
-    workspaceId: string;
 };
 
 /**
