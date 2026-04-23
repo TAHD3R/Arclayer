@@ -17,6 +17,7 @@ import { Form } from "@arclayer/ui/form";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";
 import type {
@@ -64,6 +65,9 @@ export function GeneralSettingsShell({
   const queryClient = useQueryClient();
   const { savingKey, withSavingKey } = useSavingKey();
   const permissionAccess = useProjectPermissionAccess(projectId);
+  const assetWorkspaceId = useWorkspaceStore((state) =>
+    state.currentProjectId === projectId ? state.currentWorkspaceId : null,
+  );
 
   const projectCoreQuery = useQuery({
     queryKey: ["settings", "project", "core", projectId],
@@ -114,7 +118,8 @@ export function GeneralSettingsShell({
   );
 
   const permissionReady = permissionAccess.authzQuery.isFetched;
-  const canManageSiteSettings = !permissionReady || permissionAccess.hasAction("site:manage");
+  const canManageSiteSettings =
+    !permissionReady || permissionAccess.hasAction("project:settings:manage");
   const projectDisabled =
     projectCoreQuery.isFetching || saveProjectMutation.isPending || !canManageSiteSettings;
   const loadError = useMemo(() => {
@@ -158,7 +163,7 @@ export function GeneralSettingsShell({
       <Form {...form}>
         <ChromeTabsContent value="basics">
           <SiteSettingsTab
-            assetWorkspaceId={permissionAccess.authzQuery.data?.workspaceId ?? null}
+            assetWorkspaceId={assetWorkspaceId}
             form={form}
             initialValues={initialValues}
             disabled={projectDisabled}

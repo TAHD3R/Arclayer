@@ -141,14 +141,14 @@ describe("GeneralSettingsShell permission consumption", () => {
     getMyProjectAuthzMock.mockResolvedValue({
       workspaceId: "workspace-1",
       isSuperuser: false,
-      permissionCodes: ["system:site:manage"],
+      permissionCodes: ["system:settings:manage"],
     });
     listProjectPermissionActionsMock.mockResolvedValue([
       {
-        code: "site:manage",
-        description: "Manage site",
-        subjectKinds: ["workspace_member"],
-        permissionCodes: ["system:site:manage"],
+        code: "project:settings:manage",
+        description: "Manage project-level settings",
+        subjectKinds: ["project_member"],
+        permissionCodes: ["system:settings:manage"],
       },
     ]);
   });
@@ -172,7 +172,7 @@ describe("GeneralSettingsShell permission consumption", () => {
     getMyProjectAuthzMock.mockResolvedValueOnce({
       workspaceId: "workspace-1",
       isSuperuser: false,
-      permissionCodes: ["system:site:read"],
+      permissionCodes: ["system:settings:read"],
     });
 
     renderWithQuery(

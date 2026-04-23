@@ -152,7 +152,8 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
 
   const project = detailQuery.data?.project ?? null;
   const permissionReady = permissionAccess.authzQuery.isFetched;
-  const canManageProject = !permissionReady || permissionAccess.hasAction("system:settings:manage");
+  const canManageProject =
+    !permissionReady || permissionAccess.hasAction("project:settings:manage");
   const disabled = updateProjectMutation.isPending || !canManageProject;
 
   const handlePatchProject = useCallback(

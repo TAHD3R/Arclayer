@@ -4,6 +4,72 @@ Date: 2026-04-23
 Repo: `/home/philip/arclayer-refactor`
 Branch: `refactor`
 
+## Execution Status
+
+Audit updated on `2026-04-24` against `/home/philip/Arclayer`, where `develop` and `refactor` currently point to the same HEAD.
+
+Current outcome:
+
+1. Project settings storage is now persisted on `SCOPE_TYPE_PROJECT`.
+2. Project settings permission checks now evaluate against `project_id` and `ProjectMembership`.
+3. `ProjectSettingsService.get_core_detail()` and `.patch_core()` now accept `project_id` only.
+4. Workspace-scoped project-settings webhook/onboarding side effects have left the service.
+5. Backend target verification passed.
+6. Cross-layer Admin cleanup has been applied in the current working tree, including removal of stale `ProjectAuthzSnapshot.workspaceId` consumers and project action code alignment on project pages.
+
+Fresh verification captured on `2026-04-24`:
+
+```bash
+timeout 60s pnpm -C apps/api uv -- pytest -q \
+  tests/modules/projects/test_project_authz_contract_unit.py \
+  tests/modules/projects/test_project_governance_routes_contract_unit.py \
+  tests/modules/projects/test_project_governance_actions_unit.py \
+  tests/modules/projects/test_project_settings_service_unit.py \
+  tests/modules/projects/test_project_api_key_scopes_unit.py
+```
+
+Result: `22 passed`
+
+```bash
+timeout 120s env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q \
+  tests/modules/projects/test_project_settings_core_integration.py
+```
+
+Result: `1 passed`
+
+```bash
+pnpm -C apps/admin test \
+  test/pages/settings/context-settings-pages.test.tsx \
+  test/pages/account/projects-page.test.tsx \
+  test/lib/routing/notification-target.test.ts \
+  test/components/layout/favorite-nav-items.test.ts \
+  test/lib/workspace-nav-regression.test.ts
+```
+
+Result: `5 files passed, 19 tests passed`
+
+```bash
+pnpm -C apps/admin typecheck
+```
+
+Result after consumer cleanup:
+
+- `exit 0`
+
+```bash
+pnpm -C apps/admin test \
+  test/api/project-governance-contract.test.ts \
+  test/pages/settings/general-settings-shell-permissions.test.tsx \
+  test/pages/workspaces/content/content-library-article-editor-page.test.tsx \
+  test/pages/workspaces/content/content-library-page.test.tsx \
+  test/pages/workspaces/content/content-site-builder-shell.test.tsx \
+  test/pages/workspaces/content/content-automation-page.test.tsx \
+  test/pages/workspaces/content/content-release-center-page.test.tsx \
+  test/pages/workspaces/content/content-models-control-center.test.tsx
+```
+
+Result: `8 files passed, 65 tests passed`
+
 ## Goal
 
 Move project settings authorization to a true project-scoped model.
@@ -47,6 +113,16 @@ This plan uses a dedicated project authz policy layer built on `ProjectMembershi
 - Project API key permission resolution aligns with project-scoped permission codes.
 - Dead workspace-scoped project-settings event code and stale unit tests are removed or rewritten.
 - OpenAPI generation and targeted backend tests pass.
+
+## Audit Verdict
+
+The hard-cut goal for project settings itself is implemented.
+
+The follow-up consumer cleanup slice is also implemented in the current working tree:
+
+1. stale Admin/test consumers that assumed `ProjectAuthzSnapshot.workspaceId` have been removed from this surface
+2. workspace-backed asset/activity scope for the affected project surfaces now resolves from project route context instead of the project authz contract
+3. Admin contract fixtures and focused verification have been refreshed
 
 ## Task 1: Build the Project Authz Core
 

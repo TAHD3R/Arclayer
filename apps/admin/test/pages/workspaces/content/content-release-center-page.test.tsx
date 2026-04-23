@@ -80,9 +80,9 @@ describe("content-release-center-page", () => {
     });
     mocked.listProjectPermissionActions.mockResolvedValue([
       {
-        code: "release:publish",
+        code: "project:release:publish",
         description: "Publish content entries through the shared lifecycle workflow.",
-        subjectKinds: ["workspace_member"],
+        subjectKinds: ["project_member"],
         permissionCodes: ["system:content:publish"],
       },
     ]);

@@ -45,9 +45,9 @@ describe("ContentSiteBuilderPage", () => {
     });
     listProjectPermissionActionsMock.mockResolvedValue([
       {
-        code: "content:site-builder:write",
+        code: "project:content:site-builder:write",
         description: "Allow configuring canvas and site builder workflows.",
-        subjectKinds: ["workspace_member"],
+        subjectKinds: ["project_member"],
         permissionCodes: ["system:content:manage"],
       },
     ]);
@@ -96,9 +96,9 @@ describe("ContentSiteBuilderPage", () => {
     });
     listProjectPermissionActionsMock.mockResolvedValue([
       {
-        code: "content:site-builder:write",
+        code: "project:content:site-builder:write",
         description: "Allow configuring canvas and site builder workflows.",
-        subjectKinds: ["workspace_member"],
+        subjectKinds: ["project_member"],
         permissionCodes: ["system:content:manage"],
       },
     ]);
@@ -117,9 +117,9 @@ describe("ContentSiteBuilderPage", () => {
     });
     listProjectPermissionActionsMock.mockResolvedValue([
       {
-        code: "content:site-builder:write",
+        code: "project:content:site-builder:write",
         description: "Allow configuring canvas and site builder workflows.",
-        subjectKinds: ["workspace_member"],
+        subjectKinds: ["project_member"],
         permissionCodes: ["system:content:manage"],
       },
     ]);

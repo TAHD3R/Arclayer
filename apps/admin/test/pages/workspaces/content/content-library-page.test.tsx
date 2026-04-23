@@ -725,15 +725,15 @@ describe("ContentLibraryPage", () => {
     ]);
     mocked.listProjectPermissionActions.mockResolvedValue([
       {
-        code: "content:items:write",
+        code: "project:content:items:write",
         description: "Allow mutating content items via management APIs.",
-        subjectKinds: ["workspace_member"],
+        subjectKinds: ["project_member"],
         permissionCodes: ["system:content:manage"],
       },
       {
-        code: "content:site-builder:write",
+        code: "project:content:site-builder:write",
         description: "Allow configuring canvas and site builder workflows.",
-        subjectKinds: ["workspace_member"],
+        subjectKinds: ["project_member"],
         permissionCodes: ["system:content:manage"],
       },
     ]);

@@ -34,7 +34,7 @@ export function ContentSiteBuilderPage(props: {
   const permissionAccess = useProjectPermissionAccess(props.projectId);
   const permissionReady = permissionAccess.authzQuery.isFetched;
   const canConfigureBuilder =
-    !permissionReady || permissionAccess.hasAction("content:site-builder:write");
+    !permissionReady || permissionAccess.hasAction("project:content:site-builder:write");
   const itemLabel =
     props.item?.title?.trim() || props.item?.slug || t("CONTENT_SITE_BUILDER_EMPTY_TITLE");
 

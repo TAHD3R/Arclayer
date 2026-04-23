@@ -19,11 +19,10 @@ describe("api/project governance contracts", () => {
   it("accepts the project authz snapshot shape", () => {
     const snapshot: ProjectAuthzSnapshot = {
       projectId: "project-1",
-      workspaceId: "workspace-1",
       userId: "user-1",
       scope: "project",
       roleCodes: ["owner"],
-      permissionCodes: ["system:site:manage"],
+      permissionCodes: ["system:settings:manage"],
       isSuperuser: false,
     };
 
@@ -33,33 +32,32 @@ describe("api/project governance contracts", () => {
 
   it("accepts the project action catalog shape", () => {
     const action: ProjectPermissionAction = {
-      code: "site:manage",
-      description: "Manage site",
-      subjectKinds: ["workspace_member"],
-      permissionCodes: ["system:site:manage"],
+      code: "project:settings:manage",
+      description: "Manage project-level settings",
+      subjectKinds: ["project_member"],
+      permissionCodes: ["system:settings:manage"],
     };
 
-    expect(action.code).toBe("site:manage");
-    expect(action.permissionCodes).toEqual(["system:site:manage"]);
+    expect(action.code).toBe("project:settings:manage");
+    expect(action.permissionCodes).toEqual(["system:settings:manage"]);
   });
 
   it("calls the project governance endpoints with project-native return types", async () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce({
         projectId: "project-1",
-        workspaceId: "workspace-1",
         userId: "user-1",
         scope: "project",
         roleCodes: ["owner"],
-        permissionCodes: ["system:site:manage"],
+        permissionCodes: ["system:settings:manage"],
         isSuperuser: false,
       })
       .mockResolvedValueOnce([
         {
-          code: "site:manage",
-          description: "Manage site",
-          subjectKinds: ["workspace_member"],
-          permissionCodes: ["system:site:manage"],
+          code: "project:settings:manage",
+          description: "Manage project-level settings",
+          subjectKinds: ["project_member"],
+          permissionCodes: ["system:settings:manage"],
         },
       ]);
 
@@ -67,7 +65,7 @@ describe("api/project governance contracts", () => {
     const actions = await listProjectPermissionActions("project-1");
 
     expect(snapshot.projectId).toBe("project-1");
-    expect(actions[0]?.code).toBe("site:manage");
+    expect(actions[0]?.code).toBe("project:settings:manage");
     expect(api.get).toHaveBeenNthCalledWith(1, "/projects/project-1/me/authz");
     expect(api.get).toHaveBeenNthCalledWith(2, "/projects/project-1/actions");
   });

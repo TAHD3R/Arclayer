@@ -8,7 +8,7 @@
 
 **Tech Stack:** FastAPI, Pydantic v2, Tortoise ORM, pnpm workspace, OpenAPI codegen, React, TanStack Query, Vitest
 
-**Execution Status (2026-04-22):** Task 1 到 Task 4 已完成并完成 fresh re-verification。Task 5 的 OpenAPI/Admin contract cutover 已完成并完成 focused verification 与 typecheck。Task 6 的 project consumer 收口已完成并通过 focused consumer test group。Task 7 的 API/Admin 定向验证已完成；repo fast-path 中 `pnpm api:check` 已通过，`pnpm admin:check` 暴露现存全仓失败与 worker OOM，仍待独立清障。
+**Execution Status (2026-04-22, updated 2026-04-24):** Task 1 到 Task 7 的首轮 project-native convergence 已落地。其后续 hard-cut 已把 project settings 的存储、权限判定和 service 调用链收拢到 `project_id` 维度。`pnpm -C apps/api uv -- pytest -q tests/modules/projects/test_project_authz_contract_unit.py tests/modules/projects/test_project_governance_routes_contract_unit.py tests/modules/projects/test_project_governance_actions_unit.py tests/modules/projects/test_project_settings_service_unit.py tests/modules/projects/test_project_api_key_scopes_unit.py`、`RUN_INTEGRATION_TESTS=1 ... tests/modules/projects/test_project_settings_core_integration.py`、`pnpm -C apps/admin typecheck` 和 project settings / content project surfaces 的 focused Admin tests 已通过。此前残留的 `ProjectAuthzSnapshot.workspaceId` consumer gap 已在当前工作树收口。
 
 ---
 
@@ -72,9 +72,36 @@
 ### Boundary Rules For This Plan
 
 - `ProjectRequestContext` 继续承载 `project_id/workspace_id/organization_id/runtime_id` 与访问上下文。
-- project authz snapshot 输出 project 作用域字段，同时继续提供 `role_codes/permission_codes/is_superuser` 供现有权限判断复用。
-- project action catalog 只暴露 project surface actions，底层 permission code 继续对齐 `CORE_PERMISSION_TEMPLATES`。
-- project core settings 路径继续保持 `/projects/{project_id}/settings/core`，读写类型切到 project-native schema，存储层保留 `scope_id=workspace_id` 直到 project settings record 模型独立化阶段。
+- `ProjectAuthzSnapshot` 当前只输出 `projectId/userId/scope/roleCodes/permissionCodes/isSuperuser`；asset/activity 一类 workspace-backed consumer 不能再从该合同读取 `workspaceId`。
+- project action catalog 现在发布 project-scoped action code，权限判定基于 `ProjectMembership` 和 `ProjectMemberRole`。
+- project core settings 路径继续保持 `/projects/{project_id}/settings/core`，读写类型为 project-native schema，持久化 scope 已切到 `SCOPE_TYPE_PROJECT`，`ProjectSettingsService` 签名也已去掉 `workspace_id`。
+
+## Follow-Up Audit (2026-04-24)
+
+Current audit conclusion:
+
+- backend target goal 已闭合：project settings storage、authz、API key scopes、service signature 和 stale side effects 已收拢到 project 维度
+- targeted API verification passed
+- targeted Admin route/navigation verification passed
+- targeted Admin consumer cleanup passed
+
+Fresh evidence:
+
+- `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/projects/test_project_authz_contract_unit.py tests/modules/projects/test_project_governance_routes_contract_unit.py tests/modules/projects/test_project_governance_actions_unit.py tests/modules/projects/test_project_settings_service_unit.py tests/modules/projects/test_project_api_key_scopes_unit.py`
+  - result: `22 passed`
+- `timeout 120s env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/projects/test_project_settings_core_integration.py`
+  - result: `1 passed`
+- `pnpm -C apps/admin test test/pages/settings/context-settings-pages.test.tsx test/pages/account/projects-page.test.tsx test/lib/routing/notification-target.test.ts test/components/layout/favorite-nav-items.test.ts test/lib/workspace-nav-regression.test.ts`
+  - result: `5 files passed, 19 tests passed`
+- `pnpm -C apps/admin typecheck`
+  - result: `exit 0`
+- `pnpm -C apps/admin test test/api/project-governance-contract.test.ts test/pages/settings/general-settings-shell-permissions.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-site-builder-shell.test.tsx test/pages/workspaces/content/content-automation-page.test.tsx test/pages/workspaces/content/content-release-center-page.test.tsx test/pages/workspaces/content/content-models-control-center.test.tsx`
+  - result: `8 files passed, 65 tests passed`
+
+Historical note:
+
+- the long-form task body below still preserves earlier phase examples and checkpoints
+- any example below that assumes `ProjectAuthzSnapshot.workspaceId` or project settings persisted on workspace scope is historical context, not the live contract
 
 ## Task 1: 建立 Project Authz 基础模块
 

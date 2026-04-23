@@ -14,6 +14,7 @@ import {
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { buildContentLibraryItemsQueryKey } from "@/pages/projects/content/library/runtime";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-image";
 import { Button } from "@arclayer/ui/button";
 import { Badge } from "@arclayer/ui/badge";
@@ -83,6 +84,10 @@ type ContentLibraryArticleEditorShellProps = {
   onClose?: () => void;
   onOpenPage?: () => void;
   className?: string;
+};
+
+type ContentLibraryArticleEditorShellInnerProps = ContentLibraryArticleEditorShellProps & {
+  assetWorkspaceId: string | null;
 };
 
 function ContentLibraryArticleEditorLoadingSkeleton(props: {
@@ -237,10 +242,9 @@ function ArticleEditorWorkflowLane(props: {
   );
 }
 
-function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
+function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellInnerProps) {
   const { t } = useTranslation(["content", "common"]);
   const permissionAccess = useProjectPermissionAccess(props.projectId);
-  const assetWorkspaceId = permissionAccess.authzQuery.data?.workspaceId ?? null;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isHydrated } = useContentLibraryArticleEditorDocumentState();
@@ -252,7 +256,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   const showShellSkeleton = Boolean(props.isLoading);
   const showBodySkeleton = Boolean(props.isLoading) || !isHydrated;
   const permissionReady = permissionAccess.authzQuery.isFetched;
-  const canPublish = !permissionReady || permissionAccess.hasAction("release:publish");
+  const canPublish = !permissionReady || permissionAccess.hasAction("project:release:publish");
   const publishAccessHint = canPublish ? null : t("CONTENT_LIBRARY_PUBLISH_NO_ACCESS_DESC");
   const textLaneClass = getContentLibraryArticleEditorTextLaneClass(props.mode);
   const coverImageUrl = React.useMemo(
@@ -463,7 +467,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
                     <div className="absolute right-4 top-4 opacity-0 transition-opacity duration-150 group-hover/cover:opacity-100 group-focus-within/cover:opacity-100">
                       <ContentLibraryCoverPickerPopover
-                        assetWorkspaceId={assetWorkspaceId}
+                        assetWorkspaceId={props.assetWorkspaceId}
                         value={props.coverAssetId}
                         open={coverPopoverOpen}
                         onOpenChange={setCoverPopoverOpen}
@@ -496,7 +500,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
-                            assetWorkspaceId={assetWorkspaceId}
+                            assetWorkspaceId={props.assetWorkspaceId}
                             value={props.coverAssetId}
                             open={coverPopoverOpen}
                             onOpenChange={setCoverPopoverOpen}
@@ -569,7 +573,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
-                            assetWorkspaceId={assetWorkspaceId}
+                            assetWorkspaceId={props.assetWorkspaceId}
                             value={props.coverAssetId}
                             open={coverPopoverOpen}
                             onOpenChange={setCoverPopoverOpen}
@@ -650,7 +654,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
       />
       {props.mode === "page" ? (
         <ContentLibraryArticleEditorUpdatesPanel
-          activityWorkspaceId={assetWorkspaceId}
+          activityWorkspaceId={props.assetWorkspaceId}
           itemId={props.itemId}
           open={updatesOpen}
           onOpenChange={setUpdatesOpen}
@@ -662,8 +666,9 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
 }
 
 export function ContentLibraryArticleEditorShell(props: ContentLibraryArticleEditorShellProps) {
-  const permissionAccess = useProjectPermissionAccess(props.projectId);
-  const assetWorkspaceId = permissionAccess.authzQuery.data?.workspaceId ?? null;
+  const assetWorkspaceId = useWorkspaceStore((state) =>
+    state.currentProjectId === props.projectId ? state.currentWorkspaceId : null,
+  );
 
   return (
     <ContentLibraryArticleEditorDocumentProvider
@@ -673,7 +678,7 @@ export function ContentLibraryArticleEditorShell(props: ContentLibraryArticleEdi
       onChange={props.onBodyDocumentChange}
     >
       <ContentLibraryArticleEditorDateLocalizationProvider projectId={props.projectId}>
-        <ContentLibraryArticleEditorShellInner {...props} />
+        <ContentLibraryArticleEditorShellInner {...props} assetWorkspaceId={assetWorkspaceId} />
       </ContentLibraryArticleEditorDateLocalizationProvider>
     </ContentLibraryArticleEditorDocumentProvider>
   );

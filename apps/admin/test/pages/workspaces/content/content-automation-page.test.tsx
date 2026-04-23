@@ -187,9 +187,9 @@ describe("content-automation-page", () => {
     });
     mocked.listProjectPermissionActions.mockResolvedValue([
       {
-        code: "automation:manage",
+        code: "project:automation:manage",
         description: "Allow managing automation flows and operations.",
-        subjectKinds: ["workspace_member"],
+        subjectKinds: ["project_member"],
         permissionCodes: ["system:automation:manage"],
       },
     ]);

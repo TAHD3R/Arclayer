@@ -224,9 +224,9 @@ describe("ContentModelsControlCenterPage", () => {
     });
     listProjectPermissionActionsMock.mockResolvedValue([
       {
-        code: "content:models:write",
+        code: "project:content:models:write",
         permissionCodes: ["system:content:manage"],
-        subjectKinds: ["workspace_member"],
+        subjectKinds: ["project_member"],
         description: "Allow mutating content models via management APIs.",
       },
     ]);
