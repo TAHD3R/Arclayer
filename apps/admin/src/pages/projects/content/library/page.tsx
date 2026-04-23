@@ -535,9 +535,14 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   );
   const createDialogOpen = search.create === "1";
   const viewMode: ContentLibraryViewMode = manualViewMode ?? (autoCardMode ? "card" : "table");
-  const permissionReady = !projectId || permissionAccess.authzQuery.isFetched;
+  const permissionReady =
+    Boolean(projectId) &&
+    permissionAccess.authzQuery.isFetched &&
+    permissionAccess.actionsQuery.isFetched;
   const canManageContent =
-    !projectId || !permissionReady || permissionAccess.hasAction("project:content:items:write");
+    Boolean(projectId) &&
+    permissionReady &&
+    permissionAccess.hasAction("project:content:items:write");
   const modelsQuery = useQuery({
     queryKey: buildContentLibraryModelsQueryKey(projectId ? String(projectId) : null),
     enabled: Boolean(projectId),
@@ -1426,7 +1431,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
         contentClassName="min-h-0 flex flex-col"
       >
         <div className="flex min-h-0 flex-1 flex-col">
-          {!canManageContent ? (
+          {permissionReady && !canManageContent ? (
             <div className="mb-4 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
               {t("content:CONTENT_LIBRARY_NO_ACCESS_DESC")}
             </div>

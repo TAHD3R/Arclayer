@@ -12,9 +12,8 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.authz.service import get_project_authz_snapshot
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
-from src.modules.projects.permissions.service import get_project_action_catalog
-from src.modules.workspaces.permissions.schema import PermissionContext, PermissionSubjectKind
-from src.modules.workspaces.permissions.service import PolicyEvaluationService
+from src.modules.projects.permissions.schema import PermissionContext, PermissionSubjectKind
+from src.modules.projects.permissions.service import PolicyEvaluationService, get_project_action_catalog
 
 
 @lru_cache(maxsize=1)

@@ -30,26 +30,26 @@ vi.mock("@/layouts/page-shell/columns-page", () => ({
       <div data-testid="columns-page-overlay">{overlay as React.ReactNode}</div>
       <div data-testid="columns-page-footer">{footer as React.ReactNode}</div>
       <div data-testid="columns-page-right-slot">
-        {sideSlots && typeof sideSlots === "object" && "right" in sideSlots ? "visible" : "hidden"}
+        {sideSlots && typeof sideSlots === "object" && "left" in sideSlots ? "visible" : "hidden"}
       </div>
       <div data-testid="columns-page-right-slot-sticky">
         {sideSlots &&
         typeof sideSlots === "object" &&
-        "right" in sideSlots &&
-        sideSlots.right &&
-        typeof sideSlots.right === "object" &&
-        "sticky" in sideSlots.right
-          ? String(sideSlots.right.sticky)
+        "left" in sideSlots &&
+        sideSlots.left &&
+        typeof sideSlots.left === "object" &&
+        "sticky" in sideSlots.left
+          ? String(sideSlots.left.sticky)
           : "false"}
       </div>
       <div data-testid="columns-page-right-slot-content">
         {sideSlots &&
         typeof sideSlots === "object" &&
-        "right" in sideSlots &&
-        sideSlots.right &&
-        typeof sideSlots.right === "object" &&
-        "content" in sideSlots.right
-          ? (sideSlots.right.content as React.ReactNode)
+        "left" in sideSlots &&
+        sideSlots.left &&
+        typeof sideSlots.left === "object" &&
+        "content" in sideSlots.left
+          ? (sideSlots.left.content as React.ReactNode)
           : null}
       </div>
       <div>{children as React.ReactNode}</div>

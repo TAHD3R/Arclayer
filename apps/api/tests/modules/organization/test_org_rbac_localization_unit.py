@@ -9,11 +9,11 @@ import pytest
 from src.config import get_settings
 from src.models.organization.org_rbac import OrganizationPermission, OrganizationRole
 from src.modules.organization.rbac import service as rbac_service_module
+from src.modules.organization.rbac.catalog import get_organization_permission_catalog
 from src.modules.organization.rbac.service import (
     _BUILTIN_ROLE_RULES,
     OrganizationRBACService,
 )
-from src.modules.workspaces.permissions import get_organization_permission_catalog
 
 
 class _FakeOrganizationRBACRepo:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import lru_cache
 from typing import Any, Literal, cast
 from uuid import UUID
 
@@ -23,6 +24,8 @@ from src.modules.projects.content.runtime import (
     DocumentRuntimeBoundary,
     DocumentRuntimeMetadata,
 )
+from src.modules.projects.permissions.schema import PermissionContext, PermissionSubjectKind
+from src.modules.projects.permissions.service import PolicyEvaluationService, get_project_action_catalog
 from src.modules.sites.content.service import SiteContentService
 from src.modules.sites.delivery.schema import (
     DeliveryGlobalSetOut,
@@ -39,7 +42,6 @@ from src.modules.sites.graphql.planner import (
 from src.modules.sites.publishing.content_snapshot import CanonicalContentSnapshot, build_canonical_content_snapshot
 from src.modules.sites.repository import SitesRepository
 from src.modules.sites.service import SiteService
-from src.modules.workspaces.permissions import PermissionContext, PermissionSubjectKind, PolicyEvaluationService
 from src.platform.cache.valkey import ValkeyClientLike
 from src.settings.crypto import ensure_master_key, master_key_exists
 
@@ -49,6 +51,11 @@ logger = get_logger(__name__)
 _ARTICLE_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "content": ("content", "body"),
 }
+
+
+@lru_cache(maxsize=1)
+def _get_runtime_policy_evaluator() -> PolicyEvaluationService:
+    return PolicyEvaluationService(registry=get_project_action_catalog())
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,14 +192,14 @@ class SiteGraphQLService:
         preview_token: str | None,
     ) -> None:
         api_key = await self._authenticate_delivery_key(request=request, site_id=site_id)
-        evaluator = PolicyEvaluationService()
+        evaluator = _get_runtime_policy_evaluator()
         if perspective == "published":
             if api_key is None:
                 self._log_query_access(request=request, site_id=site_id, perspective=perspective, api_key=None)
                 return
             decision = evaluator.evaluate(
                 context=PermissionContext(
-                    action="delivery:graphql:read",
+                    action="project:delivery:graphql:read",
                     subject_kind=PermissionSubjectKind.DELIVERY_API_KEY,
                     site_id=site_id,
                     granted_actions=list(api_key.granted_actions),
@@ -208,7 +215,7 @@ class SiteGraphQLService:
         if api_key is not None:
             decision = evaluator.evaluate(
                 context=PermissionContext(
-                    action="delivery:graphql:read",
+                    action="project:delivery:graphql:read",
                     subject_kind=PermissionSubjectKind.DELIVERY_API_KEY,
                     site_id=site_id,
                     granted_actions=list(api_key.granted_actions),
@@ -246,7 +253,7 @@ class SiteGraphQLService:
                 if api_key is not None and api_key.record.delivery_perspective is not None
                 else None
             ),
-            graphql_read=("delivery:graphql:read" in api_key.granted_actions) if api_key is not None else None,
+            graphql_read=("project:delivery:graphql:read" in api_key.granted_actions) if api_key is not None else None,
             perspective=perspective,
             site_id=str(site_id),
         )

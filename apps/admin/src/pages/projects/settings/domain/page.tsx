@@ -11,6 +11,7 @@ import {
   verifyProjectDomain,
 } from "@/api/project-settings";
 import { BaseTag } from "@/components/ui/tags";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -125,6 +126,7 @@ function DomainRow(props: {
 export function ProjectDomainSettingsPage(props: { projectId: string }) {
   const { t } = useTranslation(["account", "common"]);
   const queryClient = useQueryClient();
+  const permissionAccess = useProjectPermissionAccess(props.projectId);
   const [hostname, setHostname] = useState("");
   const queryKey = buildProjectDomainsQueryKey(props.projectId);
 
@@ -182,6 +184,11 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
     updateMutation.isPending ||
     deleteMutation.isPending;
   const domains = domainsQuery.data ?? [];
+  const permissionReady = permissionAccess.authzQuery.isFetched;
+  const canManageDomains =
+    Boolean(props.projectId) &&
+    permissionReady &&
+    permissionAccess.hasAction("project:domains:manage");
 
   return (
     <DefaultPage
@@ -201,11 +208,19 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
         onRetry={domainsQuery.isError ? () => void domainsQuery.refetch() : undefined}
       >
         <div className="grid gap-6">
+          {permissionReady && !canManageDomains ? (
+            <div
+              className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
+              data-testid="project-domains-read-only-notice"
+            >
+              {t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
+            </div>
+          ) : null}
           <form
             className="rounded-[28px] border border-border/60 bg-card/60 p-5"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!hostname.trim()) return;
+              if (!hostname.trim() || !canManageDomains) return;
               void createMutation.mutateAsync();
             }}
           >
@@ -223,8 +238,13 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
                 onChange={(event) => setHostname(event.target.value)}
                 placeholder={t("account:SETTINGS_PROJECT_DOMAINS_PLACEHOLDER")}
                 autoComplete="off"
+                disabled={!canManageDomains}
               />
-              <Button type="submit" loading={createMutation.isPending} disabled={!hostname.trim()}>
+              <Button
+                type="submit"
+                loading={createMutation.isPending}
+                disabled={!hostname.trim() || !canManageDomains}
+              >
                 <Plus size={16} />
                 {t("account:SETTINGS_PROJECT_DOMAINS_ADD")}
               </Button>
@@ -237,7 +257,7 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
                 <DomainRow
                   key={domain.domainId}
                   domain={domain}
-                  pending={pending}
+                  pending={pending || !canManageDomains}
                   onDelete={(domainId) => void deleteMutation.mutateAsync(domainId)}
                   onToggle={(nextDomain) => void updateMutation.mutateAsync(nextDomain)}
                   onVerify={(domainId) => void verifyMutation.mutateAsync(domainId)}

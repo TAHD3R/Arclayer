@@ -255,9 +255,11 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   const [updatesOpen, setUpdatesOpen] = React.useState(false);
   const showShellSkeleton = Boolean(props.isLoading);
   const showBodySkeleton = Boolean(props.isLoading) || !isHydrated;
-  const permissionReady = permissionAccess.authzQuery.isFetched;
-  const canPublish = !permissionReady || permissionAccess.hasAction("project:release:publish");
-  const publishAccessHint = canPublish ? null : t("CONTENT_LIBRARY_PUBLISH_NO_ACCESS_DESC");
+  const permissionReady =
+    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
+  const canPublish = permissionReady && permissionAccess.hasAction("project:release:publish");
+  const publishAccessHint =
+    permissionReady && !canPublish ? t("CONTENT_LIBRARY_PUBLISH_NO_ACCESS_DESC") : null;
   const textLaneClass = getContentLibraryArticleEditorTextLaneClass(props.mode);
   const coverImageUrl = React.useMemo(
     () => resolveAssetRefToPublicUrlPath(props.coverAssetId),

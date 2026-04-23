@@ -14,8 +14,9 @@ import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   createWorkspaceRoleFromTemplate,
   deleteWorkspaceRole,
-  getWorkspaceRbacMatrix,
-  setWorkspacePermissionRoles,
+  listAllWorkspacePermissions,
+  listAllWorkspaceRoles,
+  setWorkspaceRolePermissions,
   updateWorkspaceRole,
 } from "@/api/rbac";
 import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
@@ -81,19 +82,62 @@ export function TeamRolesView(
   const [editingRole, setEditingRole] = React.useState<Role | null>(null);
   const [togglingKey, setTogglingKey] = React.useState<string | null>(null);
 
-  const matrixQuery = useQuery({
-    queryKey: ["rbac", "matrix", workspaceId],
+  const syncRoleQueryCaches = React.useCallback(
+    async (nextPermissionCodesByRole?: Record<string, string[]>) => {
+      const patchItems = (items: Role[] | undefined) =>
+        (items ?? []).map((role) =>
+          nextPermissionCodesByRole && role.code in nextPermissionCodesByRole
+            ? Object.assign({}, role, {
+                permissionCodes: nextPermissionCodesByRole[role.code] ?? [],
+              })
+            : role,
+        );
+
+      queryClient.setQueryData<Role[]>(["rbac", "roles", workspaceId], (current) =>
+        patchItems(current),
+      );
+      queryClient.setQueryData<Role[]>(
+        ["workspace-member-context", "roles", workspaceId],
+        (current) => patchItems(current),
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["rbac", "roles", workspaceId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["workspace-member-context", "roles", workspaceId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["workspace-member-context", "permissions", workspaceId],
+        }),
+      ]);
+    },
+    [queryClient, workspaceId],
+  );
+
+  const rolesQuery = useQuery({
+    queryKey: ["rbac", "roles", workspaceId],
     enabled: Boolean(accessToken && workspaceId),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      return getWorkspaceRbacMatrix(workspaceId);
+      return listAllWorkspaceRoles(workspaceId);
     },
     staleTime: 30 * 1000,
     retry: false,
   });
 
-  const roles = React.useMemo(() => sortByName(matrixQuery.data?.roles ?? []), [matrixQuery.data]);
-  const permissions = React.useMemo(() => matrixQuery.data?.permissions ?? [], [matrixQuery.data]);
+  const permissionsQuery = useQuery({
+    queryKey: ["rbac", "permissions", workspaceId],
+    enabled: Boolean(accessToken && workspaceId),
+    queryFn: async () => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      return listAllWorkspacePermissions(workspaceId);
+    },
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+
+  const roles = React.useMemo(() => sortByName(rolesQuery.data ?? []), [rolesQuery.data]);
+  const permissions = React.useMemo(() => permissionsQuery.data ?? [], [permissionsQuery.data]);
 
   const matchedRoles = React.useMemo(() => {
     if (!needle) return roles;
@@ -131,30 +175,52 @@ export function TeamRolesView(
 
   const togglePermissionMutation = useMutation({
     mutationFn: async ({
-      permissionCode,
       roleCode,
-      granted,
+      permissionCodes,
     }: {
-      permissionCode: string;
       roleCode: string;
-      granted: boolean;
+      permissionCodes: string[];
     }) => {
       if (!workspaceId) throw new Error("workspaceId is required");
-      const perm = permissions.find((p) => p.code === permissionCode);
-      const currentCodes = new Set(perm?.grantedRoleCodes ?? []);
-      const customRoleCodes = new Set(roles.filter((r) => !r.isSystem).map((r) => r.code));
-      if (granted) {
-        currentCodes.add(roleCode);
-      } else {
-        currentCodes.delete(roleCode);
-      }
-      const roleCodes = Array.from(currentCodes).filter((c) => customRoleCodes.has(c));
-      await setWorkspacePermissionRoles({ workspaceId, permissionCode, roleCodes });
+      await setWorkspaceRolePermissions({
+        workspaceId,
+        roleCode,
+        permissionCodes,
+      });
+    },
+    onMutate: async ({ roleCode, permissionCodes }) => {
+      const nextPermissionCodes = [...permissionCodes].sort();
+      queryClient.setQueryData<Role[]>(["rbac", "roles", workspaceId], (current) =>
+        (current ?? []).map((role) =>
+          role.code === roleCode
+            ? Object.assign({}, role, { permissionCodes: nextPermissionCodes })
+            : role,
+        ),
+      );
+      queryClient.setQueryData<Role[]>(
+        ["workspace-member-context", "roles", workspaceId],
+        (current) =>
+          (current ?? []).map((role) =>
+            role.code === roleCode
+              ? Object.assign({}, role, { permissionCodes: nextPermissionCodes })
+              : role,
+          ),
+      );
+      return { roleCode, permissionCodes: nextPermissionCodes };
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["rbac", "matrix", workspaceId] });
+      await syncRoleQueryCaches();
     },
-    onError: (err) => notifyError(err),
+    onError: async (err, _variables, context) => {
+      notifyError(err);
+      if (!context?.roleCode) {
+        return;
+      }
+      await syncRoleQueryCaches({
+        [context.roleCode]:
+          roles.find((role) => role.code === context.roleCode)?.permissionCodes ?? [],
+      });
+    },
     onSettled: () => setTogglingKey(null),
   });
 
@@ -165,7 +231,7 @@ export function TeamRolesView(
     },
     onSuccess: async () => {
       notifySuccessText(t("team:TEAM_ROLES_DELETE_SUCCESS"));
-      await queryClient.invalidateQueries({ queryKey: ["rbac", "matrix", workspaceId] });
+      await syncRoleQueryCaches();
     },
     onError: (err) => notifyError(err),
   });
@@ -237,7 +303,7 @@ export function TeamRolesView(
     onSuccess: async () => {
       notifySuccessText(t("team:TEAM_ROLES_CREATE_SUCCESS"));
       setCreateOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["rbac", "matrix", workspaceId] });
+      await syncRoleQueryCaches();
     },
     onError: (err) => notifyError(err),
   });
@@ -255,7 +321,7 @@ export function TeamRolesView(
     onSuccess: async () => {
       notifySuccessText(t("team:TEAM_ROLES_UPDATE_SUCCESS"));
       setEditingRole(null);
-      await queryClient.invalidateQueries({ queryKey: ["rbac", "matrix", workspaceId] });
+      await syncRoleQueryCaches();
     },
     onError: (err) => notifyError(err),
   });
@@ -278,7 +344,10 @@ export function TeamRolesView(
     );
   }
 
-  if (matrixQuery.isLoading && !matrixQuery.data) {
+  if (
+    (rolesQuery.isLoading || permissionsQuery.isLoading) &&
+    (!rolesQuery.data || !permissionsQuery.data)
+  ) {
     const loadingState = <ContentGuard loading loadingVariant="table" />;
     return props.embedded ? (
       loadingState
@@ -289,12 +358,16 @@ export function TeamRolesView(
     );
   }
 
-  if (matrixQuery.isError) {
+  const queryError = rolesQuery.error ?? permissionsQuery.error;
+  if (queryError) {
     const errorState = (
       <ContentGuard
         loading={false}
-        error={matrixQuery.error}
-        onRetry={() => void matrixQuery.refetch()}
+        error={queryError}
+        onRetry={() => {
+          void rolesQuery.refetch();
+          void permissionsQuery.refetch();
+        }}
       />
     );
     return props.embedded ? (
@@ -454,7 +527,7 @@ export function TeamRolesView(
                         </div>
                       </TableCell>
                       {filteredRoles.map((role) => {
-                        const granted = perm.grantedRoleCodes?.includes(role.code) ?? false;
+                        const granted = role.permissionCodes.includes(perm.code);
                         const key = `${perm.code}:${role.code}`;
                         return (
                           <TableCell key={key} className="px-2 py-2 text-center">
@@ -467,10 +540,15 @@ export function TeamRolesView(
                                   disabled={role.isSystem}
                                   onCheckedChange={(checked) => {
                                     setTogglingKey(key);
+                                    const nextPermissionCodes = new Set(role.permissionCodes);
+                                    if (checked) {
+                                      nextPermissionCodes.add(perm.code);
+                                    } else {
+                                      nextPermissionCodes.delete(perm.code);
+                                    }
                                     togglePermissionMutation.mutate({
-                                      permissionCode: perm.code,
                                       roleCode: role.code,
-                                      granted: Boolean(checked),
+                                      permissionCodes: Array.from(nextPermissionCodes).sort(),
                                     });
                                   }}
                                 />

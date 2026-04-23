@@ -220,7 +220,11 @@ describe("content-automation-page", () => {
     mocked.listProjectAutomationFlows.mockResolvedValue({ items: [] });
     renderPage();
 
-    await user.type(await screen.findByLabelText("CONTENT_AUTOMATION_FIELD_NAME"), "New flow");
+    const nameInput = await screen.findByLabelText("CONTENT_AUTOMATION_FIELD_NAME");
+    await waitFor(() => {
+      expect(nameInput).toBeEnabled();
+    });
+    await user.type(nameInput, "New flow");
     await user.type(
       screen.getByLabelText("CONTENT_AUTOMATION_FIELD_OPERATION_NAME"),
       "Call webhook",
@@ -229,7 +233,8 @@ describe("content-automation-page", () => {
       screen.getByLabelText("CONTENT_AUTOMATION_FIELD_OPERATION_URL"),
       "https://example.com/hooks/new",
     );
-    await user.click(screen.getByRole("button", { name: "CONTENT_AUTOMATION_ACTION_CREATE" }));
+    const createButton = screen.getByRole("button", { name: "CONTENT_AUTOMATION_ACTION_CREATE" });
+    await user.click(createButton);
 
     await waitFor(() => {
       expect(mocked.createProjectAutomationFlow).toHaveBeenCalledWith(
@@ -271,5 +276,20 @@ describe("content-automation-page", () => {
     await waitFor(() => {
       expect(mocked.deleteProjectAutomationFlow).toHaveBeenCalledWith("project-1", "flow-1");
     });
+  });
+
+  test("keeps automation write controls closed while permissions warm up", async () => {
+    mocked.getMyProjectAuthz.mockImplementationOnce(() => new Promise(() => {}));
+    renderPage();
+
+    const createButton = await screen.findByRole("button", {
+      name: "CONTENT_AUTOMATION_ACTION_CREATE",
+    });
+    const newButtons = screen.getAllByRole("button", { name: "CONTENT_AUTOMATION_ACTION_NEW" });
+
+    expect(createButton).toBeDisabled();
+    expect(newButtons.length).toBeGreaterThan(0);
+    newButtons.forEach((button) => expect(button).toBeDisabled());
+    expect(screen.queryByText("CONTENT_AUTOMATION_NO_ACCESS_DESC")).not.toBeInTheDocument();
   });
 });

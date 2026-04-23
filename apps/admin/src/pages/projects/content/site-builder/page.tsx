@@ -32,9 +32,10 @@ export function ContentSiteBuilderPage(props: {
 }) {
   const { t } = useTranslation("content");
   const permissionAccess = useProjectPermissionAccess(props.projectId);
-  const permissionReady = permissionAccess.authzQuery.isFetched;
+  const permissionReady =
+    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
   const canConfigureBuilder =
-    !permissionReady || permissionAccess.hasAction("project:content:site-builder:write");
+    permissionReady && permissionAccess.hasAction("project:content:site-builder:write");
   const itemLabel =
     props.item?.title?.trim() || props.item?.slug || t("CONTENT_SITE_BUILDER_EMPTY_TITLE");
 
@@ -82,7 +83,7 @@ export function ContentSiteBuilderPage(props: {
               <CardDescription>{t("CONTENT_SITE_BUILDER_CANVAS_DESC")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!canConfigureBuilder ? (
+              {permissionReady && !canConfigureBuilder ? (
                 <div
                   className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
                   data-testid="content-site-builder-no-access"

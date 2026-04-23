@@ -512,7 +512,7 @@ async def test_resolve_query_access_rejects_wrong_perspective_for_preview_key() 
     request = _request()
     api_key = AuthenticatedDeliveryKey(
         record=_api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED),
-        granted_actions=frozenset({"delivery:graphql:read"}),
+        granted_actions=frozenset({"project:delivery:graphql:read"}),
         graphql_read=True,
     )
 

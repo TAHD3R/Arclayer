@@ -23,8 +23,6 @@ from src.modules.workspaces.rbac.schema import (
     RoleUpdateRequest,
     WorkspacePermissionActionOut,
     WorkspacePermissionOut,
-    WorkspaceRBACMatrixOut,
-    WorkspaceRBACMatrixPermissionRowOut,
     WorkspaceRoleOut,
 )
 from src.modules.workspaces.rbac.service import WorkspaceRBACService
@@ -77,6 +75,13 @@ def get_rbac_service(settings: Settings = Depends(get_settings)) -> WorkspaceRBA
     return WorkspaceRBACService(settings)
 
 
+async def _to_workspace_role_out(*, service: WorkspaceRBACService, role, locale: str) -> WorkspaceRoleOut:
+    return WorkspaceRoleOut.model_validate({
+        **service.localize_role(role, locale=locale),
+        "permission_codes": await service.list_permission_codes_for_role(role=role),
+    })
+
+
 @router.get(
     "/roles",
     response_model=ResponseModel[PageData[WorkspaceRoleOut]],
@@ -90,9 +95,15 @@ async def list_roles(
 ) -> ResponseModel[PageData[WorkspaceRoleOut]]:
     """List roles in current workspace."""
     # Role counts are typically small; do in-memory pagination so we can localize deterministically.
-    roles = await service.repo.list_roles(workspace_id=ctx.workspace_id)
+    roles = await service.list_roles_with_permission_codes(workspace_id=ctx.workspace_id)
     locale = get_current_locale()
-    items = [WorkspaceRoleOut.model_validate(service.localize_role(r, locale=locale)) for r in roles]
+    items = [
+        WorkspaceRoleOut.model_validate({
+            **service.localize_role(role, locale=locale),
+            "permission_codes": permission_codes,
+        })
+        for role, permission_codes in roles
+    ]
     page = paginate_items(items, params=params)
     return ApiResponse.success(data=page)
 
@@ -154,49 +165,6 @@ async def list_actions(
     return ApiResponse.success(data=items)
 
 
-@router.get(
-    "/matrix",
-    response_model=ResponseModel[WorkspaceRBACMatrixOut],
-    summary="Get RBAC permission matrix for current workspace",
-    dependencies=[require_workspace_permission("rbac:roles:read")],
-)
-async def get_matrix(
-    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
-    service: WorkspaceRBACService = Depends(get_rbac_service),
-) -> ResponseModel[WorkspaceRBACMatrixOut]:
-    """Get RBAC permission matrix for current workspace."""
-    payload = await service.get_matrix(workspace_id=ctx.workspace_id)
-    roles = payload.roles
-    permissions = payload.permissions
-    grants = payload.grants
-
-    # Localize outputs.
-    locale = get_current_locale()
-    localized_roles = [WorkspaceRoleOut.model_validate(service.localize_role(r, locale=locale)) for r in roles]
-    owner_keys = {str(p.owner_key) for p in permissions if p.owner_key and str(p.owner_key) != "core"}
-    owner_names = await service.get_owner_name_map(owner_keys=owner_keys)
-    localized_perm_rows: list[WorkspaceRBACMatrixPermissionRowOut] = []
-    for p in permissions:
-        lp = service.localize_permission(p)
-        granted = grants.get(p.code, [])
-        owner_key_raw = lp.get("owner_key")
-        owner_key = owner_key_raw if isinstance(owner_key_raw, str) else None
-        desc_raw = lp.get("description")
-        description = desc_raw if isinstance(desc_raw, str) else None
-        localized_perm_rows.append(
-            WorkspaceRBACMatrixPermissionRowOut(
-                code=p.code,
-                name=str(lp.get("name") or ""),
-                description=description,
-                owner_key=owner_key,
-                owner_name=owner_names.get(str(owner_key)) if owner_key else None,
-                granted_role_codes=granted,
-            )
-        )
-
-    return ApiResponse.success(data=WorkspaceRBACMatrixOut(roles=localized_roles, permissions=localized_perm_rows))
-
-
 @router.post(
     "/roles",
     response_model=ResponseModel[WorkspaceRoleOut],
@@ -223,7 +191,7 @@ async def create_role(
         payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
         actor_user_id=user_id,
     )
-    return ApiResponse.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
+    return ApiResponse.success(data=await _to_workspace_role_out(service=service, role=role, locale=locale))
 
 
 @router.patch(
@@ -252,7 +220,7 @@ async def update_role(
         payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
         actor_user_id=user_id,
     )
-    return ApiResponse.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
+    return ApiResponse.success(data=await _to_workspace_role_out(service=service, role=role, locale=locale))
 
 
 @router.delete(

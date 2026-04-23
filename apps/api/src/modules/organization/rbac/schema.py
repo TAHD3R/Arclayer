@@ -22,22 +22,6 @@ class OrganizationPermissionOut(BaseOut):
     description: str | None = Field(default=None, description="Permission description.")
 
 
-class OrganizationRBACMatrixPermissionRowOut(BaseSchema):
-    code: str = Field(..., description="Permission code.")
-    module: str = Field(..., description="Permission module key.")
-    name: str = Field(..., description="Permission display name.")
-    description: str | None = Field(default=None, description="Permission description.")
-    granted_role_codes: list[str] = Field(default_factory=list, description="Granted role codes.")
-
-
-class OrganizationRBACMatrixOut(BaseSchema):
-    roles: list[OrganizationRoleOut] = Field(default_factory=list, description="Organization roles.")
-    permissions: list[OrganizationRBACMatrixPermissionRowOut] = Field(
-        default_factory=list,
-        description="Organization permission rows.",
-    )
-
-
 class OrganizationRoleCreateFromTemplateRequest(BaseSchema):
     code: str | None = Field(default=None, min_length=1, max_length=64, description="New role code (optional).")
     template_role_code: str | None = Field(

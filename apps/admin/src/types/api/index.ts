@@ -35,6 +35,7 @@ export type {
   OrganizationWorkspaceMemberPreview,
   OrganizationWorkspaceTemplate,
 } from "./organization-workspaces";
+export type { OrganizationAuthzSnapshot } from "./organization-authz";
 export type {
   AuthzSnapshot,
   InstanceSetupState,

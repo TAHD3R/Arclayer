@@ -197,7 +197,8 @@ async def test_project_api_keys_bind_to_runtime_site_bridge(
         assert detail_res.json()["data"]["siteId"] == project_site_id
 
         runtime_preview_res = await client.post(
-            f"/api/v1/runtimes/{runtime_id}/preview-tokens", json={"ttlSeconds": 600}
+            f"/api/v1/projects/{project_id}/site/preview-tokens",
+            json={"ttlSeconds": 600},
         )
         assert runtime_preview_res.status_code == 201, runtime_preview_res.text
         assert runtime_preview_res.json()["data"]["siteId"] == project_site_id

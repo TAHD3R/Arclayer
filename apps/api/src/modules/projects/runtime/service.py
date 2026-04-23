@@ -8,9 +8,8 @@ from src.common.protocols.tortoise import HasProjectId, HasWorkspaceId
 from src.core.exceptions import NotFound
 from src.models.projects.runtime import ProjectRuntimeRecord
 from src.modules.projects.repository import ProjectRepository
-from src.modules.projects.runtime.schema import ProjectRuntimeBridgeOut, RuntimePreviewTokenOut
+from src.modules.projects.runtime.schema import ProjectRuntimeBridgeOut
 from src.modules.projects.runtime.site.schema import ProjectRuntimeSiteOut
-from src.modules.sites.preview.tokens.schema import SitePreviewTokenOut
 
 
 @dataclass(slots=True)
@@ -112,17 +111,4 @@ class ProjectRuntimeService:
             defaultLocale=context.default_locale,
             fallbackLocale=context.fallback_locale,
             isActive=context.is_active,
-        )
-
-    @staticmethod
-    def to_preview_token_out(
-        *,
-        context: ProjectRuntimeContext,
-        token: SitePreviewTokenOut,
-    ) -> RuntimePreviewTokenOut:
-        return RuntimePreviewTokenOut(
-            runtimeId=context.runtime_id,
-            siteId=context.site_id,
-            token=token.token,
-            expiresAtMs=token.expires_at_ms,
         )

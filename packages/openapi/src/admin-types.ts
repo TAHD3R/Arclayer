@@ -172,7 +172,6 @@ export type OrganizationMember = Generated.OrganizationMemberOut;
 export type OrganizationMemberListParams =
   QueryOf<Generated.DomainOrganizationListOrganizationMembersData>;
 export type OrganizationPermission = Generated.OrganizationPermissionOut;
-export type OrganizationRbacMatrix = Generated.OrganizationRbacMatrixOut;
 export type OrganizationRole = Generated.OrganizationRoleOut;
 export type ProjectPermissionAction = Generated.ProjectPermissionActionOut;
 export type ProjectSettingsDetail = Generated.ProjectSettingsDetail;
@@ -493,14 +492,4 @@ export type ListTeamInviteLinkParticipantsParams =
   QueryOf<Generated.DomainWorkspacesListInviteLinkParticipantsData>;
 
 export type Permission = Generated.WorkspacePermissionOut;
-export type Role = RequiredPresent<Generated.WorkspaceRoleOut, "description">;
-type RbacMatrixPermissionRow = Omit<
-  Generated.WorkspaceRbacMatrixPermissionRowOut,
-  "grantedRoleCodes"
-> & {
-  grantedRoleCodes: string[];
-};
-export type RbacMatrix = Omit<Generated.WorkspaceRbacMatrixOut, "permissions" | "roles"> & {
-  permissions: RbacMatrixPermissionRow[];
-  roles: Role[];
-};
+export type Role = RequiredPresent<Generated.WorkspaceRoleOut, "description" | "permissionCodes">;

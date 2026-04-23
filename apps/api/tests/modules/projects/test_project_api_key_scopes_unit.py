@@ -11,7 +11,7 @@ from src.modules.projects.api_keys.scopes import (
     resolve_project_service_permissions,
 )
 from src.modules.projects.authz.schema import ProjectAuthzSnapshot
-from src.modules.workspaces.permissions import PermissionSubjectKind
+from src.modules.projects.permissions.schema import PermissionSubjectKind
 
 
 def _project_snapshot(

@@ -201,4 +201,34 @@ describe("content-release-center-page", () => {
       expect(mocked.rollbackProjectRelease).toHaveBeenCalledWith("project-1", "release-1");
     });
   });
+
+  test("keeps publish closed while permissions warm up", async () => {
+    mocked.getMyProjectAuthz.mockImplementationOnce(() => new Promise(() => {}));
+    mocked.getProjectReleaseDryRun.mockResolvedValueOnce({
+      readinessSummary: {
+        ready: true,
+        selectedItemCount: 12,
+        blockedItemCount: 0,
+        blockerCodes: [],
+      },
+      impact: {
+        blockedItems: [],
+        missingRoutes: [],
+        unresolvedRelations: [],
+        unpublishedDependencies: [],
+        readinessSummary: {
+          ready: true,
+          selectedItemCount: 12,
+          blockedItemCount: 0,
+          blockerCodes: [],
+        },
+      },
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "CONTENT_RELEASE_ACTION_PUBLISH" })).toBeDisabled();
+    });
+  });
 });

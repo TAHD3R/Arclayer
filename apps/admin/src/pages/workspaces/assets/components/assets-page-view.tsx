@@ -117,12 +117,11 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
   const tableView = useAssetsViewTableController(controller);
   const workspaceId = scope?.type === "workspace" ? scope.id : null;
   const permissionAccess = useWorkspacePermissionAccess(workspaceId);
-  const permissionReady = !workspaceId || permissionAccess.authzQuery.isFetched;
-  const canManageAssets =
+  const permissionReady =
     !workspaceId ||
-    !permissionReady ||
-    permissionAccess.hasPermission("system:assets:manage") ||
-    permissionAccess.hasAction("system:assets:manage");
+    (permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched);
+  const canManageAssets =
+    !workspaceId || !permissionReady || permissionAccess.hasAction("system:assets:manage");
   const hydratedSearchRef = useRef<string | null>(null);
   const hydratedAssetIdRef = useRef<string | null>(null);
 

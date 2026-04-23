@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { listWorkspaceActivity } from "@/api/activity";
-import { getWorkspaceRbacMatrix, listWorkspaceRoles } from "@/api/rbac";
+import { listAllWorkspacePermissions, listAllWorkspaceRoles } from "@/api/rbac";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { ActivityDetailDialog } from "@/pages/workspaces/shared/activity/components/activity-detail-dialog";
@@ -60,16 +60,16 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
   const rolesQuery = useQuery({
     queryKey: ["workspace-member-context", "roles", props.workspaceId],
     enabled: props.open && Boolean(props.workspaceId),
-    queryFn: async () => listWorkspaceRoles(String(props.workspaceId), { size: 200 }),
+    queryFn: async () => listAllWorkspaceRoles(String(props.workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const matrixQuery = useQuery({
-    queryKey: ["workspace-member-context", "matrix", props.workspaceId],
+  const permissionsQuery = useQuery({
+    queryKey: ["workspace-member-context", "permissions", props.workspaceId],
     enabled: props.open && Boolean(props.workspaceId),
-    queryFn: async () => getWorkspaceRbacMatrix(String(props.workspaceId)),
+    queryFn: async () => listAllWorkspacePermissions(String(props.workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
@@ -98,11 +98,11 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
 
   const roleNameByCode = useMemo(() => {
     const map = new Map<string, { name: string; description: string | null }>();
-    for (const role of rolesQuery.data?.items ?? []) {
+    for (const role of rolesQuery.data ?? []) {
       map.set(role.code, { name: role.name || role.code, description: role.description });
     }
     return map;
-  }, [rolesQuery.data?.items]);
+  }, [rolesQuery.data]);
 
   const roleLabels = useMemo(() => {
     if (!activeMember) return [];
@@ -111,11 +111,15 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
 
   const grantedPermissions = useMemo(() => {
     if (!activeMember) return [];
-    const roleCodes = new Set(activeMember.roleCodes);
-    return (matrixQuery.data?.permissions ?? []).filter((permission) =>
-      permission.grantedRoleCodes.some((code) => roleCodes.has(code)),
+    const rolePermissionCodes = new Set(
+      activeMember.roleCodes.flatMap(
+        (code) => rolesQuery.data?.find((role) => role.code === code)?.permissionCodes ?? [],
+      ),
     );
-  }, [activeMember, matrixQuery.data?.permissions]);
+    return (permissionsQuery.data ?? []).filter((permission) =>
+      rolePermissionCodes.has(permission.code),
+    );
+  }, [activeMember, permissionsQuery.data, rolesQuery.data]);
 
   if (!activeMember) {
     return null;
@@ -259,8 +263,8 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
             label: t("team:TEAM_MEMBER_CONTEXT_TAB_ACCESS"),
             content: (
               <ContentGuard
-                loading={rolesQuery.isLoading || matrixQuery.isLoading}
-                error={rolesQuery.error || matrixQuery.error}
+                loading={rolesQuery.isLoading || permissionsQuery.isLoading}
+                error={rolesQuery.error || permissionsQuery.error}
                 loadingVariant="table"
               >
                 <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">

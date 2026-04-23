@@ -1,6 +1,5 @@
 from .registry import (
     PermissionActionDefinition,
-    get_organization_permission_catalog,
     get_permission_action_registry,
 )
 from .schema import PermissionContext, PermissionDecision, PermissionSubjectKind
@@ -12,6 +11,5 @@ __all__ = [
     "PermissionDecision",
     "PermissionSubjectKind",
     "PolicyEvaluationService",
-    "get_organization_permission_catalog",
     "get_permission_action_registry",
 ]

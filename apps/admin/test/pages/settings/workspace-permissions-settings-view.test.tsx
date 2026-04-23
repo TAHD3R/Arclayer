@@ -1,0 +1,81 @@
+import type { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { WorkspacePermissionsSettingsView } from "@/pages/workspaces/settings/workspace/permissions/components/workspace-permissions-settings-view";
+
+const { listWorkspacePermissionActionsMock, teamRolesPageMock } = vi.hoisted(() => ({
+  listWorkspacePermissionActionsMock: vi.fn(),
+  teamRolesPageMock: vi.fn(),
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+vi.mock("@/api/rbac", () => ({
+  listWorkspacePermissionActions: (...args: unknown[]) =>
+    listWorkspacePermissionActionsMock(...args),
+}));
+
+vi.mock("@/pages/workspaces/team/roles/page", () => ({
+  TeamRolesPage: (props: Record<string, unknown>) => {
+    teamRolesPageMock(props);
+    return <div data-testid="team-roles-page" />;
+  },
+}));
+
+vi.mock("@/layouts/page-shell/content-guard", () => ({
+  ContentGuard: (props: { children?: ReactNode; error?: unknown }) => (
+    <div data-testid="content-guard" data-error={String(Boolean(props.error))}>
+      {props.children}
+    </div>
+  ),
+}));
+
+describe("WorkspacePermissionsSettingsView", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    listWorkspacePermissionActionsMock.mockResolvedValue([
+      {
+        code: "content:items:write",
+        description: "Mutate content items",
+        subjectKinds: ["workspace_member"],
+        permissionCodes: ["system:content:manage"],
+      },
+      {
+        code: "delivery:graphql:read",
+        description: "Read GraphQL delivery",
+        subjectKinds: ["delivery_api_key"],
+        permissionCodes: [],
+      },
+    ]);
+  });
+
+  it("renders the workspace action catalog and embeds the roles surface directly", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <WorkspacePermissionsSettingsView workspaceId="ws-1" createOpen />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("content:items:write")).toBeInTheDocument();
+    expect(await screen.findByTestId("team-roles-page")).toBeInTheDocument();
+    expect(teamRolesPageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceIdOverride: "ws-1",
+        createOpen: true,
+        embedded: true,
+      }),
+    );
+  });
+});

@@ -117,9 +117,10 @@ export function GeneralSettingsShell({
     [saveProjectMutation],
   );
 
-  const permissionReady = permissionAccess.authzQuery.isFetched;
+  const permissionReady =
+    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
   const canManageSiteSettings =
-    !permissionReady || permissionAccess.hasAction("project:settings:manage");
+    permissionReady && permissionAccess.hasAction("project:settings:manage");
   const projectDisabled =
     projectCoreQuery.isFetching || saveProjectMutation.isPending || !canManageSiteSettings;
   const loadError = useMemo(() => {
@@ -152,7 +153,7 @@ export function GeneralSettingsShell({
       error={loadError}
       onRetry={loadError ? () => void projectCoreQuery.refetch() : undefined}
     >
-      {!canManageSiteSettings ? (
+      {permissionReady && !canManageSiteSettings ? (
         <div
           className="mb-6 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
           data-testid="general-settings-read-only-notice"

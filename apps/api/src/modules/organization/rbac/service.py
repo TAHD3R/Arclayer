@@ -17,8 +17,8 @@ from src.models.organization.org_rbac import (
     OrganizationRole,
     OrganizationRolePermission,
 )
+from src.modules.organization.rbac.catalog import get_organization_permission_catalog
 from src.modules.organization.rbac.repository import OrganizationRBACRepository
-from src.modules.workspaces.permissions import get_organization_permission_catalog
 
 _BUILTIN_ROLE_RULES: dict[str, set[str]] = {
     "owner": set(get_organization_permission_catalog()),
@@ -294,19 +294,6 @@ class OrganizationRBACService(BaseService):
                 return
 
         raise Forbidden(error=error_code)
-
-    async def get_matrix(
-        self, *, organization_id: UUID
-    ) -> tuple[list[OrganizationRole], list[OrganizationPermission], dict[str, list[str]]]:
-        roles = await self.list_roles(organization_id=organization_id)
-        permissions = await self.list_permissions(organization_id=organization_id)
-        edges = await self.repo.list_role_permission_edges(organization_id=organization_id)
-
-        grants: dict[str, set[str]] = {}
-        for perm_code, role_code in edges:
-            grants.setdefault(perm_code, set()).add(role_code)
-
-        return roles, permissions, {k: sorted(v) for k, v in grants.items()}
 
     async def create_custom_role(
         self,

@@ -1532,6 +1532,26 @@ describe("ContentLibraryPage", () => {
     ).toBeDisabled();
   });
 
+  test("keeps library write actions closed while permissions warm up", async () => {
+    mocked.getMyProjectAuthz.mockImplementationOnce(() => new Promise(() => {}));
+
+    renderWithQuery(<ContentLibraryPage />, { focusItemId: "content-1" });
+
+    await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+
+    expect(screen.queryByText("content:CONTENT_LIBRARY_NO_ACCESS_DESC")).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("page-action")).getByRole("button", {
+        name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT",
+      }),
+    ).toBeDisabled();
+    expect(
+      within(screen.getByTestId("page-action")).getByRole("button", {
+        name: "CONTENT_LIBRARY_ACTION_MANAGE_TYPES",
+      }),
+    ).toBeDisabled();
+  });
+
   test("renders only the official protocol choices when the create overlay is open", async () => {
     mocked.routeSearch.current = { create: "1" };
 

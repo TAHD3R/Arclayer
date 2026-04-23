@@ -763,6 +763,20 @@ describe("content-library-article-editor-page", () => {
     expect(mocked.publishContentItemVersion).not.toHaveBeenCalled();
   });
 
+  it("keeps publish closed while permissions warm up", async () => {
+    mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
+    mocked.getMyProjectAuthz.mockImplementationOnce(() => new Promise(() => {}));
+
+    renderWithQuery(<ContentLibraryArticleEditorPage projectId="project-1" itemId="content-1" />);
+
+    const publishButton = await screen.findByRole("button", {
+      name: "CONTENT_LIBRARY_ACTION_PUBLISH",
+    });
+
+    expect(publishButton).toBeDisabled();
+    expect(publishButton).not.toHaveAttribute("title");
+  });
+
   it("renders split toolbar actions with tooltips and handlers", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

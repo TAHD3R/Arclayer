@@ -164,8 +164,9 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
   const { t } = useTranslation("content");
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(props.projectId);
-  const canPublish =
-    !permissionAccess.authzQuery.isFetched || permissionAccess.hasAction("project:release:publish");
+  const permissionReady =
+    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
+  const canPublish = permissionReady && permissionAccess.hasAction("project:release:publish");
 
   const dryRunQuery = useQuery({
     queryKey: buildReleaseDryRunQueryKey(props.projectId),

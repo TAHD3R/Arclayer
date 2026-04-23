@@ -18,8 +18,28 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/api/rbac", () => ({
-  listWorkspaceRoles: vi.fn().mockResolvedValue({ items: [] }),
-  getWorkspaceRbacMatrix: vi.fn().mockResolvedValue({ roles: [], permissions: [] }),
+  listAllWorkspaceRoles: vi.fn().mockResolvedValue([
+    {
+      id: "role-editor",
+      code: "editor",
+      name: "Editor",
+      description: "Can edit content",
+      isDefault: false,
+      isSuperuser: false,
+      isSystem: false,
+      permissionCodes: ["system:content:read"],
+    },
+  ]),
+  listAllWorkspacePermissions: vi.fn().mockResolvedValue([
+    {
+      id: "permission-content-read",
+      code: "system:content:read",
+      name: "Read content",
+      description: "View workspace content",
+      ownerKey: "core",
+      ownerName: "Core",
+    },
+  ]),
 }));
 
 vi.mock("@/api/activity", () => ({
@@ -85,6 +105,12 @@ describe("WorkspaceMemberContextDialog", () => {
 
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
     expect(screen.getByText("team:TEAM_MEMBER_CONTEXT_SCOPE")).toBeInTheDocument();
+  });
+
+  it("通过角色 permissionCodes 推导成员访问摘要", async () => {
+    renderDialog();
+
+    expect(await screen.findByText("Read content")).toBeInTheDocument();
   });
 
   it("关闭时保留最近一次成员快照，避免关闭动画阶段内容提前卸载", () => {

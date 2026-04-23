@@ -188,4 +188,21 @@ describe("GeneralSettingsShell permission consumption", () => {
       "true",
     );
   });
+
+  it("keeps site settings controls closed while project permissions warm up", async () => {
+    getMyProjectAuthzMock.mockImplementationOnce(() => new Promise(() => {}));
+
+    renderWithQuery(
+      <GeneralSettingsShell activeTab="basics" projectId="project-1" embedded={false} />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("site-settings-tab")).toHaveAttribute("data-disabled", "true");
+      expect(screen.getByTestId("localization-settings-tab")).toHaveAttribute(
+        "data-disabled",
+        "true",
+      );
+    });
+    expect(screen.queryByTestId("general-settings-read-only-notice")).not.toBeInTheDocument();
+  });
 });

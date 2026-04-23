@@ -14,6 +14,12 @@ from tests.modules.workspaces.content.test_content_items_integration import (
 pytestmark = pytest.mark.integration
 
 
+async def _runtime_id(client, project_id: str) -> str:
+    project_res = await client.get(f"/api/v1/projects/{project_id}")
+    assert project_res.status_code == 200, project_res.text
+    return project_res.json()["data"]["primaryRuntime"]["id"]
+
+
 def _page_item_payload(title: str) -> dict:
     return {
         "modelKey": "page",
@@ -346,6 +352,7 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         site_res = await client.get(f"/api/v1/projects/{project_id}/site")
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
+        runtime_id = await _runtime_id(client, project_id)
 
         token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
         assert token_res.status_code == 201, token_res.text
@@ -361,7 +368,7 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         )
 
         public_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
+            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/world", "mode": "public"},
         )
         assert public_res.status_code == 200, public_res.text
@@ -386,7 +393,7 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         ]
 
         preview_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
+            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/world", "mode": "preview", "token": preview_token},
         )
         assert preview_res.status_code == 200, preview_res.text
@@ -395,7 +402,7 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         assert preview_payload["document"]["sections"][0]["props"]["headline"] == "Entry world v2 (draft)"
 
         static_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
+            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/new", "mode": "public"},
         )
         assert static_res.status_code == 200, static_res.text
@@ -447,20 +454,21 @@ async def test_sites_route_resolve_returns_primary_record_unavailable_for_public
         site_res = await client.get(f"/api/v1/projects/{project_id}/site")
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
+        runtime_id = await _runtime_id(client, project_id)
 
         token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
         assert token_res.status_code == 201, token_res.text
         preview_token = token_res.json()["data"]["token"]
 
         public_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
+            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/draft-only/world", "mode": "public"},
         )
         assert public_res.status_code == 409, public_res.text
         assert public_res.json()["error"] == "PAGE_PRIMARY_RECORD_UNAVAILABLE"
 
         preview_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
+            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/draft-only/world", "mode": "preview", "token": preview_token},
         )
         assert preview_res.status_code == 200, preview_res.text
@@ -552,20 +560,21 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
         site_res = await client.get(f"/api/v1/projects/{project_id}/site")
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
+        runtime_id = await _runtime_id(client, project_id)
 
         token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
         assert token_res.status_code == 201, token_res.text
         preview_token = token_res.json()["data"]["token"]
 
         public_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
+            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/dependency-public", "mode": "public"},
         )
         assert public_res.status_code == 409, public_res.text
         assert public_res.json()["error"] == "PAGE_DEPENDENCY_UNAVAILABLE"
 
         fallback_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
+            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/dependency-fallback", "mode": "preview", "token": preview_token},
         )
         assert fallback_res.status_code == 200, fallback_res.text
@@ -580,7 +589,7 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
         ]
 
         missing_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
+            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/dependency-missing", "mode": "preview", "token": preview_token},
         )
         assert missing_res.status_code == 500, missing_res.text

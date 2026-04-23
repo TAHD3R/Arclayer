@@ -12,6 +12,7 @@ from src.core.logging import get_logger
 from src.modules.analytics.ingest.service import ActivityIngestor
 from src.modules.projects.automation.runtime import AutomationRuntime
 from src.modules.system.rbac.service import RBACService
+from src.modules.workspaces.rbac.service import WorkspaceRBACService
 from src.platform.jobs.assets_thumbnails import generate_asset_thumbnails
 from src.platform.jobs.client import is_taskiq_enabled, try_dedupe_enqueue, try_enqueue_task
 from src.platform.jobs.tasks import task_generate_asset_thumbnails
@@ -90,7 +91,7 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
 
     rbac = RBACService(settings)
     await rbac.sync_permission_catalog()
-    await rbac.ensure_all_workspaces_ready()
+    await WorkspaceRBACService(settings).ensure_all_workspaces_ready()
 
 
 async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:

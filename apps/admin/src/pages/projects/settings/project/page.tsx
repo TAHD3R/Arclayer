@@ -151,9 +151,9 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
   });
 
   const project = detailQuery.data?.project ?? null;
-  const permissionReady = permissionAccess.authzQuery.isFetched;
-  const canManageProject =
-    !permissionReady || permissionAccess.hasAction("project:settings:manage");
+  const permissionReady =
+    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
+  const canManageProject = permissionReady && permissionAccess.hasAction("project:settings:manage");
   const disabled = updateProjectMutation.isPending || !canManageProject;
 
   const handlePatchProject = useCallback(
@@ -227,7 +227,7 @@ function ProjectGeneralSettingsTab(props: { projectId: string }) {
       error={loadError}
       onRetry={loadError ? () => void detailQuery.refetch() : undefined}
     >
-      {!canManageProject ? (
+      {permissionReady && !canManageProject ? (
         <div className="mb-6 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
           {t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
         </div>

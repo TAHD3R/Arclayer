@@ -1,8 +1,25 @@
 import { api } from "@/lib/http";
 import { projectPath, toQueryString, workspacePath } from "@/lib/api";
 
-import type { PageData, Permission, ProjectPermissionAction, RbacMatrix, Role } from "@/types/api";
-import type { WorkspacePermissionAction } from "@/types/api/rbac";
+import type { PageData, Permission, ProjectPermissionAction, Role } from "@/types/api";
+import type { OrganizationPermissionAction, WorkspacePermissionAction } from "@/types/api/rbac";
+
+const RBAC_PAGE_SIZE = 200;
+
+async function listAllPages<T>(
+  loader: (params: { page: number; size: number }) => Promise<PageData<T>>,
+): Promise<T[]> {
+  const loadPage = async (page: number, items: T[]): Promise<T[]> => {
+    const result = await loader({ page, size: RBAC_PAGE_SIZE });
+    const mergedItems = [...items, ...(result.items ?? [])];
+    if (page >= (result.pages ?? page)) {
+      return mergedItems;
+    }
+    return loadPage(page + 1, mergedItems);
+  };
+
+  return loadPage(1, []);
+}
 
 export async function listWorkspaceRoles(
   workspaceId: string,
@@ -10,9 +27,13 @@ export async function listWorkspaceRoles(
 ): Promise<PageData<Role>> {
   const query = toQueryString({
     page: params.page ?? 1,
-    size: params.size ?? 200,
+    size: params.size ?? RBAC_PAGE_SIZE,
   });
   return api.get<PageData<Role>>(workspacePath(workspaceId, `/rbac/roles${query}`));
+}
+
+export async function listAllWorkspaceRoles(workspaceId: string): Promise<Role[]> {
+  return listAllPages((params) => listWorkspaceRoles(workspaceId, params));
 }
 
 export async function listWorkspacePermissions(
@@ -21,19 +42,23 @@ export async function listWorkspacePermissions(
 ): Promise<PageData<Permission>> {
   const query = toQueryString({
     page: params.page ?? 1,
-    size: params.size ?? 200,
+    size: params.size ?? RBAC_PAGE_SIZE,
   });
   return api.get<PageData<Permission>>(workspacePath(workspaceId, `/rbac/permissions${query}`));
 }
 
-export async function getWorkspaceRbacMatrix(workspaceId: string): Promise<RbacMatrix> {
-  return api.get<RbacMatrix>(workspacePath(workspaceId, "/rbac/matrix"));
+export async function listAllWorkspacePermissions(workspaceId: string): Promise<Permission[]> {
+  return listAllPages((params) => listWorkspacePermissions(workspaceId, params));
 }
 
 export async function listWorkspacePermissionActions(
   workspaceId: string,
 ): Promise<WorkspacePermissionAction[]> {
   return api.get<WorkspacePermissionAction[]>(workspacePath(workspaceId, "/rbac/actions"));
+}
+
+export async function listOrganizationPermissionActions(): Promise<OrganizationPermissionAction[]> {
+  return api.get<OrganizationPermissionAction[]>("/organizations/me/actions");
 }
 
 export async function listProjectPermissionActions(

@@ -6298,6 +6298,48 @@ export type OrganizationAssignDefaultRoleResult = {
 };
 
 /**
+ * OrganizationAuthzSnapshot
+ */
+export type OrganizationAuthzSnapshot = {
+    /**
+     * Issuperuser
+     *
+     * Whether user is a superuser for this scope.
+     */
+    isSuperuser?: boolean;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Permissioncodes
+     *
+     * Effective permission codes.
+     */
+    permissionCodes?: Array<string>;
+    /**
+     * Rolecodes
+     *
+     * Effective role codes.
+     */
+    roleCodes?: Array<string>;
+    /**
+     * Scope
+     *
+     * Authorization scope.
+     */
+    scope?: 'organization';
+    /**
+     * Userid
+     *
+     * Current user id.
+     */
+    userId: string;
+};
+
+/**
  * OrganizationBriefOut
  */
 export type OrganizationBriefOut = {
@@ -7143,6 +7185,36 @@ export type OrganizationMembershipOut = {
 };
 
 /**
+ * OrganizationPermissionActionOut
+ */
+export type OrganizationPermissionActionOut = {
+    /**
+     * Code
+     *
+     * Canonical organization action code.
+     */
+    code: string;
+    /**
+     * Description
+     *
+     * Action description.
+     */
+    description?: string | null;
+    /**
+     * Permissioncodes
+     *
+     * Backing permission codes.
+     */
+    permissionCodes?: Array<string>;
+    /**
+     * Subjectkinds
+     *
+     * Supported subject kinds.
+     */
+    subjectKinds?: Array<string>;
+};
+
+/**
  * OrganizationPermissionOut
  */
 export type OrganizationPermissionOut = {
@@ -7188,60 +7260,6 @@ export type OrganizationPermissionRoleSetRequest = {
      * Custom role codes.
      */
     roleCodes?: Array<string>;
-};
-
-/**
- * OrganizationRBACMatrixOut
- */
-export type OrganizationRbacMatrixOut = {
-    /**
-     * Permissions
-     *
-     * Organization permission rows.
-     */
-    permissions?: Array<OrganizationRbacMatrixPermissionRowOut>;
-    /**
-     * Roles
-     *
-     * Organization roles.
-     */
-    roles?: Array<OrganizationRoleOut>;
-};
-
-/**
- * OrganizationRBACMatrixPermissionRowOut
- */
-export type OrganizationRbacMatrixPermissionRowOut = {
-    /**
-     * Code
-     *
-     * Permission code.
-     */
-    code: string;
-    /**
-     * Description
-     *
-     * Permission description.
-     */
-    description?: string | null;
-    /**
-     * Grantedrolecodes
-     *
-     * Granted role codes.
-     */
-    grantedRoleCodes?: Array<string>;
-    /**
-     * Module
-     *
-     * Permission module key.
-     */
-    module: string;
-    /**
-     * Name
-     *
-     * Permission display name.
-     */
-    name: string;
 };
 
 /**
@@ -12330,6 +12348,31 @@ export type ResponseModelOrganizationAssignDefaultRoleResult = {
 };
 
 /**
+ * ResponseModel[OrganizationAuthzSnapshot]
+ */
+export type ResponseModelOrganizationAuthzSnapshot = {
+    data?: OrganizationAuthzSnapshot | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[OrganizationDangerCapabilitiesOut]
  */
 export type ResponseModelOrganizationDangerCapabilitiesOut = {
@@ -12509,31 +12552,6 @@ export type ResponseModelOrganizationMemberInviteResult = {
  */
 export type ResponseModelOrganizationMemberOut = {
     data?: OrganizationMemberOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationRBACMatrixOut]
- */
-export type ResponseModelOrganizationRbacMatrixOut = {
-    data?: OrganizationRbacMatrixOut | null;
     /**
      * Error
      */
@@ -14055,31 +14073,6 @@ export type ResponseModelRouteBindingOut = {
 };
 
 /**
- * ResponseModel[RuntimePreviewTokenOut]
- */
-export type ResponseModelRuntimePreviewTokenOut = {
-    data?: RuntimePreviewTokenOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[SettingsDetail]
  */
 export type ResponseModelSettingsDetail = {
@@ -14955,31 +14948,6 @@ export type ResponseModelWorkspaceInviteLinkCreateResult = {
 };
 
 /**
- * ResponseModel[WorkspaceRBACMatrixOut]
- */
-export type ResponseModelWorkspaceRbacMatrixOut = {
-    data?: WorkspaceRbacMatrixOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[WorkspaceRoleOut]
  */
 export type ResponseModelWorkspaceRoleOut = {
@@ -15140,6 +15108,34 @@ export type ResponseModelListHierarchyNodeOut = {
      * Data
      */
     data?: Array<HierarchyNodeOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[list[OrganizationPermissionActionOut]]
+ */
+export type ResponseModelListOrganizationPermissionActionOut = {
+    /**
+     * Data
+     */
+    data?: Array<OrganizationPermissionActionOut> | null;
     /**
      * Error
      */
@@ -15460,36 +15456,6 @@ export type RoutePrimarySourceOut = {
      * Route param name.
      */
     paramName: string;
-};
-
-/**
- * RuntimePreviewTokenOut
- */
-export type RuntimePreviewTokenOut = {
-    /**
-     * Expiresatms
-     *
-     * Expiration timestamp in milliseconds.
-     */
-    expiresAtMs: number;
-    /**
-     * Runtimeid
-     *
-     * Runtime id.
-     */
-    runtimeId: string;
-    /**
-     * Siteid
-     *
-     * Resolved site id.
-     */
-    siteId: string;
-    /**
-     * Token
-     *
-     * Preview token.
-     */
-    token: string;
 };
 
 /**
@@ -17878,66 +17844,6 @@ export type WorkspacePrimaryProjectOut = {
 };
 
 /**
- * WorkspaceRBACMatrixOut
- */
-export type WorkspaceRbacMatrixOut = {
-    /**
-     * Permissions
-     *
-     * Permission rows.
-     */
-    permissions?: Array<WorkspaceRbacMatrixPermissionRowOut>;
-    /**
-     * Roles
-     *
-     * Roles in this workspace.
-     */
-    roles?: Array<WorkspaceRoleOut>;
-};
-
-/**
- * WorkspaceRBACMatrixPermissionRowOut
- */
-export type WorkspaceRbacMatrixPermissionRowOut = {
-    /**
-     * Code
-     *
-     * Permission code.
-     */
-    code: string;
-    /**
-     * Description
-     *
-     * Localized permission description.
-     */
-    description?: string | null;
-    /**
-     * Grantedrolecodes
-     *
-     * Granted role codes in this workspace.
-     */
-    grantedRoleCodes?: Array<string>;
-    /**
-     * Name
-     *
-     * Localized permission name.
-     */
-    name: string;
-    /**
-     * Ownerkey
-     *
-     * Permission catalog owner key.
-     */
-    ownerKey?: string | null;
-    /**
-     * Ownername
-     *
-     * Localized owner name (if applicable).
-     */
-    ownerName?: string | null;
-};
-
-/**
  * WorkspaceRoleOut
  */
 export type WorkspaceRoleOut = {
@@ -17983,6 +17889,12 @@ export type WorkspaceRoleOut = {
      * Localized role name.
      */
     name: string;
+    /**
+     * Permissioncodes
+     *
+     * Granted workspace permission codes.
+     */
+    permissionCodes?: Array<string>;
 };
 
 /**
@@ -20490,6 +20402,38 @@ export type DomainOrganizationDeleteOrganizationResponses = {
 
 export type DomainOrganizationDeleteOrganizationResponse = DomainOrganizationDeleteOrganizationResponses[keyof DomainOrganizationDeleteOrganizationResponses];
 
+export type DomainOrganizationListMyOrganizationActionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/organizations/me/actions';
+};
+
+export type DomainOrganizationListMyOrganizationActionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListOrganizationPermissionActionOut;
+};
+
+export type DomainOrganizationListMyOrganizationActionsResponse = DomainOrganizationListMyOrganizationActionsResponses[keyof DomainOrganizationListMyOrganizationActionsResponses];
+
+export type DomainOrganizationGetMyOrganizationAuthzData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/organizations/me/authz';
+};
+
+export type DomainOrganizationGetMyOrganizationAuthzResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelOrganizationAuthzSnapshot;
+};
+
+export type DomainOrganizationGetMyOrganizationAuthzResponse = DomainOrganizationGetMyOrganizationAuthzResponses[keyof DomainOrganizationGetMyOrganizationAuthzResponses];
+
 export type DomainOrganizationListOrganizationInvitationsData = {
     body?: never;
     path?: never;
@@ -21009,22 +20953,6 @@ export type DomainOrganizationPatchOrganizationMemberRoleResponses = {
 };
 
 export type DomainOrganizationPatchOrganizationMemberRoleResponse = DomainOrganizationPatchOrganizationMemberRoleResponses[keyof DomainOrganizationPatchOrganizationMemberRoleResponses];
-
-export type DomainOrganizationGetMatrixData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/rbac/matrix';
-};
-
-export type DomainOrganizationGetMatrixResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationRbacMatrixOut;
-};
-
-export type DomainOrganizationGetMatrixResponse = DomainOrganizationGetMatrixResponses[keyof DomainOrganizationGetMatrixResponses];
 
 export type DomainOrganizationListPermissionsData = {
     body?: never;
@@ -25243,13 +25171,13 @@ export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetData = {
     body?: never;
     path: {
         /**
-         * Runtime Id
-         */
-        runtime_id: string;
-        /**
          * Key
          */
         key: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
     };
     query?: {
         /**
@@ -25290,13 +25218,13 @@ export type ExternalRuntimesGetRuntimeDeliveryMenuData = {
     body?: never;
     path: {
         /**
-         * Runtime Id
-         */
-        runtime_id: string;
-        /**
          * Menu Key
          */
         menu_key: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
     };
     query?: never;
     url: '/api/v1/runtimes/{runtime_id}/delivery/menus/{menu_key}';
@@ -25373,13 +25301,13 @@ export type ExternalRuntimesGetRuntimeDeliveryPageByIdData = {
     body?: never;
     path: {
         /**
-         * Runtime Id
-         */
-        runtime_id: string;
-        /**
          * Page Id
          */
         page_id: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
     };
     query?: {
         /**
@@ -25420,13 +25348,13 @@ export type ExternalRuntimesGetRuntimeDeliverySectionByAliasData = {
     body?: never;
     path: {
         /**
-         * Runtime Id
-         */
-        runtime_id: string;
-        /**
          * Alias
          */
         alias: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
     };
     query?: {
         /**
@@ -25492,39 +25420,6 @@ export type ExternalRuntimesGetRuntimeDeliveryStyleResponses = {
 };
 
 export type ExternalRuntimesGetRuntimeDeliveryStyleResponse = ExternalRuntimesGetRuntimeDeliveryStyleResponses[keyof ExternalRuntimesGetRuntimeDeliveryStyleResponses];
-
-export type ExternalRuntimesCreateRuntimePreviewTokenData = {
-    /**
-     * Preview token request.
-     */
-    body?: SitePreviewTokenCreateIn;
-    path: {
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: never;
-    url: '/api/v1/runtimes/{runtime_id}/preview-tokens';
-};
-
-export type ExternalRuntimesCreateRuntimePreviewTokenErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesCreateRuntimePreviewTokenError = ExternalRuntimesCreateRuntimePreviewTokenErrors[keyof ExternalRuntimesCreateRuntimePreviewTokenErrors];
-
-export type ExternalRuntimesCreateRuntimePreviewTokenResponses = {
-    /**
-     * Successful Response
-     */
-    201: ResponseModelRuntimePreviewTokenOut;
-};
-
-export type ExternalRuntimesCreateRuntimePreviewTokenResponse = ExternalRuntimesCreateRuntimePreviewTokenResponses[keyof ExternalRuntimesCreateRuntimePreviewTokenResponses];
 
 export type ExternalRuntimesResolveRuntimeRouteData = {
     body?: never;
@@ -25688,260 +25583,6 @@ export type DomainSitesGetSiteContextResponses = {
 
 export type DomainSitesGetSiteContextResponse = DomainSitesGetSiteContextResponses[keyof DomainSitesGetSiteContextResponses];
 
-export type DomainSitesResolveDeliveryGlobalSetData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-        /**
-         * Key
-         */
-        key: string;
-    };
-    query?: {
-        /**
-         * Perspective
-         *
-         * Delivery perspective.
-         */
-        perspective?: 'published' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when perspective=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/sites/{site_id}/delivery/global-sets/{key}';
-};
-
-export type DomainSitesResolveDeliveryGlobalSetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesResolveDeliveryGlobalSetError = DomainSitesResolveDeliveryGlobalSetErrors[keyof DomainSitesResolveDeliveryGlobalSetErrors];
-
-export type DomainSitesResolveDeliveryGlobalSetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeliveryGlobalSetOut;
-};
-
-export type DomainSitesResolveDeliveryGlobalSetResponse = DomainSitesResolveDeliveryGlobalSetResponses[keyof DomainSitesResolveDeliveryGlobalSetResponses];
-
-export type DomainSitesGetDeliveryMenuData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-        /**
-         * Menu Key
-         */
-        menu_key: string;
-    };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/delivery/menus/{menu_key}';
-};
-
-export type DomainSitesGetDeliveryMenuErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetDeliveryMenuError = DomainSitesGetDeliveryMenuErrors[keyof DomainSitesGetDeliveryMenuErrors];
-
-export type DomainSitesGetDeliveryMenuResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeliveryMenuOut;
-};
-
-export type DomainSitesGetDeliveryMenuResponse = DomainSitesGetDeliveryMenuResponses[keyof DomainSitesGetDeliveryMenuResponses];
-
-export type DomainSitesResolveDeliveryPageData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query: {
-        /**
-         * Path
-         *
-         * Request pathname (e.g. /blog/hello).
-         */
-        path: string;
-        /**
-         * Perspective
-         *
-         * Delivery perspective.
-         */
-        perspective?: 'published' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when perspective=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/sites/{site_id}/delivery/pages/resolve';
-};
-
-export type DomainSitesResolveDeliveryPageErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesResolveDeliveryPageError = DomainSitesResolveDeliveryPageErrors[keyof DomainSitesResolveDeliveryPageErrors];
-
-export type DomainSitesResolveDeliveryPageResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRouteResolveOut;
-};
-
-export type DomainSitesResolveDeliveryPageResponse = DomainSitesResolveDeliveryPageResponses[keyof DomainSitesResolveDeliveryPageResponses];
-
-export type DomainSitesGetDeliveryPageByIdData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-        /**
-         * Page Id
-         */
-        page_id: string;
-    };
-    query?: {
-        /**
-         * Perspective
-         *
-         * Delivery perspective.
-         */
-        perspective?: 'published' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when perspective=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/sites/{site_id}/delivery/pages/{page_id}';
-};
-
-export type DomainSitesGetDeliveryPageByIdErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetDeliveryPageByIdError = DomainSitesGetDeliveryPageByIdErrors[keyof DomainSitesGetDeliveryPageByIdErrors];
-
-export type DomainSitesGetDeliveryPageByIdResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRouteResolveOut;
-};
-
-export type DomainSitesGetDeliveryPageByIdResponse = DomainSitesGetDeliveryPageByIdResponses[keyof DomainSitesGetDeliveryPageByIdResponses];
-
-export type DomainSitesGetDeliverySectionByAliasData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-        /**
-         * Alias
-         */
-        alias: string;
-    };
-    query?: {
-        /**
-         * Perspective
-         *
-         * Delivery perspective.
-         */
-        perspective?: 'published' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when perspective=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/sites/{site_id}/delivery/sections/{alias}';
-};
-
-export type DomainSitesGetDeliverySectionByAliasErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetDeliverySectionByAliasError = DomainSitesGetDeliverySectionByAliasErrors[keyof DomainSitesGetDeliverySectionByAliasErrors];
-
-export type DomainSitesGetDeliverySectionByAliasResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeliverySectionOut;
-};
-
-export type DomainSitesGetDeliverySectionByAliasResponse = DomainSitesGetDeliverySectionByAliasResponses[keyof DomainSitesGetDeliverySectionByAliasResponses];
-
-export type DomainSitesGetDeliveryStyleData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/delivery/style';
-};
-
-export type DomainSitesGetDeliveryStyleErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetDeliveryStyleError = DomainSitesGetDeliveryStyleErrors[keyof DomainSitesGetDeliveryStyleErrors];
-
-export type DomainSitesGetDeliveryStyleResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeliveryStyleOut;
-};
-
-export type DomainSitesGetDeliveryStyleResponse = DomainSitesGetDeliveryStyleResponses[keyof DomainSitesGetDeliveryStyleResponses];
-
 export type DomainSitesHandleHttpGetData = {
     body?: never;
     path?: never;
@@ -26092,104 +25733,6 @@ export type DomainSitesCreatePreviewTokenResponses = {
 };
 
 export type DomainSitesCreatePreviewTokenResponse = DomainSitesCreatePreviewTokenResponses[keyof DomainSitesCreatePreviewTokenResponses];
-
-export type DomainSitesResolveSiteRouteData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query: {
-        /**
-         * Path
-         *
-         * Request pathname (e.g. /blog/hello).
-         */
-        path: string;
-        /**
-         * Mode
-         *
-         * Runtime mode.
-         */
-        mode?: 'public' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when mode=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/sites/{site_id}/routes/resolve';
-};
-
-export type DomainSitesResolveSiteRouteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesResolveSiteRouteError = DomainSitesResolveSiteRouteErrors[keyof DomainSitesResolveSiteRouteErrors];
-
-export type DomainSitesResolveSiteRouteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRouteResolveOut;
-};
-
-export type DomainSitesResolveSiteRouteResponse = DomainSitesResolveSiteRouteResponses[keyof DomainSitesResolveSiteRouteResponses];
-
-export type DomainSitesGetSiteRuntimeData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query?: {
-        /**
-         * Mode
-         *
-         * Runtime mode.
-         */
-        mode?: 'public' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when mode=preview).
-         */
-        token?: string | null;
-        /**
-         * Locale
-         *
-         * Resolved locale for localized settings (e.g. en-US).
-         */
-        locale?: string | null;
-    };
-    url: '/api/v1/sites/{site_id}/runtime';
-};
-
-export type DomainSitesGetSiteRuntimeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetSiteRuntimeError = DomainSitesGetSiteRuntimeErrors[keyof DomainSitesGetSiteRuntimeErrors];
-
-export type DomainSitesGetSiteRuntimeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRuntimeOut;
-};
-
-export type DomainSitesGetSiteRuntimeResponse = DomainSitesGetSiteRuntimeResponses[keyof DomainSitesGetSiteRuntimeResponses];
 
 export type DomainSitesGetSiteSettingData = {
     body?: never;
@@ -29073,38 +28616,6 @@ export type DomainWorkspacesListActionsResponses = {
 };
 
 export type DomainWorkspacesListActionsResponse = DomainWorkspacesListActionsResponses[keyof DomainWorkspacesListActionsResponses];
-
-export type DomainWorkspacesGetMatrixData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/rbac/matrix';
-};
-
-export type DomainWorkspacesGetMatrixErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetMatrixError = DomainWorkspacesGetMatrixErrors[keyof DomainWorkspacesGetMatrixErrors];
-
-export type DomainWorkspacesGetMatrixResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelWorkspaceRbacMatrixOut;
-};
-
-export type DomainWorkspacesGetMatrixResponse = DomainWorkspacesGetMatrixResponses[keyof DomainWorkspacesGetMatrixResponses];
 
 export type DomainWorkspacesListPermissionsData = {
     body?: never;

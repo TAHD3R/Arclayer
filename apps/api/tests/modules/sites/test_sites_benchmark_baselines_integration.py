@@ -76,6 +76,12 @@ async def _site_id(client, project_id: str) -> str:
     return site_res.json()["data"]["siteId"]
 
 
+async def _runtime_id(client, project_id: str) -> str:
+    project_res = await client.get(f"/api/v1/projects/{project_id}")
+    assert project_res.status_code == 200, project_res.text
+    return project_res.json()["data"]["primaryRuntime"]["id"]
+
+
 async def _graphql_benchmark_request(
     client,
     site_id: str,
@@ -146,6 +152,7 @@ async def test_headless_cms_benchmark_baselines(
         await _publish_release(client, project_id)
 
         site_id = await _site_id(client, project_id)
+        runtime_id = await _runtime_id(client, project_id)
         delivery_key_res = await client.post(
             f"/api/v1/projects/{project_id}/api-keys",
             json={
@@ -183,7 +190,7 @@ async def test_headless_cms_benchmark_baselines(
 
         page_samples = await _measure_latency_ms(
             lambda: client.get(
-                f"/api/v1/sites/{site_id}/delivery/pages/resolve",
+                f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
                 params={"path": "/benchmark/world", "perspective": "published"},
             )
         )

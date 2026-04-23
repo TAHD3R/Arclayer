@@ -204,11 +204,14 @@ async def _site_id_and_preview_token(client, project_id: str) -> tuple[str, str]
     site_res = await client.get(f"/api/v1/projects/{project_id}/site")
     assert site_res.status_code == 200, site_res.text
     site_id = site_res.json()["data"]["siteId"]
+    token_res = await client.post(
+        f"/api/v1/projects/{project_id}/site/preview-tokens",
+        json={"ttlSeconds": 600},
+    )
+    assert token_res.status_code == 201, token_res.text
     project_res = await client.get(f"/api/v1/projects/{project_id}")
     assert project_res.status_code == 200, project_res.text
     runtime_id = project_res.json()["data"]["primaryRuntime"]["id"]
-    token_res = await client.post(f"/api/v1/runtimes/{runtime_id}/preview-tokens", json={"ttlSeconds": 600})
-    assert token_res.status_code == 201, token_res.text
     return runtime_id, token_res.json()["data"]["token"]
 
 

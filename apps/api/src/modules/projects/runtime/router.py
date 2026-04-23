@@ -12,20 +12,15 @@ from src.common.types.public_uuid import PublicUUID
 from src.core.events import Event, events
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.logging import get_logger
-from src.core.middleware.guard_decorators import guard_rate_limit
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.router_helpers import (
+    get_project_runtime_context,
     get_project_runtime_service,
     require_project_permission,
 )
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
-from src.modules.projects.runtime.facade import (
-    ProjectRuntimeDeliveryFacade,
-    get_project_runtime_delivery_facade,
-)
-from src.modules.projects.runtime.schema import RuntimePreviewTokenOut
-from src.modules.projects.runtime.service import ProjectRuntimeService
+from src.modules.projects.runtime.service import ProjectRuntimeContext, ProjectRuntimeService
 from src.modules.projects.runtime.site.schema import ProjectRuntimeSiteOut
 from src.modules.sites.delivery.schema import (
     DeliveryGlobalSetOut,
@@ -36,11 +31,14 @@ from src.modules.sites.delivery.schema import (
     DeliveryStyleOut,
 )
 from src.modules.sites.preview.tokens.schema import SitePreviewTokenCreateIn
+from src.modules.sites.runtime.delivery_kernel import (
+    SiteRuntimeDeliveryKernel,
+    get_site_runtime_delivery_kernel,
+)
 from src.modules.sites.schema import SitePreviewTokenOut, SiteRouteResolveOut, SiteRuntimeOut
 
 router = APIRouter(prefix="/runtimes/{runtime_id}", tags=["external.runtimes"])
 project_router = APIRouter(prefix="/projects/{project_id}", tags=["domain.projects.runtime"])
-PREVIEW_TOKEN_CREATE_RATE_LIMIT = (10, 60)
 logger = get_logger(__name__)
 _FATAL_PROJECT_EVENT_ERRORS = (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit)
 
@@ -50,27 +48,13 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
-@guard_rate_limit(*PREVIEW_TOKEN_CREATE_RATE_LIMIT)
-@router.post(
-    "/preview-tokens",
-    response_model=ResponseModel[RuntimePreviewTokenOut],
-    response_model_exclude_none=True,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a preview token for a runtime",
-)
-async def create_runtime_preview_token(
+async def get_runtime_context(
     runtime_id: PublicUUID,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
-    payload: Annotated[
-        SitePreviewTokenCreateIn,
-        Body(description="Preview token request."),
-    ] = SitePreviewTokenCreateIn(),
-) -> ResponseModel[RuntimePreviewTokenOut]:
-    return ApiResponse.success(
-        data=await facade.create_runtime_preview_token(
-            runtime_id=runtime_id,
-            ttl_seconds=payload.ttl_seconds,
-        )
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
+) -> ProjectRuntimeContext:
+    return await runtime_service.get_context_by_runtime(
+        runtime_id=runtime_id,
+        actor_user_id=None,
     )
 
 
@@ -102,11 +86,16 @@ async def create_project_site_preview_token(
     payload: Annotated[SitePreviewTokenCreateIn, Body(description="Preview token request.")],
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
 ) -> ResponseModel[SitePreviewTokenOut]:
-    data, runtime_context = await facade.create_project_preview_token(
-        project_id=ctx.project_id,
+    runtime_context = await get_project_runtime_context(
+        ctx=ctx,
         actor_user_id=actor_user_id,
+        runtime_service=runtime_service,
+    )
+    data = await kernel.create_preview_token(
+        site_id=runtime_context.site_id,
         ttl_seconds=payload.ttl_seconds,
     )
     try:
@@ -149,9 +138,9 @@ async def create_project_site_preview_token(
     summary="Get runtime config by runtime id",
 )
 async def get_runtime_config(
-    runtime_id: PublicUUID,
     raw_response: FastAPIResponse,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
     locale: Annotated[str | None, Query(description="Resolved locale for localized settings (e.g. en-US).")] = None,
@@ -160,8 +149,8 @@ async def get_runtime_config(
         "no-store" if mode == "preview" else "public, max-age=300, stale-while-revalidate=3600"
     )
     return ApiResponse.success(
-        data=await facade.get_runtime(
-            runtime_id=runtime_id,
+        data=await kernel.get_runtime(
+            site_id=runtime_context.site_id,
             mode=mode,
             token=token,
             locale=locale,
@@ -176,10 +165,10 @@ async def get_runtime_config(
     summary="Resolve a runtime route",
 )
 async def resolve_runtime_route(
-    runtime_id: PublicUUID,
     path: Annotated[str, Query(..., description="Request pathname (e.g. /blog/hello).")],
     raw_response: FastAPIResponse,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
 ) -> ResponseModel[SiteRouteResolveOut]:
@@ -187,8 +176,8 @@ async def resolve_runtime_route(
         "no-store" if mode == "preview" else "public, max-age=60, stale-while-revalidate=300"
     )
     return ApiResponse.success(
-        data=await facade.resolve_route(
-            runtime_id=runtime_id,
+        data=await kernel.resolve_route(
+            site_id=runtime_context.site_id,
             path=path,
             mode=mode,
             token=token,
@@ -203,13 +192,18 @@ async def resolve_runtime_route(
     summary="Get a runtime menu by key",
 )
 async def get_runtime_delivery_menu(
-    runtime_id: PublicUUID,
     menu_key: str,
     raw_response: FastAPIResponse,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
 ) -> ResponseModel[DeliveryMenuOut]:
     raw_response.headers["cache-control"] = "public, max-age=60, stale-while-revalidate=300"
-    return ApiResponse.success(data=await facade.get_delivery_menu(runtime_id=runtime_id, menu_key=menu_key))
+    return ApiResponse.success(
+        data=await kernel.get_delivery_menu(
+            site_id=runtime_context.site_id,
+            menu_key=menu_key,
+        )
+    )
 
 
 @router.get(
@@ -219,12 +213,12 @@ async def get_runtime_delivery_menu(
     summary="Get effective runtime style",
 )
 async def get_runtime_delivery_style(
-    runtime_id: PublicUUID,
     raw_response: FastAPIResponse,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
 ) -> ResponseModel[DeliveryStyleOut]:
     raw_response.headers["cache-control"] = "public, max-age=60, stale-while-revalidate=300"
-    return ApiResponse.success(data=await facade.get_delivery_style(runtime_id=runtime_id))
+    return ApiResponse.success(data=await kernel.get_delivery_style(site_id=runtime_context.site_id))
 
 
 @router.get(
@@ -234,10 +228,10 @@ async def get_runtime_delivery_style(
     summary="Resolve a runtime page by request path",
 )
 async def resolve_runtime_delivery_page(
-    runtime_id: PublicUUID,
     path: Annotated[str, Query(..., description="Request pathname (e.g. /blog/hello).")],
     raw_response: FastAPIResponse,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
     token: Annotated[str | None, Query(description="Preview token (required when perspective=preview).")] = None,
 ) -> ResponseModel[DeliveryPageOut]:
@@ -245,11 +239,12 @@ async def resolve_runtime_delivery_page(
         "no-store" if perspective == "preview" else "public, max-age=60, stale-while-revalidate=300"
     )
     return ApiResponse.success(
-        data=await facade.resolve_delivery_page(
-            runtime_id=runtime_id,
+        data=await kernel.resolve_delivery_page(
+            site_id=runtime_context.site_id,
             path=path,
             perspective=perspective,
             token=token,
+            runtime_id=runtime_context.runtime_id,
         )
     )
 
@@ -261,10 +256,10 @@ async def resolve_runtime_delivery_page(
     summary="Get a runtime page by id",
 )
 async def get_runtime_delivery_page_by_id(
-    runtime_id: PublicUUID,
     page_id: PublicUUID,
     raw_response: FastAPIResponse,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
     token: Annotated[str | None, Query(description="Preview token (required when perspective=preview).")] = None,
 ) -> ResponseModel[DeliveryPageOut]:
@@ -272,11 +267,12 @@ async def get_runtime_delivery_page_by_id(
         "no-store" if perspective == "preview" else "public, max-age=60, stale-while-revalidate=300"
     )
     return ApiResponse.success(
-        data=await facade.get_delivery_page_by_id(
-            runtime_id=runtime_id,
+        data=await kernel.get_delivery_page_by_id(
+            site_id=runtime_context.site_id,
             page_id=page_id,
             perspective=perspective,
             token=token,
+            runtime_id=runtime_context.runtime_id,
         )
     )
 
@@ -288,10 +284,10 @@ async def get_runtime_delivery_page_by_id(
     summary="Get a runtime reusable section by alias",
 )
 async def get_runtime_delivery_section_by_alias(
-    runtime_id: PublicUUID,
     alias: str,
     raw_response: FastAPIResponse,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
     token: Annotated[str | None, Query(description="Preview token (required when perspective=preview).")] = None,
 ) -> ResponseModel[DeliverySectionOut]:
@@ -299,8 +295,8 @@ async def get_runtime_delivery_section_by_alias(
         "no-store" if perspective == "preview" else "public, max-age=60, stale-while-revalidate=300"
     )
     return ApiResponse.success(
-        data=await facade.get_delivery_section_by_alias(
-            runtime_id=runtime_id,
+        data=await kernel.get_delivery_section_by_alias(
+            site_id=runtime_context.site_id,
             alias=alias,
             perspective=perspective,
             token=token,
@@ -315,10 +311,10 @@ async def get_runtime_delivery_section_by_alias(
     summary="Resolve a runtime global set by key",
 )
 async def resolve_runtime_delivery_global_set(
-    runtime_id: PublicUUID,
     key: str,
     raw_response: FastAPIResponse,
-    facade: Annotated[ProjectRuntimeDeliveryFacade, Depends(get_project_runtime_delivery_facade)],
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
     perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
     token: Annotated[str | None, Query(description="Preview token (required when perspective=preview).")] = None,
 ) -> ResponseModel[DeliveryGlobalSetOut]:
@@ -326,8 +322,8 @@ async def resolve_runtime_delivery_global_set(
         "no-store" if perspective == "preview" else "public, max-age=60, stale-while-revalidate=300"
     )
     return ApiResponse.success(
-        data=await facade.get_delivery_global_set(
-            runtime_id=runtime_id,
+        data=await kernel.get_delivery_global_set(
+            site_id=runtime_context.site_id,
             key=key,
             perspective=perspective,
             token=token,

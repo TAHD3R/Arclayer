@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.models.system.rbac import PermissionScope
-from src.modules.workspaces.permissions.registry import PermissionActionDefinition
+from src.modules.projects.permissions.schema import PermissionActionDefinition
 
 PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
     PermissionActionDefinition(

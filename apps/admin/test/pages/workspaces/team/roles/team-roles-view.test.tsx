@@ -10,30 +10,33 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const {
-  getWorkspaceRbacMatrixMock,
+  listAllWorkspaceRolesMock,
+  listAllWorkspacePermissionsMock,
   createWorkspaceRoleFromTemplateMock,
   updateWorkspaceRoleMock,
   deleteWorkspaceRoleMock,
-  setWorkspacePermissionRolesMock,
+  setWorkspaceRolePermissionsMock,
   notifySuccessTextMock,
   notifyErrorMock,
 } = vi.hoisted(() => ({
-  getWorkspaceRbacMatrixMock: vi.fn(),
+  listAllWorkspaceRolesMock: vi.fn(),
+  listAllWorkspacePermissionsMock: vi.fn(),
   createWorkspaceRoleFromTemplateMock: vi.fn(),
   updateWorkspaceRoleMock: vi.fn(),
   deleteWorkspaceRoleMock: vi.fn(),
-  setWorkspacePermissionRolesMock: vi.fn(),
+  setWorkspaceRolePermissionsMock: vi.fn(),
   notifySuccessTextMock: vi.fn(),
   notifyErrorMock: vi.fn(),
 }));
 
 vi.mock("@/api/rbac", () => ({
-  getWorkspaceRbacMatrix: (...args: unknown[]) => getWorkspaceRbacMatrixMock(...args),
+  listAllWorkspaceRoles: (...args: unknown[]) => listAllWorkspaceRolesMock(...args),
+  listAllWorkspacePermissions: (...args: unknown[]) => listAllWorkspacePermissionsMock(...args),
   createWorkspaceRoleFromTemplate: (...args: unknown[]) =>
     createWorkspaceRoleFromTemplateMock(...args),
   updateWorkspaceRole: (...args: unknown[]) => updateWorkspaceRoleMock(...args),
   deleteWorkspaceRole: (...args: unknown[]) => deleteWorkspaceRoleMock(...args),
-  setWorkspacePermissionRoles: (...args: unknown[]) => setWorkspacePermissionRolesMock(...args),
+  setWorkspaceRolePermissions: (...args: unknown[]) => setWorkspaceRolePermissionsMock(...args),
 }));
 
 vi.mock("@/lib/notifications", () => ({
@@ -136,42 +139,41 @@ describe("TeamRolesView", () => {
     });
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
 
-    getWorkspaceRbacMatrixMock.mockResolvedValue({
-      roles: [
-        {
-          id: "role-system-admin",
-          code: "admin",
-          name: "Admin",
-          description: "System role",
-          isDefault: true,
-          isSuperuser: true,
-          isSystem: true,
-        },
-        {
-          id: "role-custom-editor",
-          code: "custom_editor",
-          name: "Content editor",
-          description: "Can edit pages",
-          isDefault: false,
-          isSuperuser: false,
-          isSystem: false,
-        },
-      ],
-      permissions: [
-        {
-          code: "content.write",
-          name: "Edit content",
-          description: "Allows editing content",
-          ownerKey: "core",
-          ownerName: "Core",
-          grantedRoleCodes: ["admin", "custom_editor"],
-        },
-      ],
-    });
+    listAllWorkspaceRolesMock.mockResolvedValue([
+      {
+        id: "role-system-admin",
+        code: "admin",
+        name: "Admin",
+        description: "System role",
+        isDefault: true,
+        isSuperuser: true,
+        isSystem: true,
+        permissionCodes: ["content.write"],
+      },
+      {
+        id: "role-custom-editor",
+        code: "custom_editor",
+        name: "Content editor",
+        description: "Can edit pages",
+        isDefault: false,
+        isSuperuser: false,
+        isSystem: false,
+        permissionCodes: ["content.write"],
+      },
+    ]);
+    listAllWorkspacePermissionsMock.mockResolvedValue([
+      {
+        code: "content.write",
+        name: "Edit content",
+        description: "Allows editing content",
+        ownerKey: "core",
+        ownerName: "Core",
+      },
+    ]);
     createWorkspaceRoleFromTemplateMock.mockResolvedValue(null);
     updateWorkspaceRoleMock.mockResolvedValue(null);
     deleteWorkspaceRoleMock.mockResolvedValue(null);
-    setWorkspacePermissionRolesMock.mockResolvedValue(null);
+    setWorkspaceRolePermissionsMock.mockResolvedValue(null);
   });
 
   it("lets admins edit a custom role from the roles matrix header", async () => {
@@ -242,5 +244,26 @@ describe("TeamRolesView", () => {
 
     const pageBody = container.querySelector(".flex.flex-col.gap-4.pb-8");
     expect(pageBody).not.toBeNull();
+  });
+
+  it("updates the custom role permission set from the direct roles contract", async () => {
+    const user = userEvent.setup();
+
+    renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
+
+    await screen.findByTitle("Content editor");
+    const checkboxes = screen.getAllByRole("checkbox");
+    const customRoleCheckbox = checkboxes[1];
+    expect(customRoleCheckbox).toBeChecked();
+
+    await user.click(customRoleCheckbox);
+
+    await waitFor(() => {
+      expect(setWorkspaceRolePermissionsMock).toHaveBeenCalledWith({
+        workspaceId: "ws-1",
+        roleCode: "custom_editor",
+        permissionCodes: [],
+      });
+    });
   });
 });

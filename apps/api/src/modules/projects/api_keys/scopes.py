@@ -7,13 +7,12 @@ from functools import lru_cache
 from typing import Final
 
 from src.modules.projects.authz.schema import ProjectAuthzSnapshot
-from src.modules.projects.permissions.service import get_project_action_catalog
-from src.modules.workspaces.permissions import (
+from src.modules.projects.permissions.schema import (
     PermissionContext,
     PermissionDecision,
     PermissionSubjectKind,
-    PolicyEvaluationService,
 )
+from src.modules.projects.permissions.service import PolicyEvaluationService, get_project_action_catalog
 
 
 class ApiKeyScope(StrEnum):

@@ -10,6 +10,7 @@ from fastapi.routing import APIRoute
 from src.modules.assets.admin.assets.router import router as assets_router
 from src.modules.assets.admin.uploads.router import router as uploads_router
 from src.modules.assets.admin.usages.router import router as usages_router
+from src.modules.organization.rbac.catalog import get_organization_permission_catalog
 from src.modules.projects.api_keys.router import router as project_api_keys_router
 from src.modules.projects.content.items.router import router as project_items_router
 from src.modules.projects.content.models.router import router as project_models_router
@@ -20,7 +21,7 @@ from src.modules.projects.releases.router import router as project_releases_rout
 from src.modules.projects.runtime.router import project_router as project_runtime_router
 from src.modules.system.admin.notifications.router import router as notifications_router
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
-from src.modules.workspaces.permissions import get_organization_permission_catalog, get_permission_action_registry
+from src.modules.workspaces.permissions import get_permission_action_registry
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
 
 
@@ -235,6 +236,15 @@ def test_project_api_key_router_uses_granular_permissions() -> None:
     assert rotate_key == {"project:api-keys:manage"}
     assert list_actions == {"rbac:permissions:read"}
     assert "admin:access" not in list_keys | create_key | rotate_key | list_actions
+
+
+def test_workspace_rbac_router_hard_cuts_matrix_route() -> None:
+    paths = {route.path for route in workspace_rbac_router.routes if isinstance(route, APIRoute)}
+
+    assert "/workspaces/{workspace_id}/rbac/matrix" not in paths
+    assert "/workspaces/{workspace_id}/rbac/roles" in paths
+    assert "/workspaces/{workspace_id}/rbac/permissions" in paths
+    assert "/workspaces/{workspace_id}/rbac/actions" in paths
 
 
 def test_project_releases_router_uses_granular_permissions() -> None:

@@ -241,6 +241,7 @@ function RunsPanel(props: { runs: AdminAutomationRun[] }) {
 function FlowEditor(props: {
   busy: boolean;
   canManage: boolean;
+  showAccessNotice: boolean;
   catalog?: AdminAutomationCatalog;
   draft: FlowDraft;
   onChange: (draft: FlowDraft) => void;
@@ -272,7 +273,13 @@ function FlowEditor(props: {
             {t("CONTENT_AUTOMATION_EDITOR_DESC")}
           </div>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={props.onNew}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!props.canManage}
+          onClick={props.onNew}
+        >
           {t("CONTENT_AUTOMATION_ACTION_NEW")}
         </Button>
       </div>
@@ -403,7 +410,7 @@ function FlowEditor(props: {
           </select>
         </label>
 
-        {!props.canManage ? (
+        {props.showAccessNotice ? (
           <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
             {t("CONTENT_AUTOMATION_NO_ACCESS_DESC")}
           </div>
@@ -441,9 +448,9 @@ export function ContentAutomationPage(props: { projectId: string }) {
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(props.projectId);
   const [draft, setDraft] = useState<FlowDraft>(() => createEmptyDraft());
-  const canManage =
-    !permissionAccess.authzQuery.isFetched ||
-    permissionAccess.hasAction("project:automation:manage");
+  const permissionReady =
+    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
+  const canManage = permissionReady && permissionAccess.hasAction("project:automation:manage");
 
   const catalogQuery = useQuery({
     queryKey: buildAutomationCatalogQueryKey(props.projectId),
@@ -605,6 +612,7 @@ export function ContentAutomationPage(props: { projectId: string }) {
           <FlowEditor
             busy={busy}
             canManage={canManage}
+            showAccessNotice={permissionReady && !canManage}
             catalog={catalogQuery.data}
             draft={draft}
             onChange={setDraft}

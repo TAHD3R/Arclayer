@@ -14,6 +14,7 @@ import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { BaseTag } from "@/components/ui/tags";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
@@ -242,6 +243,7 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
   const { t } = useTranslation(["account", "common"]);
   const queryClient = useQueryClient();
   const { formatDateTime } = useAdminDateTimeFormatter({ projectId: props.projectId });
+  const permissionAccess = useProjectPermissionAccess(props.projectId);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -298,6 +300,11 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
 
   const pending = createMutation.isPending || rotateMutation.isPending || revokeMutation.isPending;
   const items = apiKeysQuery.data ?? [];
+  const permissionReady = permissionAccess.authzQuery.isFetched;
+  const canManageApiKeys =
+    Boolean(props.projectId) &&
+    permissionReady &&
+    permissionAccess.hasAction("project:api-keys:manage");
 
   const sortedItems = useMemo(
     () =>
@@ -336,6 +343,14 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
             </div>
           </div>
         )}
+        {permissionReady && !canManageApiKeys ? (
+          <div
+            className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
+            data-testid="project-api-keys-read-only-notice"
+          >
+            {t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
+          </div>
+        ) : null}
         <div className="grid gap-6">
           <SecretRevealPanel reveal={secretReveal} onDismiss={() => setSecretReveal(null)} />
 
@@ -343,7 +358,7 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
             className="rounded-[28px] border border-border/60 bg-card/60 p-5"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!name.trim()) return;
+              if (!name.trim() || !canManageApiKeys) return;
               void createMutation.mutateAsync();
             }}
           >
@@ -367,17 +382,19 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
                 onChange={(event) => setName(event.target.value)}
                 placeholder={t("account:SETTINGS_PROJECT_API_KEYS_NAME_PLACEHOLDER")}
                 autoComplete="off"
+                disabled={!canManageApiKeys}
               />
               <Textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder={t("account:SETTINGS_PROJECT_API_KEYS_DESC_PLACEHOLDER")}
                 className="min-h-24"
+                disabled={!canManageApiKeys}
               />
               <Button
                 type="submit"
                 loading={createMutation.isPending}
-                disabled={!name.trim()}
+                disabled={!name.trim() || !canManageApiKeys}
                 className="lg:self-start"
               >
                 {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_ACTION")}
@@ -392,7 +409,7 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
                   key={item.id}
                   item={item}
                   reveal={secretReveal}
-                  pending={pending}
+                  pending={pending || !canManageApiKeys}
                   onCopyMask={(value) => void handleCopyMask(value)}
                   onRotate={(keyId) => void rotateMutation.mutateAsync(keyId)}
                   onRevoke={(keyId) => void revokeMutation.mutateAsync(keyId)}

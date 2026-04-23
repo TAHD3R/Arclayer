@@ -14,8 +14,6 @@ from src.modules.organization.http.service import get_current_org_membership
 from src.modules.organization.rbac.schema import (
     OrganizationPermissionOut,
     OrganizationPermissionRoleSetRequest,
-    OrganizationRBACMatrixOut,
-    OrganizationRBACMatrixPermissionRowOut,
     OrganizationRoleCreateFromTemplateRequest,
     OrganizationRoleOut,
     OrganizationRolePermissionSetRequest,
@@ -97,43 +95,6 @@ async def list_permissions(
         params=params,
     )
     return ApiResponse.success(data=page)
-
-
-@router.get(
-    "/matrix",
-    response_model=ResponseModel[OrganizationRBACMatrixOut],
-    summary="Get organization RBAC matrix",
-)
-async def get_matrix(
-    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
-    service: OrganizationRBACService = Depends(get_org_rbac_service),
-) -> ResponseModel[OrganizationRBACMatrixOut]:
-    """Get organization RBAC matrix."""
-    await _assert_permission(
-        orgm=orgm,
-        service=service,
-        permission_code="org.roles.read",
-        error_code="ORG_ROLES_READ_REQUIRED",
-    )
-    roles, permissions, grants = await service.get_matrix(
-        organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id))
-    )
-    localized_permissions = [service.localize_permission(permission) for permission in permissions]
-    return ApiResponse.success(
-        data=OrganizationRBACMatrixOut(
-            roles=[OrganizationRoleOut.model_validate(service.localize_role(role)) for role in roles],
-            permissions=[
-                OrganizationRBACMatrixPermissionRowOut(
-                    code=str(lp["code"]),
-                    module=str(lp["module"]),
-                    name=str(lp["name"]),
-                    description=(str(lp["description"]) if lp.get("description") is not None else None),
-                    granted_role_codes=grants.get(str(lp["code"]), []),
-                )
-                for lp in localized_permissions
-            ],
-        )
-    )
 
 
 @router.post(
