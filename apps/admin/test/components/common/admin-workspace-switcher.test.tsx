@@ -371,6 +371,55 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(trigger.className).toContain("data-[state=open]:!bg-accent");
     expect(trigger.className).toContain("data-[state=open]:!text-accent-foreground");
     expect(trigger.className).toContain("dark:data-[state=open]:!bg-accent/50");
+    expect(trigger.className).toContain("w-full");
+    expect(trigger.className).toContain("max-w-full");
+    const chevron = trigger.querySelector("svg.lucide-chevron-down");
+    expect(chevron).toBeTruthy();
+    expect(chevron?.getAttribute("class")).toContain("transition-transform");
+    expect(chevron?.getAttribute("class")).not.toContain("origin-left");
+    const chevronSlot = chevron?.parentElement;
+    expect(chevronSlot?.getAttribute("class")).toContain("ml-auto");
+    expect(chevronSlot?.getAttribute("class")).toContain("origin-left");
+  });
+
+  it("sidebar forceVisible: keeps the trigger shell full-width when the panel is open", async () => {
+    const user = userEvent.setup();
+    mockPathname = "/settings/personal/profile";
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher forceVisible />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "Select workspace",
+    });
+    const shell = trigger.closest<HTMLElement>("[data-panel-open]");
+    if (!shell) {
+      throw new Error("Missing sidebar trigger shell");
+    }
+
+    expect(shell).toHaveAttribute("data-panel-open", "false");
+
+    await user.click(trigger);
+
+    expect(shell).toHaveAttribute("data-panel-open", "true");
+    expect(trigger.className).toContain("w-full");
+    expect(trigger.className).toContain("max-w-full");
+  });
+
+  it("sidebar forceVisible: stays full-width inside a flex floating root", async () => {
+    mockPathname = "/settings/personal/profile";
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher forceVisible className="flex w-full min-w-0" />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "Select workspace",
+    });
+    const shell = trigger.closest<HTMLElement>("[data-panel-open]")?.parentElement;
+    if (!shell) {
+      throw new Error("Missing sidebar trigger shell wrapper");
+    }
+
+    expect(shell.className).toContain("w-full");
+    expect(shell.className).toContain("flex-1");
   });
 
   it("global scope: trigger uses the last selected workspace", async () => {
