@@ -8,7 +8,7 @@ from tests.modules.projects.helpers import (
     create_project_page_model,
     project_context_ids,
 )
-from tests.modules.sites.test_sites_delivery_integration import _site_id_and_preview_token
+from tests.modules.sites.test_sites_delivery_integration import _runtime_id_and_preview_token
 from tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
     _workspace_client,
@@ -107,7 +107,7 @@ async def test_runtime_routes_resolve_same_delivery_and_runtime_contract_as_proj
         await _prepare_project_published_site(client, workspace_id)
 
         project_id, runtime_id = await _project_context_ids(client, workspace_id)
-        preview_runtime_id, preview_token = await _site_id_and_preview_token(client, project_id)
+        preview_runtime_id, preview_token = await _runtime_id_and_preview_token(client, project_id)
         project_site_id = await _project_site_id(client, project_id)
 
         runtime_res = await client.get(f"/api/v1/runtimes/{runtime_id}/runtime")
@@ -174,7 +174,7 @@ async def test_project_api_keys_bind_to_runtime_site_bridge(
 
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, _project_id):
         project_id, runtime_id = await _project_context_ids(client, workspace_id)
-        preview_runtime_id, _preview_token = await _site_id_and_preview_token(client, project_id)
+        preview_runtime_id, _preview_token = await _runtime_id_and_preview_token(client, project_id)
         project_site_id = await _project_site_id(client, project_id)
 
         create_res = await client.post(

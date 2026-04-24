@@ -1,23 +1,21 @@
 import type {
-  DeliveryGlobalSetOut,
-  DeliveryMenuOut,
-  DeliverySectionOut,
-  DeliveryStyleOut,
-  SiteRouteResolveOut,
-} from "@arclayer/openapi";
+  ApiRequestMetadata,
+  ApiResult,
+  DeliveryGlobalSetContract,
+  DeliveryMenuContract,
+  DeliveryPageResolveContract,
+  DeliveryRouteResolveContract,
+  DeliveryRuntimeConfigContract,
+  DeliverySectionContract,
+  DeliveryStyleContract,
+  MaybePromise,
+} from "@arclayer/contracts";
 
-export type MaybePromise<T> = T | Promise<T>;
+export type { ApiEnvelope, MaybePromise } from "@arclayer/contracts";
+
 export type DeliveryPerspective = "published" | "preview";
 export type GraphQLPerspective = "PUBLISHED" | "PREVIEW";
 export type GraphQLVariables = object;
-
-export interface ApiEnvelope<T> {
-  data?: T | null;
-  error?: string | null;
-  message?: string;
-  meta?: Record<string, unknown> | null;
-  timestamp?: number;
-}
 
 export interface DeliverySdkOptions {
   baseUrl: string;
@@ -26,21 +24,11 @@ export interface DeliverySdkOptions {
   headers?: HeadersInit;
 }
 
-export interface DeliveryRequestMetadata {
-  message: string;
-  meta?: Record<string, unknown> | null;
-  requestId: string | null;
-  status: number;
-  timestamp?: number;
-}
+export type DeliveryRequestMetadata = ApiRequestMetadata;
 
-export interface DeliveryResult<T> extends DeliveryRequestMetadata {
-  data: T;
-}
+export type DeliveryResult<T> = ApiResult<T>;
 
-export interface GraphQLExecutionResult<T> extends DeliveryRequestMetadata {
-  data: T;
-}
+export type GraphQLExecutionResult<T> = ApiResult<T>;
 
 export interface GraphQLErrorExtension {
   code?: string;
@@ -297,8 +285,10 @@ export interface CategoryEntriesQueryVariables extends GraphQLQueryVariables {
   } | null;
 }
 
-export type DeliveryPageResolveOut = SiteRouteResolveOut;
-export type DeliverySection = DeliverySectionOut;
-export type DeliveryGlobalSet = DeliveryGlobalSetOut;
-export type DeliveryMenu = DeliveryMenuOut;
-export type DeliveryStyle = DeliveryStyleOut;
+export type DeliveryPageResolveOut = DeliveryPageResolveContract;
+export type DeliveryRouteResolveOut = DeliveryRouteResolveContract;
+export type DeliveryRuntimeConfig = DeliveryRuntimeConfigContract;
+export type DeliverySection = DeliverySectionContract;
+export type DeliveryGlobalSet = DeliveryGlobalSetContract;
+export type DeliveryMenu = DeliveryMenuContract;
+export type DeliveryStyle = DeliveryStyleContract;

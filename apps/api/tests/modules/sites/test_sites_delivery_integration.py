@@ -200,18 +200,15 @@ async def _publish_release(client, project_id: str) -> None:
     assert publish_res.status_code == 200, publish_res.text
 
 
-async def _site_id_and_preview_token(client, project_id: str) -> tuple[str, str]:
-    site_res = await client.get(f"/api/v1/projects/{project_id}/site")
-    assert site_res.status_code == 200, site_res.text
-    site_id = site_res.json()["data"]["siteId"]
+async def _runtime_id_and_preview_token(client, project_id: str) -> tuple[str, str]:
+    project_res = await client.get(f"/api/v1/projects/{project_id}")
+    assert project_res.status_code == 200, project_res.text
+    runtime_id = project_res.json()["data"]["primaryRuntime"]["id"]
     token_res = await client.post(
         f"/api/v1/projects/{project_id}/site/preview-tokens",
         json={"ttlSeconds": 600},
     )
     assert token_res.status_code == 201, token_res.text
-    project_res = await client.get(f"/api/v1/projects/{project_id}")
-    assert project_res.status_code == 200, project_res.text
-    runtime_id = project_res.json()["data"]["primaryRuntime"]["id"]
     return runtime_id, token_res.json()["data"]["token"]
 
 
@@ -267,7 +264,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
         await _upsert_route_binding(client, project_id, item_id=static_item_id, path="/blog/new")
         await _publish_release(client, project_id)
 
-        runtime_id, preview_token = await _site_id_and_preview_token(client, project_id)
+        runtime_id, preview_token = await _runtime_id_and_preview_token(client, project_id)
         await _save_article_draft(
             client,
             project_id,
@@ -355,7 +352,7 @@ async def test_delivery_pages_resolve_surfaces_binding_resolution_failures(
         )
         await _publish_release(client, project_id)
 
-        runtime_id, _ = await _site_id_and_preview_token(client, project_id)
+        runtime_id, _ = await _runtime_id_and_preview_token(client, project_id)
         published_res = await client.get(
             f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/broken/world", "perspective": "published"},
@@ -393,7 +390,7 @@ async def test_delivery_sections_and_global_sets_resolve_reusable_section_contra
         assert publish_res.status_code == 200, publish_res.text
         await _publish_release(client, project_id)
 
-        runtime_id, preview_token = await _site_id_and_preview_token(client, project_id)
+        runtime_id, preview_token = await _runtime_id_and_preview_token(client, project_id)
 
         section_res = await client.get(
             f"/api/v1/runtimes/{runtime_id}/delivery/sections/site-header",

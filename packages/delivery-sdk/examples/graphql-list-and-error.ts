@@ -14,7 +14,7 @@ async function run() {
       limit: 10,
       offset: 0,
       perspective: "published",
-      siteId: "site_public_id",
+      runtimeId: "runtime_public_id",
       sort: {
         direction: "DESC",
         field: "REVISION",

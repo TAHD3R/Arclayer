@@ -18,6 +18,16 @@ def _parse_args() -> argparse.Namespace:
 
 
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
+_RUNTIME_GRAPHQL_TAG = "external.runtimes.graphql"
+_RUNTIME_GRAPHQL_OPERATION_BASE_BY_METHOD = {
+    "GET": "handle_runtime_graphql_get",
+    "POST": "handle_runtime_graphql_post",
+}
+_RUNTIME_GRAPHQL_ROUTE_BASE_BY_METHOD = {
+    "GET": "handle_http_get",
+    "POST": "handle_http_post",
+}
+_RUNTIME_GRAPHQL_OPERATION_PREFIX = "external_runtimes"
 
 
 def _normalize_tag_prefix(tag: str) -> str:
@@ -58,8 +68,7 @@ def _assign_stable_operation_ids(app) -> None:
             base = "unnamed"
 
         tags = [t for t in (route.tags or []) if isinstance(t, str) and t.strip()]
-        prefix = _normalize_tag_prefix(tags[0]) if tags else ""
-        operation_id = f"{prefix}_{base}" if prefix else base
+        operation_id = _build_operation_id(route=route, base=base, tags=tags)
 
         route.operation_id = operation_id
 
@@ -73,6 +82,33 @@ def _assign_stable_operation_ids(app) -> None:
             f"{op} -> {refs[:3]}{' ...' if len(refs) > 3 else ''}" for op, refs in sorted(duplicates.items())[:5]
         )
         raise ValueError(f"Non-unique operationId detected (showing first 5): {preview}")
+
+
+def _build_operation_id(*, route, base: str, tags: list[str]) -> str:
+    method = _resolve_single_operation_method(route)
+    if method and _is_runtime_graphql_route(base=base, tags=tags, method=method):
+        runtime_graphql_base = _RUNTIME_GRAPHQL_OPERATION_BASE_BY_METHOD.get(method)
+        if runtime_graphql_base:
+            return f"{_RUNTIME_GRAPHQL_OPERATION_PREFIX}_{runtime_graphql_base}"
+
+    prefix = _normalize_tag_prefix(tags[0]) if tags else ""
+    return f"{prefix}_{base}" if prefix else base
+
+
+def _resolve_single_operation_method(route) -> str | None:
+    methods = sorted(method for method in (route.methods or set()) if method != "HEAD")
+    if len(methods) != 1:
+        return None
+    return methods[0]
+
+
+def _is_runtime_graphql_route(*, base: str, tags: list[str], method: str) -> bool:
+    if _RUNTIME_GRAPHQL_TAG not in tags:
+        return False
+    expected_base = _RUNTIME_GRAPHQL_ROUTE_BASE_BY_METHOD.get(method)
+    if expected_base is None:
+        return False
+    return base == expected_base
 
 
 def build_openapi_schema() -> dict[str, Any]:

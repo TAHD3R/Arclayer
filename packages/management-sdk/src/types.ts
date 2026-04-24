@@ -1,22 +1,46 @@
-export type MaybePromise<T> = T | Promise<T>;
+import type { ApiPage, ApiRequestMetadata, ApiResult, MaybePromise } from "@arclayer/contracts";
+import type { ApiClient } from "@arclayer/openapi";
 
-export interface ApiEnvelope<T> {
-  data?: T | null;
-  error?: string | null;
-  message?: string;
-  meta?: Record<string, unknown> | null;
-  timestamp?: number;
-}
-
-export interface PagePayload<T> {
-  items?: T[];
-  next?: number | null;
-  page: number;
-  pages: number;
-  prev?: number | null;
-  size: number;
-  total: number;
-}
+export type { ApiEnvelope, MaybePromise, PagePayload } from "@arclayer/contracts";
+export type {
+  ApiKeyContract,
+  ApiKeyCreateContract,
+  ApiKeyListContract,
+  AutomationCatalogContract,
+  AutomationFlowContract,
+  AutomationFlowCreateContract,
+  AutomationFlowListContract,
+  AutomationFlowPatchContract,
+  AutomationRunContract,
+  AutomationRunListContract,
+  ContentItemBootstrapShapeContract,
+  ContentItemContract,
+  ContentItemCreateContract,
+  ContentModelContract,
+  ContentModelDefinitionContract,
+  ContentModelDefinitionPatchContract,
+  ContentModelImpactPreviewContract,
+  ContentModelMutationContract,
+  ContentVersionContract,
+  ContentVersionDraftSaveContract,
+  ContentVersionPatchContract,
+  PersonalApiKeyCreateContract,
+  PublishImpactContract,
+  PublishPreviewContract,
+  ProjectApiKeyCreateContract,
+  ProjectRuntimeSiteContract,
+  ProjectSettingsDetailContract,
+  ProjectSettingsPatchContract,
+  ReleaseContract,
+  ReleaseDryRunContract,
+  ReleaseListContract,
+  ReleasePublishContract,
+  ReleaseRollbackContract,
+  RouteBindingContract,
+  RouteBindingUpsertContract,
+  SitePreviewTokenContract,
+  SitePreviewTokenCreateContract,
+} from "@arclayer/contracts";
 
 export interface ManagementSdkOptions {
   baseUrl: string;
@@ -25,25 +49,10 @@ export interface ManagementSdkOptions {
   fetch?: typeof fetch;
 }
 
-export interface ManagementRequestMetadata {
-  message: string;
-  meta?: Record<string, unknown> | null;
-  requestId: string | null;
-  status: number;
-  timestamp?: number;
-}
+export type ManagementRequestMetadata = ApiRequestMetadata;
 
-export interface ManagementResult<T> extends ManagementRequestMetadata {
-  data: T;
-}
+export type ManagementResult<T> = ApiResult<T>;
 
-export interface ManagementPage<T> extends ManagementRequestMetadata {
-  items: T[];
-  next: number | null;
-  page: number;
-  pages: number;
-  prev: number | null;
-  raw: PagePayload<T>;
-  size: number;
-  total: number;
-}
+export type ManagementPage<T> = ApiPage<T>;
+
+export type ManagementRawClient = ApiClient;

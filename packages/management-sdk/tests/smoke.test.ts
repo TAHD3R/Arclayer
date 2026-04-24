@@ -97,4 +97,94 @@ describe("management-sdk", () => {
       status: 409,
     });
   });
+
+  it("exposes publish governance facades under releases namespace", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      expect(input).toBeInstanceOf(Request);
+      const request = input as Request;
+      const url = new URL(request.url);
+
+      if (url.pathname.endsWith("/api/v1/projects/project_123/publish/impact")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              readinessSummary: {
+                blockerCodes: [],
+                ready: true,
+              },
+            },
+            message: "OK",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "X-Trace-Id": "trace_publish_impact",
+            },
+          },
+        );
+      }
+
+      if (url.pathname.endsWith("/api/v1/projects/project_123/publish/preview-contract")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              artifacts: [],
+              routePointers: [],
+            },
+            message: "OK",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "X-Trace-Id": "trace_preview_contract",
+            },
+          },
+        );
+      }
+
+      expect(url.pathname.endsWith("/api/v1/projects/project_123/releases/dry-run")).toBe(true);
+      return new Response(
+        JSON.stringify({
+          data: {
+            impact: {
+              readinessSummary: {
+                ready: true,
+              },
+            },
+            readinessSummary: {
+              blockerCodes: [],
+              ready: true,
+            },
+          },
+          message: "OK",
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Trace-Id": "trace_dry_run",
+          },
+        },
+      );
+    });
+
+    const sdk = createManagementSdk({
+      baseUrl: "https://api.arclayer.test",
+      fetch: fetchMock as typeof fetch,
+      token: "mgmt_token",
+    });
+
+    const impact = await sdk.releases.publishImpact({ projectId: "project_123" });
+    const preview = await sdk.releases.publishPreviewContract({ projectId: "project_123" });
+    const dryRun = await sdk.releases.dryRun({ projectId: "project_123" });
+
+    expect(impact.requestId).toBe("trace_publish_impact");
+    expect(preview.data.artifacts).toEqual([]);
+    expect(preview.requestId).toBe("trace_preview_contract");
+    expect(dryRun.data.readinessSummary.ready).toBe(true);
+    expect(dryRun.requestId).toBe("trace_dry_run");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
 });

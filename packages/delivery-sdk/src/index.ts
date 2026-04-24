@@ -21,6 +21,12 @@ export const createDeliverySdk = (options: DeliverySdkOptions) => {
     menus: {
       get: rest.getMenu.bind(rest),
     },
+    runtime: {
+      get: rest.getRuntimeConfig.bind(rest),
+    },
+    routes: {
+      resolve: rest.resolveRoute.bind(rest),
+    },
     pages: {
       byId: rest.getPageById.bind(rest),
       resolve: rest.resolvePage.bind(rest),
@@ -85,6 +91,8 @@ export type {
   DeliveryPerspective,
   DeliveryRequestMetadata,
   DeliveryResult,
+  DeliveryRouteResolveOut,
+  DeliveryRuntimeConfig,
   DeliverySection,
   DeliverySdkOptions,
   DeliveryStyle,

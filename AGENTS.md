@@ -70,6 +70,8 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
 - Respect boundaries:
   - Backend layering: router/service/repository/schema.
   - App boundaries: do not copy/paste cross-app logic; prefer `packages/*` when sharing is needed.
+- Hard-cut work keeps one canonical contract surface and removes superseded thin facade, shim, forwarding layer, and dual-track compatibility path in the same rollout.
+- Any thin facade, shim, or dual-track compatibility path left for later cleanup requires explicit user approval with rationale and removal plan.
 - Prefer existing patterns and abstractions; avoid introducing new frameworks or ad-hoc conventions.
 - Never hide failures: no silent fallbacks, no swallowing exceptions, no fake “success” paths.
 

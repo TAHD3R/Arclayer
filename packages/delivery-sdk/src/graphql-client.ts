@@ -49,14 +49,14 @@ export class DeliveryGraphQLClient {
   async execute<TResult, TVariables extends GraphQLVariables = GraphQLVariables>(input: {
     document: TypedDocumentString<TResult, TVariables> | string;
     operationName?: string;
-    siteId: string;
+    runtimeId: string;
     variables?: TVariables;
   }): Promise<GraphQLExecutionResult<TResult>> {
     const headers = await createDeliveryHeaders(this.options, {
       "Content-Type": "application/json",
     });
     const response = await (this.options.fetch ?? globalThis.fetch)(
-      `${normalizeDeliveryBaseUrl(this.options.baseUrl)}/api/v1/sites/${input.siteId}/graphql`,
+      `${normalizeDeliveryBaseUrl(this.options.baseUrl)}/api/v1/runtimes/${input.runtimeId}/graphql`,
       {
         body: JSON.stringify({
           operationName: input.operationName,
@@ -86,11 +86,11 @@ export class DeliveryGraphQLClient {
     path: string;
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
   }) {
     return this.execute<ResolvePageQueryData, ResolvePageQueryVariables>({
       document: resolvePageDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         path: input.path,
         perspective: toGraphqlPerspective(input.perspective ?? "published"),
@@ -102,12 +102,12 @@ export class DeliveryGraphQLClient {
   articleBySlug(input: {
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
     slug: string;
   }) {
     return this.execute<ArticleBySlugQueryData, ArticleBySlugQueryVariables>({
       document: articleBySlugDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         perspective: toGraphqlPerspective(input.perspective ?? "published"),
         previewToken: input.previewToken ?? null,
@@ -122,12 +122,12 @@ export class DeliveryGraphQLClient {
     offset?: number;
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
     sort?: ArticleEntriesQueryVariables["sort"];
   }) {
     return this.execute<ArticleEntriesQueryData, ArticleEntriesQueryVariables>({
       document: articleEntriesDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         filter: input.filter ?? null,
         limit: input.limit ?? 20,
@@ -145,12 +145,12 @@ export class DeliveryGraphQLClient {
     offset?: number;
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
     sort?: PageEntriesQueryVariables["sort"];
   }) {
     return this.execute<PageEntriesQueryData, PageEntriesQueryVariables>({
       document: pageEntriesDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         filter: input.filter ?? null,
         limit: input.limit ?? 20,
@@ -166,11 +166,11 @@ export class DeliveryGraphQLClient {
     path: string;
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
   }) {
     return this.execute<PageEntryByPathQueryData, PageEntryByPathQueryVariables>({
       document: pageEntryByPathDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         path: input.path,
         perspective: toGraphqlPerspective(input.perspective ?? "published"),
@@ -183,11 +183,11 @@ export class DeliveryGraphQLClient {
     alias: string;
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
   }) {
     return this.execute<ReusableSectionByAliasQueryData, ReusableSectionByAliasQueryVariables>({
       document: reusableSectionByAliasDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         alias: input.alias,
         perspective: toGraphqlPerspective(input.perspective ?? "published"),
@@ -202,12 +202,12 @@ export class DeliveryGraphQLClient {
     offset?: number;
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
     sort?: ReusableSectionEntriesQueryVariables["sort"];
   }) {
     return this.execute<ReusableSectionEntriesQueryData, ReusableSectionEntriesQueryVariables>({
       document: reusableSectionEntriesDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         filter: input.filter ?? null,
         limit: input.limit ?? 20,
@@ -222,12 +222,12 @@ export class DeliveryGraphQLClient {
   categoryBySlug(input: {
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
     slug: string;
   }) {
     return this.execute<CategoryBySlugQueryData, CategoryBySlugQueryVariables>({
       document: categoryBySlugDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         perspective: toGraphqlPerspective(input.perspective ?? "published"),
         previewToken: input.previewToken ?? null,
@@ -242,12 +242,12 @@ export class DeliveryGraphQLClient {
     offset?: number;
     perspective?: DeliveryPerspective;
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
     sort?: CategoryEntriesQueryVariables["sort"];
   }) {
     return this.execute<CategoryEntriesQueryData, CategoryEntriesQueryVariables>({
       document: categoryEntriesDocument,
-      siteId: input.siteId,
+      runtimeId: input.runtimeId,
       variables: {
         filter: input.filter ?? null,
         limit: input.limit ?? 20,

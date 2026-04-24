@@ -9,12 +9,12 @@ async function run() {
   const page = await sdk.pages.resolve({
     path: "/blog/hello-world",
     perspective: "published",
-    siteId: "site_public_id",
+    runtimeId: "runtime_public_id",
   });
 
   const article = await sdk.content.articleBySlug({
     perspective: "published",
-    siteId: "site_public_id",
+    runtimeId: "runtime_public_id",
     slug: "hello-world",
   });
 

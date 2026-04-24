@@ -182,15 +182,26 @@ class SiteGraphQLService:
         self._site_service = SiteService(settings, valkey=valkey, repo=self._repo)
         self._api_keys_repo = ProjectApiKeysRepository()
         self._document_runtime_boundary = DocumentRuntimeBoundary.for_items_repo(self._repo)
+        self._runtime_site_cache: dict[UUID, UUID] = {}
+
+    async def _resolve_site_id(self, *, runtime_id: UUID) -> UUID:
+        cached = self._runtime_site_cache.get(runtime_id)
+        if cached is not None:
+            return cached
+        site = await self._site_service.get_site_by_runtime_id(runtime_id=runtime_id)
+        site_id = UUID(str(site.id))
+        self._runtime_site_cache[runtime_id] = site_id
+        return site_id
 
     async def resolve_query_access(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         request: Request,
         perspective: GraphQLPerspective,
         preview_token: str | None,
     ) -> None:
+        site_id = await self._resolve_site_id(runtime_id=runtime_id)
         api_key = await self._authenticate_delivery_key(request=request, site_id=site_id)
         evaluator = _get_runtime_policy_evaluator()
         if perspective == "published":
@@ -261,19 +272,21 @@ class SiteGraphQLService:
     async def delivery_resolve_page(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         path: str,
         perspective: DeliveryPerspective,
     ) -> DeliveryPageOut | None:
+        site_id = await self._resolve_site_id(runtime_id=runtime_id)
         return await self._content_service.delivery_resolve_page(site_id=site_id, path=path, perspective=perspective)
 
     async def delivery_get_page_by_id(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         page_id: UUID,
         perspective: DeliveryPerspective,
     ) -> DeliveryPageOut | None:
+        site_id = await self._resolve_site_id(runtime_id=runtime_id)
         return await self._content_service.delivery_get_page_by_id(
             site_id=site_id,
             page_id=page_id,
@@ -283,10 +296,11 @@ class SiteGraphQLService:
     async def delivery_get_section_by_alias(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         alias: str,
         perspective: DeliveryPerspective,
     ) -> DeliverySectionOut:
+        site_id = await self._resolve_site_id(runtime_id=runtime_id)
         return await self._content_service.delivery_get_section_by_alias(
             site_id=site_id,
             alias=alias,
@@ -296,16 +310,17 @@ class SiteGraphQLService:
     async def delivery_get_global_set(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         key: str,
         perspective: DeliveryPerspective,
     ) -> DeliveryGlobalSetOut:
+        site_id = await self._resolve_site_id(runtime_id=runtime_id)
         return await self._content_service.delivery_get_global_set(site_id=site_id, key=key, perspective=perspective)
 
     async def list_records(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         model_key: str,
         perspective: GraphQLPerspective,
         exact_filters: dict[str, str] | None = None,
@@ -315,6 +330,7 @@ class SiteGraphQLService:
         limit: int | None = None,
         offset: int = 0,
     ) -> list[StructuredContentRecord]:
+        site_id = await self._resolve_site_id(runtime_id=runtime_id)
         plan = build_graphql_query_plan(
             site_id=site_id,
             model_key=model_key,
@@ -373,7 +389,7 @@ class SiteGraphQLService:
     async def get_record_by_slug(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         model_key: str,
         slug: str,
         perspective: GraphQLPerspective,
@@ -381,7 +397,7 @@ class SiteGraphQLService:
         normalized = slug.strip()
         if not normalized:
             return None
-        records = await self.list_records(site_id=site_id, model_key=model_key, perspective=perspective)
+        records = await self.list_records(runtime_id=runtime_id, model_key=model_key, perspective=perspective)
         for record in records:
             if record.slug == normalized:
                 return record
@@ -390,14 +406,14 @@ class SiteGraphQLService:
     async def get_page_record_by_path(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         path: str,
         perspective: GraphQLPerspective,
     ) -> StructuredContentRecord | None:
         normalized = path.strip()
         if not normalized:
             return None
-        records = await self.list_records(site_id=site_id, model_key="page", perspective=perspective)
+        records = await self.list_records(runtime_id=runtime_id, model_key="page", perspective=perspective)
         for record in records:
             record_path = record.route_path or str(record.fields.get("path") or "")
             if record_path == normalized:
@@ -407,14 +423,14 @@ class SiteGraphQLService:
     async def get_reusable_section_record_by_alias(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         alias: str,
         perspective: GraphQLPerspective,
     ) -> StructuredContentRecord | None:
         normalized = alias.strip()
         if not normalized:
             return None
-        records = await self.list_records(site_id=site_id, model_key="reusable-section", perspective=perspective)
+        records = await self.list_records(runtime_id=runtime_id, model_key="reusable-section", perspective=perspective)
         for record in records:
             if (
                 _extract_system_field(
@@ -636,19 +652,19 @@ class SiteGraphQLService:
 
 
 class SiteGraphQLContext(BaseContext):
-    site_id: UUID
+    runtime_id: UUID
     request: Request
     graphql: SiteGraphQLService
 
     def __init__(
         self,
         *,
-        site_id: UUID,
+        runtime_id: UUID,
         request: Request,
         settings: Settings,
         valkey: ValkeyClientLike | None = None,
     ) -> None:
-        self.site_id = site_id
+        self.runtime_id = runtime_id
         self.request = request
         self.graphql = SiteGraphQLService(settings, valkey=valkey)
 

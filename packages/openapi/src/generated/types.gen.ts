@@ -25421,6 +25421,66 @@ export type ExternalRuntimesGetRuntimeDeliveryStyleResponses = {
 
 export type ExternalRuntimesGetRuntimeDeliveryStyleResponse = ExternalRuntimesGetRuntimeDeliveryStyleResponses[keyof ExternalRuntimesGetRuntimeDeliveryStyleResponses];
 
+export type ExternalRuntimesHandleRuntimeGraphqlGetData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: never;
+    url: '/api/v1/runtimes/{runtime_id}/graphql';
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlGetErrors = {
+    /**
+     * Not found if GraphiQL or query via GET are not enabled.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlGetError = ExternalRuntimesHandleRuntimeGraphqlGetErrors[keyof ExternalRuntimesHandleRuntimeGraphqlGetErrors];
+
+export type ExternalRuntimesHandleRuntimeGraphqlGetResponses = {
+    /**
+     * The GraphiQL integrated development environment.
+     */
+    200: unknown;
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlPostData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: never;
+    url: '/api/v1/runtimes/{runtime_id}/graphql';
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlPostError = ExternalRuntimesHandleRuntimeGraphqlPostErrors[keyof ExternalRuntimesHandleRuntimeGraphqlPostErrors];
+
+export type ExternalRuntimesHandleRuntimeGraphqlPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type ExternalRuntimesResolveRuntimeRouteData = {
     body?: never;
     path: {
@@ -25582,41 +25642,6 @@ export type DomainSitesGetSiteContextResponses = {
 };
 
 export type DomainSitesGetSiteContextResponse = DomainSitesGetSiteContextResponses[keyof DomainSitesGetSiteContextResponses];
-
-export type DomainSitesHandleHttpGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/sites/{site_id}/graphql';
-};
-
-export type DomainSitesHandleHttpGetErrors = {
-    /**
-     * Not found if GraphiQL or query via GET are not enabled.
-     */
-    404: unknown;
-};
-
-export type DomainSitesHandleHttpGetResponses = {
-    /**
-     * The GraphiQL integrated development environment.
-     */
-    200: unknown;
-};
-
-export type DomainSitesHandleHttpPostData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/sites/{site_id}/graphql';
-};
-
-export type DomainSitesHandleHttpPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
 
 export type DomainSitesListPresenceData = {
     body?: never;

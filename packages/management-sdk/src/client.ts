@@ -1,8 +1,48 @@
 import * as openapi from "@arclayer/openapi";
+import type {
+  ApiKeyContract,
+  ApiKeyCreateContract,
+  ApiKeyListContract,
+  AutomationCatalogContract,
+  AutomationFlowContract,
+  AutomationFlowCreateContract,
+  AutomationFlowListContract,
+  AutomationFlowPatchContract,
+  AutomationRunContract,
+  AutomationRunListContract,
+  ContentItemBootstrapShapeContract,
+  ContentItemContract,
+  ContentItemCreateContract,
+  ContentModelContract,
+  ContentModelDefinitionContract,
+  ContentModelDefinitionPatchContract,
+  ContentModelImpactPreviewContract,
+  ContentModelMutationContract,
+  ContentVersionContract,
+  ContentVersionDraftSaveContract,
+  ContentVersionPatchContract,
+  PersonalApiKeyCreateContract,
+  PublishImpactContract,
+  PublishPreviewContract,
+  ProjectApiKeyCreateContract,
+  ProjectRuntimeSiteContract,
+  ProjectSettingsDetailContract,
+  ProjectSettingsPatchContract,
+  ReleaseContract,
+  ReleaseDryRunContract,
+  ReleaseListContract,
+  ReleasePublishContract,
+  ReleaseRollbackContract,
+  RouteBindingContract,
+  RouteBindingUpsertContract,
+  SitePreviewTokenContract,
+  SitePreviewTokenCreateContract,
+} from "@arclayer/contracts";
 
 import type {
   ApiEnvelope,
   ManagementPage,
+  ManagementRawClient,
   ManagementResult,
   ManagementSdkOptions,
   PagePayload,
@@ -26,184 +66,180 @@ type OpenApiOperation<T> = (options: Record<string, unknown>) => Promise<OpenApi
 export interface ManagementSdk {
   readonly automation: {
     createFlow(input: {
-      body: openapi.AutomationFlowCreateIn;
+      body: AutomationFlowCreateContract;
       projectId: string;
-    }): Promise<ManagementResult<openapi.AutomationFlowOut>>;
+    }): Promise<ManagementResult<AutomationFlowContract>>;
     deleteFlow(input: { flowId: string; projectId: string }): Promise<ManagementResult<null>>;
-    getCatalog(input: {
-      projectId: string;
-    }): Promise<ManagementResult<openapi.AutomationCatalogOut>>;
+    getCatalog(input: { projectId: string }): Promise<ManagementResult<AutomationCatalogContract>>;
     getRun(input: {
       projectId: string;
       runId: string;
-    }): Promise<ManagementResult<openapi.AutomationRunOut>>;
-    listFlows(input: {
-      projectId: string;
-    }): Promise<ManagementResult<openapi.AutomationFlowListOut>>;
+    }): Promise<ManagementResult<AutomationRunContract>>;
+    listFlows(input: { projectId: string }): Promise<ManagementResult<AutomationFlowListContract>>;
     listRuns(input: {
       limit?: number;
       projectId: string;
-    }): Promise<ManagementResult<openapi.AutomationRunListOut>>;
+    }): Promise<ManagementResult<AutomationRunListContract>>;
     updateFlow(input: {
-      body: openapi.AutomationFlowPatchIn;
+      body: AutomationFlowPatchContract;
       flowId: string;
       projectId: string;
-    }): Promise<ManagementResult<openapi.AutomationFlowOut>>;
+    }): Promise<ManagementResult<AutomationFlowContract>>;
   };
   readonly apiKeys: {
     readonly personal: {
       create(input: {
-        body: openapi.PersonalApiKeyCreateIn;
-      }): Promise<ManagementResult<openapi.ApiKeyCreateOut>>;
-      get(input: { keyId: string }): Promise<ManagementResult<openapi.ApiKeyOut>>;
-      list(): Promise<ManagementResult<openapi.ApiKeyListOut>>;
-      revoke(input: { keyId: string }): Promise<ManagementResult<openapi.ApiKeyOut>>;
-      rotate(input: { keyId: string }): Promise<ManagementResult<openapi.ApiKeyCreateOut>>;
+        body: PersonalApiKeyCreateContract;
+      }): Promise<ManagementResult<ApiKeyCreateContract>>;
+      get(input: { keyId: string }): Promise<ManagementResult<ApiKeyContract>>;
+      list(): Promise<ManagementResult<ApiKeyListContract>>;
+      revoke(input: { keyId: string }): Promise<ManagementResult<ApiKeyContract>>;
+      rotate(input: { keyId: string }): Promise<ManagementResult<ApiKeyCreateContract>>;
     };
     readonly project: {
       create(input: {
-        body: openapi.ProjectApiKeyCreateIn;
+        body: ProjectApiKeyCreateContract;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ApiKeyCreateOut>>;
-      get(input: {
-        keyId: string;
-        projectId: string;
-      }): Promise<ManagementResult<openapi.ApiKeyOut>>;
-      list(input: { projectId: string }): Promise<ManagementResult<openapi.ApiKeyListOut>>;
+      }): Promise<ManagementResult<ApiKeyCreateContract>>;
+      get(input: { keyId: string; projectId: string }): Promise<ManagementResult<ApiKeyContract>>;
+      list(input: { projectId: string }): Promise<ManagementResult<ApiKeyListContract>>;
       revoke(input: {
         keyId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ApiKeyOut>>;
+      }): Promise<ManagementResult<ApiKeyContract>>;
       rotate(input: {
         keyId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ApiKeyCreateOut>>;
+      }): Promise<ManagementResult<ApiKeyCreateContract>>;
     };
   };
   readonly content: {
     readonly items: {
       applyBootstrapShape(input: {
-        body: openapi.ContentItemBootstrapShapeIn;
+        body: ContentItemBootstrapShapeContract;
         itemId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentItemOut>>;
+      }): Promise<ManagementResult<ContentItemContract>>;
       archive(input: {
         itemId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentItemOut>>;
+      }): Promise<ManagementResult<ContentItemContract>>;
       create(input: {
-        body: openapi.ContentItemCreateIn;
+        body: ContentItemCreateContract;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentItemOut>>;
+      }): Promise<ManagementResult<ContentItemContract>>;
       delete(input: {
         itemId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentItemOut>>;
+      }): Promise<ManagementResult<ContentItemContract>>;
       duplicate(input: {
         itemId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentItemOut>>;
+      }): Promise<ManagementResult<ContentItemContract>>;
       get(input: {
         itemId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentItemOut>>;
+      }): Promise<ManagementResult<ContentItemContract>>;
       list(input: {
         modelKey?: string | null;
         page?: number;
         projectId: string;
         size?: number;
-      }): Promise<ManagementPage<openapi.ContentItemOut>>;
+      }): Promise<ManagementPage<ContentItemContract>>;
       readonly versions: {
         get(input: {
           itemId: string;
           projectId: string;
           versionNumber: number;
-        }): Promise<ManagementResult<openapi.ContentVersionOut>>;
+        }): Promise<ManagementResult<ContentVersionContract>>;
         list(input: {
           itemId: string;
           projectId: string;
-        }): Promise<ManagementPage<openapi.ContentVersionOut>>;
+        }): Promise<ManagementPage<ContentVersionContract>>;
         patch(input: {
-          body: openapi.ContentVersionPatchIn;
+          body: ContentVersionPatchContract;
           itemId: string;
           projectId: string;
           versionNumber: number;
-        }): Promise<ManagementResult<openapi.ContentVersionOut>>;
+        }): Promise<ManagementResult<ContentVersionContract>>;
         publish(input: {
           body?: Record<string, never>;
           itemId: string;
           projectId: string;
           versionNumber: number;
-        }): Promise<ManagementResult<openapi.ContentVersionOut>>;
+        }): Promise<ManagementResult<ContentVersionContract>>;
         saveDraft(input: {
-          body: openapi.ContentVersionDraftSaveIn;
+          body: ContentVersionDraftSaveContract;
           itemId: string;
           projectId: string;
-        }): Promise<ManagementResult<openapi.ContentVersionOut>>;
+        }): Promise<ManagementResult<ContentVersionContract>>;
       };
       unarchive(input: {
         itemId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentItemOut>>;
+      }): Promise<ManagementResult<ContentItemContract>>;
     };
     readonly models: {
       create(input: {
-        body: openapi.ContentModelDefinitionContract;
+        body: ContentModelDefinitionContract;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentModelMutationOut>>;
+      }): Promise<ManagementResult<ContentModelMutationContract>>;
       list(input: {
         page?: number;
         projectId: string;
         size?: number;
-      }): Promise<ManagementPage<openapi.ContentModelOut>>;
+      }): Promise<ManagementPage<ContentModelContract>>;
       previewUpdate(input: {
-        body: openapi.ContentModelDefinitionPatchContract;
+        body: ContentModelDefinitionPatchContract;
         modelId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentModelImpactPreviewOut>>;
+      }): Promise<ManagementResult<ContentModelImpactPreviewContract>>;
       update(input: {
-        body: openapi.ContentModelDefinitionPatchContract;
+        body: ContentModelDefinitionPatchContract;
         modelId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.ContentModelMutationOut>>;
+      }): Promise<ManagementResult<ContentModelMutationContract>>;
     };
     readonly routing: {
-      listBindings(input: {
-        projectId: string;
-      }): Promise<ManagementResult<openapi.RouteBindingOut[]>>;
+      listBindings(input: { projectId: string }): Promise<ManagementResult<RouteBindingContract[]>>;
       upsertBinding(input: {
-        body: openapi.RouteBindingUpsertIn;
+        body: RouteBindingUpsertContract;
         itemId: string;
         projectId: string;
-      }): Promise<ManagementResult<openapi.RouteBindingOut>>;
+      }): Promise<ManagementResult<RouteBindingContract>>;
     };
   };
-  readonly rawClient: openapi.ApiClient;
+  readonly rawClient: ManagementRawClient;
   readonly releases: {
+    dryRun(input: { projectId: string }): Promise<ManagementResult<ReleaseDryRunContract>>;
     get(input: {
       projectId: string;
       releaseId: string;
-    }): Promise<ManagementResult<openapi.ReleaseOut>>;
-    list(input: { projectId: string }): Promise<ManagementResult<openapi.ReleaseListOut>>;
-    publish(input: { projectId: string }): Promise<ManagementResult<openapi.ReleasePublishOut>>;
+    }): Promise<ManagementResult<ReleaseContract>>;
+    list(input: { projectId: string }): Promise<ManagementResult<ReleaseListContract>>;
+    publishImpact(input: { projectId: string }): Promise<ManagementResult<PublishImpactContract>>;
+    publishPreviewContract(input: {
+      projectId: string;
+    }): Promise<ManagementResult<PublishPreviewContract>>;
+    publish(input: { projectId: string }): Promise<ManagementResult<ReleasePublishContract>>;
     rollback(input: {
       projectId: string;
       releaseId: string;
-    }): Promise<ManagementResult<openapi.ReleaseRollbackOut>>;
+    }): Promise<ManagementResult<ReleaseRollbackContract>>;
   };
   readonly site: {
     createPreviewToken(input: {
-      body: openapi.SitePreviewTokenCreateIn;
+      body: SitePreviewTokenCreateContract;
       projectId: string;
-    }): Promise<ManagementResult<openapi.SitePreviewTokenOut>>;
-    get(input: { projectId: string }): Promise<ManagementResult<openapi.ProjectRuntimeSiteOut>>;
+    }): Promise<ManagementResult<SitePreviewTokenContract>>;
+    get(input: { projectId: string }): Promise<ManagementResult<ProjectRuntimeSiteContract>>;
     getCoreSettings(input: {
       projectId: string;
-    }): Promise<ManagementResult<openapi.ProjectSettingsDetail>>;
+    }): Promise<ManagementResult<ProjectSettingsDetailContract>>;
     patchCoreSettings(input: {
-      body: openapi.ProjectSettingsPatch;
+      body: ProjectSettingsPatchContract;
       projectId: string;
-    }): Promise<ManagementResult<openapi.ProjectSettingsDetail>>;
+    }): Promise<ManagementResult<ProjectSettingsDetailContract>>;
   };
 }
 
@@ -467,23 +503,38 @@ export const createManagementSdk = (options: ManagementSdkOptions): ManagementSd
     },
     releases: {
       list: ({ projectId }) =>
-        invoke<openapi.ReleaseListOut>(
-          openapi.domainProjectsListProjectReleases as OpenApiOperation<openapi.ReleaseListOut>,
+        invoke<ReleaseListContract>(
+          openapi.domainProjectsListProjectReleases as OpenApiOperation<ReleaseListContract>,
+          { path: { project_id: projectId } },
+        ),
+      publishImpact: ({ projectId }) =>
+        invoke<PublishImpactContract>(
+          openapi.domainProjectsGetProjectPublishImpact as OpenApiOperation<PublishImpactContract>,
+          { path: { project_id: projectId } },
+        ),
+      publishPreviewContract: ({ projectId }) =>
+        invoke<PublishPreviewContract>(
+          openapi.domainProjectsGetProjectPublishPreviewContract as OpenApiOperation<PublishPreviewContract>,
+          { path: { project_id: projectId } },
+        ),
+      dryRun: ({ projectId }) =>
+        invoke<ReleaseDryRunContract>(
+          openapi.domainProjectsGetProjectReleaseDryRun as OpenApiOperation<ReleaseDryRunContract>,
           { path: { project_id: projectId } },
         ),
       publish: ({ projectId }) =>
-        invoke<openapi.ReleasePublishOut>(
-          openapi.domainProjectsPublishProjectRelease as OpenApiOperation<openapi.ReleasePublishOut>,
+        invoke<ReleasePublishContract>(
+          openapi.domainProjectsPublishProjectRelease as OpenApiOperation<ReleasePublishContract>,
           { path: { project_id: projectId } },
         ),
       get: ({ projectId, releaseId }) =>
-        invoke<openapi.ReleaseOut>(
-          openapi.domainProjectsGetProjectRelease as OpenApiOperation<openapi.ReleaseOut>,
+        invoke<ReleaseContract>(
+          openapi.domainProjectsGetProjectRelease as OpenApiOperation<ReleaseContract>,
           { path: { project_id: projectId, release_id: releaseId } },
         ),
       rollback: ({ projectId, releaseId }) =>
-        invoke<openapi.ReleaseRollbackOut>(
-          openapi.domainProjectsRollbackProjectRelease as OpenApiOperation<openapi.ReleaseRollbackOut>,
+        invoke<ReleaseRollbackContract>(
+          openapi.domainProjectsRollbackProjectRelease as OpenApiOperation<ReleaseRollbackContract>,
           { path: { project_id: projectId, release_id: releaseId } },
         ),
     },

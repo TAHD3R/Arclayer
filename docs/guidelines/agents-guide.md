@@ -31,14 +31,20 @@ It is complementary to `AGENTS.md`:
 - Do not swallow errors or hide failing validations.
 - Prefer explicit failures with actionable context (errors, logs, failing tests).
 
-## 5. Do Not Touch (Unless Explicitly Requested)
+## 5. Hard-Cut Contract Cleanup
+
+- Hard-cut rollouts keep one canonical contract surface for each changed domain boundary.
+- The same rollout removes each superseded thin facade, shim, forwarding layer, and dual-track compatibility path tied to the replaced contract.
+- Thin facade, shim, and dual-track compatibility debt requires explicit user approval with scope, rationale, and removal plan before merge.
+
+## 6. Do Not Touch (Unless Explicitly Requested)
 
 - `node_modules/`
 - lockfiles (e.g. `pnpm-lock.yaml`, `uv.lock`)
 - local env and caches (e.g. `.venv/`, `.uv-cache/`)
 - build outputs / generated artifacts (e.g. `dist/`, `build/`, `.turbo/`)
 
-## 6. Command Discipline (Monorepo)
+## 7. Command Discipline (Monorepo)
 
 This repo uses Turborepo + pnpm workspaces. Commands must go through `package.json` scripts.
 
@@ -60,7 +66,7 @@ Avoid running infra / interactive commands unless the user explicitly asks:
 - Resolve migration drift by auditing models and existing migrations, then regenerating through the commands above.
 - Do not hand-write or hand-edit migration file contents.
 
-## 7. Cross-References (Source of Truth)
+## 8. Cross-References (Source of Truth)
 
 - Guidelines index: `docs/guidelines/README.md`
 - API contract: `docs/guidelines/backend-endpoint-contract.md`

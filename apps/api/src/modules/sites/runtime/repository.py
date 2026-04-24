@@ -27,6 +27,12 @@ class RuntimeRepositoryMixin:
             raise NotFound("Site not found", error="SITE_NOT_FOUND")
         return site
 
+    async def get_site_by_runtime_id(self, *, runtime_id: UUID) -> SiteRecord:
+        site = await SiteRecord.get_or_none(runtime_id=runtime_id)
+        if site is None:
+            raise NotFound("Site not found", error="SITE_NOT_FOUND")
+        return site
+
     async def get_site_by_custom_hostname(self, *, hostname: str) -> SiteRecord | None:
         """
         Resolve a site by a custom hostname binding.

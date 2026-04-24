@@ -3,10 +3,14 @@ import * as openapi from "@arclayer/openapi";
 import type {
   ApiEnvelope,
   DeliveryGlobalSet,
+  DeliveryMenu,
   DeliveryPageResolveOut,
+  DeliveryRouteResolveOut,
   DeliveryResult,
+  DeliveryRuntimeConfig,
   DeliverySdkOptions,
   DeliverySection,
+  DeliveryStyle,
 } from "./types";
 import { DeliveryApiError } from "./errors";
 import { createDeliveryHeaders, normalizeDeliveryBaseUrl, readDeliveryRequestId } from "./auth";
@@ -81,25 +85,67 @@ export class DeliveryRestClient {
 
   async getMenu(input: {
     menuKey: string;
-    siteId: string;
-  }): Promise<DeliveryResult<openapi.DeliveryMenuOut>> {
-    return this.invoke<openapi.DeliveryMenuOut>(
-      openapi.externalRuntimesGetRuntimeDeliveryMenu as OpenApiOperation<openapi.DeliveryMenuOut>,
+    runtimeId: string;
+  }): Promise<DeliveryResult<DeliveryMenu>> {
+    return this.invoke<DeliveryMenu>(
+      openapi.externalRuntimesGetRuntimeDeliveryMenu as OpenApiOperation<DeliveryMenu>,
       {
         path: {
           menu_key: input.menuKey,
-          runtime_id: input.siteId,
+          runtime_id: input.runtimeId,
         },
       },
     );
   }
 
-  async getStyle(input: { siteId: string }): Promise<DeliveryResult<openapi.DeliveryStyleOut>> {
-    return this.invoke<openapi.DeliveryStyleOut>(
-      openapi.externalRuntimesGetRuntimeDeliveryStyle as OpenApiOperation<openapi.DeliveryStyleOut>,
+  async getStyle(input: { runtimeId: string }): Promise<DeliveryResult<DeliveryStyle>> {
+    return this.invoke<DeliveryStyle>(
+      openapi.externalRuntimesGetRuntimeDeliveryStyle as OpenApiOperation<DeliveryStyle>,
       {
         path: {
-          runtime_id: input.siteId,
+          runtime_id: input.runtimeId,
+        },
+      },
+    );
+  }
+
+  async getRuntimeConfig(input: {
+    locale?: string | null;
+    mode?: "public" | "preview";
+    previewToken?: string | null;
+    runtimeId: string;
+  }): Promise<DeliveryResult<DeliveryRuntimeConfig>> {
+    return this.invoke<DeliveryRuntimeConfig>(
+      openapi.externalRuntimesGetRuntimeConfig as OpenApiOperation<DeliveryRuntimeConfig>,
+      {
+        path: {
+          runtime_id: input.runtimeId,
+        },
+        query: {
+          locale: input.locale ?? null,
+          mode: input.mode ?? "public",
+          token: input.previewToken ?? null,
+        },
+      },
+    );
+  }
+
+  async resolveRoute(input: {
+    mode?: "public" | "preview";
+    path: string;
+    previewToken?: string | null;
+    runtimeId: string;
+  }): Promise<DeliveryResult<DeliveryRouteResolveOut>> {
+    return this.invoke<DeliveryRouteResolveOut>(
+      openapi.externalRuntimesResolveRuntimeRoute as OpenApiOperation<DeliveryRouteResolveOut>,
+      {
+        path: {
+          runtime_id: input.runtimeId,
+        },
+        query: {
+          mode: input.mode ?? "public",
+          path: input.path,
+          token: input.previewToken ?? null,
         },
       },
     );
@@ -109,14 +155,14 @@ export class DeliveryRestClient {
     path: string;
     perspective?: "published" | "preview";
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
   }): Promise<DeliveryResult<DeliveryPageResolveOut>> {
     const perspective = input.perspective ?? "published";
     return this.invoke<DeliveryPageResolveOut>(
       openapi.externalRuntimesResolveRuntimeDeliveryPage as OpenApiOperation<DeliveryPageResolveOut>,
       {
         path: {
-          runtime_id: input.siteId,
+          runtime_id: input.runtimeId,
         },
         query: {
           path: input.path,
@@ -131,7 +177,7 @@ export class DeliveryRestClient {
     pageId: string;
     perspective?: "published" | "preview";
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
   }): Promise<DeliveryResult<DeliveryPageResolveOut>> {
     const perspective = input.perspective ?? "published";
     return this.invoke<DeliveryPageResolveOut>(
@@ -139,7 +185,7 @@ export class DeliveryRestClient {
       {
         path: {
           page_id: input.pageId,
-          runtime_id: input.siteId,
+          runtime_id: input.runtimeId,
         },
         query: {
           perspective,
@@ -153,7 +199,7 @@ export class DeliveryRestClient {
     alias: string;
     perspective?: "published" | "preview";
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
   }): Promise<DeliveryResult<DeliverySection>> {
     const perspective = input.perspective ?? "published";
     return this.invoke<DeliverySection>(
@@ -161,7 +207,7 @@ export class DeliveryRestClient {
       {
         path: {
           alias: input.alias,
-          runtime_id: input.siteId,
+          runtime_id: input.runtimeId,
         },
         query: {
           perspective,
@@ -175,7 +221,7 @@ export class DeliveryRestClient {
     key: string;
     perspective?: "published" | "preview";
     previewToken?: string | null;
-    siteId: string;
+    runtimeId: string;
   }): Promise<DeliveryResult<DeliveryGlobalSet>> {
     const perspective = input.perspective ?? "published";
     return this.invoke<DeliveryGlobalSet>(
@@ -183,7 +229,7 @@ export class DeliveryRestClient {
       {
         path: {
           key: input.key,
-          runtime_id: input.siteId,
+          runtime_id: input.runtimeId,
         },
         query: {
           perspective,

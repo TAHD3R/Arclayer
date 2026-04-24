@@ -148,18 +148,25 @@ async def _publish_page_template(client, project_id: str, *, item_id: str, title
     assert publish_res.status_code == 200, publish_res.text
 
 
-async def _site_id_and_preview_token(client, project_id: str) -> tuple[str, str]:
-    site_res = await client.get(f"/api/v1/projects/{project_id}/site")
-    assert site_res.status_code == 200, site_res.text
-    site_id = site_res.json()["data"]["siteId"]
-    token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
+async def _runtime_id_and_preview_token(client, project_id: str) -> tuple[str, str]:
+    project_res = await client.get(f"/api/v1/projects/{project_id}")
+    assert project_res.status_code == 200, project_res.text
+    runtime_id = project_res.json()["data"]["primaryRuntime"]["id"]
+    token_res = await client.post(f"/api/v1/projects/{project_id}/site/preview-tokens", json={"ttlSeconds": 600})
     assert token_res.status_code == 201, token_res.text
-    return site_id, token_res.json()["data"]["token"]
+    return runtime_id, token_res.json()["data"]["token"]
 
 
-async def _graphql(client, site_id: str, *, query: str, variables: dict | None = None, headers: dict | None = None):
+async def _graphql(
+    client,
+    runtime_id: str,
+    *,
+    query: str,
+    variables: dict | None = None,
+    headers: dict | None = None,
+):
     return await client.post(
-        f"/api/v1/sites/{site_id}/graphql",
+        f"/api/v1/runtimes/{runtime_id}/graphql",
         json={"query": query, "variables": variables or {}},
         headers=headers or {},
     )
@@ -214,7 +221,7 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
         )
         await _publish_release(client, project_id)
 
-        site_id, preview_token = await _site_id_and_preview_token(client, project_id)
+        runtime_id, preview_token = await _runtime_id_and_preview_token(client, project_id)
         preview_key_res = await client.post(
             f"/api/v1/projects/{project_id}/api-keys",
             json={
@@ -260,7 +267,7 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
 
         published_res = await _graphql(
             client,
-            site_id,
+            runtime_id,
             query=query,
             variables={"path": "/blog/world", "slug": "world", "perspective": "PUBLISHED"},
         )
@@ -277,7 +284,7 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
 
         preview_res = await _graphql(
             client,
-            site_id,
+            runtime_id,
             query=query,
             variables={
                 "path": "/blog/world",
@@ -297,7 +304,7 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
 
         preview_key_res = await _graphql(
             client,
-            site_id,
+            runtime_id,
             query=query,
             variables={"path": "/blog/world", "slug": "world", "perspective": "PREVIEW"},
             headers={"X-API-Key": preview_key},
@@ -328,7 +335,7 @@ async def test_sites_graphql_rejects_delivery_keys_without_graphql_scope(
         await _upsert_route_binding(client, project_id, item_id=page_item_id, path="/landing")
         await _publish_release(client, project_id)
 
-        site_id, _preview_token = await _site_id_and_preview_token(client, project_id)
+        runtime_id, _preview_token = await _runtime_id_and_preview_token(client, project_id)
         published_key_res = await client.post(
             f"/api/v1/projects/{project_id}/api-keys",
             json={
@@ -352,7 +359,7 @@ async def test_sites_graphql_rejects_delivery_keys_without_graphql_scope(
         """
         response = await _graphql(
             client,
-            site_id,
+            runtime_id,
             query=query,
             variables={"path": "/landing", "perspective": "PUBLISHED"},
             headers={"X-API-Key": published_key},
@@ -502,7 +509,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         )
         assert category_2_res.status_code == 201, category_2_res.text
 
-        site_id, preview_token = await _site_id_and_preview_token(client, project_id)
+        runtime_id, preview_token = await _runtime_id_and_preview_token(client, project_id)
         query = """
         query ListContent(
           $perspective: DeliveryPerspective!,
@@ -566,7 +573,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
 
         response = await _graphql(
             client,
-            site_id,
+            runtime_id,
             query=query,
             variables={
                 "perspective": "PREVIEW",

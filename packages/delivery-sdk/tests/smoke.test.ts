@@ -90,7 +90,7 @@ describe("delivery-sdk", () => {
       expect(input).toBeInstanceOf(Request);
       const request = input as Request;
       expect(request.url).toBe(
-        "https://api.arclayer.test/api/v1/runtimes/site_123/delivery/pages/resolve?path=%2Fblog%2Fhello-world&perspective=preview&token=preview_token",
+        "https://api.arclayer.test/api/v1/runtimes/runtime_123/delivery/pages/resolve?path=%2Fblog%2Fhello-world&perspective=preview&token=preview_token",
       );
       expect(request.headers.get("x-api-key")).toBe("delivery_key");
 
@@ -130,11 +130,93 @@ describe("delivery-sdk", () => {
       path: "/blog/hello-world",
       perspective: "preview",
       previewToken: "preview_token",
-      siteId: "site_123",
+      runtimeId: "runtime_123",
     });
 
     expect(result.data.match.kind).toBe("dynamic");
     expect(result.requestId).toBe("trace_delivery_rest");
+  });
+
+  it("reads runtime config and route contract through runtime REST facades", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      expect(input).toBeInstanceOf(Request);
+      const request = input as Request;
+      const url = new URL(request.url);
+      if (url.pathname.endsWith("/api/v1/runtimes/runtime_123/runtime")) {
+        expect(url.searchParams.get("mode")).toBe("preview");
+        expect(url.searchParams.get("token")).toBe("preview_token");
+        expect(url.searchParams.get("locale")).toBe("en-US");
+        return new Response(
+          JSON.stringify({
+            data: {
+              mode: "preview",
+              siteId: "site_123",
+            },
+            message: "OK",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "X-Trace-Id": "trace_runtime_config",
+            },
+          },
+        );
+      }
+
+      expect(url.pathname.endsWith("/api/v1/runtimes/runtime_123/routes/resolve")).toBe(true);
+      expect(url.searchParams.get("path")).toBe("/blog/hello-world");
+      expect(url.searchParams.get("mode")).toBe("preview");
+      expect(url.searchParams.get("token")).toBe("preview_token");
+      return new Response(
+        JSON.stringify({
+          data: {
+            context: null,
+            document: null,
+            match: {
+              kind: "dynamic",
+              params: {
+                slug: "hello-world",
+              },
+            },
+            pageMeta: null,
+            warnings: null,
+          },
+          message: "OK",
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Trace-Id": "trace_runtime_route",
+          },
+        },
+      );
+    });
+
+    const sdk = createDeliverySdk({
+      baseUrl: "https://api.arclayer.test/",
+      fetch: fetchMock as typeof fetch,
+    });
+
+    const runtime = await sdk.runtime.get({
+      locale: "en-US",
+      mode: "preview",
+      previewToken: "preview_token",
+      runtimeId: "runtime_123",
+    });
+    const route = await sdk.routes.resolve({
+      mode: "preview",
+      path: "/blog/hello-world",
+      previewToken: "preview_token",
+      runtimeId: "runtime_123",
+    });
+
+    expect(runtime.data.siteId).toBe("site_123");
+    expect(runtime.requestId).toBe("trace_runtime_config");
+    expect(route.data.match.kind).toBe("dynamic");
+    expect(route.requestId).toBe("trace_runtime_route");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("reads reusable sections and global sets through delivery REST", async () => {
@@ -143,7 +225,7 @@ describe("delivery-sdk", () => {
       const request = input as Request;
       const url = new URL(request.url);
 
-      if (url.pathname.endsWith("/api/v1/runtimes/site_123/delivery/sections/header")) {
+      if (url.pathname.endsWith("/api/v1/runtimes/runtime_123/delivery/sections/header")) {
         expect(url.searchParams.get("perspective")).toBe("published");
         expect(url.searchParams.get("token")).toBeNull();
         return new Response(
@@ -173,7 +255,7 @@ describe("delivery-sdk", () => {
       }
 
       expect(
-        url.pathname.endsWith("/api/v1/runtimes/site_123/delivery/global-sets/navigation"),
+        url.pathname.endsWith("/api/v1/runtimes/runtime_123/delivery/global-sets/navigation"),
       ).toBe(true);
       expect(url.searchParams.get("perspective")).toBe("preview");
       expect(url.searchParams.get("token")).toBe("preview_token");
@@ -210,13 +292,13 @@ describe("delivery-sdk", () => {
 
     const section = await sdk.sections.byAlias({
       alias: "header",
-      siteId: "site_123",
+      runtimeId: "runtime_123",
     });
     const globalSet = await sdk.globalSets.resolve({
       key: "navigation",
       perspective: "preview",
       previewToken: "preview_token",
-      siteId: "site_123",
+      runtimeId: "runtime_123",
     });
 
     expect(section.data.alias).toBe("header");
@@ -227,7 +309,8 @@ describe("delivery-sdk", () => {
   });
 
   it("executes typed graphql documents", async () => {
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api.arclayer.test/api/v1/runtimes/runtime_123/graphql");
       const body = JSON.parse(String(init?.body));
       expect(body.variables.slug).toBe("hello-world");
 
@@ -269,7 +352,7 @@ describe("delivery-sdk", () => {
 
     const result = await sdk.content.articleBySlug({
       perspective: "published",
-      siteId: "site_123",
+      runtimeId: "runtime_123",
       slug: "hello-world",
     });
 
@@ -278,7 +361,8 @@ describe("delivery-sdk", () => {
   });
 
   it("executes typed graphql list documents with filter sort and pagination", async () => {
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api.arclayer.test/api/v1/runtimes/runtime_123/graphql");
       const body = JSON.parse(String(init?.body));
       expect(body.variables.filter.slug).toBe("hello-world");
       expect(body.variables.sort.field).toBe("REVISION");
@@ -331,7 +415,7 @@ describe("delivery-sdk", () => {
       limit: 1,
       offset: 0,
       perspective: "preview",
-      siteId: "site_123",
+      runtimeId: "runtime_123",
       sort: {
         direction: "DESC",
         field: "REVISION",
@@ -376,7 +460,7 @@ describe("delivery-sdk", () => {
     await expect(
       sdk.content.articleBySlug({
         perspective: "published",
-        siteId: "site_123",
+        runtimeId: "runtime_123",
         slug: "hello-world",
       }),
     ).rejects.toMatchObject({
@@ -423,7 +507,7 @@ describe("delivery-sdk", () => {
     await expect(
       sdk.content.articleBySlug({
         perspective: "published",
-        siteId: "site_123",
+        runtimeId: "runtime_123",
         slug: "hello-world",
       }),
     ).rejects.toMatchObject({
@@ -463,7 +547,7 @@ describe("delivery-sdk", () => {
     await expect(
       sdk.pages.resolve({
         path: "/missing",
-        siteId: "site_123",
+        runtimeId: "runtime_123",
       }),
     ).rejects.toMatchObject({
       code: "PAGE_ROUTE_NOT_FOUND",

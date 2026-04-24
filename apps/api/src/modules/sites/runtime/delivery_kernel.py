@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -22,6 +23,12 @@ from src.modules.sites.service import SiteService
 logger = get_logger(__name__)
 _CACHE_PUBLIC = "public, max-age=60, stale-while-revalidate=300"
 _CACHE_PREVIEW = "no-store"
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeDeliveryTarget:
+    runtime_id: UUID
+    site_id: UUID
 
 
 class SiteRuntimeDeliveryKernel:
@@ -50,40 +57,44 @@ class SiteRuntimeDeliveryKernel:
     async def get_runtime(
         self,
         *,
-        site_id: UUID,
+        target: RuntimeDeliveryTarget,
         mode: Literal["public", "preview"],
         token: str | None,
         locale: str | None,
     ) -> SiteRuntimeOut:
+        site_id = target.site_id
         await self._site_service.assert_preview_access_async(site_id=site_id, mode=mode, token=token)
         return await self._site_service.get_runtime(site_id=site_id, mode=mode, locale=locale)
 
     async def resolve_route(
         self,
         *,
-        site_id: UUID,
+        target: RuntimeDeliveryTarget,
         path: str,
         mode: Literal["public", "preview"],
         token: str | None,
     ) -> SiteRouteResolveOut:
+        site_id = target.site_id
         await self._site_service.assert_preview_access_async(site_id=site_id, mode=mode, token=token)
         return await self._site_service.resolve_route(site_id=site_id, path=path, mode=mode)
 
-    async def get_delivery_menu(self, *, site_id: UUID, menu_key: str) -> DeliveryMenuOut:
+    async def get_delivery_menu(self, *, target: RuntimeDeliveryTarget, menu_key: str) -> DeliveryMenuOut:
+        site_id = target.site_id
         return await self._site_service.delivery_get_menu(site_id=site_id, menu_key=menu_key)
 
-    async def get_delivery_style(self, *, site_id: UUID) -> DeliveryStyleOut:
+    async def get_delivery_style(self, *, target: RuntimeDeliveryTarget) -> DeliveryStyleOut:
+        site_id = target.site_id
         return await self._site_service.delivery_get_style(site_id=site_id)
 
     async def resolve_delivery_page(
         self,
         *,
-        site_id: UUID,
+        target: RuntimeDeliveryTarget,
         path: str,
         perspective: DeliveryPerspective,
         token: str | None,
-        runtime_id: UUID | None = None,
     ) -> DeliveryPageOut:
+        site_id = target.site_id
         await self._site_service.assert_preview_access_async(
             site_id=site_id,
             mode=self.mode_for_perspective(perspective),
@@ -99,7 +110,7 @@ class SiteRuntimeDeliveryKernel:
                 "Delivery page route not found",
                 path=path,
                 perspective=perspective,
-                runtime_id=str(runtime_id) if runtime_id is not None else None,
+                runtime_id=str(target.runtime_id),
                 site_id=str(site_id),
             )
             raise NotFound("Route not found", error="PAGE_ROUTE_NOT_FOUND")
@@ -108,12 +119,12 @@ class SiteRuntimeDeliveryKernel:
     async def get_delivery_page_by_id(
         self,
         *,
-        site_id: UUID,
+        target: RuntimeDeliveryTarget,
         page_id: UUID,
         perspective: DeliveryPerspective,
         token: str | None,
-        runtime_id: UUID | None = None,
     ) -> DeliveryPageOut:
+        site_id = target.site_id
         await self._site_service.assert_preview_access_async(
             site_id=site_id,
             mode=self.mode_for_perspective(perspective),
@@ -129,7 +140,7 @@ class SiteRuntimeDeliveryKernel:
                 "Delivery page lookup failed",
                 page_id=str(page_id),
                 perspective=perspective,
-                runtime_id=str(runtime_id) if runtime_id is not None else None,
+                runtime_id=str(target.runtime_id),
                 site_id=str(site_id),
             )
             raise NotFound("Page not found", error="PAGE_NOT_FOUND")
@@ -138,11 +149,12 @@ class SiteRuntimeDeliveryKernel:
     async def get_delivery_section_by_alias(
         self,
         *,
-        site_id: UUID,
+        target: RuntimeDeliveryTarget,
         alias: str,
         perspective: DeliveryPerspective,
         token: str | None,
     ) -> DeliverySectionOut:
+        site_id = target.site_id
         await self._site_service.assert_preview_access_async(
             site_id=site_id,
             mode=self.mode_for_perspective(perspective),
@@ -157,11 +169,12 @@ class SiteRuntimeDeliveryKernel:
     async def get_delivery_global_set(
         self,
         *,
-        site_id: UUID,
+        target: RuntimeDeliveryTarget,
         key: str,
         perspective: DeliveryPerspective,
         token: str | None,
     ) -> DeliveryGlobalSetOut:
+        site_id = target.site_id
         await self._site_service.assert_preview_access_async(
             site_id=site_id,
             mode=self.mode_for_perspective(perspective),

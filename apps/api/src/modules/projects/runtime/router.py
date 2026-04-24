@@ -32,6 +32,7 @@ from src.modules.sites.delivery.schema import (
 )
 from src.modules.sites.preview.tokens.schema import SitePreviewTokenCreateIn
 from src.modules.sites.runtime.delivery_kernel import (
+    RuntimeDeliveryTarget,
     SiteRuntimeDeliveryKernel,
     get_site_runtime_delivery_kernel,
 )
@@ -55,6 +56,13 @@ async def get_runtime_context(
     return await runtime_service.get_context_by_runtime(
         runtime_id=runtime_id,
         actor_user_id=None,
+    )
+
+
+def _runtime_delivery_target(runtime_context: ProjectRuntimeContext) -> RuntimeDeliveryTarget:
+    return RuntimeDeliveryTarget(
+        runtime_id=runtime_context.runtime_id,
+        site_id=runtime_context.site_id,
     )
 
 
@@ -150,7 +158,7 @@ async def get_runtime_config(
     )
     return ApiResponse.success(
         data=await kernel.get_runtime(
-            site_id=runtime_context.site_id,
+            target=_runtime_delivery_target(runtime_context),
             mode=mode,
             token=token,
             locale=locale,
@@ -177,7 +185,7 @@ async def resolve_runtime_route(
     )
     return ApiResponse.success(
         data=await kernel.resolve_route(
-            site_id=runtime_context.site_id,
+            target=_runtime_delivery_target(runtime_context),
             path=path,
             mode=mode,
             token=token,
@@ -200,7 +208,7 @@ async def get_runtime_delivery_menu(
     raw_response.headers["cache-control"] = "public, max-age=60, stale-while-revalidate=300"
     return ApiResponse.success(
         data=await kernel.get_delivery_menu(
-            site_id=runtime_context.site_id,
+            target=_runtime_delivery_target(runtime_context),
             menu_key=menu_key,
         )
     )
@@ -218,7 +226,7 @@ async def get_runtime_delivery_style(
     kernel: Annotated[SiteRuntimeDeliveryKernel, Depends(get_site_runtime_delivery_kernel)],
 ) -> ResponseModel[DeliveryStyleOut]:
     raw_response.headers["cache-control"] = "public, max-age=60, stale-while-revalidate=300"
-    return ApiResponse.success(data=await kernel.get_delivery_style(site_id=runtime_context.site_id))
+    return ApiResponse.success(data=await kernel.get_delivery_style(target=_runtime_delivery_target(runtime_context)))
 
 
 @router.get(
@@ -240,11 +248,10 @@ async def resolve_runtime_delivery_page(
     )
     return ApiResponse.success(
         data=await kernel.resolve_delivery_page(
-            site_id=runtime_context.site_id,
+            target=_runtime_delivery_target(runtime_context),
             path=path,
             perspective=perspective,
             token=token,
-            runtime_id=runtime_context.runtime_id,
         )
     )
 
@@ -268,11 +275,10 @@ async def get_runtime_delivery_page_by_id(
     )
     return ApiResponse.success(
         data=await kernel.get_delivery_page_by_id(
-            site_id=runtime_context.site_id,
+            target=_runtime_delivery_target(runtime_context),
             page_id=page_id,
             perspective=perspective,
             token=token,
-            runtime_id=runtime_context.runtime_id,
         )
     )
 
@@ -296,7 +302,7 @@ async def get_runtime_delivery_section_by_alias(
     )
     return ApiResponse.success(
         data=await kernel.get_delivery_section_by_alias(
-            site_id=runtime_context.site_id,
+            target=_runtime_delivery_target(runtime_context),
             alias=alias,
             perspective=perspective,
             token=token,
@@ -323,7 +329,7 @@ async def resolve_runtime_delivery_global_set(
     )
     return ApiResponse.success(
         data=await kernel.get_delivery_global_set(
-            site_id=runtime_context.site_id,
+            target=_runtime_delivery_target(runtime_context),
             key=key,
             perspective=perspective,
             token=token,

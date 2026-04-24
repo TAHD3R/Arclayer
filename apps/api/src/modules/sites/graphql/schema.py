@@ -299,7 +299,7 @@ async def _require_access(
 ) -> GraphQLPerspective:
     try:
         await info.context.graphql.resolve_query_access(
-            site_id=info.context.site_id,
+            runtime_id=info.context.runtime_id,
             request=info.context.request,
             perspective=perspective.value,
             preview_token=preview_token,
@@ -475,7 +475,7 @@ async def _list_model_entries(
         sort_direction = typed_sort_input.direction.value
     try:
         records = await info.context.graphql.list_records(
-            site_id=info.context.site_id,
+            runtime_id=info.context.runtime_id,
             model_key=model_key,
             perspective=resolved,
             exact_filters=_query_filter_payload(model_key, filter_input, "exact"),
@@ -503,20 +503,20 @@ async def _get_single_model_entry(
     try:
         if schema.single_query.resolver == "get_record_by_slug":
             record = await info.context.graphql.get_record_by_slug(
-                site_id=info.context.site_id,
+                runtime_id=info.context.runtime_id,
                 model_key=model_key,
                 slug=lookup_value,
                 perspective=resolved,
             )
         elif schema.single_query.resolver == "get_page_record_by_path":
             record = await info.context.graphql.get_page_record_by_path(
-                site_id=info.context.site_id,
+                runtime_id=info.context.runtime_id,
                 path=lookup_value,
                 perspective=resolved,
             )
         elif schema.single_query.resolver == "get_reusable_section_record_by_alias":
             record = await info.context.graphql.get_reusable_section_record_by_alias(
-                site_id=info.context.site_id,
+                runtime_id=info.context.runtime_id,
                 alias=lookup_value,
                 perspective=resolved,
             )
@@ -626,7 +626,7 @@ class QueryBase:
         resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
         try:
             payload = await info.context.graphql.delivery_resolve_page(
-                site_id=info.context.site_id,
+                runtime_id=info.context.runtime_id,
                 path=path,
                 perspective=resolved,
             )
@@ -645,7 +645,7 @@ class QueryBase:
         resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
         try:
             payload = await info.context.graphql.delivery_get_page_by_id(
-                site_id=info.context.site_id,
+                runtime_id=info.context.runtime_id,
                 page_id=UUID(str(page_id)),
                 perspective=resolved,
             )
@@ -664,7 +664,7 @@ class QueryBase:
         resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
         try:
             payload = await info.context.graphql.delivery_get_section_by_alias(
-                site_id=info.context.site_id,
+                runtime_id=info.context.runtime_id,
                 alias=alias,
                 perspective=resolved,
             )
@@ -683,7 +683,7 @@ class QueryBase:
         resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
         try:
             payload = await info.context.graphql.delivery_get_global_set(
-                site_id=info.context.site_id,
+                runtime_id=info.context.runtime_id,
                 key=key,
                 perspective=resolved,
             )
