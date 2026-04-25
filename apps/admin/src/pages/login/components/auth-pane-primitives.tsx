@@ -11,6 +11,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 export const AUTH_PANE_STACK_CLASS = "grid gap-5";
+export const AUTH_PANE_ROOT_CLASS = "grid gap-8";
+export const AUTH_PANE_CONTENT_CLASS = "grid gap-2";
 export const AUTH_FIELD_CLASS = "gap-2";
 export const AUTH_FIELD_TITLE_CLASS = "text-headline text-label-primary";
 export const AUTH_INPUT_GROUP_CLASS = cn(
@@ -31,8 +33,7 @@ export const AUTH_OTP_SLOT_CLASS = cn(
   "text-callout font-semibold text-label-primary transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
-export const AUTH_PANE_META_CLASS =
-  "grid gap-2.5 pt-2 text-center text-footnote text-label-secondary";
+export const AUTH_PANE_META_CLASS = "grid gap-2.5 text-center text-body text-label-secondary";
 
 export function AuthPaneHeader(props: {
   titleKey: string;
@@ -149,7 +150,7 @@ export function AuthPaneLegal(props: {
 }) {
   return (
     <motion.div variants={props.variants} className={cn("grid gap-1 text-center", props.className)}>
-      <LegalFooter i18nKey={props.i18nKey} className="text-callout" />
+      <LegalFooter i18nKey={props.i18nKey} className="text-body" />
     </motion.div>
   );
 }

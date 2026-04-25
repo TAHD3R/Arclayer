@@ -1,6 +1,5 @@
 import type { PropsWithChildren } from "react";
 
-import { LegalFooterCopyright } from "@/components/layout/legal-footer";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
 import { RouteTransition } from "@/components/layout/route-transition";
@@ -26,10 +25,6 @@ export function AuthLayout({ children }: PropsWithChildren) {
             </RouteTransition>
           </div>
         </div>
-      </div>
-
-      <div className="shrink-0 px-6 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-center sm:px-8 sm:pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-        <LegalFooterCopyright />
       </div>
     </div>
   );

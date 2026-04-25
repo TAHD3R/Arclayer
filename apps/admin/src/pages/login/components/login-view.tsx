@@ -27,6 +27,7 @@ export function LoginView({
   loginEmailCodeRequestLoading = false,
   loginEmailCodeVerifyLoading = false,
   initialKeepSession = false,
+  onKeepSessionPreferenceChange,
   redirect,
   pendingOAuthProvider = null,
   onStartOAuth,
@@ -94,7 +95,10 @@ export function LoginView({
                   : {
                       opacity: 1,
                       x: 0,
-                      transition: { staggerChildren: 0.05, delayChildren: 0.02 },
+                      transition: {
+                        staggerChildren: 0.05,
+                        delayChildren: 0.02,
+                      },
                     },
                 exit: reducedMotion ? { opacity: 1 } : { opacity: 0, x: exitOffsetX },
               }}
@@ -116,6 +120,7 @@ export function LoginView({
                   loading={loginLoading}
                   initialKeepSession={initialKeepSession}
                   loginSeed={loginSeed}
+                  onKeepSessionPreferenceChange={onKeepSessionPreferenceChange}
                   redirect={redirect}
                   onForgotPassword={(email) => onModeChange("forgot-password", { email })}
                   onSwitchToEmailCode={(email, keepSession, passwordLoginAvailable) =>

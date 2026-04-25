@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { cloneElement, type AnchorHTMLAttributes, type ReactElement } from "react";
+import { cloneElement, type AnchorHTMLAttributes, type ReactElement, type ReactNode } from "react";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 
 import { ApiError } from "@/lib/http";
@@ -22,12 +22,18 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
     leadingActions = [],
   }: {
     dividerLabelKey?: string;
-    leadingActions?: Array<{ key: string; label: string; onClick: () => void }>;
+    leadingActions?: Array<{
+      key: string;
+      label: string;
+      icon?: ReactNode;
+      onClick: () => void;
+    }>;
   }) => (
     <div data-testid="oauth-section">
       <span>{dividerLabelKey}</span>
       {leadingActions.map((action) => (
         <button key={action.key} type="button" onClick={action.onClick}>
+          {action.icon}
           {action.label}
         </button>
       ))}
@@ -84,9 +90,15 @@ function renderLoginView(overrides: Partial<React.ComponentProps<typeof LoginVie
       <LoginView
         mode="login"
         onModeChange={() => undefined}
-        onLoginEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
+        onLoginEmailSubmit={async () => ({
+          exists: true,
+          passwordLoginAvailable: true,
+        })}
         onLoginSubmit={async () => undefined}
-        onLoginEmailCodeRequest={async () => ({ expiresIn: 600, retryAfter: 0 })}
+        onLoginEmailCodeRequest={async () => ({
+          expiresIn: 600,
+          retryAfter: 0,
+        })}
         onLoginEmailCodeVerify={async () => undefined}
         onForgotPasswordSubmit={async () => undefined}
         onRegisterEmailSubmit={async () => false}
@@ -117,7 +129,7 @@ describe("LoginView register entry visibility", () => {
 });
 
 describe("LoginView auth pane hierarchy", () => {
-  test("renders login pane with header register entry, email step, oauth, and legal copy", () => {
+  test("renders login pane with email step, oauth, and register entry below the form", () => {
     renderLoginView();
 
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
@@ -126,32 +138,28 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.queryByText("auth:KEEP_SESSION")).not.toBeInTheDocument();
 
     const oauthSection = screen.getByTestId("oauth-section");
-    const submitButton = screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" });
+    const submitButton = screen.getByRole("button", {
+      name: "auth:LOGIN_NEXT_BUTTON",
+    });
     const emailField = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
-    const loginSubtitle = screen.getByText("auth:NO_ACCOUNT").closest("p");
+    const loginIntro = screen.getByText("auth:NO_ACCOUNT").closest("div");
     const registerAction = screen.getByText("auth:CREATE_ACCOUNT");
-    const legalCopy = screen.getByText("auth:LEGAL_CONTINUE");
-    const legalText = legalCopy.closest("p");
-    const termsAction = screen.getByRole("button", { name: "Terms of Service" });
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
-    expect(loginSubtitle).not.toBeNull();
-    expect(loginSubtitle).toContainElement(registerAction);
-    expect(registerAction).toHaveClass("text-inherit", "font-normal");
+    expect(loginIntro).not.toBeNull();
+    expect(loginIntro).toHaveClass("text-body", "text-label-secondary");
+    expect(loginIntro).toContainElement(registerAction);
+    expect(registerAction).toHaveClass("!px-1", "!text-body", "font-normal");
     expect(
-      loginSubtitle!.compareDocumentPosition(emailField) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      emailField.compareDocumentPosition(oauthSection) & Node.DOCUMENT_POSITION_FOLLOWING,
+      oauthSection.compareDocumentPosition(emailField) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(submitButton.querySelector("svg")).toBeNull();
     expect(
-      oauthSection.compareDocumentPosition(legalCopy) & Node.DOCUMENT_POSITION_FOLLOWING,
+      oauthSection.compareDocumentPosition(loginIntro!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(legalText).toHaveClass("text-callout");
-    expect(termsAction).not.toHaveClass("text-footnote");
+    expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
   });
 
-  test("renders register pane with header sign-in entry, email step, oauth, and legal copy", () => {
+  test("renders register pane with email step, oauth, intro, and legal copy", () => {
     renderLoginView({ mode: "register" });
 
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
@@ -161,28 +169,33 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
 
     const oauthSection = screen.getByTestId("oauth-section");
-    const submitButton = screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" });
+    const submitButton = screen.getByRole("button", {
+      name: "auth:REGISTER_NEXT_BUTTON",
+    });
     const emailField = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
-    const registerSubtitle = screen.getByText("auth:HAVE_ACCOUNT").closest("p");
+    const registerIntro = screen.getByText("auth:HAVE_ACCOUNT").closest("div");
     const signInAction = screen.getByText("auth:SIGN_IN");
     const legalCopy = screen.getByText("auth:LEGAL_REGISTER");
     const legalText = legalCopy.closest("p");
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
-    expect(registerSubtitle).not.toBeNull();
-    expect(registerSubtitle).toContainElement(signInAction);
-    expect(signInAction).toHaveClass("text-inherit", "font-normal");
+    expect(registerIntro).not.toBeNull();
+    expect(registerIntro).toHaveClass("text-body", "text-label-secondary");
+    expect(registerIntro).toContainElement(signInAction);
+    expect(signInAction).toHaveClass("!px-1", "!text-body", "font-normal");
     expect(legalCopy).toBeInTheDocument();
     expect(submitButton.querySelector("svg")).toBeNull();
-    expect(legalText).toHaveClass("text-callout");
+    expect(legalText).toHaveClass("text-body");
     expect(
-      registerSubtitle!.compareDocumentPosition(emailField) & Node.DOCUMENT_POSITION_FOLLOWING,
+      oauthSection.compareDocumentPosition(emailField) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      emailField.compareDocumentPosition(oauthSection) & Node.DOCUMENT_POSITION_FOLLOWING,
+      oauthSection.compareDocumentPosition(registerIntro!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      oauthSection.compareDocumentPosition(legalCopy) & Node.DOCUMENT_POSITION_FOLLOWING,
+      registerIntro!.compareDocumentPosition(legalCopy) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Terms of Service" })).toHaveClass("px-1");
+    expect(screen.getByRole("button", { name: "Privacy Policy" })).toHaveClass("px-1");
   });
 
   test("hides oauth once register enters the details step", () => {
@@ -204,7 +217,9 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.getByText("auth:FORGOT_PASSWORD_MODAL_TITLE")).toBeInTheDocument();
     expect(screen.getByText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "auth:FORGOT_PASSWORD_SUBMIT_BUTTON" }),
+      screen.getByRole("button", {
+        name: "auth:FORGOT_PASSWORD_SUBMIT_BUTTON",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" })).toBeInTheDocument();
 
@@ -221,12 +236,16 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.getByText("auth:LOGIN_EMAIL_CODE_TITLE")).toBeInTheDocument();
     expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
 
-    const submitButton = screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_SEND_BUTTON" });
+    const submitButton = screen.getByRole("button", {
+      name: "auth:LOGIN_EMAIL_CODE_SEND_BUTTON",
+    });
     const oauthSection = screen.getByTestId("oauth-section");
 
     expect(submitButton).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD" }),
+      screen.getByRole("button", {
+        name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD",
+      }),
     ).toBeInTheDocument();
     expect(
       submitButton.compareDocumentPosition(oauthSection) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -243,7 +262,11 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:FORGOT_PASSWORD" })).toBeInTheDocument();
     expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_TITLE" })).toBeInTheDocument();
+    const emailCodeButton = screen.getByRole("button", {
+      name: "auth:LOGIN_EMAIL_CODE_ACTION",
+    });
+    expect(emailCodeButton).toBeInTheDocument();
+    expect(emailCodeButton.querySelector("svg")).toBeInTheDocument();
   });
 
   test("shows inline request recovery when auto-requesting an email code fails", async () => {

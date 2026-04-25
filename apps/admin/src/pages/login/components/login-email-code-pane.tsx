@@ -1,4 +1,4 @@
-import { Mail } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -273,7 +273,9 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
       />
       {step === "verify" ? (
         <AuthInlineNotice variants={variants}>
-          {t("auth:LOGIN_EMAIL_CODE_SENT_HINT", { email: form.getValues("email") })}
+          {t("auth:LOGIN_EMAIL_CODE_SENT_HINT", {
+            email: form.getValues("email"),
+          })}
         </AuthInlineNotice>
       ) : null}
       <form
@@ -291,7 +293,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
         {step === "request" ? (
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
-              <FieldContent className="gap-2">
+              <FieldContent className="gap-2.5">
                 <AuthPaneTitleRow title={t("auth:FIELD_EMAIL_LABEL")} />
                 <AuthInputControl
                   autoComplete="email"
@@ -316,7 +318,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
         ) : (
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
-              <FieldContent className="gap-2">
+              <FieldContent className="gap-2.5">
                 <AuthPaneTitleRow title={t("auth:LOGIN_EMAIL_CODE_FIELD_LABEL")} />
                 <AuthOtpInput
                   value={codeValue}
@@ -388,6 +390,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
               {
                 key: "password-login",
                 label: t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD"),
+                icon: <Lock className="size-4" />,
                 onClick: () => props.onBackToPassword(form.getValues("email")),
               },
             ]}

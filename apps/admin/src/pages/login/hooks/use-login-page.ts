@@ -195,6 +195,7 @@ type LoginPageState =
 export function useLoginPage(): LoginPageState {
   const applyLogin = useAuthStore((s) => s.applyLogin);
   const keepSession = useAuthStore((s) => s.keepSession);
+  const setKeepSession = useAuthStore((s) => s.setKeepSession);
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
@@ -349,7 +350,9 @@ export function useLoginPage(): LoginPageState {
       }
       await useAuthStore.persist.rehydrate();
       if (result.status === "success") {
-        useAuthStore.setState((state) => ({ sessionVersion: state.sessionVersion + 1 }));
+        useAuthStore.setState((state) => ({
+          sessionVersion: state.sessionVersion + 1,
+        }));
         await navigateAfterAuth(result.redirect);
         return;
       }
@@ -417,7 +420,11 @@ export function useLoginPage(): LoginPageState {
   const startTwoFactorChallenge = useCallback(
     (
       error: unknown,
-      options: { keepSession: boolean; redirect?: string | null; source: AuthChallengeSource },
+      options: {
+        keepSession: boolean;
+        redirect?: string | null;
+        source: AuthChallengeSource;
+      },
     ) => {
       if (!(error instanceof ApiError)) return false;
       const challengeMeta = resolveTwoFactorChallengeMeta(error);
@@ -477,7 +484,11 @@ export function useLoginPage(): LoginPageState {
     const rawRedirect = params.get("redirect");
     if (!rawRedirect) return;
     if (!redirectTo) {
-      void navigate({ to: "/login", search: { mode: effectiveMode }, replace: true });
+      void navigate({
+        to: "/login",
+        search: { mode: effectiveMode },
+        replace: true,
+      });
     }
   }, [effectiveMode, navigate, redirectTo]);
 
@@ -487,7 +498,10 @@ export function useLoginPage(): LoginPageState {
     setRegisterSeed(null);
     void navigate({
       to: "/login",
-      search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: "login" },
+      search: {
+        ...(redirectTo ? { redirect: redirectTo } : {}),
+        mode: "login",
+      },
       replace: true,
     });
   }, [mode, navigate, redirectTo, runtime.publicRegisterEnabled]);
@@ -617,7 +631,10 @@ export function useLoginPage(): LoginPageState {
     setOptimisticMode(nextMode);
     setLoginSeed(
       nextMode === "login" && options?.email
-        ? { email: options.email, step: options.step === "password" ? "password" : "email" }
+        ? {
+            email: options.email,
+            step: options.step === "password" ? "password" : "email",
+          }
         : null,
     );
     setLoginEmailCodeSeed(
@@ -632,14 +649,20 @@ export function useLoginPage(): LoginPageState {
     );
     setRegisterSeed(
       nextMode === "register" && options?.email
-        ? { email: options.email, step: options.step === "details" ? "details" : "email" }
+        ? {
+            email: options.email,
+            step: options.step === "details" ? "details" : "email",
+          }
         : null,
     );
     setForgotPasswordEmail(
       nextMode === "forgot-password" ? options?.email?.trim() || undefined : undefined,
     );
 
-    void navigate({ to: "/login", search: { redirect: redirectTo, mode: nextMode } });
+    void navigate({
+      to: "/login",
+      search: { redirect: redirectTo, mode: nextMode },
+    });
   };
 
   const onLoginEmailSubmit = async (email: string): Promise<LoginEmailLookupResult> => {
@@ -743,7 +766,10 @@ export function useLoginPage(): LoginPageState {
     clearActiveChallenge();
     void navigate({
       to: "/login",
-      search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: nextMode },
+      search: {
+        ...(redirectTo ? { redirect: redirectTo } : {}),
+        mode: nextMode,
+      },
       replace: true,
     });
   };
@@ -831,6 +857,7 @@ export function useLoginPage(): LoginPageState {
       loginEmailCodeRequestLoading: loginEmailCodeRequestMutation.isPending,
       loginEmailCodeVerifyLoading: loginEmailCodeVerifyMutation.isPending,
       initialKeepSession: keepSession,
+      onKeepSessionPreferenceChange: setKeepSession,
       redirect: redirectTo,
       pendingOAuthProvider: pendingOAuth?.provider ?? null,
       onStartOAuth: startOAuthPopup,

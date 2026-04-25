@@ -73,9 +73,32 @@ describe("AuthOauthButtons", () => {
     });
 
     const dividerLabel = screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER");
-    const providerButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    const providerButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GOOGLE",
+    });
     expect(
       dividerLabel.compareDocumentPosition(providerButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("renders the divider after oauth providers when requested", async () => {
+    listSSOProvidersMock.mockResolvedValueOnce({
+      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google" }],
+    });
+
+    renderButtons({ dividerPlacement: "after" });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
+      expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
+    });
+
+    const dividerLabel = screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER");
+    const providerButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GOOGLE",
+    });
+    expect(
+      providerButton.compareDocumentPosition(dividerLabel) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -125,7 +148,9 @@ describe("AuthOauthButtons", () => {
 
     renderButtons({ loadingProvider: "google" });
 
-    const button = await screen.findByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    const button = await screen.findByRole("button", {
+      name: "auth:OAUTH_GOOGLE",
+    });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByText("auth:OAUTH_GOOGLE")).not.toBeInTheDocument();
@@ -147,7 +172,9 @@ describe("AuthOauthButtons", () => {
       expect(screen.getByRole("button", { name: "auth:OAUTH_GITHUB" })).toBeInTheDocument();
     });
 
-    const googleButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    const googleButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GOOGLE",
+    });
     const grid = googleButton.parentElement;
     expect(grid).toHaveClass("grid");
     expect(grid).toHaveClass("grid-cols-2");
@@ -163,7 +190,11 @@ describe("AuthOauthButtons", () => {
       providers: [
         { provider: "google", label: "Google", start_url: "/oauth/google" },
         { provider: "github", label: "GitHub", start_url: "/oauth/github" },
-        { provider: "microsoft", label: "Microsoft", start_url: "/oauth/microsoft" },
+        {
+          provider: "microsoft",
+          label: "Microsoft",
+          start_url: "/oauth/microsoft",
+        },
       ],
     });
 
@@ -175,7 +206,9 @@ describe("AuthOauthButtons", () => {
       expect(screen.getByRole("button", { name: "Microsoft" })).toBeInTheDocument();
     });
 
-    const grid = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" }).parentElement;
+    const grid = screen.getByRole("button", {
+      name: "auth:OAUTH_GOOGLE",
+    }).parentElement;
     expect(grid).toHaveClass("grid");
     expect(grid).toHaveClass("grid-cols-3");
     expect(screen.queryByText("Google")).not.toBeInTheDocument();
@@ -200,7 +233,9 @@ describe("AuthOauthButtons", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD" }),
+        screen.getByRole("button", {
+          name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD",
+        }),
       ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
     });
@@ -208,7 +243,9 @@ describe("AuthOauthButtons", () => {
     const passwordButton = screen.getByRole("button", {
       name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD",
     });
-    const googleButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    const googleButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GOOGLE",
+    });
 
     expect(passwordButton).toHaveClass("w-full");
     expect(passwordButton.parentElement).not.toBe(googleButton.parentElement);
@@ -227,7 +264,9 @@ describe("AuthOauthButtons", () => {
     });
 
     expect(
-      screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD" }),
+      screen.getByRole("button", {
+        name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD",
+      }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "auth:OAUTH_GOOGLE" })).not.toBeInTheDocument();
     expect(listSSOProvidersMock).not.toHaveBeenCalled();
@@ -248,7 +287,9 @@ describe("AuthOauthButtons", () => {
       expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
     });
 
-    const googleButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    const googleButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GOOGLE",
+    });
     expect(within(googleButton).getByText("auth:OAUTH_LAST_USED")).toBeInTheDocument();
   });
 
@@ -274,8 +315,12 @@ describe("AuthOauthButtons", () => {
       expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
     });
 
-    const emailCodeButton = screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" });
-    const googleButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" });
+    const emailCodeButton = screen.getByRole("button", {
+      name: "auth:LOGIN_EMAIL_CODE_ACTION",
+    });
+    const googleButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GOOGLE",
+    });
 
     expect(emailCodeButton).toHaveClass("w-full");
     expect(emailCodeButton).toHaveClass("px-4");

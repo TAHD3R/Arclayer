@@ -22,6 +22,7 @@ export interface AuthOauthButtonsProps {
   disabled?: boolean;
   redirect?: string | undefined;
   dividerLabelKey?: string;
+  dividerPlacement?: "before" | "after";
   showProviders?: boolean;
   loadingProvider?: string | null;
   onProviderStart?: (input: { provider: string; startUrl: string }) => void;
@@ -92,6 +93,7 @@ export function AuthOauthButtons({
   disabled = false,
   redirect,
   dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
+  dividerPlacement = "before",
   showProviders = true,
   loadingProvider = null,
   onProviderStart,
@@ -149,7 +151,10 @@ export function AuthOauthButtons({
       writeStorageItem(STORAGE_KEYS.authLastSsoProvider, provider.provider);
       setLastUsedProvider(provider.provider);
       if (onProviderStart) {
-        onProviderStart({ provider: provider.provider, startUrl: provider.startUrl });
+        onProviderStart({
+          provider: provider.provider,
+          startUrl: provider.startUrl,
+        });
         return;
       }
       window.location.assign(provider.startUrl);
@@ -170,8 +175,11 @@ export function AuthOauthButtons({
   const providerGridClassName =
     providerCount === 3 ? "grid-cols-3" : providerCount >= 4 ? "grid-cols-4" : "";
   const lastUsedLabel = t("auth:OAUTH_LAST_USED");
+  const dividerSpacingClassName = dividerPlacement === "before" ? "pt-3" : "py-2";
   const divider = (
-    <div className="flex items-center gap-3 py-1 text-footnote text-label-secondary">
+    <div
+      className={`flex items-center gap-3 text-footnote text-label-secondary ${dividerSpacingClassName}`}
+    >
       <Separator className="flex-1" />
       <span className="shrink-0">{t(dividerLabelKey)}</span>
       <Separator className="flex-1" />
@@ -186,7 +194,7 @@ export function AuthOauthButtons({
         {action.isLastUsed ? (
           <Badge
             variant="outline"
-            className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
+            className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-popover px-1.5 font-semibold text-primary"
           >
             {lastUsedLabel}
           </Badge>
@@ -205,7 +213,7 @@ export function AuthOauthButtons({
 
   return (
     <div className="grid gap-2.5">
-      {divider}
+      {dividerPlacement === "before" ? divider : null}
       {fullWidthLeadingActions.length > 0 ? (
         <div className="grid gap-2.5">
           {fullWidthLeadingActions.map((action) => (
@@ -315,7 +323,7 @@ export function AuthOauthButtons({
                     {!action.isLoading && action.isLastUsed ? (
                       <Badge
                         variant="outline"
-                        className="pointer-events-none absolute -top-2 right-1.5 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
+                        className="pointer-events-none absolute -top-2 right-1.5 border-primary/20 bg-popover px-1.5 font-semibold text-primary"
                       >
                         {lastUsedLabel}
                       </Badge>
@@ -333,6 +341,7 @@ export function AuthOauthButtons({
           </div>
         </TooltipProvider>
       ) : null}
+      {dividerPlacement === "after" ? divider : null}
     </div>
   );
 }

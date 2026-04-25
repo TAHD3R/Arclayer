@@ -21,7 +21,7 @@ function LegalFooterButton(props: { children?: ReactNode; onClick: () => void })
   return (
     <button
       type="button"
-      className="inline-flex items-baseline gap-0 align-baseline font-semibold text-primary underline-offset-4 transition-[box-shadow,_color,_background-color,_border-color,_outline-color,_text-decoration-color,_fill,_stroke] hover:underline focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+      className="inline-flex items-baseline gap-0 px-1 align-baseline font-semibold text-primary underline-offset-4 transition-[box-shadow,_color,_background-color,_border-color,_outline-color,_text-decoration-color,_fill,_stroke] hover:underline focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
       onClick={props.onClick}
     >
       {props.children}

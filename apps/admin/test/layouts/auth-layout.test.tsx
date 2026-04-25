@@ -14,10 +14,6 @@ vi.mock("@/components/layout/route-transition", () => ({
   RouteTransition: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("@/components/layout/legal-footer", () => ({
-  LegalFooterCopyright: () => <div>auth:FOOTER_COPYRIGHT</div>,
-}));
-
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {
     writable: true,
@@ -47,7 +43,7 @@ describe("AuthLayout", () => {
     expect(screen.getByText("locale")).toBeInTheDocument();
     expect(screen.getByText("theme")).toBeInTheDocument();
     expect(screen.getByText("auth-content")).toBeInTheDocument();
-    expect(screen.getByText("auth:FOOTER_COPYRIGHT")).toBeInTheDocument();
+    expect(screen.queryByText("auth:FOOTER_COPYRIGHT")).not.toBeInTheDocument();
 
     const root = container.firstElementChild;
     expect(root).toHaveClass("flex-col");
@@ -64,9 +60,6 @@ describe("AuthLayout", () => {
     expect(centeredShell).toHaveClass("items-center");
     expect(centeredShell).toHaveClass("justify-center");
 
-    const footer = root?.lastElementChild as HTMLElement | null;
-    expect(footer).not.toBeNull();
-    expect(footer).toHaveClass("shrink-0");
-    expect(footer).toHaveTextContent("auth:FOOTER_COPYRIGHT");
+    expect(root?.children).toHaveLength(2);
   });
 });

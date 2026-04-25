@@ -45,7 +45,10 @@ describe("RegisterPane oauth section", () => {
 
   function renderPane(overrides: Partial<React.ComponentProps<typeof RegisterPane>> = {}) {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
 
     return render(
@@ -68,14 +71,25 @@ describe("RegisterPane oauth section", () => {
   it("hides the oauth wrapper when no oauth providers render", () => {
     const { container } = renderPane();
 
-    const oauthWrapper = container.querySelector(".pt-1\\.5");
+    const oauthWrapper = container.querySelector(".empty\\:hidden");
+    const contentGroup = oauthWrapper?.parentElement;
     expect(oauthWrapper).toHaveClass("empty:hidden");
+    expect(contentGroup).toHaveClass("grid", "gap-2");
+    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-8");
     expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId("oauth-section")
+        .compareDocumentPosition(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("hides oauth after advancing to the details step", () => {
-    renderPane({ registerSeed: { email: "founder@example.com", step: "details" } });
+    renderPane({
+      registerSeed: { email: "founder@example.com", step: "details" },
+    });
 
     expect(screen.queryByTestId("oauth-section")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:AUTH_CHANGE_EMAIL" })).toBeInTheDocument();
@@ -92,9 +106,11 @@ describe("RegisterPane oauth section", () => {
 
     const notice = await screen.findByText("auth:REGISTER_EMAIL_EXISTS_MESSAGE");
     const noticeContainer = notice.closest("div");
-    const submitButton = screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" });
+    const submitButton = screen.getByRole("button", {
+      name: "auth:REGISTER_NEXT_BUTTON",
+    });
 
-    expect(noticeContainer).toHaveClass("text-footnote", "text-label-secondary");
+    expect(noticeContainer).toHaveClass("text-body", "text-label-secondary");
     expect(noticeContainer).toContainElement(
       screen.getByRole("button", { name: "auth:REGISTER_EMAIL_EXISTS_ACTION" }),
     );
@@ -110,7 +126,9 @@ describe("RegisterPane oauth section", () => {
     usernameCheckMock.mockResolvedValue({ available: false });
     const user = userEvent.setup();
 
-    renderPane({ registerSeed: { email: "founder@example.com", step: "details" } });
+    renderPane({
+      registerSeed: { email: "founder@example.com", step: "details" },
+    });
 
     await user.type(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"), "taken-name");
     await waitFor(() =>
@@ -122,7 +140,9 @@ describe("RegisterPane oauth section", () => {
   it("hides password guidance before interaction and shows the checklist while invalid", async () => {
     const user = userEvent.setup();
 
-    renderPane({ registerSeed: { email: "founder@example.com", step: "details" } });
+    renderPane({
+      registerSeed: { email: "founder@example.com", step: "details" },
+    });
 
     expect(screen.queryByText("auth:PASSWORD_REQUIREMENT_LENGTH")).not.toBeInTheDocument();
 
@@ -136,7 +156,9 @@ describe("RegisterPane oauth section", () => {
   it("shows a single success message when all password requirements are met", async () => {
     const user = userEvent.setup();
 
-    renderPane({ registerSeed: { email: "founder@example.com", step: "details" } });
+    renderPane({
+      registerSeed: { email: "founder@example.com", step: "details" },
+    });
 
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "ValidPass1");
     expect(await screen.findByText("auth:PASSWORD_REQUIREMENTS_MET")).toBeInTheDocument();

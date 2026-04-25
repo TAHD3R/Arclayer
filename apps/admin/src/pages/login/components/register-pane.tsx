@@ -23,8 +23,9 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
+  AUTH_PANE_CONTENT_CLASS,
   AUTH_PANE_META_CLASS,
-  AUTH_PANE_STACK_CLASS,
+  AUTH_PANE_ROOT_CLASS,
   AuthButtonLabel,
   AuthPaneHeader,
   AuthPaneLegal,
@@ -57,7 +58,7 @@ function RegisterField(props: {
   return (
     <motion.div variants={props.variants}>
       <Field className={AUTH_FIELD_CLASS}>
-        <FieldContent className="gap-2">
+        <FieldContent className="gap-2.5">
           <AuthPaneTitleRow title={props.title} helpText={props.helpText} />
           {props.children}
           <FieldError>{props.error}</FieldError>
@@ -202,204 +203,209 @@ export function RegisterPane(props: RegisterPaneProps) {
   };
 
   return (
-    <div className={AUTH_PANE_STACK_CLASS}>
-      <AuthPaneHeader
-        titleKey="auth:REGISTER_PAGE_TITLE"
-        subtitle={
-          <>
+    <div className={AUTH_PANE_ROOT_CLASS}>
+      <AuthPaneHeader titleKey="auth:REGISTER_PAGE_TITLE" variants={variants} />
+      <div className={AUTH_PANE_CONTENT_CLASS}>
+        {step === "email" ? (
+          <motion.div variants={variants} className="empty:hidden">
+            <AuthOauthButtons
+              disabled={props.emailCheckLoading || props.loading}
+              redirect={props.redirect}
+              dividerPlacement="after"
+              loadingProvider={props.pendingOAuthProvider}
+              onProviderStart={
+                props.onStartOAuth
+                  ? ({ provider, startUrl }) =>
+                      props.onStartOAuth?.({
+                        provider,
+                        startUrl,
+                        keepSession: true,
+                      })
+                  : undefined
+              }
+            />
+          </motion.div>
+        ) : null}
+        <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
+          <motion.div variants={variants}>
+            <Field className={AUTH_FIELD_CLASS}>
+              <FieldContent className="gap-2.5">
+                <AuthPaneTitleRow
+                  title={t("auth:FIELD_EMAIL_LABEL")}
+                  action={
+                    step === "details" ? (
+                      <AuthLinkButton
+                        disabled={props.emailCheckLoading || props.loading}
+                        onClick={handleUseAnotherEmail}
+                        type="button"
+                      >
+                        {t("auth:AUTH_CHANGE_EMAIL")}
+                      </AuthLinkButton>
+                    ) : undefined
+                  }
+                />
+                <AuthInputControl
+                  autoComplete="email"
+                  aria-label={t("auth:FIELD_EMAIL_LABEL")}
+                  aria-invalid={form.formState.errors.email ? true : undefined}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
+                  placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
+                  startIcon={<Mail size={16} />}
+                  disabled={props.emailCheckLoading || props.loading || step === "details"}
+                  readOnly={step === "details"}
+                  spellCheck={false}
+                  {...form.register("email")}
+                />
+                <FieldError>
+                  {form.formState.errors.email?.message
+                    ? String(form.formState.errors.email.message)
+                    : undefined}
+                </FieldError>
+                {emailExists && !form.formState.errors.email ? (
+                  <div className="text-body text-label-secondary">
+                    <span>{t("auth:REGISTER_EMAIL_EXISTS_MESSAGE")} </span>
+                    <AuthLinkButton
+                      className="!text-body"
+                      disabled={props.emailCheckLoading || props.loading}
+                      onClick={() => props.onSwitchToLogin(form.getValues("email"), "password")}
+                      type="button"
+                    >
+                      {t("auth:REGISTER_EMAIL_EXISTS_ACTION")}
+                    </AuthLinkButton>
+                  </div>
+                ) : null}
+              </FieldContent>
+            </Field>
+          </motion.div>
+
+          {step === "details" ? (
+            <>
+              <RegisterField
+                title={t("auth:FIELD_DISPLAY_NAME_LABEL")}
+                helpText={t("auth:FIELD_DISPLAY_NAME_HELP")}
+                error={
+                  form.formState.errors.displayName?.message
+                    ? String(form.formState.errors.displayName.message)
+                    : undefined
+                }
+                variants={variants}
+              >
+                <AuthInputControl
+                  autoComplete="name"
+                  aria-label={t("auth:FIELD_DISPLAY_NAME_LABEL")}
+                  aria-invalid={form.formState.errors.displayName ? true : undefined}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
+                  placeholder={t("auth:FIELD_DISPLAY_NAME_PLACEHOLDER")}
+                  startIcon={<User size={16} />}
+                  disabled={props.loading}
+                  spellCheck={false}
+                  {...form.register("displayName")}
+                />
+              </RegisterField>
+
+              <RegisterField
+                title={t("auth:FIELD_USERNAME_LABEL")}
+                helpText={t("auth:FIELD_USERNAME_HELP")}
+                error={
+                  form.formState.errors.username?.message
+                    ? String(form.formState.errors.username.message)
+                    : undefined
+                }
+                variants={variants}
+              >
+                <AuthInputControl
+                  autoComplete="username"
+                  aria-label={t("auth:FIELD_USERNAME_LABEL")}
+                  aria-invalid={form.formState.errors.username ? true : undefined}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
+                  placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
+                  startIcon={<User size={16} />}
+                  endIcon={
+                    usernameChecking ? <LoaderCircle className="size-4 animate-spin" /> : undefined
+                  }
+                  disabled={props.loading}
+                  spellCheck={false}
+                  {...form.register("username")}
+                />
+                {usernameFeedback ? (
+                  <div
+                    className={`flex items-center gap-2 text-footnote ${usernameFeedbackClassName}`}
+                  >
+                    {usernameFeedback.icon}
+                    <span>{usernameFeedback.message}</span>
+                  </div>
+                ) : null}
+              </RegisterField>
+
+              <RegisterField
+                title={t("auth:FIELD_PASSWORD_LABEL")}
+                error={
+                  form.formState.errors.password?.message
+                    ? String(form.formState.errors.password.message)
+                    : undefined
+                }
+                variants={variants}
+              >
+                <AuthPasswordControl
+                  autoComplete="new-password"
+                  aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+                  aria-invalid={form.formState.errors.password ? true : undefined}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
+                  placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+                  startIcon={<Lock size={16} />}
+                  disabled={props.loading}
+                  {...form.register("password")}
+                />
+                <PasswordRequirementChecklist
+                  password={passwordValue}
+                  active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
+                  t={t}
+                />
+              </RegisterField>
+            </>
+          ) : null}
+
+          <motion.div variants={variants} className="grid gap-3 pt-1">
+            <Button
+              className="w-full"
+              type="submit"
+              size="lg"
+              loading={step === "email" ? props.emailCheckLoading : props.loading}
+              disabled={
+                props.emailCheckLoading ||
+                props.loading ||
+                (step === "details" && (usernameChecking || usernameUnavailable))
+              }
+            >
+              <AuthButtonLabel>
+                {step === "email" ? t("auth:REGISTER_NEXT_BUTTON") : t("auth:REGISTER_BUTTON")}
+              </AuthButtonLabel>
+            </Button>
+          </motion.div>
+        </form>
+        <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
+          <div className="text-body text-label-secondary">
             <span>{t("auth:HAVE_ACCOUNT")} </span>
             <AuthLinkButton
-              className="text-inherit font-normal"
+              className="!px-1 !text-body font-normal"
               disabled={props.emailCheckLoading || props.loading}
               onClick={() => props.onSwitchToLogin()}
               type="button"
             >
               {t("auth:SIGN_IN")}
             </AuthLinkButton>
-          </>
-        }
-        variants={variants}
-      />
-      <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
-        <motion.div variants={variants}>
-          <Field className={AUTH_FIELD_CLASS}>
-            <FieldContent className="gap-2">
-              <AuthPaneTitleRow
-                title={t("auth:FIELD_EMAIL_LABEL")}
-                action={
-                  step === "details" ? (
-                    <AuthLinkButton
-                      disabled={props.emailCheckLoading || props.loading}
-                      onClick={handleUseAnotherEmail}
-                      type="button"
-                    >
-                      {t("auth:AUTH_CHANGE_EMAIL")}
-                    </AuthLinkButton>
-                  ) : undefined
-                }
-              />
-              <AuthInputControl
-                autoComplete="email"
-                aria-label={t("auth:FIELD_EMAIL_LABEL")}
-                aria-invalid={form.formState.errors.email ? true : undefined}
-                className={AUTH_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_INPUT_CLASS}
-                placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
-                startIcon={<Mail size={16} />}
-                disabled={props.emailCheckLoading || props.loading || step === "details"}
-                readOnly={step === "details"}
-                spellCheck={false}
-                {...form.register("email")}
-              />
-              <FieldError>
-                {form.formState.errors.email?.message
-                  ? String(form.formState.errors.email.message)
-                  : undefined}
-              </FieldError>
-              {emailExists && !form.formState.errors.email ? (
-                <div className="text-footnote text-label-secondary">
-                  <span>{t("auth:REGISTER_EMAIL_EXISTS_MESSAGE")} </span>
-                  <AuthLinkButton
-                    disabled={props.emailCheckLoading || props.loading}
-                    onClick={() => props.onSwitchToLogin(form.getValues("email"), "password")}
-                    type="button"
-                  >
-                    {t("auth:REGISTER_EMAIL_EXISTS_ACTION")}
-                  </AuthLinkButton>
-                </div>
-              ) : null}
-            </FieldContent>
-          </Field>
+          </div>
         </motion.div>
-
-        {step === "details" ? (
-          <>
-            <RegisterField
-              title={t("auth:FIELD_DISPLAY_NAME_LABEL")}
-              helpText={t("auth:FIELD_DISPLAY_NAME_HELP")}
-              error={
-                form.formState.errors.displayName?.message
-                  ? String(form.formState.errors.displayName.message)
-                  : undefined
-              }
-              variants={variants}
-            >
-              <AuthInputControl
-                autoComplete="name"
-                aria-label={t("auth:FIELD_DISPLAY_NAME_LABEL")}
-                aria-invalid={form.formState.errors.displayName ? true : undefined}
-                className={AUTH_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_INPUT_CLASS}
-                placeholder={t("auth:FIELD_DISPLAY_NAME_PLACEHOLDER")}
-                startIcon={<User size={16} />}
-                disabled={props.loading}
-                spellCheck={false}
-                {...form.register("displayName")}
-              />
-            </RegisterField>
-
-            <RegisterField
-              title={t("auth:FIELD_USERNAME_LABEL")}
-              helpText={t("auth:FIELD_USERNAME_HELP")}
-              error={
-                form.formState.errors.username?.message
-                  ? String(form.formState.errors.username.message)
-                  : undefined
-              }
-              variants={variants}
-            >
-              <AuthInputControl
-                autoComplete="username"
-                aria-label={t("auth:FIELD_USERNAME_LABEL")}
-                aria-invalid={form.formState.errors.username ? true : undefined}
-                className={AUTH_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_INPUT_CLASS}
-                placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
-                startIcon={<User size={16} />}
-                endIcon={
-                  usernameChecking ? <LoaderCircle className="size-4 animate-spin" /> : undefined
-                }
-                disabled={props.loading}
-                spellCheck={false}
-                {...form.register("username")}
-              />
-              {usernameFeedback ? (
-                <div
-                  className={`flex items-center gap-2 text-footnote ${usernameFeedbackClassName}`}
-                >
-                  {usernameFeedback.icon}
-                  <span>{usernameFeedback.message}</span>
-                </div>
-              ) : null}
-            </RegisterField>
-
-            <RegisterField
-              title={t("auth:FIELD_PASSWORD_LABEL")}
-              error={
-                form.formState.errors.password?.message
-                  ? String(form.formState.errors.password.message)
-                  : undefined
-              }
-              variants={variants}
-            >
-              <AuthPasswordControl
-                autoComplete="new-password"
-                aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-                aria-invalid={form.formState.errors.password ? true : undefined}
-                className={AUTH_INPUT_GROUP_CLASS}
-                inputClassName={AUTH_INPUT_CLASS}
-                placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-                startIcon={<Lock size={16} />}
-                disabled={props.loading}
-                {...form.register("password")}
-              />
-              <PasswordRequirementChecklist
-                password={passwordValue}
-                active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
-                t={t}
-              />
-            </RegisterField>
-          </>
-        ) : null}
-
-        <motion.div variants={variants} className="grid gap-3 pt-1">
-          <Button
-            className="w-full"
-            type="submit"
-            size="lg"
-            loading={step === "email" ? props.emailCheckLoading : props.loading}
-            disabled={
-              props.emailCheckLoading ||
-              props.loading ||
-              (step === "details" && (usernameChecking || usernameUnavailable))
-            }
-          >
-            <AuthButtonLabel>
-              {step === "email" ? t("auth:REGISTER_NEXT_BUTTON") : t("auth:REGISTER_BUTTON")}
-            </AuthButtonLabel>
-          </Button>
-        </motion.div>
-      </form>
-      {step === "email" ? (
-        <motion.div variants={variants} className="pt-1.5 empty:hidden">
-          <AuthOauthButtons
-            disabled={props.emailCheckLoading || props.loading}
-            redirect={props.redirect}
-            loadingProvider={props.pendingOAuthProvider}
-            onProviderStart={
-              props.onStartOAuth
-                ? ({ provider, startUrl }) =>
-                    props.onStartOAuth?.({ provider, startUrl, keepSession: true })
-                : undefined
-            }
-          />
-        </motion.div>
-      ) : null}
-      <AuthPaneLegal
-        i18nKey="auth:LEGAL_REGISTER"
-        variants={variants}
-        className={AUTH_PANE_META_CLASS}
-      />
+        <AuthPaneLegal
+          i18nKey="auth:LEGAL_REGISTER"
+          variants={variants}
+          className={AUTH_PANE_META_CLASS}
+        />
+      </div>
     </div>
   );
 }

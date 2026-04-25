@@ -170,7 +170,12 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
             type="button"
             disabled={loadingProvider === "google"}
             aria-busy={loadingProvider === "google" ? true : undefined}
-            onClick={() => onProviderStart({ provider: "google", startUrl: "/oauth/google/start" })}
+            onClick={() =>
+              onProviderStart({
+                provider: "google",
+                startUrl: "/oauth/google/start",
+              })
+            }
           >
             {loadingProvider === "google" ? "auth:OAUTH_GOOGLE_LOADING" : "auth:OAUTH_GOOGLE"}
           </button>
@@ -395,7 +400,10 @@ describe("LoginPage two-factor challenge flow", () => {
   });
 
   it("switches to otp pane when login returns TWO_FACTOR_REQUIRED", async () => {
-    emailCheckMock.mockResolvedValueOnce({ exists: true, passwordLoginAvailable: true });
+    emailCheckMock.mockResolvedValueOnce({
+      exists: true,
+      passwordLoginAvailable: true,
+    });
     loginMock.mockRejectedValueOnce(
       new ApiError({
         status: 401,
@@ -411,20 +419,27 @@ describe("LoginPage two-factor challenge flow", () => {
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
     await waitFor(() => {
-      expect(emailCheckMock).toHaveBeenCalledWith({ email: "demo@example.com" });
+      expect(emailCheckMock).toHaveBeenCalledWith({
+        email: "demo@example.com",
+      });
     });
     expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
 
     expect(emailCheckMock).toHaveBeenCalledWith({ email: "demo@example.com" });
-    expect(loginMock).toHaveBeenCalledWith({ email: "demo@example.com", password: "secret123" });
+    expect(loginMock).toHaveBeenCalledWith({
+      email: "demo@example.com",
+      password: "secret123",
+    });
     await waitFor(() => {
       expect(useAuthChallengeStore.getState().twoFactorToken).toBe("challenge-1");
       expect(useAuthChallengeStore.getState().source).toBe("password");
     });
     expect(
-      await screen.findByRole("heading", { name: "auth:LOGIN_TWO_FACTOR_TITLE" }),
+      await screen.findByRole("heading", {
+        name: "auth:LOGIN_TWO_FACTOR_TITLE",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("auth:TWO_FACTOR_CODE_LABEL")).toBeInTheDocument();
     expect(authState.applyLogin).not.toHaveBeenCalled();
@@ -498,8 +513,14 @@ describe("LoginPage two-factor challenge flow", () => {
   });
 
   it("auto-requests an email login code once after switching methods under StrictMode", async () => {
-    emailCheckMock.mockResolvedValueOnce({ exists: true, passwordLoginAvailable: true });
-    requestLoginEmailCodeMock.mockResolvedValueOnce({ expires_in: 600, retry_after: 0 });
+    emailCheckMock.mockResolvedValueOnce({
+      exists: true,
+      passwordLoginAvailable: true,
+    });
+    requestLoginEmailCodeMock.mockResolvedValueOnce({
+      expires_in: 600,
+      retry_after: 0,
+    });
 
     renderPage({ strictMode: true });
     const user = userEvent.setup();
@@ -508,20 +529,30 @@ describe("LoginPage two-factor challenge flow", () => {
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
     expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_TITLE" }));
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
 
     expect(
-      await screen.findByRole("heading", { name: "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE" }),
+      await screen.findByRole("heading", {
+        name: "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE",
+      }),
     ).toBeInTheDocument();
     expect(requestLoginEmailCodeMock).toHaveBeenCalledTimes(1);
-    expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({ email: "demo@example.com" });
+    expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({
+      email: "demo@example.com",
+    });
     expect(notifySuccessTextMock).toHaveBeenCalledTimes(1);
     expect(notifySuccessTextMock).toHaveBeenCalledWith("auth:LOGIN_CODE_SENT");
   });
 
   it("starts a two-factor challenge after verifying an email login code", async () => {
-    emailCheckMock.mockResolvedValueOnce({ exists: true, passwordLoginAvailable: true });
-    requestLoginEmailCodeMock.mockResolvedValueOnce({ expires_in: 600, retry_after: 60 });
+    emailCheckMock.mockResolvedValueOnce({
+      exists: true,
+      passwordLoginAvailable: true,
+    });
+    requestLoginEmailCodeMock.mockResolvedValueOnce({
+      expires_in: 600,
+      retry_after: 60,
+    });
     verifyLoginEmailCodeMock.mockRejectedValueOnce(
       new ApiError({
         status: 401,
@@ -538,13 +569,17 @@ describe("LoginPage two-factor challenge flow", () => {
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
     expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_TITLE" }));
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
     expect(
-      await screen.findByRole("heading", { name: "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE" }),
+      await screen.findByRole("heading", {
+        name: "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE",
+      }),
     ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({ email: "demo@example.com" });
+      expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({
+        email: "demo@example.com",
+      });
     });
     await waitFor(() => {
       expect(notifySuccessTextMock).toHaveBeenCalledWith("auth:LOGIN_CODE_SENT");
@@ -574,10 +609,14 @@ describe("LoginPage two-factor challenge flow", () => {
       });
     });
     expect(
-      await screen.findByRole("heading", { name: "auth:LOGIN_TWO_FACTOR_TITLE" }),
+      await screen.findByRole("heading", {
+        name: "auth:LOGIN_TWO_FACTOR_TITLE",
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "auth:TWO_FACTOR_BACK_TO_EMAIL_CODE" }),
+      screen.getByRole("button", {
+        name: "auth:TWO_FACTOR_BACK_TO_EMAIL_CODE",
+      }),
     ).toBeInTheDocument();
     expect(useAuthChallengeStore.getState().source).toBe("email-code");
     expect(authState.applyLogin).not.toHaveBeenCalled();
@@ -586,7 +625,13 @@ describe("LoginPage two-factor challenge flow", () => {
 
   it("opens oauth in a popup and keeps the provider button busy", async () => {
     listSSOProvidersMock.mockResolvedValueOnce({
-      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google/start" }],
+      providers: [
+        {
+          provider: "google",
+          label: "Google",
+          start_url: "/oauth/google/start",
+        },
+      ],
     });
 
     renderPage();
@@ -603,7 +648,9 @@ describe("LoginPage two-factor challenge flow", () => {
     expect(popupSessionStorageState.get(STORAGE_KEYS.authPendingOauth)).toContain(
       '"provider":"google"',
     );
-    const oauthButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE_LOADING" });
+    const oauthButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GOOGLE_LOADING",
+    });
     expect(oauthButton).toBeDisabled();
     expect(oauthButton).toHaveAttribute("aria-busy", "true");
     expect(localStorage.getItem(STORAGE_KEYS.authPendingOauth)).toContain('"provider":"google"');
@@ -611,7 +658,13 @@ describe("LoginPage two-factor challenge flow", () => {
 
   it("rehydrates auth state and navigates after popup oauth success", async () => {
     listSSOProvidersMock.mockResolvedValueOnce({
-      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google/start" }],
+      providers: [
+        {
+          provider: "google",
+          label: "Google",
+          start_url: "/oauth/google/start",
+        },
+      ],
     });
     authState.sessionVersion = 3;
 
@@ -630,11 +683,17 @@ describe("LoginPage two-factor challenge flow", () => {
       }),
     );
     window.dispatchEvent(
-      new StorageEvent("storage", { key: STORAGE_KEYS.authOauthResult, newValue: "updated" }),
+      new StorageEvent("storage", {
+        key: STORAGE_KEYS.authOauthResult,
+        newValue: "updated",
+      }),
     );
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/workspace/demo", replace: true });
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/workspace/demo",
+        replace: true,
+      });
     });
     expect(localStorage.getItem(STORAGE_KEYS.authPendingOauth)).toBeNull();
     expect(authState.sessionVersion).toBe(4);
@@ -692,7 +751,13 @@ describe("LoginPage two-factor challenge flow", () => {
 
   it("clears the loading state when the user closes the popup without completing oauth", async () => {
     listSSOProvidersMock.mockResolvedValueOnce({
-      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google/start" }],
+      providers: [
+        {
+          provider: "google",
+          label: "Google",
+          start_url: "/oauth/google/start",
+        },
+      ],
     });
 
     renderPage();
@@ -724,7 +789,13 @@ describe("LoginPage two-factor challenge flow", () => {
       }),
     );
     listSSOProvidersMock.mockResolvedValueOnce({
-      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google/start" }],
+      providers: [
+        {
+          provider: "google",
+          label: "Google",
+          start_url: "/oauth/google/start",
+        },
+      ],
     });
 
     renderPage();

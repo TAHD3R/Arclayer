@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { StrictMode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LoginEmailCodePane } from "@/pages/login/components/login-email-code-pane";
@@ -44,11 +44,17 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
   AuthOauthButtons: ({
     leadingActions = [],
   }: {
-    leadingActions?: Array<{ key: string; label: string; onClick: () => void }>;
+    leadingActions?: Array<{
+      key: string;
+      label: string;
+      icon?: ReactNode;
+      onClick: () => void;
+    }>;
   }) => (
     <div data-testid="oauth-section">
       {leadingActions.map((action) => (
         <button key={action.key} type="button" onClick={action.onClick}>
+          {action.icon}
           {action.label}
         </button>
       ))}
@@ -73,7 +79,11 @@ describe("Login auth otp layouts", () => {
   it("uses the updated conditional email-code notice copy", async () => {
     render(
       <LoginEmailCodePane
-        seed={{ email: "aspj6771@gmail.com", autoRequest: true, keepSession: true }}
+        seed={{
+          email: "aspj6771@gmail.com",
+          autoRequest: true,
+          keepSession: true,
+        }}
         requestLoading={false}
         verifyLoading={false}
         onRequestCode={async () => ({ expiresIn: 600, retryAfter: 0 })}
@@ -96,7 +106,11 @@ describe("Login auth otp layouts", () => {
   it("renders a full-width otp grid for email-code verification", async () => {
     const { container } = render(
       <LoginEmailCodePane
-        seed={{ email: "demo@example.com", autoRequest: true, keepSession: true }}
+        seed={{
+          email: "demo@example.com",
+          autoRequest: true,
+          keepSession: true,
+        }}
         requestLoading={false}
         verifyLoading={false}
         onRequestCode={async () => ({ expiresIn: 600, retryAfter: 0 })}
@@ -121,7 +135,11 @@ describe("Login auth otp layouts", () => {
   it("starts resend cooldown and shows a success toast after requesting a code", async () => {
     render(
       <LoginEmailCodePane
-        seed={{ email: "demo@example.com", autoRequest: true, keepSession: true }}
+        seed={{
+          email: "demo@example.com",
+          autoRequest: true,
+          keepSession: true,
+        }}
         requestLoading={false}
         verifyLoading={false}
         onRequestCode={async () => ({ expiresIn: 600, retryAfter: 60 })}
@@ -145,7 +163,11 @@ describe("Login auth otp layouts", () => {
     render(
       <StrictMode>
         <LoginEmailCodePane
-          seed={{ email: "strict@example.com", autoRequest: true, keepSession: true }}
+          seed={{
+            email: "strict@example.com",
+            autoRequest: true,
+            keepSession: true,
+          }}
           requestLoading={false}
           verifyLoading={false}
           onRequestCode={requestCode}
@@ -169,7 +191,11 @@ describe("Login auth otp layouts", () => {
   it("disables verify until the full code is entered and shows password login below the form", async () => {
     render(
       <LoginEmailCodePane
-        seed={{ email: "demo@example.com", autoRequest: true, keepSession: true }}
+        seed={{
+          email: "demo@example.com",
+          autoRequest: true,
+          keepSession: true,
+        }}
         requestLoading={false}
         verifyLoading={false}
         onRequestCode={async () => ({ expiresIn: 600, retryAfter: 0 })}
@@ -180,11 +206,15 @@ describe("Login auth otp layouts", () => {
       />,
     );
 
-    const verifyButton = await screen.findByRole("button", { name: "auth:LOGIN_BUTTON" });
+    const verifyButton = await screen.findByRole("button", {
+      name: "auth:LOGIN_BUTTON",
+    });
     expect(verifyButton).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD" }),
-    ).toBeInTheDocument();
+    const passwordButton = screen.getByRole("button", {
+      name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD",
+    });
+    expect(passwordButton).toBeInTheDocument();
+    expect(passwordButton.querySelector("svg")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL"), {
       target: { value: "123456" },
@@ -224,7 +254,11 @@ describe("Login auth otp layouts", () => {
   it("omits legal copy on email-code and two-factor login recovery panes", async () => {
     const { rerender } = render(
       <LoginEmailCodePane
-        seed={{ email: "demo@example.com", autoRequest: false, keepSession: true }}
+        seed={{
+          email: "demo@example.com",
+          autoRequest: false,
+          keepSession: true,
+        }}
         requestLoading={false}
         verifyLoading={false}
         onRequestCode={async () => ({ expiresIn: 600, retryAfter: 0 })}

@@ -8,7 +8,7 @@ import type { AuthState } from "@/types/stores";
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      keepSession: true,
+      keepSession: false,
       sessionVersion: 0,
       accessToken: null,
       refreshToken: null,
