@@ -1,12 +1,15 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UsercenterOverlayHost } from "@/components/layout/usercenter-overlay-host";
-import { WorkspaceFirstOnboardingOverlayHost } from "@/components/layout/workspace-first-onboarding-overlay-host";
 import { useSceneRevealTransition } from "@arclayer/hooks/use-scene-reveal-transition";
-import { isAuthScenePath, isLoginPath, isPublicPath } from "@/lib/routing/route-identity";
+import {
+  isAuthScenePath,
+  isLoginPath,
+  isPublicPath,
+  isWelcomePath,
+} from "@/lib/routing/route-identity";
 import { resolvePostAuthRoute } from "@/lib/routing/post-auth-routing";
 import { getSceneLayout, resolveSceneKey } from "@/lib/routing/scene-registry";
 import { RouterDefaultError, RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
@@ -32,6 +35,7 @@ export function RootLayout() {
     }),
     structuralSharing: true,
   });
+  const isWelcome = isWelcomePath(pathname);
   const sceneKey = resolveSceneKey(pathname);
   const userReducedMotion = usePreferencesStore((s) => s.reduceMotion);
   const { displayedScene, overlayVisible } = useSceneRevealTransition(sceneKey, {
@@ -39,26 +43,26 @@ export function RootLayout() {
     userReducedMotion,
   });
   const Layout = getSceneLayout(displayedScene);
-  const [onboardingBlocking, setOnboardingBlocking] = useState(false);
+
+  if (isWelcome) {
+    return (
+      <SettingsScreenProvider>
+        <RouteDocumentTitleManager />
+        <Outlet />
+      </SettingsScreenProvider>
+    );
+  }
 
   return (
     <SettingsScreenProvider>
       <RouteDocumentTitleManager />
       <>
-        <div
-          data-testid="root-scene-shell"
-          aria-hidden={onboardingBlocking ? "true" : undefined}
-          inert={onboardingBlocking}
-        >
+        <div data-testid="root-scene-shell">
           <Layout>
             <Outlet />
           </Layout>
         </div>
         <UsercenterOverlayHost />
-        <WorkspaceFirstOnboardingOverlayHost
-          pathname={pathname}
-          onBlockingChange={setOnboardingBlocking}
-        />
         <SceneLoadingOverlay visible={overlayVisible} />
       </>
     </SettingsScreenProvider>
@@ -70,7 +74,12 @@ export const Route = createRootRoute({
     const token = useAuthStore.getState().accessToken;
     const isPublic = isPublicPath(location.pathname);
     const isLogin = isLoginPath(location.pathname);
+    const isWelcome = isWelcomePath(location.pathname);
     const workspaceState = useWorkspaceStore.getState();
+    const dryRunWelcome =
+      isWelcome &&
+      import.meta.env.DEV &&
+      new URLSearchParams(location.searchStr).get("dryRun") === "1";
 
     if (!token && !isPublic) {
       throw redirect({
@@ -80,12 +89,28 @@ export const Route = createRootRoute({
       });
     }
 
-    if (token && !isPublic && location.pathname !== "/") {
+    if (token && dryRunWelcome) {
+      return;
+    }
+
+    if (token && !isPublic) {
       const decision = await resolvePostAuthRoute({
         lastWorkspaceId: workspaceState.lastWorkspaceId,
       });
       if (decision.onboardingRequired) {
-        throw redirect({ to: "/" });
+        if (!isWelcome) {
+          throw redirect({ to: "/welcome" });
+        }
+        return;
+      }
+      if (isWelcome && !dryRunWelcome) {
+        if (decision.workspaceId || decision.projectId) {
+          workspaceState.setCurrentContext({
+            workspaceId: decision.workspaceId,
+            projectId: decision.projectId,
+          });
+        }
+        throw redirect({ to: decision.path });
       }
     }
 

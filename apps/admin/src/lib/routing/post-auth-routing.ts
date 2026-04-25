@@ -32,7 +32,7 @@ export async function resolvePostAuthRoute(params: {
 
   if (onboarding.status === "pending_workspace") {
     return {
-      path: "/",
+      path: "/welcome",
       workspaceId: null,
       projectId: null,
       onboardingRequired: true,
@@ -41,7 +41,7 @@ export async function resolvePostAuthRoute(params: {
 
   if (onboarding.status === "pending_workspace_defaults") {
     return {
-      path: "/",
+      path: "/welcome",
       workspaceId: null,
       projectId: null,
       onboardingRequired: true,

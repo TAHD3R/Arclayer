@@ -15,6 +15,10 @@ export function isAcceptInvitePath(pathname: string): boolean {
   return pathname === "/invitations" || pathname === "/invitations/";
 }
 
+export function isWelcomePath(pathname: string): boolean {
+  return pathname === "/welcome" || pathname === "/welcome/";
+}
+
 export function isSystemPath(pathname: string): boolean {
   return pathname === "/system" || pathname === "/system/" || pathname.startsWith("/system/");
 }

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SystemRouteImport } from './routes/system'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WelcomeIndexRouteImport } from './routes/welcome/index'
 import { Route as SystemIndexRouteImport } from './routes/system/index'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
@@ -64,6 +65,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
+const WelcomeIndexRoute = WelcomeIndexRouteImport.update({
+  id: '/welcome/',
+  path: '/welcome/',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/welcome/index.lazy').then((d) => d.Route))
 const SystemIndexRoute = SystemIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -385,6 +391,7 @@ export interface FileRoutesByFullPath {
   '/projects/': typeof ProjectsIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/system/': typeof SystemIndexRoute
+  '/welcome/': typeof WelcomeIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/system/access/': typeof SystemAccessIndexRoute
   '/system/email/': typeof SystemEmailIndexRoute
@@ -429,6 +436,7 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsIndexRoute
   '/reset-password': typeof ResetPasswordIndexRoute
   '/system': typeof SystemIndexRoute
+  '/welcome': typeof WelcomeIndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
   '/system/access': typeof SystemAccessIndexRoute
   '/system/email': typeof SystemEmailIndexRoute
@@ -476,6 +484,7 @@ export interface FileRoutesById {
   '/projects/': typeof ProjectsIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/system/': typeof SystemIndexRoute
+  '/welcome/': typeof WelcomeIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/system/access/': typeof SystemAccessIndexRoute
   '/system/email/': typeof SystemEmailIndexRoute
@@ -524,6 +533,7 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/reset-password/'
     | '/system/'
+    | '/welcome/'
     | '/projects/$projectId/'
     | '/system/access/'
     | '/system/email/'
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/reset-password'
     | '/system'
+    | '/welcome'
     | '/projects/$projectId'
     | '/system/access'
     | '/system/email'
@@ -614,6 +625,7 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/reset-password/'
     | '/system/'
+    | '/welcome/'
     | '/projects/$projectId/'
     | '/system/access/'
     | '/system/email/'
@@ -660,6 +672,7 @@ export interface RootRouteChildren {
   NotificationsIndexRoute: typeof NotificationsIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
+  WelcomeIndexRoute: typeof WelcomeIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -676,6 +689,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome/': {
+      id: '/welcome/'
+      path: '/welcome'
+      fullPath: '/welcome/'
+      preLoaderRoute: typeof WelcomeIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/system/': {
@@ -1095,6 +1115,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsIndexRoute: NotificationsIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
+  WelcomeIndexRoute: WelcomeIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

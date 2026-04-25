@@ -112,7 +112,7 @@ describe("post-auth-routing", () => {
     expect(decision.onboardingRequired).toBe(false);
   });
 
-  test("routes first login to root and marks onboarding as required", async () => {
+  test("routes first login to welcome and marks onboarding as required", async () => {
     const workspace = {
       workspaceId: "w-a",
       projectId: "project-a",
@@ -134,12 +134,12 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: "w-a" });
-    expect(decision.path).toBe("/");
+    expect(decision.path).toBe("/welcome");
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(true);
   });
 
-  test("keeps onboarding blocked on root until defaults are confirmed", async () => {
+  test("keeps onboarding blocked on welcome until defaults are confirmed", async () => {
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [],
       switcher: {
@@ -150,7 +150,7 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
-    expect(decision.path).toBe("/");
+    expect(decision.path).toBe("/welcome");
     expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(true);
   });
