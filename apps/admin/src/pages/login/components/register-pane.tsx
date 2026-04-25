@@ -387,24 +387,26 @@ export function RegisterPane(props: RegisterPaneProps) {
             </Button>
           </motion.div>
         </form>
-        <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
-          <div className="text-body text-label-secondary">
-            <span>{t("auth:HAVE_ACCOUNT")} </span>
-            <AuthLinkButton
-              className="!px-1 !text-body font-normal"
-              disabled={props.emailCheckLoading || props.loading}
-              onClick={() => props.onSwitchToLogin()}
-              type="button"
-            >
-              {t("auth:SIGN_IN")}
-            </AuthLinkButton>
-          </div>
-        </motion.div>
-        <AuthPaneLegal
-          i18nKey="auth:LEGAL_REGISTER"
-          variants={variants}
-          className={AUTH_PANE_META_CLASS}
-        />
+        <div className="grid mt-4 gap-2">
+          <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
+            <div className="text-body text-label-secondary">
+              <span>{t("auth:HAVE_ACCOUNT")} </span>
+              <AuthLinkButton
+                className="!px-1 !text-body font-normal"
+                disabled={props.emailCheckLoading || props.loading}
+                onClick={() => props.onSwitchToLogin()}
+                type="button"
+              >
+                {t("auth:SIGN_IN")}
+              </AuthLinkButton>
+            </div>
+          </motion.div>
+          <AuthPaneLegal
+            i18nKey="auth:LEGAL_REGISTER"
+            variants={variants}
+            className={AUTH_PANE_META_CLASS}
+          />
+        </div>
       </div>
     </div>
   );

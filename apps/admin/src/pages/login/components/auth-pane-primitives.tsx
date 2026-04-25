@@ -10,8 +10,8 @@ import { FieldTitle } from "@arclayer/ui/field";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
-export const AUTH_PANE_STACK_CLASS = "grid gap-5";
-export const AUTH_PANE_ROOT_CLASS = "grid gap-8";
+export const AUTH_PANE_STACK_CLASS = "grid gap-12";
+export const AUTH_PANE_ROOT_CLASS = "grid gap-12";
 export const AUTH_PANE_CONTENT_CLASS = "grid gap-2";
 export const AUTH_FIELD_CLASS = "gap-2";
 export const AUTH_FIELD_TITLE_CLASS = "text-headline text-label-primary";

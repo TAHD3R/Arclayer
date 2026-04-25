@@ -309,19 +309,21 @@ export function LoginPane(props: LoginPaneProps) {
           </motion.div>
         ) : null}
         {props.publicRegisterEnabled ? (
-          <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
-            <div className="text-body text-label-secondary">
-              <span>{t("auth:NO_ACCOUNT")} </span>
-              <AuthLinkButton
-                className="!px-1 !text-body font-normal"
-                disabled={props.emailCheckLoading || props.loading}
-                onClick={() => props.onSwitchToRegister()}
-                type="button"
-              >
-                {t("auth:CREATE_ACCOUNT")}
-              </AuthLinkButton>
-            </div>
-          </motion.div>
+          <div className="grid mt-4 gap-2">
+            <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
+              <div className="text-body text-label-secondary">
+                <span>{t("auth:NO_ACCOUNT")} </span>
+                <AuthLinkButton
+                  className="!px-1 !text-body font-normal"
+                  disabled={props.emailCheckLoading || props.loading}
+                  onClick={() => props.onSwitchToRegister()}
+                  type="button"
+                >
+                  {t("auth:CREATE_ACCOUNT")}
+                </AuthLinkButton>
+              </div>
+            </motion.div>
+          </div>
         ) : null}
       </div>
     </div>

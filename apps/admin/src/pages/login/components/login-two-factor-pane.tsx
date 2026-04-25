@@ -108,7 +108,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
       >
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
-            <FieldContent className="gap-2">
+            <FieldContent className="gap-2.5">
               <AuthPaneTitleRow
                 title={primaryLabel}
                 action={

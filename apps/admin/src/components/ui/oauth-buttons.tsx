@@ -175,7 +175,7 @@ export function AuthOauthButtons({
   const providerGridClassName =
     providerCount === 3 ? "grid-cols-3" : providerCount >= 4 ? "grid-cols-4" : "";
   const lastUsedLabel = t("auth:OAUTH_LAST_USED");
-  const dividerSpacingClassName = dividerPlacement === "before" ? "pt-3" : "py-2";
+  const dividerSpacingClassName = dividerPlacement === "after" ? "pt-3" : "py-2";
   const divider = (
     <div
       className={`flex items-center gap-3 text-footnote text-label-secondary ${dividerSpacingClassName}`}
@@ -219,7 +219,7 @@ export function AuthOauthButtons({
           {fullWidthLeadingActions.map((action) => (
             <Button
               key={action.key}
-              className="h-10 w-full justify-center rounded-md border-border/80 bg-card/80 px-4 transition-colors hover:bg-accent/35"
+              className="h-10 w-full justify-center rounded-md  px-4 "
               variant="outline"
               size="lg"
               disabled={isBusy}
@@ -248,7 +248,7 @@ export function AuthOauthButtons({
             <Button
               key={action.key}
               className={cn(
-                "h-10 rounded-md border-border/80 bg-card/80 transition-colors hover:bg-accent/35",
+                "h-10 rounded-md  ",
                 isSingleInlineLeadingAction
                   ? "h-10 w-full justify-center px-4"
                   : "w-full justify-center px-3 text-footnote",
@@ -276,7 +276,7 @@ export function AuthOauthButtons({
           {providerActions.map((action) => (
             <Button
               key={action.key}
-              className="relative h-10 w-full justify-center rounded-md border-border/80 bg-card/80 px-4 transition-colors hover:bg-accent/35"
+              className="relative h-10 w-full justify-center rounded-md  px-4 "
               variant="outline"
               size="lg"
               disabled={isBusy || action.isLoading}
@@ -294,7 +294,7 @@ export function AuthOauthButtons({
           {providerActions.map((action) => (
             <Button
               key={action.key}
-              className="relative h-10 w-full justify-center rounded-md border-border/80 bg-card/80 px-3 text-footnote transition-colors hover:bg-accent/35"
+              className="relative h-10 w-full justify-center rounded-md  px-3 text-footnote "
               variant="outline"
               disabled={isBusy || action.isLoading}
               loading={action.isLoading}
@@ -313,7 +313,7 @@ export function AuthOauthButtons({
               <Tooltip key={action.key}>
                 <TooltipTrigger asChild focusTrigger={false}>
                   <Button
-                    className="relative h-11 w-full justify-center rounded-md border-border/80 bg-card/80 px-0 transition-colors hover:bg-accent/35"
+                    className="relative h-11 w-full justify-center rounded-md  px-0 "
                     variant="outline"
                     disabled={isBusy || action.isLoading}
                     loading={action.isLoading}

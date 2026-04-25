@@ -103,7 +103,7 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
       <form className="grid gap-4" autoComplete="on" onSubmit={handleSubmit}>
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
-            <FieldContent className="gap-2">
+            <FieldContent className="gap-2.5">
               <AuthPaneTitleRow title={t("auth:FIELD_EMAIL_LABEL")} />
               <AuthInputControl
                 autoComplete="email"

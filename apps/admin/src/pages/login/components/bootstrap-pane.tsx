@@ -40,7 +40,7 @@ function BootstrapField(props: {
 }) {
   return (
     <Field className={AUTH_FIELD_CLASS}>
-      <FieldContent className="gap-2">
+      <FieldContent className="gap-2.5">
         <AuthPaneTitleRow title={props.title} helpText={props.helpText} />
         {props.children}
         <FieldError>{props.error}</FieldError>
@@ -180,7 +180,7 @@ export function BootstrapPane(props: BootstrapPaneProps) {
       ) : null}
       <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
         <Field className={AUTH_FIELD_CLASS}>
-          <FieldContent className="gap-2">
+          <FieldContent className="gap-2.5">
             <AuthPaneTitleRow
               title={t("auth:FIELD_EMAIL_LABEL")}
               action={
