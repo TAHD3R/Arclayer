@@ -23,6 +23,7 @@ from src.modules.system.schema import (
 from src.modules.system.settings.router import router as system_settings_router
 from src.modules.system.setup.bootstrap_service import InstanceBootstrapService
 from src.modules.system.setup.service import InstanceSetupService
+from src.modules.system.storage_profiles.router import router as system_storage_profiles_router
 from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(tags=["internal.system"])
@@ -96,6 +97,7 @@ async def bootstrap_instance(
 # They live under `/api/v1/system/*` and are guarded directly by super-admin checks
 # rather than the org-scoped RBAC engine.
 router.include_router(system_settings_router, prefix="/settings")
+router.include_router(system_storage_profiles_router, prefix="/storage-profiles")
 router.include_router(system_directory_router, prefix="/directory")
 router.include_router(system_mail_router, prefix="/mail")
 router.include_router(system_rbac_router, prefix="/rbac")

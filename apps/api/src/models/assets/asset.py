@@ -66,6 +66,7 @@ class AssetRecord(BaseModel):
     checksum_sha256 = fields.CharField(max_length=64, null=True, db_index=True)
 
     storage_provider = fields.CharField(max_length=32, default="local")
+    storage_profile_key = fields.CharField(max_length=128, null=True, db_index=True)
     # S3 bucket used for this asset (for dual-bucket deployments). Null for local storage.
     storage_bucket = fields.CharField(max_length=255, null=True, db_index=True)
     object_key = fields.CharField(max_length=1024)

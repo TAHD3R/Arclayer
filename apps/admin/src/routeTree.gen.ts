@@ -30,13 +30,17 @@ import { Route as SystemTenantsUsersIndexRouteImport } from './routes/system/ten
 import { Route as SystemTenantsProjectsIndexRouteImport } from './routes/system/tenants/projects/index'
 import { Route as SystemTenantsOrganizationsIndexRouteImport } from './routes/system/tenants/organizations/index'
 import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
+import { Route as ProjectsProjectIdDeploymentsIndexRouteImport } from './routes/projects/$projectId/deployments/index'
 import { Route as ProjectsProjectIdAssetsIndexRouteImport } from './routes/projects/$projectId/assets/index'
 import { Route as ProjectsProjectIdActivityIndexRouteImport } from './routes/projects/$projectId/activity/index'
 import { Route as ProjectsProjectIdSettingsSeoIndexRouteImport } from './routes/projects/$projectId/settings/seo/index'
 import { Route as ProjectsProjectIdSettingsRuntimeIndexRouteImport } from './routes/projects/$projectId/settings/runtime/index'
 import { Route as ProjectsProjectIdSettingsLocalizationIndexRouteImport } from './routes/projects/$projectId/settings/localization/index'
 import { Route as ProjectsProjectIdSettingsGeneralIndexRouteImport } from './routes/projects/$projectId/settings/general/index'
+import { Route as ProjectsProjectIdSettingsEnvironmentsIndexRouteImport } from './routes/projects/$projectId/settings/environments/index'
 import { Route as ProjectsProjectIdSettingsDomainIndexRouteImport } from './routes/projects/$projectId/settings/domain/index'
+import { Route as ProjectsProjectIdSettingsDeploymentsIndexRouteImport } from './routes/projects/$projectId/settings/deployments/index'
+import { Route as ProjectsProjectIdSettingsDatabasesIndexRouteImport } from './routes/projects/$projectId/settings/databases/index'
 import { Route as ProjectsProjectIdSettingsApiIndexRouteImport } from './routes/projects/$projectId/settings/api/index'
 import { Route as ProjectsProjectIdSettingsApiKeysIndexRouteImport } from './routes/projects/$projectId/settings/api-keys/index'
 import { Route as ProjectsProjectIdContentSiteBuilderIndexRouteImport } from './routes/projects/$projectId/content/site-builder/index'
@@ -168,6 +172,16 @@ const ProjectsProjectIdSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
+const ProjectsProjectIdDeploymentsIndexRoute =
+  ProjectsProjectIdDeploymentsIndexRouteImport.update({
+    id: '/deployments/',
+    path: '/deployments/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/deployments/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdAssetsIndexRoute =
   ProjectsProjectIdAssetsIndexRouteImport.update({
     id: '/assets/',
@@ -212,12 +226,42 @@ const ProjectsProjectIdSettingsGeneralIndexRoute =
     path: '/settings/general/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
+const ProjectsProjectIdSettingsEnvironmentsIndexRoute =
+  ProjectsProjectIdSettingsEnvironmentsIndexRouteImport.update({
+    id: '/settings/environments/',
+    path: '/settings/environments/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/settings/environments/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdSettingsDomainIndexRoute =
   ProjectsProjectIdSettingsDomainIndexRouteImport.update({
     id: '/settings/domain/',
     path: '/settings/domain/',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
+const ProjectsProjectIdSettingsDeploymentsIndexRoute =
+  ProjectsProjectIdSettingsDeploymentsIndexRouteImport.update({
+    id: '/settings/deployments/',
+    path: '/settings/deployments/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/settings/deployments/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const ProjectsProjectIdSettingsDatabasesIndexRoute =
+  ProjectsProjectIdSettingsDatabasesIndexRouteImport.update({
+    id: '/settings/databases/',
+    path: '/settings/databases/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/settings/databases/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdSettingsApiIndexRoute =
   ProjectsProjectIdSettingsApiIndexRouteImport.update({
     id: '/settings/api/',
@@ -350,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
+  '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/tenants/organizations/': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects/': typeof SystemTenantsProjectsIndexRoute
@@ -366,7 +411,10 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api/': typeof ProjectsProjectIdSettingsApiIndexRoute
+  '/projects/$projectId/settings/databases/': typeof ProjectsProjectIdSettingsDatabasesIndexRoute
+  '/projects/$projectId/settings/deployments/': typeof ProjectsProjectIdSettingsDeploymentsIndexRoute
   '/projects/$projectId/settings/domain/': typeof ProjectsProjectIdSettingsDomainIndexRoute
+  '/projects/$projectId/settings/environments/': typeof ProjectsProjectIdSettingsEnvironmentsIndexRoute
   '/projects/$projectId/settings/general/': typeof ProjectsProjectIdSettingsGeneralIndexRoute
   '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
   '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
@@ -390,6 +438,7 @@ export interface FileRoutesByTo {
   '/system/tenants': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets': typeof ProjectsProjectIdAssetsIndexRoute
+  '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/tenants/organizations': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects': typeof SystemTenantsProjectsIndexRoute
@@ -406,7 +455,10 @@ export interface FileRoutesByTo {
   '/projects/$projectId/content/site-builder': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api': typeof ProjectsProjectIdSettingsApiIndexRoute
+  '/projects/$projectId/settings/databases': typeof ProjectsProjectIdSettingsDatabasesIndexRoute
+  '/projects/$projectId/settings/deployments': typeof ProjectsProjectIdSettingsDeploymentsIndexRoute
   '/projects/$projectId/settings/domain': typeof ProjectsProjectIdSettingsDomainIndexRoute
+  '/projects/$projectId/settings/environments': typeof ProjectsProjectIdSettingsEnvironmentsIndexRoute
   '/projects/$projectId/settings/general': typeof ProjectsProjectIdSettingsGeneralIndexRoute
   '/projects/$projectId/settings/localization': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
   '/projects/$projectId/settings/runtime': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
@@ -433,6 +485,7 @@ export interface FileRoutesById {
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
+  '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
   '/system/tenants/organizations/': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects/': typeof SystemTenantsProjectsIndexRoute
@@ -449,7 +502,10 @@ export interface FileRoutesById {
   '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api/': typeof ProjectsProjectIdSettingsApiIndexRoute
+  '/projects/$projectId/settings/databases/': typeof ProjectsProjectIdSettingsDatabasesIndexRoute
+  '/projects/$projectId/settings/deployments/': typeof ProjectsProjectIdSettingsDeploymentsIndexRoute
   '/projects/$projectId/settings/domain/': typeof ProjectsProjectIdSettingsDomainIndexRoute
+  '/projects/$projectId/settings/environments/': typeof ProjectsProjectIdSettingsEnvironmentsIndexRoute
   '/projects/$projectId/settings/general/': typeof ProjectsProjectIdSettingsGeneralIndexRoute
   '/projects/$projectId/settings/localization/': typeof ProjectsProjectIdSettingsLocalizationIndexRoute
   '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
@@ -477,6 +533,7 @@ export interface FileRouteTypes {
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
+    | '/projects/$projectId/deployments/'
     | '/projects/$projectId/settings/'
     | '/system/tenants/organizations/'
     | '/system/tenants/projects/'
@@ -493,7 +550,10 @@ export interface FileRouteTypes {
     | '/projects/$projectId/content/site-builder/'
     | '/projects/$projectId/settings/api-keys/'
     | '/projects/$projectId/settings/api/'
+    | '/projects/$projectId/settings/databases/'
+    | '/projects/$projectId/settings/deployments/'
     | '/projects/$projectId/settings/domain/'
+    | '/projects/$projectId/settings/environments/'
     | '/projects/$projectId/settings/general/'
     | '/projects/$projectId/settings/localization/'
     | '/projects/$projectId/settings/runtime/'
@@ -517,6 +577,7 @@ export interface FileRouteTypes {
     | '/system/tenants'
     | '/projects/$projectId/activity'
     | '/projects/$projectId/assets'
+    | '/projects/$projectId/deployments'
     | '/projects/$projectId/settings'
     | '/system/tenants/organizations'
     | '/system/tenants/projects'
@@ -533,7 +594,10 @@ export interface FileRouteTypes {
     | '/projects/$projectId/content/site-builder'
     | '/projects/$projectId/settings/api-keys'
     | '/projects/$projectId/settings/api'
+    | '/projects/$projectId/settings/databases'
+    | '/projects/$projectId/settings/deployments'
     | '/projects/$projectId/settings/domain'
+    | '/projects/$projectId/settings/environments'
     | '/projects/$projectId/settings/general'
     | '/projects/$projectId/settings/localization'
     | '/projects/$projectId/settings/runtime'
@@ -559,6 +623,7 @@ export interface FileRouteTypes {
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
+    | '/projects/$projectId/deployments/'
     | '/projects/$projectId/settings/'
     | '/system/tenants/organizations/'
     | '/system/tenants/projects/'
@@ -575,7 +640,10 @@ export interface FileRouteTypes {
     | '/projects/$projectId/content/site-builder/'
     | '/projects/$projectId/settings/api-keys/'
     | '/projects/$projectId/settings/api/'
+    | '/projects/$projectId/settings/databases/'
+    | '/projects/$projectId/settings/deployments/'
     | '/projects/$projectId/settings/domain/'
+    | '/projects/$projectId/settings/environments/'
     | '/projects/$projectId/settings/general/'
     | '/projects/$projectId/settings/localization/'
     | '/projects/$projectId/settings/runtime/'
@@ -743,6 +811,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdSettingsIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/deployments/': {
+      id: '/projects/$projectId/deployments/'
+      path: '/deployments'
+      fullPath: '/projects/$projectId/deployments/'
+      preLoaderRoute: typeof ProjectsProjectIdDeploymentsIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/assets/': {
       id: '/projects/$projectId/assets/'
       path: '/assets'
@@ -785,11 +860,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdSettingsGeneralIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/settings/environments/': {
+      id: '/projects/$projectId/settings/environments/'
+      path: '/settings/environments'
+      fullPath: '/projects/$projectId/settings/environments/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsEnvironmentsIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/settings/domain/': {
       id: '/projects/$projectId/settings/domain/'
       path: '/settings/domain'
       fullPath: '/projects/$projectId/settings/domain/'
       preLoaderRoute: typeof ProjectsProjectIdSettingsDomainIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings/deployments/': {
+      id: '/projects/$projectId/settings/deployments/'
+      path: '/settings/deployments'
+      fullPath: '/projects/$projectId/settings/deployments/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsDeploymentsIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
+    '/projects/$projectId/settings/databases/': {
+      id: '/projects/$projectId/settings/databases/'
+      path: '/settings/databases'
+      fullPath: '/projects/$projectId/settings/databases/'
+      preLoaderRoute: typeof ProjectsProjectIdSettingsDatabasesIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
     '/projects/$projectId/settings/api/': {
@@ -914,6 +1010,7 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
   ProjectsProjectIdActivityIndexRoute: typeof ProjectsProjectIdActivityIndexRoute
   ProjectsProjectIdAssetsIndexRoute: typeof ProjectsProjectIdAssetsIndexRoute
+  ProjectsProjectIdDeploymentsIndexRoute: typeof ProjectsProjectIdDeploymentsIndexRoute
   ProjectsProjectIdSettingsIndexRoute: typeof ProjectsProjectIdSettingsIndexRoute
   ProjectsProjectIdContentAutomationIndexRoute: typeof ProjectsProjectIdContentAutomationIndexRoute
   ProjectsProjectIdContentCreateIndexRoute: typeof ProjectsProjectIdContentCreateIndexRoute
@@ -926,7 +1023,10 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdContentSiteBuilderIndexRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   ProjectsProjectIdSettingsApiKeysIndexRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   ProjectsProjectIdSettingsApiIndexRoute: typeof ProjectsProjectIdSettingsApiIndexRoute
+  ProjectsProjectIdSettingsDatabasesIndexRoute: typeof ProjectsProjectIdSettingsDatabasesIndexRoute
+  ProjectsProjectIdSettingsDeploymentsIndexRoute: typeof ProjectsProjectIdSettingsDeploymentsIndexRoute
   ProjectsProjectIdSettingsDomainIndexRoute: typeof ProjectsProjectIdSettingsDomainIndexRoute
+  ProjectsProjectIdSettingsEnvironmentsIndexRoute: typeof ProjectsProjectIdSettingsEnvironmentsIndexRoute
   ProjectsProjectIdSettingsGeneralIndexRoute: typeof ProjectsProjectIdSettingsGeneralIndexRoute
   ProjectsProjectIdSettingsLocalizationIndexRoute: typeof ProjectsProjectIdSettingsLocalizationIndexRoute
   ProjectsProjectIdSettingsRuntimeIndexRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRoute
@@ -938,6 +1038,8 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
   ProjectsProjectIdActivityIndexRoute: ProjectsProjectIdActivityIndexRoute,
   ProjectsProjectIdAssetsIndexRoute: ProjectsProjectIdAssetsIndexRoute,
+  ProjectsProjectIdDeploymentsIndexRoute:
+    ProjectsProjectIdDeploymentsIndexRoute,
   ProjectsProjectIdSettingsIndexRoute: ProjectsProjectIdSettingsIndexRoute,
   ProjectsProjectIdContentAutomationIndexRoute:
     ProjectsProjectIdContentAutomationIndexRoute,
@@ -961,8 +1063,14 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
     ProjectsProjectIdSettingsApiKeysIndexRoute,
   ProjectsProjectIdSettingsApiIndexRoute:
     ProjectsProjectIdSettingsApiIndexRoute,
+  ProjectsProjectIdSettingsDatabasesIndexRoute:
+    ProjectsProjectIdSettingsDatabasesIndexRoute,
+  ProjectsProjectIdSettingsDeploymentsIndexRoute:
+    ProjectsProjectIdSettingsDeploymentsIndexRoute,
   ProjectsProjectIdSettingsDomainIndexRoute:
     ProjectsProjectIdSettingsDomainIndexRoute,
+  ProjectsProjectIdSettingsEnvironmentsIndexRoute:
+    ProjectsProjectIdSettingsEnvironmentsIndexRoute,
   ProjectsProjectIdSettingsGeneralIndexRoute:
     ProjectsProjectIdSettingsGeneralIndexRoute,
   ProjectsProjectIdSettingsLocalizationIndexRoute:

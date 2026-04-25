@@ -29,12 +29,22 @@ import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Textarea } from "@arclayer/ui/textarea";
 
+import { ProjectDeploymentsPage } from "../../deployments/page";
 import { ProjectApiKeysSettingsPage } from "../api-keys/page";
+import { ProjectDatabasesPage } from "../databases/page";
+import { ProjectDomainSettingsPage } from "../domain/page";
+import { ProjectEnvironmentsPage } from "../environments/page";
 
 const PROJECT_NAME_MAX_LENGTH = 128;
 const PROJECT_DESCRIPTION_MAX_LENGTH = 256;
 
-type ProjectSettingsTabKey = "general" | "api";
+type ProjectSettingsTabKey =
+  | "general"
+  | "api"
+  | "domain"
+  | "environments"
+  | "deployments"
+  | "databases";
 
 type ProjectSettingsPageProps = {
   activeTab: ProjectSettingsTabKey;
@@ -87,9 +97,22 @@ function buildProjectIconPatch(values: ProjectIconDialogValues): ProjectUpdateIn
 }
 
 function resolveProjectSettingsTabNavigation(projectId: string, tab: ProjectSettingsTabKey) {
-  return tab === "api"
-    ? { to: "/projects/$projectId/settings/api" as const, params: { projectId } }
-    : { to: "/projects/$projectId/settings/general" as const, params: { projectId } };
+  const params = { projectId };
+  switch (tab) {
+    case "api":
+      return { to: "/projects/$projectId/settings/api" as const, params };
+    case "domain":
+      return { to: "/projects/$projectId/settings/domain" as const, params };
+    case "environments":
+      return { to: "/projects/$projectId/settings/environments" as const, params };
+    case "deployments":
+      return { to: "/projects/$projectId/settings/deployments" as const, params };
+    case "databases":
+      return { to: "/projects/$projectId/settings/databases" as const, params };
+    case "general":
+    default:
+      return { to: "/projects/$projectId/settings/general" as const, params };
+  }
 }
 
 function FieldMessage(props: { message: string | null }) {
@@ -414,6 +437,18 @@ export function ProjectSettingsPage(props: ProjectSettingsPageProps) {
             <ChromeTabsTrigger value="api">
               {t("account:SETTINGS_NAV_PROJECT_API")}
             </ChromeTabsTrigger>
+            <ChromeTabsTrigger value="domain">
+              {t("account:SETTINGS_NAV_PROJECT_DOMAIN")}
+            </ChromeTabsTrigger>
+            <ChromeTabsTrigger value="environments">
+              {t("account:SETTINGS_PROJECT_ENVIRONMENTS_TITLE")}
+            </ChromeTabsTrigger>
+            <ChromeTabsTrigger value="deployments">
+              {t("account:SETTINGS_PROJECT_DEPLOYMENTS_TITLE")}
+            </ChromeTabsTrigger>
+            <ChromeTabsTrigger value="databases">
+              {t("account:SETTINGS_PROJECT_DATABASES_TITLE")}
+            </ChromeTabsTrigger>
           </ChromeTabsList>
         }
       >
@@ -423,6 +458,22 @@ export function ProjectSettingsPage(props: ProjectSettingsPageProps) {
 
         <ChromeTabsContent value="api">
           <ProjectApiKeysSettingsPage projectId={projectId} embedded />
+        </ChromeTabsContent>
+
+        <ChromeTabsContent value="domain">
+          <ProjectDomainSettingsPage projectId={projectId} embedded />
+        </ChromeTabsContent>
+
+        <ChromeTabsContent value="environments">
+          <ProjectEnvironmentsPage projectId={projectId} embedded />
+        </ChromeTabsContent>
+
+        <ChromeTabsContent value="deployments">
+          <ProjectDeploymentsPage projectId={projectId} embedded />
+        </ChromeTabsContent>
+
+        <ChromeTabsContent value="databases">
+          <ProjectDatabasesPage projectId={projectId} embedded />
         </ChromeTabsContent>
       </DefaultPage>
     </ChromeTabs>

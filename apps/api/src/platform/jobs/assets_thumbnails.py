@@ -12,11 +12,18 @@ from tortoise import Tortoise
 from src.config import Settings
 from src.core.logging import get_logger
 from src.models.assets.asset import AssetRecord
+from src.modules.tenancy.database import TenantDatabaseRouter
+from src.modules.tenancy.router_helpers import bind_tenant_context
+from src.modules.tenancy.schema import TenantJobContextPayload
 from src.platform.assets.thumbnails import generate_image_thumbnails
-from src.platform.storage.factory import build_storage_provider_for
+from src.platform.storage.factory import build_storage_provider
 from src.platform.storage.local import safe_object_key_to_path
+from src.platform.storage.profiles import (
+    get_effective_storage_profile,
+    get_storage_profile_by_key,
+    is_local_storage_provider,
+)
 from src.platform.storage.s3 import S3StorageProvider
-from src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
 
@@ -154,7 +161,12 @@ def _is_image_asset(asset: AssetRecord) -> bool:
     return bool((asset.mime or "").startswith("image/") or ext in {"jpg", "jpeg", "png", "webp", "gif"})
 
 
-async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, project_id_raw: str) -> None:
+async def generate_asset_thumbnails(
+    ctx: dict[str, Any],
+    asset_id_raw: str,
+    project_id_raw: str,
+    tenant_payload: dict[str, Any] | None = None,
+) -> None:
     """
     Background job: generate and upload asset thumbnails.
 
@@ -185,6 +197,13 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, proj
         logger.info("Asset thumbnail job skipped (database disabled)", action="asset_thumbs_db_disabled")
         return
 
+    if not isinstance(tenant_payload, dict):
+        raise RuntimeError("TENANT_CONTEXT_REQUIRED")
+
+    tenant_context = TenantJobContextPayload.model_validate(tenant_payload).to_context()
+    bind_tenant_context(tenant_context)
+    tenant_db = TenantDatabaseRouter(tenant_context)
+
     if not Tortoise._inited:
         logger.warning("Asset thumbnail job skipped (ORM not initialized)", action="asset_thumbs_orm_not_ready")
         return
@@ -196,7 +215,8 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, proj
 
     started = datetime.now(UTC)
     try:
-        asset = await AssetRecord.get_or_none(id=asset_id, project_id=project_id, deleted_at=None)
+        async with tenant_db.connection() as conn:
+            asset = await AssetRecord.get_or_none(id=asset_id, project_id=project_id, deleted_at=None, using_db=conn)
         if asset is None:
             return
 
@@ -209,7 +229,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, proj
         if not missing:
             return
 
-        if asset.storage_provider == "local":
+        if is_local_storage_provider(str(asset.storage_provider)):
             in_path = safe_object_key_to_path(settings.storage.local_root_dir, asset.object_key)
             if not in_path.is_file():
                 return
@@ -225,9 +245,13 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, proj
                 widths=missing,
             )
 
-        elif asset.storage_provider == "s3":
-            effective = await get_effective_settings(settings)
-            provider = build_storage_provider_for(effective, provider="s3")
+        else:
+            profile_key = str(getattr(asset, "storage_profile_key", "") or "")
+            if profile_key:
+                profile = await get_storage_profile_by_key(settings=settings, profile_key=profile_key)
+            else:
+                _key, profile = await get_effective_storage_profile(settings)
+            provider = build_storage_provider(profile)
             if not isinstance(provider, S3StorageProvider):
                 return
 
@@ -327,11 +351,9 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, proj
                         error=str(cleanup_exc),
                     )
 
-        else:
-            return
-
         # Merge and persist (avoid overwriting concurrent metadata updates).
-        latest = await AssetRecord.get_or_none(id=asset_id, project_id=project_id, deleted_at=None)
+        async with tenant_db.connection() as conn:
+            latest = await AssetRecord.get_or_none(id=asset_id, project_id=project_id, deleted_at=None, using_db=conn)
         if latest is None:
             return
 
@@ -352,7 +374,8 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, proj
 
         latest.variants = variants
         latest.meta = meta
-        await latest.save(update_fields=["variants", "meta", "updated_at"])
+        async with tenant_db.connection() as conn:
+            await latest.save(update_fields=["variants", "meta", "updated_at"], using_db=conn)
 
         elapsed_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
         logger.info(

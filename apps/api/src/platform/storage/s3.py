@@ -4,63 +4,33 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from pydantic import ConfigDict
+from src.platform.storage.profile_schema import StorageProfileConfig
+from src.platform.storage.providers.base import ObjectGet, ObjectHead, ObjectStorageProvider, PresignedPart
 
-from src.common.schemas import BaseSchema
-from src.config import Settings
-
-
-class PresignedPart(BaseSchema):
-    model_config = ConfigDict(frozen=True)
-
-    url: str
-    method: str = "PUT"
-    headers: dict[str, str] | None = None
+S3HeadObject = ObjectHead
+S3GetObject = ObjectGet
 
 
-class S3HeadObject(BaseSchema):
-    model_config = ConfigDict(frozen=True)
-
-    size_bytes: int
-    content_type: str | None
-    etag: str | None
-
-
-class S3GetObject(BaseSchema):
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
-
-    body: Any
-    content_type: str | None
-    content_length: int | None
-    etag: str | None
-
-
-class S3StorageProvider:
-    provider = "s3"
-
-    def __init__(self, settings: Settings, *, bucket: str | None = None) -> None:
-        self.settings = settings
-
-        storage = settings.storage
-        configured_bucket = (bucket or storage.s3_bucket or "").strip() or None
+class S3StorageProvider(ObjectStorageProvider):
+    def __init__(self, config: StorageProfileConfig) -> None:
+        super().__init__(config)
+        configured_bucket = self.require_bucket()
         if not configured_bucket:
-            raise ValueError("STORAGE__S3_BUCKET is required when provider=s3")
-        if not storage.s3_endpoint_url:
-            raise ValueError("STORAGE__S3_ENDPOINT_URL is required when provider=s3")
-        if not storage.s3_access_key_id or not storage.s3_secret_access_key:
-            raise ValueError(
-                "STORAGE__S3_ACCESS_KEY_ID and STORAGE__S3_SECRET_ACCESS_KEY are required when provider=s3"
-            )
+            raise ValueError(f"bucket is required when provider={self.kind.value}")
+        if not config.endpoint_url:
+            raise ValueError(f"endpoint_url is required when provider={self.kind.value}")
+        if not config.access_key_id or not config.secret_access_key:
+            raise ValueError(f"credentials are required when provider={self.kind.value}")
 
         self.bucket = configured_bucket
-        self.endpoint_url = storage.s3_endpoint_url
-        self.region = storage.s3_region
-        self.force_path_style = bool(storage.s3_force_path_style)
-        self.access_key_id = storage.s3_access_key_id
-        self.secret_access_key = storage.s3_secret_access_key.get_secret_value()
+        self.endpoint_url = config.endpoint_url
+        self.region = config.region
+        self.force_path_style = bool(config.force_path_style)
+        self.access_key_id = config.access_key_id
+        self.secret_access_key = config.secret_access_key.get_secret_value()
 
     def with_bucket(self, bucket: str) -> S3StorageProvider:
-        return S3StorageProvider(self.settings, bucket=bucket)
+        return S3StorageProvider(self.config.model_copy(update={"bucket": bucket}))
 
     def _client(self):
         # Lazy import: keep dev/test usable even if boto3 isn't installed,

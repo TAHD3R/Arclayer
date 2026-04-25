@@ -9,6 +9,9 @@ from src.models.content._enums import ContentItemStatus, ContentVersionState
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
 from tests.modules.projects.helpers import (
+    bind_project_route,
+    create_project_page_model,
+    create_project_publishable_page_item,
     project_page_draft_payload,
     setup_project_publishable_items,
 )
@@ -18,6 +21,25 @@ from tests.modules.workspaces.content.test_content_items_integration import (
 )
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.mark.asyncio
+async def test_project_content_allows_same_slugs_across_workspaces(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    created: list[tuple[str, str, str]] = []
+
+    for _index in range(2):
+        async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+            await create_project_page_model(client, project_id)
+            item_id = await create_project_publishable_page_item(client, project_id, title="Home")
+            await bind_project_route(client, project_id, item_id, path="/")
+            created.append((workspace_id, project_id, item_id))
+
+    assert created[0][0] != created[1][0]
+    assert created[0][1] != created[1][1]
+    assert created[0][2] != created[1][2]
 
 
 @pytest.mark.asyncio

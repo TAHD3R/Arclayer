@@ -17,6 +17,7 @@ class AssetPublicView(BaseSchema):
     original_filename: str | None
     object_key: str
     storage_bucket: str | None
+    storage_profile_key: str | None = None
     indexable: bool
     variants: dict | None
     storage_provider: str

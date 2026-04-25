@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from src.core.exceptions import NotFound
+from src.modules.projects.runtime import service as runtime_service
 from src.modules.projects.runtime.service import ProjectRuntimeService
 
 
@@ -69,7 +70,32 @@ async def test_project_runtime_service_reuses_attached_runtime_site(monkeypatch)
         assert runtime_id == runtime.id
         return site
 
+    async def fake_workspace_get(*, id):
+        assert id == workspace_id
+        return SimpleNamespace(id=workspace_id, organization_id=uuid4())
+
+    async def fake_bind_workspace_tenant_context(*, workspace_id, organization_id):
+        return None
+
+    def fake_bind_project_tenant_context(**kwargs):
+        from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode
+
+        return TenantContext(
+            identity=TenantIdentity(
+                organization_id=uuid4(),
+                workspace_id=workspace_id,
+                project_id=project_id,
+                runtime_id=runtime_id,
+                site_id=site_id,
+                schema_name="cms_ws_1234567890abcdefghij",
+                isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
+            )
+        )
+
     monkeypatch.setattr(service.project_repo, "get_runtime_site", fake_get_runtime_site)
+    monkeypatch.setattr(runtime_service.Workspace, "get", fake_workspace_get)
+    monkeypatch.setattr(runtime_service, "bind_workspace_tenant_context", fake_bind_workspace_tenant_context)
+    monkeypatch.setattr(runtime_service, "bind_project_tenant_context", fake_bind_project_tenant_context)
 
     context = await service._build_context(runtime=runtime, workspace_id=workspace_id, actor_user_id=None)
 

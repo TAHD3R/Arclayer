@@ -63,6 +63,7 @@ def _runtime_delivery_target(runtime_context: ProjectRuntimeContext) -> RuntimeD
     return RuntimeDeliveryTarget(
         runtime_id=runtime_context.runtime_id,
         site_id=runtime_context.site_id,
+        tenant_context=runtime_context.tenant_context,
     )
 
 
@@ -103,7 +104,7 @@ async def create_project_site_preview_token(
         runtime_service=runtime_service,
     )
     data = await kernel.create_preview_token(
-        site_id=runtime_context.site_id,
+        target=_runtime_delivery_target(runtime_context),
         ttl_seconds=payload.ttl_seconds,
     )
     try:

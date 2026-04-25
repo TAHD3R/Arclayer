@@ -55,6 +55,8 @@ def _build_item(*, title: str = "Stored Title", slug: str = "stored-slug") -> Si
         shape_state="ready",
         shape_reason_code=None,
         shape_reason_meta=None,
+        created_by_user_id=None,
+        updated_by_user_id=None,
         draft_version=2,
         published_version=1,
         updated_at=now,

@@ -1,34 +1,12 @@
 from __future__ import annotations
 
-from src.config import Settings
+from src.platform.storage.capabilities import ObjectStorageProviderKind
 from src.platform.storage.core_factories import CoreLocalStorageProviderFactory, CoreS3StorageProviderFactory
-from src.platform.storage.registry import StorageProviderFactory
+from src.platform.storage.profile_schema import StorageProfileConfig
 
 
-def build_storage_provider_for(settings: Settings, *, provider: str):
-    """
-    Build a storage provider by name.
-
-    This is intentionally infrastructure-level wiring; domain services should depend on
-    a provider interface, not directly on Settings.
-    """
-
-    factories: list[StorageProviderFactory] = [
-        CoreLocalStorageProviderFactory(),
-        CoreS3StorageProviderFactory(),
-    ]
-
-    for factory in factories:
-        if getattr(factory, "provider", None) == provider:
-            built = factory.build(settings)
-            return built
-
-    raise ValueError(f"unknown storage provider: {provider}")
-
-
-def build_storage_provider(settings: Settings):
-    """
-    Build the active storage provider from settings.storage.provider.
-    """
-
-    return build_storage_provider_for(settings, provider=settings.storage.provider)
+def build_storage_provider(profile_config: StorageProfileConfig):
+    provider_kind = ObjectStorageProviderKind(profile_config.provider)
+    if provider_kind == ObjectStorageProviderKind.LOCAL:
+        return CoreLocalStorageProviderFactory().build(profile_config)
+    return CoreS3StorageProviderFactory().build(profile_config)

@@ -176,6 +176,8 @@ def test_build_graphql_query_plan_normalizes_and_bounds_query_inputs() -> None:
 @pytest.mark.asyncio
 async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> None:
     service = _service()
+    runtime_id = UUID("00000000-0000-0000-0000-000000000222")
+    site_id = UUID("00000000-0000-0000-0000-000000000111")
     service._document_runtime_boundary = SimpleNamespace(
         build_query_boundary=lambda records: SimpleNamespace(execute=lambda query: SimpleNamespace(records=records))
     )
@@ -196,9 +198,13 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
         ),
     ]
 
+    async def _resolve_site_id(*, runtime_id):  # type: ignore[no-untyped-def]
+        assert runtime_id == UUID("00000000-0000-0000-0000-000000000222")
+        return site_id
+
     async def _list_plan_records(plan):  # type: ignore[no-untyped-def]
         assert plan == GraphQLQueryPlan(
-            site_id=UUID("00000000-0000-0000-0000-000000000111"),
+            site_id=site_id,
             model_key="article",
             perspective="published",
             exact_filters={"revision_state": "published"},
@@ -210,6 +216,7 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
         )
         return records
 
+    service._resolve_site_id = _resolve_site_id  # type: ignore[method-assign]
     service._list_plan_records = _list_plan_records  # type: ignore[method-assign]
     service._to_structured_record = lambda record: StructuredContentRecord(  # type: ignore[method-assign]
         item_id=record.item.id,
@@ -226,7 +233,7 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
     )
 
     result = await service.list_records(
-        site_id=UUID("00000000-0000-0000-0000-000000000111"),
+        runtime_id=runtime_id,
         model_key="article",
         perspective="published",
         exact_filters={"revision_state": "published"},
@@ -243,6 +250,8 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
 @pytest.mark.asyncio
 async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pytest.MonkeyPatch) -> None:
     service = _service()
+    runtime_id = UUID("00000000-0000-0000-0000-000000000222")
+    site_id = UUID("00000000-0000-0000-0000-000000000111")
     service._document_runtime_boundary = SimpleNamespace(
         build_query_boundary=lambda records: SimpleNamespace(execute=lambda query: SimpleNamespace(records=records))
     )
@@ -266,6 +275,11 @@ async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pyte
     async def _list_plan_records(plan):  # type: ignore[no-untyped-def]
         return records
 
+    async def _resolve_site_id(*, runtime_id):  # type: ignore[no-untyped-def]
+        assert runtime_id == UUID("00000000-0000-0000-0000-000000000222")
+        return site_id
+
+    service._resolve_site_id = _resolve_site_id  # type: ignore[method-assign]
     service._list_plan_records = _list_plan_records  # type: ignore[method-assign]
     service._to_structured_record = lambda record: StructuredContentRecord(  # type: ignore[method-assign]
         item_id=record.item.id,
@@ -293,7 +307,7 @@ async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pyte
     )
 
     result = await service.list_records(
-        site_id=UUID("00000000-0000-0000-0000-000000000111"),
+        runtime_id=runtime_id,
         model_key="article",
         perspective="published",
     )
@@ -431,6 +445,7 @@ def _service() -> Any:
 async def test_resolve_query_access_public_published_logs_without_key() -> None:
     service = _service()
     request = _request()
+    runtime_id = uuid4()
     site_id = uuid4()
     logged: list[tuple[str, str | None]] = []
 
@@ -440,10 +455,16 @@ async def test_resolve_query_access_public_published_logs_without_key() -> None:
     def _log_query_access(**kwargs):  # type: ignore[no-untyped-def]
         logged.append((kwargs["perspective"], kwargs.get("preview_token")))
 
+    async def _resolve_site_id(*, runtime_id: UUID):
+        return site_id
+
+    service._resolve_site_id = _resolve_site_id  # type: ignore[method-assign]
     service._authenticate_delivery_key = _authenticate_delivery_key  # type: ignore[method-assign]
     service._log_query_access = _log_query_access  # type: ignore[method-assign]
 
-    await service.resolve_query_access(site_id=site_id, request=request, perspective="published", preview_token=None)
+    await service.resolve_query_access(
+        runtime_id=runtime_id, request=request, perspective="published", preview_token=None
+    )
 
     assert logged == [("published", None)]
 
@@ -452,6 +473,7 @@ async def test_resolve_query_access_public_published_logs_without_key() -> None:
 async def test_resolve_query_access_preview_uses_preview_token_flow() -> None:
     service = _service()
     request = _request()
+    runtime_id = uuid4()
     site_id = uuid4()
     preview_calls: list[tuple[object, str, str | None]] = []
     logged: list[tuple[str, str | None]] = []
@@ -465,12 +487,16 @@ async def test_resolve_query_access_preview_uses_preview_token_flow() -> None:
     def _log_query_access(**kwargs):  # type: ignore[no-untyped-def]
         logged.append((kwargs["perspective"], kwargs["preview_token"]))
 
+    async def _resolve_site_id(*, runtime_id: UUID):
+        return site_id
+
+    service._resolve_site_id = _resolve_site_id  # type: ignore[method-assign]
     service._authenticate_delivery_key = _authenticate_delivery_key  # type: ignore[method-assign]
     service._site_service = SimpleNamespace(assert_preview_access_async=_assert_preview_access_async)
     service._log_query_access = _log_query_access  # type: ignore[method-assign]
 
     await service.resolve_query_access(
-        site_id=site_id,
+        runtime_id=runtime_id,
         request=request,
         perspective="preview",
         preview_token="preview-token",
@@ -484,6 +510,8 @@ async def test_resolve_query_access_preview_uses_preview_token_flow() -> None:
 async def test_resolve_query_access_rejects_wrong_scope_for_published_key() -> None:
     service = _service()
     request = _request()
+    runtime_id = uuid4()
+    site_id = uuid4()
     api_key = AuthenticatedDeliveryKey(
         record=_api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED),
         granted_actions=frozenset(),
@@ -493,11 +521,15 @@ async def test_resolve_query_access_rejects_wrong_scope_for_published_key() -> N
     async def _authenticate_delivery_key(*, request, site_id):  # type: ignore[no-untyped-def]
         return api_key
 
+    async def _resolve_site_id(*, runtime_id: UUID):
+        return site_id
+
+    service._resolve_site_id = _resolve_site_id  # type: ignore[method-assign]
     service._authenticate_delivery_key = _authenticate_delivery_key  # type: ignore[method-assign]
 
     with pytest.raises(Forbidden) as exc:
         await service.resolve_query_access(
-            site_id=uuid4(),
+            runtime_id=runtime_id,
             request=request,
             perspective="published",
             preview_token=None,
@@ -510,6 +542,8 @@ async def test_resolve_query_access_rejects_wrong_scope_for_published_key() -> N
 async def test_resolve_query_access_rejects_wrong_perspective_for_preview_key() -> None:
     service = _service()
     request = _request()
+    runtime_id = uuid4()
+    site_id = uuid4()
     api_key = AuthenticatedDeliveryKey(
         record=_api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED),
         granted_actions=frozenset({"project:delivery:graphql:read"}),
@@ -519,11 +553,15 @@ async def test_resolve_query_access_rejects_wrong_perspective_for_preview_key() 
     async def _authenticate_delivery_key(*, request, site_id):  # type: ignore[no-untyped-def]
         return api_key
 
+    async def _resolve_site_id(*, runtime_id: UUID):
+        return site_id
+
+    service._resolve_site_id = _resolve_site_id  # type: ignore[method-assign]
     service._authenticate_delivery_key = _authenticate_delivery_key  # type: ignore[method-assign]
 
     with pytest.raises(Forbidden) as exc:
         await service.resolve_query_access(
-            site_id=uuid4(),
+            runtime_id=runtime_id,
             request=request,
             perspective="preview",
             preview_token=None,
@@ -535,7 +573,7 @@ async def test_resolve_query_access_rejects_wrong_perspective_for_preview_key() 
 @pytest.mark.asyncio
 async def test_delivery_record_lookup_helpers_and_snapshot_edges() -> None:
     service = _service()
-    site_id = uuid4()
+    runtime_id = uuid4()
     article = _article_record(slug="hello")
     page = _article_record(model_key="page", slug="page", route_path="/pricing", fields={"path": "/pricing"})
     section = _article_record(
@@ -544,7 +582,7 @@ async def test_delivery_record_lookup_helpers_and_snapshot_edges() -> None:
         slug="header",
     )
 
-    async def _list_records(*, site_id, model_key, perspective, **kwargs):  # type: ignore[no-untyped-def]
+    async def _list_records(*, runtime_id, model_key, perspective, **kwargs):  # type: ignore[no-untyped-def]
         if model_key == "article":
             return [article]
         if model_key == "page":
@@ -556,17 +594,23 @@ async def test_delivery_record_lookup_helpers_and_snapshot_edges() -> None:
     service.list_records = _list_records  # type: ignore[method-assign]
 
     assert (
-        await service.get_record_by_slug(site_id=site_id, model_key="article", slug="  ", perspective="preview") is None
+        await service.get_record_by_slug(runtime_id=runtime_id, model_key="article", slug="  ", perspective="preview")
+        is None
     )
     assert (
-        await service.get_record_by_slug(site_id=site_id, model_key="article", slug="hello", perspective="preview")
+        await service.get_record_by_slug(
+            runtime_id=runtime_id,
+            model_key="article",
+            slug="hello",
+            perspective="preview",
+        )
         == article
     )
-    assert await service.get_page_record_by_path(site_id=site_id, path=" ", perspective="preview") is None
-    assert await service.get_page_record_by_path(site_id=site_id, path="/pricing", perspective="preview") == page
+    assert await service.get_page_record_by_path(runtime_id=runtime_id, path=" ", perspective="preview") is None
+    assert await service.get_page_record_by_path(runtime_id=runtime_id, path="/pricing", perspective="preview") == page
     assert (
         await service.get_reusable_section_record_by_alias(
-            site_id=site_id,
+            runtime_id=runtime_id,
             alias="header-main",
             perspective="preview",
         )
@@ -574,7 +618,7 @@ async def test_delivery_record_lookup_helpers_and_snapshot_edges() -> None:
     )
     assert (
         await service.get_reusable_section_record_by_alias(
-            site_id=site_id,
+            runtime_id=runtime_id,
             alias=" ",
             perspective="preview",
         )

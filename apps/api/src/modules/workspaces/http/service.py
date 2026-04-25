@@ -18,6 +18,7 @@ from src.models.workspaces.workspace import (
     WorkspaceMembershipStatus,
 )
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.tenancy.router_helpers import bind_workspace_tenant_context
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
 from src.modules.workspaces.runtime.service import set_current_workspace_context
 
@@ -129,6 +130,7 @@ async def _resolve_guest_workspace_context(
         organization_id=organization_id,
         membership_id=membership_id,
     )
+    await bind_workspace_tenant_context(workspace_id=workspace_uuid, organization_id=organization_id)
     return WorkspaceContext(
         workspace_id=workspace_uuid,
         organization_id=organization_id,
@@ -183,6 +185,7 @@ async def _resolve_member_workspace_context(
         organization_id=organization_id,
         membership_id=membership_id,
     )
+    await bind_workspace_tenant_context(workspace_id=workspace_uuid, organization_id=organization_id)
     return WorkspaceContext(
         workspace_id=workspace_uuid,
         organization_id=organization_id,

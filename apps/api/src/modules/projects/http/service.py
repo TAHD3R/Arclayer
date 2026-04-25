@@ -10,6 +10,8 @@ from src.common.types.public_uuid import PublicUUID
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.repository import ProjectRepository
+from src.modules.tenancy.router_helpers import bind_project_tenant_context
+from src.modules.tenancy.schema import TenantScope
 from src.modules.workspaces.http.service import (
     find_active_org_membership,
     require_active_workspace,
@@ -46,6 +48,11 @@ async def get_project_context(
         )
 
     runtime = await repo.get_primary_runtime(project_id=project.id)
+    bind_project_tenant_context(
+        project_id=project.id,
+        runtime_id=runtime.id if runtime is not None else None,
+        scope=TenantScope.PROJECT,
+    )
     return ProjectRequestContext(
         project_id=project.id,
         workspace_id=workspace_id,

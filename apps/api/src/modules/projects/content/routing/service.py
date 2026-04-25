@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any, Literal
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
-from tortoise.transactions import in_transaction
 
 from src.core.exceptions import Conflict, NotFound
 from src.models.content.content_item import ContentItemRecord
@@ -20,6 +20,8 @@ from src.modules.projects.content.routing.schema import (
     RoutePrimarySourceOut,
 )
 from src.modules.sites.shared.service import normalize_path
+from src.modules.tenancy.database import TenantDatabaseRouter
+from src.modules.tenancy.schema import TenantContext
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,7 +193,13 @@ def _to_hierarchy_node_out(record: HierarchyNodeRecord) -> HierarchyNodeOut:
     )
 
 
-async def _get_item_with_model(*, workspace_id: UUID, site_id: UUID, item_id: UUID) -> ContentItemRecord:
+async def _get_item_with_model(
+    *,
+    workspace_id: UUID,
+    site_id: UUID,
+    item_id: UUID,
+    conn: BaseDBAsyncClient,
+) -> ContentItemRecord:
     item = (
         await ContentItemRecord
         .filter(
@@ -199,6 +207,7 @@ async def _get_item_with_model(*, workspace_id: UUID, site_id: UUID, item_id: UU
             site_id=site_id,
             id=item_id,
         )
+        .using_db(conn)
         .prefetch_related("model_definition")
         .first()
     )
@@ -207,7 +216,13 @@ async def _get_item_with_model(*, workspace_id: UUID, site_id: UUID, item_id: UU
     return item
 
 
-async def _ensure_no_hierarchy_cycle(*, site_id: UUID, item_id: UUID, parent_item_id: UUID | None) -> None:
+async def _ensure_no_hierarchy_cycle(
+    *,
+    site_id: UUID,
+    item_id: UUID,
+    parent_item_id: UUID | None,
+    conn: BaseDBAsyncClient,
+) -> None:
     if parent_item_id is None:
         return
     if parent_item_id == item_id:
@@ -217,7 +232,7 @@ async def _ensure_no_hierarchy_cycle(*, site_id: UUID, item_id: UUID, parent_ite
     while cursor is not None:
         if cursor == item_id:
             raise Conflict("Parent cycle detected", error="CONTENT_HIERARCHY_CYCLE")
-        node = await HierarchyNodeRecord.get_or_none(site_id=site_id, item_id=cursor)
+        node = await HierarchyNodeRecord.get_or_none(site_id=site_id, item_id=cursor, using_db=conn)
         cursor = node.parent_item_id if node is not None else None
 
 
@@ -241,9 +256,18 @@ async def _ensure_no_pattern_conflict(
 
 
 class ProjectContentRoutingService:
+    def __init__(self, tenant_context: TenantContext) -> None:
+        self.tenant_db = TenantDatabaseRouter(tenant_context)
+
     async def list_route_bindings(self, *, workspace_id: UUID, site_id: UUID) -> list[RouteBindingOut]:
-        rows = await RouteBindingRecord.filter(workspace_id=workspace_id, site_id=site_id).order_by("locale", "path")
-        return [_to_route_binding_out(row) for row in rows]
+        async with self.tenant_db.connection() as conn:
+            rows = (
+                await RouteBindingRecord
+                .filter(workspace_id=workspace_id, site_id=site_id)
+                .using_db(conn)
+                .order_by("locale", "path")
+            )
+            return [_to_route_binding_out(row) for row in rows]
 
     async def upsert_route_binding(
         self,
@@ -253,14 +277,13 @@ class ProjectContentRoutingService:
         item_id: UUID,
         payload: RouteBindingUpsertIn,
     ) -> RouteBindingOut:
-        item = await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=item_id)
-        if not item_has_capability(item, "routable"):
-            raise Conflict("Content item is not routable", error="CONTENT_ITEM_NOT_ROUTABLE")
-
         locale = payload.locale.strip() or "zh-CN"
         contract = build_route_contract(payload)
         pattern = parse_route_pattern(payload.path, route_mode=payload.route_mode)
-        async with in_transaction() as conn:
+        async with self.tenant_db.connection() as conn:
+            item = await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=item_id, conn=conn)
+            if not item_has_capability(item, "routable"):
+                raise Conflict("Content item is not routable", error="CONTENT_ITEM_NOT_ROUTABLE")
             await _ensure_no_pattern_conflict(
                 site_id=site_id,
                 locale=locale,
@@ -300,8 +323,14 @@ class ProjectContentRoutingService:
         return _to_route_binding_out(record)
 
     async def list_hierarchy_nodes(self, *, workspace_id: UUID, site_id: UUID) -> list[HierarchyNodeOut]:
-        rows = await HierarchyNodeRecord.filter(workspace_id=workspace_id, site_id=site_id).order_by("sort_order", "id")
-        return [_to_hierarchy_node_out(row) for row in rows]
+        async with self.tenant_db.connection() as conn:
+            rows = (
+                await HierarchyNodeRecord
+                .filter(workspace_id=workspace_id, site_id=site_id)
+                .using_db(conn)
+                .order_by("sort_order", "id")
+            )
+            return [_to_hierarchy_node_out(row) for row in rows]
 
     async def upsert_hierarchy_node(
         self,
@@ -311,16 +340,25 @@ class ProjectContentRoutingService:
         item_id: UUID,
         payload: HierarchyNodeUpsertIn,
     ) -> HierarchyNodeOut:
-        item = await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=item_id)
-        if not item_has_capability(item, "treeable"):
-            raise Conflict("Content item is not treeable", error="CONTENT_ITEM_NOT_TREEABLE")
-
         parent_item_id = payload.parent_item_id
-        if parent_item_id is not None:
-            await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=parent_item_id)
-            await _ensure_no_hierarchy_cycle(site_id=site_id, item_id=item_id, parent_item_id=parent_item_id)
+        async with self.tenant_db.connection() as conn:
+            item = await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=item_id, conn=conn)
+            if not item_has_capability(item, "treeable"):
+                raise Conflict("Content item is not treeable", error="CONTENT_ITEM_NOT_TREEABLE")
 
-        async with in_transaction() as conn:
+            if parent_item_id is not None:
+                await _get_item_with_model(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=parent_item_id,
+                    conn=conn,
+                )
+                await _ensure_no_hierarchy_cycle(
+                    site_id=site_id,
+                    item_id=item_id,
+                    parent_item_id=parent_item_id,
+                    conn=conn,
+                )
             record = (
                 await HierarchyNodeRecord
                 .filter(site_id=site_id, item_id=item_id)

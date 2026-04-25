@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import time
 
-from pydantic import SecretStr
 from tortoise.exceptions import OperationalError
 
 from src.config import Settings
@@ -120,20 +119,10 @@ async def get_effective_settings(settings: Settings) -> Settings:
 
     updates: dict[str, object] = {}
 
-    # Provider (only accept known values).
-    if "provider" in storage_section:
-        provider = _safe_str(storage_section.get("provider"))
-        if provider in {"local", "s3"}:
-            updates["provider"] = provider
-
-    # Public base url is optional; allow explicit None to clear.
-    if "public_base_url" in storage_section:
-        updates["public_base_url"] = _safe_str(storage_section.get("public_base_url"))
-
-    if "public_delivery_mode" in storage_section:
-        mode = _safe_str(storage_section.get("public_delivery_mode"))
-        if mode in {"auto", "direct", "presign"}:
-            updates["public_delivery_mode"] = mode
+    if "default_profile_key" in storage_section:
+        default_profile_key = _safe_str(storage_section.get("default_profile_key"))
+        if default_profile_key:
+            updates["default_profile_key"] = default_profile_key
 
     # Upload policy overrides.
     for key in [
@@ -142,37 +131,13 @@ async def get_effective_settings(settings: Settings) -> Settings:
         "upload_max_avatar_size_mb",
         "upload_max_site_logo_size_mb",
         "upload_max_favicon_size_mb",
-        "s3_presign_expires_seconds",
+        "upload_session_ttl_seconds",
+        "recycle_bin_retention_days",
     ]:
         if key in storage_section:
             v = _safe_int(storage_section.get(key))
             if v is not None:
                 updates[key] = v
-
-    # S3 config overrides (allow explicit None).
-    for key in [
-        "s3_endpoint_url",
-        "s3_region",
-        "s3_bucket",
-        "s3_public_bucket",
-        "s3_access_key_id",
-    ]:
-        if key in storage_section:
-            updates[key] = _safe_str(storage_section.get(key))
-
-    if "s3_force_path_style" in storage_section:
-        b = _safe_bool(storage_section.get("s3_force_path_style"))
-        if b is not None:
-            updates["s3_force_path_style"] = b
-
-    if "s3_secret_access_key" in storage_section:
-        sec = storage_section.get("s3_secret_access_key")
-        if sec is None:
-            updates["s3_secret_access_key"] = None
-        else:
-            s = _safe_str(sec)
-            if s is not None:
-                updates["s3_secret_access_key"] = SecretStr(s)
 
     if not updates:
         return settings

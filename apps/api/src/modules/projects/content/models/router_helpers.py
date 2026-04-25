@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-from typing import cast
+from typing import Annotated, cast
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
 from fastapi import Request
+from fastapi.params import Depends
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
@@ -25,6 +26,8 @@ from src.modules.projects.content.models.canonical_service import (
 )
 from src.modules.projects.content.models.repository import ProjectContentModelsRepository
 from src.modules.projects.http.schema import ProjectRequestContext
+from src.modules.projects.http.service import get_project_context
+from src.modules.tenancy.router_helpers import resolve_project_tenant_context
 
 
 class ContentModelMutationOut(BaseSchema):
@@ -187,8 +190,12 @@ async def publish_content_model_activity_event(
         return
 
 
-def get_project_content_canonical_models_service() -> ProjectContentCanonicalModelsService:
+def get_project_content_canonical_models_service(
+    ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+) -> ProjectContentCanonicalModelsService:
     return ProjectContentCanonicalModelsService(
-        repo=ProjectContentModelsRepository(),
+        repo=ProjectContentModelsRepository(
+            resolve_project_tenant_context(project_id=ctx.project_id, runtime_id=ctx.runtime_id)
+        ),
         settings=get_settings(),
     )

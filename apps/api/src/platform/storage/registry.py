@@ -2,23 +2,18 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from src.config import Settings
+from src.platform.storage.capabilities import ObjectStorageCapabilities, ObjectStorageProviderKind
+from src.platform.storage.profile_schema import StorageProfileConfig
 
 
 class StorageProvider(Protocol):
-    """
-    Storage provider interface used by the application.
-
-    Notes:
-    - Keep it minimal and focused on the capabilities we actually need now.
-    - Provider-specific APIs (e.g. S3 multipart) are exposed via optional methods
-      on concrete implementations (checked via hasattr / isinstance).
-    """
-
     provider: str
+    kind: ObjectStorageProviderKind
+    capabilities: ObjectStorageCapabilities
+    config: StorageProfileConfig
 
 
 class StorageProviderFactory(Protocol):
-    provider: str
+    provider: ObjectStorageProviderKind
 
-    def build(self, settings: Settings) -> StorageProvider: ...
+    def build(self, profile_config: StorageProfileConfig) -> StorageProvider: ...

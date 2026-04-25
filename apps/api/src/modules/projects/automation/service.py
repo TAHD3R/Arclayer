@@ -51,6 +51,7 @@ from src.modules.projects.content.items.input_schema import ContentItemWorkflowP
 from src.modules.projects.content.items.read_service import ProjectContentCanonicalItemReadService
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 from src.modules.projects.releases.service import ProjectReleasesService
+from src.modules.tenancy.router_helpers import bind_tenant_context, require_tenant_context_from_payload
 
 logger = get_logger(__name__)
 DEFAULT_HTTP_TIMEOUT_S = 5.0
@@ -292,6 +293,13 @@ class ProjectAutomationService:
         workspace_id = self._workspace_id_from_payload(event.payload)
         if workspace_id is None:
             return []
+        tenant_context = (
+            require_tenant_context_from_payload(event.payload)
+            if isinstance(event.payload, dict) and "tenant" in event.payload
+            else None
+        )
+        if tenant_context is not None:
+            bind_tenant_context(tenant_context)
         project_id = self._project_id_from_event_payload(event.payload)
         if project_id is not None:
             flows = await self.repo.list_enabled_project_flows_for_event(
@@ -504,11 +512,12 @@ class ProjectAutomationService:
     async def _execute_content_read(
         self, *, config: dict[str, Any], event: Event, workspace_id: UUID
     ) -> dict[str, Any]:
+        tenant_context = require_tenant_context_from_payload(event.payload if isinstance(event.payload, dict) else None)
         item_id = self._uuid_from_config_or_event(config, event, "itemId", "entity_id")
         site_id = self._uuid_from_config_or_event(config, event, "siteId", "site_id")
         if item_id is None or site_id is None:
             raise BadRequest("Content read requires itemId and siteId.", error="AUTOMATION_CONTENT_READ_INVALID")
-        service = ProjectContentCanonicalItemReadService(repo=ProjectContentItemsRepository())
+        service = ProjectContentCanonicalItemReadService(repo=ProjectContentItemsRepository(tenant_context))
         item = await service.get_item(workspace_id=workspace_id, site_id=site_id, item_id=item_id)
         return {"itemId": str(item.id), "title": item.title, "workflowStage": item.workflow_stage}
 
@@ -519,6 +528,7 @@ class ProjectAutomationService:
         event: Event,
         workspace_id: UUID,
     ) -> dict[str, Any]:
+        tenant_context = require_tenant_context_from_payload(event.payload if isinstance(event.payload, dict) else None)
         item_id = self._uuid_from_config_or_event(config, event, "itemId", "entity_id")
         site_id = self._uuid_from_config_or_event(config, event, "siteId", "site_id")
         stage = config.get("stage")
@@ -526,7 +536,7 @@ class ProjectAutomationService:
             raise BadRequest(
                 "Content update requires itemId, siteId, and stage.", error="AUTOMATION_CONTENT_UPDATE_INVALID"
             )
-        service = ProjectContentCanonicalItemsService(repo=ProjectContentItemsRepository())
+        service = ProjectContentCanonicalItemsService(repo=ProjectContentItemsRepository(tenant_context))
         item = await service.patch_workflow(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -543,13 +553,14 @@ class ProjectAutomationService:
         event: Event,
         workspace_id: UUID,
     ) -> dict[str, Any]:
+        tenant_context = require_tenant_context_from_payload(event.payload if isinstance(event.payload, dict) else None)
         site_id = self._uuid_from_config_or_event(config, event, "siteId", "site_id")
         actor_user_id = self._uuid_or_none(event.actor_user_id)
         if site_id is None or actor_user_id is None:
             raise BadRequest(
                 "Release publish requires siteId and actor user.", error="AUTOMATION_RELEASE_PUBLISH_INVALID"
             )
-        service = ProjectReleasesService()
+        service = ProjectReleasesService(tenant_context)
         out = await service.publish_release_out(workspace_id=workspace_id, site_id=site_id, actor_user_id=actor_user_id)
         return {"releaseId": str(out.release.id), "releaseNumber": out.release.release_number}
 

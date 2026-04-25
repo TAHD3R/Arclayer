@@ -18,7 +18,10 @@ from src.modules.projects.authz.router_helpers import (
 )
 from src.modules.projects.automation.router import router as projects_automation_router
 from src.modules.projects.content.router import router as projects_content_router
+from src.modules.projects.databases.router import router as projects_databases_router
+from src.modules.projects.deployments.router import router as projects_deployments_router
 from src.modules.projects.domains.router import router as projects_domains_router
+from src.modules.projects.environments.router import router as projects_environments_router
 from src.modules.projects.governance.router import router as projects_governance_router
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
@@ -49,6 +52,9 @@ router.include_router(projects_runtime_router)
 router.include_router(projects_api_keys_router)
 router.include_router(projects_releases_router)
 router.include_router(projects_publish_router)
+router.include_router(projects_environments_router)
+router.include_router(projects_deployments_router)
+router.include_router(projects_databases_router)
 router.include_router(projects_content_router)
 router.include_router(projects_assets_router)
 router.include_router(projects_automation_router)

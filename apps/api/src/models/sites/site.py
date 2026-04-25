@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+from uuid import UUID
+
 from tortoise import fields
 
 from src.common.models import BaseModel
@@ -48,3 +51,8 @@ class SiteRecord(BaseModel):
         table = "domain_sites"
         abstract = False
         unique_together = (("runtime_id",),)
+
+    if TYPE_CHECKING:
+        workspace_id: UUID
+        project_id: UUID | None
+        runtime_id: UUID | None

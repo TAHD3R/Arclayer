@@ -30,9 +30,17 @@ def test_safe_object_key_normalizes_backslashes(tmp_path: Path) -> None:
 
 
 def test_local_provider_put_and_get_bytes(tmp_path: Path) -> None:
+    from src.platform.storage.capabilities import ObjectStorageProviderKind
     from src.platform.storage.local import LocalStorageProvider
+    from src.platform.storage.profile_schema import StorageProfileConfig
 
-    provider = LocalStorageProvider(root_dir=tmp_path)
+    provider = LocalStorageProvider(
+        StorageProfileConfig(
+            provider=ObjectStorageProviderKind.LOCAL,
+            local_root_dir=tmp_path,
+            local_tmp_dir=tmp_path / ".tmp",
+        )
+    )
     key = "org/demo/assets/abc.bin"
     provider.put_bytes(object_key=key, data=b"hello")
 
@@ -47,9 +55,17 @@ def test_local_provider_put_is_atomic(tmp_path: Path) -> None:
     We approximate this by ensuring the final file exists and tmp artifacts do not remain.
     """
 
+    from src.platform.storage.capabilities import ObjectStorageProviderKind
     from src.platform.storage.local import LocalStorageProvider
+    from src.platform.storage.profile_schema import StorageProfileConfig
 
-    provider = LocalStorageProvider(root_dir=tmp_path)
+    provider = LocalStorageProvider(
+        StorageProfileConfig(
+            provider=ObjectStorageProviderKind.LOCAL,
+            local_root_dir=tmp_path,
+            local_tmp_dir=tmp_path / ".tmp",
+        )
+    )
     key = "org/demo/assets/atomic.bin"
     provider.put_bytes(object_key=key, data=b"a" * 16)
 

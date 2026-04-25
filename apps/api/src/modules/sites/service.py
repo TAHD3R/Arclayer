@@ -5,6 +5,8 @@ import time
 from typing import Literal
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.common.services import BaseService
 from src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
 from src.models.sites.site import SiteRecord
@@ -47,6 +49,7 @@ class SiteService(
     ) -> None:
         super().__init__(settings)
         self._repo = repo or SitesRepository()
+        self._valkey = valkey
         self._preview_tokens = PreviewTokenStore(valkey) if valkey is not None else None
         self._presence = PresenceStore(valkey) if valkey is not None else None
 
@@ -59,6 +62,9 @@ class SiteService(
             repo=self._repo,
             presence=self._presence,
         )
+
+    def with_database_connection(self, conn: BaseDBAsyncClient) -> SiteService:
+        return SiteService(self.settings, self._valkey, repo=SitesRepository(conn=conn))
 
     async def assert_preview_access_async(
         self, *, site_id: UUID, mode: Literal["public", "preview"], token: str | None

@@ -7,28 +7,30 @@ from src.settings import runtime
 from src.settings.core_schema import CORE_SETTINGS_SCHEMA
 
 
-def test_core_settings_schema_includes_public_asset_delivery_fields() -> None:
+def test_core_settings_schema_uses_profile_key_and_upload_limits() -> None:
     storage_section = next(section for section in CORE_SETTINGS_SCHEMA.sections if section.id == "storage")
     storage_keys = {field.key for field in storage_section.fields}
 
-    assert "public_base_url" in storage_keys
-    assert "public_delivery_mode" in storage_keys
-    assert "s3_public_bucket" in storage_keys
-    assert "s3_presign_expires_seconds" in storage_keys
+    assert "default_profile_key" in storage_keys
+    assert "upload_chunk_size_mb" in storage_keys
+    assert "upload_max_file_size_mb" in storage_keys
+    assert "public_base_url" not in storage_keys
+    assert "s3_bucket" not in storage_keys
 
 
 @pytest.mark.asyncio
-async def test_get_effective_settings_applies_public_asset_delivery_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_effective_settings_applies_profile_key_and_upload_limit_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     async def fake_core_settings(_settings: Settings, *, ttl_seconds: float = 5.0) -> dict[str, object]:
         _ = ttl_seconds
         return {
             "storage": {
-                "provider": "s3",
-                "public_base_url": "https://cdn.example.com",
-                "public_delivery_mode": "direct",
-                "s3_bucket": "assets-private",
-                "s3_public_bucket": "assets-public",
-                "s3_presign_expires_seconds": 300,
+                "default_profile_key": "cloud-primary",
+                "upload_chunk_size_mb": 16,
+                "upload_max_file_size_mb": 4096,
+                "public_base_url": "https://legacy.example.com",
+                "s3_bucket": "legacy-bucket",
             }
         }
 
@@ -36,9 +38,8 @@ async def test_get_effective_settings_applies_public_asset_delivery_overrides(mo
 
     effective = await runtime.get_effective_settings(Settings())
 
-    assert effective.storage.provider == "s3"
-    assert effective.storage.public_base_url == "https://cdn.example.com"
-    assert effective.storage.public_delivery_mode == "direct"
-    assert effective.storage.s3_bucket == "assets-private"
-    assert effective.storage.s3_public_bucket == "assets-public"
-    assert effective.storage.s3_presign_expires_seconds == 300
+    assert effective.storage.default_profile_key == "cloud-primary"
+    assert effective.storage.upload_chunk_size_mb == 16
+    assert effective.storage.upload_max_file_size_mb == 4096
+    assert effective.storage.public_base_url is None
+    assert effective.storage.s3_bucket is None

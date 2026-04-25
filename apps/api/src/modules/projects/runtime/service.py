@@ -7,9 +7,12 @@ from uuid import UUID
 from src.common.protocols.tortoise import HasProjectId, HasWorkspaceId
 from src.core.exceptions import NotFound
 from src.models.projects.runtime import ProjectRuntimeRecord
+from src.models.workspaces.workspace import Workspace
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.runtime.schema import ProjectRuntimeBridgeOut
 from src.modules.projects.runtime.site.schema import ProjectRuntimeSiteOut
+from src.modules.tenancy.router_helpers import bind_project_tenant_context, bind_workspace_tenant_context
+from src.modules.tenancy.schema import TenantContext, TenantScope
 
 
 @dataclass(slots=True)
@@ -18,6 +21,7 @@ class ProjectRuntimeContext:
     project_id: UUID
     workspace_id: UUID
     site_id: UUID
+    tenant_context: TenantContext
     kind: str
     name: str
     slug: str
@@ -73,11 +77,23 @@ class ProjectRuntimeService:
         site = await self.project_repo.get_runtime_site(runtime_id=runtime.id)
         if site is None:
             raise NotFound("Project runtime site bridge not found", error="PROJECT_RUNTIME_SITE_NOT_FOUND")
+        workspace = await Workspace.get(id=workspace_id)
+        await bind_workspace_tenant_context(
+            workspace_id=workspace_id,
+            organization_id=UUID(str(workspace.organization_id)),
+        )
+        tenant_context = bind_project_tenant_context(
+            project_id=UUID(str(cast(HasProjectId, runtime).project_id)),
+            runtime_id=runtime.id,
+            site_id=site.id,
+            scope=TenantScope.RUNTIME,
+        )
         return ProjectRuntimeContext(
             runtime_id=runtime.id,
             project_id=UUID(str(cast(HasProjectId, runtime).project_id)),
             workspace_id=workspace_id,
             site_id=site.id,
+            tenant_context=tenant_context,
             kind=str(runtime.kind),
             name=str(runtime.name),
             slug=str(site.slug),

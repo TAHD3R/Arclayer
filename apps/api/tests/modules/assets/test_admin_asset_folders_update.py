@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from inspect import iscoroutinefunction
 from uuid import UUID, uuid4
 
 import pytest
@@ -9,6 +11,31 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.modules.assets.admin.assets.schema import AdminAssetFolderUpdateRequest
 from src.modules.assets.admin.assets.service import AdminAssetsService
 from src.modules.assets.scope import AssetScope
+
+
+class _RepoHarness:
+    @asynccontextmanager
+    async def connection(self, **_kwargs):
+        yield None
+
+    def __getattribute__(self, name):
+        attr = object.__getattribute__(self, name)
+        if name.startswith("__") or name == "connection" or not callable(attr):
+            return attr
+
+        if iscoroutinefunction(attr):
+
+            async def _async_call(*args, **kwargs):
+                kwargs.pop("conn", None)
+                return await attr(*args, **kwargs)
+
+            return _async_call
+
+        def _call(*args, **kwargs):
+            kwargs.pop("conn", None)
+            return attr(*args, **kwargs)
+
+        return _call
 
 
 class _Folder(BaseModel):
@@ -44,7 +71,7 @@ async def test_update_folder_requires_existing_folder() -> None:
     service = AdminAssetsService(get_settings())
     scope = AssetScope(type="workspace", id=uuid4())
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return None
 
@@ -72,7 +99,7 @@ async def test_update_folder_rejects_cycle_parent() -> None:
 
     service = AdminAssetsService(get_settings())
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             # Folder exists; parent lookup also succeeds to hit the cycle guard.
             fid = folder_id
@@ -111,7 +138,7 @@ async def test_update_folder_rejects_duplicate_name_under_target_parent() -> Non
 
     service = AdminAssetsService(get_settings())
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return _Folder(id=folder_id, parent_id=None, name="A")
 
@@ -148,7 +175,7 @@ async def test_update_folder_trims_description_and_allows_clear() -> None:
 
     updated: dict[str, object] = {"updates": None}
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return _Folder(id=folder_id, parent_id=None, name="A", description=None)
 

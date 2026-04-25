@@ -7,6 +7,7 @@ from src.core.exceptions import NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
 from src.models.content.release import ContentReleaseRecord
+from src.modules.projects.deployments.service import ProjectDeploymentsService
 from src.modules.projects.publish.service import ProjectPublishService
 from src.modules.projects.releases.repository import ProjectReleasesRepository
 from src.modules.projects.releases.schema import (
@@ -17,14 +18,16 @@ from src.modules.projects.releases.schema import (
     ReleasePublishOut,
     ReleaseRollbackOut,
 )
+from src.modules.tenancy.schema import TenantContext
 
 logger = get_logger(__name__)
 
 
 class ProjectReleasesService:
-    def __init__(self) -> None:
-        self.repo = ProjectReleasesRepository()
-        self.publish_service = ProjectPublishService()
+    def __init__(self, tenant_context: TenantContext) -> None:
+        self.repo = ProjectReleasesRepository(tenant_context)
+        self.publish_service = ProjectPublishService(tenant_context)
+        self.deployments_service = ProjectDeploymentsService(tenant_context)
 
     async def list_releases_out(self, *, workspace_id: UUID, site_id: UUID) -> ReleaseListOut:
         rows = await self.repo.list_releases(workspace_id=workspace_id, site_id=site_id)
@@ -59,6 +62,11 @@ class ProjectReleasesService:
             site_id=str(site_id),
             workspace_id=str(workspace_id),
         )
+        await self.deployments_service.record_release_publication(
+            site_id=site_id,
+            release_id=release.id,
+            actor_user_id=actor_user_id,
+        )
         return ReleasePublishOut(
             release=await self._to_out(release),
             graph_nodes=artifacts.graph_nodes,
@@ -72,6 +80,7 @@ class ProjectReleasesService:
         workspace_id: UUID,
         site_id: UUID,
         release_id: UUID,
+        actor_user_id: UUID,
     ) -> ReleaseRollbackOut:
         row = await self.repo.get_release(workspace_id=workspace_id, site_id=site_id, release_id=release_id)
         release = self._require_release(row)
@@ -90,6 +99,11 @@ class ProjectReleasesService:
             release_number=activated.release_number,
             site_id=str(site_id),
             workspace_id=str(workspace_id),
+        )
+        await self.deployments_service.record_release_rollback(
+            site_id=site_id,
+            release_id=activated.id,
+            actor_user_id=actor_user_id,
         )
         return ReleaseRollbackOut(
             release=await self._to_out(activated),

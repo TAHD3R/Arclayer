@@ -4,7 +4,7 @@ import asyncio
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
-from fastapi import Request
+from fastapi import Depends, Request
 
 from src.core.events import Event, EventBus
 from src.core.exceptions import ServiceUnavailable
@@ -13,6 +13,8 @@ from src.modules.projects.content.items.canonical_service import ProjectContentC
 from src.modules.projects.content.items.read_service import ProjectContentCanonicalItemReadService
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 from src.modules.projects.http.schema import ProjectRequestContext
+from src.modules.projects.http.service import get_project_context
+from src.modules.tenancy.router_helpers import resolve_project_tenant_context
 
 
 def get_event_bus(request: Request) -> EventBus:
@@ -25,12 +27,24 @@ def get_event_bus(request: Request) -> EventBus:
     return bus
 
 
-def get_project_content_canonical_items_service() -> ProjectContentCanonicalItemsService:
-    return ProjectContentCanonicalItemsService(repo=ProjectContentItemsRepository())
+def get_project_content_canonical_items_service(
+    ctx: ProjectRequestContext = Depends(get_project_context),
+) -> ProjectContentCanonicalItemsService:
+    return ProjectContentCanonicalItemsService(
+        repo=ProjectContentItemsRepository(
+            resolve_project_tenant_context(project_id=ctx.project_id, runtime_id=ctx.runtime_id)
+        )
+    )
 
 
-def get_project_content_canonical_item_reads() -> ProjectContentCanonicalItemReadService:
-    return ProjectContentCanonicalItemReadService(repo=ProjectContentItemsRepository())
+def get_project_content_canonical_item_reads(
+    ctx: ProjectRequestContext = Depends(get_project_context),
+) -> ProjectContentCanonicalItemReadService:
+    return ProjectContentCanonicalItemReadService(
+        repo=ProjectContentItemsRepository(
+            resolve_project_tenant_context(project_id=ctx.project_id, runtime_id=ctx.runtime_id)
+        )
+    )
 
 
 async def publish_content_activity_event(

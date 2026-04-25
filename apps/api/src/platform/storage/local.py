@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import mimetypes
 import os
 import re
+import shutil
 from pathlib import Path
 
 from src.common.utils.ids import uuid7
+from src.platform.storage.providers.base import ObjectGet, ObjectHead, ObjectStorageProvider
 
 _SAFE_SEGMENT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
@@ -50,7 +54,7 @@ def safe_object_key_to_path(root_dir: Path, object_key: str) -> Path:
     return out
 
 
-class LocalStorageProvider:
+class LocalStorageProvider(ObjectStorageProvider):
     """
     Minimal local filesystem storage provider (phase 1).
 
@@ -59,10 +63,16 @@ class LocalStorageProvider:
     - For multi-node deployments, use an object storage provider (S3-compatible).
     """
 
-    provider = "local"
+    def __init__(self, config) -> None:
+        super().__init__(config)
+        if config.local_root_dir is None:
+            raise ValueError("local_root_dir is required for local storage profiles")
+        self.root_dir = Path(config.local_root_dir)
+        self.tmp_dir = Path(config.local_tmp_dir) if config.local_tmp_dir is not None else None
 
-    def __init__(self, *, root_dir: Path) -> None:
-        self.root_dir = Path(root_dir)
+    def with_bucket(self, bucket: str) -> LocalStorageProvider:
+        _ = bucket
+        return LocalStorageProvider(self.config)
 
     def exists(self, *, object_key: str) -> bool:
         path = safe_object_key_to_path(self.root_dir, object_key)
@@ -91,3 +101,75 @@ class LocalStorageProvider:
             except OSError:
                 # Best-effort cleanup; leaving a .partial file is acceptable and can be GC'd later.
                 pass
+
+    async def head_object(self, *, object_key: str) -> ObjectHead:
+        def _call() -> ObjectHead:
+            path = safe_object_key_to_path(self.root_dir, object_key)
+            stat = path.stat()
+            content_type, _ = mimetypes.guess_type(path.name)
+            return ObjectHead(size_bytes=int(stat.st_size), content_type=content_type, etag=None)
+
+        return await asyncio.to_thread(_call)
+
+    async def get_object(self, *, object_key: str, byte_range: tuple[int, int] | None) -> ObjectGet:
+        def _call() -> ObjectGet:
+            path = safe_object_key_to_path(self.root_dir, object_key)
+            data = path.read_bytes()
+            if byte_range is not None:
+                start, end = byte_range
+                data = data[int(start) : int(end) + 1]
+            content_type, _ = mimetypes.guess_type(path.name)
+            return ObjectGet(
+                body=data,
+                content_type=content_type,
+                content_length=len(data),
+                etag=None,
+            )
+
+        return await asyncio.to_thread(_call)
+
+    async def download_object_to_path(self, *, object_key: str, out_path: Path) -> ObjectHead:
+        def _call() -> ObjectHead:
+            src = safe_object_key_to_path(self.root_dir, object_key)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, out_path)
+            stat = src.stat()
+            content_type, _ = mimetypes.guess_type(src.name)
+            return ObjectHead(size_bytes=int(stat.st_size), content_type=content_type, etag=None)
+
+        return await asyncio.to_thread(_call)
+
+    async def put_object_bytes(
+        self,
+        *,
+        object_key: str,
+        data: bytes,
+        content_type: str | None,
+        cache_control: str | None = None,
+    ) -> None:
+        _ = content_type, cache_control
+        await asyncio.to_thread(self.put_bytes, object_key=object_key, data=data)
+
+    async def copy_object_from(
+        self,
+        *,
+        source_bucket: str,
+        source_key: str,
+        dest_key: str,
+    ) -> None:
+        _ = source_bucket
+
+        def _call() -> None:
+            src = safe_object_key_to_path(self.root_dir, source_key)
+            dest = safe_object_key_to_path(self.root_dir, dest_key)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dest)
+
+        await asyncio.to_thread(_call)
+
+    async def delete_object(self, *, object_key: str) -> None:
+        def _call() -> None:
+            path = safe_object_key_to_path(self.root_dir, object_key)
+            path.unlink(missing_ok=True)
+
+        await asyncio.to_thread(_call)

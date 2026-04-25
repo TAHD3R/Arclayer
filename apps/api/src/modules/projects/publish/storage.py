@@ -7,12 +7,15 @@ from uuid import UUID
 from src.core.exceptions import Conflict, NotFound
 from src.models.content._enums import PublishArtifactKind
 from src.models.content.publish_artifact import PublishArtifactRecord
-from src.models.content.release import ContentReleaseRecord
+from src.models.projects.environment import ProjectEnvironmentKey
+from src.modules.projects.deployments.service import ProjectDeploymentsService
 from src.modules.projects.publish.schema import (
     PublishExportArtifactOut,
     PublishExportContractOut,
     PublishExportRoutePointerOut,
 )
+from src.modules.tenancy.database import TenantDatabaseRouter
+from src.modules.tenancy.schema import TenantContext
 
 _JSON_ARTIFACT_KIND = "json"
 
@@ -30,8 +33,8 @@ class _PublishArtifactBundle:
     html: str | None = None
 
 
-def _build_tenant_id(workspace_id: UUID, site_id: UUID) -> str:
-    return f"{workspace_id}:{site_id}"
+def _build_tenant_id(tenant_context: TenantContext) -> str:
+    return tenant_context.schema_name
 
 
 def _build_bundle_key(row: PublishArtifactRecord) -> tuple[UUID, UUID, str]:
@@ -184,29 +187,50 @@ def _group_bundles(rows: list[PublishArtifactRecord]) -> list[_PublishArtifactBu
 
 
 class ProjectPublishArtifactStorage:
-    async def _load_active_release_id(self, *, workspace_id: UUID, site_id: UUID) -> UUID:
-        release = (
-            await ContentReleaseRecord
-            .filter(workspace_id=workspace_id, site_id=site_id, is_active=True)
-            .order_by("-release_number")
-            .first()
+    def __init__(self, tenant_context: TenantContext) -> None:
+        self._tenant_context = tenant_context
+        self._tenant_db = TenantDatabaseRouter(tenant_context)
+        self._deployments = ProjectDeploymentsService()
+
+    async def _load_active_release_id(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        preview: bool,
+    ) -> UUID:
+        environment_key = ProjectEnvironmentKey.DEVELOPMENT if preview else ProjectEnvironmentKey.PRODUCTION
+        release_id = await self._deployments.get_environment_release_id(
+            site_id=site_id, environment_key=environment_key
         )
-        if release is not None:
-            return release.id
+        if release_id is not None:
+            return release_id
         raise NotFound(
-            "Published release is required before reading publish contract",
-            error="PUBLISH_RELEASE_MISSING",
-            meta={"workspaceId": str(workspace_id), "siteId": str(site_id)},
+            "Active deployment is required before reading publish contract",
+            error="PROJECT_DEPLOYMENT_MISSING",
+            meta={"workspaceId": str(workspace_id), "siteId": str(site_id), "preview": preview},
         )
 
-    async def _load_artifact_rows(self, *, workspace_id: UUID, site_id: UUID) -> list[PublishArtifactRecord]:
-        active_release_id = await self._load_active_release_id(workspace_id=workspace_id, site_id=site_id)
-        rows = (
-            await PublishArtifactRecord
-            .filter(workspace_id=workspace_id, site_id=site_id, release_id=active_release_id)
-            .order_by("item_id", "version_id", "locale", "artifact_kind")
-            .all()
+    async def _load_artifact_rows(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        preview: bool,
+    ) -> list[PublishArtifactRecord]:
+        active_release_id = await self._load_active_release_id(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            preview=preview,
         )
+        async with self._tenant_db.connection() as conn:
+            rows = (
+                await PublishArtifactRecord
+                .filter(workspace_id=workspace_id, site_id=site_id, release_id=active_release_id)
+                .using_db(conn)
+                .order_by("item_id", "version_id", "locale", "artifact_kind")
+                .all()
+            )
         if rows:
             return rows
         raise NotFound(
@@ -215,10 +239,16 @@ class ProjectPublishArtifactStorage:
             meta={"workspaceId": str(workspace_id), "siteId": str(site_id), "releaseId": str(active_release_id)},
         )
 
-    async def build_publish_contract(self, *, workspace_id: UUID, site_id: UUID) -> PublishExportContractOut:
-        rows = await self._load_artifact_rows(workspace_id=workspace_id, site_id=site_id)
+    async def build_publish_contract(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        preview: bool = False,
+    ) -> PublishExportContractOut:
+        rows = await self._load_artifact_rows(workspace_id=workspace_id, site_id=site_id, preview=preview)
         bundles = _group_bundles(rows)
-        tenant_id = _build_tenant_id(workspace_id, site_id)
+        tenant_id = _build_tenant_id(self._tenant_context)
         return PublishExportContractOut(
             route_pointers=[_to_route_pointer(bundle=bundle, tenant_id=tenant_id) for bundle in bundles],
             artifacts=[_to_contract_artifact(bundle=bundle, tenant_id=tenant_id) for bundle in bundles],

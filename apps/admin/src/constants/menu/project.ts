@@ -222,7 +222,14 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     label: "Project Settings",
     labelKey: "nav:NAV_SETTINGS_PROJECT",
     to: "/settings/general",
-    activeMatchPaths: ["/settings/api", "/settings/api-keys"],
+    activeMatchPaths: [
+      "/settings/api",
+      "/settings/api-keys",
+      "/settings/domain",
+      "/settings/environments",
+      "/settings/deployments",
+      "/settings/databases",
+    ],
     icon: Settings2,
   },
 ] as const;

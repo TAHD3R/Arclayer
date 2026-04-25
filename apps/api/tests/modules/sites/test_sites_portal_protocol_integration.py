@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from src.common.utils.public_ids import decode_public_id
-from src.models.sites.site_domain import SiteDomainRecord
+from src.models.domains.domain_binding import DomainBindingRecord, DomainBindingSource
 from src.models.system.setting import SettingRecord
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from src.settings.scopes import SCOPE_TYPE_PROJECT, SCOPE_TYPE_SITE
@@ -220,12 +220,20 @@ async def test_sites_public_preview_draft_publish_flow(
         site_id = site_res.json()["data"]["siteId"]
         runtime_id = await _runtime_id(client, project_id)
         site_uuid = decode_public_id(site_id)
-        await SiteDomainRecord.create(
+        await DomainBindingRecord.create(
+            workspace_id=decode_public_id(workspace_id),
+            project_id=project_uuid,
+            runtime_id=decode_public_id(runtime_id),
             site_id=site_uuid,
             hostname="example.test",
+            source=DomainBindingSource.CUSTOM,
+            target_type="project_runtime",
+            environment_id=None,
+            is_primary=False,
             is_verified=True,
             is_active=True,
             verification_token="test-token",
+            certificate_status="pending",
             created_by_user_id=None,
         )
 

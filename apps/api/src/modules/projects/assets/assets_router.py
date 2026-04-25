@@ -35,12 +35,19 @@ from src.modules.assets.scope import AssetScope
 from src.modules.projects.http.router_helpers import require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
+from src.modules.tenancy.router_helpers import resolve_project_tenant_context
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["domain.projects.assets"])
 
 
-def get_admin_assets_service(settings: Settings = Depends(get_settings)) -> AdminAssetsService:
-    return AdminAssetsService(settings)
+def get_admin_assets_service(
+    settings: Settings = Depends(get_settings),
+    ctx: ProjectRequestContext = Depends(get_project_context),
+) -> AdminAssetsService:
+    return AdminAssetsService(
+        settings,
+        resolve_project_tenant_context(project_id=ctx.project_id, runtime_id=ctx.runtime_id),
+    )
 
 
 def _project_scope(ctx: ProjectRequestContext) -> AssetScope:

@@ -93,7 +93,7 @@ async def _workspace_client(prepared_db, integration_valkey_settings):
         org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
         owner = await user_repo.create_user(
             username=f"owner_{uuid4().hex[:10]}",
-            email="owner@example.com",
+            email=f"owner_{uuid4().hex[:10]}@example.com",
             display_name="Owner",
             password_hash="x",
         )

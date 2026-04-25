@@ -58,6 +58,7 @@ def _is_importable_package(pkg: str) -> bool:
 
 
 _PRIMARY_CORE_MODELS_PKG: Final[str] = "src.models"
+_ALWAYS_INCLUDED_MODEL_MODULES: Final[tuple[str, ...]] = ("src.models.tenancy.workspace_tenant",)
 _LEGACY_CORE_MODELS_PKGS: Final[tuple[str, ...]] = (
     # Legacy pre-refactor paths often referenced `modules` as the model package.
     "src.modules",
@@ -176,7 +177,7 @@ def build_models_list(
     extra_pkgs: Iterable[str] | None = None,
     extra_modules: Iterable[str] | None = None,
 ) -> list[str]:
-    modules: set[str] = set()
+    modules: set[str] = set(_ALWAYS_INCLUDED_MODEL_MODULES)
     for pkg in _normalize_core_model_pkgs(settings.database.core_models):
         if not _is_importable_package(pkg):
             logger.warning(

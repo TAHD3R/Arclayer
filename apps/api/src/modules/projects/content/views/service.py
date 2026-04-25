@@ -3,11 +3,10 @@ from __future__ import annotations
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
-from src.common.protocols.tortoise import SettingUpdatedBy
 from src.common.services import BaseService
 from src.core.exceptions import Forbidden, NotFound
 from src.core.i18n import t
-from src.models.system.setting import SettingRecord
+from src.modules.projects.content.views.repository import ProjectContentViewsRepository
 from src.modules.projects.content.views.schema import (
     ContentLibrarySystemViewId,
     ContentLibraryViewColumnsSchema,
@@ -18,6 +17,7 @@ from src.modules.projects.content.views.schema import (
     ContentLibraryViewSortingItemSchema,
     ContentLibraryViewsStateOut,
 )
+from src.modules.tenancy.schema import TenantContext
 from src.settings.scopes import SCOPE_TYPE_USER, SCOPE_TYPE_WORKSPACE
 
 StoredView = dict[str, Any]
@@ -143,6 +143,10 @@ def _move_item(items: list[StoredView], *, view_id: str, direction: Literal["up"
 
 
 class ContentLibraryViewsService(BaseService):
+    def __init__(self, settings, tenant_context: TenantContext) -> None:
+        super().__init__(settings)
+        self.repo = ProjectContentViewsRepository(tenant_context)
+
     async def list_views(self, *, workspace_id: UUID, user_id: UUID) -> ContentLibraryViewsStateOut:
         workspace_items, user_payload = await self._load_state(workspace_id=workspace_id, user_id=user_id)
         return self._build_state_out(workspace_items=workspace_items, user_payload=user_payload)
@@ -358,12 +362,12 @@ class ContentLibraryViewsService(BaseService):
         )
 
     async def _load_state(self, *, workspace_id: UUID, user_id: UUID) -> tuple[list[StoredView], StoredUserPayload]:
-        workspace_record = await SettingRecord.get_or_none(
+        workspace_record = await self.repo.get_setting(
             scope_type=SCOPE_TYPE_WORKSPACE,
             scope_id=workspace_id,
             namespace=CONTENT_LIBRARY_WORKSPACE_VIEWS_NAMESPACE,
         )
-        user_record = await SettingRecord.get_or_none(
+        user_record = await self.repo.get_setting(
             scope_type=SCOPE_TYPE_USER,
             scope_id=user_id,
             namespace=_user_namespace(workspace_id),
@@ -386,55 +390,34 @@ class ContentLibraryViewsService(BaseService):
         return self._build_state_out(workspace_items=workspace_items, user_payload=user_payload)
 
     async def _save_workspace_record(self, *, workspace_id: UUID, user_id: UUID, items: list[StoredView]) -> None:
-        record = await SettingRecord.get_or_none(
+        next_value = {"items": items} if items else None
+        record = await self.repo.save_setting(
             scope_type=SCOPE_TYPE_WORKSPACE,
             scope_id=workspace_id,
             namespace=CONTENT_LIBRARY_WORKSPACE_VIEWS_NAMESPACE,
+            value=next_value,
+            updated_by=user_id,
         )
-        next_value = {"items": items}
         if record is None:
-            if not items:
-                return
-            await SettingRecord.create(
-                scope_type=SCOPE_TYPE_WORKSPACE,
-                scope_id=workspace_id,
-                namespace=CONTENT_LIBRARY_WORKSPACE_VIEWS_NAMESPACE,
-                value=next_value,
-                updated_by=user_id,
-            )
             return
-
-        record.value = next_value if items else None
-        cast(SettingUpdatedBy, record).updated_by = user_id
-        await record.save(update_fields=["value", "updated_by", "updated_at"])
 
     async def _save_user_record(self, *, workspace_id: UUID, user_id: UUID, payload: StoredUserPayload) -> None:
         namespace = _user_namespace(workspace_id)
-        record = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_USER,
-            scope_id=user_id,
-            namespace=namespace,
-        )
         next_value = {
             "items": cast(list[StoredView], payload["items"]),
             "pinnedViewIds": cast(list[str], payload["pinnedViewIds"]),
             "defaultViewId": payload.get("defaultViewId"),
         }
-        if record is None:
-            if not next_value["items"] and not next_value["pinnedViewIds"] and next_value["defaultViewId"] is None:
-                return
-            await SettingRecord.create(
-                scope_type=SCOPE_TYPE_USER,
-                scope_id=user_id,
-                namespace=namespace,
-                value=next_value,
-                updated_by=user_id,
-            )
-            return
-
-        record.value = next_value
-        cast(SettingUpdatedBy, record).updated_by = user_id
-        await record.save(update_fields=["value", "updated_by", "updated_at"])
+        value = next_value
+        if not next_value["items"] and not next_value["pinnedViewIds"] and next_value["defaultViewId"] is None:
+            value = None
+        await self.repo.save_setting(
+            scope_type=SCOPE_TYPE_USER,
+            scope_id=user_id,
+            namespace=namespace,
+            value=value,
+            updated_by=user_id,
+        )
 
     def _coerce_user_payload(
         self, *, workspace_items: list[StoredView], user_payload: StoredUserPayload

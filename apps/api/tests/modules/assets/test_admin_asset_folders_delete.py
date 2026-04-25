@@ -1,11 +1,38 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+from inspect import iscoroutinefunction
 from uuid import uuid4
 
 import pytest
 
 from src.modules.assets.admin.assets.service import AdminAssetsService
 from src.modules.assets.scope import AssetScope
+
+
+class _RepoHarness:
+    @asynccontextmanager
+    async def connection(self, **_kwargs):
+        yield None
+
+    def __getattribute__(self, name):
+        attr = object.__getattribute__(self, name)
+        if name.startswith("__") or name == "connection" or not callable(attr):
+            return attr
+
+        if iscoroutinefunction(attr):
+
+            async def _async_call(*args, **kwargs):
+                kwargs.pop("conn", None)
+                return await attr(*args, **kwargs)
+
+            return _async_call
+
+        def _call(*args, **kwargs):
+            kwargs.pop("conn", None)
+            return attr(*args, **kwargs)
+
+        return _call
 
 
 def test_admin_assets_router_exposes_folder_delete_endpoint() -> None:
@@ -29,7 +56,7 @@ async def test_delete_folder_requires_existing_folder() -> None:
     service = AdminAssetsService(settings)
     scope = AssetScope(type="workspace", id=uuid4())
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return None
 
@@ -50,7 +77,7 @@ async def test_delete_folder_rejects_non_empty_folder_children() -> None:
     service = AdminAssetsService(settings)
     scope = AssetScope(type="workspace", id=uuid4())
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return {"id": folder_id}
 
@@ -77,7 +104,7 @@ async def test_delete_folder_rejects_non_empty_folder_assets() -> None:
     service = AdminAssetsService(settings)
     scope = AssetScope(type="workspace", id=uuid4())
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return {"id": folder_id}
 
@@ -107,7 +134,7 @@ async def test_delete_folder_deletes_when_empty() -> None:
 
     folder_id = uuid4()
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return {"id": folder_id}
 
@@ -142,7 +169,7 @@ async def test_delete_folder_can_move_contents_to_root_before_delete() -> None:
 
     moved: dict[str, object] = {"children": None, "assets": None, "deleted": False}
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return {"id": folder_id}
 
@@ -183,7 +210,7 @@ async def test_delete_folder_rejects_descendant_destination() -> None:
     folder_id = uuid4()
     child_id = uuid4()
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return {"id": folder_id}
 

@@ -10,6 +10,8 @@ from datetime import datetime
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.common.protocols.tortoise import SettingUpdatedBy
 from src.core.exceptions import Conflict, NotFound
 from src.models.system.setting import SettingRecord
@@ -18,11 +20,20 @@ from src.settings.scopes import SCOPE_TYPE_SITE
 
 
 class SettingsRepositoryMixin:
+    _conn: BaseDBAsyncClient | None
+
+    @staticmethod
+    def _using_db(qs, conn: BaseDBAsyncClient | None):
+        return qs if conn is None else qs.using_db(conn)
+
     async def get_site_setting(self, *, site_id: UUID, namespace: str) -> SettingRecord | None:
         ns = (namespace or "").strip()
         if not ns:
             return None
-        return await SettingRecord.get_or_none(scope_type=SCOPE_TYPE_SITE, scope_id=site_id, namespace=ns)
+        return await self._using_db(
+            SettingRecord.filter(scope_type=SCOPE_TYPE_SITE, scope_id=site_id, namespace=ns),
+            self._conn,
+        ).first()
 
     async def upsert_site_setting(
         self,
@@ -37,6 +48,7 @@ class SettingsRepositoryMixin:
             raise Conflict("Invalid namespace", error="SETTING_NAMESPACE_INVALID")
 
         rec, created = await SettingRecord.get_or_create(
+            using_db=self._conn,
             scope_type=SCOPE_TYPE_SITE,
             scope_id=site_id,
             namespace=ns,
@@ -47,7 +59,7 @@ class SettingsRepositoryMixin:
 
         rec.value = value
         cast(SettingUpdatedBy, rec).updated_by = updated_by
-        await rec.save(update_fields=["value", "updated_by"])
+        await rec.save(update_fields=["value", "updated_by"], using_db=self._conn)
         return rec
 
     async def get_site_settings_snapshot(self, *, site_id: UUID, namespaces: list[str]) -> dict[str, int]:
@@ -63,10 +75,13 @@ class SettingsRepositoryMixin:
         if not norm:
             return {}
 
-        rows = await SettingRecord.filter(
-            scope_type=SCOPE_TYPE_SITE,
-            scope_id=site_id,
-            namespace__in=norm,
+        rows = await self._using_db(
+            SettingRecord.filter(
+                scope_type=SCOPE_TYPE_SITE,
+                scope_id=site_id,
+                namespace__in=norm,
+            ),
+            self._conn,
         ).all()
 
         out: dict[str, int] = {}
@@ -84,17 +99,23 @@ class SettingsRepositoryMixin:
         if not k:
             raise NotFound("Menu not found", error="DELIVERY_MENU_NOT_FOUND")
         ns = f"site.menu.{k}"
-        setting = await SettingRecord.get_or_none(scope_type=SCOPE_TYPE_SITE, scope_id=site_id, namespace=ns)
+        setting = await self._using_db(
+            SettingRecord.filter(scope_type=SCOPE_TYPE_SITE, scope_id=site_id, namespace=ns),
+            self._conn,
+        ).first()
         if setting is None or not isinstance(setting.value, dict):
             raise NotFound("Menu not found", error="DELIVERY_MENU_NOT_FOUND")
         return cast(dict[str, Any], setting.value)
 
     async def get_site_style(self, *, site_id: UUID) -> dict[str, Any]:
-        setting = await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_SITE,
-            scope_id=site_id,
-            namespace=EDITOR_STYLE_NAMESPACE,
-        )
+        setting = await self._using_db(
+            SettingRecord.filter(
+                scope_type=SCOPE_TYPE_SITE,
+                scope_id=site_id,
+                namespace=EDITOR_STYLE_NAMESPACE,
+            ),
+            self._conn,
+        ).first()
         if setting is None or not isinstance(setting.value, dict):
             return {}
         return cast(dict[str, Any], setting.value)

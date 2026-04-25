@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SETTINGS_WORKSPACE_NAV_ITEMS } from "@/constants/menu/settings";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { ProjectDomainSettingsPage as ProjectDomainSettingsSurface } from "@/pages/projects/settings/domain/page";
 import { ProjectSettingsPage as ProjectSettingsSurface } from "@/pages/projects/settings/project/page";
 import { GeneralLocalizationSettingsPage } from "@/pages/projects/settings/site/localization/page";
 import { WorkspacePermissionsSettingsPage } from "@/pages/workspaces/settings/workspace/permissions/page";
@@ -165,7 +164,7 @@ function ProjectStandalonePage(props: { titleKey: string; descriptionKey?: strin
 }
 
 export function ProjectDomainSettingsPage(props: { projectId: string }) {
-  return <ProjectDomainSettingsSurface projectId={props.projectId} />;
+  return <ProjectSettingsSurface activeTab="domain" projectId={props.projectId} />;
 }
 
 export function ProjectSeoSettingsPage() {
@@ -174,6 +173,18 @@ export function ProjectSeoSettingsPage() {
 
 export function ProjectApiKeysSettingsPage(props: { projectId: string }) {
   return <ProjectSettingsSurface activeTab="api" projectId={props.projectId} />;
+}
+
+export function ProjectEnvironmentsSettingsPage(props: { projectId: string }) {
+  return <ProjectSettingsSurface activeTab="environments" projectId={props.projectId} />;
+}
+
+export function ProjectDeploymentsSettingsPage(props: { projectId: string }) {
+  return <ProjectSettingsSurface activeTab="deployments" projectId={props.projectId} />;
+}
+
+export function ProjectDatabasesSettingsPage(props: { projectId: string }) {
+  return <ProjectSettingsSurface activeTab="databases" projectId={props.projectId} />;
 }
 
 export function ProjectRuntimeSettingsPage() {

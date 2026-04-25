@@ -60,11 +60,17 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
                         task_generate_asset_thumbnails,
                         str(asset_id),
                         str(project_id),
+                        (event.payload or {}).get("tenant"),
                     )
                     if enqueued:
                         return
 
-            await generate_asset_thumbnails({"settings": settings}, str(asset_id), str(project_id))
+            await generate_asset_thumbnails(
+                {"settings": settings},
+                str(asset_id),
+                str(project_id),
+                (event.payload or {}).get("tenant"),
+            )
         except BaseException as exc:
             _raise_if_fatal(exc)
             logger.warning(

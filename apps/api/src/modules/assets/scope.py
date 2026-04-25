@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import TypedDict
 from uuid import UUID
+
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.constants.assets import (
     ASSET_SCOPE_ORGANIZATION,
@@ -11,6 +15,8 @@ from src.common.constants.assets import (
 )
 from src.core.exceptions import BadRequest
 from src.core.i18n import t
+from src.modules.tenancy.database import TenantDatabaseRouter
+from src.modules.tenancy.schema import TenantContext
 
 
 def _ts(key: str, default: str) -> str:
@@ -38,6 +44,30 @@ def scope_filter_kwargs(scope: AssetScope) -> ScopeFilterKwargs:
     if tpe == ASSET_SCOPE_USER:
         return {"user_id": scope.id}
     raise ValueError("invalid scope")
+
+
+def is_project_asset_scope(scope: AssetScope) -> bool:
+    return (scope.type or "").strip().lower() == ASSET_SCOPE_PROJECT
+
+
+class AssetScopeDatabaseRouter:
+    def __init__(self, tenant_context: TenantContext | None = None) -> None:
+        self._project_router = TenantDatabaseRouter(tenant_context) if tenant_context is not None else None
+
+    @asynccontextmanager
+    async def connection(
+        self,
+        *,
+        scope: AssetScope,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AsyncIterator[BaseDBAsyncClient | None]:
+        if is_project_asset_scope(scope):
+            if self._project_router is None:
+                raise RuntimeError("TenantContext is required for project asset access")
+            async with self._project_router.connection(conn) as tenant_conn:
+                yield tenant_conn
+            return
+        yield conn
 
 
 def resolve_asset_scope(

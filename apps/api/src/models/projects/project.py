@@ -56,6 +56,7 @@ async def _bootstrap_primary_runtime(  # type: ignore[no-untyped-def]
     if not created:
         return
 
+    from src.models.projects.environment import bootstrap_project_environments
     from src.models.projects.runtime import ProjectRuntimeKind, ProjectRuntimeRecord
 
     existing = (
@@ -73,4 +74,9 @@ async def _bootstrap_primary_runtime(  # type: ignore[no-untyped-def]
         kind=ProjectRuntimeKind.PRIMARY,
         name="Primary",
         is_active=True,
+    )
+    await bootstrap_project_environments(
+        project_id=instance.id,
+        actor_user_id=instance.created_by_user_id,
+        using_db=using_db,
     )

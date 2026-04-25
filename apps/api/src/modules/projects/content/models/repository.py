@@ -4,9 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
-from tortoise.transactions import in_transaction
 
-from src.common.repositories import BaseRepository
 from src.models.content._enums import (
     ContentModelFieldType,
     ContentModelRelationType,
@@ -22,9 +20,14 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelRelationContract,
     ContentModelViewContract,
 )
+from src.modules.tenancy.database import TenantScopedRepository
+from src.modules.tenancy.schema import TenantContext
 
 
-class ProjectContentModelsRepository(BaseRepository):
+class ProjectContentModelsRepository(TenantScopedRepository):
+    def __init__(self, tenant_context: TenantContext) -> None:
+        super().__init__(tenant_context)
+
     async def list_model_definitions(
         self,
         *,
@@ -32,13 +35,14 @@ class ProjectContentModelsRepository(BaseRepository):
         site_id: UUID,
         conn: BaseDBAsyncClient | None = None,
     ) -> list[ContentModelDefinitionRecord]:
-        qs = (
-            ContentModelDefinitionRecord
-            .filter(workspace_id=workspace_id, site_id=site_id)
-            .prefetch_related("fields", "relations", "views")
-            .order_by("name", "key")
-        )
-        return list(await self.using_db(qs, conn))
+        async with self.connection(conn) as tenant_conn:
+            qs = (
+                ContentModelDefinitionRecord
+                .filter(workspace_id=workspace_id, site_id=site_id)
+                .prefetch_related("fields", "relations", "views")
+                .order_by("name", "key")
+            )
+            return list(await self.using_db(qs, tenant_conn))
 
     async def get_model_definition(
         self,
@@ -48,17 +52,18 @@ class ProjectContentModelsRepository(BaseRepository):
         model_id: UUID,
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentModelDefinitionRecord | None:
-        qs = (
-            ContentModelDefinitionRecord
-            .filter(
-                workspace_id=workspace_id,
-                site_id=site_id,
-                id=model_id,
+        async with self.connection(conn) as tenant_conn:
+            qs = (
+                ContentModelDefinitionRecord
+                .filter(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    id=model_id,
+                )
+                .prefetch_related("fields", "relations", "views")
+                .first()
             )
-            .prefetch_related("fields", "relations", "views")
-            .first()
-        )
-        return await self.using_db(qs, conn)
+            return await self.using_db(qs, tenant_conn)
 
     async def create_model_definition(
         self,
@@ -92,7 +97,7 @@ class ProjectContentModelsRepository(BaseRepository):
         relations: list[ContentModelRelationContract],
         views: list[ContentModelViewContract],
     ) -> ContentModelDefinitionRecord:
-        async with in_transaction() as conn:
+        async with self.connection() as conn:
             record = await ContentModelDefinitionRecord.create(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -151,7 +156,7 @@ class ProjectContentModelsRepository(BaseRepository):
         relations: list[ContentModelRelationContract] | None,
         views: list[ContentModelViewContract] | None,
     ) -> ContentModelDefinitionRecord | None:
-        async with in_transaction() as conn:
+        async with self.connection() as conn:
             record = await (
                 ContentModelDefinitionRecord
                 .filter(
@@ -199,12 +204,13 @@ class ProjectContentModelsRepository(BaseRepository):
         model_id: UUID,
         conn: BaseDBAsyncClient | None = None,
     ) -> list[ContentItemRecord]:
-        qs = ContentItemRecord.filter(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            model_definition_id=model_id,
-        ).order_by("id")
-        return list(await self.using_db(qs, conn))
+        async with self.connection(conn) as tenant_conn:
+            qs = ContentItemRecord.filter(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                model_definition_id=model_id,
+            ).order_by("id")
+            return list(await self.using_db(qs, tenant_conn))
 
     async def _replace_fields(
         self,

@@ -3,19 +3,24 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from tortoise.transactions import in_transaction
-
 from src.models.content.release import ContentReleaseRecord
+from src.modules.tenancy.database import TenantScopedRepository
+from src.modules.tenancy.schema import TenantContext
 
 
-class ProjectReleasesRepository:
+class ProjectReleasesRepository(TenantScopedRepository):
+    def __init__(self, tenant_context: TenantContext) -> None:
+        super().__init__(tenant_context)
+
     async def list_releases(self, *, workspace_id: UUID, site_id: UUID) -> list[ContentReleaseRecord]:
-        return (
-            await ContentReleaseRecord
-            .filter(workspace_id=workspace_id, site_id=site_id)
-            .order_by("-release_number")
-            .all()
-        )
+        async with self.connection() as conn:
+            return (
+                await ContentReleaseRecord
+                .filter(workspace_id=workspace_id, site_id=site_id)
+                .using_db(conn)
+                .order_by("-release_number")
+                .all()
+            )
 
     async def get_release(
         self,
@@ -24,11 +29,17 @@ class ProjectReleasesRepository:
         site_id: UUID,
         release_id: UUID,
     ) -> ContentReleaseRecord | None:
-        return await ContentReleaseRecord.filter(
-            id=release_id,
-            workspace_id=workspace_id,
-            site_id=site_id,
-        ).first()
+        async with self.connection() as conn:
+            return (
+                await ContentReleaseRecord
+                .filter(
+                    id=release_id,
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                )
+                .using_db(conn)
+                .first()
+            )
 
     async def activate_release(
         self,
@@ -38,7 +49,7 @@ class ProjectReleasesRepository:
         release: ContentReleaseRecord,
         activated_at: datetime,
     ) -> tuple[ContentReleaseRecord, UUID | None]:
-        async with in_transaction() as conn:
+        async with self.connection() as conn:
             target = (
                 await ContentReleaseRecord
                 .filter(

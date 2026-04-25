@@ -160,6 +160,7 @@ async def rollback_project_release(
         workspace_id=runtime_context.workspace_id,
         site_id=runtime_context.site_id,
         release_id=release_id,
+        actor_user_id=actor_user_id,
     )
     await publish_project_release_event(
         actor_user_id=actor_user_id,

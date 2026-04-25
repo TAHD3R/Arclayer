@@ -5170,6 +5170,198 @@ export type DirectoryWorkspaceUpdateRequest = {
 };
 
 /**
+ * DomainBindingCreateIn
+ */
+export type DomainBindingCreateIn = {
+    /**
+     * Hostname
+     *
+     * Custom hostname to bind (e.g. example.com).
+     */
+    hostname: string;
+};
+
+/**
+ * DomainBindingCreateOut
+ */
+export type DomainBindingCreateOut = {
+    /**
+     * Created domain binding.
+     */
+    binding: DomainBindingOut;
+};
+
+/**
+ * DomainBindingDeleteOut
+ */
+export type DomainBindingDeleteOut = {
+    /**
+     * Bindingid
+     *
+     * Deleted binding id.
+     */
+    bindingId: string;
+};
+
+/**
+ * DomainBindingDnsInstructionOut
+ */
+export type DomainBindingDnsInstructionOut = {
+    /**
+     * Txtrecordname
+     *
+     * DNS TXT record name to publish.
+     */
+    txtRecordName: string;
+    /**
+     * Txtrecordvalue
+     *
+     * DNS TXT record value to publish.
+     */
+    txtRecordValue: string;
+};
+
+/**
+ * DomainBindingOut
+ */
+export type DomainBindingOut = {
+    /**
+     * Bindingid
+     *
+     * Domain binding id.
+     */
+    bindingId: string;
+    /**
+     * Certificatestatus
+     *
+     * Certificate provisioning state.
+     */
+    certificateStatus: string;
+    /**
+     * Createdbyuserid
+     *
+     * User id that created the binding.
+     */
+    createdByUserId?: string | null;
+    /**
+     * DNS instructions for unverified custom domains.
+     */
+    dns?: DomainBindingDnsInstructionOut | null;
+    /**
+     * Environmentid
+     *
+     * Environment id when runtime environments are modeled.
+     */
+    environmentId?: string | null;
+    /**
+     * Hostname
+     *
+     * Bound hostname.
+     */
+    hostname: string;
+    /**
+     * Isactive
+     *
+     * Whether the binding is active for routing.
+     */
+    isActive: boolean;
+    /**
+     * Isprimary
+     *
+     * Whether this is the primary binding.
+     */
+    isPrimary: boolean;
+    /**
+     * Isverified
+     *
+     * Whether the binding is verified for routing.
+     */
+    isVerified: boolean;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Runtimeid
+     *
+     * Runtime id.
+     */
+    runtimeId: string;
+    /**
+     * Runtimename
+     *
+     * Runtime display name.
+     */
+    runtimeName?: string | null;
+    /**
+     * Siteid
+     *
+     * Site id.
+     */
+    siteId: string;
+    /**
+     * Source
+     *
+     * Binding source: platform or custom.
+     */
+    source: string;
+    /**
+     * Targettype
+     *
+     * Resolved binding target type.
+     */
+    targetType: string;
+    /**
+     * Verificationtoken
+     *
+     * DNS TXT verification token for custom domains.
+     */
+    verificationToken?: string | null;
+    /**
+     * Verifiedatms
+     *
+     * Verification time in ms.
+     */
+    verifiedAtMs?: number | null;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * DomainBindingUpdateIn
+ */
+export type DomainBindingUpdateIn = {
+    /**
+     * Isactive
+     *
+     * Whether the binding is active for routing.
+     */
+    isActive?: boolean | null;
+};
+
+/**
+ * DomainBindingVerifyOut
+ */
+export type DomainBindingVerifyOut = {
+    /**
+     * Binding after verification attempt.
+     */
+    binding: DomainBindingOut;
+    /**
+     * Observedtxtvalues
+     *
+     * Observed TXT values returned by DNS lookup.
+     */
+    observedTxtValues?: Array<string>;
+};
+
+/**
  * EmailCheckOut
  *
  * Email existence precheck result.
@@ -6411,6 +6603,11 @@ export type OAuthLinkedIdentityOut = {
      */
     provider: string;
 };
+
+/**
+ * ObjectStorageProviderKind
+ */
+export type ObjectStorageProviderKind = 'local' | 'aws_s3' | 'minio' | 'cloudflare_r2' | 'aliyun_oss' | 'volcengine_tos';
 
 /**
  * OnboardingWorkspaceCreateOut
@@ -8481,6 +8678,54 @@ export type PageDataDirectoryWorkspaceListItemOut = {
 };
 
 /**
+ * PageData[DomainBindingOut]
+ */
+export type PageDataDomainBindingOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<DomainBindingOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[MyInvitationOut]
  */
 export type PageDataMyInvitationOut = {
@@ -9105,54 +9350,6 @@ export type PageDataSettingsNamespaceSummary = {
 };
 
 /**
- * PageData[SiteDomainOut]
- */
-export type PageDataSiteDomainOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<SiteDomainOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
  * PageData[WorkspaceEmailInviteOut]
  */
 export type PageDataWorkspaceEmailInviteOut = {
@@ -9735,6 +9932,322 @@ export type ProjectDangerCapabilitiesOut = {
 };
 
 /**
+ * ProjectDatabaseBackupOut
+ */
+export type ProjectDatabaseBackupOut = {
+    /**
+     * Backupkey
+     *
+     * Backup key.
+     */
+    backupKey: string;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Retentionuntil
+     *
+     * Retention deadline.
+     */
+    retentionUntil?: string | null;
+    /**
+     * Status
+     *
+     * Backup status.
+     */
+    status: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+};
+
+/**
+ * ProjectDatabaseCreateIn
+ */
+export type ProjectDatabaseCreateIn = {
+    /**
+     * Engine
+     *
+     * Database engine.
+     */
+    engine?: string;
+    /**
+     * Environmentid
+     *
+     * Environment id.
+     */
+    environmentId: string;
+    /**
+     * Isolationmode
+     *
+     * Isolation mode.
+     */
+    isolationMode?: string;
+};
+
+/**
+ * ProjectDatabaseCredentialOut
+ */
+export type ProjectDatabaseCredentialOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Expiresat
+     *
+     * Credential expiry.
+     */
+    expiresAt?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Role
+     *
+     * Credential role.
+     */
+    role: string;
+    /**
+     * Rotatedat
+     *
+     * Last rotation timestamp.
+     */
+    rotatedAt?: string | null;
+    /**
+     * Secretref
+     *
+     * Masked secret reference marker.
+     */
+    secretRef?: string;
+    /**
+     * Secretset
+     *
+     * Whether a secret reference exists.
+     */
+    secretSet: boolean;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Username
+     *
+     * Database username.
+     */
+    username: string;
+};
+
+/**
+ * ProjectDatabaseDetailOut
+ */
+export type ProjectDatabaseDetailOut = {
+    /**
+     * Backups
+     *
+     * Backup records.
+     */
+    backups?: Array<ProjectDatabaseBackupOut>;
+    /**
+     * Database instance.
+     */
+    database: ProjectDatabaseInstanceOut;
+    /**
+     * Migrations
+     *
+     * Migration records.
+     */
+    migrations?: Array<ProjectDatabaseMigrationOut>;
+};
+
+/**
+ * ProjectDatabaseInstanceOut
+ */
+export type ProjectDatabaseInstanceOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Credentials
+     *
+     * Masked credentials.
+     */
+    credentials?: Array<ProjectDatabaseCredentialOut>;
+    /**
+     * Databasename
+     *
+     * Database name.
+     */
+    databaseName: string;
+    /**
+     * Engine
+     *
+     * Database engine.
+     */
+    engine: string;
+    /**
+     * Environmentid
+     *
+     * Environment id.
+     */
+    environmentId: string;
+    /**
+     * Environmentkey
+     *
+     * Environment key.
+     */
+    environmentKey: string;
+    /**
+     * Environmentname
+     *
+     * Environment name.
+     */
+    environmentName: string;
+    /**
+     * Host
+     *
+     * Database host.
+     */
+    host: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isolationmode
+     *
+     * Isolation mode.
+     */
+    isolationMode: string;
+    /**
+     * Port
+     *
+     * Database port.
+     */
+    port: number;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Schemaname
+     *
+     * Schema name.
+     */
+    schemaName: string;
+    /**
+     * Status
+     *
+     * Provisioning status.
+     */
+    status: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+};
+
+/**
+ * ProjectDatabaseListOut
+ */
+export type ProjectDatabaseListOut = {
+    /**
+     * Items
+     *
+     * Project databases.
+     */
+    items?: Array<ProjectDatabaseInstanceOut>;
+};
+
+/**
+ * ProjectDatabaseMigrationOut
+ */
+export type ProjectDatabaseMigrationOut = {
+    /**
+     * Appliedat
+     *
+     * Applied timestamp.
+     */
+    appliedAt?: string | null;
+    /**
+     * Checksum
+     *
+     * Migration checksum.
+     */
+    checksum: string;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Status
+     *
+     * Migration status.
+     */
+    status: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Version
+     *
+     * Migration version.
+     */
+    version: string;
+};
+
+/**
+ * ProjectDatabaseRotateCredentialIn
+ */
+export type ProjectDatabaseRotateCredentialIn = {
+    /**
+     * Role
+     *
+     * Credential role to rotate.
+     */
+    role?: string;
+};
+
+/**
  * ProjectDeleteResult
  */
 export type ProjectDeleteResult = {
@@ -9753,6 +10266,178 @@ export type ProjectDeleteResult = {
 };
 
 /**
+ * ProjectDeploymentActionOut
+ */
+export type ProjectDeploymentActionOut = {
+    /**
+     * Changedat
+     *
+     * Action timestamp.
+     */
+    changedAt: string;
+    /**
+     * Resulting deployment record.
+     */
+    deployment: ProjectDeploymentOut;
+    /**
+     * Previousactivedeploymentid
+     *
+     * Previously active deployment for the target environment.
+     */
+    previousActiveDeploymentId?: string | null;
+};
+
+/**
+ * ProjectDeploymentListOut
+ */
+export type ProjectDeploymentListOut = {
+    /**
+     * Items
+     *
+     * Project deployments.
+     */
+    items?: Array<ProjectDeploymentOut>;
+};
+
+/**
+ * ProjectDeploymentOut
+ */
+export type ProjectDeploymentOut = {
+    /**
+     * Artifactkey
+     *
+     * Artifact key.
+     */
+    artifactKey: string;
+    /**
+     * Artifactstorageprofileid
+     *
+     * Artifact storage profile id.
+     */
+    artifactStorageProfileId?: string | null;
+    /**
+     * Buildlogkey
+     *
+     * Build log key.
+     */
+    buildLogKey?: string | null;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     *
+     * Actor user id.
+     */
+    createdByUserId?: string | null;
+    /**
+     * Environmentid
+     *
+     * Environment id.
+     */
+    environmentId: string;
+    /**
+     * Environmentkey
+     *
+     * Environment key.
+     */
+    environmentKey: string;
+    /**
+     * Environmentname
+     *
+     * Environment display name.
+     */
+    environmentName: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isactive
+     *
+     * Whether the deployment is active for its environment.
+     */
+    isActive: boolean;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Promotedfromdeploymentid
+     *
+     * Deployment this record was promoted from.
+     */
+    promotedFromDeploymentId?: string | null;
+    /**
+     * Runtimeid
+     *
+     * Runtime id.
+     */
+    runtimeId: string;
+    /**
+     * Runtimekind
+     *
+     * Runtime kind.
+     */
+    runtimeKind: string;
+    /**
+     * Sourceref
+     *
+     * Source reference.
+     */
+    sourceRef: string;
+    /**
+     * Sourcetype
+     *
+     * Deployment source type.
+     */
+    sourceType: string;
+    /**
+     * Status
+     *
+     * Deployment status.
+     */
+    status: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+};
+
+/**
+ * ProjectDeploymentPromoteIn
+ */
+export type ProjectDeploymentPromoteIn = {
+    /**
+     * Environmentid
+     *
+     * Target environment id.
+     */
+    environmentId: string;
+};
+
+/**
+ * ProjectDeploymentRollbackIn
+ */
+export type ProjectDeploymentRollbackIn = {
+    /**
+     * Environmentid
+     *
+     * Optional target environment id for rollback.
+     */
+    environmentId?: string | null;
+};
+
+/**
  * ProjectDetailOut
  */
 export type ProjectDetailOut = {
@@ -9764,6 +10449,84 @@ export type ProjectDetailOut = {
      * Project detail.
      */
     project: ProjectOut;
+};
+
+/**
+ * ProjectEnvironmentListOut
+ */
+export type ProjectEnvironmentListOut = {
+    /**
+     * Items
+     *
+     * Project environments.
+     */
+    items?: Array<ProjectEnvironmentOut>;
+};
+
+/**
+ * ProjectEnvironmentOut
+ */
+export type ProjectEnvironmentOut = {
+    /**
+     * Createdbyuserid
+     *
+     * Actor that created the environment.
+     */
+    createdByUserId?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isdefaultpreview
+     *
+     * Whether this environment is the default preview target.
+     */
+    isDefaultPreview: boolean;
+    /**
+     * Isproduction
+     *
+     * Whether this is the production environment.
+     */
+    isProduction: boolean;
+    /**
+     * Key
+     *
+     * Environment key.
+     */
+    key: string;
+    /**
+     * Name
+     *
+     * Environment name.
+     */
+    name: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+};
+
+/**
+ * ProjectEnvironmentPatchIn
+ */
+export type ProjectEnvironmentPatchIn = {
+    /**
+     * Isdefaultpreview
+     *
+     * Whether this environment should back preview contracts.
+     */
+    isDefaultPreview?: boolean | null;
+    /**
+     * Name
+     *
+     * Environment display name.
+     */
+    name?: string | null;
 };
 
 /**
@@ -12089,6 +12852,106 @@ export type ResponseModelDirectoryWorkspaceDetailOut = {
 };
 
 /**
+ * ResponseModel[DomainBindingCreateOut]
+ */
+export type ResponseModelDomainBindingCreateOut = {
+    data?: DomainBindingCreateOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DomainBindingDeleteOut]
+ */
+export type ResponseModelDomainBindingDeleteOut = {
+    data?: DomainBindingDeleteOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DomainBindingOut]
+ */
+export type ResponseModelDomainBindingOut = {
+    data?: DomainBindingOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[DomainBindingVerifyOut]
+ */
+export type ResponseModelDomainBindingVerifyOut = {
+    data?: DomainBindingVerifyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[EmailCheckOut]
  */
 export type ResponseModelEmailCheckOut = {
@@ -13292,6 +14155,31 @@ export type ResponseModelPageDataDirectoryWorkspaceListItemOut = {
 };
 
 /**
+ * ResponseModel[PageData[DomainBindingOut]]
+ */
+export type ResponseModelPageDataDomainBindingOut = {
+    data?: PageDataDomainBindingOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[MyInvitationOut]]
  */
 export type ResponseModelPageDataMyInvitationOut = {
@@ -13617,31 +14505,6 @@ export type ResponseModelPageDataSettingsNamespaceSummary = {
 };
 
 /**
- * ResponseModel[PageData[SiteDomainOut]]
- */
-export type ResponseModelPageDataSiteDomainOut = {
-    data?: PageDataSiteDomainOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[WorkspaceEmailInviteOut]]
  */
 export type ResponseModelPageDataWorkspaceEmailInviteOut = {
@@ -13892,6 +14755,56 @@ export type ResponseModelProjectDangerCapabilitiesOut = {
 };
 
 /**
+ * ResponseModel[ProjectDatabaseDetailOut]
+ */
+export type ResponseModelProjectDatabaseDetailOut = {
+    data?: ProjectDatabaseDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDatabaseListOut]
+ */
+export type ResponseModelProjectDatabaseListOut = {
+    data?: ProjectDatabaseListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ProjectDeleteResult]
  */
 export type ResponseModelProjectDeleteResult = {
@@ -13917,10 +14830,135 @@ export type ResponseModelProjectDeleteResult = {
 };
 
 /**
+ * ResponseModel[ProjectDeploymentActionOut]
+ */
+export type ResponseModelProjectDeploymentActionOut = {
+    data?: ProjectDeploymentActionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDeploymentListOut]
+ */
+export type ResponseModelProjectDeploymentListOut = {
+    data?: ProjectDeploymentListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectDeploymentOut]
+ */
+export type ResponseModelProjectDeploymentOut = {
+    data?: ProjectDeploymentOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ProjectDetailOut]
  */
 export type ResponseModelProjectDetailOut = {
     data?: ProjectDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectEnvironmentListOut]
+ */
+export type ResponseModelProjectEnvironmentListOut = {
+    data?: ProjectEnvironmentListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectEnvironmentOut]
+ */
+export type ResponseModelProjectEnvironmentOut = {
+    data?: ProjectEnvironmentOut | null;
     /**
      * Error
      */
@@ -14392,106 +15430,6 @@ export type ResponseModelSettingsDetail = {
 };
 
 /**
- * ResponseModel[SiteDomainCreateOut]
- */
-export type ResponseModelSiteDomainCreateOut = {
-    data?: SiteDomainCreateOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteDomainDeleteOut]
- */
-export type ResponseModelSiteDomainDeleteOut = {
-    data?: SiteDomainDeleteOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteDomainOut]
- */
-export type ResponseModelSiteDomainOut = {
-    data?: SiteDomainOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SiteDomainVerifyOut]
- */
-export type ResponseModelSiteDomainVerifyOut = {
-    data?: SiteDomainVerifyOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[SitePresenceHeartbeatOut]
  */
 export type ResponseModelSitePresenceHeartbeatOut = {
@@ -14646,6 +15584,106 @@ export type ResponseModelSiteRuntimeOut = {
  */
 export type ResponseModelSiteSettingGetOut = {
     data?: SiteSettingGetOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[StorageProfileDeleteOut]
+ */
+export type ResponseModelStorageProfileDeleteOut = {
+    data?: StorageProfileDeleteOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[StorageProfileListOut]
+ */
+export type ResponseModelStorageProfileListOut = {
+    data?: StorageProfileListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[StorageProfileOut]
+ */
+export type ResponseModelStorageProfileOut = {
+    data?: StorageProfileOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[StorageProfileTestResultOut]
+ */
+export type ResponseModelStorageProfileTestResultOut = {
+    data?: StorageProfileTestResultOut | null;
     /**
      * Error
      */
@@ -15977,148 +17015,6 @@ export type SettingsSectionItem = {
 };
 
 /**
- * SiteDomainCreateIn
- */
-export type SiteDomainCreateIn = {
-    /**
-     * Hostname
-     *
-     * Custom hostname to bind (e.g. example.com).
-     */
-    hostname: string;
-};
-
-/**
- * SiteDomainCreateOut
- */
-export type SiteDomainCreateOut = {
-    /**
-     * DNS TXT verification instructions.
-     */
-    dns: SiteDomainDnsInstructionOut;
-    /**
-     * Created domain binding.
-     */
-    domain: SiteDomainOut;
-};
-
-/**
- * SiteDomainDeleteOut
- */
-export type SiteDomainDeleteOut = {
-    /**
-     * Domainid
-     *
-     * Deleted domain record id.
-     */
-    domainId: string;
-};
-
-/**
- * SiteDomainDnsInstructionOut
- */
-export type SiteDomainDnsInstructionOut = {
-    /**
-     * Txtrecordname
-     *
-     * DNS TXT record name to publish (FQDN).
-     */
-    txtRecordName: string;
-    /**
-     * Txtrecordvalue
-     *
-     * DNS TXT record value to publish.
-     */
-    txtRecordValue: string;
-};
-
-/**
- * SiteDomainOut
- */
-export type SiteDomainOut = {
-    /**
-     * Createdbyuserid
-     *
-     * User id that created the binding.
-     */
-    createdByUserId?: string | null;
-    /**
-     * Domainid
-     *
-     * Domain record id.
-     */
-    domainId: string;
-    /**
-     * Hostname
-     *
-     * Bound hostname (lowercase, no port).
-     */
-    hostname: string;
-    /**
-     * Isactive
-     *
-     * Whether the domain is enabled for routing.
-     */
-    isActive: boolean;
-    /**
-     * Isverified
-     *
-     * Whether the domain is verified via DNS TXT.
-     */
-    isVerified: boolean;
-    /**
-     * Siteid
-     *
-     * Site id.
-     */
-    siteId: string;
-    /**
-     * Verificationtoken
-     *
-     * DNS TXT verification token (value to publish).
-     */
-    verificationToken: string;
-    /**
-     * Verifiedatms
-     *
-     * Verification timestamp in milliseconds (UTC).
-     */
-    verifiedAtMs?: number | null;
-};
-
-/**
- * SiteDomainUpdateIn
- */
-export type SiteDomainUpdateIn = {
-    /**
-     * Isactive
-     *
-     * Whether the domain is active (only takes effect when verified).
-     */
-    isActive?: boolean | null;
-};
-
-/**
- * SiteDomainVerifyOut
- */
-export type SiteDomainVerifyOut = {
-    /**
-     * DNS TXT verification instructions.
-     */
-    dns: SiteDomainDnsInstructionOut;
-    /**
-     * Domain binding after verification attempt.
-     */
-    domain: SiteDomainOut;
-    /**
-     * Observedtxtvalues
-     *
-     * Observed TXT values from DNS lookup (best-effort, truncated).
-     */
-    observedTxtValues?: Array<string>;
-};
-
-/**
  * SiteFlattenedPageOut
  */
 export type SiteFlattenedPageOut = {
@@ -16481,11 +17377,35 @@ export type SiteResolveOut = {
      */
     defaultLocale: string;
     /**
+     * Environmentid
+     *
+     * Resolved environment id when runtime environments are modeled.
+     */
+    environmentId?: string | null;
+    /**
      * Fallbacklocale
      *
      * Fallback locale (e.g. en-US).
      */
     fallbackLocale: string;
+    /**
+     * Hostname
+     *
+     * Hostname that resolved to this site.
+     */
+    hostname?: string | null;
+    /**
+     * Projectid
+     *
+     * Resolved project id.
+     */
+    projectId: string;
+    /**
+     * Runtimeid
+     *
+     * Resolved runtime id.
+     */
+    runtimeId?: string | null;
     /**
      * Siteid
      *
@@ -16493,11 +17413,29 @@ export type SiteResolveOut = {
      */
     siteId: string;
     /**
+     * Source
+     *
+     * Resolved domain binding source.
+     */
+    source?: string | null;
+    /**
      * Supportedlocales
      *
      * Supported locales enabled for the site (BCP 47 tags).
      */
     supportedLocales?: Array<string>;
+    /**
+     * Targettype
+     *
+     * Resolved binding target type.
+     */
+    targetType?: string | null;
+    /**
+     * Workspaceid
+     *
+     * Resolved workspace id.
+     */
+    workspaceId: string;
 };
 
 /**
@@ -16732,6 +17670,252 @@ export type SiteSettingUpsertIn = {
     value?: {
         [key: string]: unknown;
     } | null;
+};
+
+/**
+ * StorageProfileConfigPayload
+ */
+export type StorageProfileConfigPayloadInput = {
+    /**
+     * Accesskeyid
+     */
+    accessKeyId?: string | null;
+    /**
+     * Bucket
+     */
+    bucket?: string | null;
+    /**
+     * Endpointurl
+     */
+    endpointUrl?: string | null;
+    /**
+     * Forcepathstyle
+     */
+    forcePathStyle?: boolean;
+    /**
+     * Presignexpiresseconds
+     */
+    presignExpiresSeconds?: number;
+    /**
+     * Publicbaseurl
+     */
+    publicBaseUrl?: string | null;
+    /**
+     * Publicbucket
+     */
+    publicBucket?: string | null;
+    /**
+     * Publicdeliverymode
+     */
+    publicDeliveryMode?: string;
+    /**
+     * Region
+     */
+    region?: string | null;
+    /**
+     * Secretaccesskey
+     */
+    secretAccessKey?: string | null;
+};
+
+/**
+ * StorageProfileConfigPayload
+ */
+export type StorageProfileConfigPayloadOutput = {
+    /**
+     * Accesskeyid
+     */
+    accessKeyId?: string | null;
+    /**
+     * Bucket
+     */
+    bucket?: string | null;
+    /**
+     * Endpointurl
+     */
+    endpointUrl?: string | null;
+    /**
+     * Forcepathstyle
+     */
+    forcePathStyle?: boolean;
+    /**
+     * Presignexpiresseconds
+     */
+    presignExpiresSeconds?: number;
+    /**
+     * Publicbaseurl
+     */
+    publicBaseUrl?: string | null;
+    /**
+     * Publicbucket
+     */
+    publicBucket?: string | null;
+    /**
+     * Publicdeliverymode
+     */
+    publicDeliveryMode?: string;
+    /**
+     * Region
+     */
+    region?: string | null;
+};
+
+/**
+ * StorageProfileCreateRequest
+ */
+export type StorageProfileCreateRequest = {
+    config: StorageProfileConfigPayloadInput;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Isactive
+     */
+    isActive?: boolean;
+    /**
+     * Isdefault
+     */
+    isDefault?: boolean;
+    /**
+     * Profilekey
+     */
+    profileKey: string;
+    provider: ObjectStorageProviderKind;
+};
+
+/**
+ * StorageProfileDeleteOut
+ */
+export type StorageProfileDeleteOut = {
+    /**
+     * Deleted
+     */
+    deleted: boolean;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
+ * StorageProfileListOut
+ */
+export type StorageProfileListOut = {
+    /**
+     * Items
+     */
+    items?: Array<StorageProfileOut>;
+};
+
+/**
+ * StorageProfileOut
+ */
+export type StorageProfileOut = {
+    config: StorageProfileConfigPayloadOutput;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Displayname
+     */
+    displayName: string;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isactive
+     */
+    isActive: boolean;
+    /**
+     * Isdefault
+     */
+    isDefault: boolean;
+    /**
+     * Lasttestmessage
+     */
+    lastTestMessage?: string | null;
+    /**
+     * Lastteststatus
+     */
+    lastTestStatus?: 'passed' | 'failed' | null;
+    /**
+     * Lasttestedat
+     */
+    lastTestedAt?: string | null;
+    /**
+     * Profilekey
+     */
+    profileKey: string;
+    provider: ObjectStorageProviderKind;
+    /**
+     * Scopeid
+     */
+    scopeId: string;
+    /**
+     * Scopetype
+     */
+    scopeType: string;
+    secrets?: StorageProfileSecretsOut;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+};
+
+/**
+ * StorageProfileSecretsOut
+ */
+export type StorageProfileSecretsOut = {
+    /**
+     * Secretaccesskey
+     */
+    secretAccessKey?: boolean;
+};
+
+/**
+ * StorageProfileTestResultOut
+ */
+export type StorageProfileTestResultOut = {
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Ok
+     */
+    ok: boolean;
+    /**
+     * Status
+     */
+    status: 'passed' | 'failed';
+};
+
+/**
+ * StorageProfileUpdateRequest
+ */
+export type StorageProfileUpdateRequest = {
+    config?: StorageProfileConfigPayloadInput | null;
+    /**
+     * Displayname
+     */
+    displayName?: string | null;
+    /**
+     * Isactive
+     */
+    isActive?: boolean | null;
+    /**
+     * Isdefault
+     */
+    isDefault?: boolean | null;
 };
 
 /**
@@ -25848,6 +27032,327 @@ export type DomainProjectsGetProjectDangerCapabilitiesResponses = {
 
 export type DomainProjectsGetProjectDangerCapabilitiesResponse = DomainProjectsGetProjectDangerCapabilitiesResponses[keyof DomainProjectsGetProjectDangerCapabilitiesResponses];
 
+export type DomainProjectsListProjectDatabasesData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/databases';
+};
+
+export type DomainProjectsListProjectDatabasesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectDatabasesError = DomainProjectsListProjectDatabasesErrors[keyof DomainProjectsListProjectDatabasesErrors];
+
+export type DomainProjectsListProjectDatabasesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDatabaseListOut;
+};
+
+export type DomainProjectsListProjectDatabasesResponse = DomainProjectsListProjectDatabasesResponses[keyof DomainProjectsListProjectDatabasesResponses];
+
+export type DomainProjectsCreateProjectDatabaseData = {
+    body: ProjectDatabaseCreateIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/databases';
+};
+
+export type DomainProjectsCreateProjectDatabaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectDatabaseError = DomainProjectsCreateProjectDatabaseErrors[keyof DomainProjectsCreateProjectDatabaseErrors];
+
+export type DomainProjectsCreateProjectDatabaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDatabaseDetailOut;
+};
+
+export type DomainProjectsCreateProjectDatabaseResponse = DomainProjectsCreateProjectDatabaseResponses[keyof DomainProjectsCreateProjectDatabaseResponses];
+
+export type DomainProjectsGetProjectDatabaseData = {
+    body?: never;
+    path: {
+        /**
+         * Database Id
+         */
+        database_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/databases/{database_id}';
+};
+
+export type DomainProjectsGetProjectDatabaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectDatabaseError = DomainProjectsGetProjectDatabaseErrors[keyof DomainProjectsGetProjectDatabaseErrors];
+
+export type DomainProjectsGetProjectDatabaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDatabaseDetailOut;
+};
+
+export type DomainProjectsGetProjectDatabaseResponse = DomainProjectsGetProjectDatabaseResponses[keyof DomainProjectsGetProjectDatabaseResponses];
+
+export type DomainProjectsRotateProjectDatabaseCredentialData = {
+    body: ProjectDatabaseRotateCredentialIn;
+    path: {
+        /**
+         * Database Id
+         */
+        database_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/databases/{database_id}/credentials/rotate';
+};
+
+export type DomainProjectsRotateProjectDatabaseCredentialErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRotateProjectDatabaseCredentialError = DomainProjectsRotateProjectDatabaseCredentialErrors[keyof DomainProjectsRotateProjectDatabaseCredentialErrors];
+
+export type DomainProjectsRotateProjectDatabaseCredentialResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDatabaseDetailOut;
+};
+
+export type DomainProjectsRotateProjectDatabaseCredentialResponse = DomainProjectsRotateProjectDatabaseCredentialResponses[keyof DomainProjectsRotateProjectDatabaseCredentialResponses];
+
+export type DomainProjectsListProjectDeploymentsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environmentid
+         */
+        environmentId?: string | null;
+        /**
+         * Status
+         */
+        status?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/deployments';
+};
+
+export type DomainProjectsListProjectDeploymentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectDeploymentsError = DomainProjectsListProjectDeploymentsErrors[keyof DomainProjectsListProjectDeploymentsErrors];
+
+export type DomainProjectsListProjectDeploymentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDeploymentListOut;
+};
+
+export type DomainProjectsListProjectDeploymentsResponse = DomainProjectsListProjectDeploymentsResponses[keyof DomainProjectsListProjectDeploymentsResponses];
+
+export type DomainProjectsGetProjectDeploymentData = {
+    body?: never;
+    path: {
+        /**
+         * Deployment Id
+         */
+        deployment_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/deployments/{deployment_id}';
+};
+
+export type DomainProjectsGetProjectDeploymentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectDeploymentError = DomainProjectsGetProjectDeploymentErrors[keyof DomainProjectsGetProjectDeploymentErrors];
+
+export type DomainProjectsGetProjectDeploymentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDeploymentOut;
+};
+
+export type DomainProjectsGetProjectDeploymentResponse = DomainProjectsGetProjectDeploymentResponses[keyof DomainProjectsGetProjectDeploymentResponses];
+
+export type DomainProjectsCancelProjectDeploymentData = {
+    body?: never;
+    path: {
+        /**
+         * Deployment Id
+         */
+        deployment_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/deployments/{deployment_id}/cancel';
+};
+
+export type DomainProjectsCancelProjectDeploymentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCancelProjectDeploymentError = DomainProjectsCancelProjectDeploymentErrors[keyof DomainProjectsCancelProjectDeploymentErrors];
+
+export type DomainProjectsCancelProjectDeploymentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDeploymentActionOut;
+};
+
+export type DomainProjectsCancelProjectDeploymentResponse = DomainProjectsCancelProjectDeploymentResponses[keyof DomainProjectsCancelProjectDeploymentResponses];
+
+export type DomainProjectsPromoteProjectDeploymentData = {
+    body: ProjectDeploymentPromoteIn;
+    path: {
+        /**
+         * Deployment Id
+         */
+        deployment_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/deployments/{deployment_id}/promote';
+};
+
+export type DomainProjectsPromoteProjectDeploymentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPromoteProjectDeploymentError = DomainProjectsPromoteProjectDeploymentErrors[keyof DomainProjectsPromoteProjectDeploymentErrors];
+
+export type DomainProjectsPromoteProjectDeploymentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDeploymentActionOut;
+};
+
+export type DomainProjectsPromoteProjectDeploymentResponse = DomainProjectsPromoteProjectDeploymentResponses[keyof DomainProjectsPromoteProjectDeploymentResponses];
+
+export type DomainProjectsRollbackProjectDeploymentData = {
+    body: ProjectDeploymentRollbackIn;
+    path: {
+        /**
+         * Deployment Id
+         */
+        deployment_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/deployments/{deployment_id}/rollback';
+};
+
+export type DomainProjectsRollbackProjectDeploymentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRollbackProjectDeploymentError = DomainProjectsRollbackProjectDeploymentErrors[keyof DomainProjectsRollbackProjectDeploymentErrors];
+
+export type DomainProjectsRollbackProjectDeploymentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectDeploymentActionOut;
+};
+
+export type DomainProjectsRollbackProjectDeploymentResponse = DomainProjectsRollbackProjectDeploymentResponses[keyof DomainProjectsRollbackProjectDeploymentResponses];
+
 export type DomainProjectsListProjectDomainsData = {
     body?: never;
     path: {
@@ -25888,7 +27393,7 @@ export type DomainProjectsListProjectDomainsResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPageDataSiteDomainOut;
+    200: ResponseModelPageDataDomainBindingOut;
 };
 
 export type DomainProjectsListProjectDomainsResponse = DomainProjectsListProjectDomainsResponses[keyof DomainProjectsListProjectDomainsResponses];
@@ -25897,7 +27402,7 @@ export type DomainProjectsCreateProjectDomainData = {
     /**
      * Project custom domain binding request.
      */
-    body: SiteDomainCreateIn;
+    body: DomainBindingCreateIn;
     path: {
         /**
          * Project Id
@@ -25923,7 +27428,7 @@ export type DomainProjectsCreateProjectDomainResponses = {
     /**
      * Successful Response
      */
-    201: ResponseModelSiteDomainCreateOut;
+    201: ResponseModelDomainBindingCreateOut;
 };
 
 export type DomainProjectsCreateProjectDomainResponse = DomainProjectsCreateProjectDomainResponses[keyof DomainProjectsCreateProjectDomainResponses];
@@ -25932,11 +27437,11 @@ export type DomainProjectsDeleteProjectDomainData = {
     body?: never;
     path: {
         /**
-         * Domain Id
+         * Binding Id
          *
-         * Domain record id.
+         * Domain binding id.
          */
-        domain_id: string;
+        binding_id: string;
         /**
          * Project Id
          *
@@ -25945,7 +27450,7 @@ export type DomainProjectsDeleteProjectDomainData = {
         project_id: string;
     };
     query?: never;
-    url: '/api/v1/projects/{project_id}/domains/{domain_id}';
+    url: '/api/v1/projects/{project_id}/domains/{binding_id}';
 };
 
 export type DomainProjectsDeleteProjectDomainErrors = {
@@ -25961,7 +27466,7 @@ export type DomainProjectsDeleteProjectDomainResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelSiteDomainDeleteOut;
+    200: ResponseModelDomainBindingDeleteOut;
 };
 
 export type DomainProjectsDeleteProjectDomainResponse = DomainProjectsDeleteProjectDomainResponses[keyof DomainProjectsDeleteProjectDomainResponses];
@@ -25970,14 +27475,14 @@ export type DomainProjectsUpdateProjectDomainData = {
     /**
      * Update payload.
      */
-    body: SiteDomainUpdateIn;
+    body: DomainBindingUpdateIn;
     path: {
         /**
-         * Domain Id
+         * Binding Id
          *
-         * Domain record id.
+         * Domain binding id.
          */
-        domain_id: string;
+        binding_id: string;
         /**
          * Project Id
          *
@@ -25986,7 +27491,7 @@ export type DomainProjectsUpdateProjectDomainData = {
         project_id: string;
     };
     query?: never;
-    url: '/api/v1/projects/{project_id}/domains/{domain_id}';
+    url: '/api/v1/projects/{project_id}/domains/{binding_id}';
 };
 
 export type DomainProjectsUpdateProjectDomainErrors = {
@@ -26002,7 +27507,7 @@ export type DomainProjectsUpdateProjectDomainResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelSiteDomainOut;
+    200: ResponseModelDomainBindingOut;
 };
 
 export type DomainProjectsUpdateProjectDomainResponse = DomainProjectsUpdateProjectDomainResponses[keyof DomainProjectsUpdateProjectDomainResponses];
@@ -26011,11 +27516,11 @@ export type DomainProjectsVerifyProjectDomainData = {
     body?: never;
     path: {
         /**
-         * Domain Id
+         * Binding Id
          *
-         * Domain record id.
+         * Domain binding id.
          */
-        domain_id: string;
+        binding_id: string;
         /**
          * Project Id
          *
@@ -26024,7 +27529,7 @@ export type DomainProjectsVerifyProjectDomainData = {
         project_id: string;
     };
     query?: never;
-    url: '/api/v1/projects/{project_id}/domains/{domain_id}/verify';
+    url: '/api/v1/projects/{project_id}/domains/{binding_id}/verify';
 };
 
 export type DomainProjectsVerifyProjectDomainErrors = {
@@ -26040,10 +27545,78 @@ export type DomainProjectsVerifyProjectDomainResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelSiteDomainVerifyOut;
+    200: ResponseModelDomainBindingVerifyOut;
 };
 
 export type DomainProjectsVerifyProjectDomainResponse = DomainProjectsVerifyProjectDomainResponses[keyof DomainProjectsVerifyProjectDomainResponses];
+
+export type DomainProjectsListProjectEnvironmentsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/environments';
+};
+
+export type DomainProjectsListProjectEnvironmentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectEnvironmentsError = DomainProjectsListProjectEnvironmentsErrors[keyof DomainProjectsListProjectEnvironmentsErrors];
+
+export type DomainProjectsListProjectEnvironmentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectEnvironmentListOut;
+};
+
+export type DomainProjectsListProjectEnvironmentsResponse = DomainProjectsListProjectEnvironmentsResponses[keyof DomainProjectsListProjectEnvironmentsResponses];
+
+export type DomainProjectsPatchProjectEnvironmentData = {
+    body: ProjectEnvironmentPatchIn;
+    path: {
+        /**
+         * Environment Id
+         */
+        environment_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/environments/{environment_id}';
+};
+
+export type DomainProjectsPatchProjectEnvironmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPatchProjectEnvironmentError = DomainProjectsPatchProjectEnvironmentErrors[keyof DomainProjectsPatchProjectEnvironmentErrors];
+
+export type DomainProjectsPatchProjectEnvironmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectEnvironmentOut;
+};
+
+export type DomainProjectsPatchProjectEnvironmentResponse = DomainProjectsPatchProjectEnvironmentResponses[keyof DomainProjectsPatchProjectEnvironmentResponses];
 
 export type DomainProjectsGetProjectAuthzSnapshotData = {
     body?: never;
@@ -29216,6 +30789,137 @@ export type InternalSystemBootstrapInstanceResponses = {
 };
 
 export type InternalSystemBootstrapInstanceResponse = InternalSystemBootstrapInstanceResponses[keyof InternalSystemBootstrapInstanceResponses];
+
+export type InternalSystemListStorageProfilesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/storage-profiles';
+};
+
+export type InternalSystemListStorageProfilesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelStorageProfileListOut;
+};
+
+export type InternalSystemListStorageProfilesResponse = InternalSystemListStorageProfilesResponses[keyof InternalSystemListStorageProfilesResponses];
+
+export type InternalSystemCreateStorageProfileData = {
+    body: StorageProfileCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/storage-profiles';
+};
+
+export type InternalSystemCreateStorageProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemCreateStorageProfileError = InternalSystemCreateStorageProfileErrors[keyof InternalSystemCreateStorageProfileErrors];
+
+export type InternalSystemCreateStorageProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelStorageProfileOut;
+};
+
+export type InternalSystemCreateStorageProfileResponse = InternalSystemCreateStorageProfileResponses[keyof InternalSystemCreateStorageProfileResponses];
+
+export type InternalSystemDeleteStorageProfileData = {
+    body?: never;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/storage-profiles/{profile_id}';
+};
+
+export type InternalSystemDeleteStorageProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemDeleteStorageProfileError = InternalSystemDeleteStorageProfileErrors[keyof InternalSystemDeleteStorageProfileErrors];
+
+export type InternalSystemDeleteStorageProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelStorageProfileDeleteOut;
+};
+
+export type InternalSystemDeleteStorageProfileResponse = InternalSystemDeleteStorageProfileResponses[keyof InternalSystemDeleteStorageProfileResponses];
+
+export type InternalSystemUpdateStorageProfileData = {
+    body: StorageProfileUpdateRequest;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/storage-profiles/{profile_id}';
+};
+
+export type InternalSystemUpdateStorageProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemUpdateStorageProfileError = InternalSystemUpdateStorageProfileErrors[keyof InternalSystemUpdateStorageProfileErrors];
+
+export type InternalSystemUpdateStorageProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelStorageProfileOut;
+};
+
+export type InternalSystemUpdateStorageProfileResponse = InternalSystemUpdateStorageProfileResponses[keyof InternalSystemUpdateStorageProfileResponses];
+
+export type InternalSystemTestStorageProfileData = {
+    body?: never;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/storage-profiles/{profile_id}/test';
+};
+
+export type InternalSystemTestStorageProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemTestStorageProfileError = InternalSystemTestStorageProfileErrors[keyof InternalSystemTestStorageProfileErrors];
+
+export type InternalSystemTestStorageProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelStorageProfileTestResultOut;
+};
+
+export type InternalSystemTestStorageProfileResponse = InternalSystemTestStorageProfileResponses[keyof InternalSystemTestStorageProfileResponses];
 
 export type DomainWorkspacesDeleteWorkspaceData = {
     body?: never;

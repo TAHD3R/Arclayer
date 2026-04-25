@@ -26,6 +26,10 @@ class HasProjectId(Protocol):
     project_id: UUID | str
 
 
+class HasRuntimeId(Protocol):
+    runtime_id: UUID | str | None
+
+
 class HasUserId(Protocol):
     user_id: UUID | str
 
@@ -94,14 +98,22 @@ class WorkspaceArchiveMutableFields(Protocol):
     archived_by_user_id: UUID | None
 
 
-class SiteDomainRecordView(Protocol):
+class DomainBindingRecordView(Protocol):
     id: UUID | str
+    workspace_id: UUID | str
+    project_id: UUID | str
+    runtime_id: UUID | str
     site_id: UUID | str
+    environment_id: UUID | str | None
     hostname: str
+    source: str
+    target_type: str
+    is_primary: bool
     is_verified: bool
     is_active: bool
-    verification_token: str
+    verification_token: str | None
     verified_at: datetime | None
+    certificate_status: str
     created_by_user_id: UUID | str | None
 
 

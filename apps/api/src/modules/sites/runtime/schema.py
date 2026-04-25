@@ -14,6 +14,17 @@ class SiteResolveOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     site_id: PublicUUID = Field(..., description="Resolved site id.")
+    workspace_id: PublicUUID = Field(..., alias="workspaceId", description="Resolved workspace id.")
+    project_id: PublicUUID = Field(..., alias="projectId", description="Resolved project id.")
+    runtime_id: PublicUUID | None = Field(default=None, alias="runtimeId", description="Resolved runtime id.")
+    environment_id: PublicUUID | None = Field(
+        default=None,
+        alias="environmentId",
+        description="Resolved environment id when runtime environments are modeled.",
+    )
+    hostname: str | None = Field(default=None, description="Hostname that resolved to this site.")
+    source: str | None = Field(default=None, description="Resolved domain binding source.")
+    target_type: str | None = Field(default=None, alias="targetType", description="Resolved binding target type.")
     default_locale: str = Field(..., description="Default locale (e.g. zh-CN).")
     fallback_locale: str = Field(..., description="Fallback locale (e.g. en-US).")
     supported_locales: list[str] = Field(

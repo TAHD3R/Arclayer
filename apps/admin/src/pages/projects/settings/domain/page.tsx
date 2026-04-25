@@ -1,23 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import {
+  CheckCheck,
+  Globe,
+  LoaderCircle,
+  Plus,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
   createProjectDomain,
   deleteProjectDomain,
   listProjectDomains,
+  type ProjectDomainBinding,
   updateProjectDomain,
   verifyProjectDomain,
 } from "@/api/project-settings";
-import { BaseTag } from "@/components/ui/tags";
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
+import { BaseTag, lucideTagIcon } from "@/components/ui/tags";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
-import type { SiteDomainOut } from "@arclayer/openapi";
+import { SettingPanel } from "@arclayer/ui/setting-panel";
 
 const DOMAIN_QUERY_KEY_PREFIX = ["project", "domains"] as const;
 
@@ -25,36 +36,88 @@ function buildProjectDomainsQueryKey(projectId: string) {
   return [...DOMAIN_QUERY_KEY_PREFIX, projectId] as const;
 }
 
-function DomainStatusTag(props: { domain: SiteDomainOut }) {
+function DomainSourceTag(props: { domain: ProjectDomainBinding }) {
+  const { t } = useTranslation("account");
+  return (
+    <BaseTag color={props.domain.source === "platform" ? "blue" : "default"}>
+      {props.domain.source === "platform"
+        ? t("SETTINGS_PROJECT_DOMAINS_SOURCE_PLATFORM")
+        : t("SETTINGS_PROJECT_DOMAINS_SOURCE_CUSTOM")}
+    </BaseTag>
+  );
+}
+
+function DomainRoutingTag(props: { domain: ProjectDomainBinding }) {
   const { t } = useTranslation("account");
   if (!props.domain.isVerified) {
-    return <BaseTag color="gold">{t("SETTINGS_PROJECT_DOMAINS_STATUS_PENDING")}</BaseTag>;
+    return (
+      <BaseTag color="gold" icon={lucideTagIcon(ShieldAlert)}>
+        {t("SETTINGS_PROJECT_DOMAINS_STATUS_PENDING")}
+      </BaseTag>
+    );
   }
   if (!props.domain.isActive) {
     return <BaseTag color="default">{t("SETTINGS_PROJECT_DOMAINS_STATUS_DISABLED")}</BaseTag>;
   }
-  return <BaseTag color="green">{t("SETTINGS_PROJECT_DOMAINS_STATUS_ACTIVE")}</BaseTag>;
+  return (
+    <BaseTag color="green" icon={lucideTagIcon(ShieldCheck)}>
+      {t("SETTINGS_PROJECT_DOMAINS_STATUS_ACTIVE")}
+    </BaseTag>
+  );
 }
 
-function DnsInstruction(props: { domain: SiteDomainOut }) {
+function DomainCertificateTag(props: { domain: ProjectDomainBinding }) {
   const { t } = useTranslation("account");
-  if (props.domain.isVerified) return null;
+  switch (props.domain.certificateStatus) {
+    case "platform_managed":
+      return (
+        <BaseTag color="blue">{t("SETTINGS_PROJECT_DOMAINS_CERTIFICATE_PLATFORM_MANAGED")}</BaseTag>
+      );
+    case "issued":
+      return <BaseTag color="green">{t("SETTINGS_PROJECT_DOMAINS_CERTIFICATE_ISSUED")}</BaseTag>;
+    case "error":
+      return <BaseTag color="error">{t("SETTINGS_PROJECT_DOMAINS_CERTIFICATE_ERROR")}</BaseTag>;
+    case "pending":
+    default:
+      return <BaseTag color="gold">{t("SETTINGS_PROJECT_DOMAINS_CERTIFICATE_PENDING")}</BaseTag>;
+  }
+}
+
+function DomainPrimaryTag(props: { domain: ProjectDomainBinding }) {
+  const { t } = useTranslation("account");
+  if (!props.domain.isPrimary) return null;
+  return <BaseTag color="default">{t("SETTINGS_PROJECT_DOMAINS_PRIMARY")}</BaseTag>;
+}
+
+function DomainDnsInstruction(props: { domain: ProjectDomainBinding }) {
+  const { t } = useTranslation("account");
+  if (props.domain.source !== "custom" || props.domain.isVerified || !props.domain.dns) {
+    return null;
+  }
+
   return (
-    <div className="mt-3 rounded-2xl border border-border/60 bg-muted/20 px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+    <div
+      className="grid gap-3 rounded-lg border border-amber-500/20 bg-amber-500/6 px-4 py-4"
+      data-testid={`project-domain-dns-${props.domain.bindingId}`}
+    >
+      <div className="text-caption font-semibold text-label-primary">
         {t("SETTINGS_PROJECT_DOMAINS_DNS_TITLE")}
       </div>
-      <div className="mt-2 grid gap-2 text-sm">
-        <div className="grid gap-1">
-          <span className="text-muted-foreground">{t("SETTINGS_PROJECT_DOMAINS_DNS_NAME")}</span>
-          <code className="break-all rounded-lg bg-background px-2 py-1 text-foreground">
-            _arclayer-verify.{props.domain.hostname}
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-1.5">
+          <span className="text-footnote text-label-secondary">
+            {t("SETTINGS_PROJECT_DOMAINS_DNS_NAME")}
+          </span>
+          <code className="break-all rounded-md border border-border bg-background px-3 py-2 text-footnote text-label-primary">
+            {props.domain.dns.txtRecordName}
           </code>
         </div>
-        <div className="grid gap-1">
-          <span className="text-muted-foreground">{t("SETTINGS_PROJECT_DOMAINS_DNS_VALUE")}</span>
-          <code className="break-all rounded-lg bg-background px-2 py-1 text-foreground">
-            {props.domain.verificationToken}
+        <div className="grid gap-1.5">
+          <span className="text-footnote text-label-secondary">
+            {t("SETTINGS_PROJECT_DOMAINS_DNS_VALUE")}
+          </span>
+          <code className="break-all rounded-md border border-border bg-background px-3 py-2 text-footnote text-label-primary">
+            {props.domain.dns.txtRecordValue}
           </code>
         </div>
       </div>
@@ -62,68 +125,110 @@ function DnsInstruction(props: { domain: SiteDomainOut }) {
   );
 }
 
-function DomainRow(props: {
-  domain: SiteDomainOut;
-  onDelete: (domainId: string) => void;
-  onToggle: (domain: SiteDomainOut) => void;
-  onVerify: (domainId: string) => void;
+function DomainMeta(props: { label: string; value: string }) {
+  return (
+    <div className="grid gap-1">
+      <span className="text-footnote text-label-secondary">{props.label}</span>
+      <span className="text-callout text-label-primary">{props.value}</span>
+    </div>
+  );
+}
+
+function DomainBindingRow(props: {
+  domain: ProjectDomainBinding;
   pending: boolean;
+  canManageDomains: boolean;
+  onDelete: (bindingId: string) => void;
+  onToggle: (domain: ProjectDomainBinding) => void;
+  onVerify: (bindingId: string) => void;
 }) {
   const { t } = useTranslation("account");
+  const runtimeLabel = props.domain.runtimeName || t("SETTINGS_PROJECT_DOMAINS_RUNTIME_PRIMARY");
+  const environmentLabel =
+    props.domain.environmentId || t("SETTINGS_PROJECT_DOMAINS_ENVIRONMENT_DEFAULT");
+  const canDelete = props.domain.source === "custom" && props.canManageDomains;
+  const verifyVisible =
+    props.domain.source === "custom" && !props.domain.isVerified && props.canManageDomains;
+  const toggleLabel = props.domain.isActive
+    ? t("SETTINGS_PROJECT_DOMAINS_DISABLE")
+    : t("SETTINGS_PROJECT_DOMAINS_ENABLE");
+
   return (
-    <div className="rounded-[22px] border border-border/60 bg-background/80 px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
+    <div
+      className="grid gap-4 px-4 py-4"
+      data-testid={`project-domain-row-${props.domain.bindingId}`}
+    >
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold text-foreground">
+            <span className="text-headline font-semibold text-label-primary">
               {props.domain.hostname}
             </span>
-            <DomainStatusTag domain={props.domain} />
+            <DomainSourceTag domain={props.domain} />
+            <DomainPrimaryTag domain={props.domain} />
+            <DomainRoutingTag domain={props.domain} />
+            <DomainCertificateTag domain={props.domain} />
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">{props.domain.domainId}</div>
+          <div className="grid gap-3 text-left sm:grid-cols-3">
+            <DomainMeta label={t("SETTINGS_PROJECT_DOMAINS_RUNTIME_LABEL")} value={runtimeLabel} />
+            <DomainMeta
+              label={t("SETTINGS_PROJECT_DOMAINS_ENVIRONMENT_LABEL")}
+              value={environmentLabel}
+            />
+            <DomainMeta
+              label={t("SETTINGS_PROJECT_DOMAINS_BINDING_ID_LABEL")}
+              value={props.domain.bindingId}
+            />
+          </div>
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
-          {!props.domain.isVerified ? (
+          {verifyVisible ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
               disabled={props.pending}
-              onClick={() => props.onVerify(props.domain.domainId)}
+              onClick={() => props.onVerify(props.domain.bindingId)}
+              data-testid={`project-domain-verify-${props.domain.bindingId}`}
             >
+              <CheckCheck size={16} />
               {t("SETTINGS_PROJECT_DOMAINS_VERIFY")}
             </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={props.pending}
-              onClick={() => props.onToggle(props.domain)}
-            >
-              {props.domain.isActive
-                ? t("SETTINGS_PROJECT_DOMAINS_DISABLE")
-                : t("SETTINGS_PROJECT_DOMAINS_ENABLE")}
-            </Button>
-          )}
+          ) : null}
           <Button
             type="button"
-            variant="ghost"
-            size="icon"
-            disabled={props.pending}
-            aria-label={t("SETTINGS_PROJECT_DOMAINS_DELETE")}
-            onClick={() => props.onDelete(props.domain.domainId)}
+            variant="outline"
+            size="sm"
+            disabled={props.pending || !props.canManageDomains}
+            onClick={() => props.onToggle(props.domain)}
+            data-testid={`project-domain-toggle-${props.domain.bindingId}`}
           >
-            <Trash2 size={16} />
+            {props.pending ? <LoaderCircle className="animate-spin" size={16} /> : null}
+            {toggleLabel}
           </Button>
+          {canDelete ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={props.pending}
+              aria-label={t("SETTINGS_PROJECT_DOMAINS_DELETE")}
+              onClick={() => props.onDelete(props.domain.bindingId)}
+              data-testid={`project-domain-delete-${props.domain.bindingId}`}
+            >
+              <Trash2 size={16} />
+            </Button>
+          ) : null}
         </div>
       </div>
-      <DnsInstruction domain={props.domain} />
+
+      <DomainDnsInstruction domain={props.domain} />
     </div>
   );
 }
 
-export function ProjectDomainSettingsPage(props: { projectId: string }) {
+export function ProjectDomainSettingsPage(props: { projectId: string; embedded?: boolean }) {
   const { t } = useTranslation(["account", "common"]);
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(props.projectId);
@@ -151,7 +256,7 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: async (domainId: string) => verifyProjectDomain(props.projectId, domainId),
+    mutationFn: async (bindingId: string) => verifyProjectDomain(props.projectId, bindingId),
     onSuccess: async () => {
       notifySuccessText(t("account:SETTINGS_PROJECT_DOMAINS_VERIFIED"));
       await invalidate();
@@ -160,8 +265,8 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (domain: SiteDomainOut) =>
-      updateProjectDomain(props.projectId, domain.domainId, { isActive: !domain.isActive }),
+    mutationFn: async (domain: ProjectDomainBinding) =>
+      updateProjectDomain(props.projectId, domain.bindingId, { isActive: !domain.isActive }),
     onSuccess: async () => {
       notifySuccessText(t("common:SETTINGS_SAVED"));
       await invalidate();
@@ -170,7 +275,7 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (domainId: string) => deleteProjectDomain(props.projectId, domainId),
+    mutationFn: async (bindingId: string) => deleteProjectDomain(props.projectId, bindingId),
     onSuccess: async () => {
       notifySuccessText(t("account:SETTINGS_PROJECT_DOMAINS_DELETED"));
       await invalidate();
@@ -190,6 +295,108 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
     permissionReady &&
     permissionAccess.hasAction("project:domains:manage");
 
+  const platformCount = useMemo(
+    () => domains.filter((domain) => domain.source === "platform").length,
+    [domains],
+  );
+
+  const content = (
+    <ContentGuard
+      loading={domainsQuery.isLoading}
+      loadingVariant="form"
+      error={domainsQuery.error}
+      onRetry={domainsQuery.isError ? () => void domainsQuery.refetch() : undefined}
+    >
+      <div className="grid gap-8">
+        {permissionReady && !canManageDomains ? (
+          <AccessNoticeAlert
+            className="mb-0"
+            data-testid="project-domains-read-only-notice"
+            description={t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
+          />
+        ) : null}
+
+        <SettingPanel
+          title={t("account:SETTINGS_PROJECT_DOMAINS_ADD_TITLE")}
+          description={t("account:SETTINGS_PROJECT_DOMAINS_ADD_DESC")}
+          bordered={false}
+        >
+          <form
+            className="grid gap-4 rounded-lg border border-border bg-card px-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!hostname.trim() || !canManageDomains) return;
+              void createMutation.mutateAsync();
+            }}
+          >
+            <Input
+              value={hostname}
+              onChange={(event) => setHostname(event.target.value)}
+              placeholder={t("account:SETTINGS_PROJECT_DOMAINS_PLACEHOLDER")}
+              autoComplete="off"
+              disabled={!canManageDomains}
+              data-testid="project-domain-create-input"
+            />
+            <Button
+              type="submit"
+              loading={createMutation.isPending}
+              disabled={!hostname.trim() || !canManageDomains}
+              data-testid="project-domain-create-submit"
+            >
+              <Plus size={16} />
+              {t("account:SETTINGS_PROJECT_DOMAINS_ADD")}
+            </Button>
+          </form>
+        </SettingPanel>
+
+        <SettingPanel
+          title={t("account:SETTINGS_PROJECT_DOMAINS_BINDINGS_TITLE")}
+          description={t("account:SETTINGS_PROJECT_DOMAINS_BINDINGS_DESC", {
+            count: platformCount,
+          })}
+          bordered={false}
+        >
+          {domains.length > 0 ? (
+            <div
+              className="overflow-hidden rounded-lg border border-border bg-card divide-y divide-border"
+              data-testid="project-domain-settings-list"
+            >
+              {domains.map((domain) => (
+                <DomainBindingRow
+                  key={domain.bindingId}
+                  domain={domain}
+                  pending={pending}
+                  canManageDomains={canManageDomains}
+                  onDelete={(bindingId) => void deleteMutation.mutateAsync(bindingId)}
+                  onToggle={(nextDomain) => void updateMutation.mutateAsync(nextDomain)}
+                  onVerify={(bindingId) => void verifyMutation.mutateAsync(bindingId)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "grid gap-2 rounded-lg border border-dashed border-border bg-card px-5 py-8",
+                "text-callout text-label-secondary",
+              )}
+              data-testid="project-domain-empty-state"
+            >
+              <div className="flex items-center gap-2 text-headline text-label-primary">
+                <Globe size={16} />
+                {t("account:SETTINGS_PROJECT_DOMAINS_EMPTY_TITLE")}
+              </div>
+              <p>{t("account:SETTINGS_PROJECT_DOMAINS_EMPTY")}</p>
+            </div>
+          )}
+        </SettingPanel>
+      </div>
+    </ContentGuard>
+  );
+
+  if (props.embedded) {
+    return content;
+  }
+
   return (
     <DefaultPage
       title={t("account:SETTINGS_NAV_PROJECT_DOMAIN")}
@@ -201,76 +408,7 @@ export function ProjectDomainSettingsPage(props: { projectId: string }) {
       contentClassName="min-h-full"
       contentContainerClassName="min-h-full"
     >
-      <ContentGuard
-        loading={domainsQuery.isLoading}
-        loadingVariant="form"
-        error={domainsQuery.error}
-        onRetry={domainsQuery.isError ? () => void domainsQuery.refetch() : undefined}
-      >
-        <div className="grid gap-6">
-          {permissionReady && !canManageDomains ? (
-            <div
-              className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
-              data-testid="project-domains-read-only-notice"
-            >
-              {t("account:SETTINGS_PROJECT_READ_ONLY_DESC")}
-            </div>
-          ) : null}
-          <form
-            className="rounded-[28px] border border-border/60 bg-card/60 p-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!hostname.trim() || !canManageDomains) return;
-              void createMutation.mutateAsync();
-            }}
-          >
-            <div className="max-w-2xl">
-              <div className="text-sm font-semibold text-foreground">
-                {t("account:SETTINGS_PROJECT_DOMAINS_ADD_TITLE")}
-              </div>
-              <div className="mt-1 text-sm leading-6 text-muted-foreground">
-                {t("account:SETTINGS_PROJECT_DOMAINS_ADD_DESC")}
-              </div>
-            </div>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Input
-                value={hostname}
-                onChange={(event) => setHostname(event.target.value)}
-                placeholder={t("account:SETTINGS_PROJECT_DOMAINS_PLACEHOLDER")}
-                autoComplete="off"
-                disabled={!canManageDomains}
-              />
-              <Button
-                type="submit"
-                loading={createMutation.isPending}
-                disabled={!hostname.trim() || !canManageDomains}
-              >
-                <Plus size={16} />
-                {t("account:SETTINGS_PROJECT_DOMAINS_ADD")}
-              </Button>
-            </div>
-          </form>
-
-          <div className="grid gap-3" data-testid="project-domain-settings-list">
-            {domains.length > 0 ? (
-              domains.map((domain) => (
-                <DomainRow
-                  key={domain.domainId}
-                  domain={domain}
-                  pending={pending || !canManageDomains}
-                  onDelete={(domainId) => void deleteMutation.mutateAsync(domainId)}
-                  onToggle={(nextDomain) => void updateMutation.mutateAsync(nextDomain)}
-                  onVerify={(domainId) => void verifyMutation.mutateAsync(domainId)}
-                />
-              ))
-            ) : (
-              <div className="rounded-[28px] border border-dashed border-border/70 bg-background/80 px-5 py-8 text-sm text-muted-foreground">
-                {t("account:SETTINGS_PROJECT_DOMAINS_EMPTY")}
-              </div>
-            )}
-          </div>
-        </div>
-      </ContentGuard>
+      {content}
     </DefaultPage>
   );
 }

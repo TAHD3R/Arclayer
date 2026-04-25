@@ -47,11 +47,16 @@ async def test_get_workspace_context_returns_guest_context(monkeypatch: pytest.M
     ) -> None:
         bind_calls.append((workspace_id, organization_id, membership_id))
 
+    async def bind_workspace_tenant_context(*, workspace_id: UUID, organization_id: UUID) -> None:
+        assert workspace_id == workspace_uuid
+        assert organization_id == organization_uuid
+
     monkeypatch.setattr(ws_http_service, "_require_active_workspace", require_active_workspace)
     monkeypatch.setattr(ws_http_service, "_resolve_workspace_org_id", resolve_workspace_org_id)
     monkeypatch.setattr(ws_http_service, "_find_active_org_membership", find_active_org_membership)
     monkeypatch.setattr(ws_http_service, "_find_active_workspace_membership", find_active_workspace_membership)
     monkeypatch.setattr(ws_http_service, "_bind_workspace_request_context", bind_workspace_request_context)
+    monkeypatch.setattr(ws_http_service, "bind_workspace_tenant_context", bind_workspace_tenant_context)
 
     ctx = await ws_http_service.get_workspace_context(workspace_id=workspace_uuid, user_id=user_uuid)
     assert ctx.access_type == WorkspaceAccessType.GUEST
@@ -100,11 +105,16 @@ async def test_get_workspace_context_returns_member_context(monkeypatch: pytest.
         assert organization_id == organization_uuid
         assert membership_id == membership_uuid
 
+    async def bind_workspace_tenant_context(*, workspace_id: UUID, organization_id: UUID) -> None:
+        assert workspace_id == workspace_uuid
+        assert organization_id == organization_uuid
+
     monkeypatch.setattr(ws_http_service, "_require_active_workspace", require_active_workspace)
     monkeypatch.setattr(ws_http_service, "_resolve_workspace_org_id", resolve_workspace_org_id)
     monkeypatch.setattr(ws_http_service, "_find_active_org_membership", find_active_org_membership)
     monkeypatch.setattr(ws_http_service, "_find_active_workspace_membership", find_active_workspace_membership)
     monkeypatch.setattr(ws_http_service, "_bind_workspace_request_context", bind_workspace_request_context)
+    monkeypatch.setattr(ws_http_service, "bind_workspace_tenant_context", bind_workspace_tenant_context)
 
     ctx = await ws_http_service.get_workspace_context(workspace_id=workspace_uuid, user_id=user_uuid)
     assert ctx.access_type == WorkspaceAccessType.MEMBER

@@ -11,6 +11,7 @@ from src.core.events import Event, events
 from src.core.logging import get_logger
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.releases.schema import ReleaseOut
+from src.modules.tenancy.router_helpers import current_tenant_context_or_none, tenant_payload_from_context
 
 logger = get_logger(__name__)
 _FATAL_EVENT_ERRORS = (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit)
@@ -44,6 +45,15 @@ async def publish_project_release_event(
     project_id: UUID | None = None,
     previous_active_release_id: str | None = None,
 ) -> None:
+    tenant_context = current_tenant_context_or_none()
+    normalized_site_id = _normalize_public_or_uuid(payload.site_id)
+    if tenant_context is not None and normalized_site_id is not None:
+        tenant_context = tenant_context.with_project(
+            project_id=project_id or tenant_context.project_id or UUID(str(project_ctx.project_id)),
+            runtime_id=project_ctx.runtime_id or tenant_context.runtime_id,
+            site_id=normalized_site_id,
+            scope=tenant_context.scope,
+        )
     event_payload: dict[str, object | None] = {
         "entity_id": str(_normalize_public_or_uuid(payload.id)),
         "entity_type": "release",
@@ -56,7 +66,8 @@ async def publish_project_release_event(
         ),
         "project_id": str(project_id) if project_id is not None else None,
         "release_number": payload.release_number,
-        "site_id": str(_normalize_public_or_uuid(payload.site_id)),
+        "site_id": str(normalized_site_id),
+        "tenant": tenant_payload_from_context(tenant_context) if tenant_context is not None else None,
         "workspace_id": str(project_ctx.workspace_id),
     }
     try:

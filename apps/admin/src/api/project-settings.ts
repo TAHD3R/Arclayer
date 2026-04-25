@@ -4,16 +4,21 @@ import type {
   ApiKeyCreateOut,
   ApiKeyListOut,
   ApiKeyOut,
+  DomainBindingCreateOut,
+  DomainBindingDeleteOut,
+  DomainBindingOut,
+  DomainBindingVerifyOut,
   ProjectApiKeyCreateIn,
-  SiteDomainCreateOut,
-  SiteDomainDeleteOut,
-  SiteDomainOut,
-  SiteDomainVerifyOut,
 } from "@arclayer/openapi";
 
-export async function listProjectDomains(projectId: string): Promise<SiteDomainOut[]> {
+export type ProjectDomainBinding = DomainBindingOut;
+export type ProjectDomainCreateOut = DomainBindingCreateOut;
+export type ProjectDomainVerifyOut = DomainBindingVerifyOut;
+export type ProjectDomainDeleteOut = DomainBindingDeleteOut;
+
+export async function listProjectDomains(projectId: string): Promise<ProjectDomainBinding[]> {
   const query = toQueryString({ page: 1, size: 100 });
-  const page = await api.get<{ items?: SiteDomainOut[] }>(
+  const page = await api.get<{ items?: ProjectDomainBinding[] }>(
     projectPath(projectId, `/domains${query}`),
   );
   return page.items ?? [];
@@ -22,36 +27,36 @@ export async function listProjectDomains(projectId: string): Promise<SiteDomainO
 export async function createProjectDomain(
   projectId: string,
   hostname: string,
-): Promise<SiteDomainCreateOut> {
-  return api.post<SiteDomainCreateOut>(projectPath(projectId, "/domains"), { hostname });
+): Promise<ProjectDomainCreateOut> {
+  return api.post<ProjectDomainCreateOut>(projectPath(projectId, "/domains"), { hostname });
 }
 
 export async function verifyProjectDomain(
   projectId: string,
-  domainId: string,
-): Promise<SiteDomainVerifyOut> {
-  return api.post<SiteDomainVerifyOut>(
-    projectPath(projectId, `/domains/${encodeURIComponent(domainId)}/verify`),
+  bindingId: string,
+): Promise<ProjectDomainVerifyOut> {
+  return api.post<ProjectDomainVerifyOut>(
+    projectPath(projectId, `/domains/${encodeURIComponent(bindingId)}/verify`),
   );
 }
 
 export async function updateProjectDomain(
   projectId: string,
-  domainId: string,
+  bindingId: string,
   payload: { isActive: boolean },
-): Promise<SiteDomainOut> {
-  return api.patch<SiteDomainOut>(
-    projectPath(projectId, `/domains/${encodeURIComponent(domainId)}`),
+): Promise<ProjectDomainBinding> {
+  return api.patch<ProjectDomainBinding>(
+    projectPath(projectId, `/domains/${encodeURIComponent(bindingId)}`),
     payload,
   );
 }
 
 export async function deleteProjectDomain(
   projectId: string,
-  domainId: string,
-): Promise<SiteDomainDeleteOut> {
-  return api.delete<SiteDomainDeleteOut>(
-    projectPath(projectId, `/domains/${encodeURIComponent(domainId)}`),
+  bindingId: string,
+): Promise<ProjectDomainDeleteOut> {
+  return api.delete<ProjectDomainDeleteOut>(
+    projectPath(projectId, `/domains/${encodeURIComponent(bindingId)}`),
   );
 }
 

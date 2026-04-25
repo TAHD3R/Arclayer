@@ -1,11 +1,38 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+from inspect import iscoroutinefunction
 from uuid import UUID, uuid4
 
 import pytest
 
 from src.modules.assets.admin.assets.service import AdminAssetsService
 from src.modules.assets.scope import AssetScope
+
+
+class _RepoHarness:
+    @asynccontextmanager
+    async def connection(self, **_kwargs):
+        yield None
+
+    def __getattribute__(self, name):
+        attr = object.__getattribute__(self, name)
+        if name.startswith("__") or name == "connection" or not callable(attr):
+            return attr
+
+        if iscoroutinefunction(attr):
+
+            async def _async_call(*args, **kwargs):
+                kwargs.pop("conn", None)
+                return await attr(*args, **kwargs)
+
+            return _async_call
+
+        def _call(*args, **kwargs):
+            kwargs.pop("conn", None)
+            return attr(*args, **kwargs)
+
+        return _call
 
 
 def test_admin_assets_service_exposes_bulk_ops() -> None:
@@ -38,7 +65,7 @@ async def test_bulk_move_assets_validates_folder_exists(monkeypatch) -> None:
     service = AdminAssetsService(settings)
     scope = AssetScope(type="workspace", id=uuid4())
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
             return None
 
@@ -65,7 +92,7 @@ async def test_bulk_delete_assets_marks_assets_deleted(monkeypatch) -> None:
 
     deleted = {"count": 0, "ids": []}
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def bulk_soft_delete_assets(self, *, scope, asset_ids, deleted_at, updated_at):
             deleted["count"] = len(asset_ids)
             deleted["ids"] = list(asset_ids)
@@ -98,7 +125,7 @@ async def test_bulk_update_assets_requires_fields(monkeypatch) -> None:
     service = AdminAssetsService(settings)
     scope = AssetScope(type="workspace", id=uuid4())
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def get_assets_by_ids(self, *, scope, asset_ids):
             return [{"id": x} for x in asset_ids]
 
@@ -117,7 +144,7 @@ async def test_bulk_update_assets_requires_fields(monkeypatch) -> None:
 async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
     # Behavior: bulk update should call repository once and return updated ids/count.
     from src.config import get_settings
-    from src.models.assets.asset import AssetVisibility
+    from src.models.assets.asset import AssetPurpose
     from src.modules.assets.admin.assets.schema import AdminAssetBulkUpdateRequest
 
     settings = get_settings()
@@ -128,7 +155,7 @@ async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
     called_ids: list[UUID] = []
     called_updates: dict[str, object] = {}
 
-    class FakeRepo:
+    class FakeRepo(_RepoHarness):
         async def bulk_update_assets_fields(self, *, scope, asset_ids, updates, updated_at):
             nonlocal called_count, called_ids, called_updates
             called_count = len(asset_ids)
@@ -144,11 +171,11 @@ async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
     ids = [uuid4(), uuid4(), uuid4()]
     out = await service.bulk_update_assets(  # type: ignore[attr-defined]
         scope=scope,
-        payload=AdminAssetBulkUpdateRequest(asset_ids=ids, visibility=AssetVisibility.PRIVATE),
+        payload=AdminAssetBulkUpdateRequest(asset_ids=ids, purpose=AssetPurpose.LIBRARY),
     )
 
     assert out.updated_count == 3
     assert set(out.updated_asset_ids) == set(ids)
     assert called_count == 3
     assert set(called_ids) == set(ids)
-    assert called_updates == {"visibility": AssetVisibility.PRIVATE, "indexable": False}
+    assert called_updates == {"purpose": AssetPurpose.LIBRARY}

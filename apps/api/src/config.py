@@ -118,6 +118,7 @@ class StorageSettings(BaseSettings):
         validate_default=True,
     )
 
+    default_profile_key: str = Field(default="env-default")
     provider: Literal["local", "s3"] = Field(default="local")
     local_root_dir: Path = Field(default=_REPO_ROOT / "data" / "uploads")
     local_tmp_dir: Path = Field(default=_REPO_ROOT / "data" / "uploads" / ".tmp")
@@ -348,6 +349,25 @@ class ValkeySettings(BaseSettings):
         return f"redis://{auth}{self.host}:{self.port}/{self.db}"
 
 
+class ProjectDatabaseProvisioningSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="PROJECT_DATABASES__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=False)
+    host: str = Field(default="127.0.0.1")
+    port: int = Field(default=5432)
+    user: str = Field(default="postgres")
+    password: SecretStr = Field(default=SecretStr(""))
+    database: str = Field(default="postgres")
+
+
 class AnalyticsAuditLogSettings(BaseSettings):
     """
     Analytics audit log settings.
@@ -481,6 +501,7 @@ class Settings(BaseSettings):
     storage: StorageSettings = Field(default_factory=StorageSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    project_databases: ProjectDatabaseProvisioningSettings = Field(default_factory=ProjectDatabaseProvisioningSettings)
     valkey: ValkeySettings = Field(default_factory=ValkeySettings)
     analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
     taskiq: TaskiqSettings = Field(default_factory=TaskiqSettings)

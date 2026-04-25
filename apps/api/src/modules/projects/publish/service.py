@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from tortoise.transactions import in_transaction
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.core.exceptions import Conflict
 from src.models.content._enums import ContentShapeState, ContentWorkflowStage, PublishArtifactKind
@@ -24,6 +24,8 @@ from src.modules.projects.publish.schema import (
     PublishImpactOut,
     PublishReadinessSummaryOut,
 )
+from src.modules.tenancy.database import TenantDatabaseRouter
+from src.modules.tenancy.schema import TenantContext
 
 _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST = frozenset({"seo", "slot_mapping"})
 
@@ -73,7 +75,12 @@ def _refresh_readiness_summary(impact: PublishImpactOut, *, selected_item_count:
     )
 
 
-async def _load_publishable_items(*, workspace_id: UUID, site_id: UUID) -> list[ContentItemRecord]:
+async def _load_publishable_items(
+    *,
+    workspace_id: UUID,
+    site_id: UUID,
+    conn: BaseDBAsyncClient,
+) -> list[ContentItemRecord]:
     rows = (
         await ContentItemRecord
         .filter(
@@ -81,6 +88,7 @@ async def _load_publishable_items(*, workspace_id: UUID, site_id: UUID) -> list[
             site_id=site_id,
             published_version__not_isnull=True,
         )
+        .using_db(conn)
         .prefetch_related("model_definition")
         .all()
     )
@@ -91,44 +99,72 @@ def _requires_route(item: ContentItemRecord) -> bool:
     return item_has_capability(item, "routable")
 
 
-async def _load_active_route_map(*, site_id: UUID) -> dict[tuple[UUID, str], RouteBindingRecord]:
-    rows = await RouteBindingRecord.filter(site_id=site_id, is_active=True).all()
+async def _load_active_route_map(
+    *,
+    site_id: UUID,
+    conn: BaseDBAsyncClient,
+) -> dict[tuple[UUID, str], RouteBindingRecord]:
+    rows = await RouteBindingRecord.filter(site_id=site_id, is_active=True).using_db(conn).all()
     return {(row.item_id, row.locale): row for row in rows}
 
 
-async def _load_published_versions(*, item_ids: list[UUID]) -> dict[tuple[UUID, int], ContentVersionRecord]:
+async def _load_published_versions(
+    *,
+    item_ids: list[UUID],
+    conn: BaseDBAsyncClient,
+) -> dict[tuple[UUID, int], ContentVersionRecord]:
     if not item_ids:
         return {}
-    rows = await ContentVersionRecord.filter(item_id__in=item_ids).all()
+    rows = await ContentVersionRecord.filter(item_id__in=item_ids).using_db(conn).all()
     return {(row.item_id, row.version): row for row in rows}
 
 
-async def _load_hierarchy_map(*, site_id: UUID) -> dict[UUID, HierarchyNodeRecord]:
-    rows = await HierarchyNodeRecord.filter(site_id=site_id).all()
+async def _load_hierarchy_map(*, site_id: UUID, conn: BaseDBAsyncClient) -> dict[UUID, HierarchyNodeRecord]:
+    rows = await HierarchyNodeRecord.filter(site_id=site_id).using_db(conn).all()
     return {row.item_id: row for row in rows}
 
 
-async def _load_seo_profile_map(*, version_ids: list[UUID]) -> dict[UUID, SEOProfileRecord]:
+async def _load_seo_profile_map(
+    *,
+    version_ids: list[UUID],
+    conn: BaseDBAsyncClient,
+) -> dict[UUID, SEOProfileRecord]:
     if not version_ids:
         return {}
-    rows = await SEOProfileRecord.filter(version_id__in=version_ids).all()
+    rows = await SEOProfileRecord.filter(version_id__in=version_ids).using_db(conn).all()
     return {row.version_id: row for row in rows}
 
 
-async def _load_component_binding_map(*, version_ids: list[UUID]) -> dict[UUID, list[ComponentBindingRecord]]:
+async def _load_component_binding_map(
+    *,
+    version_ids: list[UUID],
+    conn: BaseDBAsyncClient,
+) -> dict[UUID, list[ComponentBindingRecord]]:
     if not version_ids:
         return {}
-    rows = await ComponentBindingRecord.filter(version_id__in=version_ids).order_by("sort_order", "id").all()
+    rows = (
+        await ComponentBindingRecord
+        .filter(version_id__in=version_ids)
+        .using_db(conn)
+        .order_by("sort_order", "id")
+        .all()
+    )
     out: dict[UUID, list[ComponentBindingRecord]] = {}
     for row in rows:
         out.setdefault(row.version_id, []).append(row)
     return out
 
 
-async def _load_component_manifest_map(*, version_ids: list[UUID]) -> dict[UUID, dict[str, object]]:
+async def _load_component_manifest_map(
+    *,
+    version_ids: list[UUID],
+    conn: BaseDBAsyncClient,
+) -> dict[UUID, dict[str, object]]:
     if not version_ids:
         return {}
-    rows = await PresentationDocumentRecord.filter(version_id__in=version_ids).order_by("kind", "id").all()
+    rows = (
+        await PresentationDocumentRecord.filter(version_id__in=version_ids).using_db(conn).order_by("kind", "id").all()
+    )
     out: dict[UUID, list[dict[str, object] | None]] = {}
     for row in rows:
         if row.kind in _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST:
@@ -144,58 +180,63 @@ async def _next_release_number(*, site_id: UUID, conn) -> int:
 
 
 class ProjectPublishService:
-    async def preview_impact(self, *, workspace_id: UUID, site_id: UUID) -> PublishImpactOut:
-        items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id)
-        if not items:
-            return _empty_impact()
+    def __init__(self, tenant_context: TenantContext) -> None:
+        self.tenant_context = tenant_context
+        self.tenant_db = TenantDatabaseRouter(tenant_context)
 
-        route_map = await _load_active_route_map(site_id=site_id)
-        published_item_ids = {item.id for item in items}
-        hierarchy_map = await _load_hierarchy_map(site_id=site_id)
-        impact = _empty_impact()
-        for item in items:
-            if (
-                item.shape_state != ContentShapeState.READY
-                or item.resolved_surface is None
-                or item.resolved_role is None
-                or item.resolved_posture is None
-            ):
-                _append_blocked_item(
-                    impact,
-                    item=item,
-                    reason_code=item.shape_reason_code or CONTINUATION_TRUTH_MISSING_REASON_CODE,
-                    reason_meta=item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None,
-                )
-                continue
-            if item.workflow_stage != ContentWorkflowStage.APPROVED:
-                _append_blocked_item(
-                    impact,
-                    item=item,
-                    reason_code=WORKFLOW_PUBLISH_BLOCKER_CODE,
-                    reason_meta={"workflowStage": str(item.workflow_stage)},
-                )
-                continue
-            route_key = (item.id, item.locale)
-            if _requires_route(item) and route_map.get(route_key) is None:
-                impact.missing_routes.append(item.id)
-                _append_blocked_item(
-                    impact,
-                    item=item,
-                    reason_code="MISSING_ROUTE",
-                    reason_meta={"locale": item.locale},
-                )
-            node = hierarchy_map.get(item.id)
-            parent_item_id = node.parent_item_id if node is not None else None
-            if parent_item_id is not None and parent_item_id not in published_item_ids:
-                impact.unpublished_dependencies.append(item.id)
-                _append_blocked_item(
-                    impact,
-                    item=item,
-                    reason_code="PARENT_UNPUBLISHED",
-                    reason_meta={"parentItemId": str(parent_item_id)},
-                )
-        _refresh_readiness_summary(impact, selected_item_count=len(items))
-        return impact
+    async def preview_impact(self, *, workspace_id: UUID, site_id: UUID) -> PublishImpactOut:
+        async with self.tenant_db.connection() as conn:
+            items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id, conn=conn)
+            if not items:
+                return _empty_impact()
+
+            route_map = await _load_active_route_map(site_id=site_id, conn=conn)
+            published_item_ids = {item.id for item in items}
+            hierarchy_map = await _load_hierarchy_map(site_id=site_id, conn=conn)
+            impact = _empty_impact()
+            for item in items:
+                if (
+                    item.shape_state != ContentShapeState.READY
+                    or item.resolved_surface is None
+                    or item.resolved_role is None
+                    or item.resolved_posture is None
+                ):
+                    _append_blocked_item(
+                        impact,
+                        item=item,
+                        reason_code=item.shape_reason_code or CONTINUATION_TRUTH_MISSING_REASON_CODE,
+                        reason_meta=item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None,
+                    )
+                    continue
+                if item.workflow_stage != ContentWorkflowStage.APPROVED:
+                    _append_blocked_item(
+                        impact,
+                        item=item,
+                        reason_code=WORKFLOW_PUBLISH_BLOCKER_CODE,
+                        reason_meta={"workflowStage": str(item.workflow_stage)},
+                    )
+                    continue
+                route_key = (item.id, item.locale)
+                if _requires_route(item) and route_map.get(route_key) is None:
+                    impact.missing_routes.append(item.id)
+                    _append_blocked_item(
+                        impact,
+                        item=item,
+                        reason_code="MISSING_ROUTE",
+                        reason_meta={"locale": item.locale},
+                    )
+                node = hierarchy_map.get(item.id)
+                parent_item_id = node.parent_item_id if node is not None else None
+                if parent_item_id is not None and parent_item_id not in published_item_ids:
+                    impact.unpublished_dependencies.append(item.id)
+                    _append_blocked_item(
+                        impact,
+                        item=item,
+                        reason_code="PARENT_UNPUBLISHED",
+                        reason_meta={"parentItemId": str(parent_item_id)},
+                    )
+            _refresh_readiness_summary(impact, selected_item_count=len(items))
+            return impact
 
     async def publish_release(
         self,
@@ -212,16 +253,16 @@ class ProjectPublishService:
                 meta=impact.model_dump(mode="json"),
             )
 
-        items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id)
-        route_map = await _load_active_route_map(site_id=site_id)
-        item_ids = [item.id for item in items]
-        version_map = await _load_published_versions(item_ids=item_ids)
-        hierarchy_map = await _load_hierarchy_map(site_id=site_id)
-        version_ids = [version.id for version in version_map.values()]
-        seo_profile_map = await _load_seo_profile_map(version_ids=version_ids)
-        component_binding_map = await _load_component_binding_map(version_ids=version_ids)
-        component_manifest_map = await _load_component_manifest_map(version_ids=version_ids)
-        async with in_transaction() as conn:
+        async with self.tenant_db.connection() as conn:
+            items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id, conn=conn)
+            route_map = await _load_active_route_map(site_id=site_id, conn=conn)
+            item_ids = [item.id for item in items]
+            version_map = await _load_published_versions(item_ids=item_ids, conn=conn)
+            hierarchy_map = await _load_hierarchy_map(site_id=site_id, conn=conn)
+            version_ids = [version.id for version in version_map.values()]
+            seo_profile_map = await _load_seo_profile_map(version_ids=version_ids, conn=conn)
+            component_binding_map = await _load_component_binding_map(version_ids=version_ids, conn=conn)
+            component_manifest_map = await _load_component_manifest_map(version_ids=version_ids, conn=conn)
             current_active_release = (
                 await ContentReleaseRecord
                 .filter(

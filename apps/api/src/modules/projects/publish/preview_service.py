@@ -5,15 +5,20 @@ from uuid import UUID
 from src.core.exceptions import NotFound
 from src.modules.projects.publish.schema import PublishExportContractOut
 from src.modules.projects.publish.storage import ProjectPublishArtifactStorage
+from src.modules.tenancy.schema import TenantContext
 
 
 class ProjectPublishPreviewService:
-    def __init__(self, storage: ProjectPublishArtifactStorage | None = None) -> None:
-        self._storage = storage or ProjectPublishArtifactStorage()
+    def __init__(
+        self,
+        tenant_context: TenantContext,
+        storage: ProjectPublishArtifactStorage | None = None,
+    ) -> None:
+        self._storage = storage or ProjectPublishArtifactStorage(tenant_context)
 
     async def build_preview_contract(self, *, workspace_id: UUID, site_id: UUID) -> PublishExportContractOut:
         try:
-            return await self._storage.build_publish_contract(workspace_id=workspace_id, site_id=site_id)
+            return await self._storage.build_publish_contract(workspace_id=workspace_id, site_id=site_id, preview=True)
         except NotFound as exc:
             raise NotFound(
                 "Preview artifacts are required before preview contract can be read",

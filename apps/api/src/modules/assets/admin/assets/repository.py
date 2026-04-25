@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
@@ -11,18 +14,34 @@ from src.models.assets.asset import AssetRecord
 from src.models.assets.asset_folder import AssetFolderRecord
 from src.models.assets.asset_tag import AssetTagLinkRecord, AssetTagRecord
 from src.modules.assets.admin.assets.schema import AdminAssetListQuery
-from src.modules.assets.scope import AssetScope, scope_filter_kwargs
+from src.modules.assets.scope import AssetScope, AssetScopeDatabaseRouter, scope_filter_kwargs
+from src.modules.tenancy.schema import TenantContext
 
 
 class AdminAssetsRepository(BaseRepository):
+    def __init__(self, tenant_context: TenantContext | None = None) -> None:
+        super().__init__()
+        self.scope_db = AssetScopeDatabaseRouter(tenant_context)
+
+    @asynccontextmanager
+    async def connection(
+        self,
+        *,
+        scope: AssetScope,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AsyncIterator[BaseDBAsyncClient | None]:
+        async with self.scope_db.connection(scope=scope, conn=conn) as scoped_conn:
+            yield scoped_conn
+
     def query_assets(
         self,
         *,
         scope: AssetScope,
         filters: AdminAssetListQuery,
         folder_ids: list[UUID] | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> QuerySet[AssetRecord]:
-        qs = AssetRecord.filter(deleted_at=None, **scope_filter_kwargs(scope))
+        qs = self.using_db(AssetRecord.filter(deleted_at=None, **scope_filter_kwargs(scope)), conn)
 
         if folder_ids is not None:
             qs = qs.filter(folder_id__in=folder_ids)
@@ -70,48 +89,113 @@ class AdminAssetsRepository(BaseRepository):
 
         return qs
 
-    async def get_asset(self, *, scope: AssetScope, asset_id: UUID) -> AssetRecord | None:
-        return await AssetRecord.get_or_none(id=asset_id, deleted_at=None, **scope_filter_kwargs(scope))
+    async def get_asset(
+        self,
+        *,
+        scope: AssetScope,
+        asset_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AssetRecord | None:
+        return await AssetRecord.get_or_none(
+            id=asset_id, deleted_at=None, **scope_filter_kwargs(scope), **self._using_db_kwargs(conn)
+        )
 
-    async def get_assets_by_ids(self, *, scope: AssetScope, asset_ids: list[UUID]) -> list[AssetRecord]:
+    async def get_assets_by_ids(
+        self,
+        *,
+        scope: AssetScope,
+        asset_ids: list[UUID],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[AssetRecord]:
         if not asset_ids:
             return []
-        return await AssetRecord.filter(deleted_at=None, id__in=list(asset_ids), **scope_filter_kwargs(scope)).all()
+        return await self.using_db(
+            AssetRecord.filter(deleted_at=None, id__in=list(asset_ids), **scope_filter_kwargs(scope)),
+            conn,
+        ).all()
 
-    async def get_asset_with_tags(self, *, scope: AssetScope, asset_id: UUID) -> AssetRecord | None:
+    async def get_asset_with_tags(
+        self,
+        *,
+        scope: AssetScope,
+        asset_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AssetRecord | None:
         return (
-            await AssetRecord
-            .filter(id=asset_id, deleted_at=None, **scope_filter_kwargs(scope))
+            await self
+            .using_db(
+                AssetRecord.filter(id=asset_id, deleted_at=None, **scope_filter_kwargs(scope)),
+                conn,
+            )
             .prefetch_related("tag_links__tag")
             .first()
         )
 
-    def query_folders(self, *, scope: AssetScope) -> QuerySet[AssetFolderRecord]:
-        return AssetFolderRecord.filter(**scope_filter_kwargs(scope)).order_by("sort_order", "name")
+    def query_folders(
+        self,
+        *,
+        scope: AssetScope,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> QuerySet[AssetFolderRecord]:
+        return self.using_db(AssetFolderRecord.filter(**scope_filter_kwargs(scope)), conn).order_by(
+            "sort_order", "name"
+        )
 
-    def query_tags(self, *, scope: AssetScope, q: str | None = None) -> QuerySet[AssetTagRecord]:
-        qs = AssetTagRecord.filter(**scope_filter_kwargs(scope))
+    def query_tags(
+        self,
+        *,
+        scope: AssetScope,
+        q: str | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> QuerySet[AssetTagRecord]:
+        qs = self.using_db(AssetTagRecord.filter(**scope_filter_kwargs(scope)), conn)
         if q:
             needle = q.strip()
             if needle:
                 qs = qs.filter(name__icontains=needle)
         return qs.order_by("name")
 
-    async def get_tag_by_name(self, *, scope: AssetScope, name: str) -> AssetTagRecord | None:
-        return await AssetTagRecord.get_or_none(name=name, **scope_filter_kwargs(scope))
+    async def get_tag_by_name(
+        self,
+        *,
+        scope: AssetScope,
+        name: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AssetTagRecord | None:
+        return await AssetTagRecord.get_or_none(name=name, **scope_filter_kwargs(scope), **self._using_db_kwargs(conn))
 
-    async def create_tag(self, *, scope: AssetScope, name: str) -> AssetTagRecord:
-        return await AssetTagRecord.create(name=name, **scope_filter_kwargs(scope))
+    async def create_tag(
+        self,
+        *,
+        scope: AssetScope,
+        name: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AssetTagRecord:
+        return await AssetTagRecord.create(name=name, **scope_filter_kwargs(scope), **self._using_db_kwargs(conn))
 
-    async def list_tags_by_ids(self, *, scope: AssetScope, tag_ids: list[UUID]) -> list[AssetTagRecord]:
+    async def list_tags_by_ids(
+        self,
+        *,
+        scope: AssetScope,
+        tag_ids: list[UUID],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[AssetTagRecord]:
         if not tag_ids:
             return []
-        return await AssetTagRecord.filter(id__in=tag_ids, **scope_filter_kwargs(scope)).all()
+        return await self.using_db(AssetTagRecord.filter(id__in=tag_ids, **scope_filter_kwargs(scope)), conn).all()
 
-    async def replace_asset_tags(self, *, asset_id: UUID, tag_ids: list[UUID]) -> None:
+    async def replace_asset_tags(
+        self,
+        *,
+        asset_id: UUID,
+        tag_ids: list[UUID],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
         # Replace links with the given set (idempotent).
         target = set(tag_ids)
-        raw_rows = await AssetTagLinkRecord.filter(asset_id=asset_id).values_list("tag_id", flat=True)
+        raw_rows = await self.using_db(AssetTagLinkRecord.filter(asset_id=asset_id), conn).values_list(
+            "tag_id", flat=True
+        )
         existing: set[UUID] = set()
         for r in raw_rows:
             value = r[0] if isinstance(r, tuple) else r
@@ -123,21 +207,52 @@ class AdminAssetsRepository(BaseRepository):
         to_add = list(target - existing)
 
         if to_delete:
-            await AssetTagLinkRecord.filter(asset_id=asset_id, tag_id__in=to_delete).delete()
+            await self.using_db(AssetTagLinkRecord.filter(asset_id=asset_id, tag_id__in=to_delete), conn).delete()
         for tag_id in to_add:
-            await AssetTagLinkRecord.create(asset_id=asset_id, tag_id=tag_id)
+            await AssetTagLinkRecord.create(asset_id=asset_id, tag_id=tag_id, **self._using_db_kwargs(conn))
 
-    async def get_folder(self, *, scope: AssetScope, folder_id: UUID) -> AssetFolderRecord | None:
-        return await AssetFolderRecord.get_or_none(id=folder_id, **scope_filter_kwargs(scope))
+    async def get_folder(
+        self,
+        *,
+        scope: AssetScope,
+        folder_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AssetFolderRecord | None:
+        return await AssetFolderRecord.get_or_none(
+            id=folder_id, **scope_filter_kwargs(scope), **self._using_db_kwargs(conn)
+        )
 
-    async def folder_has_children(self, *, scope: AssetScope, folder_id: UUID) -> bool:
-        return await AssetFolderRecord.filter(parent_id=folder_id, **scope_filter_kwargs(scope)).exists()
+    async def folder_has_children(
+        self,
+        *,
+        scope: AssetScope,
+        folder_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> bool:
+        return await self.using_db(
+            AssetFolderRecord.filter(parent_id=folder_id, **scope_filter_kwargs(scope)), conn
+        ).exists()
 
-    async def folder_has_assets(self, *, scope: AssetScope, folder_id: UUID) -> bool:
-        return await AssetRecord.filter(deleted_at=None, folder_id=folder_id, **scope_filter_kwargs(scope)).exists()
+    async def folder_has_assets(
+        self,
+        *,
+        scope: AssetScope,
+        folder_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> bool:
+        return await self.using_db(
+            AssetRecord.filter(deleted_at=None, folder_id=folder_id, **scope_filter_kwargs(scope)),
+            conn,
+        ).exists()
 
-    async def delete_folder(self, *, scope: AssetScope, folder_id: UUID) -> None:
-        await AssetFolderRecord.filter(id=folder_id, **scope_filter_kwargs(scope)).delete()
+    async def delete_folder(
+        self,
+        *,
+        scope: AssetScope,
+        folder_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        await self.using_db(AssetFolderRecord.filter(id=folder_id, **scope_filter_kwargs(scope)), conn).delete()
 
     async def move_assets_in_folder(
         self,
@@ -146,12 +261,16 @@ class AdminAssetsRepository(BaseRepository):
         from_folder_id: UUID,
         to_folder_id: UUID | None,
         updated_at,
+        conn: BaseDBAsyncClient | None = None,
     ) -> int:
         return int(
-            await AssetRecord.filter(
-                deleted_at=None,
-                folder_id=from_folder_id,
-                **scope_filter_kwargs(scope),
+            await self.using_db(
+                AssetRecord.filter(
+                    deleted_at=None,
+                    folder_id=from_folder_id,
+                    **scope_filter_kwargs(scope),
+                ),
+                conn,
             ).update(folder_id=to_folder_id, updated_at=updated_at)
         )
 
@@ -162,17 +281,29 @@ class AdminAssetsRepository(BaseRepository):
         from_folder_id: UUID,
         to_parent_id: UUID | None,
         updated_at,
+        conn: BaseDBAsyncClient | None = None,
     ) -> int:
         return int(
-            await AssetFolderRecord.filter(
-                parent_id=from_folder_id,
-                **scope_filter_kwargs(scope),
+            await self.using_db(
+                AssetFolderRecord.filter(
+                    parent_id=from_folder_id,
+                    **scope_filter_kwargs(scope),
+                ),
+                conn,
             ).update(parent_id=to_parent_id, updated_at=updated_at)
         )
 
-    async def collect_descendant_folder_ids(self, *, scope: AssetScope, root_folder_id: UUID) -> list[UUID]:
+    async def collect_descendant_folder_ids(
+        self,
+        *,
+        scope: AssetScope,
+        root_folder_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[UUID]:
         # We intentionally do this in Python (single query) to keep DB/storage agnostic.
-        rows = await AssetFolderRecord.filter(**scope_filter_kwargs(scope)).values("id", "parent_id")
+        rows = await self.using_db(AssetFolderRecord.filter(**scope_filter_kwargs(scope)), conn).values(
+            "id", "parent_id"
+        )
         children: dict[UUID, list[UUID]] = {}
         for r in rows:
             fid = r.get("id")
@@ -203,6 +334,7 @@ class AdminAssetsRepository(BaseRepository):
         parent_id: UUID | None,
         description: str | None,
         sort_order: int,
+        conn: BaseDBAsyncClient | None = None,
     ) -> AssetFolderRecord:
         return await AssetFolderRecord.create(
             name=name,
@@ -210,18 +342,31 @@ class AdminAssetsRepository(BaseRepository):
             description=description,
             sort_order=sort_order,
             **scope_filter_kwargs(scope),
+            **self._using_db_kwargs(conn),
         )
 
-    async def save_folder_updates(self, folder: AssetFolderRecord, *, updates: dict) -> AssetFolderRecord:
+    async def save_folder_updates(
+        self,
+        folder: AssetFolderRecord,
+        *,
+        updates: dict,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AssetFolderRecord:
         for key, value in updates.items():
             setattr(folder, key, value)
-        await folder.save()
+        await folder.save(**self._using_db_kwargs(conn))
         return folder
 
-    async def save_asset_updates(self, asset: AssetRecord, *, updates: dict) -> AssetRecord:
+    async def save_asset_updates(
+        self,
+        asset: AssetRecord,
+        *,
+        updates: dict,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> AssetRecord:
         for key, value in updates.items():
             setattr(asset, key, value)
-        await asset.save()
+        await asset.save(**self._using_db_kwargs(conn))
         return asset
 
     async def bulk_update_assets_folder(
@@ -231,11 +376,15 @@ class AdminAssetsRepository(BaseRepository):
         asset_ids: list[UUID],
         folder_id: UUID | None,
         updated_at,
+        conn: BaseDBAsyncClient | None = None,
     ) -> int:
         if not asset_ids:
             return 0
         return int(
-            await AssetRecord.filter(deleted_at=None, id__in=list(asset_ids), **scope_filter_kwargs(scope)).update(
+            await self.using_db(
+                AssetRecord.filter(deleted_at=None, id__in=list(asset_ids), **scope_filter_kwargs(scope)),
+                conn,
+            ).update(
                 folder_id=folder_id,
                 updated_at=updated_at,
             )
@@ -248,11 +397,15 @@ class AdminAssetsRepository(BaseRepository):
         asset_ids: list[UUID],
         deleted_at,
         updated_at,
+        conn: BaseDBAsyncClient | None = None,
     ) -> int:
         if not asset_ids:
             return 0
         return int(
-            await AssetRecord.filter(deleted_at=None, id__in=list(asset_ids), **scope_filter_kwargs(scope)).update(
+            await self.using_db(
+                AssetRecord.filter(deleted_at=None, id__in=list(asset_ids), **scope_filter_kwargs(scope)),
+                conn,
+            ).update(
                 deleted_at=deleted_at,
                 updated_at=updated_at,
             )
@@ -265,6 +418,7 @@ class AdminAssetsRepository(BaseRepository):
         asset_ids: list[UUID],
         updates: dict,
         updated_at,
+        conn: BaseDBAsyncClient | None = None,
     ) -> int:
         if not asset_ids:
             return 0
@@ -273,9 +427,10 @@ class AdminAssetsRepository(BaseRepository):
         payload = dict(updates)
         payload["updated_at"] = updated_at
         return int(
-            await AssetRecord.filter(deleted_at=None, id__in=list(asset_ids), **scope_filter_kwargs(scope)).update(
-                **payload
-            )
+            await self.using_db(
+                AssetRecord.filter(deleted_at=None, id__in=list(asset_ids), **scope_filter_kwargs(scope)),
+                conn,
+            ).update(**payload)
         )
 
 

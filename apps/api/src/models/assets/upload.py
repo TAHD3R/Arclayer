@@ -58,6 +58,7 @@ class UploadSessionRecord(BaseModel):
 
     target_folder_id = fields.UUIDField(null=True, db_index=True)
     storage_provider = fields.CharField(max_length=32, default="local")
+    storage_profile_key = fields.CharField(max_length=128, null=True, db_index=True)
     # S3 bucket used for multipart upload (required for complete/presign in dual-bucket setups).
     s3_bucket = fields.CharField(max_length=255, null=True, db_index=True)
 
