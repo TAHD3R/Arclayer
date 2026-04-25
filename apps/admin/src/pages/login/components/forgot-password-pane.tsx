@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Mail } from "lucide-react";
 import { motion, type Variants } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -53,11 +53,13 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
     defaultValues: { email: props.initialEmail ?? "" },
     mode: "onSubmit",
   });
+  const resetRef = useRef(form.reset);
+  resetRef.current = form.reset;
 
   useEffect(() => {
-    form.reset({ email: props.initialEmail ?? "" });
+    resetRef.current({ email: props.initialEmail ?? "" });
     setStep("form");
-  }, [form, props.initialEmail]);
+  }, [props.initialEmail]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await props.onSubmit(values.email);

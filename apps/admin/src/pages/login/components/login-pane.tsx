@@ -1,7 +1,7 @@
 import { Lock, Mail } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -22,6 +22,7 @@ import {
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
   AuthPaneHeader,
+  AuthPaneLegal,
   AuthPaneTitleRow,
 } from "./auth-pane-primitives";
 
@@ -64,10 +65,7 @@ export function LoginPane(props: LoginPaneProps) {
           .string()
           .min(1, t("auth:VALIDATION_EMAIL_REQUIRED"))
           .email(t("auth:VALIDATION_EMAIL_INVALID")),
-        password: z
-          .string()
-          .min(1, t("auth:VALIDATION_PASSWORD_REQUIRED"))
-          .regex(PASSWORD_PATTERN, t("auth:PASSWORD_INVALID")),
+        password: z.string(),
         keepSession: z.boolean(),
       }),
     ),
@@ -78,28 +76,48 @@ export function LoginPane(props: LoginPaneProps) {
     },
     mode: "onSubmit",
   });
+  const resetRef = useRef(form.reset);
+  resetRef.current = form.reset;
+  const seedEmail = props.loginSeed?.email ?? "";
+  const seedStep = props.loginSeed?.step;
 
   useEffect(() => {
-    const nextStep =
-      props.loginSeed?.step === "password" && props.loginSeed.email ? "password" : "email";
-    form.reset({
-      email: props.loginSeed?.email ?? "",
+    const nextStep = seedStep === "password" && seedEmail ? "password" : "email";
+    resetRef.current({
+      email: seedEmail,
       password: "",
       keepSession: props.initialKeepSession,
     });
     setStep(nextStep);
     setEmailMissing(false);
-  }, [form, props.initialKeepSession, props.loginSeed]);
+  }, [props.initialKeepSession, seedEmail, seedStep]);
 
   const emailError = form.formState.errors.email?.message;
   const passwordError = form.formState.errors.password?.message;
   const keepSession = Boolean(form.watch("keepSession"));
   const emailFieldError = emailError ? String(emailError) : null;
 
-  const submitPassword = form.handleSubmit(async (values) => {
+  const submitPassword = async () => {
+    const isEmailValid = await form.trigger("email");
+    if (!isEmailValid) return;
+
+    const password = form.getValues("password") ?? "";
+    if (!password) {
+      form.setError("password", { message: t("auth:VALIDATION_PASSWORD_REQUIRED") });
+      return;
+    }
+    if (!PASSWORD_PATTERN.test(password)) {
+      form.setError("password", { message: t("auth:PASSWORD_INVALID") });
+      return;
+    }
+
     setEmailMissing(false);
-    await props.onSubmit(values);
-  });
+    await props.onSubmit({
+      email: form.getValues("email"),
+      password,
+      keepSession,
+    });
+  };
 
   const handleContinue = async () => {
     const isValid = await form.trigger("email");
@@ -139,7 +157,21 @@ export function LoginPane(props: LoginPaneProps) {
     <div className={AUTH_PANE_STACK_CLASS}>
       <AuthPaneHeader
         titleKey="auth:LOGIN_PAGE_TITLE"
-        subtitleKey="auth:LOGIN_PAGE_SUBTITLE"
+        subtitle={
+          props.publicRegisterEnabled ? (
+            <>
+              <span>{t("auth:NO_ACCOUNT")} </span>
+              <AuthLinkButton
+                className="text-inherit font-normal"
+                disabled={props.emailCheckLoading || props.loading}
+                onClick={() => props.onSwitchToRegister()}
+                type="button"
+              >
+                {t("auth:CREATE_ACCOUNT")}
+              </AuthLinkButton>
+            </>
+          ) : null
+        }
         variants={variants}
       />
       <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
@@ -197,24 +229,13 @@ export function LoginPane(props: LoginPaneProps) {
                 <AuthPaneTitleRow
                   title={t("auth:FIELD_PASSWORD_LABEL")}
                   action={
-                    <div className="flex items-center gap-3 text-footnote">
-                      <AuthLinkButton
-                        disabled={props.emailCheckLoading || props.loading}
-                        onClick={() =>
-                          props.onSwitchToEmailCode(form.getValues("email"), keepSession)
-                        }
-                        type="button"
-                      >
-                        {t("auth:LOGIN_PASSWORD_ALTERNATIVE_ACTION")}
-                      </AuthLinkButton>
-                      <AuthLinkButton
-                        disabled={props.emailCheckLoading || props.loading}
-                        onClick={() => props.onForgotPassword(form.getValues("email"))}
-                        type="button"
-                      >
-                        {t("auth:FORGOT_PASSWORD")}
-                      </AuthLinkButton>
-                    </div>
+                    <AuthLinkButton
+                      disabled={props.emailCheckLoading || props.loading}
+                      onClick={() => props.onForgotPassword(form.getValues("email"))}
+                      type="button"
+                    >
+                      {t("auth:FORGOT_PASSWORD")}
+                    </AuthLinkButton>
                   }
                 />
                 <AuthPasswordControl
@@ -273,24 +294,29 @@ export function LoginPane(props: LoginPaneProps) {
                     props.onStartOAuth?.({ provider, startUrl, keepSession })
                 : undefined
             }
-            dividerLabelKey="auth:LOGIN_EMAIL_STEP_DIVIDER"
           />
         </motion.div>
       ) : null}
-      <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
-        {props.publicRegisterEnabled ? (
-          <div>
-            <span>{t("auth:NO_ACCOUNT")} </span>
-            <AuthLinkButton
-              disabled={props.emailCheckLoading || props.loading}
-              onClick={() => props.onSwitchToRegister()}
-              type="button"
-            >
-              {t("auth:CREATE_ACCOUNT")}
-            </AuthLinkButton>
-          </div>
-        ) : null}
-      </motion.div>
+      {step === "password" ? (
+        <motion.div variants={variants} className="pt-1.5 empty:hidden">
+          <AuthOauthButtons
+            disabled={props.emailCheckLoading || props.loading}
+            showProviders={false}
+            leadingActions={[
+              {
+                key: "email-code",
+                label: t("auth:LOGIN_EMAIL_CODE_TITLE"),
+                onClick: () => props.onSwitchToEmailCode(form.getValues("email"), keepSession),
+              },
+            ]}
+          />
+        </motion.div>
+      ) : null}
+      <AuthPaneLegal
+        i18nKey="auth:LEGAL_CONTINUE"
+        variants={variants}
+        className={AUTH_PANE_META_CLASS}
+      />
     </div>
   );
 }

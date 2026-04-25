@@ -331,6 +331,7 @@ class RequestMyEmailChangeOut(BaseSchema):
     """Email change request response."""
 
     expires_in: int = Field(..., ge=1, description="Code expires in seconds.")
+    retry_after: int = Field(..., ge=0, description="Seconds before another code can be sent.")
 
 
 class MySecurityCapabilityOut(BaseSchema):

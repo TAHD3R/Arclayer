@@ -22,6 +22,7 @@ export interface AuthOauthButtonsProps {
   disabled?: boolean;
   redirect?: string | undefined;
   dividerLabelKey?: string;
+  showProviders?: boolean;
   loadingProvider?: string | null;
   onProviderStart?: (input: { provider: string; startUrl: string }) => void;
   leadingActions?: Array<{
@@ -91,6 +92,7 @@ export function AuthOauthButtons({
   disabled = false,
   redirect,
   dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
+  showProviders = true,
   loadingProvider = null,
   onProviderStart,
   leadingActions = [],
@@ -105,13 +107,16 @@ export function AuthOauthButtons({
   const providersQuery = useQuery({
     queryKey: ["auth", "sso", "providers", redirect],
     queryFn: async () => listSSOProviders({ redirect }),
+    enabled: showProviders,
     staleTime: 15 * 1000,
     retry: false,
   });
 
-  const providers = (providersQuery.data?.providers ?? []).map((provider) =>
-    resolveProviderMeta(provider, t, isDark),
-  );
+  const providers = showProviders
+    ? (providersQuery.data?.providers ?? []).map((provider) =>
+        resolveProviderMeta(provider, t, isDark),
+      )
+    : [];
   const fullWidthLeadingActions = leadingActions
     .filter((action) => FULL_WIDTH_LEADING_ACTION_KEYS.has(action.key))
     .map((action) => ({
@@ -156,7 +161,7 @@ export function AuthOauthButtons({
     providerActions.length > 0;
   if (!hasAnyAction) return null;
 
-  const isBusy = disabled || providersQuery.isLoading;
+  const isBusy = disabled || (showProviders && providersQuery.isLoading);
   const isSingleInlineLeadingAction = inlineLeadingActions.length === 1;
   const providerCount = providerActions.length;
   const isSingleProvider = providerCount === 1;

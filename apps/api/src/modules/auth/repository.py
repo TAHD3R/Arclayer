@@ -16,6 +16,8 @@ from src.models.organization.user import User, UserCredential, UserStatus
 from src.modules.auth.contracts.schema import UserLike
 from src.platform.cache.valkey import ValkeyClientLike
 
+EMAIL_CODE_RESEND_COOLDOWN_SECONDS = 60
+
 
 class UserRepository(BaseRepository):
     _UNSET = object()
@@ -177,16 +179,24 @@ class EmailChangeStore:
       and the code has short TTL + limited attempts.
     """
 
-    def __init__(self, client: ValkeyClientLike, *, ttl_seconds: int = 10 * 60) -> None:
+    def __init__(
+        self,
+        client: ValkeyClientLike,
+        *,
+        ttl_seconds: int = 10 * 60,
+        resend_cooldown_seconds: int = EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
+    ) -> None:
         self._client = client
         self._ttl_seconds = max(int(ttl_seconds), 60)
+        self._resend_cooldown_seconds = max(int(resend_cooldown_seconds), 1)
 
     def _user_key(self, user_id: UUID) -> str:
         return f"auth:email_change:user:{user_id}"
 
-    async def issue(self, *, user_id: UUID, new_email: str) -> tuple[str, int]:
+    async def issue(self, *, user_id: UUID, new_email: str) -> tuple[str, int, int]:
         code = f"{secrets.randbelow(1_000_000):06d}"
         ttl = self._ttl_seconds
+        retry_after = self._resend_cooldown_seconds
         now_ts = int(datetime.now(UTC).timestamp())
         record = {
             "user_id": str(user_id),
@@ -194,10 +204,11 @@ class EmailChangeStore:
             "code": code,
             "issued_at": now_ts,
             "expires_at": now_ts + ttl,
+            "resend_available_at": now_ts + retry_after,
             "attempts": 0,
         }
         await self._client.set_json(self._user_key(user_id), record, ex=ttl)
-        return code, ttl
+        return code, ttl, retry_after
 
     async def get(self, *, user_id: UUID) -> dict[str, Any] | None:
         record = await self._client.get_json(self._user_key(user_id))
@@ -213,10 +224,31 @@ class EmailChangeStore:
         tries = int(record.get("attempts") or 0) + 1
         record["attempts"] = tries
         # Preserve remaining TTL when updating.
-        ttl = await self._client.ttl(self._user_key(user_id))
-        ex = ttl if ttl and ttl > 0 else None
+        ttl = self.remaining_expires_in(record)
+        ex = ttl if ttl > 0 else None
         await self._client.set_json(self._user_key(user_id), record, ex=ex)
         return tries
+
+    def remaining_expires_in(self, record: dict[str, Any]) -> int:
+        return self._remaining_ttl(record)
+
+    def remaining_retry_after(self, record: dict[str, Any]) -> int:
+        now_ts = int(datetime.now(UTC).timestamp())
+        raw = record.get("resend_available_at")
+        try:
+            resend_available_at = int(raw)
+        except (TypeError, ValueError):
+            return 0
+        return max(resend_available_at - now_ts, 0)
+
+    def _remaining_ttl(self, record: dict[str, Any]) -> int:
+        now_ts = int(datetime.now(UTC).timestamp())
+        raw = record.get("expires_at")
+        try:
+            expires_at = int(raw)
+        except (TypeError, ValueError):
+            return 0
+        return max(expires_at - now_ts, 0)
 
 
 class EmailLoginCodeStore:
@@ -234,7 +266,7 @@ class EmailLoginCodeStore:
         client: ValkeyClientLike,
         *,
         ttl_seconds: int = 10 * 60,
-        resend_cooldown_seconds: int = 20,
+        resend_cooldown_seconds: int = EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
         max_attempts: int = 5,
     ) -> None:
         self._client = client
@@ -318,7 +350,7 @@ class PasswordRemovalCodeStore:
         client: ValkeyClientLike,
         *,
         ttl_seconds: int = 10 * 60,
-        resend_cooldown_seconds: int = 20,
+        resend_cooldown_seconds: int = EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
         max_attempts: int = 5,
     ) -> None:
         self._client = client

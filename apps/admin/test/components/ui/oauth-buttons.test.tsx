@@ -65,16 +65,14 @@ describe("AuthOauthButtons", () => {
       providers: [{ provider: "google", label: "Google", start_url: "/oauth/google" }],
     });
 
-    renderButtons({
-      dividerLabelKey: "auth:LOGIN_EMAIL_STEP_DIVIDER",
-    });
+    renderButtons();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
-      expect(screen.getByText("auth:LOGIN_EMAIL_STEP_DIVIDER")).toBeInTheDocument();
+      expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
     });
 
-    const dividerLabel = screen.getByText("auth:LOGIN_EMAIL_STEP_DIVIDER");
+    const dividerLabel = screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER");
     const providerButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" });
     expect(
       dividerLabel.compareDocumentPosition(providerButton) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -214,6 +212,25 @@ describe("AuthOauthButtons", () => {
 
     expect(passwordButton).toHaveClass("w-full");
     expect(passwordButton.parentElement).not.toBe(googleButton.parentElement);
+  });
+
+  it("can render only a password-login action without loading oauth providers", async () => {
+    renderButtons({
+      showProviders: false,
+      leadingActions: [
+        {
+          key: "password-login",
+          label: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD",
+          onClick: vi.fn(),
+        },
+      ],
+    });
+
+    expect(
+      screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "auth:OAUTH_GOOGLE" })).not.toBeInTheDocument();
+    expect(listSSOProvidersMock).not.toHaveBeenCalled();
   });
 
   it("shows the last-used badge on the remembered oauth provider", async () => {

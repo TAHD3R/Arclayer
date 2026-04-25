@@ -10766,6 +10766,12 @@ export type RequestMyEmailChangeOut = {
      * Code expires in seconds.
      */
     expiresIn: number;
+    /**
+     * Retryafter
+     *
+     * Seconds before another code can be sent.
+     */
+    retryAfter: number;
 };
 
 /**

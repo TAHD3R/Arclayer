@@ -111,7 +111,7 @@ beforeEach(() => {
   });
   changePasswordMock.mockResolvedValue(null);
   setMyPasswordMock.mockResolvedValue(null);
-  requestRemoveMyPasswordMock.mockResolvedValue({ expires_in: 600, retry_after: 20 });
+  requestRemoveMyPasswordMock.mockResolvedValue({ expires_in: 600, retry_after: 60 });
   confirmRemoveMyPasswordMock.mockResolvedValue(null);
 });
 

@@ -314,7 +314,7 @@ async def test_request_login_email_code_stores_code_and_returns_metadata(monkeyp
     metadata = await service.request_login_email_code(email="demo@example.com")
 
     assert metadata.expires_in >= 60
-    assert metadata.retry_after == 20
+    assert metadata.retry_after == 60
     record = valkey._store.get("auth:login_code:email:demo@example.com")
     assert isinstance(record, dict)
     assert record.get("user_id") == str(user.id)
@@ -344,7 +344,7 @@ async def test_request_login_email_code_reissues_after_resend_cooldown(monkeypat
     first_record = valkey._store.get("auth:login_code:email:demo@example.com")
     assert isinstance(first_record, dict)
     first_code = str(first_record.get("code") or "")
-    assert first.retry_after == 20
+    assert first.retry_after == 60
     assert first_code
 
     first_record["resend_available_at"] = 0
@@ -354,7 +354,7 @@ async def test_request_login_email_code_reissues_after_resend_cooldown(monkeypat
     assert isinstance(second_record, dict)
     second_code = str(second_record.get("code") or "")
 
-    assert second.retry_after == 20
+    assert second.retry_after == 60
     assert second_code
     assert second_code != first_code
     assert sent == [

@@ -31,7 +31,6 @@ type ChangeEmailFormValues = {
 };
 
 const OTP_LENGTH = 6;
-const RESEND_COOLDOWN_SECONDS = 20;
 const EMPTY_VALUES: ChangeEmailFormValues = {
   newEmail: "",
   code: "",
@@ -88,10 +87,10 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
     mutationFn: async (payload: { newEmail: string }) => {
       return authApi.requestMyEmailChange({ new_email: payload.newEmail });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       setVerifyError(null);
       setStep("verify");
-      setRetryAfter(RESEND_COOLDOWN_SECONDS);
+      setRetryAfter(result.retryAfter ?? result.retry_after);
       form.clearErrors("code");
       form.setValue("code", "");
       notifySuccessText(t("auth:LOGIN_CODE_SENT"));

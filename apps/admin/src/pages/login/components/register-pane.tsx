@@ -1,7 +1,7 @@
 import { CheckCircle2, CircleAlert, LoaderCircle, Lock, Mail, User } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import type { FormEvent, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -26,7 +26,6 @@ import {
   AUTH_PANE_META_CLASS,
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
-  AuthInlineNotice,
   AuthPaneHeader,
   AuthPaneLegal,
   AuthPaneTitleRow,
@@ -148,19 +147,22 @@ export function RegisterPane(props: RegisterPaneProps) {
   const usernameChecking = step === "details" && usernameAvailability.isChecking;
   const usernameUnavailable =
     step === "details" && usernameAvailability.formatValid && usernameAvailability.unavailable;
+  const resetRef = useRef(form.reset);
+  resetRef.current = form.reset;
+  const seedEmail = props.registerSeed?.email ?? "";
+  const seedStep = props.registerSeed?.step;
 
   useEffect(() => {
-    const nextStep =
-      props.registerSeed?.step === "details" && props.registerSeed.email ? "details" : "email";
-    form.reset({
-      email: props.registerSeed?.email ?? "",
+    const nextStep = seedStep === "details" && seedEmail ? "details" : "email";
+    resetRef.current({
+      email: seedEmail,
       displayName: "",
       username: "",
       password: "",
     });
     setStep(nextStep);
     setEmailExists(false);
-  }, [form, props.registerSeed]);
+  }, [seedEmail, seedStep]);
 
   const submitDetails = form.handleSubmit(async (values) => {
     setEmailExists(false);
@@ -203,21 +205,21 @@ export function RegisterPane(props: RegisterPaneProps) {
     <div className={AUTH_PANE_STACK_CLASS}>
       <AuthPaneHeader
         titleKey="auth:REGISTER_PAGE_TITLE"
-        subtitleKey="auth:REGISTER_PAGE_SUBTITLE"
+        subtitle={
+          <>
+            <span>{t("auth:HAVE_ACCOUNT")} </span>
+            <AuthLinkButton
+              className="text-inherit font-normal"
+              disabled={props.emailCheckLoading || props.loading}
+              onClick={() => props.onSwitchToLogin()}
+              type="button"
+            >
+              {t("auth:SIGN_IN")}
+            </AuthLinkButton>
+          </>
+        }
         variants={variants}
       />
-      {emailExists ? (
-        <AuthInlineNotice variants={variants}>
-          <span>{t("auth:REGISTER_EMAIL_EXISTS_MESSAGE")} </span>
-          <AuthLinkButton
-            disabled={props.emailCheckLoading || props.loading}
-            onClick={() => props.onSwitchToLogin(form.getValues("email"), "password")}
-            type="button"
-          >
-            {t("auth:REGISTER_EMAIL_EXISTS_ACTION")}
-          </AuthLinkButton>
-        </AuthInlineNotice>
-      ) : null}
       <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
@@ -254,6 +256,18 @@ export function RegisterPane(props: RegisterPaneProps) {
                   ? String(form.formState.errors.email.message)
                   : undefined}
               </FieldError>
+              {emailExists && !form.formState.errors.email ? (
+                <div className="text-footnote text-label-secondary">
+                  <span>{t("auth:REGISTER_EMAIL_EXISTS_MESSAGE")} </span>
+                  <AuthLinkButton
+                    disabled={props.emailCheckLoading || props.loading}
+                    onClick={() => props.onSwitchToLogin(form.getValues("email"), "password")}
+                    type="button"
+                  >
+                    {t("auth:REGISTER_EMAIL_EXISTS_ACTION")}
+                  </AuthLinkButton>
+                </div>
+              ) : null}
             </FieldContent>
           </Field>
         </motion.div>
@@ -378,23 +392,14 @@ export function RegisterPane(props: RegisterPaneProps) {
                     props.onStartOAuth?.({ provider, startUrl, keepSession: true })
                 : undefined
             }
-            dividerLabelKey="auth:REGISTER_EMAIL_STEP_DIVIDER"
           />
         </motion.div>
       ) : null}
-      <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
-        <div>
-          <span>{t("auth:HAVE_ACCOUNT")} </span>
-          <AuthLinkButton
-            disabled={props.emailCheckLoading || props.loading}
-            onClick={() => props.onSwitchToLogin()}
-            type="button"
-          >
-            {t("auth:SIGN_IN")}
-          </AuthLinkButton>
-        </div>
-        <AuthPaneLegal i18nKey="auth:LEGAL_REGISTER" variants={variants} />
-      </motion.div>
+      <AuthPaneLegal
+        i18nKey="auth:LEGAL_REGISTER"
+        variants={variants}
+        className={AUTH_PANE_META_CLASS}
+      />
     </div>
   );
 }

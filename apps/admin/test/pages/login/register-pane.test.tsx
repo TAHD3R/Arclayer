@@ -19,9 +19,11 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/components/ui/oauth-buttons", () => ({
-  AuthOauthButtons: ({ dividerLabelKey }: { dividerLabelKey?: string }) => (
-    <div data-testid="oauth-section">{dividerLabelKey ?? "oauth-section"}</div>
-  ),
+  AuthOauthButtons: ({
+    dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
+  }: {
+    dividerLabelKey?: string;
+  }) => <div data-testid="oauth-section">{dividerLabelKey}</div>,
 }));
 
 vi.mock("@/api/auth", () => ({
@@ -69,7 +71,7 @@ describe("RegisterPane oauth section", () => {
     const oauthWrapper = container.querySelector(".pt-1\\.5");
     expect(oauthWrapper).toHaveClass("empty:hidden");
     expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
-    expect(screen.getByText("auth:REGISTER_EMAIL_STEP_DIVIDER")).toBeInTheDocument();
+    expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
   });
 
   it("hides oauth after advancing to the details step", () => {
@@ -77,6 +79,31 @@ describe("RegisterPane oauth section", () => {
 
     expect(screen.queryByTestId("oauth-section")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:AUTH_CHANGE_EMAIL" })).toBeInTheDocument();
+  });
+
+  it("shows existing-email recovery inside the email field content", async () => {
+    const user = userEvent.setup();
+
+    renderPane({ onEmailSubmit: async () => true });
+
+    const emailField = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
+    await user.type(emailField, "founder@example.com");
+    await user.click(screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" }));
+
+    const notice = await screen.findByText("auth:REGISTER_EMAIL_EXISTS_MESSAGE");
+    const noticeContainer = notice.closest("div");
+    const submitButton = screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" });
+
+    expect(noticeContainer).toHaveClass("text-footnote", "text-label-secondary");
+    expect(noticeContainer).toContainElement(
+      screen.getByRole("button", { name: "auth:REGISTER_EMAIL_EXISTS_ACTION" }),
+    );
+    expect(
+      emailField.compareDocumentPosition(noticeContainer!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      noticeContainer!.compareDocumentPosition(submitButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("shows username availability feedback and blocks submit when the name is unavailable", async () => {

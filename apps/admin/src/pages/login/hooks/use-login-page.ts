@@ -23,8 +23,8 @@ import { resolvePostAuthRoute } from "@/lib/routing/post-auth-routing";
 import {
   getActiveAuthChallenge,
   isAuthChallengeExpired,
-  rehydrateAuthChallengeStore,
   useAuthChallengeStore,
+  type AuthChallengeSnapshot,
   type AuthChallengeSource,
 } from "@/stores/use-auth-challenge-store";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -205,13 +205,18 @@ export function useLoginPage(): LoginPageState {
   const challengeKeepSession = useAuthChallengeStore((s) => s.keepSession);
   const challengeRedirect = useAuthChallengeStore((s) => s.redirect);
   const challengeSource = useAuthChallengeStore((s) => s.source);
-  const activeChallenge = getActiveAuthChallenge({
+  const storedActiveChallenge = getActiveAuthChallenge({
     twoFactorToken: challengeTwoFactorToken,
     expiresAt: challengeExpiresAt,
     keepSession: challengeKeepSession,
     redirect: challengeRedirect,
     source: challengeSource,
   });
+  const [pendingChallenge, setPendingChallenge] = useState<AuthChallengeSnapshot | null>(null);
+  const activeChallenge =
+    pendingChallenge && !isAuthChallengeExpired(pendingChallenge.expiresAt)
+      ? pendingChallenge
+      : storedActiveChallenge;
   const [loginSeed, setLoginSeed] = useState<LoginPaneSeed | null>(null);
   const [loginEmailCodeSeed, setLoginEmailCodeSeed] = useState<LoginEmailCodePaneSeed | null>(null);
   const [registerSeed, setRegisterSeed] = useState<RegisterPaneSeed | null>(null);
@@ -230,8 +235,13 @@ export function useLoginPage(): LoginPageState {
   } = loginRouteApi.useSearch();
 
   const publicRegisterEnabled = runtime.publicRegisterEnabled !== false;
-  const effectiveMode =
-    runtime.publicRegisterEnabled === false ? resolveLoginMode(mode, false) : mode;
+  const routeMode = runtime.publicRegisterEnabled === false ? resolveLoginMode(mode, false) : mode;
+  const [optimisticMode, setOptimisticMode] = useState<LoginMode | null>(null);
+  const effectiveMode = optimisticMode ?? routeMode;
+
+  useEffect(() => {
+    setOptimisticMode(null);
+  }, [routeMode]);
 
   const emailCheckMutation = useMutation({
     mutationFn: async (email: string) => authApi.emailCheck({ email }),
@@ -412,27 +422,30 @@ export function useLoginPage(): LoginPageState {
       if (!(error instanceof ApiError)) return false;
       const challengeMeta = resolveTwoFactorChallengeMeta(error);
       if (!challengeMeta) return false;
-      setChallenge({
+      const challenge = {
         twoFactorToken: challengeMeta.twoFactorToken,
         expiresAt: Date.now() + challengeMeta.expiresIn * 1000,
         keepSession: options.keepSession,
         redirect: options.redirect ?? null,
         source: options.source,
-      });
+      } satisfies AuthChallengeSnapshot;
+      setChallenge(challenge);
+      setPendingChallenge(challenge);
       return true;
     },
     [setChallenge],
   );
 
-  useEffect(() => {
-    void rehydrateAuthChallengeStore();
-  }, []);
+  const clearActiveChallenge = useCallback(() => {
+    setPendingChallenge(null);
+    clearChallenge();
+  }, [clearChallenge]);
 
   useEffect(() => {
     if (!isAuthChallengeExpired(challengeExpiresAt)) return;
     if (!challengeTwoFactorToken) return;
-    clearChallenge();
-  }, [challengeExpiresAt, challengeTwoFactorToken, clearChallenge]);
+    clearActiveChallenge();
+  }, [challengeExpiresAt, challengeTwoFactorToken, clearActiveChallenge]);
 
   useEffect(() => {
     const currentPending = readPendingOAuthState();
@@ -488,7 +501,7 @@ export function useLoginPage(): LoginPageState {
         const activePending = readPopupPendingOAuthState() ?? readPendingOAuthState();
         const keepSessionForSso = activePending?.keepSession ?? keepSession;
         const tokens = await ssoExchangeMutation.mutateAsync(oauthCode);
-        clearChallenge();
+        clearActiveChallenge();
         applyLogin(tokens, { keepSession: keepSessionForSso });
         void queryClient.cancelQueries();
         queryClient.clear();
@@ -560,7 +573,7 @@ export function useLoginPage(): LoginPageState {
     void run();
   }, [
     applyLogin,
-    clearChallenge,
+    clearActiveChallenge,
     keepSession,
     effectiveMode,
     navigate,
@@ -601,6 +614,7 @@ export function useLoginPage(): LoginPageState {
   const onModeChange = (next: LoginMode, options?: LoginModeChangeOptions) => {
     const nextMode = resolveLoginMode(next, publicRegisterEnabled);
 
+    setOptimisticMode(nextMode);
     setLoginSeed(
       nextMode === "login" && options?.email
         ? { email: options.email, step: options.step === "password" ? "password" : "email" }
@@ -651,7 +665,7 @@ export function useLoginPage(): LoginPageState {
   const onLoginFinish = async (values: LoginFormValues) => {
     try {
       const tokens = await loginMutation.mutateAsync(values);
-      clearChallenge();
+      clearActiveChallenge();
       applyLogin(tokens, { keepSession: values.keepSession });
       void queryClient.cancelQueries();
       queryClient.clear();
@@ -678,7 +692,7 @@ export function useLoginPage(): LoginPageState {
 
     try {
       const tokens = await loginEmailCodeVerifyMutation.mutateAsync(values);
-      clearChallenge();
+      clearActiveChallenge();
       applyLogin(tokens, { keepSession: keepSessionForEmailCode });
       void queryClient.cancelQueries();
       queryClient.clear();
@@ -700,7 +714,7 @@ export function useLoginPage(): LoginPageState {
 
   const onLoginTwoFactorFinish = async (values: LoginTwoFactorFormValues) => {
     if (!activeChallenge) {
-      clearChallenge();
+      clearActiveChallenge();
       notifyErrorText(t("auth:TWO_FACTOR_CHALLENGE_EXPIRED"));
       return;
     }
@@ -711,7 +725,7 @@ export function useLoginPage(): LoginPageState {
         ...(values.code ? { code: values.code } : {}),
         ...(values.backupCode ? { backupCode: values.backupCode } : {}),
       });
-      clearChallenge();
+      clearActiveChallenge();
       applyLogin(tokens, { keepSession: activeChallenge.keepSession });
       void queryClient.cancelQueries();
       queryClient.clear();
@@ -719,14 +733,14 @@ export function useLoginPage(): LoginPageState {
       await navigateAfterAuth(activeChallenge.redirect);
     } catch (error) {
       if (isChallengeInvalidationError(error)) {
-        clearChallenge();
+        clearActiveChallenge();
       }
     }
   };
 
   const onCancelTwoFactorChallenge = () => {
     const nextMode = activeChallenge?.source === "email-code" ? "email-code" : "login";
-    clearChallenge();
+    clearActiveChallenge();
     void navigate({
       to: "/login",
       search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: nextMode },
@@ -748,7 +762,7 @@ export function useLoginPage(): LoginPageState {
         password: values.password,
         keepSession: true,
       });
-      clearChallenge();
+      clearActiveChallenge();
       applyLogin(tokens, { keepSession: true });
       void queryClient.cancelQueries();
       queryClient.clear();
@@ -769,7 +783,7 @@ export function useLoginPage(): LoginPageState {
 
   const onBootstrapFinish = async (values: BootstrapFormValues) => {
     const tokens = await bootstrapMutation.mutateAsync(values);
-    clearChallenge();
+    clearActiveChallenge();
     applyLogin(tokens, { keepSession: true });
     void queryClient.cancelQueries();
     queryClient.clear();

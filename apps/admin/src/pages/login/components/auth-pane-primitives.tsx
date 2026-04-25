@@ -36,10 +36,12 @@ export const AUTH_PANE_META_CLASS =
 
 export function AuthPaneHeader(props: {
   titleKey: string;
-  subtitleKey: string;
+  subtitleKey?: string;
+  subtitle?: ReactNode;
   variants: Variants | {};
 }) {
   const { t } = useTranslation();
+  const subtitle = props.subtitle ?? (props.subtitleKey ? t(props.subtitleKey) : null);
 
   return (
     <motion.div variants={props.variants} className="grid gap-2.5">
@@ -48,9 +50,9 @@ export function AuthPaneHeader(props: {
       </div>
       <div className="grid gap-2">
         <h1 className="select-none text-largetitle text-label-primary">{t(props.titleKey)}</h1>
-        <p className="select-none text-title3 font-normal  text-label-secondary text-pretty">
-          {t(props.subtitleKey)}
-        </p>
+        {subtitle ? (
+          <p className="select-none text-body text-label-secondary text-pretty">{subtitle}</p>
+        ) : null}
       </div>
     </motion.div>
   );
@@ -147,7 +149,7 @@ export function AuthPaneLegal(props: {
 }) {
   return (
     <motion.div variants={props.variants} className={cn("grid gap-1 text-center", props.className)}>
-      <LegalFooter i18nKey={props.i18nKey} />
+      <LegalFooter i18nKey={props.i18nKey} className="text-callout" />
     </motion.div>
   );
 }

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LoginEmailCodePane } from "@/pages/login/components/login-email-code-pane";
@@ -40,7 +41,19 @@ vi.mock("@/lib/notifications", () => ({
 }));
 
 vi.mock("@/components/ui/oauth-buttons", () => ({
-  AuthOauthButtons: () => null,
+  AuthOauthButtons: ({
+    leadingActions = [],
+  }: {
+    leadingActions?: Array<{ key: string; label: string; onClick: () => void }>;
+  }) => (
+    <div data-testid="oauth-section">
+      {leadingActions.map((action) => (
+        <button key={action.key} type="button" onClick={action.onClick}>
+          {action.label}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 vi.mock("@/components/layout/admin-logo", () => ({
@@ -111,7 +124,7 @@ describe("Login auth otp layouts", () => {
         seed={{ email: "demo@example.com", autoRequest: true, keepSession: true }}
         requestLoading={false}
         verifyLoading={false}
-        onRequestCode={async () => ({ expiresIn: 600, retryAfter: 20 })}
+        onRequestCode={async () => ({ expiresIn: 600, retryAfter: 60 })}
         onSubmit={async () => undefined}
         onBackToPassword={() => undefined}
         reducedMotion
@@ -120,13 +133,40 @@ describe("Login auth otp layouts", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Resend in 00:20" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Resend in 01:00" })).toBeDisabled();
     });
 
     expect(mockedNotifications.notifySuccessText).toHaveBeenCalledWith("auth:LOGIN_CODE_SENT");
   });
 
-  it("disables verify until the full code is entered and keeps only inline recovery links", async () => {
+  it("auto-requests the seeded email code once under StrictMode", async () => {
+    const requestCode = vi.fn(async () => ({ expiresIn: 600, retryAfter: 60 }));
+
+    render(
+      <StrictMode>
+        <LoginEmailCodePane
+          seed={{ email: "strict@example.com", autoRequest: true, keepSession: true }}
+          requestLoading={false}
+          verifyLoading={false}
+          onRequestCode={requestCode}
+          onSubmit={async () => undefined}
+          onBackToPassword={() => undefined}
+          reducedMotion
+          itemVariants={{}}
+        />
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Resend in 01:00" })).toBeDisabled();
+    });
+
+    expect(requestCode).toHaveBeenCalledTimes(1);
+    expect(mockedNotifications.notifySuccessText).toHaveBeenCalledTimes(1);
+    expect(mockedNotifications.notifySuccessText).toHaveBeenCalledWith("auth:LOGIN_CODE_SENT");
+  });
+
+  it("disables verify until the full code is entered and shows password login below the form", async () => {
     render(
       <LoginEmailCodePane
         seed={{ email: "demo@example.com", autoRequest: true, keepSession: true }}
@@ -143,7 +183,7 @@ describe("Login auth otp layouts", () => {
     const verifyButton = await screen.findByRole("button", { name: "auth:LOGIN_BUTTON" });
     expect(verifyButton).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD_INLINE" }),
+      screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_USE_PASSWORD" }),
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL"), {
@@ -195,7 +235,7 @@ describe("Login auth otp layouts", () => {
       />,
     );
 
-    expect(screen.queryByText("auth:LEGAL_LOGIN")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
     expect(screen.queryByText("auth:FOOTER_COPYRIGHT")).not.toBeInTheDocument();
 
     rerender(
@@ -215,6 +255,6 @@ describe("Login auth otp layouts", () => {
       />,
     );
 
-    expect(screen.queryByText("auth:LEGAL_LOGIN")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:LEGAL_CONTINUE")).not.toBeInTheDocument();
   });
 });

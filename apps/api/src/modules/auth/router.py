@@ -1028,19 +1028,23 @@ async def request_email_change(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[RequestMyEmailChangeOut]:
     """Request email change verification code."""
-    code, ttl, new_email = await service.request_email_change(user=user, new_email=str(payload.new_email))
-    locale = get_current_locale()
-    background_tasks.add_task(
-        service.send_email_change_code,
-        recipient=new_email,
-        code=code,
-        expires_in=ttl,
-        user_id=user.id,
-        locale=locale,
+    code, ttl, new_email, retry_after = await service.request_email_change(
+        user=user,
+        new_email=str(payload.new_email),
     )
+    locale = get_current_locale()
+    if code is not None:
+        background_tasks.add_task(
+            service.send_email_change_code,
+            recipient=new_email,
+            code=code,
+            expires_in=ttl,
+            user_id=user.id,
+            locale=locale,
+        )
     return ApiResponse.success(
         message=t("auth", "EMAIL_CODE_SENT"),
-        data=RequestMyEmailChangeOut(expires_in=ttl),
+        data=RequestMyEmailChangeOut(expires_in=ttl, retry_after=retry_after),
     )
 
 

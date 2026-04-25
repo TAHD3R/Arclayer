@@ -250,6 +250,33 @@ async def test_forgot_reset_password(monkeypatch) -> None:
     assert verify_password("resetpass1", user.credential.password_hash, service.settings.auth) is True
 
 
+async def test_request_email_change_uses_resend_cooldown(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch)
+
+    async def _enabled() -> bool:
+        return True
+
+    monkeypatch.setattr(service.email_service, "is_enabled", _enabled)
+
+    first_code, first_expires_in, first_email, first_retry_after = await service.request_email_change(
+        user=cast(Any, user),
+        new_email="new@example.com",
+    )
+    second_code, second_expires_in, second_email, second_retry_after = await service.request_email_change(
+        user=cast(Any, user),
+        new_email="new@example.com",
+    )
+
+    assert first_code is not None
+    assert first_expires_in > 0
+    assert first_email == "new@example.com"
+    assert first_retry_after == 60
+    assert second_code is None
+    assert second_expires_in > 0
+    assert second_email == "new@example.com"
+    assert second_retry_after == 60
+
+
 async def test_request_remove_password_issues_login_code(monkeypatch) -> None:
     service, user = _build_service(monkeypatch)
 
@@ -273,7 +300,7 @@ async def test_request_remove_password_issues_login_code(monkeypatch) -> None:
     )
 
     assert expires_in > 0
-    assert retry_after > 0
+    assert retry_after == 60
 
 
 async def test_request_remove_password_maps_mail_delivery_failures_to_api_error(monkeypatch) -> None:

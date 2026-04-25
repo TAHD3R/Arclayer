@@ -73,7 +73,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  requestMyEmailChangeMock.mockResolvedValue({ expires_in: 600 });
+  requestMyEmailChangeMock.mockResolvedValue({ expires_in: 600, retryAfter: 60 });
   confirmMyEmailChangeMock.mockResolvedValue({
     id: "u-1",
     username: "demo",
@@ -126,7 +126,7 @@ describe("UserChangeEmailDialog", () => {
     expect(screen.getByText(i18n.t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX"))).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: i18n.t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", { countdown: "20s" }),
+        name: i18n.t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", { countdown: "60s" }),
       }),
     ).toBeInTheDocument();
 

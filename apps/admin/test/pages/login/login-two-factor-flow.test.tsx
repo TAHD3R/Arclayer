@@ -1,14 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { AnchorHTMLAttributes } from "react";
+import type { AnchorHTMLAttributes, ElementType } from "react";
 import { StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { STORAGE_KEYS } from "@/constants/storage";
 import { ApiError } from "@/lib/http";
 import { LoginPage } from "@/pages/login/page";
-import { useAuthChallengeStore } from "@/stores/use-auth-challenge-store";
+import {
+  rehydrateAuthChallengeStore,
+  useAuthChallengeStore,
+} from "@/stores/use-auth-challenge-store";
 
 type RuntimeState = {
   runtime: Record<string, unknown> | null;
@@ -29,6 +32,7 @@ const {
   queryClientClearMock,
   queryClientCancelQueriesMock,
   notifyErrorTextMock,
+  notifySuccessTextMock,
   listSSOProvidersMock,
   runtimeState,
   authState,
@@ -45,6 +49,7 @@ const {
   queryClientClearMock: vi.fn(),
   queryClientCancelQueriesMock: vi.fn(),
   notifyErrorTextMock: vi.fn(),
+  notifySuccessTextMock: vi.fn(),
   listSSOProvidersMock: vi.fn(),
   runtimeState: {
     runtime: {} as RuntimeState["runtime"],
@@ -80,6 +85,50 @@ vi.mock("@tanstack/react-router", () => ({
     </a>
   ),
 }));
+
+vi.mock("motion/react", () => {
+  type MotionElementProps = React.HTMLAttributes<HTMLElement> & {
+    variants?: unknown;
+    initial?: unknown;
+    animate?: unknown;
+    exit?: unknown;
+    whileTap?: unknown;
+    whileHover?: unknown;
+    transition?: unknown;
+  };
+  const motionElements = new Map<string, (props: MotionElementProps) => React.ReactElement>();
+
+  return {
+    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    MotionConfig: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    motion: new Proxy(
+      {},
+      {
+        get: (_target, tag: string) => {
+          const existing = motionElements.get(tag);
+          if (existing) return existing;
+
+          const MotionElement = ({
+            children,
+            variants: _variants,
+            initial: _initial,
+            animate: _animate,
+            exit: _exit,
+            whileTap: _whileTap,
+            whileHover: _whileHover,
+            transition: _transition,
+            ...props
+          }: MotionElementProps) => {
+            const Component = tag as ElementType;
+            return <Component {...props}>{children}</Component>;
+          };
+          motionElements.set(tag, MotionElement);
+          return MotionElement;
+        },
+      },
+    ),
+  };
+});
 
 vi.mock("@/api/auth", () => ({
   emailCheck: (...args: unknown[]) => emailCheckMock(...args),
@@ -130,8 +179,56 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
     ) : null,
 }));
 
+vi.mock("@arclayer/ui/input-otp", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+
+  return {
+    InputOTP: ({
+      children,
+      maxLength,
+      onChange,
+      containerClassName: _containerClassName,
+      pushPasswordManagerStrategy: _pushPasswordManagerStrategy,
+      value,
+      ...props
+    }: React.InputHTMLAttributes<HTMLInputElement> & {
+      children?: React.ReactNode;
+      containerClassName?: string;
+      maxLength?: number;
+      onChange?: (value: string) => void;
+      pushPasswordManagerStrategy?: string;
+      value?: string;
+    }) => {
+      const [inputValue, setInputValue] = React.useState(value ?? "");
+
+      return (
+        <div data-input-otp-container>
+          <input
+            {...props}
+            data-input-otp
+            maxLength={maxLength}
+            value={inputValue}
+            onChange={(event) => {
+              const nextValue = event.currentTarget.value;
+              setInputValue(nextValue);
+              onChange?.(nextValue);
+            }}
+          />
+          {children}
+        </div>
+      );
+    },
+    InputOTPGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    InputOTPSlot: ({ index }: { index: number }) => <span data-otp-slot={index} />,
+  };
+});
+
 vi.mock("@/hooks/use-system-runtime", () => ({
   useSystemRuntime: () => runtimeState,
+}));
+
+vi.mock("@/hooks/use-prefers-reduced-motion", () => ({
+  usePrefersReducedMotion: () => true,
 }));
 
 vi.mock("@/layouts/auth-layout", () => ({
@@ -146,7 +243,7 @@ vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
   notifyErrorText: (...args: unknown[]) => notifyErrorTextMock(...args),
   notifyInfoText: vi.fn(),
-  notifySuccessText: vi.fn(),
+  notifySuccessText: (...args: unknown[]) => notifySuccessTextMock(...args),
 }));
 
 vi.mock("@/lib/query/query-client-instance", () => ({
@@ -216,7 +313,9 @@ beforeEach(() => {
   });
   Object.defineProperty(document, "elementFromPoint", {
     writable: true,
-    value: vi.fn(() => null),
+    value: vi.fn(() =>
+      document.activeElement instanceof Element ? document.activeElement : document.body,
+    ),
   });
   popupClosed = false;
   intervalCallbacks = [];
@@ -275,6 +374,7 @@ describe("LoginPage two-factor challenge flow", () => {
     queryClientClearMock.mockReset();
     queryClientCancelQueriesMock.mockReset();
     notifyErrorTextMock.mockReset();
+    notifySuccessTextMock.mockReset();
     navigateMock.mockReset();
     authState.applyLogin.mockReset();
     workspaceState.setCurrentWorkspaceId.mockReset();
@@ -310,12 +410,19 @@ describe("LoginPage two-factor challenge flow", () => {
 
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
+    await waitFor(() => {
+      expect(emailCheckMock).toHaveBeenCalledWith({ email: "demo@example.com" });
+    });
     expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
 
     expect(emailCheckMock).toHaveBeenCalledWith({ email: "demo@example.com" });
     expect(loginMock).toHaveBeenCalledWith({ email: "demo@example.com", password: "secret123" });
+    await waitFor(() => {
+      expect(useAuthChallengeStore.getState().twoFactorToken).toBe("challenge-1");
+      expect(useAuthChallengeStore.getState().source).toBe("password");
+    });
     expect(
       await screen.findByRole("heading", { name: "auth:LOGIN_TWO_FACTOR_TITLE" }),
     ).toBeInTheDocument();
@@ -338,6 +445,9 @@ describe("LoginPage two-factor challenge flow", () => {
         version: 1,
       }),
     );
+    await act(async () => {
+      await rehydrateAuthChallengeStore();
+    });
 
     renderPage();
 
@@ -387,9 +497,31 @@ describe("LoginPage two-factor challenge flow", () => {
     });
   });
 
-  it("starts a two-factor challenge after verifying an email login code", async () => {
+  it("auto-requests an email login code once after switching methods under StrictMode", async () => {
     emailCheckMock.mockResolvedValueOnce({ exists: true, passwordLoginAvailable: true });
     requestLoginEmailCodeMock.mockResolvedValueOnce({ expires_in: 600, retry_after: 0 });
+
+    renderPage({ strictMode: true });
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
+    expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_TITLE" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE" }),
+    ).toBeInTheDocument();
+    expect(requestLoginEmailCodeMock).toHaveBeenCalledTimes(1);
+    expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({ email: "demo@example.com" });
+    expect(notifySuccessTextMock).toHaveBeenCalledTimes(1);
+    expect(notifySuccessTextMock).toHaveBeenCalledWith("auth:LOGIN_CODE_SENT");
+  });
+
+  it("starts a two-factor challenge after verifying an email login code", async () => {
+    emailCheckMock.mockResolvedValueOnce({ exists: true, passwordLoginAvailable: true });
+    requestLoginEmailCodeMock.mockResolvedValueOnce({ expires_in: 600, retry_after: 60 });
     verifyLoginEmailCodeMock.mockRejectedValueOnce(
       new ApiError({
         status: 401,
@@ -406,9 +538,7 @@ describe("LoginPage two-factor challenge flow", () => {
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
     expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: "auth:LOGIN_PASSWORD_ALTERNATIVE_ACTION" }),
-    );
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_TITLE" }));
     expect(
       await screen.findByRole("heading", { name: "auth:LOGIN_EMAIL_CODE_VERIFY_TITLE" }),
     ).toBeInTheDocument();
@@ -416,13 +546,32 @@ describe("LoginPage two-factor challenge flow", () => {
     await waitFor(() => {
       expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({ email: "demo@example.com" });
     });
+    await waitFor(() => {
+      expect(notifySuccessTextMock).toHaveBeenCalledWith("auth:LOGIN_CODE_SENT");
+    });
+    await waitFor(() => {
+      expect(screen.queryByLabelText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "auth:LOGIN_BUTTON" })).toHaveLength(1);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    await user.type(screen.getByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL"), "123456");
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
+    const codeInput = screen.getByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL");
+    await user.type(codeInput, "123456");
+    const verifyForm = codeInput.closest("form");
+    expect(verifyForm).not.toBeNull();
+    const verifyButton = within(verifyForm as HTMLFormElement).getByRole("button", {
+      name: "auth:LOGIN_BUTTON",
+    });
+    await waitFor(() => {
+      expect(verifyButton).toBeEnabled();
+    });
+    await user.click(verifyButton);
 
-    expect(verifyLoginEmailCodeMock).toHaveBeenCalledWith({
-      email: "demo@example.com",
-      code: "123456",
+    await waitFor(() => {
+      expect(verifyLoginEmailCodeMock).toHaveBeenCalledWith({
+        email: "demo@example.com",
+        code: "123456",
+      });
     });
     expect(
       await screen.findByRole("heading", { name: "auth:LOGIN_TWO_FACTOR_TITLE" }),

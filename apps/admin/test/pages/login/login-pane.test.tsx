@@ -17,22 +17,21 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/components/ui/oauth-buttons", () => ({
   AuthOauthButtons: ({
-    dividerLabelKey,
+    dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
     leadingActions = [],
   }: {
     dividerLabelKey?: string;
     leadingActions?: Array<{ key: string; label: string; onClick: () => void }>;
-  }) =>
-    dividerLabelKey || leadingActions.length > 0 ? (
-      <div data-testid="oauth-actions">
-        {dividerLabelKey ? <span>{dividerLabelKey}</span> : null}
-        {leadingActions.map((action) => (
-          <button key={action.key} type="button" onClick={action.onClick}>
-            {action.label}
-          </button>
-        ))}
-      </div>
-    ) : null,
+  }) => (
+    <div data-testid="oauth-actions">
+      <span>{dividerLabelKey}</span>
+      {leadingActions.map((action) => (
+        <button key={action.key} type="button" onClick={action.onClick}>
+          {action.label}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -43,7 +42,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("LoginPane oauth section", () => {
-  it("shows oauth above the email step and hides it on the password step", () => {
+  it("shows oauth after the email step and hides it on the password step", () => {
     const { container } = render(
       <LoginPane
         onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
@@ -63,10 +62,10 @@ describe("LoginPane oauth section", () => {
 
     const oauthWrapper = container.querySelector(".pt-1\\.5");
     expect(oauthWrapper).toHaveClass("empty:hidden");
-    expect(screen.getByText("auth:LOGIN_EMAIL_STEP_DIVIDER")).toBeInTheDocument();
+    expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
   });
 
-  it("shows email code action beside forgot password on password step", async () => {
+  it("shows email code action in the auth methods section on password step", async () => {
     const onSwitchToEmailCode = vi.fn();
 
     render(
@@ -87,12 +86,10 @@ describe("LoginPane oauth section", () => {
     );
 
     const user = userEvent.setup();
-    await user.click(
-      screen.getByRole("button", { name: "auth:LOGIN_PASSWORD_ALTERNATIVE_ACTION" }),
-    );
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_TITLE" }));
 
     expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", true);
-    expect(screen.queryByTestId("oauth-actions")).not.toBeInTheDocument();
+    expect(screen.getByTestId("oauth-actions")).toBeInTheDocument();
   });
 
   it("routes passwordless accounts into email-code flow from the email step", async () => {
@@ -161,7 +158,6 @@ describe("LoginPane oauth section", () => {
     );
 
     expect(screen.getByText("auth:KEEP_SESSION")).toBeInTheDocument();
-    expect(screen.getByText("auth:LOGIN_PASSWORD_KEEP_SESSION_HINT")).toBeInTheDocument();
   });
 
   it("renders the primary action without a trailing icon", () => {

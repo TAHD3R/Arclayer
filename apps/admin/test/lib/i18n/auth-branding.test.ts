@@ -16,4 +16,12 @@ describe("auth branding i18n", () => {
     expect(i18n.t("auth:SLOGAN_SUBTITLE")).toBe("Structured content, visually built.");
     await i18n.changeLanguage(DEFAULT_LOCALE);
   });
+
+  it("uses continue-with semantics for the auth oauth divider", async () => {
+    expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("继续使用");
+
+    await i18n.changeLanguage("en-US");
+    expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("Continue with");
+    await i18n.changeLanguage(DEFAULT_LOCALE);
+  });
 });

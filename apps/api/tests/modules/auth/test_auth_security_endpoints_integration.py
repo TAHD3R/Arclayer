@@ -237,7 +237,7 @@ async def test_auth_email_code_login_flow(
             )
             assert request_resp.status_code == 200, request_resp.text
             request_data = request_resp.json().get("data") or {}
-            assert (request_data.get("retryAfter") or request_data.get("retry_after")) == 20
+            assert (request_data.get("retryAfter") or request_data.get("retry_after")) == 60
             assert sent == [user.email]
 
             store = EmailLoginCodeStore(app.state.valkey)

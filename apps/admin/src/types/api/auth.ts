@@ -34,6 +34,8 @@ export type RequestMyEmailChangePayload = {
 
 export type RequestMyEmailChangeOut = {
   expires_in: number;
+  retryAfter: number;
+  retry_after?: number;
 };
 
 export type ConfirmMyEmailChangePayload = {

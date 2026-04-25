@@ -259,7 +259,7 @@ class AuthService(BaseService):
                 error="RESET_TOKEN_INVALID",
             )
 
-    async def request_email_change(self, *, user: User, new_email: str) -> tuple[str, int, str]:
+    async def request_email_change(self, *, user: User, new_email: str) -> tuple[str | None, int, str, int]:
         """
         Issue a verification code to the new email address.
         """
@@ -277,9 +277,19 @@ class AuthService(BaseService):
         if await self.user_repo.exists_email(new_email):
             raise Conflict(message=self._ta("EMAIL_EXISTS", "邮箱已被占用"), error="EMAIL_EXISTS")
 
+        user_id = cast(UUID, user.id)
         store = self._require_email_change_store()
-        code, ttl = await store.issue(user_id=cast(UUID, user.id), new_email=new_email)
-        return code, ttl, new_email
+        existing = await store.get(user_id=user_id)
+        if existing is not None:
+            expires_in = store.remaining_expires_in(existing)
+            issued_email = str(existing.get("new_email") or "").strip().lower()
+            if expires_in > 0 and issued_email == new_email:
+                retry_after = store.remaining_retry_after(existing)
+                if retry_after > 0:
+                    return None, expires_in, new_email, retry_after
+
+        code, ttl, retry_after = await store.issue(user_id=user_id, new_email=new_email)
+        return code, ttl, new_email, retry_after
 
     async def send_email_change_code(
         self,
