@@ -6,8 +6,8 @@ from uuid import UUID
 
 from src.common.constants.assets import (
     ASSET_SCOPE_ORGANIZATION,
+    ASSET_SCOPE_PROJECT,
     ASSET_SCOPE_USER,
-    ASSET_SCOPE_WORKSPACE,
 )
 from src.core.exceptions import BadRequest
 from src.core.i18n import t
@@ -24,15 +24,15 @@ class AssetScope:
 
 
 class ScopeFilterKwargs(TypedDict, total=False):
-    workspace_id: UUID
+    project_id: UUID
     organization_id: UUID
     user_id: UUID
 
 
 def scope_filter_kwargs(scope: AssetScope) -> ScopeFilterKwargs:
     tpe = (scope.type or "").strip().lower()
-    if tpe == ASSET_SCOPE_WORKSPACE:
-        return {"workspace_id": scope.id}
+    if tpe == ASSET_SCOPE_PROJECT:
+        return {"project_id": scope.id}
     if tpe == ASSET_SCOPE_ORGANIZATION:
         return {"organization_id": scope.id}
     if tpe == ASSET_SCOPE_USER:
@@ -42,9 +42,9 @@ def scope_filter_kwargs(scope: AssetScope) -> ScopeFilterKwargs:
 
 def resolve_asset_scope(
     *,
-    workspace_id: UUID | None,
-    organization_id: UUID | None,
-    user_id: UUID | None,
+    project_id: UUID | None = None,
+    organization_id: UUID | None = None,
+    user_id: UUID | None = None,
 ) -> AssetScope:
     """
     Resolve asset scope from nullable scope columns.
@@ -55,8 +55,8 @@ def resolve_asset_scope(
     """
 
     candidates: list[AssetScope] = []
-    if workspace_id is not None:
-        candidates.append(AssetScope(type=ASSET_SCOPE_WORKSPACE, id=workspace_id))
+    if project_id is not None:
+        candidates.append(AssetScope(type=ASSET_SCOPE_PROJECT, id=project_id))
     if organization_id is not None:
         candidates.append(AssetScope(type=ASSET_SCOPE_ORGANIZATION, id=organization_id))
     if user_id is not None:

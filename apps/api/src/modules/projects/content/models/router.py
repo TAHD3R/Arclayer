@@ -13,8 +13,12 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.content.contracts.schema import (
     ContentModelDefinitionContract,
+    ContentModelFieldContract,
+    ContentModelFieldPatchContract,
+    ContentModelFieldReorderContract,
     ContentModelImpactPreviewOut,
     ContentModelOut,
+    ContentModelSchemaSnapshotOut,
 )
 from src.modules.projects.content.models.canonical_service import (
     ContentModelDefinitionPatchContract,
@@ -83,6 +87,136 @@ async def list_project_content_models(
         params=params,
     )
     return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/models/{model_id}/json-preview",
+    response_model=ResponseModel[ContentModelSchemaSnapshotOut],
+    response_model_exclude_none=True,
+    summary="Preview current draft content model JSON schema (project RBAC protected)",
+)
+async def get_project_content_model_json_preview(
+    model_id: PublicUUID,
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
+    service: Annotated[
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
+    ],
+) -> ResponseModel[ContentModelSchemaSnapshotOut]:
+    result = await service.get_model_json_preview(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        model_id=model_id,
+    )
+    if result is None:
+        raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+    return ApiResponse.success(data=result)
+
+
+@router.post(
+    "/models/{model_id}/fields",
+    response_model=ResponseModel[ContentModelOut],
+    response_model_exclude_none=True,
+    summary="Create a content model field (project RBAC protected)",
+)
+async def create_project_content_model_field(
+    model_id: PublicUUID,
+    payload: Annotated[ContentModelFieldContract, Body(description="Create field contract payload.")],
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    service: Annotated[
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
+    ],
+) -> ResponseModel[ContentModelOut]:
+    result = await service.add_model_field(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        model_id=model_id,
+        payload=payload,
+    )
+    if result is None:
+        raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+    return ApiResponse.success(data=result)
+
+
+@router.patch(
+    "/models/{model_id}/fields/{field_key}",
+    response_model=ResponseModel[ContentModelOut],
+    response_model_exclude_none=True,
+    summary="Update a content model field (project RBAC protected)",
+)
+async def update_project_content_model_field(
+    model_id: PublicUUID,
+    field_key: str,
+    payload: Annotated[ContentModelFieldPatchContract, Body(description="Patch field contract payload.")],
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    service: Annotated[
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
+    ],
+) -> ResponseModel[ContentModelOut]:
+    result = await service.update_model_field(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        model_id=model_id,
+        field_key=field_key,
+        payload=payload,
+    )
+    if result is None:
+        raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+    return ApiResponse.success(data=result)
+
+
+@router.post(
+    "/models/{model_id}/fields/reorder",
+    response_model=ResponseModel[ContentModelOut],
+    response_model_exclude_none=True,
+    summary="Reorder content model fields (project RBAC protected)",
+)
+async def reorder_project_content_model_fields(
+    model_id: PublicUUID,
+    payload: Annotated[ContentModelFieldReorderContract, Body(description="Reorder field contract payload.")],
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    service: Annotated[
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
+    ],
+) -> ResponseModel[ContentModelOut]:
+    result = await service.reorder_model_fields(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        model_id=model_id,
+        field_keys=payload.field_keys,
+    )
+    if result is None:
+        raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+    return ApiResponse.success(data=result)
+
+
+@router.delete(
+    "/models/{model_id}/fields/{field_key}",
+    response_model=ResponseModel[ContentModelOut],
+    response_model_exclude_none=True,
+    summary="Delete a content model field (project RBAC protected)",
+)
+async def delete_project_content_model_field(
+    model_id: PublicUUID,
+    field_key: str,
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    service: Annotated[
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
+    ],
+) -> ResponseModel[ContentModelOut]:
+    result = await service.delete_model_field(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        model_id=model_id,
+        field_key=field_key,
+    )
+    if result is None:
+        raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+    return ApiResponse.success(data=result)
 
 
 @router.post(

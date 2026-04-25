@@ -210,11 +210,11 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
     [],
   );
   const dateTime = useAdminDateTimeFormatter({
-    workspaceId: controller.workspaceId ?? undefined,
+    projectId: controller.projectId ?? undefined,
   });
   const tableId = useMemo(
-    () => `workspace-assets:${controller.workspaceId ?? "none"}`,
-    [controller.workspaceId],
+    () => `project-assets:${controller.projectId ?? "none"}`,
+    [controller.projectId],
   );
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId });
   const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId });

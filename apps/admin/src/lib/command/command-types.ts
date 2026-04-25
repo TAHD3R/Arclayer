@@ -77,5 +77,6 @@ export type CommandScope = {
   kind: CommandScopeKind;
   pathname: string;
   workspaceId: string | null;
+  projectId: string | null;
   organizationId: string | null;
 };

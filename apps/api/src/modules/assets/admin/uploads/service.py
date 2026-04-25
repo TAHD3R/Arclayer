@@ -10,8 +10,8 @@ from tortoise.exceptions import IntegrityError, OperationalError
 
 from src.common.constants.assets import (
     ASSET_SCOPE_ORGANIZATION,
+    ASSET_SCOPE_PROJECT,
     ASSET_SCOPE_USER,
-    ASSET_SCOPE_WORKSPACE,
     ASSET_UPLOADED_EVENT,
 )
 from src.common.services import BaseService
@@ -135,8 +135,8 @@ class UploadsService(BaseService):
 
     @staticmethod
     def _upload_tmp_dir_key(*, scope: AssetScope, upload_id: UUID) -> str:
-        if scope.type == ASSET_SCOPE_WORKSPACE:
-            return f"workspaces/{scope.id}/uploads/{upload_id}"
+        if scope.type == ASSET_SCOPE_PROJECT:
+            return f"projects/{scope.id}/uploads/{upload_id}"
         if scope.type == ASSET_SCOPE_ORGANIZATION:
             return f"organizations/{scope.id}/uploads/{upload_id}"
         if scope.type == ASSET_SCOPE_USER:
@@ -538,8 +538,8 @@ class UploadsService(BaseService):
             "visibility": str(session.visibility),
             "indexable": bool(session.indexable),
         }
-        if scope.type == ASSET_SCOPE_WORKSPACE:
-            payload["workspace_id"] = str(scope.id)
+        if scope.type == ASSET_SCOPE_PROJECT:
+            payload["project_id"] = str(scope.id)
         event = Event(
             name=ASSET_UPLOADED_EVENT,
             payload=payload,

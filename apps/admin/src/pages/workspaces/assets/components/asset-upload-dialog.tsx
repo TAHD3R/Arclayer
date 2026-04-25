@@ -44,13 +44,11 @@ function nextLocalId(): string {
 type ScopedUploadsApi = {
   init: (payload: Parameters<typeof initUpload>[1]) => ReturnType<typeof initUpload>;
   abort: (uploadId: string) => Promise<void>;
-  uploadPart: (params: Omit<Parameters<typeof uploadPart>[0], "workspaceId">) => Promise<void>;
+  uploadPart: (params: Omit<Parameters<typeof uploadPart>[0], "projectId">) => Promise<void>;
   presignPart: (
-    params: Omit<Parameters<typeof presignUploadPart>[0], "workspaceId">,
+    params: Omit<Parameters<typeof presignUploadPart>[0], "projectId">,
   ) => ReturnType<typeof presignUploadPart>;
-  commitPart: (
-    params: Omit<Parameters<typeof commitUploadPart>[0], "workspaceId">,
-  ) => Promise<void>;
+  commitPart: (params: Omit<Parameters<typeof commitUploadPart>[0], "projectId">) => Promise<void>;
   complete: (uploadId: string) => ReturnType<typeof completeUpload>;
 };
 
@@ -58,18 +56,18 @@ function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
   const rawId = String(scope.id || "").trim();
   if (!rawId) throw new Error("ASSET_SCOPE_NOT_SELECTED");
 
-  if (scope.type === "workspace") {
+  if (scope.type === "project") {
     return {
       init: (payload) => initUpload(rawId, payload),
       abort: async (uploadId) => {
         await abortUpload(rawId, uploadId);
       },
       uploadPart: async (params) => {
-        await uploadPart({ ...params, workspaceId: rawId });
+        await uploadPart({ ...params, projectId: rawId });
       },
-      presignPart: (params) => presignUploadPart({ ...params, workspaceId: rawId }),
+      presignPart: (params) => presignUploadPart({ ...params, projectId: rawId }),
       commitPart: async (params) => {
-        await commitUploadPart({ ...params, workspaceId: rawId });
+        await commitUploadPart({ ...params, projectId: rawId });
       },
       complete: (uploadId) => completeUpload(rawId, uploadId),
     };

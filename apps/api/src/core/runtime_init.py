@@ -43,12 +43,12 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
     async def _on_asset_uploaded(event: Event) -> None:
         try:
             raw_asset_id = (event.payload or {}).get("asset_id")
-            raw_workspace_id = (event.payload or {}).get("workspace_id")
-            if not raw_asset_id or not raw_workspace_id:
+            raw_project_id = (event.payload or {}).get("project_id")
+            if not raw_asset_id or not raw_project_id:
                 return
 
             asset_id = UUID(str(raw_asset_id))
-            workspace_id = UUID(str(raw_workspace_id))
+            project_id = UUID(str(raw_project_id))
             if settings.taskiq.enabled and is_taskiq_enabled(app):
                 dedupe_ok = await try_dedupe_enqueue(
                     app,
@@ -59,12 +59,12 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
                     enqueued = await try_enqueue_task(
                         task_generate_asset_thumbnails,
                         str(asset_id),
-                        str(workspace_id),
+                        str(project_id),
                     )
                     if enqueued:
                         return
 
-            await generate_asset_thumbnails({"settings": settings}, str(asset_id), str(workspace_id))
+            await generate_asset_thumbnails({"settings": settings}, str(asset_id), str(project_id))
         except BaseException as exc:
             _raise_if_fatal(exc)
             logger.warning(

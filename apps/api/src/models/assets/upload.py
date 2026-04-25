@@ -22,8 +22,9 @@ class UploadStatus(StrEnum):
 class UploadSessionRecord(BaseModel):
     """Domain model for upload session records."""
 
-    # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
+    # Exactly one scope id must be set (enforced at service boundary).
     workspace_id = fields.UUIDField(null=True, db_index=True)
+    project_id = fields.UUIDField(null=True, db_index=True)
     organization_id = fields.UUIDField(null=True, db_index=True)
     user_id = fields.UUIDField(null=True, db_index=True)
     actor_user_id = fields.UUIDField(db_index=True)

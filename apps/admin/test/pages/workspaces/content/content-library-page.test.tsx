@@ -25,6 +25,8 @@ const mocked = vi.hoisted(() => ({
   saveContentItemDraftVersion: vi.fn(),
   patchContentItemVersion: vi.fn(),
   publishContentItemVersion: vi.fn(),
+  bulkPublishContentItems: vi.fn(),
+  bulkUnpublishContentItems: vi.fn(),
   getProjectCoreSettings: vi.fn(),
   archiveContentItem: vi.fn(),
   deleteContentItem: vi.fn(),
@@ -58,6 +60,8 @@ vi.mock("@/api/content", () => ({
   saveContentItemDraftVersion: (...args: unknown[]) => mocked.saveContentItemDraftVersion(...args),
   patchContentItemVersion: (...args: unknown[]) => mocked.patchContentItemVersion(...args),
   publishContentItemVersion: (...args: unknown[]) => mocked.publishContentItemVersion(...args),
+  bulkPublishContentItems: (...args: unknown[]) => mocked.bulkPublishContentItems(...args),
+  bulkUnpublishContentItems: (...args: unknown[]) => mocked.bulkUnpublishContentItems(...args),
   archiveContentItem: (...args: unknown[]) => mocked.archiveContentItem(...args),
   deleteContentItem: (...args: unknown[]) => mocked.deleteContentItem(...args),
   duplicateContentItem: (...args: unknown[]) => mocked.duplicateContentItem(...args),
@@ -351,7 +355,6 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
 
 vi.mock("@/pages/projects/content/library/components/content-library-toolbar", () => ({
   ContentLibraryToolbar: (props: {
-    viewMode?: "card" | "table";
     searchInput?: string;
     onSearchInputChange?: (next: string) => void;
     onViewModeChange?: (next: "card" | "table") => void;
@@ -455,20 +458,6 @@ vi.mock("@/pages/projects/content/library/components/content-library-toolbar", (
         onClick={() => props.onFiltersChange?.({ editWith: "writing" })}
       >
         content:CONTENT_LIBRARY_EDIT_WITH_WRITING
-      </button>
-      <button
-        type="button"
-        data-active={props.viewMode === "card" ? "true" : "false"}
-        onClick={() => props.onViewModeChange?.("card")}
-      >
-        common:VIEW_MODE_CARD
-      </button>
-      <button
-        type="button"
-        data-active={props.viewMode === "table" ? "true" : "false"}
-        onClick={() => props.onViewModeChange?.("table")}
-      >
-        common:VIEW_MODE_TABLE
       </button>
     </div>
   ),
@@ -682,7 +671,6 @@ describe("ContentLibraryPage", () => {
               query: payload.query,
               filters: payload.filters,
               sorting: payload.sorting ?? [],
-              viewMode: payload.viewMode,
               columns: payload.columns,
               visibility: payload.visibility,
               pinned: true,
@@ -884,7 +872,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: true,
@@ -915,7 +902,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: true,
@@ -957,7 +943,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: true,
@@ -997,7 +982,6 @@ describe("ContentLibraryPage", () => {
         query: "",
         filters: {},
         sorting: [],
-        viewMode: "table",
         visibility: "private",
         pinned: true,
         isDefault: true,
@@ -1025,7 +1009,6 @@ describe("ContentLibraryPage", () => {
         query: "",
         filters: { status: "draft" },
         sorting: [],
-        viewMode: "table",
         visibility: "private",
         pinned: true,
         isDefault: true,
@@ -1045,7 +1028,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: false,
@@ -1084,7 +1066,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: false,
@@ -1102,7 +1083,6 @@ describe("ContentLibraryPage", () => {
             query: payload.query,
             filters: payload.filters,
             sorting: payload.sorting ?? [],
-            viewMode: payload.viewMode,
             columns: payload.columns,
             visibility: "private",
             pinned: true,
@@ -1133,7 +1113,6 @@ describe("ContentLibraryPage", () => {
         query: "launch",
         filters: { role: "page" },
         sorting: [],
-        viewMode: "table",
       });
     });
   });
@@ -1150,7 +1129,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: false,
@@ -1197,7 +1175,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: false,
@@ -1233,7 +1210,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: false,
@@ -1251,7 +1227,6 @@ describe("ContentLibraryPage", () => {
             query: "launch",
             filters: { status: "published" },
             sorting: [],
-            viewMode: "table",
             visibility: payload.visibility ?? "private",
             pinned: true,
             isDefault: payload.isDefault ?? false,
@@ -1299,7 +1274,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: false,
@@ -1317,7 +1291,6 @@ describe("ContentLibraryPage", () => {
             query: "launch",
             filters: { status: "published" },
             sorting: [],
-            viewMode: "table",
             visibility: "private",
             pinned: true,
             isDefault: false,
@@ -1329,7 +1302,6 @@ describe("ContentLibraryPage", () => {
             query: payload.query,
             filters: payload.filters,
             sorting: payload.sorting ?? [],
-            viewMode: payload.viewMode,
             columns: payload.columns,
             visibility: payload.visibility,
             pinned: payload.pinned,
@@ -1357,7 +1329,6 @@ describe("ContentLibraryPage", () => {
         query: "launch",
         filters: { status: "published" },
         sorting: [],
-        viewMode: "table",
         visibility: "private",
         pinned: true,
         isDefault: false,
@@ -1377,7 +1348,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: false,
@@ -1414,7 +1384,6 @@ describe("ContentLibraryPage", () => {
           query: "launch",
           filters: { status: "published" },
           sorting: [],
-          viewMode: "table",
           visibility: "private",
           pinned: true,
           isDefault: false,
@@ -1729,33 +1698,26 @@ describe("ContentLibraryPage", () => {
     });
   });
 
-  test("switches to a card list on narrow windows while keeping continue actions", async () => {
+  test("keeps table operations on narrow windows", async () => {
     setMatchMedia(true);
 
     renderWithQuery(<ContentLibraryPage />);
 
-    expect(await screen.findByTestId("content-library-card-list")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "row:Homepage" })).not.toBeInTheDocument();
-    expect(
-      screen.getAllByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" }).length,
-    ).toBeGreaterThan(0);
-    expect(getAllByI18nTail("CONTENT_LIBRARY_EDIT_WITH_CANVAS").length).toBeGreaterThan(0);
+    expect(await screen.findByRole("button", { name: "row:Homepage" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "row:Launch note" })).toBeInTheDocument();
+    expect(screen.queryByTestId("content-library-card-list")).not.toBeInTheDocument();
   });
 
-  test("lets the user switch between table and card modes from the toolbar", async () => {
-    const user = userEvent.setup();
-
+  test("renders Content Library as a table-only operations surface", async () => {
     renderWithQuery(<ContentLibraryPage />);
 
     await screen.findByRole("button", { name: "row:Homepage" });
+    expect(screen.getByRole("button", { name: "row:Launch note" })).toBeInTheDocument();
     expect(screen.queryByTestId("content-library-card-list")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "common:VIEW_MODE_CARD" }));
-    expect(await screen.findByTestId("content-library-card-list")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "common:VIEW_MODE_TABLE" }));
-    expect(await screen.findByRole("button", { name: "row:Homepage" })).toBeInTheDocument();
-    expect(screen.queryByTestId("content-library-card-list")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "common:VIEW_MODE_CARD" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "common:VIEW_MODE_TABLE" }),
+    ).not.toBeInTheDocument();
   });
 
   test("keeps the workbench canvas on the page background instead of a card surface", async () => {

@@ -54,6 +54,20 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         scope=PermissionScope.PROJECT.value,
     ),
     PermissionActionDefinition(
+        code="project:assets:read",
+        description="Allow reading project assets.",
+        permission_codes=("system:assets:read",),
+        subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
+        scope=PermissionScope.PROJECT.value,
+    ),
+    PermissionActionDefinition(
+        code="project:assets:manage",
+        description="Allow managing project assets.",
+        permission_codes=("system:assets:manage",),
+        subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
+        scope=PermissionScope.PROJECT.value,
+    ),
+    PermissionActionDefinition(
         code="project:content:items:write",
         description="Allow mutating content items via management APIs.",
         permission_codes=("system:content:manage",),

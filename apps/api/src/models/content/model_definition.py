@@ -32,6 +32,7 @@ class ContentModelDefinitionRecord(BaseModel):
     name = fields.CharField(max_length=128)
     description = fields.CharField(max_length=512, null=True)
     category = fields.CharField(max_length=32, default="custom", db_index=True)
+    model_kind = fields.CharField(max_length=32, default="collection_type", db_index=True)
     default_editor = fields.CharField(max_length=32, default="form", db_index=True)
     default_role = fields.CharEnumField(
         ContentContinuationRole,

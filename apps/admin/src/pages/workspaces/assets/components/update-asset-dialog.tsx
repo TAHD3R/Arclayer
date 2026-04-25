@@ -7,7 +7,6 @@ import { getAssetDetail, moveAsset, patchAsset } from "@/api/assets";
 import { assetScopeKey } from "@/lib/assets/asset-scope";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AdminAssetFolder, PatchAdminAssetPayload } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { Button } from "@arclayer/ui/button";
@@ -26,6 +25,7 @@ function normalizeFolderValue(value: string) {
 export type UpdateAssetDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  projectId: string;
   asset: AssetMasonryItem | null;
   folders: AdminAssetFolder[];
 };
@@ -33,10 +33,10 @@ export type UpdateAssetDialogProps = {
 export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const scopeKey = useMemo(
-    () => (workspaceId ? assetScopeKey({ type: "workspace", id: String(workspaceId) }) : null),
-    [workspaceId],
+    () =>
+      props.projectId ? assetScopeKey({ type: "project", id: String(props.projectId) }) : null,
+    [props.projectId],
   );
   const [filename, setFilename] = useState("");
   const [folderValue, setFolderValue] = useState(ROOT_FOLDER_VALUE);
@@ -44,10 +44,10 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
 
   const detailQuery = useQuery({
     queryKey: ["assets", "detail", scopeKey, props.asset?.id],
-    enabled: props.open && Boolean(props.asset?.id) && Boolean(workspaceId),
+    enabled: props.open && Boolean(props.asset?.id) && Boolean(props.projectId),
     queryFn: async () => {
-      if (!workspaceId || !props.asset?.id) throw new Error("ASSET_NOT_SELECTED");
-      return getAssetDetail(String(workspaceId), props.asset.id);
+      if (!props.projectId || !props.asset?.id) throw new Error("ASSET_NOT_SELECTED");
+      return getAssetDetail(String(props.projectId), props.asset.id);
     },
     staleTime: 20 * 1000,
   });
@@ -62,7 +62,7 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!workspaceId || !props.asset?.id || !detailQuery.data)
+      if (!props.projectId || !props.asset?.id || !detailQuery.data)
         throw new Error("ASSET_NOT_SELECTED");
 
       const nextFilename = filename.trim();
@@ -78,11 +78,11 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
       }
 
       if (Object.keys(payload).length > 0) {
-        await patchAsset(String(workspaceId), props.asset.id, payload);
+        await patchAsset(String(props.projectId), props.asset.id, payload);
       }
 
       if (String(detailQuery.data.folderId || "") !== String(nextFolderId || "")) {
-        await moveAsset(String(workspaceId), props.asset.id, { folderId: nextFolderId });
+        await moveAsset(String(props.projectId), props.asset.id, { folderId: nextFolderId });
       }
     },
     onSuccess: async () => {

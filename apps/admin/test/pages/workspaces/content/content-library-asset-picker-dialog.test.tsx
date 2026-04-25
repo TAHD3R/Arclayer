@@ -200,7 +200,7 @@ describe("content-library-asset-picker-dialog", () => {
         open
         onOpenChange={vi.fn()}
         onConfirm={vi.fn()}
-        scope={{ id: "ws-1", type: "workspace" }}
+        scope={{ id: "project-1", type: "project" }}
         value={{ assetIds: ["asset-1"] }}
       />,
     );
@@ -223,7 +223,7 @@ describe("content-library-asset-picker-dialog", () => {
         open
         onOpenChange={vi.fn()}
         onConfirm={onConfirm}
-        scope={{ id: "ws-1", type: "workspace" }}
+        scope={{ id: "project-1", type: "project" }}
         value={{ assetIds: ["asset-1"] }}
       />,
     );

@@ -194,7 +194,7 @@ export function WorkspaceIconDialog(props: WorkspaceIconDialogProps) {
 
     setIsUploading(true);
     uploadSingleAssetFromFile({
-      scope: { type: "workspace", id: dialog.workspace.workspaceId },
+      scope: { type: "organization", id: dialog.workspace.organizationId },
       purpose: "workspace_icon",
       file,
       t: tGlobal,

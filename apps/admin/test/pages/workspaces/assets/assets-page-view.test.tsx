@@ -8,9 +8,8 @@ import { STORAGE_KEYS } from "@/constants/storage";
 import { AssetsPageView } from "@/pages/workspaces/assets/components/assets-page-view";
 
 const mocked = vi.hoisted(() => ({
-  getWorkspaceDetail: vi.fn(),
-  getMyWorkspaceAuthz: vi.fn(),
-  listWorkspacePermissionActions: vi.fn(),
+  getMyProjectAuthz: vi.fn(),
+  listProjectPermissionActions: vi.fn(),
 }));
 const controllerState = { current: createControllerStub() };
 const tableControllerState = { current: createTableControllerStub() };
@@ -58,7 +57,10 @@ vi.mock("@/layouts/page-shell/columns-page", () => ({
 }));
 
 vi.mock("@/pages/workspaces/assets/hooks/use-assets-view-controller", () => ({
-  useAssetsViewController: () => controllerState.current,
+  useAssetsViewController: (projectId: string) => ({
+    ...controllerState.current,
+    projectId,
+  }),
 }));
 
 vi.mock("@/pages/workspaces/assets/components/assets-view-table-section", () => ({
@@ -127,13 +129,12 @@ vi.mock("@/pages/workspaces/assets/components/assets-view-overlays", () => ({
 }));
 
 vi.mock("@/api/workspaces", () => ({
-  getWorkspaceDetail: (...args: unknown[]) => mocked.getWorkspaceDetail(...args),
-  getMyWorkspaceAuthz: (...args: unknown[]) => mocked.getMyWorkspaceAuthz(...args),
+  getMyProjectAuthz: (...args: unknown[]) => mocked.getMyProjectAuthz(...args),
 }));
 
 vi.mock("@/api/rbac", () => ({
-  listWorkspacePermissionActions: (...args: unknown[]) =>
-    mocked.listWorkspacePermissionActions(...args),
+  listProjectPermissionActions: (...args: unknown[]) =>
+    mocked.listProjectPermissionActions(...args),
 }));
 
 function renderWithQueryClient(component: React.ReactElement) {
@@ -157,8 +158,9 @@ function createControllerStub(overrides: Record<string, unknown> = {}) {
   return {
     t: (key: string) => key,
     queryClient: { invalidateQueries: vi.fn() },
+    projectId: "project-1",
     scope: null,
-    scopeKey: "workspace:ws-1",
+    scopeKey: "project:project-1",
     active: null,
     setActive: vi.fn(),
     openAssetDetails: vi.fn(),
@@ -283,29 +285,19 @@ describe("AssetsPageView", () => {
   beforeEach(() => {
     controllerState.current = createControllerStub();
     tableControllerState.current = createTableControllerStub();
-    mocked.getWorkspaceDetail.mockReset();
-    mocked.getMyWorkspaceAuthz.mockReset();
-    mocked.listWorkspacePermissionActions.mockReset();
-    mocked.getWorkspaceDetail.mockResolvedValue({
-      id: "ws-1",
-      name: "Workspace Alpha",
-      iconMode: "initials",
-      iconColor: "#337ea9",
-      iconGlyph: null,
-      iconEmoji: null,
-      iconUrl: null,
-    });
-    mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "ws-1",
+    mocked.getMyProjectAuthz.mockReset();
+    mocked.listProjectPermissionActions.mockReset();
+    mocked.getMyProjectAuthz.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
-      permissionCodes: ["system:assets:read", "system:assets:manage"],
+      permissionCodes: ["project:assets:read", "project:assets:manage"],
     });
-    mocked.listWorkspacePermissionActions.mockResolvedValue([
+    mocked.listProjectPermissionActions.mockResolvedValue([
       {
-        code: "system:assets:manage",
+        code: "project:assets:manage",
         description: "Manage asset library files and folders.",
-        subjectKinds: ["workspace_member"],
-        permissionCodes: ["system:assets:manage"],
+        subjectKinds: ["project_member"],
+        permissionCodes: ["project:assets:manage"],
       },
     ]);
     window.localStorage.removeItem(STORAGE_KEYS.assetsFolderRailOpen);
@@ -314,7 +306,7 @@ describe("AssetsPageView", () => {
   it("shows the folder rail by default and persists the user's collapse choice", async () => {
     const user = userEvent.setup();
 
-    renderWithQueryClient(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
 
     expect(screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_UPLOAD" })).toBeInTheDocument();
@@ -331,7 +323,7 @@ describe("AssetsPageView", () => {
   it("honors a persisted collapsed rail preference on revisit", () => {
     window.localStorage.setItem(STORAGE_KEYS.assetsFolderRailOpen, "false");
 
-    renderWithQueryClient(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
 
     expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
   });
@@ -348,7 +340,7 @@ describe("AssetsPageView", () => {
       explicitFilterActive: false,
     });
 
-    renderWithQueryClient(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
 
     expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
     expect(screen.queryByRole("button", { name: "common:SIDEBAR_TOGGLE" })).not.toBeInTheDocument();
@@ -365,7 +357,7 @@ describe("AssetsPageView", () => {
       },
     });
 
-    renderWithQueryClient(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
 
     await user.click(screen.getByRole("button", { name: "switch-table" }));
 
@@ -391,7 +383,7 @@ describe("AssetsPageView", () => {
       },
     });
 
-    renderWithQueryClient(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
 
     await user.click(screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }));
 
@@ -401,16 +393,16 @@ describe("AssetsPageView", () => {
 
   it("enters read-only mode when asset management access is missing", async () => {
     controllerState.current = createControllerStub({
-      scope: { type: "workspace", id: "ws-1" },
+      scope: { type: "project", id: "project-1" },
       selectedIds: new Set(["asset-1"]),
     });
-    mocked.getMyWorkspaceAuthz.mockResolvedValue({
-      workspaceId: "ws-1",
+    mocked.getMyProjectAuthz.mockResolvedValue({
+      projectId: "project-1",
       isSuperuser: false,
-      permissionCodes: ["system:assets:read"],
+      permissionCodes: ["project:assets:read"],
     });
 
-    renderWithQueryClient(<AssetsPageView />);
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
 
     expect(await screen.findByTestId("assets-read-only-notice")).toHaveTextContent(
       "assets:ASSET_LIBRARY_NO_ACCESS_DESC",
@@ -428,7 +420,7 @@ describe("AssetsPageView", () => {
   });
 
   it("adds bottom breathing room to the assets content region", () => {
-    const { container } = renderWithQueryClient(<AssetsPageView />);
+    const { container } = renderWithQueryClient(<AssetsPageView projectId="project-1" />);
 
     expect(
       container.querySelector(".overflow-x-hidden.overflow-y-auto.pb-8.scrollbar-none"),
@@ -453,7 +445,7 @@ describe("AssetsPageView", () => {
       openAssetDetails,
     });
 
-    renderWithQueryClient(<AssetsPageView initialAssetId="asset-1" />);
+    renderWithQueryClient(<AssetsPageView projectId="project-1" initialAssetId="asset-1" />);
 
     await waitFor(() => {
       expect(openAssetDetails).toHaveBeenCalledWith(

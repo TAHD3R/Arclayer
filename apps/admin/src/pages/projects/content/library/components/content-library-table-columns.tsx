@@ -298,6 +298,7 @@ export function useContentLibraryTableColumns(params: {
         meta: {
           title: t("CONTENT_LIBRARY_TABLE_COL_WORKFLOW"),
           kind: "meta",
+          defaultHidden: true,
         },
         header: t("CONTENT_LIBRARY_TABLE_COL_WORKFLOW"),
         cell: ({ row }) => <ContentLibraryWorkflowCell row={row.original} />,
@@ -334,6 +335,32 @@ export function useContentLibraryTableColumns(params: {
         },
         size: 180,
         minSize: 160,
+      },
+      {
+        accessorKey: "updatedByUserId",
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_UPDATED_BY"),
+          kind: "meta",
+        },
+        header: t("CONTENT_LIBRARY_TABLE_COL_UPDATED_BY"),
+        cell: ({ row }) => (
+          <span className={row.original.updatedByUserId ? "" : "text-label-secondary"}>
+            {row.original.updatedByUserId || t("CONTENT_LIBRARY_TABLE_EMPTY_VALUE")}
+          </span>
+        ),
+        size: 180,
+        minSize: 160,
+      },
+      {
+        accessorKey: "locale",
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_LOCALE"),
+          kind: "meta",
+        },
+        header: t("CONTENT_LIBRARY_TABLE_COL_LOCALE"),
+        cell: ({ row }) => <span>{row.original.locale}</span>,
+        size: 140,
+        minSize: 120,
       },
       {
         id: "actions",

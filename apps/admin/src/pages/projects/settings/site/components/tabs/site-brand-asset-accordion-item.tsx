@@ -34,7 +34,7 @@ type SiteBrandAssetAccordionItemProps = {
   uploadAriaLabel: string;
   uploadPurpose: UploadPurpose;
   withSavingKey: WithSavingKeyFn;
-  assetWorkspaceId: string | null;
+  assetProjectId: string | null;
   urlField: UrlFieldName;
 };
 
@@ -95,7 +95,7 @@ export function SiteBrandAssetAccordionItem(props: SiteBrandAssetAccordionItemPr
       summary={formatSummaryText(previewRef)}
       placeholder={t("settings:SETTINGS_NOT_SET")}
       keepRendered
-      disabled={props.disabled || !props.assetWorkspaceId}
+      disabled={props.disabled || !props.assetProjectId}
       confirmText={t("settings:SETTINGS_SAVE")}
       confirmLoading={props.savingKey === props.saveKey}
       onConfirm={() => void saveAsset()}
@@ -112,7 +112,7 @@ export function SiteBrandAssetAccordionItem(props: SiteBrandAssetAccordionItemPr
         }
         shape="square"
         size={80}
-        disabled={props.disabled || !props.assetWorkspaceId}
+        disabled={props.disabled || !props.assetProjectId}
         loading={isUploading}
         uploadAriaLabel={props.uploadAriaLabel}
         removeAriaLabel={props.removeAriaLabel}
@@ -137,14 +137,14 @@ export function SiteBrandAssetAccordionItem(props: SiteBrandAssetAccordionItemPr
             notifyError(new Error(tGlobal("assets:ASSET_UPLOAD_IMAGE_ONLY_REQUIRED")));
             return;
           }
-          if (!props.assetWorkspaceId) {
+          if (!props.assetProjectId) {
             notifyError(new Error("ASSET_SCOPE_NOT_SELECTED"));
             return;
           }
 
           setIsUploading(true);
           uploadSingleAssetFromFile({
-            scope: { type: "workspace", id: props.assetWorkspaceId },
+            scope: { type: "project", id: props.assetProjectId },
             purpose: props.uploadPurpose,
             file,
             t: tGlobal,

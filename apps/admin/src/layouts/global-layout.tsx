@@ -30,6 +30,7 @@ const GLOBAL_COMMAND_SCOPE = {
   kind: "none",
   pathname: "/",
   workspaceId: null,
+  projectId: null,
   organizationId: null,
 } as const;
 

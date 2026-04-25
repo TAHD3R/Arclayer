@@ -5,7 +5,7 @@ from tortoise import fields
 from src.common.models import BaseModel
 
 
-# Asset tag (scoped: workspace/org/user).
+# Asset tag (scoped: project/org/user).
 class AssetTagRecord(BaseModel):
     """Domain model for asset tag records.
 
@@ -14,8 +14,9 @@ class AssetTagRecord(BaseModel):
     Kept minimal for now; we can extend with color/slug later.
     """
 
-    # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
+    # Exactly one scope id must be set (enforced at service boundary).
     workspace_id = fields.UUIDField(null=True, db_index=True)
+    project_id = fields.UUIDField(null=True, db_index=True)
     organization_id = fields.UUIDField(null=True, db_index=True)
     user_id = fields.UUIDField(null=True, db_index=True)
     name = fields.CharField(max_length=64)
@@ -23,7 +24,12 @@ class AssetTagRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "domain_asset_tags"
         abstract = False
-        unique_together = (("workspace_id", "name"), ("organization_id", "name"), ("user_id", "name"))
+        unique_together = (
+            ("workspace_id", "name"),
+            ("project_id", "name"),
+            ("organization_id", "name"),
+            ("user_id", "name"),
+        )
 
 
 # Asset-to-tag link (many-to-many).

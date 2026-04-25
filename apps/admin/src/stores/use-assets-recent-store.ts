@@ -3,8 +3,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { STORAGE_KEYS } from "@/constants/storage";
 import {
-  clearRecentAssetWorkspaceRecords,
-  removeRecentAssetWorkspaceAssetIds,
+  clearRecentAssetProjectRecords,
+  removeRecentAssetProjectAssetIds,
   removeRecentAssetRecord,
   touchRecentAssetRecord,
   type RecentAssetRecord,
@@ -15,10 +15,10 @@ const MAX_RECENT_ASSETS = 8;
 
 type AssetsRecentState = {
   records: RecentAssetRecord[];
-  record: (input: { workspaceId: string; asset: RecentAssetSnapshot }) => void;
+  record: (input: { projectId: string; asset: RecentAssetSnapshot }) => void;
   remove: (key: string) => void;
-  removeAssets: (workspaceId: string, assetIds: string[]) => void;
-  clearWorkspace: (workspaceId: string) => void;
+  removeAssets: (projectId: string, assetIds: string[]) => void;
+  clearProject: (projectId: string) => void;
 };
 
 export const useAssetsRecentStore = create<AssetsRecentState>()(
@@ -35,19 +35,19 @@ export const useAssetsRecentStore = create<AssetsRecentState>()(
         set((state) => ({
           records: removeRecentAssetRecord(state.records, key),
         })),
-      removeAssets: (workspaceId, assetIds) =>
+      removeAssets: (projectId, assetIds) =>
         set((state) => ({
-          records: removeRecentAssetWorkspaceAssetIds(state.records, workspaceId, assetIds),
+          records: removeRecentAssetProjectAssetIds(state.records, projectId, assetIds),
         })),
-      clearWorkspace: (workspaceId) =>
+      clearProject: (projectId) =>
         set((state) => ({
-          records: clearRecentAssetWorkspaceRecords(state.records, workspaceId),
+          records: clearRecentAssetProjectRecords(state.records, projectId),
         })),
     }),
     {
       name: STORAGE_KEYS.assetsRecent,
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
     },
   ),
 );

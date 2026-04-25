@@ -7,12 +7,15 @@ import {
   ChevronRight,
   FileStackIcon,
   FunnelXIcon,
+  Globe2Icon,
   Layers3Icon,
   ListFilterIcon,
   MoreHorizontalIcon,
   PencilIcon,
   RefreshCcwIcon,
+  TagsIcon,
   Trash2Icon,
+  UserIcon,
 } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
@@ -34,10 +37,6 @@ import { Badge } from "@arclayer/ui/badge";
 
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
-import {
-  ViewModeToggle,
-  type ViewMode as ContentLibraryViewMode,
-} from "@/components/common/view-mode-toggle";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
 import type {
@@ -306,6 +305,10 @@ function toReuiFilters(filters: ContentLibraryToolbarFilters): Filter<FilterValu
   const next: Filter<FilterValue>[] = [];
   if (filters.status) next.push(createFilter("status", "is", [filters.status]));
   if (filters.modelKey) next.push(createFilter("modelKey", "is", [filters.modelKey]));
+  if (filters.locale) next.push(createFilter("locale", "is", [filters.locale]));
+  if (filters.createdByUserId)
+    next.push(createFilter("createdByUserId", "is", [filters.createdByUserId]));
+  if (filters.tag) next.push(createFilter("tag", "is", [filters.tag]));
   if (filters.role) next.push(createFilter("role", "is", [filters.role]));
   if (filters.editWith) next.push(createFilter("editWith", "is", [filters.editWith]));
   return next;
@@ -318,6 +321,9 @@ function fromReuiFilters(filters: Filter<FilterValue>[]): ContentLibraryToolbarF
     if (typeof first !== "string" || !first) continue;
     if (filter.field === "status") next.status = first as ContentLibraryDerivedStatus;
     if (filter.field === "modelKey") next.modelKey = first;
+    if (filter.field === "locale") next.locale = first;
+    if (filter.field === "createdByUserId") next.createdByUserId = first;
+    if (filter.field === "tag") next.tag = first;
     if (filter.field === "role") next.role = first as ContentLibraryRole;
     if (filter.field === "editWith") next.editWith = first as ContentLibraryEditWith;
   }
@@ -335,8 +341,6 @@ export function ContentLibraryToolbar<TData>(props: {
   onResetColumnVisibility?: () => void;
   toolsLabels: DataTableToolsLabels;
   modelOptions: Array<{ value: string; label: string }>;
-  viewMode: ContentLibraryViewMode;
-  onViewModeChange: (next: ContentLibraryViewMode) => void;
   views?: ContentLibraryToolbarView[];
   onCreateView?: (draft: ContentLibraryPrototypeViewDraft) => Promise<void> | void;
   primaryAction?: React.ReactNode;
@@ -410,6 +414,33 @@ export function ContentLibraryToolbar<TData>(props: {
         searchable: true,
         operators: [{ value: "is", label: t("common:FILTER_OPERATOR_IS") }],
         options: props.modelOptions,
+      },
+      {
+        key: "locale",
+        label: t("content:CONTENT_LIBRARY_FILTER_FIELD_LOCALE"),
+        type: "text",
+        icon: <Globe2Icon className="size-4" />,
+        operators: [{ value: "is", label: t("common:FILTER_OPERATOR_IS") }],
+        defaultOperator: "is",
+        placeholder: t("content:CONTENT_LIBRARY_FILTER_LOCALE_PLACEHOLDER"),
+      },
+      {
+        key: "createdByUserId",
+        label: t("content:CONTENT_LIBRARY_FILTER_FIELD_CREATED_BY"),
+        type: "text",
+        icon: <UserIcon className="size-4" />,
+        operators: [{ value: "is", label: t("common:FILTER_OPERATOR_IS") }],
+        defaultOperator: "is",
+        placeholder: t("content:CONTENT_LIBRARY_FILTER_CREATED_BY_PLACEHOLDER"),
+      },
+      {
+        key: "tag",
+        label: t("content:CONTENT_LIBRARY_FILTER_FIELD_TAGS"),
+        type: "text",
+        icon: <TagsIcon className="size-4" />,
+        operators: [{ value: "is", label: t("common:FILTER_OPERATOR_IS") }],
+        defaultOperator: "is",
+        placeholder: t("content:CONTENT_LIBRARY_FILTER_TAGS_PLACEHOLDER"),
       },
     ],
     [props.modelOptions, t],
@@ -564,7 +595,6 @@ export function ContentLibraryToolbar<TData>(props: {
               labels={props.toolsLabels}
               components={{ IconButton: DataTableToolbarAntdIconButton }}
             />
-            <ViewModeToggle t={t} value={props.viewMode} onChange={props.onViewModeChange} />
           </>
         }
         leadingClassName="items-center"

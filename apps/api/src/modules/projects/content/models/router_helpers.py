@@ -38,6 +38,7 @@ class ContentModelMutationOut(BaseSchema):
     protocol_version: int = 1
     system_managed: bool = False
     system_field_keys: list[str] = Field(default_factory=list)
+    model_kind: str = "collection_type"
     draft_contract_revision: int = 1
     published_contract_revision: int | None = None
     default_role: str | None = None
@@ -94,6 +95,7 @@ def to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutationO
         protocol_version=int(record.protocol_version or 1),
         system_managed=bool(record.is_system_managed),
         system_field_keys=list(record.system_field_keys or []),
+        model_kind=str(record.model_kind or "collection_type"),
         draft_contract_revision=int(record.draft_contract_revision or 1),
         published_contract_revision=(
             int(record.published_contract_revision) if record.published_contract_revision is not None else None

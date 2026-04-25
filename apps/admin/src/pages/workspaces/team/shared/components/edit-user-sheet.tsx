@@ -60,9 +60,10 @@ export function EditUserSheet(props: {
 }) {
   const { t } = useTranslation(["team", "common"]);
   const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const projectId = useWorkspaceStore((state) => state.currentProjectId);
   const assetScope = React.useMemo(
-    () => (workspaceId ? { type: "workspace" as const, id: String(workspaceId) } : null),
-    [workspaceId],
+    () => (projectId ? { type: "project" as const, id: String(projectId) } : null),
+    [projectId],
   );
   const [avatarPickerOpen, setAvatarPickerOpen] = React.useState(false);
 

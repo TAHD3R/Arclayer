@@ -341,6 +341,12 @@ export type AdminAssetDetailOut = {
      */
     mime?: string | null;
     /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId?: string | null;
+    /**
      * Originalfilename
      *
      * Original file name.
@@ -352,6 +358,12 @@ export type AdminAssetDetailOut = {
      * Uploader (owner) user id.
      */
     ownerUserId?: string | null;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId?: string | null;
     /**
      * Publicdirecturl
      *
@@ -419,6 +431,12 @@ export type AdminAssetDetailOut = {
      */
     uploaderName?: string | null;
     /**
+     * Userid
+     *
+     * User id.
+     */
+    userId?: string | null;
+    /**
      * Visibility
      *
      * Asset visibility.
@@ -429,7 +447,7 @@ export type AdminAssetDetailOut = {
      *
      * Workspace id.
      */
-    workspaceId: string;
+    workspaceId?: string | null;
 };
 
 /**
@@ -621,6 +639,12 @@ export type AdminAssetSummaryOut = {
      */
     mime?: string | null;
     /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId?: string | null;
+    /**
      * Originalfilename
      *
      * Original file name.
@@ -632,6 +656,12 @@ export type AdminAssetSummaryOut = {
      * Uploader (owner) user id.
      */
     ownerUserId?: string | null;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId?: string | null;
     /**
      * Publicdirecturl
      *
@@ -693,6 +723,12 @@ export type AdminAssetSummaryOut = {
      */
     uploaderName?: string | null;
     /**
+     * Userid
+     *
+     * User id.
+     */
+    userId?: string | null;
+    /**
      * Visibility
      *
      * Asset visibility.
@@ -703,7 +739,7 @@ export type AdminAssetSummaryOut = {
      *
      * Workspace id.
      */
-    workspaceId: string;
+    workspaceId?: string | null;
 };
 
 /**
@@ -1875,6 +1911,28 @@ export type ContentItemBootstrapShapeIn = {
 };
 
 /**
+ * ContentItemBulkTransitionIn
+ */
+export type ContentItemBulkTransitionIn = {
+    /**
+     * Itemids
+     */
+    itemIds: Array<string>;
+};
+
+/**
+ * ContentItemBulkTransitionOut
+ */
+export type ContentItemBulkTransitionOut = {
+    /**
+     * Items
+     *
+     * Transitioned content versions.
+     */
+    items?: Array<ContentVersionOut>;
+};
+
+/**
  * ContentItemCreateIn
  */
 export type ContentItemCreateIn = {
@@ -1924,6 +1982,12 @@ export type ContentItemOut = {
      * Alias of the resolved continuation target for UI routing consumers.
      */
     continuationTarget?: ContentOpenIntentOut | null;
+    /**
+     * Createdbyuserid
+     *
+     * Creator user id.
+     */
+    createdByUserId?: string | null;
     /**
      * Derivedstatus
      *
@@ -2072,6 +2136,12 @@ export type ContentItemOut = {
      * Last update timestamp.
      */
     updatedAt: string;
+    /**
+     * Updatedbyuserid
+     *
+     * Last updater user id.
+     */
+    updatedByUserId?: string | null;
     /**
      * Visibility
      *
@@ -2226,10 +2296,6 @@ export type ContentLibraryViewCreateIn = {
      */
     sorting?: Array<ContentLibraryViewSortingItemSchema>;
     /**
-     * Viewmode
-     */
-    viewMode?: 'table' | 'card' | null;
-    /**
      * Visibility
      */
     visibility?: 'private' | 'workspace';
@@ -2240,9 +2306,17 @@ export type ContentLibraryViewCreateIn = {
  */
 export type ContentLibraryViewFiltersSchema = {
     /**
+     * Createdbyuserid
+     */
+    createdByUserId?: string | null;
+    /**
      * Editwith
      */
     editWith?: 'writing' | 'canvas' | 'structured' | null;
+    /**
+     * Locale
+     */
+    locale?: string | null;
     /**
      * Modelkey
      */
@@ -2255,6 +2329,10 @@ export type ContentLibraryViewFiltersSchema = {
      * Status
      */
     status?: 'published' | 'changed' | 'draft' | 'archived' | null;
+    /**
+     * Tag
+     */
+    tag?: string | null;
 };
 
 /**
@@ -2302,10 +2380,6 @@ export type ContentLibraryViewOut = {
      */
     sorting?: Array<ContentLibraryViewSortingItemSchema>;
     /**
-     * Viewmode
-     */
-    viewMode?: 'table' | 'card' | null;
-    /**
      * Visibility
      */
     visibility: 'private' | 'workspace';
@@ -2341,10 +2415,6 @@ export type ContentLibraryViewPatchIn = {
      * Sorting
      */
     sorting?: Array<ContentLibraryViewSortingItemSchema> | null;
-    /**
-     * Viewmode
-     */
-    viewMode?: 'table' | 'card' | null;
     /**
      * Visibility
      */
@@ -2554,6 +2624,12 @@ export type ContentModelDefinitionContract = {
      */
     key: string;
     /**
+     * Modelkind
+     *
+     * Builder model kind.
+     */
+    modelKind?: 'collection_type' | 'single_type' | 'component';
+    /**
      * Name
      *
      * Display model name.
@@ -2657,6 +2733,10 @@ export type ContentModelDefinitionPatchContract = {
      * Key
      */
     key?: string | null;
+    /**
+     * Modelkind
+     */
+    modelKind?: 'collection_type' | 'single_type' | 'component' | null;
     /**
      * Name
      */
@@ -2771,6 +2851,50 @@ export type ContentModelFieldDefinitionOut = {
      * Stored scalar type.
      */
     scalar: 'text' | 'long_text' | 'number' | 'boolean' | 'date_time' | 'json';
+};
+
+/**
+ * ContentModelFieldPatchContract
+ */
+export type ContentModelFieldPatchContract = {
+    /**
+     * Config
+     *
+     * Field-level configuration payload.
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Label
+     *
+     * Field label.
+     */
+    label?: string | null;
+    /**
+     * Required
+     *
+     * Whether the field must be provided.
+     */
+    required?: boolean | null;
+    /**
+     * Scalar
+     *
+     * Field scalar type.
+     */
+    scalar?: 'text' | 'long_text' | 'number' | 'boolean' | 'date_time' | 'json' | null;
+};
+
+/**
+ * ContentModelFieldReorderContract
+ */
+export type ContentModelFieldReorderContract = {
+    /**
+     * Fieldkeys
+     *
+     * Complete field key order.
+     */
+    fieldKeys: Array<string>;
 };
 
 /**
@@ -2899,6 +3023,10 @@ export type ContentModelMutationOut = {
      */
     key: string;
     /**
+     * Modelkind
+     */
+    modelKind?: string;
+    /**
      * Name
      */
     name: string;
@@ -3020,6 +3148,12 @@ export type ContentModelOut = {
      * Stable model key.
      */
     key: string;
+    /**
+     * Modelkind
+     *
+     * Builder model kind.
+     */
+    modelKind?: 'collection_type' | 'single_type' | 'component';
     /**
      * Name
      *
@@ -3580,6 +3714,60 @@ export type ContentSeoProfileOut = {
      * Robots directive.
      */
     robotsDirective?: string | null;
+};
+
+/**
+ * ContentVersionCompareChangeOut
+ */
+export type ContentVersionCompareChangeOut = {
+    /**
+     * After
+     *
+     * Value from the target version.
+     */
+    after?: unknown;
+    /**
+     * Before
+     *
+     * Value from the source version.
+     */
+    before?: unknown;
+    /**
+     * Path
+     *
+     * Changed snapshot path.
+     */
+    path: string;
+};
+
+/**
+ * ContentVersionCompareOut
+ */
+export type ContentVersionCompareOut = {
+    /**
+     * Changes
+     *
+     * Changed fields.
+     */
+    changes?: Array<ContentVersionCompareChangeOut>;
+    /**
+     * Itemid
+     *
+     * Content item id.
+     */
+    itemId: string;
+    /**
+     * Sourceversionnumber
+     *
+     * Source version number.
+     */
+    sourceVersionNumber: number;
+    /**
+     * Targetversionnumber
+     *
+     * Target version number.
+     */
+    targetVersionNumber: number;
 };
 
 /**
@@ -11370,6 +11558,31 @@ export type ResponseModelContentComponentBindingListOut = {
 };
 
 /**
+ * ResponseModel[ContentItemBulkTransitionOut]
+ */
+export type ResponseModelContentItemBulkTransitionOut = {
+    data?: ContentItemBulkTransitionOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ContentItemOut]
  */
 export type ResponseModelContentItemOut = {
@@ -11470,6 +11683,56 @@ export type ResponseModelContentModelMutationOut = {
 };
 
 /**
+ * ResponseModel[ContentModelOut]
+ */
+export type ResponseModelContentModelOut = {
+    data?: ContentModelOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentModelSchemaSnapshotOut]
+ */
+export type ResponseModelContentModelSchemaSnapshotOut = {
+    data?: ContentModelSchemaSnapshotOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ContentPresentationListOut]
  */
 export type ResponseModelContentPresentationListOut = {
@@ -11499,6 +11762,31 @@ export type ResponseModelContentPresentationListOut = {
  */
 export type ResponseModelContentSeoProfileOut = {
     data?: ContentSeoProfileOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentVersionCompareOut]
+ */
+export type ResponseModelContentVersionCompareOut = {
+    data?: ContentVersionCompareOut | null;
     /**
      * Error
      */
@@ -18289,6 +18577,12 @@ export type AdminAssetDetailOutWritable = {
      */
     mime?: string | null;
     /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId?: string | null;
+    /**
      * Originalfilename
      *
      * Original file name.
@@ -18300,6 +18594,12 @@ export type AdminAssetDetailOutWritable = {
      * Uploader (owner) user id.
      */
     ownerUserId?: string | null;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId?: string | null;
     /**
      * Publicdirecturl
      *
@@ -18355,6 +18655,12 @@ export type AdminAssetDetailOutWritable = {
      */
     uploaderName?: string | null;
     /**
+     * Userid
+     *
+     * User id.
+     */
+    userId?: string | null;
+    /**
      * Visibility
      *
      * Asset visibility.
@@ -18365,7 +18671,7 @@ export type AdminAssetDetailOutWritable = {
      *
      * Workspace id.
      */
-    workspaceId: string;
+    workspaceId?: string | null;
 };
 
 /**
@@ -18415,6 +18721,12 @@ export type AdminAssetSummaryOutWritable = {
      */
     mime?: string | null;
     /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId?: string | null;
+    /**
      * Originalfilename
      *
      * Original file name.
@@ -18426,6 +18738,12 @@ export type AdminAssetSummaryOutWritable = {
      * Uploader (owner) user id.
      */
     ownerUserId?: string | null;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId?: string | null;
     /**
      * Publicdirecturl
      *
@@ -18475,6 +18793,12 @@ export type AdminAssetSummaryOutWritable = {
      */
     uploaderName?: string | null;
     /**
+     * Userid
+     *
+     * User id.
+     */
+    userId?: string | null;
+    /**
      * Visibility
      *
      * Asset visibility.
@@ -18485,7 +18809,7 @@ export type AdminAssetSummaryOutWritable = {
      *
      * Workspace id.
      */
-    workspaceId: string;
+    workspaceId?: string | null;
 };
 
 export type JsonValueWritable = string | number | number | boolean | Array<JsonValueWritable> | {
@@ -22947,6 +23271,717 @@ export type DomainProjectsArchiveProjectResponses = {
 
 export type DomainProjectsArchiveProjectResponse = DomainProjectsArchiveProjectResponses[keyof DomainProjectsArchiveProjectResponses];
 
+export type DomainProjectsListAssetFoldersData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/projects/{project_id}/asset-folders';
+};
+
+export type DomainProjectsListAssetFoldersErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListAssetFoldersError = DomainProjectsListAssetFoldersErrors[keyof DomainProjectsListAssetFoldersErrors];
+
+export type DomainProjectsListAssetFoldersResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataAdminAssetFolderOut;
+};
+
+export type DomainProjectsListAssetFoldersResponse = DomainProjectsListAssetFoldersResponses[keyof DomainProjectsListAssetFoldersResponses];
+
+export type DomainProjectsCreateAssetFolderData = {
+    body: AdminAssetFolderCreateRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/asset-folders';
+};
+
+export type DomainProjectsCreateAssetFolderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateAssetFolderError = DomainProjectsCreateAssetFolderErrors[keyof DomainProjectsCreateAssetFolderErrors];
+
+export type DomainProjectsCreateAssetFolderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetFolderOut;
+};
+
+export type DomainProjectsCreateAssetFolderResponse = DomainProjectsCreateAssetFolderResponses[keyof DomainProjectsCreateAssetFolderResponses];
+
+export type DomainProjectsDeleteAssetFolderData = {
+    body?: never;
+    path: {
+        /**
+         * Folder Id
+         */
+        folder_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/asset-folders/{folder_id}';
+};
+
+export type DomainProjectsDeleteAssetFolderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteAssetFolderError = DomainProjectsDeleteAssetFolderErrors[keyof DomainProjectsDeleteAssetFolderErrors];
+
+export type DomainProjectsDeleteAssetFolderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetFolderDeleteOut;
+};
+
+export type DomainProjectsDeleteAssetFolderResponse = DomainProjectsDeleteAssetFolderResponses[keyof DomainProjectsDeleteAssetFolderResponses];
+
+export type DomainProjectsUpdateAssetFolderData = {
+    body: AdminAssetFolderUpdateRequest;
+    path: {
+        /**
+         * Folder Id
+         */
+        folder_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/asset-folders/{folder_id}';
+};
+
+export type DomainProjectsUpdateAssetFolderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpdateAssetFolderError = DomainProjectsUpdateAssetFolderErrors[keyof DomainProjectsUpdateAssetFolderErrors];
+
+export type DomainProjectsUpdateAssetFolderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetFolderOut;
+};
+
+export type DomainProjectsUpdateAssetFolderResponse = DomainProjectsUpdateAssetFolderResponses[keyof DomainProjectsUpdateAssetFolderResponses];
+
+export type DomainProjectsDeleteAssetFolderWithMoveData = {
+    body: AdminAssetFolderDeleteRequest;
+    path: {
+        /**
+         * Folder Id
+         */
+        folder_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/asset-folders/{folder_id}/delete';
+};
+
+export type DomainProjectsDeleteAssetFolderWithMoveErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteAssetFolderWithMoveError = DomainProjectsDeleteAssetFolderWithMoveErrors[keyof DomainProjectsDeleteAssetFolderWithMoveErrors];
+
+export type DomainProjectsDeleteAssetFolderWithMoveResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetFolderDeleteOut;
+};
+
+export type DomainProjectsDeleteAssetFolderWithMoveResponse = DomainProjectsDeleteAssetFolderWithMoveResponses[keyof DomainProjectsDeleteAssetFolderWithMoveResponses];
+
+export type DomainProjectsListAssetTagsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/projects/{project_id}/asset-tags';
+};
+
+export type DomainProjectsListAssetTagsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListAssetTagsError = DomainProjectsListAssetTagsErrors[keyof DomainProjectsListAssetTagsErrors];
+
+export type DomainProjectsListAssetTagsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataAdminAssetTagOut;
+};
+
+export type DomainProjectsListAssetTagsResponse = DomainProjectsListAssetTagsResponses[keyof DomainProjectsListAssetTagsResponses];
+
+export type DomainProjectsCreateAssetTagData = {
+    body: AdminAssetTagCreateRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/asset-tags';
+};
+
+export type DomainProjectsCreateAssetTagErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateAssetTagError = DomainProjectsCreateAssetTagErrors[keyof DomainProjectsCreateAssetTagErrors];
+
+export type DomainProjectsCreateAssetTagResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetTagOut;
+};
+
+export type DomainProjectsCreateAssetTagResponse = DomainProjectsCreateAssetTagResponses[keyof DomainProjectsCreateAssetTagResponses];
+
+export type DomainProjectsUpsertAssetUsageData = {
+    body: AdminAssetUsageUpsertRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/asset-usages';
+};
+
+export type DomainProjectsUpsertAssetUsageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpsertAssetUsageError = DomainProjectsUpsertAssetUsageErrors[keyof DomainProjectsUpsertAssetUsageErrors];
+
+export type DomainProjectsUpsertAssetUsageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetUsageOut;
+};
+
+export type DomainProjectsUpsertAssetUsageResponse = DomainProjectsUpsertAssetUsageResponses[keyof DomainProjectsUpsertAssetUsageResponses];
+
+export type DomainProjectsDeleteAssetUsageByRefData = {
+    body: AdminAssetUsageDeleteRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/asset-usages/delete';
+};
+
+export type DomainProjectsDeleteAssetUsageByRefErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteAssetUsageByRefError = DomainProjectsDeleteAssetUsageByRefErrors[keyof DomainProjectsDeleteAssetUsageByRefErrors];
+
+export type DomainProjectsDeleteAssetUsageByRefResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetUsageDeleteOut;
+};
+
+export type DomainProjectsDeleteAssetUsageByRefResponse = DomainProjectsDeleteAssetUsageByRefResponses[keyof DomainProjectsDeleteAssetUsageByRefResponses];
+
+export type DomainProjectsListAssetsData = {
+    /**
+     * Tagids
+     */
+    body?: Array<string> | null;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Purpose
+         */
+        purpose?: string | null;
+        /**
+         * Visibility
+         */
+        visibility?: string | null;
+        /**
+         * Indexable
+         */
+        indexable?: boolean | null;
+        /**
+         * Folderid
+         */
+        folderId?: string | null;
+        /**
+         * Folderisnull
+         */
+        folderIsNull?: boolean | null;
+        /**
+         * Includechildren
+         */
+        includeChildren?: boolean;
+        /**
+         * Mimeprefix
+         */
+        mimePrefix?: string | null;
+        /**
+         * Createdfrom
+         */
+        createdFrom?: string | null;
+        /**
+         * Createdto
+         */
+        createdTo?: string | null;
+        /**
+         * Ordering
+         */
+        ordering?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/assets';
+};
+
+export type DomainProjectsListAssetsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListAssetsError = DomainProjectsListAssetsErrors[keyof DomainProjectsListAssetsErrors];
+
+export type DomainProjectsListAssetsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataAdminAssetSummaryOut;
+};
+
+export type DomainProjectsListAssetsResponse = DomainProjectsListAssetsResponses[keyof DomainProjectsListAssetsResponses];
+
+export type DomainProjectsBulkDeleteAssetsData = {
+    body: AdminAssetBulkDeleteRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/assets/bulk/delete';
+};
+
+export type DomainProjectsBulkDeleteAssetsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsBulkDeleteAssetsError = DomainProjectsBulkDeleteAssetsErrors[keyof DomainProjectsBulkDeleteAssetsErrors];
+
+export type DomainProjectsBulkDeleteAssetsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetBulkDeleteOut;
+};
+
+export type DomainProjectsBulkDeleteAssetsResponse = DomainProjectsBulkDeleteAssetsResponses[keyof DomainProjectsBulkDeleteAssetsResponses];
+
+export type DomainProjectsBulkMoveAssetsData = {
+    body: AdminAssetBulkMoveRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/assets/bulk/move';
+};
+
+export type DomainProjectsBulkMoveAssetsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsBulkMoveAssetsError = DomainProjectsBulkMoveAssetsErrors[keyof DomainProjectsBulkMoveAssetsErrors];
+
+export type DomainProjectsBulkMoveAssetsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetBulkMoveOut;
+};
+
+export type DomainProjectsBulkMoveAssetsResponse = DomainProjectsBulkMoveAssetsResponses[keyof DomainProjectsBulkMoveAssetsResponses];
+
+export type DomainProjectsBulkUpdateAssetsData = {
+    body: AdminAssetBulkUpdateRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/assets/bulk/update';
+};
+
+export type DomainProjectsBulkUpdateAssetsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsBulkUpdateAssetsError = DomainProjectsBulkUpdateAssetsErrors[keyof DomainProjectsBulkUpdateAssetsErrors];
+
+export type DomainProjectsBulkUpdateAssetsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetBulkUpdateOut;
+};
+
+export type DomainProjectsBulkUpdateAssetsResponse = DomainProjectsBulkUpdateAssetsResponses[keyof DomainProjectsBulkUpdateAssetsResponses];
+
+export type DomainProjectsDeleteAssetData = {
+    body?: never;
+    path: {
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/assets/{asset_id}';
+};
+
+export type DomainProjectsDeleteAssetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteAssetError = DomainProjectsDeleteAssetErrors[keyof DomainProjectsDeleteAssetErrors];
+
+export type DomainProjectsDeleteAssetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetDeleteOut;
+};
+
+export type DomainProjectsDeleteAssetResponse = DomainProjectsDeleteAssetResponses[keyof DomainProjectsDeleteAssetResponses];
+
+export type DomainProjectsGetAssetDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/assets/{asset_id}';
+};
+
+export type DomainProjectsGetAssetDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetAssetDetailError = DomainProjectsGetAssetDetailErrors[keyof DomainProjectsGetAssetDetailErrors];
+
+export type DomainProjectsGetAssetDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetDetailOut;
+};
+
+export type DomainProjectsGetAssetDetailResponse = DomainProjectsGetAssetDetailResponses[keyof DomainProjectsGetAssetDetailResponses];
+
+export type DomainProjectsPatchAssetData = {
+    body: AdminAssetUpdateRequest;
+    path: {
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/assets/{asset_id}';
+};
+
+export type DomainProjectsPatchAssetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPatchAssetError = DomainProjectsPatchAssetErrors[keyof DomainProjectsPatchAssetErrors];
+
+export type DomainProjectsPatchAssetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetDetailOut;
+};
+
+export type DomainProjectsPatchAssetResponse = DomainProjectsPatchAssetResponses[keyof DomainProjectsPatchAssetResponses];
+
+export type DomainProjectsMoveAssetData = {
+    body: AdminAssetMoveRequest;
+    path: {
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/assets/{asset_id}/move';
+};
+
+export type DomainProjectsMoveAssetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsMoveAssetError = DomainProjectsMoveAssetErrors[keyof DomainProjectsMoveAssetErrors];
+
+export type DomainProjectsMoveAssetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelAdminAssetSummaryOut;
+};
+
+export type DomainProjectsMoveAssetResponse = DomainProjectsMoveAssetResponses[keyof DomainProjectsMoveAssetResponses];
+
+export type DomainProjectsListAssetUsagesData = {
+    body?: never;
+    path: {
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/projects/{project_id}/assets/{asset_id}/usages';
+};
+
+export type DomainProjectsListAssetUsagesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListAssetUsagesError = DomainProjectsListAssetUsagesErrors[keyof DomainProjectsListAssetUsagesErrors];
+
+export type DomainProjectsListAssetUsagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataAdminAssetUsageOut;
+};
+
+export type DomainProjectsListAssetUsagesResponse = DomainProjectsListAssetUsagesResponses[keyof DomainProjectsListAssetUsagesResponses];
+
 export type DomainProjectsListProjectAutomationCatalogData = {
     body?: never;
     path: {
@@ -23273,6 +24308,76 @@ export type DomainProjectsCreateProjectContentItemResponses = {
 };
 
 export type DomainProjectsCreateProjectContentItemResponse = DomainProjectsCreateProjectContentItemResponses[keyof DomainProjectsCreateProjectContentItemResponses];
+
+export type DomainProjectsBulkPublishProjectContentItemsData = {
+    /**
+     * Bulk content item publish payload.
+     */
+    body: ContentItemBulkTransitionIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/bulk/publish';
+};
+
+export type DomainProjectsBulkPublishProjectContentItemsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsBulkPublishProjectContentItemsError = DomainProjectsBulkPublishProjectContentItemsErrors[keyof DomainProjectsBulkPublishProjectContentItemsErrors];
+
+export type DomainProjectsBulkPublishProjectContentItemsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemBulkTransitionOut;
+};
+
+export type DomainProjectsBulkPublishProjectContentItemsResponse = DomainProjectsBulkPublishProjectContentItemsResponses[keyof DomainProjectsBulkPublishProjectContentItemsResponses];
+
+export type DomainProjectsBulkUnpublishProjectContentItemsData = {
+    /**
+     * Bulk content item unpublish payload.
+     */
+    body: ContentItemBulkTransitionIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/bulk/unpublish';
+};
+
+export type DomainProjectsBulkUnpublishProjectContentItemsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsBulkUnpublishProjectContentItemsError = DomainProjectsBulkUnpublishProjectContentItemsErrors[keyof DomainProjectsBulkUnpublishProjectContentItemsErrors];
+
+export type DomainProjectsBulkUnpublishProjectContentItemsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentItemBulkTransitionOut;
+};
+
+export type DomainProjectsBulkUnpublishProjectContentItemsResponse = DomainProjectsBulkUnpublishProjectContentItemsResponses[keyof DomainProjectsBulkUnpublishProjectContentItemsResponses];
 
 export type DomainProjectsDeleteProjectContentItemData = {
     body?: never;
@@ -23744,6 +24849,50 @@ export type DomainProjectsListProjectContentBindingsResponses = {
 
 export type DomainProjectsListProjectContentBindingsResponse = DomainProjectsListProjectContentBindingsResponses[keyof DomainProjectsListProjectContentBindingsResponses];
 
+export type DomainProjectsCompareProjectContentItemVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Target Version Number
+         */
+        target_version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/compare/{target_version_number}';
+};
+
+export type DomainProjectsCompareProjectContentItemVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCompareProjectContentItemVersionsError = DomainProjectsCompareProjectContentItemVersionsErrors[keyof DomainProjectsCompareProjectContentItemVersionsErrors];
+
+export type DomainProjectsCompareProjectContentItemVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentVersionCompareOut;
+};
+
+export type DomainProjectsCompareProjectContentItemVersionsResponse = DomainProjectsCompareProjectContentItemVersionsResponses[keyof DomainProjectsCompareProjectContentItemVersionsResponses];
+
 export type DomainProjectsListProjectContentPresentationsData = {
     body?: never;
     path: {
@@ -23823,6 +24972,46 @@ export type DomainProjectsPublishProjectContentItemVersionResponses = {
 };
 
 export type DomainProjectsPublishProjectContentItemVersionResponse = DomainProjectsPublishProjectContentItemVersionResponses[keyof DomainProjectsPublishProjectContentItemVersionResponses];
+
+export type DomainProjectsRestoreProjectContentItemVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Version Number
+         */
+        version_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/restore';
+};
+
+export type DomainProjectsRestoreProjectContentItemVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsRestoreProjectContentItemVersionError = DomainProjectsRestoreProjectContentItemVersionErrors[keyof DomainProjectsRestoreProjectContentItemVersionErrors];
+
+export type DomainProjectsRestoreProjectContentItemVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelContentVersionOut;
+};
+
+export type DomainProjectsRestoreProjectContentItemVersionResponse = DomainProjectsRestoreProjectContentItemVersionResponses[keyof DomainProjectsRestoreProjectContentItemVersionResponses];
 
 export type DomainProjectsScheduleProjectContentItemVersionData = {
     body?: never;
@@ -24243,6 +25432,167 @@ export type DomainProjectsUpdateProjectContentModelResponses = {
 
 export type DomainProjectsUpdateProjectContentModelResponse = DomainProjectsUpdateProjectContentModelResponses[keyof DomainProjectsUpdateProjectContentModelResponses];
 
+export type DomainProjectsCreateProjectContentModelFieldData = {
+    /**
+     * Create field contract payload.
+     */
+    body: ContentModelFieldContract;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/{model_id}/fields';
+};
+
+export type DomainProjectsCreateProjectContentModelFieldErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectContentModelFieldError = DomainProjectsCreateProjectContentModelFieldErrors[keyof DomainProjectsCreateProjectContentModelFieldErrors];
+
+export type DomainProjectsCreateProjectContentModelFieldResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentModelOut;
+};
+
+export type DomainProjectsCreateProjectContentModelFieldResponse = DomainProjectsCreateProjectContentModelFieldResponses[keyof DomainProjectsCreateProjectContentModelFieldResponses];
+
+export type DomainProjectsReorderProjectContentModelFieldsData = {
+    /**
+     * Reorder field contract payload.
+     */
+    body: ContentModelFieldReorderContract;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/{model_id}/fields/reorder';
+};
+
+export type DomainProjectsReorderProjectContentModelFieldsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsReorderProjectContentModelFieldsError = DomainProjectsReorderProjectContentModelFieldsErrors[keyof DomainProjectsReorderProjectContentModelFieldsErrors];
+
+export type DomainProjectsReorderProjectContentModelFieldsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentModelOut;
+};
+
+export type DomainProjectsReorderProjectContentModelFieldsResponse = DomainProjectsReorderProjectContentModelFieldsResponses[keyof DomainProjectsReorderProjectContentModelFieldsResponses];
+
+export type DomainProjectsDeleteProjectContentModelFieldData = {
+    body?: never;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+        /**
+         * Field Key
+         */
+        field_key: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/{model_id}/fields/{field_key}';
+};
+
+export type DomainProjectsDeleteProjectContentModelFieldErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteProjectContentModelFieldError = DomainProjectsDeleteProjectContentModelFieldErrors[keyof DomainProjectsDeleteProjectContentModelFieldErrors];
+
+export type DomainProjectsDeleteProjectContentModelFieldResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentModelOut;
+};
+
+export type DomainProjectsDeleteProjectContentModelFieldResponse = DomainProjectsDeleteProjectContentModelFieldResponses[keyof DomainProjectsDeleteProjectContentModelFieldResponses];
+
+export type DomainProjectsUpdateProjectContentModelFieldData = {
+    /**
+     * Patch field contract payload.
+     */
+    body: ContentModelFieldPatchContract;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+        /**
+         * Field Key
+         */
+        field_key: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/{model_id}/fields/{field_key}';
+};
+
+export type DomainProjectsUpdateProjectContentModelFieldErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUpdateProjectContentModelFieldError = DomainProjectsUpdateProjectContentModelFieldErrors[keyof DomainProjectsUpdateProjectContentModelFieldErrors];
+
+export type DomainProjectsUpdateProjectContentModelFieldResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentModelOut;
+};
+
+export type DomainProjectsUpdateProjectContentModelFieldResponse = DomainProjectsUpdateProjectContentModelFieldResponses[keyof DomainProjectsUpdateProjectContentModelFieldResponses];
+
 export type DomainProjectsPreviewProjectContentModelUpdateData = {
     /**
      * Patch model contract payload.
@@ -24281,6 +25631,42 @@ export type DomainProjectsPreviewProjectContentModelUpdateResponses = {
 };
 
 export type DomainProjectsPreviewProjectContentModelUpdateResponse = DomainProjectsPreviewProjectContentModelUpdateResponses[keyof DomainProjectsPreviewProjectContentModelUpdateResponses];
+
+export type DomainProjectsGetProjectContentModelJsonPreviewData = {
+    body?: never;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/{model_id}/json-preview';
+};
+
+export type DomainProjectsGetProjectContentModelJsonPreviewErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectContentModelJsonPreviewError = DomainProjectsGetProjectContentModelJsonPreviewErrors[keyof DomainProjectsGetProjectContentModelJsonPreviewErrors];
+
+export type DomainProjectsGetProjectContentModelJsonPreviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentModelSchemaSnapshotOut;
+};
+
+export type DomainProjectsGetProjectContentModelJsonPreviewResponse = DomainProjectsGetProjectContentModelJsonPreviewResponses[keyof DomainProjectsGetProjectContentModelJsonPreviewResponses];
 
 export type DomainProjectsListProjectContentRouteBindingsData = {
     body?: never;
@@ -25166,6 +26552,272 @@ export type DomainProjectsUnarchiveProjectResponses = {
 };
 
 export type DomainProjectsUnarchiveProjectResponse = DomainProjectsUnarchiveProjectResponses[keyof DomainProjectsUnarchiveProjectResponses];
+
+export type DomainProjectsInitUploadData = {
+    body: UploadInitRequest;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/uploads/init';
+};
+
+export type DomainProjectsInitUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsInitUploadError = DomainProjectsInitUploadErrors[keyof DomainProjectsInitUploadErrors];
+
+export type DomainProjectsInitUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadInitOut;
+};
+
+export type DomainProjectsInitUploadResponse = DomainProjectsInitUploadResponses[keyof DomainProjectsInitUploadResponses];
+
+export type DomainProjectsGetUploadStatusData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/uploads/{upload_id}';
+};
+
+export type DomainProjectsGetUploadStatusErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetUploadStatusError = DomainProjectsGetUploadStatusErrors[keyof DomainProjectsGetUploadStatusErrors];
+
+export type DomainProjectsGetUploadStatusResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadStatusOut;
+};
+
+export type DomainProjectsGetUploadStatusResponse = DomainProjectsGetUploadStatusResponses[keyof DomainProjectsGetUploadStatusResponses];
+
+export type DomainProjectsAbortUploadData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/uploads/{upload_id}/abort';
+};
+
+export type DomainProjectsAbortUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsAbortUploadError = DomainProjectsAbortUploadErrors[keyof DomainProjectsAbortUploadErrors];
+
+export type DomainProjectsAbortUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadAbortOut;
+};
+
+export type DomainProjectsAbortUploadResponse = DomainProjectsAbortUploadResponses[keyof DomainProjectsAbortUploadResponses];
+
+export type DomainProjectsCompleteUploadData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/uploads/{upload_id}/complete';
+};
+
+export type DomainProjectsCompleteUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCompleteUploadError = DomainProjectsCompleteUploadErrors[keyof DomainProjectsCompleteUploadErrors];
+
+export type DomainProjectsCompleteUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadCompleteOut;
+};
+
+export type DomainProjectsCompleteUploadResponse = DomainProjectsCompleteUploadResponses[keyof DomainProjectsCompleteUploadResponses];
+
+export type DomainProjectsUploadPartData = {
+    body?: never;
+    headers?: {
+        /**
+         * Content-Length
+         */
+        'Content-Length'?: number | null;
+    };
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/uploads/{upload_id}/parts/{part_number}';
+};
+
+export type DomainProjectsUploadPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsUploadPartError = DomainProjectsUploadPartErrors[keyof DomainProjectsUploadPartErrors];
+
+export type DomainProjectsUploadPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainProjectsUploadPartResponse = DomainProjectsUploadPartResponses[keyof DomainProjectsUploadPartResponses];
+
+export type DomainProjectsCommitUploadPartData = {
+    body: UploadPartCommitRequest;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/uploads/{upload_id}/parts/{part_number}/commit';
+};
+
+export type DomainProjectsCommitUploadPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCommitUploadPartError = DomainProjectsCommitUploadPartErrors[keyof DomainProjectsCommitUploadPartErrors];
+
+export type DomainProjectsCommitUploadPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainProjectsCommitUploadPartResponse = DomainProjectsCommitUploadPartResponses[keyof DomainProjectsCommitUploadPartResponses];
+
+export type DomainProjectsPresignUploadPartData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/uploads/{upload_id}/parts/{part_number}/presign';
+};
+
+export type DomainProjectsPresignUploadPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPresignUploadPartError = DomainProjectsPresignUploadPartErrors[keyof DomainProjectsPresignUploadPartErrors];
+
+export type DomainProjectsPresignUploadPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadPartPresignOut;
+};
+
+export type DomainProjectsPresignUploadPartResponse = DomainProjectsPresignUploadPartResponses[keyof DomainProjectsPresignUploadPartResponses];
 
 export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetData = {
     body?: never;
@@ -27739,749 +29391,6 @@ export type DomainWorkspacesListWorkspaceActivityResponses = {
 
 export type DomainWorkspacesListWorkspaceActivityResponse = DomainWorkspacesListWorkspaceActivityResponses[keyof DomainWorkspacesListWorkspaceActivityResponses];
 
-export type DomainWorkspacesListAssetFoldersData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/asset-folders';
-};
-
-export type DomainWorkspacesListAssetFoldersErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListAssetFoldersError = DomainWorkspacesListAssetFoldersErrors[keyof DomainWorkspacesListAssetFoldersErrors];
-
-export type DomainWorkspacesListAssetFoldersResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAdminAssetFolderOut;
-};
-
-export type DomainWorkspacesListAssetFoldersResponse = DomainWorkspacesListAssetFoldersResponses[keyof DomainWorkspacesListAssetFoldersResponses];
-
-export type DomainWorkspacesCreateAssetFolderData = {
-    body: AdminAssetFolderCreateRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/asset-folders';
-};
-
-export type DomainWorkspacesCreateAssetFolderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateAssetFolderError = DomainWorkspacesCreateAssetFolderErrors[keyof DomainWorkspacesCreateAssetFolderErrors];
-
-export type DomainWorkspacesCreateAssetFolderResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetFolderOut;
-};
-
-export type DomainWorkspacesCreateAssetFolderResponse = DomainWorkspacesCreateAssetFolderResponses[keyof DomainWorkspacesCreateAssetFolderResponses];
-
-export type DomainWorkspacesDeleteAssetFolderData = {
-    body?: never;
-    path: {
-        /**
-         * Folder Id
-         */
-        folder_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/asset-folders/{folder_id}';
-};
-
-export type DomainWorkspacesDeleteAssetFolderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteAssetFolderError = DomainWorkspacesDeleteAssetFolderErrors[keyof DomainWorkspacesDeleteAssetFolderErrors];
-
-export type DomainWorkspacesDeleteAssetFolderResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetFolderDeleteOut;
-};
-
-export type DomainWorkspacesDeleteAssetFolderResponse = DomainWorkspacesDeleteAssetFolderResponses[keyof DomainWorkspacesDeleteAssetFolderResponses];
-
-export type DomainWorkspacesUpdateAssetFolderData = {
-    body: AdminAssetFolderUpdateRequest;
-    path: {
-        /**
-         * Folder Id
-         */
-        folder_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/asset-folders/{folder_id}';
-};
-
-export type DomainWorkspacesUpdateAssetFolderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesUpdateAssetFolderError = DomainWorkspacesUpdateAssetFolderErrors[keyof DomainWorkspacesUpdateAssetFolderErrors];
-
-export type DomainWorkspacesUpdateAssetFolderResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetFolderOut;
-};
-
-export type DomainWorkspacesUpdateAssetFolderResponse = DomainWorkspacesUpdateAssetFolderResponses[keyof DomainWorkspacesUpdateAssetFolderResponses];
-
-export type DomainWorkspacesDeleteAssetFolderWithMoveData = {
-    body: AdminAssetFolderDeleteRequest;
-    path: {
-        /**
-         * Folder Id
-         */
-        folder_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/asset-folders/{folder_id}/delete';
-};
-
-export type DomainWorkspacesDeleteAssetFolderWithMoveErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteAssetFolderWithMoveError = DomainWorkspacesDeleteAssetFolderWithMoveErrors[keyof DomainWorkspacesDeleteAssetFolderWithMoveErrors];
-
-export type DomainWorkspacesDeleteAssetFolderWithMoveResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetFolderDeleteOut;
-};
-
-export type DomainWorkspacesDeleteAssetFolderWithMoveResponse = DomainWorkspacesDeleteAssetFolderWithMoveResponses[keyof DomainWorkspacesDeleteAssetFolderWithMoveResponses];
-
-export type DomainWorkspacesListAssetTagsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/asset-tags';
-};
-
-export type DomainWorkspacesListAssetTagsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListAssetTagsError = DomainWorkspacesListAssetTagsErrors[keyof DomainWorkspacesListAssetTagsErrors];
-
-export type DomainWorkspacesListAssetTagsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAdminAssetTagOut;
-};
-
-export type DomainWorkspacesListAssetTagsResponse = DomainWorkspacesListAssetTagsResponses[keyof DomainWorkspacesListAssetTagsResponses];
-
-export type DomainWorkspacesCreateAssetTagData = {
-    body: AdminAssetTagCreateRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/asset-tags';
-};
-
-export type DomainWorkspacesCreateAssetTagErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCreateAssetTagError = DomainWorkspacesCreateAssetTagErrors[keyof DomainWorkspacesCreateAssetTagErrors];
-
-export type DomainWorkspacesCreateAssetTagResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetTagOut;
-};
-
-export type DomainWorkspacesCreateAssetTagResponse = DomainWorkspacesCreateAssetTagResponses[keyof DomainWorkspacesCreateAssetTagResponses];
-
-export type DomainWorkspacesDeleteAssetUsageByRefDeleteData = {
-    body: AdminAssetUsageDeleteRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/asset-usages';
-};
-
-export type DomainWorkspacesDeleteAssetUsageByRefDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteAssetUsageByRefDeleteError = DomainWorkspacesDeleteAssetUsageByRefDeleteErrors[keyof DomainWorkspacesDeleteAssetUsageByRefDeleteErrors];
-
-export type DomainWorkspacesDeleteAssetUsageByRefDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetUsageDeleteOut;
-};
-
-export type DomainWorkspacesDeleteAssetUsageByRefDeleteResponse = DomainWorkspacesDeleteAssetUsageByRefDeleteResponses[keyof DomainWorkspacesDeleteAssetUsageByRefDeleteResponses];
-
-export type DomainWorkspacesUpsertAssetUsageData = {
-    body: AdminAssetUsageUpsertRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/asset-usages';
-};
-
-export type DomainWorkspacesUpsertAssetUsageErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesUpsertAssetUsageError = DomainWorkspacesUpsertAssetUsageErrors[keyof DomainWorkspacesUpsertAssetUsageErrors];
-
-export type DomainWorkspacesUpsertAssetUsageResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetUsageOut;
-};
-
-export type DomainWorkspacesUpsertAssetUsageResponse = DomainWorkspacesUpsertAssetUsageResponses[keyof DomainWorkspacesUpsertAssetUsageResponses];
-
-export type DomainWorkspacesDeleteAssetUsageByRefData = {
-    body: AdminAssetUsageDeleteRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/asset-usages/delete';
-};
-
-export type DomainWorkspacesDeleteAssetUsageByRefErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteAssetUsageByRefError = DomainWorkspacesDeleteAssetUsageByRefErrors[keyof DomainWorkspacesDeleteAssetUsageByRefErrors];
-
-export type DomainWorkspacesDeleteAssetUsageByRefResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetUsageDeleteOut;
-};
-
-export type DomainWorkspacesDeleteAssetUsageByRefResponse = DomainWorkspacesDeleteAssetUsageByRefResponses[keyof DomainWorkspacesDeleteAssetUsageByRefResponses];
-
-export type DomainWorkspacesListAssetsData = {
-    /**
-     * Tagids
-     */
-    body?: Array<string> | null;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Purpose
-         */
-        purpose?: string | null;
-        /**
-         * Visibility
-         */
-        visibility?: string | null;
-        /**
-         * Indexable
-         */
-        indexable?: boolean | null;
-        /**
-         * Folderid
-         */
-        folderId?: string | null;
-        /**
-         * Folderisnull
-         */
-        folderIsNull?: boolean | null;
-        /**
-         * Includechildren
-         */
-        includeChildren?: boolean;
-        /**
-         * Mimeprefix
-         */
-        mimePrefix?: string | null;
-        /**
-         * Createdfrom
-         */
-        createdFrom?: string | null;
-        /**
-         * Createdto
-         */
-        createdTo?: string | null;
-        /**
-         * Ordering
-         */
-        ordering?: string | null;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/assets';
-};
-
-export type DomainWorkspacesListAssetsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListAssetsError = DomainWorkspacesListAssetsErrors[keyof DomainWorkspacesListAssetsErrors];
-
-export type DomainWorkspacesListAssetsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAdminAssetSummaryOut;
-};
-
-export type DomainWorkspacesListAssetsResponse = DomainWorkspacesListAssetsResponses[keyof DomainWorkspacesListAssetsResponses];
-
-export type DomainWorkspacesBulkDeleteAssetsData = {
-    body: AdminAssetBulkDeleteRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/assets/bulk/delete';
-};
-
-export type DomainWorkspacesBulkDeleteAssetsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesBulkDeleteAssetsError = DomainWorkspacesBulkDeleteAssetsErrors[keyof DomainWorkspacesBulkDeleteAssetsErrors];
-
-export type DomainWorkspacesBulkDeleteAssetsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetBulkDeleteOut;
-};
-
-export type DomainWorkspacesBulkDeleteAssetsResponse = DomainWorkspacesBulkDeleteAssetsResponses[keyof DomainWorkspacesBulkDeleteAssetsResponses];
-
-export type DomainWorkspacesBulkMoveAssetsData = {
-    body: AdminAssetBulkMoveRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/assets/bulk/move';
-};
-
-export type DomainWorkspacesBulkMoveAssetsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesBulkMoveAssetsError = DomainWorkspacesBulkMoveAssetsErrors[keyof DomainWorkspacesBulkMoveAssetsErrors];
-
-export type DomainWorkspacesBulkMoveAssetsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetBulkMoveOut;
-};
-
-export type DomainWorkspacesBulkMoveAssetsResponse = DomainWorkspacesBulkMoveAssetsResponses[keyof DomainWorkspacesBulkMoveAssetsResponses];
-
-export type DomainWorkspacesBulkUpdateAssetsData = {
-    body: AdminAssetBulkUpdateRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/assets/bulk/update';
-};
-
-export type DomainWorkspacesBulkUpdateAssetsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesBulkUpdateAssetsError = DomainWorkspacesBulkUpdateAssetsErrors[keyof DomainWorkspacesBulkUpdateAssetsErrors];
-
-export type DomainWorkspacesBulkUpdateAssetsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetBulkUpdateOut;
-};
-
-export type DomainWorkspacesBulkUpdateAssetsResponse = DomainWorkspacesBulkUpdateAssetsResponses[keyof DomainWorkspacesBulkUpdateAssetsResponses];
-
-export type DomainWorkspacesDeleteAssetData = {
-    body?: never;
-    path: {
-        /**
-         * Asset Id
-         */
-        asset_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/assets/{asset_id}';
-};
-
-export type DomainWorkspacesDeleteAssetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteAssetError = DomainWorkspacesDeleteAssetErrors[keyof DomainWorkspacesDeleteAssetErrors];
-
-export type DomainWorkspacesDeleteAssetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetDeleteOut;
-};
-
-export type DomainWorkspacesDeleteAssetResponse = DomainWorkspacesDeleteAssetResponses[keyof DomainWorkspacesDeleteAssetResponses];
-
-export type DomainWorkspacesGetAssetDetailData = {
-    body?: never;
-    path: {
-        /**
-         * Asset Id
-         */
-        asset_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/assets/{asset_id}';
-};
-
-export type DomainWorkspacesGetAssetDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetAssetDetailError = DomainWorkspacesGetAssetDetailErrors[keyof DomainWorkspacesGetAssetDetailErrors];
-
-export type DomainWorkspacesGetAssetDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetDetailOut;
-};
-
-export type DomainWorkspacesGetAssetDetailResponse = DomainWorkspacesGetAssetDetailResponses[keyof DomainWorkspacesGetAssetDetailResponses];
-
-export type DomainWorkspacesPatchAssetData = {
-    body: AdminAssetUpdateRequest;
-    path: {
-        /**
-         * Asset Id
-         */
-        asset_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/assets/{asset_id}';
-};
-
-export type DomainWorkspacesPatchAssetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPatchAssetError = DomainWorkspacesPatchAssetErrors[keyof DomainWorkspacesPatchAssetErrors];
-
-export type DomainWorkspacesPatchAssetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetDetailOut;
-};
-
-export type DomainWorkspacesPatchAssetResponse = DomainWorkspacesPatchAssetResponses[keyof DomainWorkspacesPatchAssetResponses];
-
-export type DomainWorkspacesMoveAssetData = {
-    body: AdminAssetMoveRequest;
-    path: {
-        /**
-         * Asset Id
-         */
-        asset_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/assets/{asset_id}/move';
-};
-
-export type DomainWorkspacesMoveAssetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesMoveAssetError = DomainWorkspacesMoveAssetErrors[keyof DomainWorkspacesMoveAssetErrors];
-
-export type DomainWorkspacesMoveAssetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetSummaryOut;
-};
-
-export type DomainWorkspacesMoveAssetResponse = DomainWorkspacesMoveAssetResponses[keyof DomainWorkspacesMoveAssetResponses];
-
-export type DomainWorkspacesListAssetUsagesData = {
-    body?: never;
-    path: {
-        /**
-         * Asset Id
-         */
-        asset_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/assets/{asset_id}/usages';
-};
-
-export type DomainWorkspacesListAssetUsagesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListAssetUsagesError = DomainWorkspacesListAssetUsagesErrors[keyof DomainWorkspacesListAssetUsagesErrors];
-
-export type DomainWorkspacesListAssetUsagesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAdminAssetUsageOut;
-};
-
-export type DomainWorkspacesListAssetUsagesResponse = DomainWorkspacesListAssetUsagesResponses[keyof DomainWorkspacesListAssetUsagesResponses];
-
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesData = {
     body?: never;
     path: {
@@ -29859,269 +30768,3 @@ export type DomainWorkspacesListUserOptionsResponses = {
 };
 
 export type DomainWorkspacesListUserOptionsResponse = DomainWorkspacesListUserOptionsResponses[keyof DomainWorkspacesListUserOptionsResponses];
-
-export type DomainWorkspacesInitUploadData = {
-    body: UploadInitRequest;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/uploads/init';
-};
-
-export type DomainWorkspacesInitUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesInitUploadError = DomainWorkspacesInitUploadErrors[keyof DomainWorkspacesInitUploadErrors];
-
-export type DomainWorkspacesInitUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadInitOut;
-};
-
-export type DomainWorkspacesInitUploadResponse = DomainWorkspacesInitUploadResponses[keyof DomainWorkspacesInitUploadResponses];
-
-export type DomainWorkspacesGetUploadStatusData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}';
-};
-
-export type DomainWorkspacesGetUploadStatusErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetUploadStatusError = DomainWorkspacesGetUploadStatusErrors[keyof DomainWorkspacesGetUploadStatusErrors];
-
-export type DomainWorkspacesGetUploadStatusResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadStatusOut;
-};
-
-export type DomainWorkspacesGetUploadStatusResponse = DomainWorkspacesGetUploadStatusResponses[keyof DomainWorkspacesGetUploadStatusResponses];
-
-export type DomainWorkspacesAbortUploadData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/abort';
-};
-
-export type DomainWorkspacesAbortUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesAbortUploadError = DomainWorkspacesAbortUploadErrors[keyof DomainWorkspacesAbortUploadErrors];
-
-export type DomainWorkspacesAbortUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadAbortOut;
-};
-
-export type DomainWorkspacesAbortUploadResponse = DomainWorkspacesAbortUploadResponses[keyof DomainWorkspacesAbortUploadResponses];
-
-export type DomainWorkspacesCompleteUploadData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/complete';
-};
-
-export type DomainWorkspacesCompleteUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCompleteUploadError = DomainWorkspacesCompleteUploadErrors[keyof DomainWorkspacesCompleteUploadErrors];
-
-export type DomainWorkspacesCompleteUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadCompleteOut;
-};
-
-export type DomainWorkspacesCompleteUploadResponse = DomainWorkspacesCompleteUploadResponses[keyof DomainWorkspacesCompleteUploadResponses];
-
-export type DomainWorkspacesUploadPartData = {
-    body?: never;
-    headers?: {
-        /**
-         * Content-Length
-         */
-        'Content-Length'?: number | null;
-    };
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/parts/{part_number}';
-};
-
-export type DomainWorkspacesUploadPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesUploadPartError = DomainWorkspacesUploadPartErrors[keyof DomainWorkspacesUploadPartErrors];
-
-export type DomainWorkspacesUploadPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainWorkspacesUploadPartResponse = DomainWorkspacesUploadPartResponses[keyof DomainWorkspacesUploadPartResponses];
-
-export type DomainWorkspacesCommitUploadPartData = {
-    body: UploadPartCommitRequest;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/parts/{part_number}/commit';
-};
-
-export type DomainWorkspacesCommitUploadPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesCommitUploadPartError = DomainWorkspacesCommitUploadPartErrors[keyof DomainWorkspacesCommitUploadPartErrors];
-
-export type DomainWorkspacesCommitUploadPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainWorkspacesCommitUploadPartResponse = DomainWorkspacesCommitUploadPartResponses[keyof DomainWorkspacesCommitUploadPartResponses];
-
-export type DomainWorkspacesPresignUploadPartData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/parts/{part_number}/presign';
-};
-
-export type DomainWorkspacesPresignUploadPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesPresignUploadPartError = DomainWorkspacesPresignUploadPartErrors[keyof DomainWorkspacesPresignUploadPartErrors];
-
-export type DomainWorkspacesPresignUploadPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadPartPresignOut;
-};
-
-export type DomainWorkspacesPresignUploadPartResponse = DomainWorkspacesPresignUploadPartResponses[keyof DomainWorkspacesPresignUploadPartResponses];

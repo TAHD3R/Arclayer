@@ -1,4 +1,4 @@
-import type * as Generated from "./generated";
+import type * as Generated from "./generated/types.gen";
 
 type QueryOf<T> = T extends { query?: infer Q } ? NonNullable<Q> : never;
 type RequiredDefined<T, K extends keyof T> = Omit<T, K> & {
@@ -191,7 +191,7 @@ export type PatchAdminAssetPayload = Omit<
   purpose?: string | null;
   visibility?: string | null;
 };
-export type ListAdminAssetsParams = QueryOf<Generated.DomainWorkspacesListAssetsData> & {
+export type ListAdminAssetsParams = QueryOf<Generated.DomainProjectsListAssetsData> & {
   tagIds?: string[] | null;
 };
 export type AdminAssetFolderCreateRequest = Generated.AdminAssetFolderCreateRequest;
@@ -232,6 +232,8 @@ export type AdminAssetUsage = Generated.AdminAssetUsageOut;
 export type UpsertAdminAssetUsagePayload = Generated.AdminAssetUsageUpsertRequest;
 
 export type AdminContentModelCategory = NonNullable<Generated.ContentModelOut["category"]>;
+export type AdminContentModelKind = NonNullable<Generated.ContentModelOut["modelKind"]>;
+export type AdminContentModelFieldScalar = Generated.ContentModelFieldContract["scalar"];
 export type AdminContentModelCapability = NonNullable<
   Generated.ContentModelOut["capabilities"]
 >[number];
@@ -281,6 +283,11 @@ export type AdminContentWorkflowStage = NonNullable<Generated.ContentItemOut["wo
 export type AdminContentItemWorkflowNote = Generated.ContentItemWorkflowNoteOut;
 export type AdminContentItemPublishReadiness = Generated.ContentItemPublishReadinessOut;
 export type PatchAdminContentItemWorkflowPayload = Generated.ContentItemWorkflowPatchIn;
+export type CreateAdminContentModelPayload = Generated.ContentModelDefinitionContract;
+export type CreateAdminContentModelFieldPayload = Generated.ContentModelFieldContract;
+export type PatchAdminContentModelFieldPayload = Generated.ContentModelFieldPatchContract;
+export type ReorderAdminContentModelFieldsPayload = Generated.ContentModelFieldReorderContract;
+export type AdminContentModelJsonPreview = Generated.ContentModelSchemaSnapshotOut;
 export type AdminContentBootstrapPresetState = NonNullable<
   Generated.ContentItemBootstrapShapeIn["presetState"]
 >;
@@ -365,7 +372,10 @@ export type AdminContentLibraryViewEditWith = NonNullable<
 >;
 export type AdminContentLibraryViewVisibility = Generated.ContentLibraryViewOut["visibility"];
 export type AdminContentLibraryViewFilters = {
+  createdByUserId?: string;
   editWith?: AdminContentLibraryViewEditWith;
+  tag?: string;
+  locale?: string;
   modelKey?: string;
   role?: AdminContentLibraryViewRole;
   status?: AdminContentLibraryViewStatus;
@@ -376,7 +386,6 @@ export type AdminContentLibraryViewSorting = Omit<
 > & {
   desc: boolean;
 };
-export type AdminContentLibraryViewMode = NonNullable<Generated.ContentLibraryViewOut["viewMode"]>;
 export type AdminContentLibraryViewRowHeight = NonNullable<
   Generated.ContentLibraryViewColumnsSchema["rowHeight"]
 >;

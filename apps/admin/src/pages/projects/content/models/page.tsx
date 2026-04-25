@@ -3,10 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import {
-  buildContentModelsGovernanceQueryKey,
-  getContentModelImpactPreview,
+  addContentModelField,
+  buildContentModelsQueryKey,
+  createContentModel,
+  deleteContentModelField,
+  getContentModelJsonPreview,
   listAllContentModels,
-  patchContentModel,
+  reorderContentModelFields,
+  updateContentModelField,
 } from "@/api/content";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
@@ -18,12 +22,10 @@ import {
   sortContentModelsByPresentation,
 } from "@/pages/projects/content/content-type-presentation";
 import type {
-  AdminContentContinuationPosture,
-  AdminContentContinuationRole,
-  AdminContentContinuationSurface,
   AdminContentModel,
-  AdminContentModelImpactPreview,
-  PatchAdminContentModelPayload,
+  AdminContentModelFieldScalar,
+  AdminContentModelJsonPreview,
+  AdminContentModelKind,
 } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -34,292 +36,296 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@arclayer/ui/dialog";
+import { Input } from "@arclayer/ui/input";
+import { Textarea } from "@arclayer/ui/textarea";
 
-const CONTINUATION_ROLE_OPTIONS: Array<AdminContentContinuationRole> = [
-  "page",
-  "article",
-  "reusable-section",
-  "taxonomy",
-  "person",
-  "settings",
-  "data",
-  "general",
-];
-const CONTINUATION_POSTURE_OPTIONS: Array<AdminContentContinuationPosture> = [
-  "page",
-  "entry",
-  "composition",
-  "structured",
-];
-const CONTINUATION_SURFACE_OPTIONS: Array<AdminContentContinuationSurface> = [
-  "writing",
-  "canvas",
-  "structured",
-];
+type BuilderTab = "fields" | "details" | "groups" | "json" | "sidebar" | "editors" | "taxonomy";
 
-const CAPABILITY_PRESENTATION = {
-  versioned: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_VERSIONED_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_VERSIONED_DESC",
-  },
-  routable: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_ROUTABLE_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_ROUTABLE_DESC",
-  },
-  treeable: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_TREEABLE_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_TREEABLE_DESC",
-  },
-  visual_editable: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_VISUAL_EDITABLE_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_VISUAL_EDITABLE_DESC",
-  },
-  rich_text_editable: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_RICH_TEXT_EDITABLE_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_RICH_TEXT_EDITABLE_DESC",
-  },
-  queryable: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_QUERYABLE_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_QUERYABLE_DESC",
-  },
-  has_slots: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_HAS_SLOTS_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_HAS_SLOTS_DESC",
-  },
-  has_relations: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_HAS_RELATIONS_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_HAS_RELATIONS_DESC",
-  },
-  localizable: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_LOCALIZABLE_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_LOCALIZABLE_DESC",
-  },
-  publishable: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_PUBLISHABLE_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_PUBLISHABLE_DESC",
-  },
-  schedulable: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_SCHEDULABLE_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_SCHEDULABLE_DESC",
-  },
-  seo_managed: {
-    labelKey: "CONTENT_MODELS_CAPABILITY_SEO_MANAGED_LABEL",
-    descriptionKey: "CONTENT_MODELS_CAPABILITY_SEO_MANAGED_DESC",
-  },
-} as const satisfies Record<
-  AdminContentModel["capabilities"][number],
-  { labelKey: string; descriptionKey: string }
->;
+type CreateTab = "manual" | "ai";
+type FieldConfigKind = "plain" | "media" | "component" | "dynamic_zone";
 
-const ROLE_PRESENTATION = {
-  page: "CONTENT_MODELS_ROLE_PAGE_LABEL",
-  article: "CONTENT_MODELS_ROLE_ARTICLE_LABEL",
-  "reusable-section": "CONTENT_MODELS_ROLE_REUSABLE_SECTION_LABEL",
-  taxonomy: "CONTENT_MODELS_ROLE_TAXONOMY_LABEL",
-  person: "CONTENT_MODELS_ROLE_PERSON_LABEL",
-  settings: "CONTENT_MODELS_ROLE_SETTINGS_LABEL",
-  data: "CONTENT_MODELS_ROLE_DATA_LABEL",
-  general: "CONTENT_MODELS_ROLE_GENERAL_LABEL",
-} as const satisfies Record<AdminContentContinuationRole, string>;
-
-const POSTURE_PRESENTATION = {
-  page: "CONTENT_MODELS_POSTURE_PAGE_LABEL",
-  entry: "CONTENT_MODELS_POSTURE_ENTRY_LABEL",
-  composition: "CONTENT_MODELS_POSTURE_COMPOSITION_LABEL",
-  structured: "CONTENT_MODELS_POSTURE_STRUCTURED_LABEL",
-} as const satisfies Record<AdminContentContinuationPosture, string>;
-
-const SURFACE_PRESENTATION = {
-  writing: "CONTENT_MODELS_SURFACE_WRITING_LABEL",
-  canvas: "CONTENT_MODELS_SURFACE_CANVAS_LABEL",
-  structured: "CONTENT_MODELS_SURFACE_STRUCTURED_LABEL",
-} as const satisfies Record<AdminContentContinuationSurface, string>;
-
-const EDITOR_PRESENTATION = {
-  form: "CONTENT_MODELS_EDITOR_FORM_LABEL",
-  visual: "CONTENT_MODELS_EDITOR_VISUAL_LABEL",
-  rich_text: "CONTENT_MODELS_EDITOR_RICH_TEXT_LABEL",
-  table: "CONTENT_MODELS_EDITOR_TABLE_LABEL",
-} as const satisfies Record<NonNullable<AdminContentModel["defaultEditor"]>, string>;
-
-type ContentModelDraft = {
-  defaultRole: AdminContentContinuationRole | null;
-  defaultPosture: AdminContentContinuationPosture | null;
-  defaultSurface: AdminContentContinuationSurface | null;
-  starterPackPolicyText: string;
+type FieldRow = {
+  key: string;
+  label: string;
+  scalar: AdminContentModelFieldScalar;
+  required: boolean;
+  config: Record<string, unknown> | null;
 };
 
-type GovernancePanelProps = {
-  title: string;
+type CreateFormState = {
+  key: string;
+  name: string;
   description: string;
-  children: React.ReactNode;
+  modelKind: AdminContentModelKind;
 };
 
-type CompareBaseline = "current_draft" | "published";
+type FieldFormState = {
+  key: string;
+  label: string;
+  scalar: AdminContentModelFieldScalar;
+  required: boolean;
+  configKind: FieldConfigKind;
+};
 
-function formatPolicyText(value: Record<string, unknown> | null | undefined): string {
-  if (!value) return "";
-  return JSON.stringify(value, null, 2);
+const MODEL_KIND_OPTIONS: AdminContentModelKind[] = ["collection_type", "single_type", "component"];
+
+const FIELD_SCALAR_OPTIONS: AdminContentModelFieldScalar[] = [
+  "text",
+  "long_text",
+  "number",
+  "boolean",
+  "date_time",
+  "json",
+];
+
+const CONTENT_TYPE_TABS: BuilderTab[] = [
+  "fields",
+  "details",
+  "groups",
+  "json",
+  "sidebar",
+  "editors",
+  "taxonomy",
+];
+
+const COMPONENT_TABS: BuilderTab[] = ["fields", "details", "json"];
+
+const DEFAULT_CREATE_FORM: CreateFormState = {
+  key: "",
+  name: "",
+  description: "",
+  modelKind: "collection_type",
+};
+
+const DEFAULT_FIELD_FORM: FieldFormState = {
+  key: "",
+  label: "",
+  scalar: "text",
+  required: false,
+  configKind: "plain",
+};
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
 }
 
-function createDraft(model: AdminContentModel): ContentModelDraft {
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function readFieldRow(key: string, value: unknown): FieldRow {
+  const record = readRecord(value) ?? {};
   return {
-    defaultRole: model.defaultRole ?? null,
-    defaultPosture: model.defaultPosture ?? null,
-    defaultSurface: model.defaultSurface ?? null,
-    starterPackPolicyText: formatPolicyText(model.starterPackPolicy),
+    key,
+    label: readString(record.label) ?? key,
+    scalar: (readString(record.scalar) ??
+      readString(record.fieldType) ??
+      "json") as AdminContentModelFieldScalar,
+    required: record.required === true || record.isRequired === true,
+    config: readRecord(record.config),
   };
 }
 
-function parseOptionalPolicy(text: string): Record<string, unknown> | null {
-  const normalized = text.trim();
-  if (!normalized) return null;
-  const parsed = JSON.parse(normalized) as unknown;
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("CONTENT_MODELS_STARTER_PACK_POLICY_INVALID");
+function fieldsFromSchema(model: AdminContentModel): FieldRow[] {
+  const fieldSchema = readRecord(model.fieldSchema);
+  if (fieldSchema) {
+    return Object.entries(fieldSchema).map(([key, value]) => readFieldRow(key, value));
   }
-  return parsed as Record<string, unknown>;
-}
 
-function normalizeValue<T extends string>(value: T | null | undefined): T | null {
-  return value ?? null;
-}
-
-function stableValue(value: unknown): string {
-  return JSON.stringify(value ?? null);
-}
-
-function buildPatchPayload(
-  model: AdminContentModel,
-  draft: ContentModelDraft,
-): PatchAdminContentModelPayload {
-  const payload: PatchAdminContentModelPayload = {};
-  if (normalizeValue(model.defaultRole) !== draft.defaultRole) {
-    payload.defaultRole = draft.defaultRole;
-  }
-  if (normalizeValue(model.defaultPosture) !== draft.defaultPosture) {
-    payload.defaultPosture = draft.defaultPosture;
-  }
-  if (normalizeValue(model.defaultSurface) !== draft.defaultSurface) {
-    payload.defaultSurface = draft.defaultSurface;
-  }
-  const starterPackPolicy = parseOptionalPolicy(draft.starterPackPolicyText);
-  if (stableValue(model.starterPackPolicy) !== stableValue(starterPackPolicy)) {
-    payload.starterPackPolicy = starterPackPolicy;
-  }
-  return payload;
-}
-
-function ModelFact(props: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card/60 px-4 py-4">
-      <div className="text-xs text-muted-foreground">{props.label}</div>
-      <div className="mt-2 text-sm font-medium text-foreground">{props.value}</div>
-    </div>
+  const boundaries = model.contractRegistry?.boundaries;
+  return [...(boundaries?.systemFields ?? []), ...(boundaries?.customFields ?? [])].map((field) =>
+    readFieldRow(field.key, field),
   );
 }
 
-function CanvasNode(props: { title: string; description: string }) {
-  return (
-    <div className="rounded-[24px] border border-border/70 bg-background px-5 py-5 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-semibold text-foreground">{props.title}</div>
-        <span className="rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Locked
-        </span>
-      </div>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{props.description}</p>
-    </div>
-  );
+function modelKindLabel(t: (key: string) => string, kind: AdminContentModelKind): string {
+  return t(`CONTENT_MODELS_KIND_${kind.toUpperCase()}`);
 }
 
-function ImpactMetric(props: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card/70 px-4 py-4">
-      <div className="text-xs text-muted-foreground">{props.label}</div>
-      <div className="mt-2 text-xl font-semibold text-foreground">{props.value}</div>
-    </div>
-  );
+function tabLabel(t: (key: string) => string, tab: BuilderTab): string {
+  return t(`CONTENT_MODELS_TAB_${tab.toUpperCase()}`);
 }
 
-function GovernancePanel(props: GovernancePanelProps) {
+function fieldConfig(kind: FieldConfigKind): Record<string, unknown> | null {
+  if (kind === "media") {
+    return {
+      kind: "media",
+      assetScope: "project",
+      assetIdStorage: "internal_project_asset_id",
+      repeatable: true,
+    };
+  }
+  if (kind === "component") {
+    return { kind: "component", componentKey: "seo_card", repeatable: true };
+  }
+  if (kind === "dynamic_zone") {
+    return { kind: "dynamic_zone", components: ["seo_card"], repeatable: true };
+  }
+  return null;
+}
+
+function initialFieldsForKind(kind: AdminContentModelKind) {
+  if (kind === "component") return [];
+  return [{ key: "title", label: "Title", scalar: "text" as const, required: true }];
+}
+
+function replaceModel(models: AdminContentModel[] | undefined, next: AdminContentModel) {
+  const existing = models ?? [];
+  if (existing.some((model) => model.id === next.id)) {
+    return existing.map((model) => (model.id === next.id ? next : model));
+  }
+  return [next, ...existing];
+}
+
+function Panel(props: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-[28px] border border-border/60 bg-card/60 p-5">
+    <section className="rounded-[28px] border border-border/60 bg-card/70 p-5">
       <div className="text-sm font-semibold text-foreground">{props.title}</div>
-      <div className="mt-1 text-sm leading-6 text-muted-foreground">{props.description}</div>
-      <div className="mt-4">{props.children}</div>
+      {props.description ? (
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{props.description}</p>
+      ) : null}
+      <div className="mt-5">{props.children}</div>
     </section>
   );
-}
-
-function GovernanceBadgeList(props: { values: string[]; emptyLabel: string }) {
-  if (props.values.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
-        {props.emptyLabel}
-      </div>
-    );
-  }
-  return (
-    <div className="flex flex-wrap gap-2">
-      {props.values.map((value) => (
-        <span
-          key={value}
-          className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground"
-        >
-          {value}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function PolicyBlock(props: { title: string; value: unknown; emptyLabel: string }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background px-4 py-4">
-      <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        {props.title}
-      </div>
-      {props.value ? (
-        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words text-xs leading-6 text-foreground">
-          {JSON.stringify(props.value, null, 2)}
-        </pre>
-      ) : (
-        <div className="mt-3 text-sm text-muted-foreground">{props.emptyLabel}</div>
-      )}
-    </div>
-  );
-}
-
-function statusTone(status: "ready" | "review" | "blocked"): string {
-  if (status === "blocked") return "border-destructive/40 bg-destructive/10 text-destructive";
-  if (status === "review") return "border-amber-500/40 bg-amber-500/10 text-amber-700";
-  return "border-emerald-500/40 bg-emerald-500/10 text-emerald-700";
 }
 
 export function ContentModelsControlCenterPage(props: { projectId: string }) {
   const { t } = useTranslation("content");
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(props.projectId);
+  const queryKey = buildContentModelsQueryKey(props.projectId);
+  const canManageModels = permissionAccess.hasAction("project:content:models:write");
   const modelsQuery = useQuery({
-    queryKey: buildContentModelsGovernanceQueryKey(props.projectId),
+    queryKey,
     queryFn: () => listAllContentModels(props.projectId),
   });
+
   const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null);
-  const [draft, setDraft] = React.useState<ContentModelDraft | null>(null);
-  const [preview, setPreview] = React.useState<AdminContentModelImpactPreview | null>(null);
-  const [previewPayloadKey, setPreviewPayloadKey] = React.useState<string | null>(null);
-  const [saveError, setSaveError] = React.useState<string | null>(null);
-  const [pendingModelId, setPendingModelId] = React.useState<string | null>(null);
-  const [confirmApplyOpen, setConfirmApplyOpen] = React.useState(false);
-  const [compareBaseline, setCompareBaseline] = React.useState<CompareBaseline>("current_draft");
+  const [activeTab, setActiveTab] = React.useState<BuilderTab>("fields");
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createTab, setCreateTab] = React.useState<CreateTab>("manual");
+  const [createForm, setCreateForm] = React.useState<CreateFormState>(DEFAULT_CREATE_FORM);
+  const [fieldForm, setFieldForm] = React.useState<FieldFormState>(DEFAULT_FIELD_FORM);
+  const [jsonPreview, setJsonPreview] = React.useState<AdminContentModelJsonPreview | null>(null);
 
   const models = React.useMemo(
     () => sortContentModelsByPresentation(modelsQuery.data ?? []),
     [modelsQuery.data],
   );
   const selectedModel = models.find((model) => model.id === selectedModelId) ?? models[0] ?? null;
-  const selectedTypeLabel = selectedModel
+  const fields = React.useMemo(
+    () => (selectedModel ? fieldsFromSchema(selectedModel) : []),
+    [selectedModel],
+  );
+  const availableTabs =
+    selectedModel?.modelKind === "component" ? COMPONENT_TABS : CONTENT_TYPE_TABS;
+
+  React.useEffect(() => {
+    if (!selectedModelId && models[0]) setSelectedModelId(models[0].id);
+  }, [models, selectedModelId]);
+
+  React.useEffect(() => {
+    if (!availableTabs.includes(activeTab)) setActiveTab("fields");
+    setJsonPreview(null);
+  }, [activeTab, availableTabs, selectedModel?.id]);
+
+  const updateCachedModel = React.useCallback(
+    (model: AdminContentModel) => {
+      queryClient.setQueryData<AdminContentModel[]>(queryKey, (current) =>
+        replaceModel(current, model),
+      );
+      setSelectedModelId(model.id);
+    },
+    [queryClient, queryKey],
+  );
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      createContentModel(props.projectId, {
+        key: createForm.key.trim(),
+        name: createForm.name.trim(),
+        description: createForm.description.trim() || null,
+        modelKind: createForm.modelKind,
+        fields: initialFieldsForKind(createForm.modelKind),
+        relations: [],
+        capabilities: ["queryable"],
+        routing: { mode: "none" },
+        workflow: { states: ["draft"], initialState: "draft" },
+        views: [],
+      }),
+    onSuccess: (model) => {
+      updateCachedModel(model);
+      setCreateOpen(false);
+      setCreateForm(DEFAULT_CREATE_FORM);
+      setCreateTab("manual");
+    },
+    onError: notifyError,
+  });
+
+  const addFieldMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedModel) throw new Error("CONTENT_MODELS_SELECT_MODEL_REQUIRED");
+      return addContentModelField(props.projectId, selectedModel.id, {
+        key: fieldForm.key.trim(),
+        label: fieldForm.label.trim(),
+        scalar: fieldForm.scalar,
+        required: fieldForm.required,
+        config: fieldConfig(fieldForm.configKind),
+      });
+    },
+    onSuccess: (model) => {
+      updateCachedModel(model);
+      setFieldForm(DEFAULT_FIELD_FORM);
+    },
+    onError: notifyError,
+  });
+
+  const updateFieldMutation = useMutation({
+    mutationFn: ({ fieldKey }: { fieldKey: string }) => {
+      if (!selectedModel) throw new Error("CONTENT_MODELS_SELECT_MODEL_REQUIRED");
+      return updateContentModelField(props.projectId, selectedModel.id, fieldKey, {
+        required: true,
+      });
+    },
+    onSuccess: updateCachedModel,
+    onError: notifyError,
+  });
+
+  const reorderFieldMutation = useMutation({
+    mutationFn: ({ fieldKey }: { fieldKey: string }) => {
+      if (!selectedModel) throw new Error("CONTENT_MODELS_SELECT_MODEL_REQUIRED");
+      const index = fields.findIndex((field) => field.key === fieldKey);
+      if (index <= 0) return Promise.resolve(selectedModel);
+      const fieldKeys = fields.map((field) => field.key);
+      const previous = fieldKeys[index - 1];
+      fieldKeys[index - 1] = fieldKey;
+      fieldKeys[index] = previous ?? fieldKey;
+      return reorderContentModelFields(props.projectId, selectedModel.id, { fieldKeys });
+    },
+    onSuccess: updateCachedModel,
+    onError: notifyError,
+  });
+
+  const deleteFieldMutation = useMutation({
+    mutationFn: ({ fieldKey }: { fieldKey: string }) => {
+      if (!selectedModel) throw new Error("CONTENT_MODELS_SELECT_MODEL_REQUIRED");
+      return deleteContentModelField(props.projectId, selectedModel.id, fieldKey);
+    },
+    onSuccess: updateCachedModel,
+    onError: notifyError,
+  });
+
+  const previewMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedModel) throw new Error("CONTENT_MODELS_SELECT_MODEL_REQUIRED");
+      return getContentModelJsonPreview(props.projectId, selectedModel.id);
+    },
+    onSuccess: setJsonPreview,
+    onError: notifyError,
+  });
+
+  const selectedLabel = selectedModel
     ? getContentTypeLabel({
         modelKey: selectedModel.key,
         fallbackName: selectedModel.name,
@@ -327,178 +333,13 @@ export function ContentModelsControlCenterPage(props: { projectId: string }) {
         t,
       })
     : null;
-  const selectedTypeDescription = selectedModel
+  const selectedDescription = selectedModel
     ? getContentTypeDescription({
         modelKey: selectedModel.key,
         fallbackDescription: selectedModel.description,
         t,
       })
     : null;
-
-  React.useEffect(() => {
-    if (!selectedModelId && models[0]) {
-      setSelectedModelId(models[0].id);
-    }
-  }, [models, selectedModelId]);
-
-  React.useEffect(() => {
-    if (!selectedModel) {
-      setDraft(null);
-      setPreview(null);
-      setPreviewPayloadKey(null);
-      setSaveError(null);
-      return;
-    }
-    setDraft(createDraft(selectedModel));
-    setPreview(null);
-    setPreviewPayloadKey(null);
-    setSaveError(null);
-    setPendingModelId(null);
-    setConfirmApplyOpen(false);
-    setCompareBaseline("current_draft");
-  }, [selectedModel]);
-
-  const currentPayloadState = React.useMemo(() => {
-    if (!selectedModel || !draft) return { payload: null, error: null as string | null };
-    try {
-      return {
-        payload: buildPatchPayload(selectedModel, draft),
-        error: null as string | null,
-      };
-    } catch (error) {
-      return {
-        payload: null,
-        error: error instanceof Error ? error.message : "CONTENT_MODELS_SAVE_FAILED",
-      };
-    }
-  }, [draft, selectedModel]);
-  React.useEffect(() => {
-    setSaveError((current) => {
-      if (currentPayloadState.error) return currentPayloadState.error;
-      if (current === "CONTENT_MODELS_STARTER_PACK_POLICY_INVALID") return null;
-      return current;
-    });
-  }, [currentPayloadState.error]);
-  const currentPayload = currentPayloadState.payload;
-  const currentPayloadKey = React.useMemo(
-    () => stableValue(currentPayload ?? {}),
-    [currentPayload],
-  );
-  const previewIsCurrent =
-    preview !== null && previewPayloadKey !== null && previewPayloadKey === currentPayloadKey;
-  const hasPendingChanges = Boolean(currentPayload && Object.keys(currentPayload).length > 0);
-  const hasStalePreview = hasPendingChanges && !previewIsCurrent && preview !== null;
-  const canManageModels = permissionAccess.hasAction("project:content:models:write");
-  const contractRegistry = selectedModel?.contractRegistry;
-  const systemFields = contractRegistry?.boundaries?.systemFields ?? [];
-  const customFields = contractRegistry?.boundaries?.customFields ?? [];
-  const workflowCapabilities = contractRegistry?.capabilities?.workflow ?? [];
-  const deliveryCapabilities = contractRegistry?.capabilities?.delivery ?? [];
-  const graphqlCapabilities = contractRegistry?.capabilities?.graphql ?? [];
-  const changePlan = preview?.changePlan;
-  const compareSnapshot =
-    compareBaseline === "published" ? changePlan?.publishedSnapshot : changePlan?.currentSnapshot;
-  const compareLabel =
-    compareBaseline === "published"
-      ? t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_PUBLISHED")
-      : t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_CURRENT");
-  const changePlanDiffEntries = React.useMemo(() => {
-    const entries = changePlan?.diff?.entries ?? [];
-    if (!compareSnapshot?.payload) return entries;
-    return entries.filter((entry) => {
-      if (
-        (entry.kind ?? "") !== "default" &&
-        (entry.kind ?? "") !== "meta" &&
-        (entry.kind ?? "") !== "policy" &&
-        (entry.kind ?? "") !== "capability"
-      ) {
-        return true;
-      }
-      return compareBaseline === "current_draft" || changePlan?.publishedSnapshot != null;
-    });
-  }, [
-    changePlan?.diff?.entries,
-    changePlan?.publishedSnapshot,
-    compareBaseline,
-    compareSnapshot?.payload,
-  ]);
-  const changePlanApplyGates = changePlan?.applyGates ?? [];
-
-  const previewMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedModel || !draft) return null;
-      const payload = buildPatchPayload(selectedModel, draft);
-      if (Object.keys(payload).length === 0) return null;
-      const result = await getContentModelImpactPreview(props.projectId, selectedModel.id, payload);
-      return { payloadKey: stableValue(payload), result };
-    },
-    onSuccess: (value) => {
-      setSaveError(null);
-      setPreview(value?.result ?? null);
-      setPreviewPayloadKey(value?.payloadKey ?? null);
-      setCompareBaseline("current_draft");
-    },
-    onError: (error) => {
-      setSaveError(error instanceof Error ? error.message : "CONTENT_MODELS_SAVE_FAILED");
-      notifyError(error);
-    },
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedModel || !draft || !preview || !previewIsCurrent) {
-        throw new Error("CONTENT_MODELS_PREVIEW_REQUIRED");
-      }
-      const payload = buildPatchPayload(selectedModel, draft);
-      return patchContentModel(props.projectId, selectedModel.id, {
-        ...payload,
-        impactPreviewToken: preview.previewToken,
-      });
-    },
-    onSuccess: async (updatedModel) => {
-      setSaveError(null);
-      setPreview(null);
-      setPreviewPayloadKey(null);
-      setDraft(createDraft(updatedModel));
-      setConfirmApplyOpen(false);
-      await queryClient.invalidateQueries({
-        queryKey: buildContentModelsGovernanceQueryKey(props.projectId),
-      });
-    },
-    onError: (error) => {
-      setSaveError(error instanceof Error ? error.message : "CONTENT_MODELS_SAVE_FAILED");
-      notifyError(error);
-    },
-  });
-
-  const handleSelectModel = React.useCallback(
-    (nextModelId: string) => {
-      if (nextModelId === selectedModel?.id) return;
-      if (hasPendingChanges) {
-        setPendingModelId(nextModelId);
-        setSaveError("CONTENT_MODELS_UNSAVED_CHANGES");
-        return;
-      }
-      setSelectedModelId(nextModelId);
-    },
-    [hasPendingChanges, selectedModel?.id],
-  );
-
-  const discardPendingChanges = React.useCallback(() => {
-    if (!selectedModel) return;
-    setDraft(createDraft(selectedModel));
-    setPreview(null);
-    setPreviewPayloadKey(null);
-    setSaveError(null);
-    if (pendingModelId) {
-      setSelectedModelId(pendingModelId);
-      setPendingModelId(null);
-    }
-  }, [pendingModelId, selectedModel]);
-
-  const handleSaveClick = React.useCallback(() => {
-    setConfirmApplyOpen(true);
-  }, []);
 
   if (modelsQuery.isLoading) {
     return (
@@ -511,15 +352,7 @@ export function ContentModelsControlCenterPage(props: { projectId: string }) {
   if (modelsQuery.isError) {
     return (
       <DefaultPage title={t("CONTENT_MODELS_TITLE")} showFavoriteToggle={false}>
-        <div>{t("CONTENT_MODELS_EMPTY")}</div>
-      </DefaultPage>
-    );
-  }
-
-  if (!selectedModel || !draft || !selectedTypeLabel) {
-    return (
-      <DefaultPage title={t("CONTENT_MODELS_TITLE")} showFavoriteToggle={false}>
-        <div>{t("CONTENT_MODELS_EMPTY")}</div>
+        <div>{t("CONTENT_MODELS_ERROR")}</div>
       </DefaultPage>
     );
   }
@@ -527,25 +360,38 @@ export function ContentModelsControlCenterPage(props: { projectId: string }) {
   return (
     <DefaultPage title={t("CONTENT_MODELS_TITLE")} showFavoriteToggle={false}>
       <div
-        className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_340px]"
-        data-testid="content-models-governance-surface"
+        className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]"
+        data-testid="content-model-builder-surface"
       >
-        <aside className="rounded-[28px] border border-border/60 bg-card/60 p-4">
-          <div className="text-sm font-semibold text-foreground">
-            {t("CONTENT_MODELS_LIST_TITLE")}
+        <aside className="rounded-[28px] border border-border/60 bg-card/70 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-foreground">
+                {t("CONTENT_MODELS_LIST_TITLE")}
+              </div>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {t("CONTENT_MODELS_LIST_DESC")}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!canManageModels}
+              onClick={() => setCreateOpen(true)}
+            >
+              {t("CONTENT_MODELS_CREATE_ACTION")}
+            </Button>
           </div>
-          <div className="mt-1 text-sm text-muted-foreground">
-            {t("CONTENT_MODELS_PROTOCOL_LIST_DESC")}
-          </div>
+
           <div className="mt-4 grid gap-2">
             {models.map((model) => {
-              const active = model.id === selectedModel.id;
               const label = getContentTypeLabel({
                 modelKey: model.key,
                 fallbackName: model.name,
                 fallbackLabel: model.key,
                 t,
               });
+              const active = model.id === selectedModel?.id;
               return (
                 <button
                   key={model.id}
@@ -556,545 +402,374 @@ export function ContentModelsControlCenterPage(props: { projectId: string }) {
                       ? "border-border bg-background text-foreground"
                       : "border-border/60 bg-transparent text-muted-foreground hover:bg-muted/40"
                   }`}
-                  onClick={() => handleSelectModel(model.id)}
+                  onClick={() => {
+                    setSelectedModelId(model.id);
+                    setActiveTab("fields");
+                  }}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium">{label}</div>
-                    <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] uppercase tracking-[0.14em]">
-                      {t("CONTENT_MODELS_LOCKED_BADGE")}
+                    <span className="text-sm font-medium">{label}</span>
+                    <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px]">
+                      {modelKindLabel(t, model.modelKind ?? "collection_type")}
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">{model.key}</div>
                 </button>
               );
             })}
+            {models.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground">
+                {t("CONTENT_MODELS_EMPTY")}
+              </div>
+            ) : null}
           </div>
         </aside>
 
-        <section className="space-y-6">
-          <div className="rounded-[32px] border border-border/60 bg-card/70 p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  {t("CONTENT_MODELS_PROTOCOL_CANVAS_EYEBROW")}
+        {selectedModel && selectedLabel ? (
+          <section className="space-y-5">
+            <div className="rounded-[32px] border border-border/60 bg-card/70 p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    {modelKindLabel(t, selectedModel.modelKind ?? "collection_type")}
+                  </div>
+                  <h2 className="mt-2 text-2xl font-semibold text-foreground">{selectedLabel}</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                    {selectedDescription}
+                  </p>
                 </div>
-                <h2 className="text-2xl font-semibold text-foreground">{selectedTypeLabel}</h2>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  {selectedTypeDescription}
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <ModelFact label={t("CONTENT_MODELS_FIELD_MODEL_KEY")} value={selectedModel.key} />
-                <ModelFact
-                  label={t("CONTENT_MODELS_FIELD_PROTOCOL_VERSION")}
-                  value={String(selectedModel.protocolVersion ?? 1)}
-                />
-                <ModelFact
-                  label={t("CONTENT_MODELS_FIELD_BOUNDARY_SYSTEM")}
-                  value={String(systemFields.length)}
-                />
-                <ModelFact
-                  label={t("CONTENT_MODELS_FIELD_BOUNDARY_CUSTOM")}
-                  value={String(customFields.length)}
-                />
-                <ModelFact
-                  label={t("CONTENT_MODELS_FIELD_DEFAULT_EDITOR")}
-                  value={
-                    selectedModel.defaultEditor
-                      ? t(EDITOR_PRESENTATION[selectedModel.defaultEditor])
-                      : t("CONTENT_MODELS_OPTION_UNSET")
-                  }
-                />
-                <ModelFact
-                  label={t("CONTENT_MODELS_FIELD_SURFACE")}
-                  value={
-                    draft.defaultSurface
-                      ? t(SURFACE_PRESENTATION[draft.defaultSurface])
-                      : t("CONTENT_MODELS_OPTION_UNSET")
-                  }
-                />
-              </div>
-            </div>
-
-            <div
-              className="mt-6 grid gap-4 xl:grid-cols-2"
-              data-testid="content-models-governance-canvas"
-            >
-              <GovernancePanel
-                title={t("CONTENT_MODELS_GOVERNANCE_SYSTEM_TITLE")}
-                description={t("CONTENT_MODELS_GOVERNANCE_SYSTEM_DESC")}
-              >
-                <div className="grid gap-3">
-                  {systemFields.map((field) => (
-                    <CanvasNode
-                      key={field.key}
-                      title={field.label}
-                      description={`${field.key} · ${field.scalar}`}
-                    />
-                  ))}
-                </div>
-              </GovernancePanel>
-
-              <GovernancePanel
-                title={t("CONTENT_MODELS_GOVERNANCE_CUSTOM_TITLE")}
-                description={t("CONTENT_MODELS_GOVERNANCE_CUSTOM_DESC")}
-              >
-                <div className="grid gap-3">
-                  {customFields.length > 0 ? (
-                    customFields.map((field) => (
-                      <div
-                        key={field.key}
-                        className="rounded-2xl border border-border/60 bg-background px-4 py-4"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm font-medium text-foreground">{field.label}</div>
-                          <span className="text-xs text-muted-foreground">{field.scalar}</span>
-                        </div>
-                        <div className="mt-1 text-sm text-muted-foreground">{field.key}</div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
-                      {t("CONTENT_MODELS_EMPTY_BOUNDARY_CUSTOM")}
+                <div className="grid gap-3 text-sm sm:grid-cols-3">
+                  <div>
+                    <div className="text-muted-foreground">
+                      {t("CONTENT_MODELS_FIELD_MODEL_KEY")}
                     </div>
-                  )}
+                    <div className="mt-1 font-medium text-foreground">{selectedModel.key}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">{t("CONTENT_MODELS_FIELD_COUNT")}</div>
+                    <div className="mt-1 font-medium text-foreground">{fields.length}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">{t("CONTENT_MODELS_REVISION")}</div>
+                    <div className="mt-1 font-medium text-foreground">
+                      {selectedModel.draftContractRevision ?? 1}
+                    </div>
+                  </div>
                 </div>
-              </GovernancePanel>
-            </div>
-          </div>
+              </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="space-y-6">
-              <GovernancePanel
-                title={t("CONTENT_MODELS_SECTION_CAPABILITIES_TITLE")}
-                description={t("CONTENT_MODELS_SECTION_CAPABILITIES_DESC")}
+              <div
+                className="mt-6 flex flex-wrap gap-2"
+                role="tablist"
+                aria-label={t("CONTENT_MODELS_TABS_LABEL")}
+              >
+                {availableTabs.map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === tab}
+                    className={`rounded-full border px-3 py-1.5 text-sm ${
+                      activeTab === tab
+                        ? "border-border bg-background text-foreground"
+                        : "border-border/60 text-muted-foreground hover:bg-muted/40"
+                    }`}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {tabLabel(t, tab)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {!canManageModels ? (
+              <AccessNoticeAlert description={t("CONTENT_MODELS_NO_ACCESS_DESC")} />
+            ) : null}
+
+            {activeTab === "fields" ? (
+              <Panel
+                title={t("CONTENT_MODELS_FIELDS_TITLE")}
+                description={t("CONTENT_MODELS_FIELDS_DESC")}
               >
                 <div className="grid gap-3">
-                  {selectedModel.capabilities.map((capability) => (
+                  {fields.map((field) => (
                     <div
-                      key={capability}
-                      className="rounded-2xl border border-border/60 bg-background px-4 py-4"
+                      key={field.key}
+                      className="grid gap-3 rounded-2xl border border-border/60 bg-background px-4 py-4 lg:grid-cols-[1fr_auto]"
                     >
-                      <div className="text-sm font-medium text-foreground">
-                        {t(CAPABILITY_PRESENTATION[capability].labelKey)}
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{field.label}</div>
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          {field.key} · {field.scalar}
+                          {field.required ? ` · ${t("CONTENT_MODELS_FIELD_REQUIRED")}` : ""}
+                        </div>
+                        {field.config ? (
+                          <pre className="mt-3 overflow-x-auto text-xs leading-5 text-muted-foreground">
+                            {JSON.stringify(field.config, null, 2)}
+                          </pre>
+                        ) : null}
                       </div>
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        {t(CAPABILITY_PRESENTATION[capability].descriptionKey)}
+                      <div className="flex flex-wrap items-start gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={!canManageModels || field.required}
+                          onClick={() => updateFieldMutation.mutate({ fieldKey: field.key })}
+                        >
+                          {t("CONTENT_MODELS_FIELD_MARK_REQUIRED")}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={!canManageModels}
+                          onClick={() => reorderFieldMutation.mutate({ fieldKey: field.key })}
+                        >
+                          {t("CONTENT_MODELS_FIELD_MOVE_UP")}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={!canManageModels}
+                          onClick={() => deleteFieldMutation.mutate({ fieldKey: field.key })}
+                        >
+                          {t("CONTENT_MODELS_FIELD_DELETE")}
+                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
-              </GovernancePanel>
 
-              <GovernancePanel
-                title={t("CONTENT_MODELS_GOVERNANCE_WORKFLOW_TITLE")}
-                description={t("CONTENT_MODELS_GOVERNANCE_WORKFLOW_DESC")}
-              >
-                <div className="grid gap-4">
-                  <GovernanceBadgeList
-                    values={workflowCapabilities}
-                    emptyLabel={t("CONTENT_MODELS_EMPTY_GOVERNANCE_WORKFLOW")}
+                <div className="mt-6 grid gap-3 rounded-2xl border border-border/60 bg-background p-4 lg:grid-cols-[1fr_1fr_160px_120px_190px_auto]">
+                  <Input
+                    aria-label={t("CONTENT_MODELS_FIELD_KEY")}
+                    placeholder={t("CONTENT_MODELS_FIELD_KEY")}
+                    value={fieldForm.key}
+                    onChange={(event) =>
+                      setFieldForm((current) => ({ ...current, key: event.target.value }))
+                    }
                   />
-                  <PolicyBlock
-                    title={t("CONTENT_MODELS_FIELD_WORKFLOW_POLICY")}
-                    value={contractRegistry?.workflowPolicy}
-                    emptyLabel={t("CONTENT_MODELS_EMPTY_POLICY")}
+                  <Input
+                    aria-label={t("CONTENT_MODELS_FIELD_LABEL")}
+                    placeholder={t("CONTENT_MODELS_FIELD_LABEL")}
+                    value={fieldForm.label}
+                    onChange={(event) =>
+                      setFieldForm((current) => ({ ...current, label: event.target.value }))
+                    }
                   />
-                </div>
-              </GovernancePanel>
-
-              <GovernancePanel
-                title={t("CONTENT_MODELS_GOVERNANCE_DELIVERY_TITLE")}
-                description={t("CONTENT_MODELS_GOVERNANCE_DELIVERY_DESC")}
-              >
-                <div className="grid gap-4">
-                  <GovernanceBadgeList
-                    values={deliveryCapabilities}
-                    emptyLabel={t("CONTENT_MODELS_EMPTY_GOVERNANCE_DELIVERY")}
-                  />
-                  <PolicyBlock
-                    title={t("CONTENT_MODELS_FIELD_DELIVERY_POLICY")}
-                    value={contractRegistry?.deliveryPolicy}
-                    emptyLabel={t("CONTENT_MODELS_EMPTY_POLICY")}
-                  />
-                </div>
-              </GovernancePanel>
-
-              <GovernancePanel
-                title={t("CONTENT_MODELS_GOVERNANCE_GRAPHQL_TITLE")}
-                description={t("CONTENT_MODELS_GOVERNANCE_GRAPHQL_DESC")}
-              >
-                <div className="grid gap-4">
-                  <GovernanceBadgeList
-                    values={graphqlCapabilities}
-                    emptyLabel={t("CONTENT_MODELS_EMPTY_GOVERNANCE_GRAPHQL")}
-                  />
-                  <PolicyBlock
-                    title={t("CONTENT_MODELS_FIELD_GRAPHQL_POLICY")}
-                    value={contractRegistry?.graphqlPolicy}
-                    emptyLabel={t("CONTENT_MODELS_EMPTY_POLICY")}
-                  />
-                </div>
-              </GovernancePanel>
-            </div>
-
-            <div className="space-y-6">
-              {!canManageModels ? (
-                <AccessNoticeAlert description={t("CONTENT_MODELS_NO_ACCESS_DESC")} />
-              ) : null}
-
-              <GovernancePanel
-                title={t("CONTENT_MODELS_SECTION_DEFAULTS_TITLE")}
-                description={t("CONTENT_MODELS_SECTION_EXTENSIONS_DESC")}
-              >
-                <div className="grid gap-4">
-                  <label className="grid gap-2 text-sm">
-                    <span className="font-medium text-foreground">
-                      {t("CONTENT_MODELS_FIELD_ROLE")}
-                    </span>
-                    <select
-                      aria-label={t("CONTENT_MODELS_FIELD_ROLE")}
-                      className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
-                      value={draft.defaultRole ?? ""}
-                      disabled={!canManageModels}
+                  <select
+                    aria-label={t("CONTENT_MODELS_FIELD_SCALAR")}
+                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={fieldForm.scalar}
+                    onChange={(event) =>
+                      setFieldForm((current) => ({
+                        ...current,
+                        scalar: event.target.value as AdminContentModelFieldScalar,
+                      }))
+                    }
+                  >
+                    {FIELD_SCALAR_OPTIONS.map((scalar) => (
+                      <option key={scalar} value={scalar}>
+                        {scalar}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={fieldForm.required}
                       onChange={(event) =>
-                        setDraft((current) =>
-                          current
-                            ? {
-                                ...current,
-                                defaultRole: event.target.value
-                                  ? (event.target.value as AdminContentContinuationRole)
-                                  : null,
-                              }
-                            : current,
-                        )
+                        setFieldForm((current) => ({ ...current, required: event.target.checked }))
                       }
-                    >
-                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                      {CONTINUATION_ROLE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {t(ROLE_PRESENTATION[option])}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="grid gap-2 text-sm">
-                    <span className="font-medium text-foreground">
-                      {t("CONTENT_MODELS_FIELD_POSTURE")}
-                    </span>
-                    <select
-                      aria-label={t("CONTENT_MODELS_FIELD_POSTURE")}
-                      className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
-                      value={draft.defaultPosture ?? ""}
-                      disabled={!canManageModels}
-                      onChange={(event) =>
-                        setDraft((current) =>
-                          current
-                            ? {
-                                ...current,
-                                defaultPosture: event.target.value
-                                  ? (event.target.value as AdminContentContinuationPosture)
-                                  : null,
-                              }
-                            : current,
-                        )
-                      }
-                    >
-                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                      {CONTINUATION_POSTURE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {t(POSTURE_PRESENTATION[option])}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="grid gap-2 text-sm">
-                    <span className="font-medium text-foreground">
-                      {t("CONTENT_MODELS_FIELD_SURFACE")}
-                    </span>
-                    <select
-                      aria-label={t("CONTENT_MODELS_FIELD_SURFACE")}
-                      className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
-                      value={draft.defaultSurface ?? ""}
-                      disabled={!canManageModels}
-                      onChange={(event) =>
-                        setDraft((current) =>
-                          current
-                            ? {
-                                ...current,
-                                defaultSurface: event.target.value
-                                  ? (event.target.value as AdminContentContinuationSurface)
-                                  : null,
-                              }
-                            : current,
-                        )
-                      }
-                    >
-                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                      {CONTINUATION_SURFACE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {t(SURFACE_PRESENTATION[option])}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="grid gap-2 text-sm">
-                    <span className="font-medium text-foreground">
-                      {t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
-                    </span>
-                    <textarea
-                      value={draft.starterPackPolicyText}
-                      disabled={!canManageModels}
-                      onChange={(event) =>
-                        setDraft((current) =>
-                          current
-                            ? {
-                                ...current,
-                                starterPackPolicyText: event.target.value,
-                              }
-                            : current,
-                        )
-                      }
-                      className="min-h-36 rounded-2xl border border-border/70 bg-background px-3 py-3 font-mono text-sm"
                     />
+                    {t("CONTENT_MODELS_FIELD_REQUIRED")}
                   </label>
+                  <select
+                    aria-label={t("CONTENT_MODELS_FIELD_CONFIG_KIND")}
+                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={fieldForm.configKind}
+                    onChange={(event) =>
+                      setFieldForm((current) => ({
+                        ...current,
+                        configKind: event.target.value as FieldConfigKind,
+                      }))
+                    }
+                  >
+                    <option value="plain">{t("CONTENT_MODELS_FIELD_CONFIG_PLAIN")}</option>
+                    <option value="media">{t("CONTENT_MODELS_FIELD_CONFIG_MEDIA")}</option>
+                    <option value="component">{t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT")}</option>
+                    <option value="dynamic_zone">
+                      {t("CONTENT_MODELS_FIELD_CONFIG_DYNAMIC_ZONE")}
+                    </option>
+                  </select>
+                  <Button
+                    type="button"
+                    disabled={!canManageModels || !fieldForm.key.trim() || !fieldForm.label.trim()}
+                    onClick={() => addFieldMutation.mutate()}
+                  >
+                    {t("CONTENT_MODELS_FIELD_ADD")}
+                  </Button>
                 </div>
-              </GovernancePanel>
-            </div>
-          </div>
-        </section>
+              </Panel>
+            ) : null}
 
-        <aside className="space-y-4 rounded-[28px] border border-border/60 bg-card/60 p-5">
-          <div>
-            <div className="text-sm font-semibold text-foreground">
-              {t("CONTENT_MODELS_INSPECTOR_TITLE")}
-            </div>
-            <div className="mt-1 text-sm text-muted-foreground">
-              {t("CONTENT_MODELS_INSPECTOR_DESC")}
-            </div>
+            {activeTab === "details" ? (
+              <Panel
+                title={t("CONTENT_MODELS_DETAILS_TITLE")}
+                description={t("CONTENT_MODELS_DETAILS_DESC")}
+              >
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <div className="text-xs text-muted-foreground">
+                      {t("CONTENT_MODELS_FIELD_NAME")}
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-foreground">
+                      {selectedModel.name}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">
+                      {t("CONTENT_MODELS_FIELD_DESCRIPTION")}
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-foreground">
+                      {selectedModel.description || t("CONTENT_MODELS_OPTION_UNSET")}
+                    </div>
+                  </div>
+                </div>
+              </Panel>
+            ) : null}
+
+            {activeTab === "json" ? (
+              <Panel
+                title={t("CONTENT_MODELS_JSON_TITLE")}
+                description={t("CONTENT_MODELS_JSON_DESC")}
+              >
+                <Button type="button" variant="secondary" onClick={() => previewMutation.mutate()}>
+                  {t("CONTENT_MODELS_JSON_REFRESH")}
+                </Button>
+                <pre className="mt-4 max-h-[520px] overflow-auto rounded-2xl border border-border/60 bg-background p-4 text-xs leading-5">
+                  {JSON.stringify(jsonPreview?.payload ?? selectedModel.fieldSchema ?? {}, null, 2)}
+                </pre>
+              </Panel>
+            ) : null}
+
+            {activeTab !== "fields" && activeTab !== "details" && activeTab !== "json" ? (
+              <Panel
+                title={tabLabel(t, activeTab)}
+                description={t("CONTENT_MODELS_RESERVED_TAB_DESC")}
+              >
+                <div className="text-sm text-muted-foreground">
+                  {t("CONTENT_MODELS_RESERVED_TAB_BODY")}
+                </div>
+              </Panel>
+            ) : null}
+          </section>
+        ) : (
+          <section className="rounded-[32px] border border-dashed border-border/70 bg-card/50 p-10 text-sm text-muted-foreground">
+            {t("CONTENT_MODELS_EMPTY")}
+          </section>
+        )}
+      </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent data-testid="content-model-create-dialog">
+          <DialogHeader>
+            <DialogTitle>{t("CONTENT_MODELS_CREATE_TITLE")}</DialogTitle>
+            <DialogDescription>{t("CONTENT_MODELS_CREATE_DESC")}</DialogDescription>
+          </DialogHeader>
+
+          <div
+            className="flex gap-2"
+            role="tablist"
+            aria-label={t("CONTENT_MODELS_CREATE_MODE_LABEL")}
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={createTab === "manual"}
+              className="rounded-full border border-border bg-background px-3 py-1.5 text-sm"
+              onClick={() => setCreateTab("manual")}
+            >
+              {t("CONTENT_MODELS_CREATE_MANUAL_TAB")}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={createTab === "ai"}
+              className="rounded-full border border-border/60 px-3 py-1.5 text-sm text-muted-foreground"
+              onClick={() => setCreateTab("ai")}
+            >
+              {t("CONTENT_MODELS_CREATE_AI_TAB")}
+            </button>
           </div>
 
-          {preview ? (
+          {createTab === "manual" ? (
             <div className="grid gap-3">
-              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                <ImpactMetric
-                  label={t("CONTENT_MODELS_PREVIEW_AFFECTED")}
-                  value={preview.affectedItemsCount}
-                />
-                <ImpactMetric
-                  label={t("CONTENT_MODELS_PREVIEW_RECOVERY")}
-                  value={preview.recoveryItemsCount}
-                />
-                <ImpactMetric
-                  label={t("CONTENT_MODELS_PREVIEW_RESHAPE")}
-                  value={preview.reshapeItemsCount}
-                />
-              </div>
-              <div className="rounded-2xl border border-border/60 bg-background px-4 py-4 text-sm text-muted-foreground">
-                {preview.hasBlockingChanges
-                  ? t("CONTENT_MODELS_PREVIEW_BLOCKING")
-                  : t("CONTENT_MODELS_PREVIEW_READY")}
-              </div>
-
-              {hasStalePreview ? (
-                <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-4 text-sm text-amber-700">
-                  {t("CONTENT_MODELS_PREVIEW_STALE")}
-                </div>
-              ) : null}
-
-              {changePlan ? (
-                <div className="grid gap-3">
-                  <div className="rounded-2xl border border-border/60 bg-background px-4 py-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                        {t("CONTENT_MODELS_CHANGE_PLAN_REVISION_TITLE")}
-                      </div>
-                      <div className="inline-flex rounded-full border border-border/60 bg-card/60 p-1">
-                        <button
-                          type="button"
-                          className={`rounded-full px-3 py-1 text-[11px] font-medium ${
-                            compareBaseline === "current_draft"
-                              ? "bg-background text-foreground"
-                              : "text-muted-foreground"
-                          }`}
-                          onClick={() => setCompareBaseline("current_draft")}
-                        >
-                          {t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_CURRENT")}
-                        </button>
-                        <button
-                          type="button"
-                          className={`rounded-full px-3 py-1 text-[11px] font-medium ${
-                            compareBaseline === "published"
-                              ? "bg-background text-foreground"
-                              : "text-muted-foreground"
-                          }`}
-                          onClick={() => setCompareBaseline("published")}
-                          disabled={!changePlan.publishedSnapshot}
-                        >
-                          {t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_PUBLISHED")}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-3 grid gap-3">
-                      <ModelFact
-                        label={t("CONTENT_MODELS_CHANGE_PLAN_CURRENT_REVISION")}
-                        value={String(changePlan.revisions?.currentDraftRevision ?? 1)}
-                      />
-                      <ModelFact
-                        label={t("CONTENT_MODELS_CHANGE_PLAN_NEXT_REVISION")}
-                        value={String(changePlan.revisions?.nextDraftRevision ?? 1)}
-                      />
-                      <ModelFact
-                        label={compareLabel}
-                        value={
-                          compareSnapshot?.revision != null
-                            ? String(compareSnapshot.revision)
-                            : t("CONTENT_MODELS_CHANGE_PLAN_UNPUBLISHED")
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/60 bg-background px-4 py-4">
-                    <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                      {t("CONTENT_MODELS_CHANGE_PLAN_GATE_TITLE")}
-                    </div>
-                    <div className="mt-3 grid gap-3">
-                      {changePlanApplyGates.map((gate) => (
-                        <div
-                          key={gate.code}
-                          className={`rounded-2xl border px-4 py-4 ${statusTone(
-                            gate.status ?? "review",
-                          )}`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm font-medium">{gate.title}</div>
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">
-                              {gate.status}
-                            </span>
-                          </div>
-                          <div className="mt-2 text-sm leading-6">{gate.detail}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/60 bg-background px-4 py-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                        {t("CONTENT_MODELS_CHANGE_PLAN_DIFF_TITLE")}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {changePlan.diff?.breakingChangeCount ?? 0}{" "}
-                        {t("CONTENT_MODELS_PREVIEW_BREAKING")}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {t("CONTENT_MODELS_CHANGE_PLAN_COMPARE_HINT", { baseline: compareLabel })}
-                    </div>
-                    <div className="mt-3 grid gap-3">
-                      {changePlanDiffEntries.length > 0 ? (
-                        changePlanDiffEntries.map((entry) => (
-                          <div
-                            key={`${entry.target}-${entry.operation}`}
-                            className="rounded-2xl border border-border/60 bg-card/60 px-4 py-4"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-medium text-foreground">
-                                {entry.summary}
-                              </div>
-                              <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                                {entry.operation}
-                              </span>
-                            </div>
-                            <div className="mt-2 text-xs text-muted-foreground">{entry.target}</div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 px-4 py-4 text-sm text-muted-foreground">
-                          {t("CONTENT_MODELS_CHANGE_PLAN_DIFF_EMPTY")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+              <Input
+                aria-label={t("CONTENT_MODELS_FIELD_KEY")}
+                placeholder={t("CONTENT_MODELS_FIELD_KEY")}
+                value={createForm.key}
+                onChange={(event) =>
+                  setCreateForm((current) => ({ ...current, key: event.target.value }))
+                }
+              />
+              <Input
+                aria-label={t("CONTENT_MODELS_FIELD_NAME")}
+                placeholder={t("CONTENT_MODELS_FIELD_NAME")}
+                value={createForm.name}
+                onChange={(event) =>
+                  setCreateForm((current) => ({ ...current, name: event.target.value }))
+                }
+              />
+              <Textarea
+                aria-label={t("CONTENT_MODELS_FIELD_DESCRIPTION")}
+                placeholder={t("CONTENT_MODELS_FIELD_DESCRIPTION")}
+                value={createForm.description}
+                onChange={(event) =>
+                  setCreateForm((current) => ({ ...current, description: event.target.value }))
+                }
+              />
+              <select
+                aria-label={t("CONTENT_MODELS_FIELD_MODEL_KIND")}
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={createForm.modelKind}
+                onChange={(event) =>
+                  setCreateForm((current) => ({
+                    ...current,
+                    modelKind: event.target.value as AdminContentModelKind,
+                  }))
+                }
+              >
+                {MODEL_KIND_OPTIONS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {modelKindLabel(t, kind)}
+                  </option>
+                ))}
+              </select>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
-              {t("CONTENT_MODELS_INSPECTOR_EMPTY")}
+            <div className="rounded-2xl border border-border/60 bg-background p-4 text-sm text-muted-foreground">
+              {t("CONTENT_MODELS_CREATE_AI_UNAVAILABLE")}
             </div>
           )}
 
-          {saveError ? (
-            <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-4 text-sm text-destructive">
-              {t(saveError)}
-              {pendingModelId ? (
-                <div className="mt-3">
-                  <Button variant="ghost" size="sm" onClick={discardPendingChanges}>
-                    {t("CONTENT_MODELS_DISCARD_ACTION")}
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="grid gap-3">
-            <button
-              type="button"
-              className="h-11 rounded-xl border border-border/70 bg-background px-4 text-sm font-medium text-foreground disabled:opacity-60"
-              disabled={!canManageModels || !hasPendingChanges || previewMutation.isPending}
-              onClick={() => previewMutation.mutate()}
-            >
-              {previewMutation.isPending
-                ? t("CONTENT_MODELS_PREVIEW_PENDING")
-                : t("CONTENT_MODELS_PREVIEW_ACTION")}
-            </button>
-            <button
-              type="button"
-              className="h-11 rounded-xl bg-foreground px-4 text-sm font-medium text-background disabled:opacity-60"
-              disabled={
-                !canManageModels ||
-                !hasPendingChanges ||
-                !previewIsCurrent ||
-                preview?.hasBlockingChanges === true ||
-                saveMutation.isPending
-              }
-              onClick={handleSaveClick}
-            >
-              {saveMutation.isPending
-                ? t("CONTENT_MODELS_SAVE_PENDING")
-                : t("CONTENT_MODELS_SAVE_ACTION")}
-            </button>
-          </div>
-        </aside>
-      </div>
-
-      <Dialog open={confirmApplyOpen} onOpenChange={setConfirmApplyOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("CONTENT_MODELS_APPLY_CONFIRM_TITLE")}</DialogTitle>
-            <DialogDescription asChild>
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <p>{t("CONTENT_MODELS_APPLY_CONFIRM_DESC")}</p>
-                <p>
-                  {t("CONTENT_MODELS_APPLY_CONFIRM_IMPACT", {
-                    affected: preview?.affectedItemsCount ?? 0,
-                    breaking: changePlan?.diff?.breakingChangeCount ?? 0,
-                  })}
-                </p>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmApplyOpen(false)}>
-              {t("CONTENT_MODELS_APPLY_CONFIRM_CANCEL")}
+            <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>
+              {t("CONTENT_MODELS_CANCEL_ACTION")}
             </Button>
-            <Button onClick={() => saveMutation.mutate()}>
-              {t("CONTENT_MODELS_APPLY_CONFIRM_OK")}
+            <Button
+              type="button"
+              disabled={
+                createTab !== "manual" ||
+                !createForm.key.trim() ||
+                !createForm.name.trim() ||
+                createMutation.isPending
+              }
+              onClick={() => createMutation.mutate()}
+            >
+              {t("CONTENT_MODELS_CREATE_CONFIRM")}
             </Button>
           </DialogFooter>
         </DialogContent>

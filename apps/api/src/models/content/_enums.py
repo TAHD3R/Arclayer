@@ -89,14 +89,9 @@ class ContentVersionState(StrEnum):
 
 
 class ContentModelKind(StrEnum):
-    PAGE = "page"
-    POST = "post"
-    TEMPLATE = "template"
-    BLOCK = "block"
-    MENU = "menu"
-    VIEW = "view"
+    COLLECTION_TYPE = "collection_type"
+    SINGLE_TYPE = "single_type"
     COMPONENT = "component"
-    CUSTOM = "custom"
 
 
 class ContentPresentationKind(StrEnum):

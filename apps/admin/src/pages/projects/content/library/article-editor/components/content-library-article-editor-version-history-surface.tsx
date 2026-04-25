@@ -1,9 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
-import { HistoryIcon } from "lucide-react";
+import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { GitCompareIcon, HistoryIcon, RotateCcwIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import {
+  compareContentItemVersions,
+  restoreContentItemVersion,
+  type AdminContentVersionCompare,
+} from "@/api/content";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import {
+  buildContentLibraryItemsQueryKey,
   buildContentLibraryVersionHistoryQueryKey,
   loadContentLibraryVersionHistory,
 } from "@/pages/projects/content/library/runtime";
@@ -26,9 +34,39 @@ function VersionHistoryList(props: {
   items: AdminContentVersion[];
   loading: boolean;
   projectId: string;
+  itemId: string;
 }) {
   const { t } = useTranslation("content");
   const dateTime = useAdminDateTimeFormatter({ projectId: props.projectId });
+  const queryClient = useQueryClient();
+  const [compareResult, setCompareResult] = React.useState<AdminContentVersionCompare | null>(null);
+  const compareMutation = useMutation({
+    mutationFn: async (item: AdminContentVersion) =>
+      compareContentItemVersions(
+        props.projectId,
+        props.itemId,
+        Math.max(1, item.versionNumber - 1),
+        item.versionNumber,
+      ),
+    onSuccess: (data) => setCompareResult(data),
+    onError: (error) => notifyError(error),
+  });
+  const restoreMutation = useMutation({
+    mutationFn: async (item: AdminContentVersion) =>
+      restoreContentItemVersion(props.projectId, props.itemId, item.versionNumber),
+    onSuccess: async () => {
+      notifySuccessText(t("CONTENT_LIBRARY_EDITOR_VERSION_RESTORE_SUCCESS"));
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: buildContentLibraryVersionHistoryQueryKey(props.projectId, props.itemId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: buildContentLibraryItemsQueryKey(props.projectId),
+        }),
+      ]);
+    },
+    onError: (error) => notifyError(error),
+  });
 
   if (props.loading) {
     return (
@@ -84,6 +122,35 @@ function VersionHistoryList(props: {
           <div className="mt-3 text-footnote text-label-primary">
             {item.changeSummary || t("CONTENT_LIBRARY_EDITOR_VERSION_HISTORY_NO_SUMMARY")}
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={item.versionNumber <= 1 || compareMutation.isPending}
+              onClick={() => compareMutation.mutate(item)}
+            >
+              <GitCompareIcon className="size-4" />
+              {t("CONTENT_LIBRARY_EDITOR_VERSION_COMPARE")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={restoreMutation.isPending}
+              onClick={() => restoreMutation.mutate(item)}
+            >
+              <RotateCcwIcon className="size-4" />
+              {t("CONTENT_LIBRARY_EDITOR_VERSION_RESTORE")}
+            </Button>
+          </div>
+          {compareResult?.targetVersionNumber === item.versionNumber ? (
+            <div className="mt-3 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-footnote text-label-secondary">
+              {t("CONTENT_LIBRARY_EDITOR_VERSION_COMPARE_CHANGES", {
+                count: compareResult.changes.length,
+              })}
+            </div>
+          ) : null}
         </article>
       ))}
     </div>
@@ -108,6 +175,7 @@ export function ContentLibraryArticleEditorVersionHistorySurface(props: {
     <VersionHistoryList
       items={versionsQuery.data?.items ?? []}
       loading={versionsQuery.isLoading}
+      itemId={props.itemId}
       projectId={props.projectId}
     />
   );

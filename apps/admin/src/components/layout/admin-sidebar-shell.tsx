@@ -166,6 +166,7 @@ function AdminSidebarTopTabs(props: {
         kind: "none",
         pathname: "/",
         workspaceId: null,
+        projectId: null,
         organizationId: null,
       } as const),
   });
@@ -315,7 +316,7 @@ function AdminSidebarTopTabs(props: {
                         onSelect={() => handleProjectSelect(project.projectId)}
                       >
                         <div className="min-w-0">
-                          <div className="truncate text-callout font-medium text-label-primary">
+                          <div className="truncate text-callout font-semibold text-label-primary">
                             {project.name}
                           </div>
                           <div className="truncate text-caption text-label-secondary">

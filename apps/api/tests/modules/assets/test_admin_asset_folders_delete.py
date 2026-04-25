@@ -11,13 +11,13 @@ from src.modules.assets.scope import AssetScope
 def test_admin_assets_router_exposes_folder_delete_endpoint() -> None:
     from fastapi.routing import APIRoute
 
-    from src.modules.assets.admin.assets.router import router
+    from src.modules.projects.assets.router import router
 
     routes = [r for r in router.routes if isinstance(r, APIRoute)]
     paths = {(r.path, tuple(sorted(r.methods or []))) for r in routes}
 
-    assert ("/workspaces/{workspace_id}/asset-folders/{folder_id}", ("DELETE",)) in paths
-    assert ("/workspaces/{workspace_id}/asset-folders/{folder_id}/delete", ("POST",)) in paths
+    assert ("/projects/{project_id}/asset-folders/{folder_id}", ("DELETE",)) in paths
+    assert ("/projects/{project_id}/asset-folders/{folder_id}/delete", ("POST",)) in paths
 
 
 @pytest.mark.asyncio

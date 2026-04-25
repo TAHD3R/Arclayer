@@ -102,7 +102,6 @@ describe("content-library-utils", () => {
         query: "home",
         filters: { modelKey: "page", role: "page", editWith: "canvas" },
         sorting: [{ id: "updatedAt", desc: true }],
-        viewMode: "table",
         columns: { order: ["name", "status"] },
         visibility: "private",
         pinned: true,
@@ -115,7 +114,6 @@ describe("content-library-utils", () => {
         query: "launch",
         filters: { modelKey: "article", role: "article", editWith: "writing" },
         sorting: [],
-        viewMode: "card",
         columns: undefined,
         visibility: "workspace",
         pinned: false,
@@ -129,7 +127,6 @@ describe("content-library-utils", () => {
         name: "Draft pages",
         pinned: true,
         filters: { role: "page", editWith: "canvas" },
-        viewMode: "table",
         columns: { order: ["name", "status"] },
       },
       {
@@ -137,7 +134,6 @@ describe("content-library-utils", () => {
         name: "Published articles",
         pinned: false,
         filters: { role: "article", editWith: "writing" },
-        viewMode: "card",
         columns: undefined,
       },
     ]);

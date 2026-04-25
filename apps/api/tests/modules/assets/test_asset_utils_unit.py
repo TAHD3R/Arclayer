@@ -19,25 +19,37 @@ def test_slugify_falls_back_when_empty() -> None:
     assert slugify("   ") == "asset"
 
 
-def test_build_asset_object_key_contains_workspace_and_asset_id() -> None:
-    from src.modules.assets.naming.service import build_asset_object_key
+def test_build_scoped_asset_object_key_contains_project_and_asset_id() -> None:
+    from src.common.constants.assets import ASSET_SCOPE_PROJECT
+    from src.modules.assets.naming.service import build_scoped_asset_object_key
 
-    workspace_id = UUID("00000000-0000-0000-0000-000000000001")
+    project_id = UUID("00000000-0000-0000-0000-000000000001")
     asset_id = UUID("00000000-0000-0000-0000-000000000002")
-    key = build_asset_object_key(workspace_id=workspace_id, asset_id=asset_id, ext="png")
-    assert str(workspace_id) in key
+    key = build_scoped_asset_object_key(
+        scope=ASSET_SCOPE_PROJECT,
+        scope_id=project_id,
+        asset_id=asset_id,
+        ext="png",
+    )
+    assert str(project_id) in key
     assert str(asset_id) in key
     assert key.endswith(".png")
 
 
-def test_build_upload_part_object_key_is_stable() -> None:
-    from src.modules.assets.naming.service import build_upload_part_object_key
+def test_build_scoped_upload_part_object_key_is_stable() -> None:
+    from src.common.constants.assets import ASSET_SCOPE_PROJECT
+    from src.modules.assets.naming.service import build_scoped_upload_part_object_key
 
-    workspace_id = UUID("00000000-0000-0000-0000-000000000001")
+    project_id = UUID("00000000-0000-0000-0000-000000000001")
     upload_id = UUID("00000000-0000-0000-0000-000000000003")
     assert (
-        build_upload_part_object_key(workspace_id=workspace_id, upload_id=upload_id, part_number=1)
-        == "workspaces/00000000-0000-0000-0000-000000000001/uploads/00000000-0000-0000-0000-000000000003/part-000001"
+        build_scoped_upload_part_object_key(
+            scope=ASSET_SCOPE_PROJECT,
+            scope_id=project_id,
+            upload_id=upload_id,
+            part_number=1,
+        )
+        == "projects/00000000-0000-0000-0000-000000000001/uploads/00000000-0000-0000-0000-000000000003/part-000001"
     )
 
 

@@ -11,6 +11,7 @@ from src.common.utils.public_ids import decode_public_id, encode_uuid
 from src.config import get_settings
 from src.core.registry import create_app
 from src.modules.auth.http.service import get_current_user
+from tests.utils.project_context import project_id_for_workspace
 
 pytestmark = pytest.mark.integration
 
@@ -76,8 +77,9 @@ async def test_uploads_resumable_flow(prepared_db, tmp_path: Path, monkeypatch) 
         total = len(part1) + len(part2)
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
+            project_id = await project_id_for_workspace(client, ws_pid)
             init = await client.post(
-                f"/api/v1/workspaces/{ws_pid}/uploads/init",
+                f"/api/v1/projects/{project_id}/uploads/init",
                 json={
                     "purpose": "avatar",
                     "filename": "demo.png",
@@ -91,35 +93,36 @@ async def test_uploads_resumable_flow(prepared_db, tmp_path: Path, monkeypatch) 
             assert upload["chunkSize"] == 1024 * 1024
             assert upload["totalParts"] == 2
 
-            status = await client.get(f"/api/v1/workspaces/{ws_pid}/uploads/{upload_id}")
+            status = await client.get(f"/api/v1/projects/{project_id}/uploads/{upload_id}")
             assert status.status_code == 200
             assert status.json()["data"]["missingParts"] == [1, 2]
 
             resp = await client.put(
-                f"/api/v1/workspaces/{ws_pid}/uploads/{upload_id}/parts/1",
+                f"/api/v1/projects/{project_id}/uploads/{upload_id}/parts/1",
                 headers={"Content-Length": str(len(part1))},
                 content=part1,
             )
             assert resp.status_code == 200
 
-            status = await client.get(f"/api/v1/workspaces/{ws_pid}/uploads/{upload_id}")
+            status = await client.get(f"/api/v1/projects/{project_id}/uploads/{upload_id}")
             assert status.status_code == 200
             assert status.json()["data"]["missingParts"] == [2]
 
             resp = await client.put(
-                f"/api/v1/workspaces/{ws_pid}/uploads/{upload_id}/parts/2",
+                f"/api/v1/projects/{project_id}/uploads/{upload_id}/parts/2",
                 headers={"Content-Length": str(len(part2))},
                 content=part2,
             )
             assert resp.status_code == 200
 
-            complete = await client.post(f"/api/v1/workspaces/{ws_pid}/uploads/{upload_id}/complete")
+            complete = await client.post(f"/api/v1/projects/{project_id}/uploads/{upload_id}/complete")
             assert complete.status_code == 200
             asset_pid = complete.json()["data"]["assetId"]
             asset_uuid = decode_public_id(asset_pid)
+            project_uuid = decode_public_id(project_id)
 
             # Idempotent complete returns the same asset id.
-            complete2 = await client.post(f"/api/v1/workspaces/{ws_pid}/uploads/{upload_id}/complete")
+            complete2 = await client.post(f"/api/v1/projects/{project_id}/uploads/{upload_id}/complete")
             assert complete2.status_code == 200
             assert complete2.json()["data"]["assetId"] == asset_pid
 
@@ -129,12 +132,20 @@ async def test_uploads_resumable_flow(prepared_db, tmp_path: Path, monkeypatch) 
         asset = await AssetRecord.get_or_none(id=asset_uuid)
         assert asset is not None
         assert asset.owner_user_id == user.id
+        assert asset.project_id == project_uuid
+        assert asset.workspace_id is None
 
         # Verify file content on disk (local provider).
-        from src.modules.assets.naming.service import build_asset_object_key
+        from src.common.constants.assets import ASSET_SCOPE_PROJECT
+        from src.modules.assets.naming.service import build_scoped_asset_object_key
         from src.platform.storage.local import safe_object_key_to_path
 
-        key = build_asset_object_key(workspace_id=ws.id, asset_id=asset_uuid, ext="png")
+        key = build_scoped_asset_object_key(
+            scope=ASSET_SCOPE_PROJECT,
+            scope_id=project_uuid,
+            asset_id=asset_uuid,
+            ext="png",
+        )
         out_path = safe_object_key_to_path(root, key)
         assert out_path.is_file()
         assert out_path.read_bytes() == part1 + part2

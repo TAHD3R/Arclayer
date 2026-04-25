@@ -4,8 +4,7 @@ from __future__ import annotations
 
 ASSET_UPLOADED_EVENT = "asset.uploaded"
 
-# Asset scope identifiers.
-ASSET_SCOPE_WORKSPACE = "workspace"
+ASSET_SCOPE_PROJECT = "project"
 ASSET_SCOPE_ORGANIZATION = "organization"
 ASSET_SCOPE_USER = "user"
 

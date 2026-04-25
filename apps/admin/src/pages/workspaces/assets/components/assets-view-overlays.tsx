@@ -23,6 +23,7 @@ interface AssetsViewOverlaysProps {
   t: (key: string, options?: Record<string, unknown>) => string;
   active: AssetMasonryItem | null;
   setActive: (next: AssetMasonryItem | null) => void;
+  projectId: string;
   items: AssetMasonryItem[];
   currentFolderPathLabel: string;
   folderBreadcrumbs: string[];
@@ -157,6 +158,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
   return (
     <>
       <AssetPreviewDialog
+        projectId={props.projectId}
         active={props.active}
         items={props.items}
         currentFolderPathLabel={props.currentFolderPathLabel}
@@ -181,6 +183,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         onOpenChange={(open) => {
           props.setEditAssetOpen(open);
         }}
+        projectId={props.projectId}
         asset={props.editAssetTarget}
         folders={props.folders}
       />

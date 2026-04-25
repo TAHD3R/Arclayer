@@ -87,7 +87,7 @@ type ContentLibraryArticleEditorShellProps = {
 };
 
 type ContentLibraryArticleEditorShellInnerProps = ContentLibraryArticleEditorShellProps & {
-  assetWorkspaceId: string | null;
+  activityWorkspaceId: string | null;
 };
 
 function ContentLibraryArticleEditorLoadingSkeleton(props: {
@@ -469,7 +469,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
                     <div className="absolute right-4 top-4 opacity-0 transition-opacity duration-150 group-hover/cover:opacity-100 group-focus-within/cover:opacity-100">
                       <ContentLibraryCoverPickerPopover
-                        assetWorkspaceId={props.assetWorkspaceId}
+                        assetProjectId={props.projectId}
                         value={props.coverAssetId}
                         open={coverPopoverOpen}
                         onOpenChange={setCoverPopoverOpen}
@@ -502,7 +502,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
-                            assetWorkspaceId={props.assetWorkspaceId}
+                            assetProjectId={props.projectId}
                             value={props.coverAssetId}
                             open={coverPopoverOpen}
                             onOpenChange={setCoverPopoverOpen}
@@ -575,7 +575,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
-                            assetWorkspaceId={props.assetWorkspaceId}
+                            assetProjectId={props.projectId}
                             value={props.coverAssetId}
                             open={coverPopoverOpen}
                             onOpenChange={setCoverPopoverOpen}
@@ -656,7 +656,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
       />
       {props.mode === "page" ? (
         <ContentLibraryArticleEditorUpdatesPanel
-          activityWorkspaceId={props.assetWorkspaceId}
+          activityWorkspaceId={props.activityWorkspaceId}
           itemId={props.itemId}
           open={updatesOpen}
           onOpenChange={setUpdatesOpen}
@@ -668,19 +668,22 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
 }
 
 export function ContentLibraryArticleEditorShell(props: ContentLibraryArticleEditorShellProps) {
-  const assetWorkspaceId = useWorkspaceStore((state) =>
+  const activityWorkspaceId = useWorkspaceStore((state) =>
     state.currentProjectId === props.projectId ? state.currentWorkspaceId : null,
   );
 
   return (
     <ContentLibraryArticleEditorDocumentProvider
-      assetWorkspaceId={assetWorkspaceId}
+      assetProjectId={props.projectId}
       editorIdentity={`${props.projectId}:${props.itemId}`}
       document={props.bodyDocument}
       onChange={props.onBodyDocumentChange}
     >
       <ContentLibraryArticleEditorDateLocalizationProvider projectId={props.projectId}>
-        <ContentLibraryArticleEditorShellInner {...props} assetWorkspaceId={assetWorkspaceId} />
+        <ContentLibraryArticleEditorShellInner
+          {...props}
+          activityWorkspaceId={activityWorkspaceId}
+        />
       </ContentLibraryArticleEditorDateLocalizationProvider>
     </ContentLibraryArticleEditorDocumentProvider>
   );

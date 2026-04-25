@@ -8,7 +8,7 @@ from tortoise import fields
 from src.common.models import BaseModel
 
 
-# Asset folder record (scoped: workspace/org/user).
+# Asset folder record (scoped: project/org/user).
 class AssetFolderRecord(BaseModel):
     """Domain model for asset folder records.
 
@@ -20,8 +20,9 @@ class AssetFolderRecord(BaseModel):
     - v3: asset library supports workspace/org/user scopes.
     """
 
-    # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
+    # Exactly one scope id must be set (enforced at service boundary).
     workspace_id = fields.UUIDField(null=True, db_index=True)
+    project_id = fields.UUIDField(null=True, db_index=True)
     organization_id = fields.UUIDField(null=True, db_index=True)
     user_id = fields.UUIDField(null=True, db_index=True)
     parent = fields.ForeignKeyField(
@@ -42,6 +43,7 @@ class AssetFolderRecord(BaseModel):
         abstract = False
         unique_together = (
             ("workspace_id", "parent_id", "name"),
+            ("project_id", "parent_id", "name"),
             ("organization_id", "parent_id", "name"),
             ("user_id", "parent_id", "name"),
         )

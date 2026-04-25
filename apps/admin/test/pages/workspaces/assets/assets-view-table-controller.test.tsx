@@ -18,7 +18,7 @@ const openAssetDeleteDialog = vi.fn();
 function createControllerStub(selectedIds: Set<string> = new Set()): AssetsViewController {
   return {
     t: translate,
-    workspaceId: "ws-1",
+    projectId: "project-1",
     items: [
       {
         id: "asset-1",

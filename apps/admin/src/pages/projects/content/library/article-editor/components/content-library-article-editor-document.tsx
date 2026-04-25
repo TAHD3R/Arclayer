@@ -56,7 +56,7 @@ type MediaUrlDialogState = MediaInsertDialogState & {
 };
 
 type ContentLibraryArticleEditorDocumentProviderProps = {
-  assetWorkspaceId: string | null;
+  assetProjectId: string | null;
   children: React.ReactNode;
   document?: Record<string, unknown>;
   editorIdentity: string;
@@ -415,12 +415,12 @@ export function ContentLibraryArticleEditorDocumentProvider(
           if (params.mediaType === editor.getType("file")) return "file";
           return "video";
         })();
-        if (!props.assetWorkspaceId) {
+        if (!props.assetProjectId) {
           throw new Error("ASSET_SCOPE_NOT_SELECTED");
         }
 
         const assetId = await uploadSingleAssetFromFile({
-          scope: { id: props.assetWorkspaceId, type: "workspace" },
+          scope: { id: props.assetProjectId, type: "project" },
           purpose: getMediaUploadPurpose(kind),
           file: params.file,
           t,
@@ -440,7 +440,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
         };
       },
     }),
-    [editor, props.assetWorkspaceId, t],
+    [editor, props.assetProjectId, t],
   );
 
   return (
@@ -550,7 +550,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
                     </SettingDialogField>
                   </form>
                 </SettingDialog>
-                {props.assetWorkspaceId ? (
+                {props.assetProjectId ? (
                   <AssetPickerDialog
                     open={mediaLibraryDialog.open}
                     onOpenChange={(open) =>
@@ -560,7 +560,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
                         replacePath: open ? current.replacePath : undefined,
                       }))
                     }
-                    scope={{ id: props.assetWorkspaceId, type: "workspace" }}
+                    scope={{ id: props.assetProjectId, type: "project" }}
                     mode="single"
                     mimePrefix={getAssetPickerMimePrefix(mediaLibraryDialog.kind)}
                     uploadPurpose={getMediaUploadPurpose(mediaLibraryDialog.kind)}

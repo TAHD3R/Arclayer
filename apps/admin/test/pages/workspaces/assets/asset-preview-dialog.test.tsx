@@ -67,6 +67,7 @@ describe("AssetPreviewDialog", () => {
 
     render(
       <AssetPreviewDialog
+        projectId="project-1"
         active={asset}
         onClose={vi.fn()}
         items={[asset]}
@@ -87,6 +88,7 @@ describe("AssetPreviewDialog", () => {
   it("renders a left-aligned headline title on a muted header", () => {
     render(
       <AssetPreviewDialog
+        projectId="project-1"
         active={asset}
         onClose={vi.fn()}
         items={[asset]}
@@ -113,6 +115,7 @@ describe("AssetPreviewDialog", () => {
 
     render(
       <AssetPreviewDialog
+        projectId="project-1"
         active={asset}
         onClose={vi.fn()}
         items={[asset]}

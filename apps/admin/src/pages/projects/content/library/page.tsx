@@ -7,6 +7,8 @@ import { useTranslation } from "react-i18next";
 import { useDataTable } from "@arclayer/ui/data-table";
 import {
   archiveContentItem,
+  bulkPublishContentItems,
+  bulkUnpublishContentItems,
   createContentLibraryView,
   deleteContentLibraryView,
   deleteContentItem,
@@ -19,7 +21,6 @@ import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { type ViewMode as ContentLibraryViewMode } from "@/components/common/view-mode-toggle";
 import { PageMainRegion } from "@/layouts/page-shell/page-main-region";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
@@ -50,7 +51,6 @@ import {
 import { getContentTypeLabel } from "../content-type-presentation";
 import { useContentLibraryTableColumns } from "./components/content-library-table-columns";
 import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
-import { ContentLibraryCardList } from "./components/content-library-card-list";
 import { ContentLibraryCreateContentDialog } from "./components/content-library-create-content-dialog";
 import {
   ContentLibraryItemSettingsDialogs,
@@ -134,7 +134,7 @@ type ArchiveDialogState = {
   mode: "archive" | "unarchive";
 };
 
-type BulkActionKind = "archive" | "delete";
+type BulkActionKind = "archive" | "delete" | "publish" | "unpublish";
 
 type ContentLibraryViewDialogState = {
   mode: "edit" | "saveAs";
@@ -146,7 +146,6 @@ type ContentLibraryViewWorkbenchState = {
   query: string;
   filters: ContentLibraryToolbarFilters;
   sorting: AdminContentLibraryViewSorting[];
-  viewMode?: CreateAdminContentLibraryViewPayload["viewMode"];
   columns?: AdminContentLibraryViewColumns;
 };
 
@@ -157,7 +156,6 @@ type ContentLibraryViewDiffItem = {
   nextValue: string;
 };
 
-const CONTENT_LIBRARY_CARD_MODE_QUERY = "(max-width: 960px)";
 const CONTENT_LIBRARY_PREVIEW_SIDEBAR_COLLAPSE_BREAKPOINT = 1280;
 const CONTENT_LIBRARY_PREVIEW_MIN_WIDTH_PERCENT = 30;
 const CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME = "bg-accent/24  hover:bg-accent/30";
@@ -180,11 +178,6 @@ function getContentLibraryPreviewWidthDefaultsFromWindow() {
     return { defaultPercent: 42, maxPercent: 45 };
   }
   return getContentLibraryPreviewWidthDefaults(window.innerWidth);
-}
-
-function getContentLibraryCardMode(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
-  return window.matchMedia(CONTENT_LIBRARY_CARD_MODE_QUERY).matches;
 }
 
 function getContentLibraryPreservedViewSearch(view: unknown) {
@@ -212,24 +205,6 @@ function getContentLibraryPreservedSearch(params: {
 function shouldAutoCollapseSidebarForPreview(): boolean {
   if (typeof window === "undefined") return false;
   return window.innerWidth < CONTENT_LIBRARY_PREVIEW_SIDEBAR_COLLAPSE_BREAKPOINT;
-}
-
-function useContentLibraryCardMode() {
-  const [cardMode, setCardMode] = React.useState(getContentLibraryCardMode);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const mediaQueryList = window.matchMedia(CONTENT_LIBRARY_CARD_MODE_QUERY);
-    const handleChange = (event: MediaQueryListEvent) => {
-      setCardMode(event.matches);
-    };
-
-    setCardMode(mediaQueryList.matches);
-    mediaQueryList.addEventListener("change", handleChange);
-    return () => mediaQueryList.removeEventListener("change", handleChange);
-  }, []);
-
-  return cardMode;
 }
 
 function normalizeSavedViewSorting(value: ContentLibrarySavedView["sorting"] | undefined) {
@@ -330,7 +305,6 @@ function doesSavedViewMatchWorkbench(
     (savedView.query ?? "") === currentWorkbench.query &&
     areContentLibraryToolbarFiltersEqual(savedFilters, currentWorkbench.filters) &&
     areSavedViewSortingEqual(savedSorting, currentWorkbench.sorting) &&
-    (!savedView.viewMode || savedView.viewMode === currentWorkbench.viewMode) &&
     (!savedColumns || areSavedViewColumnsEqual(savedColumns, currentWorkbench.columns))
   );
 }
@@ -352,6 +326,17 @@ function summarizeViewFilters(filters: ContentLibraryToolbarFilters, t: (key: st
   }
   if (filters.modelKey) {
     items.push(`${t("content:CONTENT_LIBRARY_FILTER_FIELD_CONTENT_TYPE")}: ${filters.modelKey}`);
+  }
+  if (filters.locale) {
+    items.push(`${t("content:CONTENT_LIBRARY_FILTER_FIELD_LOCALE")}: ${filters.locale}`);
+  }
+  if (filters.createdByUserId) {
+    items.push(
+      `${t("content:CONTENT_LIBRARY_FILTER_FIELD_CREATED_BY")}: ${filters.createdByUserId}`,
+    );
+  }
+  if (filters.tag) {
+    items.push(`${t("content:CONTENT_LIBRARY_FILTER_FIELD_TAGS")}: ${filters.tag}`);
   }
   if (filters.role) {
     items.push(
@@ -381,15 +366,6 @@ function summarizeViewSorting(
     ),
   );
   return items.length ? items.join(" · ") : t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_NONE");
-}
-
-function summarizeViewMode(
-  viewMode: ContentLibraryViewWorkbenchState["viewMode"] | ContentLibrarySavedView["viewMode"],
-  t: (key: string) => string,
-) {
-  if (viewMode === "card") return t("common:VIEW_MODE_CARD");
-  if (viewMode === "table") return t("common:VIEW_MODE_TABLE");
-  return t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_EMPTY_VALUE");
 }
 
 function summarizeViewColumns(
@@ -454,14 +430,6 @@ function buildViewDiffItems(
           nextValue: summarizeViewSorting(currentWorkbench.sorting, t),
         }
       : null,
-    (savedView.viewMode ?? null) !== currentWorkbench.viewMode
-      ? {
-          id: "viewMode",
-          label: t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_VIEW_MODE"),
-          savedValue: summarizeViewMode(savedView.viewMode, t),
-          nextValue: summarizeViewMode(currentWorkbench.viewMode, t),
-        }
-      : null,
     !areSavedViewColumnsEqual(savedView.columns, currentWorkbench.columns)
       ? {
           id: "columns",
@@ -499,8 +467,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   const queryClient = useQueryClient();
   const dateTime = useAdminDateTimeFormatter({ projectId });
   const permissionAccess = useProjectPermissionAccess(projectId);
-  const autoCardMode = useContentLibraryCardMode();
-  const [manualViewMode, setManualViewMode] = React.useState<ContentLibraryViewMode | null>(null);
   const [toolbarFilters, setToolbarFilters] = React.useState<ContentLibraryToolbarFilters>({});
   const [viewState, setViewState] = React.useState<ContentLibraryViewState>(
     CONTENT_LIBRARY_DEFAULT_VIEW_STATE,
@@ -535,7 +501,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     [projectId],
   );
   const createDialogOpen = search.create === "1";
-  const viewMode: ContentLibraryViewMode = manualViewMode ?? (autoCardMode ? "card" : "table");
   const permissionReady =
     Boolean(projectId) &&
     permissionAccess.authzQuery.isFetched &&
@@ -623,7 +588,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       query: activeSavedView.query,
       filters: activeSavedView.filters,
       sorting: activeSavedView.sorting,
-      viewMode: activeSavedView.viewMode,
       columns: activeSavedView.columns,
     });
   }, [activeSavedView]);
@@ -797,6 +761,36 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     },
     onSuccess: async () => {
       notifySuccessText(t("content:CONTENT_LIBRARY_BULK_ARCHIVE_SUCCESS"));
+      setPendingBulkAction(null);
+      setSelection((prev) => clearSelection(prev));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentLibraryItemsQueryKey(projectId ? String(projectId) : null),
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const publishSelectionMutation = useMutation({
+    mutationFn: async (rowIds: string[]) => {
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      await bulkPublishContentItems(String(projectId), rowIds);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_BULK_PUBLISH_SUCCESS"));
+      setPendingBulkAction(null);
+      setSelection((prev) => clearSelection(prev));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentLibraryItemsQueryKey(projectId ? String(projectId) : null),
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const unpublishSelectionMutation = useMutation({
+    mutationFn: async (rowIds: string[]) => {
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      await bulkUnpublishContentItems(String(projectId), rowIds);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_BULK_UNPUBLISH_SUCCESS"));
       setPendingBulkAction(null);
       setSelection((prev) => clearSelection(prev));
       await queryClient.invalidateQueries({
@@ -1102,7 +1096,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       query: tableHook.searchInput,
       filters: toolbarFilters,
       sorting: normalizeSavedViewSorting(tableHook.sorting),
-      viewMode,
       columns:
         columnVisibility || columnOrder
           ? {
@@ -1117,7 +1110,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     tableHook.sorting,
     tableHook.table,
     toolbarFilters,
-    viewMode,
   ]);
   const currentWorkbenchDefinition = React.useMemo(
     () => buildCurrentViewDefinition(),
@@ -1133,7 +1125,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       setToolbarFilters(savedView.filters ?? {});
       tableHook.setSearchInput(savedView.query ?? "");
       tableHook.setSorting(savedView.sorting ?? []);
-      if (savedView.viewMode) setManualViewMode(savedView.viewMode);
       if (savedView.columns) {
         if (savedView.columns.visibility) {
           tableHook.table.setColumnVisibility?.(savedView.columns.visibility);
@@ -1249,7 +1240,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
         query: dialogTargetView.query,
         filters: dialogTargetView.filters,
         sorting: dialogTargetView.sorting,
-        viewMode: dialogTargetView.viewMode,
         columns: dialogTargetView.columns,
         visibility: viewDialogDraft.visibility,
         pinned: true,
@@ -1363,6 +1353,8 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     viewsQuery.isFetching ||
     archiveMutation.isPending ||
     archiveSelectionMutation.isPending ||
+    publishSelectionMutation.isPending ||
+    unpublishSelectionMutation.isPending ||
     deleteSelectionMutation.isPending;
   const toolbarNode = (
     <ContentLibraryToolbar
@@ -1386,8 +1378,6 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
           t: (key) => t(`content:${key}`),
         }),
       }))}
-      viewMode={viewMode}
-      onViewModeChange={setManualViewMode}
       views={views}
       onCreateView={async (draft) =>
         createSavedView({
@@ -1407,11 +1397,15 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       canManageContent={canManageContent}
       archivePending={archiveSelectionMutation.isPending}
       deletePending={deleteSelectionMutation.isPending}
+      publishPending={publishSelectionMutation.isPending}
+      unpublishPending={unpublishSelectionMutation.isPending}
       onClearSelection={() => {
         setSelection((prev) => clearSelection(prev));
       }}
       onOpenArchive={() => setPendingBulkAction("archive")}
       onOpenDelete={() => setPendingBulkAction("delete")}
+      onOpenPublish={() => setPendingBulkAction("publish")}
+      onOpenUnpublish={() => setPendingBulkAction("unpublish")}
     />
   );
   const workbenchNode = (
@@ -1438,63 +1432,33 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
               description={t("content:CONTENT_LIBRARY_NO_ACCESS_DESC")}
             />
           ) : null}
-          {viewMode === "card" && (tableHook.pageData?.items.length ?? 0) > 0 ? (
-            <div className="flex min-h-0 flex-col gap-4">
-              <ContentLibraryCardList
-                rows={tableHook.pageData?.items ?? []}
-                previewRowId={previewRowId}
-                canManageContent={canManageContent}
-                onCardClick={handleOpenPreview}
-                onOpen={handleOpenPreview}
-                onOpenFullEditor={handleOpenFullEditor}
-                onEditPermalink={openItemSettingsDialog("permalink")}
-                onEditSeo={openItemSettingsDialog("seo")}
-                onEditVisibility={openItemSettingsDialog("visibility")}
-                onOpenPageSettings={openItemSettingsDialog("page-settings")}
-                onOpenStructuredFields={openItemSettingsDialog("structured-fields")}
-                onDuplicate={setDuplicateRow}
-                onDelete={setDeleteRow}
-                onArchive={(row) => setArchiveDialog({ row, mode: "archive" })}
-                onUnarchive={(row) => setArchiveDialog({ row, mode: "unarchive" })}
-                formatDateTimeOrNull={dateTime.formatDateTimeOrNull}
-                pending={
-                  archiveMutation.isPending ||
-                  duplicateMutation.isPending ||
-                  deleteMutation.isPending
-                }
-              />
-            </div>
-          ) : (
-            <AdminDataTableSection
-              table={tableHook.table}
-              emptyText={t("content:CONTENT_LIBRARY_EMPTY_TABLE")}
-              emptyTitle={
-                isInitialEmptyState
-                  ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_TITLE")
-                  : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_TITLE")
-              }
-              emptyDescription={
-                isInitialEmptyState
-                  ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_DESC")
-                  : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
-              }
-              loading={modelsQuery.isLoading || itemsQuery.isLoading}
-              error={dataError}
-              onRetry={() => {
-                void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
-              }}
-              infiniteScroll={tableHook.infiniteScroll}
-              t={t}
-              rowHeight="medium"
-              refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
-              rowClassName={(row) =>
-                previewRowId === row.original.id
-                  ? CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME
-                  : undefined
-              }
-              onRowClick={(row, _rowIndex, event) => handleRowClick(row.original, event)}
-            />
-          )}
+          <AdminDataTableSection
+            table={tableHook.table}
+            emptyText={t("content:CONTENT_LIBRARY_EMPTY_TABLE")}
+            emptyTitle={
+              isInitialEmptyState
+                ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_TITLE")
+                : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_TITLE")
+            }
+            emptyDescription={
+              isInitialEmptyState
+                ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_DESC")
+                : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
+            }
+            loading={modelsQuery.isLoading || itemsQuery.isLoading}
+            error={dataError}
+            onRetry={() => {
+              void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
+            }}
+            infiniteScroll={tableHook.infiniteScroll}
+            t={t}
+            rowHeight="medium"
+            refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
+            rowClassName={(row) =>
+              previewRowId === row.original.id ? CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME : undefined
+            }
+            onRowClick={(row, _rowIndex, event) => handleRowClick(row.original, event)}
+          />
         </div>
       </PageMainRegion>
     </div>
@@ -1737,6 +1701,30 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
             onConfirm: () => {
               if (!selectedRowIds.length) return;
               archiveSelectionMutation.mutate(selectedRowIds);
+            },
+          }}
+          bulkPublishDialog={{
+            open: pendingBulkAction === "publish",
+            count: selectedCount,
+            pending: publishSelectionMutation.isPending,
+            onOpenChange: (open) => {
+              if (!open && !publishSelectionMutation.isPending) setPendingBulkAction(null);
+            },
+            onConfirm: () => {
+              if (!selectedRowIds.length) return;
+              publishSelectionMutation.mutate(selectedRowIds);
+            },
+          }}
+          bulkUnpublishDialog={{
+            open: pendingBulkAction === "unpublish",
+            count: selectedCount,
+            pending: unpublishSelectionMutation.isPending,
+            onOpenChange: (open) => {
+              if (!open && !unpublishSelectionMutation.isPending) setPendingBulkAction(null);
+            },
+            onConfirm: () => {
+              if (!selectedRowIds.length) return;
+              unpublishSelectionMutation.mutate(selectedRowIds);
             },
           }}
           bulkDeleteDialog={{

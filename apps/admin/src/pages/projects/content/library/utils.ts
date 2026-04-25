@@ -246,6 +246,9 @@ function normalizeContentLibrarySavedView(value: unknown): ContentLibrarySavedVi
       ? rawStatus
       : undefined;
   const rawModelKey = candidate.filters?.modelKey;
+  const rawLocale = candidate.filters?.locale;
+  const rawCreatedByUserId = candidate.filters?.createdByUserId;
+  const rawTag = candidate.filters?.tag;
   const rawRole = candidate.filters?.role;
   const rawEditWith = candidate.filters?.editWith;
 
@@ -257,14 +260,16 @@ function normalizeContentLibrarySavedView(value: unknown): ContentLibrarySavedVi
     filters: {
       status: normalizedStatus,
       modelKey: typeof rawModelKey === "string" && rawModelKey.trim() ? rawModelKey : undefined,
+      locale: typeof rawLocale === "string" && rawLocale.trim() ? rawLocale : undefined,
+      createdByUserId:
+        typeof rawCreatedByUserId === "string" && rawCreatedByUserId.trim()
+          ? rawCreatedByUserId
+          : undefined,
+      tag: typeof rawTag === "string" && rawTag.trim() ? rawTag : undefined,
       role: isContentLibraryRole(rawRole) ? rawRole : undefined,
       editWith: isContentLibraryEditWith(rawEditWith) ? rawEditWith : undefined,
     },
     sorting: normalizeContentLibraryViewSorting(candidate.sorting),
-    viewMode:
-      candidate.viewMode === "card" || candidate.viewMode === "table"
-        ? candidate.viewMode
-        : undefined,
     columns: normalizeContentLibraryViewColumns(candidate.columns),
     visibility:
       candidate.visibility === "workspace" || candidate.visibility === "private"
@@ -349,7 +354,6 @@ export function buildContentLibrarySavedView(input: {
   query: string;
   filters: ContentLibraryToolbarFilters;
   sorting?: ContentLibrarySavedView["sorting"];
-  viewMode?: ContentLibrarySavedView["viewMode"];
   columns?: ContentLibrarySavedView["columns"];
 }): ContentLibrarySavedView {
   const id =
@@ -363,7 +367,6 @@ export function buildContentLibrarySavedView(input: {
     query: input.query,
     filters: input.filters,
     sorting: input.sorting ?? [],
-    viewMode: input.viewMode,
     columns: input.columns,
     visibility: "private",
     pinned: false,
@@ -416,6 +419,9 @@ export function areContentLibraryToolbarFiltersEqual(
   return (
     left.status === right.status &&
     left.modelKey === right.modelKey &&
+    left.locale === right.locale &&
+    left.createdByUserId === right.createdByUserId &&
+    left.tag === right.tag &&
     left.role === right.role &&
     left.editWith === right.editWith
   );
@@ -478,6 +484,9 @@ function matchesToolbarFilters(
 ): boolean {
   if (filters.status && row.derivedStatus !== filters.status) return false;
   if (filters.modelKey && row.modelKey !== filters.modelKey) return false;
+  if (filters.locale && row.locale !== filters.locale) return false;
+  if (filters.createdByUserId && row.createdByUserId !== filters.createdByUserId) return false;
+  if (filters.tag && !(row.tags ?? []).includes(filters.tag)) return false;
   if (filters.role && row.role !== filters.role) return false;
   if (filters.editWith && row.editWith !== filters.editWith) return false;
   return true;

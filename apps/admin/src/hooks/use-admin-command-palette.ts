@@ -211,10 +211,10 @@ export function useAdminCommandPalette(props: {
   }, [props.scope, usersQuery.data?.items]);
 
   const assetsQuery = useQuery({
-    queryKey: ["command", "assets", props.scope.workspaceId, debouncedQuery],
-    enabled: isSearching && props.scope.kind === "workspace" && Boolean(props.scope.workspaceId),
+    queryKey: ["command", "assets", props.scope.projectId, debouncedQuery],
+    enabled: isSearching && Boolean(props.scope.projectId),
     queryFn: async () =>
-      listAssets(props.scope.workspaceId as string, {
+      listAssets(props.scope.projectId as string, {
         q: debouncedQuery,
         page: 1,
         size: 6,
@@ -226,8 +226,8 @@ export function useAdminCommandPalette(props: {
   });
 
   const assetEntries = useMemo<CommandEntry[]>(() => {
-    if (!props.scope.workspaceId) return [];
-    const to = `/w/${encodeURIComponent(props.scope.workspaceId)}/assets/`;
+    if (!props.scope.projectId) return [];
+    const to = `/projects/${encodeURIComponent(props.scope.projectId)}/assets/`;
     return (assetsQuery.data?.items ?? []).map((asset) => {
       const title = formatAssetCommandTitle(asset);
       const sizeText = formatAssetBytes(asset.sizeBytes);
@@ -265,7 +265,7 @@ export function useAdminCommandPalette(props: {
         },
       };
     });
-  }, [assetsQuery.data?.items, props.scope.workspaceId]);
+  }, [assetsQuery.data?.items, props.scope.projectId]);
 
   const sources = useMemo<readonly CommandSource[]>(
     () => [

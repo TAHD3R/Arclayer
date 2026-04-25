@@ -154,7 +154,7 @@ def _is_image_asset(asset: AssetRecord) -> bool:
     return bool((asset.mime or "").startswith("image/") or ext in {"jpg", "jpeg", "png", "webp", "gif"})
 
 
-async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, workspace_id_raw: str) -> None:
+async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, project_id_raw: str) -> None:
     """
     Background job: generate and upload asset thumbnails.
 
@@ -171,13 +171,13 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
 
     try:
         asset_id = UUID(str(asset_id_raw))
-        workspace_id = UUID(str(workspace_id_raw))
+        project_id = UUID(str(project_id_raw))
     except (ValueError, TypeError):
         logger.warning(
             "Asset thumbnail job skipped (invalid ids)",
             action="asset_thumbs_invalid_ids",
             asset_id=str(asset_id_raw),
-            workspace_id=str(workspace_id_raw),
+            project_id=str(project_id_raw),
         )
         return
 
@@ -196,7 +196,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
 
     started = datetime.now(UTC)
     try:
-        asset = await AssetRecord.get_or_none(id=asset_id, workspace_id=workspace_id, deleted_at=None)
+        asset = await AssetRecord.get_or_none(id=asset_id, project_id=project_id, deleted_at=None)
         if asset is None:
             return
 
@@ -216,7 +216,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
 
             def _out_path_for_width(width: int, *, alpha: bool) -> tuple[Path, str]:
                 out_ext = "png" if alpha else "jpg"
-                key = f"workspaces/{workspace_id}/assets/{asset_id}/thumb-{width}.{out_ext}"
+                key = f"projects/{project_id}/assets/{asset_id}/thumb-{width}.{out_ext}"
                 return safe_object_key_to_path(settings.storage.local_root_dir, key), key
 
             variants_payload, meta_payload = await generate_image_thumbnails(
@@ -236,7 +236,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
                 provider = provider.with_bucket(bucket)
 
             ext = (asset.ext or "").lstrip(".").lower() or "bin"
-            source_key = f"thumbs/{workspace_id}/{asset_id}/source.{ext}"
+            source_key = f"thumbs/{project_id}/{asset_id}/source.{ext}"
             in_path = safe_object_key_to_path(settings.storage.local_tmp_dir, source_key)
 
             try:
@@ -246,7 +246,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
                 logger.warning(
                     "Asset thumbnail job source download failed",
                     action="asset_thumbs_download_source_failed",
-                    workspace_id=str(workspace_id),
+                    project_id=str(project_id),
                     asset_id=str(asset_id),
                     object_key=str(asset.object_key),
                     error=str(exc),
@@ -258,7 +258,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
             def _out_path_for_width(width: int, *, alpha: bool) -> tuple[Path, str]:
                 out_ext = "png" if alpha else "jpg"
                 object_key = f"assets/{asset_id}/thumb-{width}.{out_ext}"
-                local_key = f"thumbs/{workspace_id}/{asset_id}/thumb-{width}.{out_ext}"
+                local_key = f"thumbs/{project_id}/{asset_id}/thumb-{width}.{out_ext}"
                 out_path = safe_object_key_to_path(settings.storage.local_tmp_dir, local_key)
                 out_paths[object_key] = out_path
                 return out_path, object_key
@@ -293,7 +293,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
                         logger.warning(
                             "Asset thumbnail job upload failed",
                             action="asset_thumbs_upload_failed",
-                            workspace_id=str(workspace_id),
+                            project_id=str(project_id),
                             asset_id=str(asset_id),
                             object_key=object_key,
                             error=str(exc),
@@ -308,7 +308,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
                 logger.warning(
                     "Asset thumbnail job temp cleanup failed",
                     action="asset_thumbs_cleanup_source_failed",
-                    workspace_id=str(workspace_id),
+                    project_id=str(project_id),
                     asset_id=str(asset_id),
                     path=str(in_path),
                     error=str(cleanup_exc),
@@ -321,7 +321,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
                     logger.warning(
                         "Asset thumbnail job temp cleanup failed",
                         action="asset_thumbs_cleanup_thumb_failed",
-                        workspace_id=str(workspace_id),
+                        project_id=str(project_id),
                         asset_id=str(asset_id),
                         path=str(p),
                         error=str(cleanup_exc),
@@ -331,7 +331,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
             return
 
         # Merge and persist (avoid overwriting concurrent metadata updates).
-        latest = await AssetRecord.get_or_none(id=asset_id, workspace_id=workspace_id, deleted_at=None)
+        latest = await AssetRecord.get_or_none(id=asset_id, project_id=project_id, deleted_at=None)
         if latest is None:
             return
 
@@ -358,7 +358,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
         logger.info(
             "Asset thumbnails generated",
             action="asset_thumbs_ok",
-            workspace_id=str(workspace_id),
+            project_id=str(project_id),
             asset_id=str(asset_id),
             missing_count=len(missing),
             elapsed_ms=elapsed_ms,

@@ -34,7 +34,6 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, type AssetSelectionState } from "@/lib/assets/asset-selection";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { useAssetsRecentStore } from "@/stores/use-assets-recent-store";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAssetsExplorerController } from "../components/explorer/use-assets-explorer-controller";
 import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
@@ -73,14 +72,13 @@ function triggerDropPulse(
   }, 300);
 }
 
-export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
+export function useAssetsViewController(projectId: string, _viewMode: AssetsViewMode = "card") {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const removeRecentAssets = useAssetsRecentStore((state) => state.removeAssets);
   const scope = useMemo<AssetScopeRef | null>(
-    () => (workspaceId ? { type: "workspace", id: String(workspaceId) } : null),
-    [workspaceId],
+    () => (projectId ? { type: "project", id: String(projectId) } : null),
+    [projectId],
   );
   const scopeKey = scope ? assetScopeKey(scope) : null;
   const [active, setActive] = useState<AssetMasonryItem | null>(null);
@@ -168,7 +166,7 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
     total,
   } = explorer;
   const { recentAssets, removeRecentAsset, clearRecentAssets } = useAssetsRecentItems({
-    workspaceId,
+    projectId,
     active,
     items,
   });
@@ -211,8 +209,8 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   );
   const bulkMoveMutation = useMutation({
     mutationFn: (payload: Parameters<typeof bulkMoveAssets>[1]) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return bulkMoveAssets(String(workspaceId), payload);
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return bulkMoveAssets(String(projectId), payload);
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_MOVE_SUCCESS", { count: out.movedCount }));
@@ -224,13 +222,13 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   });
   const bulkDeleteMutation = useMutation({
     mutationFn: (payload: Parameters<typeof bulkDeleteAssets>[1]) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return bulkDeleteAssets(String(workspaceId), payload);
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return bulkDeleteAssets(String(projectId), payload);
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_DELETE_SUCCESS", { count: out.deletedCount }));
-      if (workspaceId) {
-        removeRecentAssets(String(workspaceId), out.deletedAssetIds.map(String));
+      if (projectId) {
+        removeRecentAssets(String(projectId), out.deletedAssetIds.map(String));
       }
       void invalidateAssetListQueries(queryClient, scopeKey);
     },
@@ -240,8 +238,8 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   });
   const bulkUpdateMutation = useMutation({
     mutationFn: (payload: Parameters<typeof bulkUpdateAssets>[1]) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return bulkUpdateAssets(String(workspaceId), payload);
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return bulkUpdateAssets(String(projectId), payload);
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_EDIT_ACCESS_SUCCESS", { count: out.updatedCount }));
@@ -306,13 +304,13 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   });
   const assetDeleteMutation = useMutation({
     mutationFn: async (assetId: string) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return deleteAsset(String(workspaceId), assetId);
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return deleteAsset(String(projectId), assetId);
     },
     onSuccess: (_out, assetId) => {
       notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
-      if (workspaceId) {
-        removeRecentAssets(String(workspaceId), [String(assetId)]);
+      if (projectId) {
+        removeRecentAssets(String(projectId), [String(assetId)]);
       }
       if (scopeKey) {
         void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
@@ -333,9 +331,9 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
       purpose?: string;
       indexable?: boolean;
     }) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
       const { assetId, ...rest } = payload;
-      return patchAsset(String(workspaceId), assetId, rest);
+      return patchAsset(String(projectId), assetId, rest);
     },
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
@@ -352,8 +350,8 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   });
   const createFolderMutation = useMutation({
     mutationFn: (payload: Parameters<typeof createAssetFolder>[1]) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return createAssetFolder(String(workspaceId), payload);
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return createAssetFolder(String(projectId), payload);
     },
     onSuccess: () => {
       if (scopeKey)
@@ -368,8 +366,8 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
       folderId: string;
       payload: Parameters<typeof updateAssetFolder>[2];
     }) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return updateAssetFolder(String(workspaceId), input.folderId, input.payload);
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return updateAssetFolder(String(projectId), input.folderId, input.payload);
     },
     onSuccess: () => {
       if (scopeKey)
@@ -381,10 +379,10 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   });
   const reorderFoldersMutation = useMutation({
     mutationFn: async (folders: AdminAssetFolder[]) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
       await Promise.all(
         folders.map((folder, index) =>
-          updateAssetFolder(String(workspaceId), String(folder.id), { sortOrder: index }),
+          updateAssetFolder(String(projectId), String(folder.id), { sortOrder: index }),
         ),
       );
       return folders.map((folder, index) => ({ ...folder, sortOrder: index }));
@@ -407,8 +405,8 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   });
   const deleteFolderMutation = useMutation({
     mutationFn: (input: { folderId: string; destinationFolderId: string | null }) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return deleteAssetFolderWithMove(String(workspaceId), input.folderId, {
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return deleteAssetFolderWithMove(String(projectId), input.folderId, {
         destinationFolderId: input.destinationFolderId,
       });
     },
@@ -622,7 +620,7 @@ export function useAssetsViewController(_viewMode: AssetsViewMode = "card") {
   return {
     t,
     queryClient,
-    workspaceId,
+    projectId,
     scope,
     scopeKey,
     active,

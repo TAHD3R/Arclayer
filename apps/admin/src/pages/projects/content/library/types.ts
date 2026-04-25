@@ -31,6 +31,9 @@ export type ContentLibrarySystemViewId =
 export type ContentLibraryToolbarFilters = {
   status?: ContentLibraryDerivedStatus;
   modelKey?: string;
+  locale?: string;
+  createdByUserId?: string;
+  tag?: string;
   role?: ContentLibraryRole;
   editWith?: ContentLibraryEditWith;
 };
@@ -69,6 +72,9 @@ export type ContentLibraryScopeId =
 
 export type ContentLibraryTableRow = AdminContentItem & {
   name: string;
+  createdByUserId?: string | null;
+  updatedByUserId?: string | null;
+  tags?: string[];
   modelName?: string | null;
   modelDescription?: string | null;
   modelCategory?: AdminContentModelCategory | null;

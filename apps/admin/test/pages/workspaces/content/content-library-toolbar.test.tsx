@@ -49,10 +49,6 @@ vi.mock("@arclayer/ui/tooltip", () => ({
   TooltipContent: (props: { children: React.ReactNode }) => <div>{props.children}</div>,
 }));
 
-vi.mock("@/components/common/view-mode-toggle", () => ({
-  ViewModeToggle: () => <div data-testid="content-library-view-mode-toggle" />,
-}));
-
 describe("ContentLibraryToolbar", () => {
   test("submits a create-view draft from the add-view popover", async () => {
     const user = userEvent.setup();
@@ -68,8 +64,6 @@ describe("ContentLibraryToolbar", () => {
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}
-        viewMode="table"
-        onViewModeChange={vi.fn()}
         views={[
           { id: "all", label: "All", active: true, onSelect: vi.fn() },
           { id: "draft", label: "Draft", active: false, onSelect: vi.fn() },
@@ -124,8 +118,6 @@ describe("ContentLibraryToolbar", () => {
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}
-        viewMode="table"
-        onViewModeChange={vi.fn()}
         views={[
           { id: "all", label: "All", active: true, onSelect: vi.fn() },
           {
@@ -204,8 +196,6 @@ describe("ContentLibraryToolbar", () => {
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}
-        viewMode="table"
-        onViewModeChange={vi.fn()}
         views={[
           {
             id: "view-1",
@@ -243,8 +233,6 @@ describe("ContentLibraryToolbar", () => {
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}
-        viewMode="table"
-        onViewModeChange={vi.fn()}
         views={[
           {
             id: "view-1",
@@ -278,8 +266,6 @@ describe("ContentLibraryToolbar", () => {
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}
-        viewMode="table"
-        onViewModeChange={vi.fn()}
         views={[
           {
             id: "view-1",

@@ -113,7 +113,7 @@ function RecentSectionMenu(props: {
 
 function RecentSectionBody(props: RecentSectionBodyProps) {
   const dateTime = useAdminDateTimeFormatter({
-    workspaceId: props.scope?.type === "workspace" ? String(props.scope.id) : null,
+    projectId: props.scope?.type === "project" ? String(props.scope.id) : null,
   });
 
   if (props.recentLoading) {

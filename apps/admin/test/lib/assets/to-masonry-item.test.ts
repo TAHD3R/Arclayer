@@ -15,7 +15,7 @@ describe("toMasonryItem", () => {
       indexable: false,
       sizeBytes: 128,
       createdAt: "2026-03-06T12:00:00Z",
-      contentUrlPath: "/api/v1/workspaces/ws/assets/asset-1/content",
+      contentUrlPath: "/api/v1/projects/project-1/assets/asset-1/content",
       uploaderName: "Ada Lovelace",
       uploaderAvatarUrl: "/assets/uploader.png",
       mime: "image/png",
@@ -34,7 +34,7 @@ describe("toMasonryItem", () => {
       indexable: false,
       sizeBytes: 256,
       createdAt: "2026-03-06T12:00:00Z",
-      contentUrlPath: "/api/v1/workspaces/ws/assets/asset-public/content",
+      contentUrlPath: "/api/v1/projects/project-1/assets/asset-public/content",
       publicThumbUrlPath: "/assets/asset-public/thumb",
       publicUrlPath: "/assets/asset-public/image.png",
       publicDownloadUrlPath: "/assets/asset-public/download",
@@ -47,7 +47,7 @@ describe("toMasonryItem", () => {
     expect(item.publicUrl).toBe("http://api.test/assets/asset-public/image.png");
     expect(item.downloadUrl).toBe("http://api.test/assets/asset-public/download");
     expect(item.contentUrl).toBe(
-      "http://api.test/api/v1/workspaces/ws/assets/asset-public/content",
+      "http://api.test/api/v1/projects/project-1/assets/asset-public/content",
     );
   });
 
@@ -59,7 +59,7 @@ describe("toMasonryItem", () => {
       indexable: false,
       sizeBytes: 512,
       createdAt: "2026-03-06T12:00:00Z",
-      contentUrlPath: "/api/v1/workspaces/ws/assets/asset-private/content",
+      contentUrlPath: "/api/v1/projects/project-1/assets/asset-private/content",
       publicThumbUrlPath: null,
       publicUrlPath: null,
       publicDownloadUrlPath: null,
@@ -69,7 +69,7 @@ describe("toMasonryItem", () => {
 
     expect(item.thumbBaseUrl).toBeUndefined();
     expect(item.previewUrl).toBe(
-      "http://api.test/api/v1/workspaces/ws/assets/asset-private/content",
+      "http://api.test/api/v1/projects/project-1/assets/asset-private/content",
     );
     expect(item.publicUrl).toBeUndefined();
     expect(item.downloadUrl).toBeUndefined();

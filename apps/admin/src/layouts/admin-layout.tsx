@@ -133,6 +133,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
         kind: "none",
         pathname,
         workspaceId: null,
+        projectId: null,
         organizationId: null,
       } as const;
     }
@@ -141,9 +142,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
       kind: "workspace",
       pathname,
       workspaceId: effectiveWorkspaceId ? String(effectiveWorkspaceId) : null,
+      projectId: currentProjectId ? String(currentProjectId) : null,
       organizationId: workspaceDetailQuery.data?.organizationId ?? null,
     } as const;
   }, [
+    currentProjectId,
     effectiveWorkspaceId,
     isWorkspaceScopeRoute,
     pathname,

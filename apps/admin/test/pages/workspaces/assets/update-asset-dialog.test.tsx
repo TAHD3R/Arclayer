@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAssetDetail } from "@/api/assets";
 import { UpdateAssetDialog } from "@/pages/workspaces/assets/components/update-asset-dialog";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 
@@ -47,7 +46,6 @@ function createQueryClient() {
 
 describe("UpdateAssetDialog", () => {
   beforeEach(() => {
-    useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
     mockedGetAssetDetail.mockResolvedValue({
       id: "asset-1",
       originalFilename: "hero.png",
@@ -66,7 +64,13 @@ describe("UpdateAssetDialog", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <UpdateAssetDialog open onOpenChange={vi.fn()} asset={asset} folders={[]} />
+          <UpdateAssetDialog
+            open
+            onOpenChange={vi.fn()}
+            projectId="project-1"
+            asset={asset}
+            folders={[]}
+          />
         </TooltipProvider>
       </QueryClientProvider>,
     );
@@ -93,7 +97,13 @@ describe("UpdateAssetDialog", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <UpdateAssetDialog open onOpenChange={vi.fn()} asset={asset} folders={[]} />
+          <UpdateAssetDialog
+            open
+            onOpenChange={vi.fn()}
+            projectId="project-1"
+            asset={asset}
+            folders={[]}
+          />
         </TooltipProvider>
       </QueryClientProvider>,
     );

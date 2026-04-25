@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import TypedDict, cast
 from uuid import UUID
 
-from src.common.constants.assets import ASSET_SCOPE_WORKSPACE
+from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
 from src.common.protocols.tortoise import HasOrganizationId, HasUserId, HasWorkspaceId
 from src.common.services import BaseService
 from src.config import Settings
@@ -545,7 +545,7 @@ class WorkspaceService(BaseService):
                 if asset_uuid is not None:
                     icon_asset_aligned = await align_asset_for_binding(
                         self.settings,
-                        scope=AssetScope(type=ASSET_SCOPE_WORKSPACE, id=workspace_id),
+                        scope=AssetScope(type=ASSET_SCOPE_ORGANIZATION, id=organization_id),
                         asset_id=asset_uuid,
                         purpose=AssetPurpose.WORKSPACE_ICON,
                     )

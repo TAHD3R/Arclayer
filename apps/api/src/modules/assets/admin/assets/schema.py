@@ -38,7 +38,10 @@ class AdminAssetListQuery(BaseSchema):
 
 
 class AdminAssetSummaryOut(BaseOut):
-    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    workspace_id: PublicUUID | None = Field(default=None, description="Workspace id.")
+    project_id: PublicUUID | None = Field(default=None, description="Project id.")
+    organization_id: PublicUUID | None = Field(default=None, description="Organization id.")
+    user_id: PublicUUID | None = Field(default=None, description="User id.")
     owner_user_id: PublicUUID | None = Field(default=None, description="Uploader (owner) user id.")
     uploader_name: str | None = Field(default=None, description="Uploader display name (best-effort).")
     uploader_avatar_url: str | None = Field(default=None, description="Uploader avatar URL (best-effort).")
@@ -60,7 +63,9 @@ class AdminAssetSummaryOut(BaseOut):
     @property
     def content_url_path(self) -> str:
         # Admin-authenticated streaming endpoint (supports Range).
-        return f"/api/v1/workspaces/{encode_uuid(self.workspace_id)}/assets/{encode_uuid(self.id)}/content"
+        if self.project_id is not None:
+            return f"/api/v1/projects/{encode_uuid(self.project_id)}/assets/{encode_uuid(self.id)}/content"
+        return f"/assets/{encode_uuid(self.id)}"
 
     @computed_field
     @property

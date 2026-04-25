@@ -16,17 +16,15 @@ def test_admin_assets_service_exposes_bulk_ops() -> None:
 
 
 def test_admin_assets_router_exposes_bulk_endpoints() -> None:
-    # We test the APIRouter directly to avoid requiring integration DB/auth here.
-    # router.routes is typed as BaseRoute[], but only APIRoute exposes `.path` in the stubs.
     from fastapi.routing import APIRoute
 
-    from src.modules.assets.admin.assets.router import router
+    from src.modules.projects.assets.router import router
 
     paths = {r.path for r in router.routes if isinstance(r, APIRoute)}
 
-    assert "/workspaces/{workspace_id}/assets/bulk/move" in paths
-    assert "/workspaces/{workspace_id}/assets/bulk/delete" in paths
-    assert "/workspaces/{workspace_id}/assets/bulk/update" in paths
+    assert "/projects/{project_id}/assets/bulk/move" in paths
+    assert "/projects/{project_id}/assets/bulk/delete" in paths
+    assert "/projects/{project_id}/assets/bulk/update" in paths
 
 
 @pytest.mark.asyncio

@@ -698,14 +698,23 @@ export function EditProjectDialog(props: {
   );
 }
 
-export function DirectoryIconDialog(props: {
+type DirectoryIconDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  kind: "workspace" | "project";
-  entity: (SystemDirectoryWorkspace | SystemDirectoryProject) | null;
   pending: boolean;
   onSubmit: (values: DirectoryIconValues) => Promise<void>;
-}) {
+} & (
+  | {
+      kind: "workspace";
+      entity: SystemDirectoryWorkspace | null;
+    }
+  | {
+      kind: "project";
+      entity: SystemDirectoryProject | null;
+    }
+);
+
+export function DirectoryIconDialog(props: DirectoryIconDialogProps) {
   const { t } = useTranslation(["settings", "common", "assets"]);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [values, setValues] = React.useState<DirectoryIconValues>({
@@ -738,7 +747,10 @@ export function DirectoryIconDialog(props: {
 
     setUploading(true);
     uploadSingleAssetFromFile({
-      scope: { type: "workspace", id: props.entity.workspaceId },
+      scope:
+        props.kind === "project"
+          ? { type: "project", id: props.entity.projectId }
+          : { type: "organization", id: props.entity.organizationId },
       purpose: "workspace_icon",
       file,
       t,

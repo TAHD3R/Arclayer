@@ -43,6 +43,7 @@ ContentWorkbenchDerivedStatus = Literal["published", "changed", "draft", "archiv
 ContentWorkbenchRuntime = Literal["text", "visual", "data", "unknown"]
 ContentWorkbenchContext = Literal["site_builder", "content_library", "system", "custom", "standalone"]
 ContentWorkbenchLibraryGroup = Literal["site-content", "general-content", "structured-content"]
+ContentModelKind = Literal["collection_type", "single_type", "component"]
 ContentShapeReasonCode = Literal[
     "UNSHAPED_ITEM",
     "MODEL_DEFAULT_INVALID",
@@ -313,6 +314,7 @@ class ContentModelOut(BaseSchema):
         description="Published contract revision used by delivery reads.",
     )
     category: ContentModelCategory = Field(..., description="Model grouping category.")
+    model_kind: ContentModelKind = Field(default="collection_type", description="Builder model kind.")
     capabilities: list[ContentModelCapability] = Field(default_factory=list, description="Enabled model capabilities.")
     default_editor: ContentDefaultEditor = Field(default="form", description="Default editor mode.")
     default_role: ContentContinuationRole | None = Field(
@@ -494,6 +496,8 @@ class ContentItemOut(BaseSchema):
         default_factory=ContentItemPublishReadinessOut,
         description="Per-item readiness summary used by workflow and release surfaces.",
     )
+    created_by_user_id: PublicUUID | None = Field(default=None, description="Creator user id.")
+    updated_by_user_id: PublicUUID | None = Field(default=None, description="Last updater user id.")
     open_intent: ContentOpenIntentOut | None = Field(
         default=None,
         description="Backend-resolved open intent for routing into the next continuation surface.",
@@ -562,6 +566,29 @@ class ContentVersionOut(BaseSchema):
     change_summary: str | None = Field(default=None, max_length=512, description="Optional change summary.")
 
 
+class ContentItemBulkTransitionOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    items: list[ContentVersionOut] = Field(default_factory=list, description="Transitioned content versions.")
+
+
+class ContentVersionCompareChangeOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    path: str = Field(..., min_length=1, description="Changed snapshot path.")
+    before: Any = Field(default=None, description="Value from the source version.")
+    after: Any = Field(default=None, description="Value from the target version.")
+
+
+class ContentVersionCompareOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    item_id: PublicUUID = Field(..., description="Content item id.")
+    source_version_number: int = Field(..., ge=1, description="Source version number.")
+    target_version_number: int = Field(..., ge=1, description="Target version number.")
+    changes: list[ContentVersionCompareChangeOut] = Field(default_factory=list, description="Changed fields.")
+
+
 class ContentModelFieldContract(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -570,6 +597,21 @@ class ContentModelFieldContract(BaseSchema):
     scalar: FieldScalarType = Field(..., description="Field scalar type.")
     required: bool = Field(default=False, description="Whether the field must be provided.")
     config: dict[str, Any] | None = Field(default=None, description="Field-level configuration payload.")
+
+
+class ContentModelFieldPatchContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    label: str | None = Field(default=None, min_length=1, max_length=128, description="Field label.")
+    scalar: FieldScalarType | None = Field(default=None, description="Field scalar type.")
+    required: bool | None = Field(default=None, description="Whether the field must be provided.")
+    config: dict[str, Any] | None = Field(default=None, description="Field-level configuration payload.")
+
+
+class ContentModelFieldReorderContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    field_keys: list[str] = Field(..., min_length=1, description="Complete field key order.")
 
 
 class ContentModelRelationContract(BaseSchema):
@@ -612,6 +654,7 @@ class ContentModelDefinitionContract(BaseSchema):
     name: str = Field(..., min_length=1, max_length=128, description="Display model name.")
     description: str | None = Field(default=None, max_length=512, description="Optional model description.")
     category: ContentModelCategory = Field(default="custom", description="Product surface grouping.")
+    model_kind: ContentModelKind = Field(default="collection_type", description="Builder model kind.")
     default_editor: ContentDefaultEditor = Field(default="form", description="Default editing mode.")
     default_role: ContentContinuationRole | None = Field(
         default=None,

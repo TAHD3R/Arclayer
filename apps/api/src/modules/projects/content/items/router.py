@@ -11,10 +11,16 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.models.content._enums import ContentVersionState
 from src.modules.auth.http.service import get_current_user_id
-from src.modules.projects.content.contracts.schema import ContentItemOut, ContentVersionOut
+from src.modules.projects.content.contracts.schema import (
+    ContentItemBulkTransitionOut,
+    ContentItemOut,
+    ContentVersionCompareOut,
+    ContentVersionOut,
+)
 from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
 from src.modules.projects.content.items.input_schema import (
     ContentItemBootstrapShapeIn,
+    ContentItemBulkTransitionIn,
     ContentItemCreateIn,
     ContentItemWorkflowPatchIn,
     ContentVersionDraftSaveIn,
@@ -86,6 +92,74 @@ async def list_project_content_items(
         site_id=ctx.site_id,
         params=params,
         model_key=model_key,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/items/bulk/publish",
+    response_model=ResponseModel[ContentItemBulkTransitionOut],
+    response_model_exclude_none=True,
+    summary="Bulk publish rebuilt content items (project RBAC protected)",
+)
+async def bulk_publish_project_content_items(
+    payload: Annotated[ContentItemBulkTransitionIn, Body(description="Bulk content item publish payload.")],
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_publish_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
+    service: Annotated[
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentItemBulkTransitionOut]:
+    data = await service.bulk_publish_items(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        item_ids=payload.item_ids,
+        actor_user_id=actor_user_id,
+    )
+    await _publish_project_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=ctx.project_id,
+        entity_type="content_item_bulk",
+        event_bus=event_bus,
+        event_name="project.content.items.bulk_published",
+        properties={"item_count": len(data.items)},
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/items/bulk/unpublish",
+    response_model=ResponseModel[ContentItemBulkTransitionOut],
+    response_model_exclude_none=True,
+    summary="Bulk unpublish rebuilt content items (project RBAC protected)",
+)
+async def bulk_unpublish_project_content_items(
+    payload: Annotated[ContentItemBulkTransitionIn, Body(description="Bulk content item unpublish payload.")],
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_publish_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
+    service: Annotated[
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentItemBulkTransitionOut]:
+    data = await service.bulk_unpublish_items(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        item_ids=payload.item_ids,
+        actor_user_id=actor_user_id,
+    )
+    await _publish_project_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=ctx.project_id,
+        entity_type="content_item_bulk",
+        event_bus=event_bus,
+        event_name="project.content.items.bulk_unpublished",
+        properties={"item_count": len(data.items)},
     )
     return ApiResponse.success(data=data)
 
@@ -453,6 +527,74 @@ async def get_project_content_item_version(
         site_id=ctx.site_id,
         item_id=item_id,
         version_number=version_number,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/items/{item_id}/versions/{version_number}/compare/{target_version_number}",
+    response_model=ResponseModel[ContentVersionCompareOut],
+    response_model_exclude_none=True,
+    summary="Compare rebuilt content versions (project RBAC protected)",
+)
+async def compare_project_content_item_versions(
+    item_id: PublicUUID,
+    version_number: int,
+    target_version_number: int,
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
+    service: Annotated[
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentVersionCompareOut]:
+    data = await service.compare_versions(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        item_id=item_id,
+        source_version_number=version_number,
+        target_version_number=target_version_number,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/items/{item_id}/versions/{version_number}/restore",
+    response_model=ResponseModel[ContentVersionOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Restore rebuilt content version into a draft (project RBAC protected)",
+)
+async def restore_project_content_item_version(
+    item_id: PublicUUID,
+    version_number: int,
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
+    service: Annotated[
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentVersionOut]:
+    data = await service.restore_version_to_draft(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        item_id=item_id,
+        version_number=version_number,
+        actor_user_id=actor_user_id,
+    )
+    await _publish_project_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="project.content.version.restored",
+        properties={
+            "source_version_number": version_number,
+            "version_number": data.version_number,
+            "version_state": str(data.state),
+            "change_summary": data.change_summary,
+        },
     )
     return ApiResponse.success(data=data)
 

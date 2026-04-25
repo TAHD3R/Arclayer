@@ -80,6 +80,8 @@ export function ContentLibraryActionDialogs(props: {
   archiveDialog: ContentLibraryArchiveDialogState;
   bulkArchiveDialog: ContentLibraryBulkDialogState;
   bulkDeleteDialog: ContentLibraryBulkDialogState;
+  bulkPublishDialog: ContentLibraryBulkDialogState;
+  bulkUnpublishDialog: ContentLibraryBulkDialogState;
 }) {
   const { t } = useTranslation("content");
   const archiveTitle =
@@ -135,6 +137,28 @@ export function ContentLibraryActionDialogs(props: {
         description={archiveDescription}
         confirmLabel={archiveConfirmLabel}
         confirmVariant={archiveConfirmVariant}
+      />
+      <ContentLibraryConfirmDialog
+        open={props.bulkPublishDialog.open}
+        pending={props.bulkPublishDialog.pending}
+        onOpenChange={props.bulkPublishDialog.onOpenChange}
+        onConfirm={props.bulkPublishDialog.onConfirm}
+        title={t("CONTENT_LIBRARY_BULK_PUBLISH_DIALOG_TITLE")}
+        description={t("CONTENT_LIBRARY_BULK_PUBLISH_DIALOG_DESC", {
+          count: props.bulkPublishDialog.count,
+        })}
+        confirmLabel={t("CONTENT_LIBRARY_ACTION_BULK_PUBLISH")}
+      />
+      <ContentLibraryConfirmDialog
+        open={props.bulkUnpublishDialog.open}
+        pending={props.bulkUnpublishDialog.pending}
+        onOpenChange={props.bulkUnpublishDialog.onOpenChange}
+        onConfirm={props.bulkUnpublishDialog.onConfirm}
+        title={t("CONTENT_LIBRARY_BULK_UNPUBLISH_DIALOG_TITLE")}
+        description={t("CONTENT_LIBRARY_BULK_UNPUBLISH_DIALOG_DESC", {
+          count: props.bulkUnpublishDialog.count,
+        })}
+        confirmLabel={t("CONTENT_LIBRARY_ACTION_BULK_UNPUBLISH")}
       />
       <ContentLibraryConfirmDialog
         open={props.bulkArchiveDialog.open}

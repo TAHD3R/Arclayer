@@ -1,5 +1,5 @@
 import { api } from "@/lib/http";
-import { organizationPath, workspacePath, toQueryString } from "@/lib/api";
+import { organizationPath, projectPath, toQueryString } from "@/lib/api";
 import type {
   PageData,
   AdminAssetSummary,
@@ -23,7 +23,7 @@ import type {
 } from "@/types/api";
 
 export async function listAssets(
-  workspaceId: string,
+  projectId: string,
   params: ListAdminAssetsParams = {},
 ): Promise<PageData<AdminAssetSummary>> {
   const query = toQueryString({
@@ -42,7 +42,7 @@ export async function listAssets(
     tagIds: params.tagIds,
     ordering: params.ordering,
   });
-  return api.get<PageData<AdminAssetSummary>>(workspacePath(workspaceId, `/assets${query}`));
+  return api.get<PageData<AdminAssetSummary>>(projectPath(projectId, `/assets${query}`));
 }
 
 export async function listOrganizationAssets(
@@ -69,14 +69,14 @@ export async function listOrganizationAssets(
 }
 
 export async function listAssetFolders(
-  workspaceId: string,
+  projectId: string,
   params: { page?: number; size?: number } = {},
 ): Promise<PageData<AdminAssetFolder>> {
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? 200,
   });
-  return api.get<PageData<AdminAssetFolder>>(workspacePath(workspaceId, `/asset-folders${query}`));
+  return api.get<PageData<AdminAssetFolder>>(projectPath(projectId, `/asset-folders${query}`));
 }
 
 export async function listOrganizationAssetFolders(
@@ -93,10 +93,10 @@ export async function listOrganizationAssetFolders(
 }
 
 export async function createAssetFolder(
-  workspaceId: string,
+  projectId: string,
   payload: AdminAssetFolderCreateRequest,
 ): Promise<AdminAssetFolder> {
-  return api.post<AdminAssetFolder>(workspacePath(workspaceId, "/asset-folders"), {
+  return api.post<AdminAssetFolder>(projectPath(projectId, "/asset-folders"), {
     name: payload.name,
     parentId: payload.parentId ?? null,
     description: payload.description ?? null,
@@ -105,32 +105,29 @@ export async function createAssetFolder(
 }
 
 export async function updateAssetFolder(
-  workspaceId: string,
+  projectId: string,
   folderId: string,
   payload: AdminAssetFolderUpdateRequest,
 ): Promise<AdminAssetFolder> {
-  return api.put<AdminAssetFolder>(
-    workspacePath(workspaceId, `/asset-folders/${folderId}`),
-    payload,
-  );
+  return api.put<AdminAssetFolder>(projectPath(projectId, `/asset-folders/${folderId}`), payload);
 }
 
 export async function deleteAssetFolder(
-  workspaceId: string,
+  projectId: string,
   folderId: string,
 ): Promise<AdminAssetFolderDeleteOut> {
   return api.delete<AdminAssetFolderDeleteOut>(
-    workspacePath(workspaceId, `/asset-folders/${folderId}`),
+    projectPath(projectId, `/asset-folders/${folderId}`),
   );
 }
 
 export async function deleteAssetFolderWithMove(
-  workspaceId: string,
+  projectId: string,
   folderId: string,
   payload: AdminAssetFolderDeleteRequest,
 ): Promise<AdminAssetFolderDeleteOut> {
   return api.post<AdminAssetFolderDeleteOut>(
-    workspacePath(workspaceId, `/asset-folders/${folderId}/delete`),
+    projectPath(projectId, `/asset-folders/${folderId}/delete`),
     {
       destinationFolderId: payload.destinationFolderId ?? null,
     },
@@ -138,7 +135,7 @@ export async function deleteAssetFolderWithMove(
 }
 
 export async function listAssetTags(
-  workspaceId: string,
+  projectId: string,
   params: {
     q?: string;
     page?: number;
@@ -150,7 +147,7 @@ export async function listAssetTags(
     page: params.page ?? 1,
     size: params.size ?? 200,
   });
-  return api.get<PageData<AdminAssetTag>>(workspacePath(workspaceId, `/asset-tags${query}`));
+  return api.get<PageData<AdminAssetTag>>(projectPath(projectId, `/asset-tags${query}`));
 }
 
 export async function listOrganizationAssetTags(
@@ -170,10 +167,10 @@ export async function listOrganizationAssetTags(
 }
 
 export async function createAssetTag(
-  workspaceId: string,
+  projectId: string,
   payload: { name: string },
 ): Promise<AdminAssetTag> {
-  return api.post<AdminAssetTag>(workspacePath(workspaceId, "/asset-tags"), payload);
+  return api.post<AdminAssetTag>(projectPath(projectId, "/asset-tags"), payload);
 }
 
 export async function createOrganizationAssetTag(
@@ -184,10 +181,10 @@ export async function createOrganizationAssetTag(
 }
 
 export async function getAssetDetail(
-  workspaceId: string,
+  projectId: string,
   assetId: string,
 ): Promise<AdminAssetDetail> {
-  return api.get<AdminAssetDetail>(workspacePath(workspaceId, `/assets/${assetId}`));
+  return api.get<AdminAssetDetail>(projectPath(projectId, `/assets/${assetId}`));
 }
 
 export async function getOrganizationAssetDetail(
@@ -198,51 +195,45 @@ export async function getOrganizationAssetDetail(
 }
 
 export async function patchAsset(
-  workspaceId: string,
+  projectId: string,
   assetId: string,
   payload: PatchAdminAssetPayload,
 ): Promise<AdminAssetDetail> {
-  return api.patch<AdminAssetDetail>(workspacePath(workspaceId, `/assets/${assetId}`), payload);
+  return api.patch<AdminAssetDetail>(projectPath(projectId, `/assets/${assetId}`), payload);
 }
 
 export async function deleteAsset(
-  workspaceId: string,
+  projectId: string,
   assetId: string,
 ): Promise<AdminAssetDeleteOut> {
-  return api.delete<AdminAssetDeleteOut>(workspacePath(workspaceId, `/assets/${assetId}`));
+  return api.delete<AdminAssetDeleteOut>(projectPath(projectId, `/assets/${assetId}`));
 }
 
 export async function moveAsset(
-  workspaceId: string,
+  projectId: string,
   assetId: string,
   payload: AdminAssetMoveRequest,
 ): Promise<AdminAssetSummary> {
-  return api.put<AdminAssetSummary>(workspacePath(workspaceId, `/assets/${assetId}/move`), payload);
+  return api.put<AdminAssetSummary>(projectPath(projectId, `/assets/${assetId}/move`), payload);
 }
 
 export async function bulkMoveAssets(
-  workspaceId: string,
+  projectId: string,
   payload: AdminAssetsBulkMoveRequest,
 ): Promise<AdminAssetsBulkMoveOut> {
-  return api.put<AdminAssetsBulkMoveOut>(workspacePath(workspaceId, `/assets/bulk/move`), payload);
+  return api.put<AdminAssetsBulkMoveOut>(projectPath(projectId, `/assets/bulk/move`), payload);
 }
 
 export async function bulkDeleteAssets(
-  workspaceId: string,
+  projectId: string,
   payload: AdminAssetsBulkDeleteRequest,
 ): Promise<AdminAssetsBulkDeleteOut> {
-  return api.post<AdminAssetsBulkDeleteOut>(
-    workspacePath(workspaceId, `/assets/bulk/delete`),
-    payload,
-  );
+  return api.post<AdminAssetsBulkDeleteOut>(projectPath(projectId, `/assets/bulk/delete`), payload);
 }
 
 export async function bulkUpdateAssets(
-  workspaceId: string,
+  projectId: string,
   payload: AdminAssetsBulkUpdateRequest,
 ): Promise<AdminAssetsBulkUpdateOut> {
-  return api.put<AdminAssetsBulkUpdateOut>(
-    workspacePath(workspaceId, `/assets/bulk/update`),
-    payload,
-  );
+  return api.put<AdminAssetsBulkUpdateOut>(projectPath(projectId, `/assets/bulk/update`), payload);
 }

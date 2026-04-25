@@ -1,4 +1,4 @@
-export type AssetScopeType = "workspace" | "organization" | "user";
+export type AssetScopeType = "project" | "organization";
 
 export type AssetScopeRef = {
   type: AssetScopeType;

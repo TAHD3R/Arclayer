@@ -5,48 +5,48 @@ import { useAssetsRecentStore } from "@/stores/use-assets-recent-store";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 export function useAssetsRecentItems(params: {
-  workspaceId: string | null | undefined;
+  projectId: string | null | undefined;
   active: AssetMasonryItem | null;
   items: AssetMasonryItem[];
 }) {
   const records = useAssetsRecentStore((state) => state.records);
   const recordRecent = useAssetsRecentStore((state) => state.record);
   const removeRecent = useAssetsRecentStore((state) => state.remove);
-  const clearWorkspaceRecent = useAssetsRecentStore((state) => state.clearWorkspace);
+  const clearProjectRecent = useAssetsRecentStore((state) => state.clearProject);
   const lastRecordedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!params.workspaceId || !params.active) {
+    if (!params.projectId || !params.active) {
       lastRecordedKeyRef.current = null;
       return;
     }
 
-    const nextKey = `${params.workspaceId}:${params.active.id}`;
+    const nextKey = `${params.projectId}:${params.active.id}`;
     if (lastRecordedKeyRef.current === nextKey) return;
     lastRecordedKeyRef.current = nextKey;
     recordRecent({
-      workspaceId: String(params.workspaceId),
+      projectId: String(params.projectId),
       asset: toRecentAssetSnapshot(params.active),
     });
-  }, [params.active, params.workspaceId, recordRecent]);
+  }, [params.active, params.projectId, recordRecent]);
 
-  const workspaceId = params.workspaceId ? String(params.workspaceId) : null;
+  const projectId = params.projectId ? String(params.projectId) : null;
   const recentAssets = useMemo(
     () =>
       resolveRecentAssets({
         records,
         items: params.items,
-        workspaceId,
+        projectId,
       }),
-    [params.items, workspaceId, records],
+    [params.items, projectId, records],
   );
 
   return {
     recentAssets,
     removeRecentAsset: removeRecent,
     clearRecentAssets: () => {
-      if (!workspaceId) return;
-      clearWorkspaceRecent(workspaceId);
+      if (!projectId) return;
+      clearProjectRecent(projectId);
     },
   };
 }

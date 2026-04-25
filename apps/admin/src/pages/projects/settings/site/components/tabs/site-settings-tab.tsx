@@ -117,7 +117,7 @@ function buildDefaultLocalePatch(nextLocale: string, initialLocale: string) {
 }
 
 type SiteSettingsTabProps = GeneralSettingsTabBaseProps & {
-  assetWorkspaceId: string | null;
+  assetProjectId: string | null;
 };
 
 export function SiteSettingsTab(props: SiteSettingsTabProps) {
@@ -627,7 +627,7 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
               uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
               uploadPurpose="site_logo"
               withSavingKey={withSavingKey}
-              assetWorkspaceId={props.assetWorkspaceId}
+              assetProjectId={props.assetProjectId}
               urlField="siteLogoUrl"
             />
 
@@ -651,7 +651,7 @@ export function SiteSettingsTab(props: SiteSettingsTabProps) {
               uploadAriaLabel={t("settings:SETTINGS_ASSET_PICKER_SELECT")}
               uploadPurpose="favicon"
               withSavingKey={withSavingKey}
-              assetWorkspaceId={props.assetWorkspaceId}
+              assetProjectId={props.assetProjectId}
               urlField="siteFaviconUrl"
             />
 

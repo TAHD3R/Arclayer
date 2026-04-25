@@ -17,7 +17,6 @@ import { useAssetsRecentStore } from "@/stores/use-assets-recent-store";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";
 import { assetScopeKey } from "@/lib/assets/asset-scope";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 
 import type { AssetMasonryItem } from "@/types/assets-masonry";
@@ -29,27 +28,28 @@ import {
 } from "./asset-masonry-tile";
 
 export function useAssetPreviewDialogController(props: {
+  projectId: string;
   active: AssetMasonryItem | null;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const removeRecentAssets = useAssetsRecentStore((state) => state.removeAssets);
   const scopeKey = useMemo(
-    () => (workspaceId ? assetScopeKey({ type: "workspace", id: String(workspaceId) }) : null),
-    [workspaceId],
+    () =>
+      props.projectId ? assetScopeKey({ type: "project", id: String(props.projectId) }) : null,
+    [props.projectId],
   );
   const uiLocale = usePreferencesStore((s) => s.locale);
-  const adminDateTime = useAdminDateTimeFormatter({ workspaceId });
+  const adminDateTime = useAdminDateTimeFormatter({ projectId: props.projectId });
   const baseActive = props.active;
 
   const detailQuery = useQuery({
     queryKey: ["assets", "detail", scopeKey, baseActive?.id],
     queryFn: async () => {
       if (!baseActive?.id) throw new Error("missing asset id");
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return getAssetDetail(String(workspaceId), baseActive.id);
+      if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return getAssetDetail(String(props.projectId), baseActive.id);
     },
     enabled: Boolean(scopeKey) && Boolean(baseActive?.id),
     staleTime: 20 * 1000,
@@ -84,8 +84,8 @@ export function useAssetPreviewDialogController(props: {
   const tagsQuery = useQuery({
     queryKey: ["assets", "tags", scopeKey],
     queryFn: async () => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return listAssetTags(String(workspaceId));
+      if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return listAssetTags(String(props.projectId));
     },
     enabled: Boolean(scopeKey),
     staleTime: 60 * 1000,
@@ -227,8 +227,8 @@ export function useAssetPreviewDialogController(props: {
   const patchMutation = useMutation({
     mutationFn: async (payload: { description?: string | null; tagIds?: string[] }) => {
       if (!active?.id) throw new Error("missing asset id");
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return patchAsset(String(workspaceId), active.id, payload);
+      if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return patchAsset(String(props.projectId), active.id, payload);
     },
     onSuccess: (updated) => {
       setSaveState("saved");
@@ -248,8 +248,8 @@ export function useAssetPreviewDialogController(props: {
   const patchAccessMutation = useMutation({
     mutationFn: async (payload: { visibility?: string; purpose?: string; indexable?: boolean }) => {
       if (!active?.id) throw new Error("missing asset id");
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return patchAsset(String(workspaceId), active.id, payload);
+      if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return patchAsset(String(props.projectId), active.id, payload);
     },
     onSuccess: (updated) => {
       notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
@@ -291,13 +291,13 @@ export function useAssetPreviewDialogController(props: {
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!active?.id) throw new Error("missing asset id");
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return deleteAsset(String(workspaceId), active.id);
+      if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return deleteAsset(String(props.projectId), active.id);
     },
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
-      if (workspaceId && active?.id) {
-        removeRecentAssets(String(workspaceId), [String(active.id)]);
+      if (props.projectId && active?.id) {
+        removeRecentAssets(String(props.projectId), [String(active.id)]);
       }
       void invalidateAssetListQueries(queryClient, scopeKey);
       props.onClose();
@@ -309,8 +309,8 @@ export function useAssetPreviewDialogController(props: {
 
   const createTagMutation = useMutation({
     mutationFn: async (name: string) => {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return createAssetTag(String(workspaceId), { name });
+      if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return createAssetTag(String(props.projectId), { name });
     },
     onSuccess: () => {
       if (scopeKey) queryClient.invalidateQueries({ queryKey: ["assets", "tags", scopeKey] });
@@ -426,7 +426,7 @@ export function useAssetPreviewDialogController(props: {
 
   return {
     t,
-    workspaceId,
+    projectId: props.projectId,
     active,
     activeAspectRatio,
     previewAspectRatio,

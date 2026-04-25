@@ -41,16 +41,16 @@ export function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
   const rawId = String(scope.id || "").trim();
   if (!rawId) throw new Error("ASSET_SCOPE_NOT_SELECTED");
 
-  if (scope.type === "workspace") {
+  if (scope.type === "project") {
     return {
       init: (payload) => initUpload(rawId, payload),
       abort: (uploadId) => abortUpload(rawId, uploadId),
       uploadPart: async (params) => {
-        await uploadPart({ ...params, workspaceId: rawId });
+        await uploadPart({ ...params, projectId: rawId });
       },
-      presignPart: (params) => presignUploadPart({ ...params, workspaceId: rawId }),
+      presignPart: (params) => presignUploadPart({ ...params, projectId: rawId }),
       commitPart: async (params) => {
-        await commitUploadPart({ ...params, workspaceId: rawId });
+        await commitUploadPart({ ...params, projectId: rawId });
       },
       complete: (uploadId) => completeUpload(rawId, uploadId),
     };

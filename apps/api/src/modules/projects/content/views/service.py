@@ -79,7 +79,6 @@ def _normalize_stored_view(value: Any) -> StoredView | None:
         "query": str(value.get("query") or ""),
         "filters": _normalize_filters(value.get("filters")),
         "sorting": _normalize_sorting(value.get("sorting")),
-        "viewMode": value.get("viewMode") if value.get("viewMode") in {"table", "card"} else None,
         "columns": _normalize_columns(value.get("columns")),
     }
 
@@ -171,7 +170,6 @@ class ContentLibraryViewsService(BaseService):
             "query": payload.query,
             "filters": payload.filters.model_dump(mode="python", exclude_none=True, by_alias=True),
             "sorting": [item.model_dump(mode="python", by_alias=True) for item in payload.sorting],
-            "viewMode": payload.view_mode,
             "columns": payload.columns.model_dump(mode="python", exclude_none=True, by_alias=True)
             if payload.columns is not None
             else {},
@@ -248,8 +246,6 @@ class ContentLibraryViewsService(BaseService):
             next_view["filters"] = payload.filters.model_dump(mode="python", exclude_none=True, by_alias=True)
         if payload.sorting is not None:
             next_view["sorting"] = [item.model_dump(mode="python", by_alias=True) for item in payload.sorting]
-        if payload.view_mode is not None:
-            next_view["viewMode"] = payload.view_mode
         if payload.columns is not None:
             next_view["columns"] = payload.columns.model_dump(mode="python", exclude_none=True, by_alias=True)
 
@@ -506,7 +502,6 @@ class ContentLibraryViewsService(BaseService):
                 ContentLibraryViewSortingItemSchema.model_validate(entry)
                 for entry in cast(list[dict[str, Any]], item.get("sorting") or [])
             ],
-            view_mode=item.get("viewMode"),
             columns=ContentLibraryViewColumnsSchema.model_validate(item.get("columns") or {}),
             visibility=visibility,
             pinned=item["id"] in pinned_ids,

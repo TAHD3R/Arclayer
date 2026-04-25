@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
 from src.modules.projects.content.contracts.schema import (
     ContentBootstrapPresetState,
     ContentPresentationKind,
@@ -50,6 +51,12 @@ class ContentVersionPatchIn(BaseSchema):
     change_summary: str | None = Field(default=None, max_length=512)
     fields_snapshot: dict[str, Any] | None = None
     presentations: list[ContentPresentationIn] | None = None
+
+
+class ContentItemBulkTransitionIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    item_ids: list[PublicUUID] = Field(..., min_length=1, max_length=100)
 
 
 class ContentWorkflowNoteIn(BaseSchema):

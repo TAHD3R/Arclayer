@@ -450,6 +450,8 @@ def to_item_out(
             ready=not readiness_blocker_codes,
             blocker_codes=readiness_blocker_codes,
         ),
+        created_by_user_id=item.created_by_user_id,
+        updated_by_user_id=item.updated_by_user_id,
         open_intent=open_intent,
         continuation_target=open_intent,
         draft_version=item.draft_version,

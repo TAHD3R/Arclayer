@@ -1,21 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
-import { getWorkspaceDetail } from "@/api/workspaces";
 import { type ViewMode as AssetsViewMode } from "@/components/common/view-mode-toggle";
 import { ColumnsPage } from "@/layouts/page-shell/columns-page";
 import { STORAGE_KEYS } from "@/constants/storage";
-import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { Button } from "@arclayer/ui/button";
 import { readStorageItem, writeStorageItem } from "@/lib/storage";
-import type { AdminAssetFolder, AdminAssetTag, WorkspaceDetail } from "@/types/api";
+import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import { clearSelection } from "@/lib/assets/asset-selection";
-import { useAuthStore } from "@/stores/use-auth-store";
 import { useAssetsViewController } from "../hooks/use-assets-view-controller";
 import { AssetsFolderRail } from "./assets-folder-rail";
 import { AssetsViewDndSurface } from "./assets-view-dnd-surface";
@@ -24,15 +21,17 @@ import { AssetsViewMasonrySection } from "./assets-view-masonry-section";
 import { AssetsSelectionToolbar, AssetsViewOverlays } from "./assets-view-overlays";
 import { AssetsViewTableSection, useAssetsViewTableController } from "./assets-view-table-section";
 
-export function AssetsPageView(props: { initialSearchQuery?: string; initialAssetId?: string }) {
+export function AssetsPageView(props: {
+  projectId: string;
+  initialSearchQuery?: string;
+  initialAssetId?: string;
+}) {
   const [viewMode, setViewMode] = useState<AssetsViewMode>("card");
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const [cardSidebarOpen, setCardSidebarOpen] = useState(() => {
     const stored = readStorageItem(STORAGE_KEYS.assetsFolderRailOpen);
     return stored ? stored === "true" : true;
   });
-  const controller = useAssetsViewController(viewMode);
+  const controller = useAssetsViewController(props.projectId, viewMode);
   const {
     t,
     queryClient,
@@ -116,13 +115,10 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     setActive(null);
   };
   const tableView = useAssetsViewTableController(controller);
-  const workspaceId = scope?.type === "workspace" ? scope.id : null;
-  const permissionAccess = useWorkspacePermissionAccess(workspaceId);
+  const permissionAccess = useProjectPermissionAccess(props.projectId);
   const permissionReady =
-    !workspaceId ||
-    (permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched);
-  const canManageAssets =
-    !workspaceId || !permissionReady || permissionAccess.hasAction("system:assets:manage");
+    permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
+  const canManageAssets = !permissionReady || permissionAccess.hasAction("project:assets:manage");
   const hydratedSearchRef = useRef<string | null>(null);
   const hydratedAssetIdRef = useRef<string | null>(null);
 
@@ -142,15 +138,6 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     openAssetDetails(matched);
   }, [controller.items, props.initialAssetId]);
 
-  const workspaceDetailQuery = useQuery({
-    queryKey: ["workspace", "detail", workspaceId, sessionVersion],
-    enabled: Boolean(accessToken && workspaceId),
-    queryFn: async () => getWorkspaceDetail(String(workspaceId || "")),
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
   const currentFolderPathLabel = currentFolderId
     ? [
         t("assets:ASSET_BREADCRUMB_ROOT"),
@@ -161,22 +148,6 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     () => controller.folderPath.map((folder) => folder.name),
     [controller.folderPath],
   );
-  const workspaceBreadcrumb = useMemo(() => {
-    const detail = workspaceDetailQuery.data;
-    if (!detail) return null;
-    return {
-      name: detail.name,
-      iconMode: detail.iconMode,
-      iconColor: detail.iconColor,
-      iconGlyph: detail.iconGlyph,
-      iconEmoji: detail.iconEmoji,
-      iconUrl: detail.iconUrl,
-    } satisfies Pick<
-      WorkspaceDetail,
-      "name" | "iconMode" | "iconColor" | "iconGlyph" | "iconEmoji" | "iconUrl"
-    >;
-  }, [workspaceDetailQuery.data]);
-
   const setCreateFolderDialogOpen = (open: boolean) => {
     setCreateFolderOpen(open);
     if (open) return;
@@ -343,10 +314,11 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             t={t}
             active={active}
             setActive={setActiveAsset}
+            projectId={props.projectId}
             items={controller.items}
             currentFolderPathLabel={currentFolderPathLabel}
             folderBreadcrumbs={folderBreadcrumbs}
-            workspaceBreadcrumb={workspaceBreadcrumb}
+            workspaceBreadcrumb={null}
             moveModalOpen={moveModalOpen}
             setMoveModalOpen={setMoveModalOpen}
             folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}

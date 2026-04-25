@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  clearRecentAssetWorkspaceRecords,
-  removeRecentAssetWorkspaceAssetIds,
+  clearRecentAssetProjectRecords,
+  removeRecentAssetProjectAssetIds,
   removeRecentAssetRecord,
   resolveRecentAssets,
   touchRecentAssetRecord,
@@ -46,11 +46,11 @@ describe("assets recent helpers", () => {
     });
   });
 
-  it("resolves recent assets from the current workspace and prefers live items", () => {
+  it("resolves recent assets from the current project and prefers live items", () => {
     const records: RecentAssetRecord[] = [
       {
-        key: "ws-a:asset-1",
-        workspaceId: "ws-a",
+        key: "project-a:asset-1",
+        projectId: "project-a",
         visitedAt: "2026-03-17T09:00:00.000Z",
         asset: {
           ...toRecentAssetSnapshot(baseAsset),
@@ -58,12 +58,12 @@ describe("assets recent helpers", () => {
         },
       },
       {
-        key: "ws-b:asset-2",
-        workspaceId: "ws-b",
+        key: "project-b:asset-2",
+        projectId: "project-b",
         visitedAt: "2026-03-17T08:00:00.000Z",
         asset: {
           id: "asset-2",
-          name: "other-workspace.png",
+          name: "other-project.png",
         },
       },
     ];
@@ -71,12 +71,12 @@ describe("assets recent helpers", () => {
     const resolved = resolveRecentAssets({
       records,
       items: [baseAsset],
-      workspaceId: "ws-a",
+      projectId: "project-a",
     });
 
     expect(resolved).toHaveLength(1);
     expect(resolved[0]).toEqual({
-      key: "ws-a:asset-1",
+      key: "project-a:asset-1",
       visitedAt: "2026-03-17T09:00:00.000Z",
       asset: baseAsset,
     });
@@ -86,14 +86,14 @@ describe("assets recent helpers", () => {
     const next = touchRecentAssetRecord(
       [
         {
-          key: "ws-a:asset-1",
-          workspaceId: "ws-a",
+          key: "project-a:asset-1",
+          projectId: "project-a",
           visitedAt: "2026-03-17T08:00:00.000Z",
           asset: toRecentAssetSnapshot(baseAsset),
         },
       ],
       {
-        workspaceId: "ws-a",
+        projectId: "project-a",
         asset: {
           ...toRecentAssetSnapshot(baseAsset),
           name: "hero-updated.png",
@@ -105,8 +105,8 @@ describe("assets recent helpers", () => {
 
     expect(next).toEqual([
       {
-        key: "ws-a:asset-1",
-        workspaceId: "ws-a",
+        key: "project-a:asset-1",
+        projectId: "project-a",
         visitedAt: "2026-03-17T10:00:00.000Z",
         asset: {
           ...toRecentAssetSnapshot(baseAsset),
@@ -116,40 +116,40 @@ describe("assets recent helpers", () => {
     ]);
   });
 
-  it("removes one recent record or clears one workspace without touching others", () => {
+  it("removes one recent record or clears one project without touching others", () => {
     const records: RecentAssetRecord[] = [
       {
-        key: "ws-a:asset-1",
-        workspaceId: "ws-a",
+        key: "project-a:asset-1",
+        projectId: "project-a",
         visitedAt: "2026-03-17T09:00:00.000Z",
         asset: toRecentAssetSnapshot(baseAsset),
       },
       {
-        key: "ws-b:asset-2",
-        workspaceId: "ws-b",
+        key: "project-b:asset-2",
+        projectId: "project-b",
         visitedAt: "2026-03-17T08:00:00.000Z",
         asset: {
           id: "asset-2",
-          name: "other-workspace.png",
+          name: "other-project.png",
         },
       },
     ];
 
-    expect(removeRecentAssetRecord(records, "ws-a:asset-1")).toEqual([records[1]]);
-    expect(clearRecentAssetWorkspaceRecords(records, "ws-a")).toEqual([records[1]]);
+    expect(removeRecentAssetRecord(records, "project-a:asset-1")).toEqual([records[1]]);
+    expect(clearRecentAssetProjectRecords(records, "project-a")).toEqual([records[1]]);
   });
 
-  it("removes deleted asset ids from one workspace without touching other records", () => {
+  it("removes deleted asset ids from one project without touching other records", () => {
     const records: RecentAssetRecord[] = [
       {
-        key: "ws-a:asset-1",
-        workspaceId: "ws-a",
+        key: "project-a:asset-1",
+        projectId: "project-a",
         visitedAt: "2026-03-17T09:00:00.000Z",
         asset: toRecentAssetSnapshot(baseAsset),
       },
       {
-        key: "ws-a:asset-3",
-        workspaceId: "ws-a",
+        key: "project-a:asset-3",
+        projectId: "project-a",
         visitedAt: "2026-03-17T08:30:00.000Z",
         asset: {
           id: "asset-3",
@@ -157,14 +157,14 @@ describe("assets recent helpers", () => {
         },
       },
       {
-        key: "ws-b:asset-1",
-        workspaceId: "ws-b",
+        key: "project-b:asset-1",
+        projectId: "project-b",
         visitedAt: "2026-03-17T08:00:00.000Z",
         asset: toRecentAssetSnapshot(baseAsset),
       },
     ];
 
-    expect(removeRecentAssetWorkspaceAssetIds(records, "ws-a", ["asset-1", "asset-9"])).toEqual([
+    expect(removeRecentAssetProjectAssetIds(records, "project-a", ["asset-1", "asset-9"])).toEqual([
       records[1],
       records[2],
     ]);

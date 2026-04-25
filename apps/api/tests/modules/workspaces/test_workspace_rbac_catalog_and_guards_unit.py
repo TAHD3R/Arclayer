@@ -7,11 +7,9 @@ from fastapi import APIRouter
 from fastapi.params import Depends
 from fastapi.routing import APIRoute
 
-from src.modules.assets.admin.assets.router import router as assets_router
-from src.modules.assets.admin.uploads.router import router as uploads_router
-from src.modules.assets.admin.usages.router import router as usages_router
 from src.modules.organization.rbac.catalog import get_organization_permission_catalog
 from src.modules.projects.api_keys.router import router as project_api_keys_router
+from src.modules.projects.assets.router import router as project_assets_router
 from src.modules.projects.content.items.router import router as project_items_router
 from src.modules.projects.content.models.router import router as project_models_router
 from src.modules.projects.content.routing.router import router as project_routing_router
@@ -316,19 +314,19 @@ def test_project_content_routing_router_uses_granular_permissions() -> None:
 
 
 def test_assets_domains_and_notifications_use_granular_permissions() -> None:
-    assets_list = _route_permissions(assets_router, path="/workspaces/{workspace_id}/assets", method="GET")
+    assets_list = _route_permissions(project_assets_router, path="/projects/{project_id}/assets", method="GET")
     assets_update = _route_permissions(
-        assets_router,
-        path="/workspaces/{workspace_id}/assets/{asset_id}",
+        project_assets_router,
+        path="/projects/{project_id}/assets/{asset_id}",
         method="PATCH",
     )
     usages_list = _route_permissions(
-        usages_router,
-        path="/workspaces/{workspace_id}/assets/{asset_id}/usages",
+        project_assets_router,
+        path="/projects/{project_id}/assets/{asset_id}/usages",
         method="GET",
     )
-    usages_upsert = _route_permissions(usages_router, path="/workspaces/{workspace_id}/asset-usages", method="PUT")
-    upload_init = _route_permissions(uploads_router, path="/workspaces/{workspace_id}/uploads/init", method="POST")
+    usages_upsert = _route_permissions(project_assets_router, path="/projects/{project_id}/asset-usages", method="PUT")
+    upload_init = _route_permissions(project_assets_router, path="/projects/{project_id}/uploads/init", method="POST")
     domains_list = _route_permissions(project_domains_router, path="/projects/{project_id}/domains", method="GET")
     domains_create = _route_permissions(project_domains_router, path="/projects/{project_id}/domains", method="POST")
     notif_seed = _route_permissions(
@@ -336,11 +334,11 @@ def test_assets_domains_and_notifications_use_granular_permissions() -> None:
         path="/workspaces/{workspace_id}/notifications/dev/seed",
         method="POST",
     )
-    assert assets_list == {"system:assets:read"}
-    assert assets_update == {"system:assets:read", "system:assets:manage"}
-    assert usages_list == {"system:assets:read"}
-    assert usages_upsert == {"system:assets:read", "system:assets:manage"}
-    assert upload_init == {"system:assets:manage"}
+    assert assets_list == {"project:assets:read"}
+    assert assets_update == {"project:assets:manage"}
+    assert usages_list == {"project:assets:read"}
+    assert usages_upsert == {"project:assets:manage"}
+    assert upload_init == {"project:assets:manage"}
     assert domains_list == {"project:domains:read"}
     assert domains_create == {"project:domains:manage"}
     assert notif_seed == {"system:notifications:read", "system:notifications:manage"}

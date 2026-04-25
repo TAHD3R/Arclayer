@@ -12,6 +12,7 @@ from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.api_keys.router import router as projects_api_keys_router
+from src.modules.projects.assets.router import router as projects_assets_router
 from src.modules.projects.authz.router_helpers import (
     ensure_project_permission_granted as ensure_project_authz_permission_granted,
 )
@@ -49,6 +50,7 @@ router.include_router(projects_api_keys_router)
 router.include_router(projects_releases_router)
 router.include_router(projects_publish_router)
 router.include_router(projects_content_router)
+router.include_router(projects_assets_router)
 router.include_router(projects_automation_router)
 router.include_router(projects_domains_router)
 

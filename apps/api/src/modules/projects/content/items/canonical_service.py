@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -19,8 +19,11 @@ from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
 from src.modules.projects.content.continuation import resolve_item_continuation_truth
 from src.modules.projects.content.contracts.schema import (
+    ContentItemBulkTransitionOut,
     ContentItemOut,
     ContentPresentationKind,
+    ContentVersionCompareChangeOut,
+    ContentVersionCompareOut,
     ContentVersionOut,
 )
 from src.modules.projects.content.items.domain_helpers import (
@@ -56,6 +59,32 @@ from src.modules.projects.content.items.read_service import (
     ProjectContentCanonicalItemReadService,
 )
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
+
+
+def _compare_mapping(
+    prefix: str, before: dict[str, Any], after: dict[str, Any]
+) -> list[ContentVersionCompareChangeOut]:
+    changes: list[ContentVersionCompareChangeOut] = []
+    for key in sorted(set(before) | set(after)):
+        before_value = before.get(key)
+        after_value = after.get(key)
+        if before_value != after_value:
+            changes.append(
+                ContentVersionCompareChangeOut(path=f"{prefix}.{key}", before=before_value, after=after_value)
+            )
+    return changes
+
+
+def _presentation_payloads(version: ContentVersionOut) -> dict[str, dict[str, Any] | None]:
+    return {str(presentation.kind): presentation.payload for presentation in version.presentations}
+
+
+def _compare_version_payloads(
+    before: ContentVersionOut, after: ContentVersionOut
+) -> list[ContentVersionCompareChangeOut]:
+    changes = _compare_mapping("fields", before.fields_snapshot, after.fields_snapshot)
+    changes.extend(_compare_mapping("presentations", _presentation_payloads(before), _presentation_payloads(after)))
+    return changes
 
 
 class ProjectContentCanonicalItemsService:
@@ -515,6 +544,164 @@ class ProjectContentCanonicalItemsService:
                     target_state=target_state,
                     actor_user_id=actor_user_id,
                 ),
+                conn=conn,
+            )
+            return await self.reads.build_version_out(version=version, conn=conn)
+
+    async def bulk_publish_items(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_ids: list[UUID],
+        actor_user_id: UUID | None,
+    ) -> ContentItemBulkTransitionOut:
+        items: list[ContentVersionOut] = []
+        for item_id in item_ids:
+            async with in_transaction() as conn:
+                item = await self._get_locked_item(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=item_id,
+                    conn=conn,
+                )
+                version_number = int(item.draft_version)
+            data = await self.transition_version(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                version_number=version_number,
+                target_state=ContentVersionState.PUBLISHED,
+                actor_user_id=actor_user_id,
+            )
+            items.append(data)
+        return ContentItemBulkTransitionOut(items=items)
+
+    async def bulk_unpublish_items(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_ids: list[UUID],
+        actor_user_id: UUID | None,
+    ) -> ContentItemBulkTransitionOut:
+        items: list[ContentVersionOut] = []
+        for item_id in item_ids:
+            async with in_transaction() as conn:
+                item = await self._get_locked_item(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=item_id,
+                    conn=conn,
+                )
+                if item.published_version is None:
+                    raise Conflict("Content item is not published", error="CONTENT_ITEM_NOT_PUBLISHED")
+                version = await self._get_locked_version(
+                    item_id=item.id,
+                    version_number=int(item.published_version),
+                    conn=conn,
+                )
+                if version.state != ContentVersionState.PUBLISHED:
+                    raise Conflict("Content version is not published", error="CONTENT_VERSION_NOT_PUBLISHED")
+                version = await self.repo.update_version_fields(
+                    version,
+                    fields={"state": str(ContentVersionState.DRAFT), "last_transition_by_user_id": actor_user_id},
+                    conn=conn,
+                )
+                await self.repo.update_item_fields(
+                    item,
+                    fields={
+                        "published_version": None,
+                        "status": str(ContentItemStatus.DRAFT),
+                        "updated_by_user_id": actor_user_id,
+                    },
+                    conn=conn,
+                )
+                items.append(await self.reads.build_version_out(version=version, conn=conn))
+        return ContentItemBulkTransitionOut(items=items)
+
+    async def compare_versions(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        source_version_number: int,
+        target_version_number: int,
+    ) -> ContentVersionCompareOut:
+        async with in_transaction() as conn:
+            item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            source = await self._get_locked_version(
+                item_id=item.id,
+                version_number=source_version_number,
+                conn=conn,
+            )
+            target = await self._get_locked_version(
+                item_id=item.id,
+                version_number=target_version_number,
+                conn=conn,
+            )
+            source_out = await self.reads.build_version_out(version=source, conn=conn)
+            target_out = await self.reads.build_version_out(version=target, conn=conn)
+        return ContentVersionCompareOut(
+            item_id=item.id,
+            source_version_number=source_version_number,
+            target_version_number=target_version_number,
+            changes=_compare_version_payloads(source_out, target_out),
+        )
+
+    async def restore_version_to_draft(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        version_number: int,
+        actor_user_id: UUID | None,
+    ) -> ContentVersionOut:
+        async with in_transaction() as conn:
+            item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            source = await self._get_locked_version(
+                item_id=item.id,
+                version_number=version_number,
+                conn=conn,
+            )
+            source_out = await self.reads.build_version_out(version=source, conn=conn)
+            next_version = int(item.draft_version or 0) + 1
+            version = await self.repo.create_version(
+                item_id=item.id,
+                version=next_version,
+                state=str(ContentVersionState.DRAFT),
+                fields_snapshot=source_out.fields_snapshot,
+                change_summary=f"Restored from version {version_number}",
+                actor_user_id=actor_user_id,
+                last_transition_by_user_id=actor_user_id,
+                conn=conn,
+            )
+            presentations: PresentationPayload = [
+                (presentation.kind, presentation.payload) for presentation in source_out.presentations
+            ]
+            await self._replace_presentations(version_id=version.id, presentations=presentations, conn=conn)
+            await self.repo.update_item_fields(
+                item,
+                fields={
+                    "draft_version": next_version,
+                    "status": status_by_published_version(
+                        published_version=item.published_version,
+                        fallback=ContentItemStatus.DRAFT,
+                    ),
+                    "updated_by_user_id": actor_user_id,
+                },
                 conn=conn,
             )
             return await self.reads.build_version_out(version=version, conn=conn)

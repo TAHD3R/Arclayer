@@ -19,7 +19,6 @@ ContentLibraryViewRole = Literal[
     "general",
 ]
 ContentLibraryViewEditWith = Literal["canvas", "writing", "structured"]
-ContentLibraryViewMode = Literal["table", "card"]
 ContentLibraryViewRowHeight = Literal["short", "medium", "tall", "extraTall"]
 ContentLibrarySystemViewId = Literal[
     "all",
@@ -35,6 +34,9 @@ class ContentLibraryViewFiltersSchema(BaseSchema):
 
     status: ContentLibraryViewStatus | None = Field(default=None)
     model_key: str | None = Field(default=None, min_length=1, max_length=128)
+    locale: str | None = Field(default=None, min_length=2, max_length=16)
+    created_by_user_id: str | None = Field(default=None, min_length=1, max_length=64)
+    tag: str | None = Field(default=None, min_length=1, max_length=128)
     role: ContentLibraryViewRole | None = Field(default=None)
     edit_with: ContentLibraryViewEditWith | None = Field(default=None)
 
@@ -74,7 +76,6 @@ class ContentLibraryViewOut(BaseSchema):
     query: str = Field(default="", max_length=200)
     filters: ContentLibraryViewFiltersSchema = Field(default_factory=ContentLibraryViewFiltersSchema)
     sorting: list[ContentLibraryViewSortingItemSchema] = Field(default_factory=list)
-    view_mode: ContentLibraryViewMode | None = Field(default=None)
     columns: ContentLibraryViewColumnsSchema = Field(default_factory=ContentLibraryViewColumnsSchema)
     visibility: ContentLibraryViewVisibility = Field(...)
     pinned: bool = Field(default=False)
@@ -96,7 +97,6 @@ class ContentLibraryViewCreateIn(BaseSchema):
     query: str = Field(default="", max_length=200)
     filters: ContentLibraryViewFiltersSchema = Field(default_factory=ContentLibraryViewFiltersSchema)
     sorting: list[ContentLibraryViewSortingItemSchema] = Field(default_factory=list)
-    view_mode: ContentLibraryViewMode | None = Field(default=None)
     columns: ContentLibraryViewColumnsSchema | None = Field(default=None)
     visibility: ContentLibraryViewVisibility = Field(default="private")
     pinned: bool = Field(default=False)
@@ -111,7 +111,6 @@ class ContentLibraryViewPatchIn(BaseSchema):
     query: str | None = Field(default=None, max_length=200)
     filters: ContentLibraryViewFiltersSchema | None = Field(default=None)
     sorting: list[ContentLibraryViewSortingItemSchema] | None = Field(default=None)
-    view_mode: ContentLibraryViewMode | None = Field(default=None)
     columns: ContentLibraryViewColumnsSchema | None = Field(default=None)
     visibility: ContentLibraryViewVisibility | None = Field(default=None)
     pinned: bool | None = Field(default=None)

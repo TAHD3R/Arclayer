@@ -48,6 +48,7 @@ import { AssetPreviewStage } from "./asset-preview-stage";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
 
 type AssetPreviewDialogProps = {
+  projectId: string;
   active: AssetMasonryItem | null;
   onClose: () => void;
   items: AssetMasonryItem[];
@@ -126,6 +127,7 @@ function PreviewToolbar(props: {
 
 export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
   const controller = useAssetPreviewDialogController({
+    projectId: props.projectId,
     active: props.active,
     onClose: props.onClose,
   });

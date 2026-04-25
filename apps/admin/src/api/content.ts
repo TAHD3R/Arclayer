@@ -4,6 +4,7 @@ import type {
   AdminContentItem,
   AdminContentLibraryViewsState,
   AdminContentModel,
+  AdminContentModelJsonPreview,
   AdminContentModelImpactPreview,
   AdminContentSeoProfile,
   AdminContentVersion,
@@ -14,24 +15,45 @@ import type {
   AdminReleaseRollbackResult,
   AdminPublishImpact,
   ApplyAdminContentBootstrapShapePayload,
+  CreateAdminContentModelFieldPayload,
+  CreateAdminContentModelPayload,
   CreateAdminContentLibraryViewPayload,
   CreateAdminContentItemPayload,
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
   ListAdminContentVersionsParams,
   MoveAdminContentLibraryViewPayload,
+  PatchAdminContentModelFieldPayload,
   PatchAdminContentModelPayload,
   PatchAdminContentVersionPayload,
   PageData,
   PatchAdminContentItemWorkflowPayload,
   PatchAdminContentLibraryViewPayload,
+  ReorderAdminContentModelFieldsPayload,
   SaveAdminContentDraftVersionPayload,
 } from "@/types/api";
 
 const CONTENT_LIST_PAGE_SIZE = 200;
 
-export function buildContentModelsGovernanceQueryKey(projectId: string | null) {
-  return ["content", "models", "governance", projectId] as const;
+export type BulkContentItemTransitionResult = {
+  items: AdminContentVersion[];
+};
+
+export type AdminContentVersionCompareChange = {
+  path: string;
+  before?: unknown;
+  after?: unknown;
+};
+
+export type AdminContentVersionCompare = {
+  itemId: string;
+  sourceVersionNumber: number;
+  targetVersionNumber: number;
+  changes: AdminContentVersionCompareChange[];
+};
+
+export function buildContentModelsQueryKey(projectId: string | null) {
+  return ["content", "models", projectId] as const;
 }
 
 export function buildContentModelPreviewQueryKey(
@@ -68,6 +90,66 @@ export async function listContentModels(
 export async function listAllContentModels(projectId: string): Promise<AdminContentModel[]> {
   return collectAllPages((page) =>
     listContentModels(projectId, { page, size: CONTENT_LIST_PAGE_SIZE }),
+  );
+}
+
+export async function createContentModel(
+  projectId: string,
+  payload: CreateAdminContentModelPayload,
+): Promise<AdminContentModel> {
+  return api.post<AdminContentModel>(projectPath(projectId, "/content/models"), payload);
+}
+
+export async function getContentModelJsonPreview(
+  projectId: string,
+  modelId: string,
+): Promise<AdminContentModelJsonPreview> {
+  return api.get<AdminContentModelJsonPreview>(
+    projectPath(projectId, `/content/models/${modelId}/json-preview`),
+  );
+}
+
+export async function addContentModelField(
+  projectId: string,
+  modelId: string,
+  payload: CreateAdminContentModelFieldPayload,
+): Promise<AdminContentModel> {
+  return api.post<AdminContentModel>(
+    projectPath(projectId, `/content/models/${modelId}/fields`),
+    payload,
+  );
+}
+
+export async function updateContentModelField(
+  projectId: string,
+  modelId: string,
+  fieldKey: string,
+  payload: PatchAdminContentModelFieldPayload,
+): Promise<AdminContentModel> {
+  return api.patch<AdminContentModel>(
+    projectPath(projectId, `/content/models/${modelId}/fields/${encodeURIComponent(fieldKey)}`),
+    payload,
+  );
+}
+
+export async function reorderContentModelFields(
+  projectId: string,
+  modelId: string,
+  payload: ReorderAdminContentModelFieldsPayload,
+): Promise<AdminContentModel> {
+  return api.post<AdminContentModel>(
+    projectPath(projectId, `/content/models/${modelId}/fields/reorder`),
+    payload,
+  );
+}
+
+export async function deleteContentModelField(
+  projectId: string,
+  modelId: string,
+  fieldKey: string,
+): Promise<AdminContentModel> {
+  return api.delete<AdminContentModel>(
+    projectPath(projectId, `/content/models/${modelId}/fields/${encodeURIComponent(fieldKey)}`),
   );
 }
 
@@ -197,6 +279,51 @@ export async function publishContentItemVersion(
 ): Promise<AdminContentVersion> {
   return api.post<AdminContentVersion>(
     projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}/publish`),
+  );
+}
+
+export async function bulkPublishContentItems(
+  projectId: string,
+  itemIds: string[],
+): Promise<BulkContentItemTransitionResult> {
+  return api.post<BulkContentItemTransitionResult>(
+    projectPath(projectId, "/content/items/bulk/publish"),
+    { itemIds },
+  );
+}
+
+export async function bulkUnpublishContentItems(
+  projectId: string,
+  itemIds: string[],
+): Promise<BulkContentItemTransitionResult> {
+  return api.post<BulkContentItemTransitionResult>(
+    projectPath(projectId, "/content/items/bulk/unpublish"),
+    { itemIds },
+  );
+}
+
+export async function compareContentItemVersions(
+  projectId: string,
+  itemId: string,
+  sourceVersionNumber: number,
+  targetVersionNumber: number,
+): Promise<AdminContentVersionCompare> {
+  return api.get<AdminContentVersionCompare>(
+    projectPath(
+      projectId,
+      `/content/items/${itemId}/versions/${sourceVersionNumber}/compare/${targetVersionNumber}`,
+    ),
+  );
+}
+
+export async function restoreContentItemVersion(
+  projectId: string,
+  itemId: string,
+  versionNumber: number,
+): Promise<AdminContentVersion> {
+  return api.post<AdminContentVersion>(
+    projectPath(projectId, `/content/items/${itemId}/versions/${versionNumber}/restore`),
+    {},
   );
 }
 

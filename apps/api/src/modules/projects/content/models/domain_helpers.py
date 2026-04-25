@@ -17,6 +17,7 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelContractBoundaryOut,
     ContentModelContractRegistryOut,
     ContentModelFieldDefinitionOut,
+    ContentModelKind,
     ContentModelOut,
     ContentModelProtocolKey,
 )
@@ -27,6 +28,10 @@ _KNOWN_PROTOCOL_KEYS = {"article", "page", "reusable-section", "category"}
 
 def normalize_model_category(value: ContentModelCategory | None) -> str:
     return str(value or "custom")
+
+
+def normalize_model_kind(value: ContentModelKind | None) -> str:
+    return str(value or "collection_type")
 
 
 def normalize_default_editor(value: ContentDefaultEditor | None) -> str:
@@ -188,6 +193,7 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
             int(record.published_contract_revision) if record.published_contract_revision is not None else None
         ),
         category=cast(ContentModelCategory, str(record.category or "custom")),
+        model_kind=cast(ContentModelKind, str(record.model_kind or "collection_type")),
         capabilities=cast(list[Any], capabilities),
         default_editor=cast(ContentDefaultEditor, str(record.default_editor or "form")),
         default_role=cast(Any, defaults.default_role),

@@ -7,6 +7,13 @@ export const Route = createLazyFileRoute("/projects/$projectId/assets/")({
 });
 
 function ProjectAssetsRouteComponent() {
+  const { projectId } = Route.useParams();
   const search = Route.useSearch();
-  return <AssetsPage initialSearchQuery={search.q} initialAssetId={search.assetId} />;
+  return (
+    <AssetsPage
+      projectId={projectId}
+      initialSearchQuery={search.q}
+      initialAssetId={search.assetId}
+    />
+  );
 }

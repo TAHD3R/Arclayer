@@ -8,7 +8,6 @@ from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.models.organization.org_membership import OrgMembership
 from src.modules.analytics.workspaces.router import router as workspace_activity_router
-from src.modules.assets.admin.router import router as workspace_assets_router
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.organization.http.service import get_current_org_membership
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
@@ -41,7 +40,6 @@ router.include_router(workspace_team_router)
 router.include_router(workspace_settings_router)
 router.include_router(workspace_authz_router)
 router.include_router(workspace_rbac_router)
-router.include_router(workspace_assets_router)
 router.include_router(workspace_admin_router)
 router.include_router(workspace_activity_router)
 

@@ -26,7 +26,7 @@ export type RecentAssetSnapshot = Pick<
 
 export type RecentAssetRecord = {
   key: string;
-  workspaceId: string;
+  projectId: string;
   visitedAt: string;
   asset: RecentAssetSnapshot;
 };
@@ -38,7 +38,7 @@ export type ResolvedRecentAsset = {
 };
 
 type TouchRecentAssetInput = {
-  workspaceId: string;
+  projectId: string;
   asset: RecentAssetSnapshot;
   visitedAt?: string;
 };
@@ -74,8 +74,8 @@ export function touchRecentAssetRecord(
   limit = 8,
 ): RecentAssetRecord[] {
   const next: RecentAssetRecord = {
-    key: `${input.workspaceId}:${input.asset.id}`,
-    workspaceId: input.workspaceId,
+    key: `${input.projectId}:${input.asset.id}`,
+    projectId: input.projectId,
     visitedAt: input.visitedAt ?? new Date().toISOString(),
     asset: input.asset,
   };
@@ -90,39 +90,39 @@ export function removeRecentAssetRecord(
   return records.filter((record) => record.key !== key);
 }
 
-export function clearRecentAssetWorkspaceRecords(
+export function clearRecentAssetProjectRecords(
   records: RecentAssetRecord[],
-  workspaceId: string,
+  projectId: string,
 ): RecentAssetRecord[] {
-  return records.filter((record) => record.workspaceId !== workspaceId);
+  return records.filter((record) => record.projectId !== projectId);
 }
 
-export function removeRecentAssetWorkspaceAssetIds(
+export function removeRecentAssetProjectAssetIds(
   records: RecentAssetRecord[],
-  workspaceId: string,
+  projectId: string,
   assetIds: string[],
 ): RecentAssetRecord[] {
   const ids = new Set(assetIds.map(String));
   if (ids.size === 0) return records;
 
   return records.filter(
-    (record) => record.workspaceId !== workspaceId || !ids.has(String(record.asset.id)),
+    (record) => record.projectId !== projectId || !ids.has(String(record.asset.id)),
   );
 }
 
 export function resolveRecentAssets(params: {
   records: RecentAssetRecord[];
   items: AssetMasonryItem[];
-  workspaceId: string | null;
+  projectId: string | null;
   limit?: number;
 }): ResolvedRecentAsset[] {
-  if (!params.workspaceId) return [];
+  if (!params.projectId) return [];
 
   const liveById = new Map(params.items.map((item) => [String(item.id), item]));
   const limit = params.limit ?? 6;
 
   return params.records
-    .filter((record) => record.workspaceId === params.workspaceId)
+    .filter((record) => record.projectId === params.projectId)
     .slice(0, limit)
     .map((record) => ({
       key: record.key,

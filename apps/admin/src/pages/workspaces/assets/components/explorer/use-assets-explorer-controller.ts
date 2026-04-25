@@ -57,7 +57,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
   const scopeId = scope?.id ? String(scope.id) : null;
   const scopeKey = scope ? assetScopeKey(scope) : null;
   const maxFolderMatchChecks = opts.maxFolderMatchChecks ?? 40;
-  const scopeSupported = scope?.type === "workspace" || scope?.type === "organization";
+  const scopeSupported = scope?.type === "project" || scope?.type === "organization";
   const hasScope = Boolean(scope && scopeId);
 
   // Search / filters / ordering
@@ -105,7 +105,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
       if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
       if (scope.type === "organization")
         return listOrganizationAssetFolders(scopeId, { size: 200 });
-      if (scope.type === "workspace") return listAssetFolders(scopeId, { size: 200 });
+      if (scope.type === "project") return listAssetFolders(scopeId, { size: 200 });
       throw new Error("ASSET_SCOPE_UNSUPPORTED");
     },
     staleTime: 60 * 1000,
@@ -117,7 +117,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     queryFn: async () => {
       if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
       if (scope.type === "organization") return listOrganizationAssetTags(scopeId);
-      if (scope.type === "workspace") return listAssetTags(scopeId);
+      if (scope.type === "project") return listAssetTags(scopeId);
       throw new Error("ASSET_SCOPE_UNSUPPORTED");
     },
     staleTime: 60 * 1000,

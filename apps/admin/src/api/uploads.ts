@@ -1,5 +1,5 @@
 import { api, apiRequest } from "@/lib/http";
-import { organizationPath, workspacePath } from "@/lib/api";
+import { organizationPath, projectPath } from "@/lib/api";
 import type {
   UploadInitRequest,
   UploadInitOut,
@@ -12,21 +12,21 @@ import type {
 } from "@/types/api";
 
 export async function initUpload(
-  workspaceId: string,
+  projectId: string,
   payload: UploadInitRequest,
 ): Promise<UploadInitOut> {
-  return api.post<UploadInitOut>(workspacePath(workspaceId, "/uploads/init"), payload);
+  return api.post<UploadInitOut>(projectPath(projectId, "/uploads/init"), payload);
 }
 
 export async function getUploadStatus(
-  workspaceId: string,
+  projectId: string,
   uploadId: string,
 ): Promise<UploadStatusOut> {
-  return api.get<UploadStatusOut>(workspacePath(workspaceId, `/uploads/${uploadId}`));
+  return api.get<UploadStatusOut>(projectPath(projectId, `/uploads/${uploadId}`));
 }
 
 export async function uploadPart(params: {
-  workspaceId: string;
+  projectId: string;
   uploadId: string;
   partNumber: number;
   chunk: Blob;
@@ -34,7 +34,7 @@ export async function uploadPart(params: {
 }): Promise<void> {
   // This endpoint expects raw bytes, not JSON.
   await apiRequest<unknown>(
-    workspacePath(params.workspaceId, `/uploads/${params.uploadId}/parts/${params.partNumber}`),
+    projectPath(params.projectId, `/uploads/${params.uploadId}/parts/${params.partNumber}`),
     {
       method: "PUT",
       body: params.chunk,
@@ -44,42 +44,36 @@ export async function uploadPart(params: {
 }
 
 export async function presignUploadPart(params: {
-  workspaceId: string;
+  projectId: string;
   uploadId: string;
   partNumber: number;
 }): Promise<UploadPartPresignOut> {
   return api.post<UploadPartPresignOut>(
-    workspacePath(
-      params.workspaceId,
-      `/uploads/${params.uploadId}/parts/${params.partNumber}/presign`,
-    ),
+    projectPath(params.projectId, `/uploads/${params.uploadId}/parts/${params.partNumber}/presign`),
   );
 }
 
 export async function commitUploadPart(params: {
-  workspaceId: string;
+  projectId: string;
   uploadId: string;
   partNumber: number;
   payload: UploadPartCommitRequest;
 }): Promise<void> {
   await api.post<unknown>(
-    workspacePath(
-      params.workspaceId,
-      `/uploads/${params.uploadId}/parts/${params.partNumber}/commit`,
-    ),
+    projectPath(params.projectId, `/uploads/${params.uploadId}/parts/${params.partNumber}/commit`),
     params.payload,
   );
 }
 
 export async function completeUpload(
-  workspaceId: string,
+  projectId: string,
   uploadId: string,
 ): Promise<UploadCompleteOut> {
-  return api.post<UploadCompleteOut>(workspacePath(workspaceId, `/uploads/${uploadId}/complete`));
+  return api.post<UploadCompleteOut>(projectPath(projectId, `/uploads/${uploadId}/complete`));
 }
 
-export async function abortUpload(workspaceId: string, uploadId: string): Promise<UploadAbortOut> {
-  return api.post<UploadAbortOut>(workspacePath(workspaceId, `/uploads/${uploadId}/abort`));
+export async function abortUpload(projectId: string, uploadId: string): Promise<UploadAbortOut> {
+  return api.post<UploadAbortOut>(projectPath(projectId, `/uploads/${uploadId}/abort`));
 }
 
 // ---------------------------------------------------------------------------

@@ -35,8 +35,10 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelCategory,
     ContentModelDefinitionContract,
     ContentModelFieldContract,
+    ContentModelFieldPatchContract,
     ContentModelImpactChangeOut,
     ContentModelImpactOut,
+    ContentModelKind,
     ContentModelOut,
     ContentModelRelationContract,
     ContentModelRevisionSummaryOut,
@@ -53,6 +55,7 @@ from src.modules.projects.content.models.domain_helpers import (
     dump_contract,
     normalize_default_editor,
     normalize_model_category,
+    normalize_model_kind,
     to_content_model_out,
 )
 from src.modules.projects.content.models.protocol_registry import (
@@ -70,6 +73,7 @@ class ContentModelDefinitionPatchContract(BaseSchema):
     name: str | None = Field(default=None, min_length=1, max_length=128)
     description: str | None = Field(default=None, max_length=512)
     category: ContentModelCategory | None = None
+    model_kind: ContentModelKind | None = None
     default_editor: ContentDefaultEditor | None = None
     default_role: ContentContinuationRole | None = None
     default_posture: ContentContinuationPosture | None = None
@@ -928,6 +932,7 @@ def _assert_system_patch_fields_are_not_mutated(
 def _contract_snapshot_payload(
     *,
     protocol: OfficialModelProtocol,
+    model_kind: str,
     description: str | None,
     fields: list[ContentModelFieldContract],
     relations: list[ContentModelRelationContract],
@@ -942,6 +947,7 @@ def _contract_snapshot_payload(
         "name": protocol.name,
         "description": description,
         "category": protocol.category,
+        "model_kind": model_kind,
         "default_editor": protocol.default_editor,
         "default_role": protocol.default_role,
         "default_posture": protocol.default_posture,
@@ -982,6 +988,8 @@ def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[s
         updates["description"] = payload.description
     if "category" in fields_set:
         updates["category"] = normalize_model_category(payload.category)
+    if "model_kind" in fields_set:
+        updates["model_kind"] = normalize_model_kind(payload.model_kind)
     if "default_editor" in fields_set:
         updates["default_editor"] = normalize_default_editor(payload.default_editor)
     if "default_role" in fields_set:
@@ -1017,6 +1025,7 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, 
         "name": str(record.name),
         "description": record.description,
         "category": str(record.category or "custom"),
+        "model_kind": str(record.model_kind or "collection_type"),
         "default_editor": str(record.default_editor or "form"),
         "default_role": str(record.default_role) if record.default_role is not None else None,
         "default_posture": str(record.default_posture) if record.default_posture is not None else None,
@@ -1060,6 +1069,19 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, 
     }
 
 
+def _field_contracts(record: ContentModelDefinitionRecord) -> list[ContentModelFieldContract]:
+    return [
+        ContentModelFieldContract(
+            key=str(field.key),
+            label=str(field.label),
+            scalar=cast(Any, str(field.field_type)),
+            required=bool(field.is_required),
+            config=field.config,
+        )
+        for field in record.fields
+    ]
+
+
 def _next_snapshot_payload(
     *,
     record: ContentModelDefinitionRecord,
@@ -1076,6 +1098,7 @@ def _next_snapshot_payload(
         "name",
         "description",
         "category",
+        "model_kind",
         "default_editor",
         "default_role",
         "default_posture",
@@ -1119,6 +1142,168 @@ class ProjectContentCanonicalModelsService:
         rows = [to_content_model_out(record) for record in records]
         return paginate_items(rows, params=params)
 
+    async def get_model_json_preview(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+    ) -> ContentModelSchemaSnapshotOut | None:
+        record = await self.repo.get_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        if record is None:
+            return None
+        return _build_snapshot(
+            stage="current_draft",
+            revision=int(record.draft_contract_revision or 1),
+            payload=_record_snapshot_payload(record),
+        )
+
+    async def add_model_field(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+        payload: ContentModelFieldContract,
+    ) -> ContentModelOut | None:
+        record = await self.repo.get_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        if record is None:
+            return None
+        fields = _field_contracts(record)
+        if any(field.key == payload.key for field in fields):
+            raise Conflict("Content model field already exists", error="CONTENT_MODEL_FIELD_EXISTS")
+        return await self._save_model_fields(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            record=record,
+            fields=[*fields, payload],
+        )
+
+    async def update_model_field(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+        field_key: str,
+        payload: ContentModelFieldPatchContract,
+    ) -> ContentModelOut | None:
+        record = await self.repo.get_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        if record is None:
+            return None
+        fields: list[ContentModelFieldContract] = []
+        found = False
+        for field in _field_contracts(record):
+            if field.key != field_key:
+                fields.append(field)
+                continue
+            found = True
+            fields.append(
+                ContentModelFieldContract(
+                    key=field.key,
+                    label=payload.label if payload.label is not None else field.label,
+                    scalar=cast(Any, payload.scalar if payload.scalar is not None else field.scalar),
+                    required=payload.required if payload.required is not None else field.required,
+                    config=payload.config if "config" in payload.model_fields_set else field.config,
+                )
+            )
+        if not found:
+            raise Conflict("Content model field not found", error="CONTENT_MODEL_FIELD_NOT_FOUND")
+        return await self._save_model_fields(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            record=record,
+            fields=fields,
+        )
+
+    async def reorder_model_fields(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+        field_keys: list[str],
+    ) -> ContentModelOut | None:
+        record = await self.repo.get_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        if record is None:
+            return None
+        fields_by_key = {field.key: field for field in _field_contracts(record)}
+        if set(fields_by_key) != set(field_keys) or len(field_keys) != len(fields_by_key):
+            raise Conflict(
+                "Field reorder must include every field exactly once", error="CONTENT_MODEL_FIELD_ORDER_INVALID"
+            )
+        return await self._save_model_fields(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            record=record,
+            fields=[fields_by_key[key] for key in field_keys],
+        )
+
+    async def delete_model_field(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+        field_key: str,
+    ) -> ContentModelOut | None:
+        record = await self.repo.get_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        if record is None:
+            return None
+        fields = [field for field in _field_contracts(record) if field.key != field_key]
+        if len(fields) == len(_field_contracts(record)):
+            raise Conflict("Content model field not found", error="CONTENT_MODEL_FIELD_NOT_FOUND")
+        return await self._save_model_fields(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            record=record,
+            fields=fields,
+        )
+
+    async def _save_model_fields(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+        record: ContentModelDefinitionRecord,
+        fields: list[ContentModelFieldContract],
+    ) -> ContentModelOut | None:
+        updated = await self.repo.update_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            fields_to_update={"draft_contract_revision": int(record.draft_contract_revision or 1) + 1},
+            fields=fields,
+            relations=None,
+            views=None,
+        )
+        return to_content_model_out(updated) if updated is not None else None
+
     async def create_model(
         self,
         *,
@@ -1127,6 +1312,53 @@ class ProjectContentCanonicalModelsService:
         payload: ContentModelDefinitionContract,
     ) -> ContentModelMutationResult:
         protocol = get_official_model_protocol(payload.key)
+        custom_model_requested = protocol is None or "model_kind" in payload.model_fields_set
+        if custom_model_requested:
+            defaults = resolve_model_continuation_defaults(
+                key=payload.key,
+                name=payload.name,
+                category=payload.category,
+                default_editor=payload.default_editor,
+                capabilities=list(payload.capabilities),
+                default_role=payload.default_role,
+                default_posture=payload.default_posture,
+                default_surface=payload.default_surface,
+                starter_pack_policy=payload.starter_pack_policy,
+                surface_policy=payload.surface_policy,
+            )
+            if defaults.default_role is None or defaults.default_posture is None or defaults.default_surface is None:
+                raise ValueError("Content model continuation defaults must resolve before create_model_definition")
+            record = await self.repo.create_model_definition(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                key=_normalize_required_text(payload.key, error="Invalid model key"),
+                name=_normalize_required_text(payload.name, error="Invalid model name"),
+                description=payload.description,
+                category=normalize_model_category(payload.category),
+                model_kind=normalize_model_kind(payload.model_kind),
+                default_editor=normalize_default_editor(payload.default_editor),
+                default_role=defaults.default_role,
+                default_posture=defaults.default_posture,
+                default_surface=defaults.default_surface,
+                protocol_key=None,
+                protocol_version=1,
+                is_system_managed=False,
+                system_field_keys=[],
+                draft_contract_revision=1,
+                published_contract_revision=None,
+                published_contract_snapshot=None,
+                capabilities=_capabilities(payload.capabilities),
+                routing_policy=dump_contract(payload.routing),
+                presentation_policy=dump_contract(payload.presentation),
+                seo_policy=dump_contract(payload.seo),
+                starter_pack_policy=defaults.starter_pack_policy,
+                surface_policy=defaults.surface_policy,
+                workflow_policy=dump_contract(payload.workflow),
+                fields=payload.fields,
+                relations=payload.relations,
+                views=payload.views,
+            )
+            return ContentModelMutationResult(record=record, impact=ContentModelImpactOut())
         if protocol is None:
             raise Conflict(
                 "Headless CMS v1 only supports official protocol models",
@@ -1138,6 +1370,7 @@ class ProjectContentCanonicalModelsService:
         merged_fields = _merge_system_and_custom_fields(protocol=protocol, custom_fields=payload.fields)
         published_contract_snapshot = _contract_snapshot_payload(
             protocol=protocol,
+            model_kind=normalize_model_kind(payload.model_kind),
             description=payload.description,
             fields=merged_fields,
             relations=payload.relations,
@@ -1164,6 +1397,7 @@ class ProjectContentCanonicalModelsService:
             name=_normalize_required_text(protocol.name, error="Invalid model name"),
             description=payload.description,
             category=normalize_model_category(cast(ContentModelCategory, protocol.category)),
+            model_kind=normalize_model_kind(payload.model_kind),
             default_editor=normalize_default_editor(cast(ContentDefaultEditor, protocol.default_editor)),
             default_role=defaults.default_role,
             default_posture=defaults.default_posture,

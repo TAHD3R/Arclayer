@@ -23,8 +23,9 @@ class AssetUsageRecord(BaseModel):
     - `field_key` should use dot paths (e.g. `site.logo`, `seo.og_image`).
     """
 
-    # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
+    # Exactly one scope id must be set (enforced at service boundary).
     workspace_id = fields.UUIDField(null=True, db_index=True)
+    project_id = fields.UUIDField(null=True, db_index=True)
     organization_id = fields.UUIDField(null=True, db_index=True)
     user_id = fields.UUIDField(null=True, db_index=True)
 
@@ -48,6 +49,7 @@ class AssetUsageRecord(BaseModel):
         abstract = False
         unique_together = (
             ("workspace_id", "entity_type", "entity_id", "field_key"),
+            ("project_id", "entity_type", "entity_id", "field_key"),
             ("organization_id", "entity_type", "entity_id", "field_key"),
             ("user_id", "entity_type", "entity_id", "field_key"),
         )
