@@ -100,9 +100,12 @@ function AlertDialogContent({
   ...props
 }: AlertDialogContentProps) {
   const { isOpen } = useAlertDialog();
-  const initialRotation = from === "bottom" || from === "left" ? "20deg" : "-20deg";
   const isVertical = from === "top" || from === "bottom";
-  const rotateAxis = isVertical ? "rotateX" : "rotateY";
+  const initialRotation = from === "bottom" || from === "left" ? 20 : -20;
+  const initialState = isVertical
+    ? { rotateX: initialRotation, rotateY: 0 }
+    : { rotateX: 0, rotateY: initialRotation };
+  const animateState = { rotateX: 0, rotateY: 0 };
 
   return (
     <AlertDialogPrimitive.Content
@@ -118,20 +121,33 @@ function AlertDialogContent({
         initial={{
           opacity: 0,
           filter: "blur(4px)",
-          transform: `perspective(500px) ${rotateAxis}(${initialRotation}) scale(0.8)`,
+          x: "-50%",
+          y: "-50%",
+          scale: 0.8,
+          ...initialState,
         }}
         animate={{
           opacity: 1,
           filter: "blur(0px)",
-          transform: `perspective(500px) ${rotateAxis}(0deg) scale(1)`,
+          x: "-50%",
+          y: "-50%",
+          scale: 1,
+          ...animateState,
         }}
         exit={{
           opacity: 0,
           filter: "blur(4px)",
-          transform: `perspective(500px) ${rotateAxis}(${initialRotation}) scale(0.8)`,
+          x: "-50%",
+          y: "-50%",
+          scale: 0.8,
+          ...initialState,
         }}
         transition={transition}
-        style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
+        style={{
+          pointerEvents: isOpen ? "auto" : "none",
+          transformPerspective: 500,
+          ...props.style,
+        }}
         {...props}
       />
     </AlertDialogPrimitive.Content>

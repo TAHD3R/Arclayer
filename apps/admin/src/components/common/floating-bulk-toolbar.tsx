@@ -4,7 +4,11 @@ import * as React from "react";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
-import { Toolbar, ToolbarGroup, ToolbarSeparator } from "@/components/common/toolbar";
+import {
+  FLOATING_TOOLBAR_SURFACE_CLASSNAME,
+  ToolbarGroup,
+  ToolbarSeparator,
+} from "@/components/common/toolbar";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
@@ -89,37 +93,40 @@ export function FloatingBulkToolbar(props: FloatingBulkToolbarProps) {
   return (
     <AnimatePresence initial={false}>
       {props.visible ? (
-        <motion.div
+        <div
           key="floating-bulk-toolbar"
           data-slot="floating-bulk-toolbar"
           className={cn(
-            "pointer-events-none fixed inset-x-0 z-50 flex justify-center px-4 sm:px-6 lg:px-8",
+            "fixed inset-x-0 z-50 flex justify-center px-4 sm:px-6 lg:px-8",
             "bottom-[max(2rem,env(safe-area-inset-bottom))]",
             props.className,
           )}
-          initial={{ opacity: 0, y: 18, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 14, scale: 0.97 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28, mass: 0.82 }}
         >
           <TooltipProvider>
-            <Toolbar className="pointer-events-auto max-w-full">
-              <ToolbarGroup>
+            <motion.div
+              data-slot="floating-toolbar"
+              className={cn(FLOATING_TOOLBAR_SURFACE_CLASSNAME, "pointer-events-auto")}
+              initial={{ opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28, mass: 0.82 }}
+            >
+              <ToolbarGroup className="pl-1.5">
                 <span className="text-callout font-semibold text-label-primary px-4 py-2">
                   {props.selectedLabel}
                 </span>
               </ToolbarGroup>
               <ToolbarSeparator />
               {actions.length > 0 ? (
-                <ToolbarGroup>
+                <ToolbarGroup className="pr-1.5">
                   {actions.map((action) => (
                     <FloatingBulkToolbarActionButton key={action.key} action={action} />
                   ))}
                 </ToolbarGroup>
               ) : null}
-            </Toolbar>
+            </motion.div>
           </TooltipProvider>
-        </motion.div>
+        </div>
       ) : null}
     </AnimatePresence>
   );

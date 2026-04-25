@@ -1,4 +1,3 @@
-import { XIcon } from "lucide-react";
 import * as React from "react";
 
 import {
@@ -24,6 +23,7 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-dialog";
 import { cn } from "@arclayer/lib/utils";
 import { SUBTLE_OVERLAY_BACKDROP_CLASSNAME } from "./adaptive-overlay-backdrop";
+import { OverlayCloseButton } from "./overlay-close-button";
 
 const ALLOWED_EXTERNAL_DIALOG_INTERACTION_SELECTOR = [
   "[data-slot=select-content]",
@@ -87,12 +87,14 @@ function DialogOverlay({ className, ...props }: DialogOverlayProps) {
 
 type DialogContentProps = DialogContentPrimitiveProps & {
   showCloseButton?: boolean;
+  closeButtonClassName?: string;
 };
 
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeButtonClassName,
   onInteractOutside,
   ...props
 }: DialogContentProps) {
@@ -128,9 +130,8 @@ function DialogContent({
         >
           {children}
           {showCloseButton && (
-            <DialogClosePrimitive className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-label-secondary absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
-              <XIcon />
-              <span className="sr-only">Close</span>
+            <DialogClosePrimitive asChild>
+              <OverlayCloseButton className={closeButtonClassName} />
             </DialogClosePrimitive>
           )}
         </DialogContentPrimitive>

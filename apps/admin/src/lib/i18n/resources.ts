@@ -11,7 +11,6 @@ import zhAuth from "@locales/zh-CN/auth.json";
 import zhInvite from "@locales/zh-CN/invite.json";
 import zhOnboarding from "@locales/zh-CN/onboarding.json";
 import zhTeam from "@locales/zh-CN/team.json";
-import zhDebug from "@locales/zh-CN/debug.json";
 import zhActivity from "@locales/zh-CN/activity.json";
 import zhAppearance from "@locales/zh-CN/appearance.json";
 import zhRbac from "@locales/zh-CN/rbac.json";
@@ -30,7 +29,6 @@ import enAuth from "@locales/en-US/auth.json";
 import enInvite from "@locales/en-US/invite.json";
 import enOnboarding from "@locales/en-US/onboarding.json";
 import enTeam from "@locales/en-US/team.json";
-import enDebug from "@locales/en-US/debug.json";
 import enActivity from "@locales/en-US/activity.json";
 import enAppearance from "@locales/en-US/appearance.json";
 import enRbac from "@locales/en-US/rbac.json";
@@ -46,7 +44,6 @@ export const I18N_NAMESPACES = [
   "onboarding",
   "invite",
   "team",
-  "debug",
   "activity",
   "appearance",
   "settings",
@@ -68,7 +65,6 @@ export const i18nResources = {
     onboarding: zhOnboarding,
     invite: zhInvite,
     team: zhTeam,
-    debug: zhDebug,
     activity: zhActivity,
     appearance: zhAppearance,
     settings: zhSettings,
@@ -88,7 +84,6 @@ export const i18nResources = {
     onboarding: enOnboarding,
     invite: enInvite,
     team: enTeam,
-    debug: enDebug,
     activity: enActivity,
     appearance: enAppearance,
     settings: enSettings,

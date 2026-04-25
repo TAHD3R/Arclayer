@@ -42,6 +42,6 @@
   "SYS_CHECK_AUTH_ALLOWLIST_NOT_STRING_LIST": "public_register_email_domains_allowlist must only contain strings",
   "SYS_CHECK_AUTH_ALLOWLIST_DUPLICATES": "public_register_email_domains_allowlist contains duplicates",
   "INSTANCE_INITIALIZED": "Instance initialized",
-  "INSTANCE_ALREADY_INITIALIZED": "This instance has already been initialized.",
-  "INSTANCE_SETUP_REPAIR_REQUIRED": "This instance is in a repair-required state and cannot be initialized yet."
+  "INSTANCE_ALREADY_INITIALIZED": "This Arclayer instance is already set up. Sign in with an existing administrator account to continue.",
+  "INSTANCE_SETUP_REPAIR_REQUIRED": "This Arclayer instance needs repair before setup can continue."
 }

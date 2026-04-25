@@ -272,6 +272,9 @@ describe("AssetMasonryTile", () => {
     fireEvent.click(screen.getByLabelText("common:MORE"));
 
     expect(container.querySelector('[data-tile-actions-visible="true"]')).not.toBeNull();
+    expect(screen.getByRole("group")).toHaveClass("bg-black/55");
+    expect(screen.getByRole("group")).not.toHaveClass("transition-opacity");
+    expect(screen.getByRole("group")).not.toHaveClass("-translate-y-1");
     expect(onMoreAction).not.toHaveBeenCalled();
   });
 
@@ -332,5 +335,7 @@ describe("AssetMasonryTile", () => {
       "icon-sm",
     );
     expect(screen.getByLabelText("common:MORE")).toHaveAttribute("data-size", "icon-sm");
+    expect(screen.getByLabelText("common:MORE")).toHaveClass("bg-white/10", "hover:bg-white/16");
+    expect(screen.getByRole("group")).toHaveClass("bg-black/55");
   });
 });

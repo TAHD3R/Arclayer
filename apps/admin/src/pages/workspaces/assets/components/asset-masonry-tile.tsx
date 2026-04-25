@@ -33,6 +33,12 @@ import { formatRelativeTime } from "@/lib/time/relative-time";
 import { LazyAssetImage } from "./lazy-asset-image";
 import type { AssetMoreActionKey, AssetMoreMenuItem } from "./asset-more-actions";
 
+const TILE_ACTION_BUTTON_CLASSNAME =
+  "bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:bg-white/16 hover:text-white focus-visible:bg-white/16 focus-visible:text-white";
+
+const TILE_ACTION_CHECKBOX_SHELL_CLASSNAME =
+  "flex size-8 items-center justify-center rounded-r-md bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition-colors hover:bg-white/16";
+
 export function findTagIdByName(tags: AdminAssetTag[], name: string): string | null {
   const needle = name.trim().toLowerCase();
   if (!needle) return null;
@@ -316,18 +322,19 @@ export const AssetMasonryTile = memo(
                 <div
                   className={cn(
                     "absolute right-3 top-3 z-10",
-                    "pointer-events-auto transition-opacity duration-150",
-                    overlayVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                    overlayVisible
+                      ? "pointer-events-auto opacity-100"
+                      : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
                   )}
                   data-tile-actions-visible={overlayVisible ? "true" : "false"}
                 >
-                  <ButtonGroup className="rounded-md border border-white/18 bg-black/60 backdrop-blur-sm shadow-sm shadow-black/20">
+                  <ButtonGroup className="overflow-hidden rounded-md border border-white/16 bg-black/55 shadow-sm shadow-black/20">
                     {props.onEdit ? (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                        className={TILE_ACTION_BUTTON_CLASSNAME}
                         aria-label={t("assets:ASSET_ACTION_EDIT")}
                         onPointerDown={stopTileActionEvent}
                         onClick={(event) => {
@@ -343,7 +350,7 @@ export const AssetMasonryTile = memo(
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                        className={TILE_ACTION_BUTTON_CLASSNAME}
                         aria-label={t("assets:ASSET_ACTION_DELETE")}
                         onPointerDown={stopTileActionEvent}
                         onClick={(event) => {
@@ -361,7 +368,7 @@ export const AssetMasonryTile = memo(
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                            className={TILE_ACTION_BUTTON_CLASSNAME}
                             aria-label={t("common:MORE")}
                             onPointerDown={stopTileActionEvent}
                             onClick={(event) => {
@@ -396,7 +403,7 @@ export const AssetMasonryTile = memo(
                         {props.onEdit || props.onDelete || props.moreMenuItems?.length ? (
                           <ButtonGroupSeparator className="bg-white/12" />
                         ) : null}
-                        <div className="flex size-8 items-center justify-center rounded-r-md text-white transition-colors hover:bg-white/12">
+                        <div className={TILE_ACTION_CHECKBOX_SHELL_CLASSNAME}>
                           <Checkbox
                             aria-labelledby={titleId}
                             checked={selected}

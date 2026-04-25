@@ -6,6 +6,9 @@ import { cn } from "@arclayer/lib/utils";
 
 type ToolbarProps = React.HTMLAttributes<HTMLDivElement>;
 
+export const FLOATING_TOOLBAR_SURFACE_CLASSNAME =
+  "inline-flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-full border border-border/70 bg-background/96 px-2.5 py-1.5 shadow-lg shadow-black/5 supports-[backdrop-filter]:bg-background/88 supports-[backdrop-filter]:backdrop-blur-md dark:shadow-black/25";
+
 const Toolbar = React.forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
   { className, ...props },
   ref,
@@ -14,10 +17,7 @@ const Toolbar = React.forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
     <div
       ref={ref}
       data-slot="floating-toolbar"
-      className={cn(
-        "inline-flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-border/70 bg-background/96 p-1.5 shadow-lg shadow-black/5 supports-[backdrop-filter]:bg-background/88 supports-[backdrop-filter]:backdrop-blur-md dark:shadow-black/25",
-        className,
-      )}
+      className={cn(FLOATING_TOOLBAR_SURFACE_CLASSNAME, className)}
       {...props}
     />
   );

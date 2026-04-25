@@ -35,19 +35,19 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
         icon: Images,
       },
       {
+        key: "content.library",
+        label: "Content",
+        labelKey: "nav:NAV_CONTENT_LIBRARY",
+        to: "/content/library",
+        activeMatchPaths: ["/content/create"],
+        icon: LibraryBig,
+      },
+      {
         key: "content.models",
         label: "Content Model",
         labelKey: "nav:NAV_CONTENT_MODELS",
         to: "/content/models",
         icon: Boxes,
-      },
-      {
-        key: "content.library",
-        label: "Contents Library",
-        labelKey: "nav:NAV_CONTENT_LIBRARY",
-        to: "/content/library",
-        activeMatchPaths: ["/content/create"],
-        icon: LibraryBig,
       },
       // {
       //   key: "content.releases",
@@ -65,8 +65,8 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
       // },
       {
         key: "settings.site",
-        label: "Site Settings",
-        labelKey: "nav:NAV_SETTINGS_SITE",
+        label: "Settings",
+        labelKey: "nav:NAV_SETTINGS",
         to: "/content/general",
         activeMatchPaths: ["/content/localization", "/content/domain"],
         icon: Globe,

@@ -104,7 +104,7 @@ function PanelMenuItemContent(props: {
 
 const panelMenuButtonClassName = cn(
   "group",
-  "min-h-11 rounded-xl",
+  "min-h-10 rounded-xl",
   "text-label-secondary",
   INTERACTION_TRANSITION_CLASSNAME,
   GHOST_HOVER_CLASSNAME,
@@ -170,7 +170,7 @@ const sidebarTriggerButtonClassName = cn(
   "min-w-0 flex-1",
   "!flex !items-center !justify-start gap-2",
   "[[data-collapsible=icon]:not([data-hover-preview=true])_&]:gap-2",
-  "rounded-md !pl-1 !pr-2 !py-1",
+  "rounded-md !pl-1 !pr-3 !py-1",
   "!border-0",
   "!bg-transparent !text-label-secondary",
   "hover:!bg-accent hover:!text-accent-foreground dark:hover:!bg-accent/50",

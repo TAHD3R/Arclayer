@@ -643,7 +643,7 @@ export function ContentModelsControlCenterPage(props: { projectId: string }) {
 
             {activeTab === "json" ? (
               <Panel
-                title={t("CONTENT_MODELS_JSON_TITLE")}
+                title={t("CONTENT_MODELS_TAB_JSON")}
                 description={t("CONTENT_MODELS_JSON_DESC")}
               >
                 <Button type="button" variant="secondary" onClick={() => previewMutation.mutate()}>

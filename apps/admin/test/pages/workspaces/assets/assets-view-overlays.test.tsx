@@ -44,13 +44,16 @@ describe("AssetsViewOverlays", () => {
       .getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" })
       .closest("[data-slot='floating-bulk-toolbar']");
     const surface = toolbar?.querySelector("[data-slot='floating-toolbar']");
+    const groups = toolbar?.querySelectorAll("[data-slot='floating-toolbar-group']");
 
     expect(screen.getByText("assets:ASSET_SELECTED_COUNT")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }),
     ).toBeInTheDocument();
     expect(toolbar).toHaveClass("fixed", "inset-x-0", "justify-center");
-    expect(surface).toHaveClass("rounded-2xl", "border");
+    expect(surface).toHaveClass("rounded-full", "border", "px-2.5", "py-1.5");
+    expect(groups?.[0]).toHaveClass("pl-1.5");
+    expect(groups?.[1]).toHaveClass("pr-1.5");
   });
 
   it("disables bulk write actions in read-only asset mode", () => {

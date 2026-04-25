@@ -10,6 +10,7 @@ import {
   AlertDialogOverlay as AlertDialogOverlayPrimitive,
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
+  useAlertDialog,
   type AlertDialogProps as AlertDialogPrimitiveProps,
   type AlertDialogContentProps as AlertDialogContentPrimitiveProps,
   type AlertDialogDescriptionProps as AlertDialogDescriptionPrimitiveProps,
@@ -23,6 +24,7 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 import { cn } from "@arclayer/lib/utils";
 import { SUBTLE_OVERLAY_BACKDROP_CLASSNAME } from "./adaptive-overlay-backdrop";
+import { OverlayCloseButton } from "./overlay-close-button";
 import { buttonVariants } from "./button-variants";
 
 const ALERT_DIALOG_LAYER_Z_INDEX_CLASSNAME = "z-[2300]";
@@ -55,20 +57,32 @@ function AlertDialogOverlay({ className, ...props }: AlertDialogOverlayProps) {
   );
 }
 
-type AlertDialogContentProps = AlertDialogContentPrimitiveProps;
+type AlertDialogContentProps = AlertDialogContentPrimitiveProps & {
+  showCloseButton?: boolean;
+};
 
-function AlertDialogContent({ className, ...props }: AlertDialogContentProps) {
+function AlertDialogContent({
+  className,
+  showCloseButton = true,
+  children,
+  ...props
+}: AlertDialogContentProps) {
+  const { setIsOpen } = useAlertDialog();
+
   return (
     <AlertDialogPortalPrimitive>
       <AlertDialogOverlay />
       <AlertDialogContentPrimitive
         className={cn(
-          "bg-card fixed top-[50%] left-[50%] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6  sm:max-w-lg",
+          "bg-card fixed left-1/2 top-1/2 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border p-6 sm:max-w-lg",
           ALERT_DIALOG_LAYER_Z_INDEX_CLASSNAME,
           className,
         )}
         {...props}
-      />
+      >
+        {children}
+        {showCloseButton ? <OverlayCloseButton onClick={() => setIsOpen?.(false)} /> : null}
+      </AlertDialogContentPrimitive>
     </AlertDialogPortalPrimitive>
   );
 }

@@ -21,6 +21,16 @@ describe("FloatingBulkToolbar", () => {
     expect(screen.getByText("已选择 3 项")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "清除已选" })).toBeInTheDocument();
     expect(screen.queryByText("清除已选")).not.toBeInTheDocument();
+    expect(screen.getByText("已选择 3 项").closest("[data-slot='floating-toolbar']")).toHaveClass(
+      "rounded-full",
+      "px-2.5",
+      "py-1.5",
+      "bg-background/96",
+      "supports-[backdrop-filter]:bg-background/88",
+    );
+    expect(
+      screen.getByText("已选择 3 项").closest("[data-slot='floating-toolbar-group']"),
+    ).toHaveClass("pl-1.5");
   });
 
   it("renders icon-only action buttons with tooltip labels", () => {
@@ -55,5 +65,8 @@ describe("FloatingBulkToolbar", () => {
     expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
     expect(screen.queryByText("归档")).not.toBeInTheDocument();
     expect(screen.queryByText("删除")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "删除" }).closest("[data-slot='floating-toolbar-group']"),
+    ).toHaveClass("pr-1.5");
   });
 });
