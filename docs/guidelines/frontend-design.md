@@ -1,7 +1,8 @@
 # Frontend Design Guideline (Arclayer Admin)
 
 This document defines the live UI and interaction rules for `apps/admin`.
-It is the source of truth for page shells, overlay behavior, component defaults, and anti-drift rules.
+`DESIGN.md` is the primary source of truth for Arclayer's visual language.
+This document turns that visual language into Admin implementation rules for page shells, overlay behavior, component defaults, and anti-drift checks.
 
 ## 1. Scope
 
@@ -9,8 +10,6 @@ This guideline applies to:
 
 - `apps/admin`
 - shared Admin-facing UI surfaces from `packages/ui/*`
-
-It does not define Portal or Studio visual rules.
 
 ## 2. Product Personality
 

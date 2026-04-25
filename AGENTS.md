@@ -19,8 +19,6 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
 - Monorepo managed by Turborepo + pnpm workspaces: `package.json`, `pnpm-workspace.yaml`, `turbo.json`.
 - Backend API: `apps/api` (FastAPI + Pydantic v2).
 - Admin frontend: `apps/admin` (Vite + React).
-- Portal frontend: `apps/portal` (Vike + React).
-- Studio: `apps/studio`.
 - Shared packages: `packages/*`.
 - Plugins: `plugins/*`.
 - Standards & rules (source of truth): `docs/guidelines/*` (see index below).
@@ -31,26 +29,22 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
 - Task runner: Turborepo (outputs are defined in `turbo.json`, commonly `dist/**`, `build/**`).
 - Backend: FastAPI (async-first) + Pydantic v2.
 - Frontend:
-  - Admin/Studio: Vite + React.
-  - Portal: Vike + React (custom Node server entry).
-  - Styling/i18n: follow the design guideline and i18n guideline.
+  - Admin: Vite + React.
+  - Styling: follow `DESIGN.md` first, then `docs/guidelines/frontend-design.md`.
+  - i18n: follow the i18n guideline.
 
-## Repo-Local Frontend Skill
+## Frontend Execution Contract
 
-- This repo provides a repo-local skill at `.agents/skills/arclayer-frontend-design`.
-- Use it for any frontend task that changes UI direction, page hierarchy, panel structure, theming, tokens, spacing, typography, interaction styling, or user-facing copy.
-- Default trigger areas:
-  - `apps/admin`
-  - `apps/portal`
-  - `apps/studio`
-  - `packages/ui`
-  - design-sensitive frontend docs and stories
-- Treat this skill as mandatory for:
-  - new pages, layouts, dialogs, command surfaces, settings surfaces, tables, forms, and empty states
-  - copywriting for labels, descriptions, onboarding text, helper text, error text, and CTA text
-  - design-sensitive refactors where there is a risk of card nesting, decorative surfaces, or engineering-flavored product copy
-- Pair it with `karpathy-guidelines` by default. Pair it with generic frontend skills such as `shadcn`, `tailwind-design-system`, `vercel-composition-patterns`, or `vercel-react-best-practices` only for implementation mechanics.
-- The repo-local skill sets direction and copy guardrails. Generic frontend skills must not override it on visual hierarchy or product-writing decisions.
+- Active frontend scope: `apps/admin` and Admin-facing surfaces from `packages/ui`.
+- `DESIGN.md` is the primary source of truth for visual language: canvas, color roles, typography, spacing, radius, borders, elevation, motion, states, and UX writing.
+- For any task that changes UI direction, page hierarchy, panel structure, theming, tokens, spacing, typography, interaction styling, or user-facing copy, read `DESIGN.md`, `docs/guidelines/frontend-design.md`, and `.agents/skills/frontend-ui-engineering/SKILL.md` before editing.
+- Use `docs/guidelines/frontend-design.md` for Admin implementation rules: page shells, overlays, component defaults, data tables, settings surfaces, semantic typography classes, and PR checks.
+- Use `.agents/skills/tailwind-design-system/SKILL.md` for Tailwind and token mechanics when the task needs design-system implementation detail.
+- Use `.agents/skills/arclayer-playwright-skills/SKILL.md` whenever the user asks to call Playwright MCP, interactively test Admin UI, reproduce a frontend regression in browser, inspect console or network failures, verify responsive and visual behavior, log in or register the default test account, or use a user-provided Bearer Token for Admin testing.
+- Before changing UI, cite the relevant `DESIGN.md` rules in working notes, inspect the target file and nearby implemented surfaces, then identify the shell primitive, state coverage, token usage, responsive behavior, and copy style that the change must preserve.
+- New pages, layouts, dialogs, command surfaces, settings surfaces, tables, forms, empty states, and copy changes must follow the `DESIGN.md` visual language and the shared Admin vocabulary in `docs/guidelines/frontend-design.md`.
+- Design-sensitive UI work requires visual verification with Playwright or screenshots when a runtime is available, with explicit readback against `DESIGN.md` rules. When runtime verification is blocked, report the blocker and run the narrowest static checks that still cover the changed files.
+- Generic frontend skills and examples are implementation references only. Repo guidelines and live Admin surfaces control visual hierarchy, product copy, and interaction decisions.
 
 ## Repo-Local General Skills
 
@@ -62,7 +56,7 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
   - debugging and review: `systematic-debugging`, `code-review-and-quality`, `security-and-hardening`
   - frontend engineering and design-system mechanics: `frontend-ui-engineering`, `tailwind-design-system`
   - platform and repo operations: `ci-cd-and-automation`, `monorepo-management`, `turborepo`
-- Use the repo-local frontend skill for visual direction and product-writing rules. Use the repo-local general skills for implementation mechanics, testing, debugging, and delivery discipline.
+- Use the frontend execution contract for visual direction and product-writing rules. Use the repo-local general skills for implementation mechanics, testing, debugging, and delivery discipline.
 
 ## Agent Priorities
 
@@ -150,7 +144,6 @@ Prefer the narrowest check that matches your change:
 
 - API-only changes: `pnpm api:check` (lint + format + typecheck + test)
 - Admin-only changes: `pnpm admin:check`
-- Portal-only changes: `pnpm portal:check`
 - Cross-app changes: `pnpm check`
 
 Use `pnpm format` only when formatting is required by the task.
@@ -164,6 +157,7 @@ Use `pnpm format` only when formatting is required by the task.
 - API contract: `docs/guidelines/backend-endpoint-contract.md`
 - Backend folder architecture: `docs/guidelines/backend-folder-architecture.md`
 - Frontend folder architecture: `docs/guidelines/frontend-folder-architecture.md`
+- Visual language: `DESIGN.md`
 - Design guideline: `docs/guidelines/frontend-design.md`
 - i18n: `docs/guidelines/i18n.md`
 - Testing & quality gates: `docs/guidelines/testing-and-quality-gates.md`
