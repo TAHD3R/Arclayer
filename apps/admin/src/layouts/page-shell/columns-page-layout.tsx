@@ -13,6 +13,7 @@ const COLUMNS_PAGE_SIDE_SLOT_TRANSITION = {
 
 export type ColumnsPageSideSlot = {
   content: ReactNode;
+  contentClassName?: string;
   title?: ReactNode;
   description?: ReactNode;
   mobileLabel?: ReactNode;
@@ -92,7 +93,7 @@ export function ColumnsPageDesktopPane(props: {
         props.slot.className,
       )}
     >
-      {props.slot.content}
+      <div className={clsx("min-w-0", props.slot.contentClassName)}>{props.slot.content}</div>
     </aside>
   );
 
@@ -142,7 +143,11 @@ export function ColumnsPageMobilePaneSheet(props: {
             <SheetDescription>{props.toggle.slot.description}</SheetDescription>
           ) : null}
         </SheetHeader>
-        <div className="flex min-h-0 flex-1 overflow-auto">{props.toggle.slot.content}</div>
+        <div className="flex min-h-0 flex-1 overflow-auto">
+          <div className={clsx("min-w-0", props.toggle.slot.contentClassName)}>
+            {props.toggle.slot.content}
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );

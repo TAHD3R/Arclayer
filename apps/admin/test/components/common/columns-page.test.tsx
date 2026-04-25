@@ -51,6 +51,7 @@ describe("ColumnsPage", () => {
         sideSlots={{
           left: {
             content: <div>Filters</div>,
+            contentClassName: "pr-8 pb-8",
             maxWidth: "20rem",
           },
           right: {
@@ -74,6 +75,7 @@ describe("ColumnsPage", () => {
       .closest('[data-slot="columns-page-side-slot"]');
     const leftSlot = leftSlotWrapper?.firstElementChild;
     const rightSlot = rightSlotWrapper?.firstElementChild;
+    const leftContentWrap = screen.getByText("Filters").parentElement;
 
     expect(shell).toHaveClass("hidden", "min-h-0", "min-w-0", "w-full", "lg:flex");
     expect(shell).not.toHaveClass("flex-1");
@@ -107,6 +109,7 @@ describe("ColumnsPage", () => {
     expect(leftSlot).not.toHaveClass("sticky");
     expect(rightSlot).toHaveClass("flex", "min-h-0", "w-full", "min-w-0", "self-start");
     expect(rightSlot).not.toHaveClass("sticky");
+    expect(leftContentWrap).toHaveClass("min-w-0", "pr-8", "pb-8");
     expect(screen.getAllByText("Table content")).toHaveLength(1);
   });
 

@@ -67,7 +67,7 @@ body {
   --popover: hsl(0 0% 100%);
   --popover-foreground: var(--foreground);
 
-  --primary: hsl(215.5 92.5% 52.7%);
+  --primary: hsl(211.1 97.4% 45.1%);
   --primary-hover: hsl(216 88% 45%);
   --primary-selected: hsl(216 92% 91%);
   --primary-selected-hover: hsl(216 88% 84%);
@@ -105,7 +105,7 @@ body {
   --input: hsl(229 16.5% 79.8%);
   --ui-border: hsl(229 16.5% 79.8%);
   --layout-border: hsl(210 10% 82%);
-  --ring: hsl(215.5 92.5% 52.7%);
+  --ring: hsl(211.1 97.4% 45.1%);
   --link: hsl(216 88% 43%);
 
   --chart-1: var(--primary);
@@ -205,7 +205,7 @@ body {
   --card: hsl(220 15% 8%);
   --popover: hsl(220 15% 8%);
 
-  --primary: hsl(215.5 92.5% 58%);
+  --primary: hsl(211.1 97.4% 45.1%);
   --primary-hover: hsl(216 92% 66%);
   --primary-selected: hsl(216 64% 20%);
   --primary-selected-hover: hsl(216 64% 27%);
@@ -235,7 +235,7 @@ body {
   --input: hsl(220 10% 22%);
   --ui-border: hsl(220 10% 30%);
   --layout-border: hsl(210 10% 14%);
-  --ring: hsl(215.5 92.5% 58%);
+  --ring: hsl(211.1 97.4% 45.1%);
   --link: hsl(216 92% 68%);
 
   --sidebar: var(--background);

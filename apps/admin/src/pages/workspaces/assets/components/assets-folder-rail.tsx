@@ -36,35 +36,33 @@ type AssetsFolderRailProps = {
 export function AssetsFolderRail(props: AssetsFolderRailProps) {
   return (
     <aside className="w-full min-w-0">
-      <div className="pr-8 pb-8">
-        <AssetsFolderRailFolderSection
-          t={props.t}
-          folders={props.folders}
-          foldersLoading={props.foldersLoading}
-          foldersError={props.foldersError}
-          currentFolderId={props.currentFolderId}
-          onRetryFolders={props.onRetryFolders}
-          onSelectFolder={props.onSelectFolder}
-          onCreateFolder={props.onCreateFolder}
-          onEditFolder={props.onEditFolder}
-          onMoveFolder={props.onMoveFolder}
-          onDeleteFolder={props.onDeleteFolder}
-          dropSuccessPulse={props.dropSuccessPulse}
-          tooltipDisabled={props.tooltipDisabled}
-          isDraggingAssets={props.isDraggingAssets}
-          canManageAssets={props.canManageAssets}
-        />
-        <AssetsFolderRailRecentSection
-          t={props.t}
-          scope={props.scope}
-          foldersLoading={props.foldersLoading}
-          activeAssetId={props.activeAssetId}
-          recentAssets={props.recentAssets}
-          onOpenAsset={props.onOpenAsset}
-          onRemoveRecentAsset={props.onRemoveRecentAsset}
-          onClearRecentAssets={props.onClearRecentAssets}
-        />
-      </div>
+      <AssetsFolderRailFolderSection
+        t={props.t}
+        folders={props.folders}
+        foldersLoading={props.foldersLoading}
+        foldersError={props.foldersError}
+        currentFolderId={props.currentFolderId}
+        onRetryFolders={props.onRetryFolders}
+        onSelectFolder={props.onSelectFolder}
+        onCreateFolder={props.onCreateFolder}
+        onEditFolder={props.onEditFolder}
+        onMoveFolder={props.onMoveFolder}
+        onDeleteFolder={props.onDeleteFolder}
+        dropSuccessPulse={props.dropSuccessPulse}
+        tooltipDisabled={props.tooltipDisabled}
+        isDraggingAssets={props.isDraggingAssets}
+        canManageAssets={props.canManageAssets}
+      />
+      <AssetsFolderRailRecentSection
+        t={props.t}
+        scope={props.scope}
+        foldersLoading={props.foldersLoading}
+        activeAssetId={props.activeAssetId}
+        recentAssets={props.recentAssets}
+        onOpenAsset={props.onOpenAsset}
+        onRemoveRecentAsset={props.onRemoveRecentAsset}
+        onClearRecentAssets={props.onClearRecentAssets}
+      />
     </aside>
   );
 }

@@ -169,6 +169,7 @@ export function AssetsPageView(props: {
         left: {
           title: t("assets:ASSET_FOLDER_PANEL_TITLE"),
           mobileLabel: t("assets:ASSET_FOLDER_PANEL_TITLE"),
+          contentClassName: "pr-8 pb-8",
           minWidth: "16rem",
           maxWidth: "24rem",
           defaultWidth: "clamp(16rem, 20vw, 24rem)",

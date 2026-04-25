@@ -311,7 +311,6 @@ export function AdminSidebarInbox() {
                     size="sm"
                     className="mt-4 h-9 gap-2 px-3 text-label-primary"
                   >
-                    <SlidersHorizontal className="size-4" aria-hidden="true" />
                     <span>{t("NOTIFICATIONS_EDIT_FILTER")}</span>
                   </Button>
                 </SelectTrigger>
@@ -361,7 +360,7 @@ export function AdminSidebarInbox() {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-9 w-full justify-start gap-2 px-3 text-label-primary"
+              className="h-9 w-full justify-start gap-2 px-3"
               onClick={() => {
                 void navigate({ to: "/notifications", search: inboxSourceSearch });
               }}
