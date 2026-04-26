@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type MutableRefObject } from "react"
 
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 
-type SceneRevealTransitionOptions = {
+type SceneRevealTransitionOptions<T extends string> = {
   /**
    * Whether the next route is still pending (loader/component not fully resolved).
    *
@@ -11,22 +11,42 @@ type SceneRevealTransitionOptions = {
    */
   isPagePending?: boolean;
   userReducedMotion?: boolean;
+  shouldUseOverlayOnSceneChange?: (previousScene: T, nextScene: T) => boolean;
 };
+
+function alwaysUseSceneOverlay() {
+  return true;
+}
 
 type SwapSceneParams<T extends string> = {
   prevSceneRef: MutableRefObject<T>;
   sceneKey: T;
   reducedMotion: boolean;
+  shouldUseOverlayOnSceneChange: (previousScene: T, nextScene: T) => boolean;
   setOverlayVisible: (next: boolean) => void;
   setDisplayedScene: (next: T) => void;
 };
 
 function useSwapSceneBehindOverlay<T extends string>(params: SwapSceneParams<T>): void {
-  const { prevSceneRef, sceneKey, reducedMotion, setOverlayVisible, setDisplayedScene } = params;
+  const {
+    prevSceneRef,
+    sceneKey,
+    reducedMotion,
+    shouldUseOverlayOnSceneChange,
+    setOverlayVisible,
+    setDisplayedScene,
+  } = params;
 
   useLayoutEffect(() => {
     if (prevSceneRef.current === sceneKey) return;
+    const previousScene = prevSceneRef.current;
     prevSceneRef.current = sceneKey;
+
+    if (!shouldUseOverlayOnSceneChange(previousScene, sceneKey)) {
+      setOverlayVisible(false);
+      setDisplayedScene(sceneKey);
+      return;
+    }
 
     setOverlayVisible(true);
     if (reducedMotion) {
@@ -36,7 +56,14 @@ function useSwapSceneBehindOverlay<T extends string>(params: SwapSceneParams<T>)
 
     const id = requestAnimationFrame(() => setDisplayedScene(sceneKey));
     return () => cancelAnimationFrame(id);
-  }, [prevSceneRef, reducedMotion, sceneKey, setDisplayedScene, setOverlayVisible]);
+  }, [
+    prevSceneRef,
+    reducedMotion,
+    sceneKey,
+    setDisplayedScene,
+    setOverlayVisible,
+    shouldUseOverlayOnSceneChange,
+  ]);
 }
 
 type HideOverlayParams<T extends string> = {
@@ -75,7 +102,7 @@ function useHideOverlayWhenReady<T extends string>(params: HideOverlayParams<T>)
 
 export function useSceneRevealTransition<T extends string>(
   sceneKey: T,
-  options: SceneRevealTransitionOptions = {},
+  options: SceneRevealTransitionOptions<T> = {},
 ) {
   const reducedMotion = usePrefersReducedMotion({ userReducedMotion: options.userReducedMotion });
   const isPagePending = options.isPagePending ?? false;
@@ -83,11 +110,14 @@ export function useSceneRevealTransition<T extends string>(
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [displayedScene, setDisplayedScene] = useState<T>(sceneKey);
   const prevSceneRef = useRef(sceneKey);
+  const shouldUseOverlayOnSceneChange =
+    options.shouldUseOverlayOnSceneChange ?? alwaysUseSceneOverlay;
 
   useSwapSceneBehindOverlay({
     prevSceneRef,
     sceneKey,
     reducedMotion,
+    shouldUseOverlayOnSceneChange,
     setOverlayVisible,
     setDisplayedScene,
   });

@@ -358,14 +358,14 @@ const unifiedProjectItems: AdminNavItem[] = [
         label: "Project Alpha",
         icon: Home,
         to: "/projects/project-alpha",
-        groupLabelBeforeKey: "nav:NAV_CURRENT_PROJECT",
+        groupLabelBeforeKey: "nav:NAV_PINNED_SECTION",
       },
       {
         key: "global.projects.other.project-beta",
         label: "Project Beta",
         icon: Home,
         to: "/projects/project-beta",
-        groupLabelBeforeKey: "nav:NAV_OTHER_PROJECTS",
+        groupLabelBeforeKey: "nav:NAV_RECENT_SECTION",
       },
     ],
   },
@@ -629,8 +629,8 @@ describe("AdminSiderNav collapsed groups", () => {
       pathnameOverride: "/projects/project-alpha",
     });
 
-    expect(screen.getByText("en-US:nav:NAV_CURRENT_PROJECT")).toBeVisible();
-    expect(screen.getByText("en-US:nav:NAV_OTHER_PROJECTS")).toBeVisible();
+    expect(screen.getByText("en-US:nav:NAV_PINNED_SECTION")).toBeVisible();
+    expect(screen.getByText("en-US:nav:NAV_RECENT_SECTION")).toBeVisible();
     expect(screen.getByRole("button", { name: "Project Alpha" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Project Beta" })).toBeVisible();
   });

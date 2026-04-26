@@ -35,18 +35,20 @@ function prefixNavItemKeys(items: readonly AdminNavItem[], prefix: string): Admi
   }));
 }
 
-function projectSwitchItem(
-  project: UnifiedNavProject,
-  params: {
-    keyPrefix: string;
-    groupLabelBeforeKey?: string;
-  },
-): AdminNavItem {
+function removeNavDividers(items: readonly AdminNavItem[]): AdminNavItem[] {
+  return items.map((item) => ({
+    ...item,
+    dividerBefore: false,
+    dividerAfter: false,
+    ...(item.children?.length ? { children: removeNavDividers(item.children) } : {}),
+  }));
+}
+
+function projectSwitchItem(project: UnifiedNavProject, keyPrefix: string): AdminNavItem {
   return {
-    key: `${params.keyPrefix}.${project.projectId}`,
+    key: `${keyPrefix}.${project.projectId}`,
     label: project.name,
     to: projectHomePath(project.projectId),
-    groupLabelBeforeKey: params.groupLabelBeforeKey,
     icon: PanelsTopLeft,
     disabled: !project.enterable,
     renderLabel: project.renderLabel,
@@ -57,15 +59,12 @@ function projectSwitchItem(
 function currentProjectItem(project: UnifiedNavProject): AdminNavItem {
   const projectBase = projectHomePath(project.projectId);
   const projectNavItems = prefixNavItemKeys(
-    mapWorkspaceNavItems(getProjectNavItems(), projectBase),
+    removeNavDividers(mapWorkspaceNavItems(getProjectNavItems(), projectBase)),
     `global.projects.current.${project.projectId}`,
   );
 
   return {
-    ...projectSwitchItem(project, {
-      keyPrefix: "global.projects.current",
-      groupLabelBeforeKey: "nav:NAV_CURRENT_PROJECT",
-    }),
+    ...projectSwitchItem(project, "global.projects.current"),
     groupBehavior: "navigate-self-and-expand",
     defaultExpanded: true,
     children: projectNavItems,
@@ -101,12 +100,7 @@ function buildProjectChildren(params: {
   }
 
   projectChildren.push(
-    ...visibleOtherProjects.map((project, index) =>
-      projectSwitchItem(project, {
-        keyPrefix: "global.projects.other",
-        groupLabelBeforeKey: index === 0 ? "nav:NAV_OTHER_PROJECTS" : undefined,
-      }),
-    ),
+    ...visibleOtherProjects.map((project) => projectSwitchItem(project, "global.projects.other")),
   );
 
   if (hiddenOtherProjectCount > 0) {

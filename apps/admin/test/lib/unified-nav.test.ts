@@ -32,6 +32,14 @@ function projectsNode(items = resolveUnifiedNavItems({ isSuperAdmin: false, proj
   return node;
 }
 
+function flatten(items: NonNullable<ReturnType<typeof projectsNode>["children"]>) {
+  const out = [...items];
+  for (const item of items) {
+    if (item.children?.length) out.push(...flatten(item.children));
+  }
+  return out;
+}
+
 describe("resolveUnifiedNavItems", () => {
   test("keeps all projects as the first child under projects", () => {
     const node = projectsNode();
@@ -60,10 +68,10 @@ describe("resolveUnifiedNavItems", () => {
     expect(currentProject).toMatchObject({
       label: "Project Alpha",
       to: "/projects/project-alpha",
-      groupLabelBeforeKey: "nav:NAV_CURRENT_PROJECT",
       groupBehavior: "navigate-self-and-expand",
       defaultExpanded: true,
     });
+    expect(currentProject?.groupLabelBeforeKey).toBeUndefined();
     expect(currentProject?.children?.[0]).toMatchObject({
       labelKey: "nav:NAV_DASHBOARD",
       to: "/projects/project-alpha/",
@@ -72,6 +80,8 @@ describe("resolveUnifiedNavItems", () => {
       labelKey: "nav:NAV_GROUP_WEBSITE",
       defaultExpanded: true,
     });
+    expect(flatten(currentProject?.children ?? []).some((item) => item.dividerBefore)).toBe(false);
+    expect(flatten(currentProject?.children ?? []).some((item) => item.dividerAfter)).toBe(false);
     expect(websiteGroup?.children?.map((item) => item.to)).toContain(
       "/projects/project-alpha/content/library",
     );
@@ -91,8 +101,8 @@ describe("resolveUnifiedNavItems", () => {
     expect(beta).toMatchObject({
       label: "Project Beta",
       to: "/projects/project-beta",
-      groupLabelBeforeKey: "nav:NAV_OTHER_PROJECTS",
     });
+    expect(beta?.groupLabelBeforeKey).toBeUndefined();
     expect(beta?.children).toBeUndefined();
     expect(gamma).toMatchObject({
       label: "Project Gamma",

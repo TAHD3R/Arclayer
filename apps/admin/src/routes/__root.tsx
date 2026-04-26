@@ -18,6 +18,15 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
+type SceneKey = ReturnType<typeof resolveSceneKey>;
+
+const ADMIN_SHELL_SCENES = new Set<SceneKey>(["global", "admin"]);
+
+export function shouldUseSceneLoadingOverlay(previousScene: SceneKey, nextScene: SceneKey) {
+  if (ADMIN_SHELL_SCENES.has(previousScene) && ADMIN_SHELL_SCENES.has(nextScene)) return false;
+  return true;
+}
+
 function normalizeEditorRedirectPath(redirectTo: string): string {
   // Vite `base` 通常配置为 `/editor/`，当落点是 `/editor`（无尾斜杠）时，
   // 服务器会直接返回提示文本而不是 SPA（导致看起来像 404）。
@@ -41,6 +50,7 @@ export function RootLayout() {
   const { displayedScene, overlayVisible } = useSceneRevealTransition(sceneKey, {
     isPagePending,
     userReducedMotion,
+    shouldUseOverlayOnSceneChange: shouldUseSceneLoadingOverlay,
   });
   const Layout = getSceneLayout(displayedScene);
 
