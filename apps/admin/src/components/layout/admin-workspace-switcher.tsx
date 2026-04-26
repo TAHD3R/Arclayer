@@ -329,7 +329,6 @@ function WorkspaceMemberMeta(props: { workspace: MyWorkspace }) {
               name={member.displayName || member.username || "U"}
               assetRef={member.avatarUrl}
               size={20}
-              className="ring-2 ring-background"
             />
           ))}
           {hiddenMemberCount > 0 ? (
@@ -354,7 +353,7 @@ function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: b
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <WorkspaceAvatar
           name={title}
-          size={28}
+          size={46}
           className="mt-0.5 shrink-0"
           {...workspaceAvatarPropsFromIdentity(props.workspace)}
         />
