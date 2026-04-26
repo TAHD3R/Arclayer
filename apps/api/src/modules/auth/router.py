@@ -48,6 +48,7 @@ from src.modules.auth.limits.service import (
     TWO_FACTOR_SETUP_RATE_LIMIT,
 )
 from src.modules.auth.login.service import AuthLoginService
+from src.modules.auth.onboarding_profile import OnboardingProfileService
 from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
@@ -70,6 +71,8 @@ from src.modules.auth.schema import (
     MyInvitationListQuery,
     MyInvitationOut,
     MySecurityCapabilityOut,
+    OnboardingProfileOut,
+    OnboardingProfilePatchRequest,
     RefreshRequest,
     RegisterRequest,
     RequestMyEmailChangeOut,
@@ -154,6 +157,12 @@ def _get_auth_login_service(
     auth_service = AuthService(settings, valkey=valkey)
     two_factor_service = AuthTwoFactorService(settings)
     return AuthLoginService(settings, valkey=valkey, auth_service=auth_service, two_factor=two_factor_service)
+
+
+def _get_onboarding_profile_service(
+    settings: Settings = Depends(get_settings),
+) -> OnboardingProfileService:
+    return OnboardingProfileService(settings)
 
 
 def _get_uploads_service(settings: Settings = Depends(get_settings)) -> UploadsService:
@@ -834,6 +843,20 @@ async def me(
 
 
 @router.get(
+    "/me/onboarding-profile",
+    response_model=ResponseModel[OnboardingProfileOut],
+    summary="Get current user onboarding profile",
+)
+async def get_my_onboarding_profile(
+    user: User = Depends(get_current_user),
+    service: OnboardingProfileService = Depends(_get_onboarding_profile_service),
+) -> ResponseModel[OnboardingProfileOut]:
+    """Get current user onboarding profile."""
+    profile = await service.get_profile(user_id=user.id)
+    return ApiResponse.success(data=profile)
+
+
+@router.get(
     "/me/security-capabilities",
     response_model=ResponseModel[MySecurityCapabilityOut],
     summary="Get security capabilities for current user",
@@ -860,6 +883,21 @@ async def update_me(
     """Update current user profile."""
     profile = await service.update_my_profile(user=user, payload=payload)
     return ApiResponse.success(message=t("auth", "PROFILE_UPDATED"), data=profile)
+
+
+@router.patch(
+    "/me/onboarding-profile",
+    response_model=ResponseModel[OnboardingProfileOut],
+    summary="Update current user onboarding profile",
+)
+async def update_my_onboarding_profile(
+    payload: OnboardingProfilePatchRequest,
+    user: User = Depends(get_current_user),
+    service: OnboardingProfileService = Depends(_get_onboarding_profile_service),
+) -> ResponseModel[OnboardingProfileOut]:
+    """Update current user onboarding profile."""
+    profile = await service.patch_profile(user_id=user.id, payload=payload)
+    return ApiResponse.success(data=profile)
 
 
 @router.post(

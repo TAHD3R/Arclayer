@@ -21,11 +21,29 @@ export type UserProfile = {
   avatar_asset_id?: string | null;
 };
 
+export type OnboardingProfile = {
+  jobRole: string | null;
+  companySize: string | null;
+  subscribedProductUpdates: boolean;
+  heardAboutUs: string | null;
+  job_role?: string | null;
+  company_size?: string | null;
+  subscribed_product_updates?: boolean;
+  heard_about_us?: string | null;
+};
+
 export type UpdateMyProfilePayload = {
   display_name?: string | null;
   displayName?: string | null;
   avatar_asset_id?: string | null;
   avatarAssetId?: string | null;
+};
+
+export type PatchOnboardingProfilePayload = {
+  job_role?: string | null;
+  company_size?: string | null;
+  subscribed_product_updates?: boolean;
+  heard_about_us?: string | null;
 };
 
 export type RequestMyEmailChangePayload = {

@@ -223,6 +223,7 @@ export function useLoginPage(): LoginPageState {
   const [registerSeed, setRegisterSeed] = useState<RegisterPaneSeed | null>(null);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState<string | undefined>(undefined);
   const [pendingOAuth, setPendingOAuth] = useState<PendingOAuthState | null>(null);
+  const [authTransitionLoading, setAuthTransitionLoading] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const runtime = useSystemRuntime();
@@ -276,7 +277,7 @@ export function useLoginPage(): LoginPageState {
         username: values.username,
         email: values.email,
         password: values.password,
-        display_name: values.displayName.trim(),
+        display_name: values.username.trim(),
       }),
     onError: notifyError,
   });
@@ -302,24 +303,30 @@ export function useLoginPage(): LoginPageState {
 
   const navigateAfterAuth = useCallback(
     async (redirectOverride?: string | null) => {
-      const targetRedirect = redirectOverride ?? redirectTo;
-      if (targetRedirect) {
-        if (targetRedirect.startsWith("/editor")) {
-          window.location.replace(normalizeEditorRedirectPath(targetRedirect));
+      setAuthTransitionLoading(true);
+      try {
+        const targetRedirect = redirectOverride ?? redirectTo;
+        if (targetRedirect) {
+          if (targetRedirect.startsWith("/editor")) {
+            window.location.replace(normalizeEditorRedirectPath(targetRedirect));
+            return;
+          }
+          await navigate({ to: targetRedirect, replace: true });
           return;
         }
-        await navigate({ to: targetRedirect, replace: true });
-        return;
-      }
 
-      const decision = await resolvePostAuthRoute({ lastWorkspaceId });
-      if (decision.workspaceId) {
-        setCurrentWorkspaceId(decision.workspaceId);
+        const decision = await resolvePostAuthRoute({ lastWorkspaceId });
+        if (decision.workspaceId) {
+          setCurrentWorkspaceId(decision.workspaceId);
+        }
+        if (decision.projectId) {
+          setCurrentProjectId(decision.projectId);
+        }
+        await navigate({ to: decision.path, replace: true });
+      } catch (error) {
+        setAuthTransitionLoading(false);
+        throw error;
       }
-      if (decision.projectId) {
-        setCurrentProjectId(decision.projectId);
-      }
-      await navigate({ to: decision.path, replace: true });
     },
     [lastWorkspaceId, navigate, redirectTo, setCurrentProjectId, setCurrentWorkspaceId],
   );
@@ -864,11 +871,12 @@ export function useLoginPage(): LoginPageState {
       onForgotPasswordSubmit: onForgotPassword,
       forgotPasswordInitialEmail: forgotPasswordEmail,
       forgotPasswordLoading: forgotPasswordMutation.isPending,
+      authTransitionLoading,
       onRegisterEmailSubmit,
       onRegisterSubmit: onRegisterFinish,
       registerSeed,
       registerEmailLoading: emailCheckMutation.isPending,
-      registerLoading: registerMutation.isPending || runtimeLoading,
+      registerLoading: registerMutation.isPending || loginMutation.isPending || runtimeLoading,
       publicRegisterEnabled,
       challenge: activeChallenge,
       onLoginTwoFactorSubmit: onLoginTwoFactorFinish,

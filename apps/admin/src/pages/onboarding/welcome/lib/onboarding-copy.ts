@@ -15,6 +15,5 @@ export function getWelcomeStepTitleKey(step: WelcomeOnboardingStep): string {
 
 export function getWelcomeStepDescriptionKey(step: WelcomeOnboardingStep): string | null {
   if (step === 3) return "WELCOME_STEP_TEAM_DESC";
-  if (step === 4) return "WELCOME_STEP_CUSTOMIZE_DESC";
   return null;
 }

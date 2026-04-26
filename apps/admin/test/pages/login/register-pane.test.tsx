@@ -75,7 +75,7 @@ describe("RegisterPane oauth section", () => {
     const contentGroup = oauthWrapper?.parentElement;
     expect(oauthWrapper).toHaveClass("empty:hidden");
     expect(contentGroup).toHaveClass("grid", "gap-2");
-    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-8");
+    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-12");
     expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
     expect(
@@ -93,6 +93,20 @@ describe("RegisterPane oauth section", () => {
 
     expect(screen.queryByTestId("oauth-section")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:AUTH_CHANGE_EMAIL" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("founder");
+  });
+
+  it("prefills account name from the email local part when continuing", async () => {
+    const user = userEvent.setup();
+
+    renderPane();
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "Philip.Cole@example.com");
+    await user.click(screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" }));
+
+    expect(await screen.findByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("philip-cole");
+    expect(screen.queryByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
   });
 
   it("shows existing-email recovery inside the email field content", async () => {

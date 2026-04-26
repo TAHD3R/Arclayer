@@ -58,7 +58,6 @@ export function LoginPane(props: LoginPaneProps) {
   const { t } = useTranslation();
   const variants = props.reducedMotion ? {} : props.itemVariants;
   const [step, setStep] = useState<LoginPaneStep>("email");
-  const [emailMissing, setEmailMissing] = useState(false);
   const form = useForm<LoginPaneValues>({
     resolver: zodResolver(
       z.object({
@@ -90,7 +89,6 @@ export function LoginPane(props: LoginPaneProps) {
       keepSession: props.initialKeepSession,
     });
     setStep(nextStep);
-    setEmailMissing(false);
   }, [seedEmail, seedStep]);
 
   useEffect(() => {
@@ -118,7 +116,6 @@ export function LoginPane(props: LoginPaneProps) {
       return;
     }
 
-    setEmailMissing(false);
     await props.onSubmit({
       email: form.getValues("email"),
       password,
@@ -129,11 +126,12 @@ export function LoginPane(props: LoginPaneProps) {
   const handleContinue = async () => {
     const isValid = await form.trigger("email");
     if (!isValid) return;
-    setEmailMissing(false);
     const lookup = await props.onEmailSubmit(form.getValues("email"));
     if (!lookup.exists) {
       setStep("email");
-      setEmailMissing(true);
+      form.setError("email", {
+        message: t("auth:LOGIN_EMAIL_NOT_REACHABLE"),
+      });
       return;
     }
     if (!lookup.passwordLoginAvailable) {
@@ -155,7 +153,6 @@ export function LoginPane(props: LoginPaneProps) {
 
   const handleUseAnotherEmail = () => {
     setStep("email");
-    setEmailMissing(false);
     form.setValue("password", "");
     form.clearErrors("password");
   };
@@ -218,19 +215,6 @@ export function LoginPane(props: LoginPaneProps) {
                   {...form.register("email")}
                 />
                 <FieldError>{emailFieldError ?? undefined}</FieldError>
-                {emailMissing && !emailError ? (
-                  <div className="text-body text-label-secondary">
-                    <span>{t("auth:LOGIN_EMAIL_NOT_FOUND_MESSAGE")} </span>
-                    <AuthLinkButton
-                      className="!text-body"
-                      disabled={props.emailCheckLoading || props.loading}
-                      onClick={() => props.onSwitchToRegister(form.getValues("email"), "details")}
-                      type="button"
-                    >
-                      {t("auth:LOGIN_EMAIL_NOT_FOUND_ACTION")}
-                    </AuthLinkButton>
-                  </div>
-                ) : null}
               </FieldContent>
             </Field>
           </motion.div>

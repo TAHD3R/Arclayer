@@ -114,6 +114,17 @@ function renderLoginView(overrides: Partial<React.ComponentProps<typeof LoginVie
 }
 
 describe("LoginView register entry visibility", () => {
+  test("shows a full-screen transition overlay while post-auth navigation is pending", () => {
+    renderLoginView({ authTransitionLoading: true });
+
+    const status = screen.getByRole("status", { name: "Loading" });
+    const overlay = status.closest(".fixed");
+
+    expect(status).toBeInTheDocument();
+    expect(overlay).toHaveClass("fixed", "inset-0", "z-[2147483646]");
+    expect(overlay?.parentElement).toBe(document.body);
+  });
+
   test("hides register entry when public register is disabled", () => {
     renderLoginView({ publicRegisterEnabled: false });
 
@@ -204,7 +215,8 @@ describe("LoginView auth pane hierarchy", () => {
       registerSeed: { email: "founder@example.com", step: "details" },
     });
 
-    expect(screen.getByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).toBeInTheDocument();
+    expect(screen.queryByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("founder");
     expect(screen.getByRole("button", { name: "auth:AUTH_CHANGE_EMAIL" })).toBeInTheDocument();
     expect(screen.queryByTestId("oauth-section")).not.toBeInTheDocument();
     expect(screen.getByText("auth:LEGAL_REGISTER")).toBeInTheDocument();

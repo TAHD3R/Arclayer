@@ -99,9 +99,6 @@ export function WelcomeOnboardingPage() {
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { dryRun?: "1" };
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
-  const timeZonePreference = usePreferencesStore((state) => state.timeZonePreference);
-  const setLocale = usePreferencesStore((state) => state.setLocale);
-  const setTimeZonePreference = usePreferencesStore((state) => state.setTimeZonePreference);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const browserTimezone = useMemo(() => getBrowserTimeZone(), []);
   const mode: WelcomeMode = import.meta.env.DEV && hasDryRunSearch(search) ? "dry-run" : "real";
@@ -117,8 +114,9 @@ export function WelcomeOnboardingPage() {
     displayName: "",
     avatarUrl: null,
     avatarAssetId: null,
-    locale: detectBrowserLocale(),
-    timezone: timeZonePreference ?? browserTimezone,
+    jobRole: null,
+    companySize: null,
+    subscribedProductUpdates: true,
   }));
   const [workspaceDraft, setWorkspaceDraft] = useState<WorkspaceDraft>(() => {
     const locale = detectBrowserLocale();
@@ -135,9 +133,10 @@ export function WelcomeOnboardingPage() {
   });
   const [workspaceErrors, setWorkspaceErrors] = useState<Record<string, string | null>>({});
   const [inviteRows, setInviteRows] = useState<InviteDraftRow[]>(() => buildInviteRows("editor"));
-  const [questionnaireSubstep, setQuestionnaireSubstep] = useState<0 | 1>(0);
+  const [questionnaireSubstep, setQuestionnaireSubstep] = useState<0 | 1 | 2>(0);
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+  const [selectedHeardAboutUs, setSelectedHeardAboutUs] = useState<string | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [workspaceIconPreviewUrl, setWorkspaceIconPreviewUrl] = useState<string | null>(null);
   const [workspaceIconFile, setWorkspaceIconFile] = useState<File | null>(null);
@@ -156,6 +155,13 @@ export function WelcomeOnboardingPage() {
   const profileQuery = useQuery({
     queryKey: ["me", "profile", "welcome-onboarding"],
     queryFn: authApi.me,
+    enabled: !isDryRun,
+    retry: false,
+    meta: { silent: true },
+  });
+  const onboardingProfileQuery = useQuery({
+    queryKey: ["me", "onboarding-profile", "welcome-onboarding"],
+    queryFn: authApi.getMyOnboardingProfile,
     enabled: !isDryRun,
     retry: false,
     meta: { silent: true },
@@ -196,6 +202,34 @@ export function WelcomeOnboardingPage() {
       ? t("onboarding:WELCOME_PROFILE_DISPLAY_NAME_INVALID")
       : null;
   const isProfileStepDisabled = !normalizedDisplayName || Boolean(displayNameError);
+  const jobRoleOptions = useMemo(
+    () => [
+      { value: "content_manager", label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_CONTENT_MANAGER") },
+      { value: "website_manager", label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_WEBSITE_MANAGER") },
+      { value: "marketing_lead", label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_MARKETING_LEAD") },
+      { value: "founder_owner", label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_FOUNDER_OWNER") },
+      {
+        value: "developer_builder",
+        label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_DEVELOPER_BUILDER"),
+      },
+      { value: "product_manager", label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_PRODUCT_MANAGER") },
+      { value: "ai_operations", label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_AI_OPERATIONS") },
+      { value: "agency_partner", label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_AGENCY_PARTNER") },
+      { value: "other", label: t("onboarding:WELCOME_PROFILE_JOB_ROLE_OTHER") },
+    ],
+    [t],
+  );
+  const companySizeOptions = useMemo(
+    () => [
+      { value: "solo", label: t("onboarding:WELCOME_PROFILE_COMPANY_SIZE_SOLO") },
+      { value: "2_10", label: t("onboarding:WELCOME_PROFILE_COMPANY_SIZE_2_10") },
+      { value: "11_50", label: t("onboarding:WELCOME_PROFILE_COMPANY_SIZE_11_50") },
+      { value: "51_200", label: t("onboarding:WELCOME_PROFILE_COMPANY_SIZE_51_200") },
+      { value: "201_1000", label: t("onboarding:WELCOME_PROFILE_COMPANY_SIZE_201_1000") },
+      { value: "1001_plus", label: t("onboarding:WELCOME_PROFILE_COMPANY_SIZE_1001_PLUS") },
+    ],
+    [t],
+  );
   const teamTypeOptions = useMemo(
     () => [
       { value: "content", label: t("onboarding:WELCOME_CUSTOMIZE_TEAM_TYPE_CONTENT") },
@@ -215,6 +249,28 @@ export function WelcomeOnboardingPage() {
       { value: "localization", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_LOCALIZATION") },
       { value: "automation", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_AUTOMATION") },
       { value: "evaluate", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_EVALUATE") },
+    ],
+    [t],
+  );
+  const heardAboutUsOptions = useMemo(
+    () => [
+      { value: "search", label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_SEARCH") },
+      { value: "social", label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_SOCIAL") },
+      { value: "referral", label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_REFERRAL") },
+      {
+        value: "community_event",
+        label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_COMMUNITY_EVENT"),
+      },
+      {
+        value: "article_newsletter",
+        label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_ARTICLE_NEWSLETTER"),
+      },
+      { value: "ai_directory", label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_AI_DIRECTORY") },
+      {
+        value: "agency_consultant",
+        label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_AGENCY_CONSULTANT"),
+      },
+      { value: "other", label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_OTHER") },
     ],
     [t],
   );
@@ -250,10 +306,32 @@ export function WelcomeOnboardingPage() {
         profileQuery.data.avatar_asset_id ??
         current.avatarAssetId ??
         null,
-      locale: detectBrowserLocale(),
-      timezone: timeZonePreference ?? browserTimezone,
     }));
-  }, [browserTimezone, isDryRun, profileQuery.data, timeZonePreference]);
+  }, [isDryRun, profileQuery.data]);
+
+  useEffect(() => {
+    if (isDryRun || !onboardingProfileQuery.data) return;
+    setProfileDraft((current) => ({
+      ...current,
+      jobRole:
+        onboardingProfileQuery.data.jobRole ??
+        onboardingProfileQuery.data.job_role ??
+        current.jobRole,
+      companySize:
+        onboardingProfileQuery.data.companySize ??
+        onboardingProfileQuery.data.company_size ??
+        current.companySize,
+      subscribedProductUpdates:
+        onboardingProfileQuery.data.subscribedProductUpdates ??
+        onboardingProfileQuery.data.subscribed_product_updates ??
+        current.subscribedProductUpdates,
+    }));
+    setSelectedHeardAboutUs(
+      onboardingProfileQuery.data.heardAboutUs ??
+        onboardingProfileQuery.data.heard_about_us ??
+        null,
+    );
+  }, [isDryRun, onboardingProfileQuery.data]);
 
   useEffect(() => {
     if (!workspaceDetailQuery.data) return;
@@ -340,8 +418,11 @@ export function WelcomeOnboardingPage() {
 
     if (!isDryRun) {
       await authApi.updateMyProfile({ display_name: normalizedDisplayName });
-      setLocale(profileDraft.locale);
-      setTimeZonePreference(profileDraft.timezone);
+      await authApi.patchMyOnboardingProfile({
+        job_role: profileDraft.jobRole,
+        company_size: profileDraft.companySize,
+        subscribed_product_updates: profileDraft.subscribedProductUpdates,
+      });
     }
 
     notifySuccessText(t("onboarding:WELCOME_PROFILE_SAVED"));
@@ -483,11 +564,19 @@ export function WelcomeOnboardingPage() {
       setQuestionnaireSubstep(1);
       return;
     }
+    if (questionnaireSubstep === 1) {
+      setQuestionnaireSubstep(2);
+      return;
+    }
 
     if (isDryRun) {
       await navigate({ to: "/", replace: true });
       return;
     }
+
+    await authApi.patchMyOnboardingProfile({
+      heard_about_us: selectedHeardAboutUs,
+    });
 
     const refreshed = await workspacesQuery.refetch();
     const onboarding = refreshed.data?.onboarding;
@@ -509,8 +598,8 @@ export function WelcomeOnboardingPage() {
 
   function goBack() {
     setStepError(null);
-    if (step === 4 && questionnaireSubstep === 1) {
-      setQuestionnaireSubstep(0);
+    if (step === 4 && questionnaireSubstep > 0) {
+      setQuestionnaireSubstep((current) => (current === 2 ? 1 : 0));
       return;
     }
     setDirection(-1);
@@ -555,13 +644,17 @@ export function WelcomeOnboardingPage() {
     setWorkspaceDraft((current) => ({ ...current, iconUrl: nextUrl }));
   };
 
-  const isLoading = !isDryRun && (workspacesQuery.isLoading || profileQuery.isLoading);
-  const isError = !isDryRun && (workspacesQuery.isError || profileQuery.isError);
+  const isLoading =
+    !isDryRun &&
+    (workspacesQuery.isLoading || profileQuery.isLoading || onboardingProfileQuery.isLoading);
+  const isError =
+    !isDryRun &&
+    (workspacesQuery.isError || profileQuery.isError || onboardingProfileQuery.isError);
   const isPending = submitStepMutation.isPending || avatarUploadMutation.isPending;
   const finalButtonLabel =
     step === 3
       ? t("onboarding:WELCOME_INVITE_MEMBERS")
-      : step === 4 && questionnaireSubstep === 1
+      : step === 4 && questionnaireSubstep === 2
         ? t("onboarding:WELCOME_FINAL_CTA")
         : t("onboarding:WELCOME_CONTINUE");
 
@@ -650,16 +743,22 @@ export function WelcomeOnboardingPage() {
             <UserProfilePreferencesStep
               displayName={profileDraft.displayName}
               avatarUrl={profileDraft.avatarUrl}
-              locale={profileDraft.locale}
-              timezone={profileDraft.timezone}
+              jobRole={profileDraft.jobRole}
+              companySize={profileDraft.companySize}
+              subscribedProductUpdates={profileDraft.subscribedProductUpdates}
+              jobRoleOptions={jobRoleOptions}
+              companySizeOptions={companySizeOptions}
               displayNameError={displayNameError}
               avatarBusy={avatarUploadMutation.isPending}
               onDisplayNameChange={(displayName) =>
                 setProfileDraft((current) => ({ ...current, displayName }))
               }
-              onLocaleChange={(locale) => setProfileDraft((current) => ({ ...current, locale }))}
-              onTimezoneChange={(timezone) =>
-                setProfileDraft((current) => ({ ...current, timezone }))
+              onJobRoleChange={(jobRole) => setProfileDraft((current) => ({ ...current, jobRole }))}
+              onCompanySizeChange={(companySize) =>
+                setProfileDraft((current) => ({ ...current, companySize }))
+              }
+              onSubscribedProductUpdatesChange={(subscribedProductUpdates) =>
+                setProfileDraft((current) => ({ ...current, subscribedProductUpdates }))
               }
               onPickAvatar={() => avatarFileInputRef.current?.click()}
               onRemoveAvatar={() => {
@@ -725,14 +824,19 @@ export function WelcomeOnboardingPage() {
               substep={questionnaireSubstep}
               selectedTeamType={selectedTeamType}
               selectedGoal={selectedGoal}
+              selectedHeardAboutUs={selectedHeardAboutUs}
               teamTypeOptions={teamTypeOptions}
               goalOptions={goalOptions}
+              heardAboutUsOptions={heardAboutUsOptions}
               onTeamTypeChange={(value) => {
                 setSelectedTeamType(value);
                 setQuestionnaireSubstep(1);
               }}
               onGoalChange={setSelectedGoal}
-              onBackToTeamType={() => setQuestionnaireSubstep(0)}
+              onHeardAboutUsChange={setSelectedHeardAboutUs}
+              onBackToPreviousQuestion={() =>
+                setQuestionnaireSubstep((current) => (current === 2 ? 1 : 0))
+              }
             />
           ) : null}
         </OnboardingStepTransition>
@@ -757,12 +861,22 @@ export function WelcomeOnboardingPage() {
               {t("onboarding:WELCOME_INVITE_SKIP")}
             </Button>
           ) : null}
-          {step === 4 && questionnaireSubstep === 0 ? (
+          {step === 4 ? (
             <Button
               variant="ghost"
               className="h-10 w-full"
               disabled={isPending}
-              onClick={() => setQuestionnaireSubstep(1)}
+              onClick={() => {
+                if (questionnaireSubstep === 0) {
+                  setQuestionnaireSubstep(1);
+                  return;
+                }
+                if (questionnaireSubstep === 1) {
+                  setQuestionnaireSubstep(2);
+                  return;
+                }
+                submitStepMutation.mutate();
+              }}
             >
               {t("onboarding:WELCOME_CUSTOMIZE_SKIP")}
             </Button>

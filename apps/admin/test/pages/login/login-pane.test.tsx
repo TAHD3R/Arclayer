@@ -73,7 +73,7 @@ describe("LoginPane oauth section", () => {
     const contentGroup = oauthWrapper?.parentElement;
     expect(oauthWrapper).toHaveClass("empty:hidden");
     expect(contentGroup).toHaveClass("grid", "gap-2");
-    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-8");
+    expect(contentGroup?.parentElement).toHaveClass("grid", "gap-12");
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
     expect(
       screen
@@ -146,6 +146,38 @@ describe("LoginPane oauth section", () => {
 
     expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", false, false);
     expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
+  });
+
+  it("shows unknown email as a field validation error without switching to register", async () => {
+    const onSwitchToRegister = vi.fn();
+
+    render(
+      <LoginPane
+        onEmailSubmit={async () => ({
+          exists: false,
+          passwordLoginAvailable: false,
+        })}
+        onSubmit={async () => undefined}
+        emailCheckLoading={false}
+        loading={false}
+        initialKeepSession={false}
+        loginSeed={null}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={() => undefined}
+        onSwitchToRegister={onSwitchToRegister}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "missing@example.com");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
+
+    expect(await screen.findByText("auth:LOGIN_EMAIL_NOT_REACHABLE")).toBeInTheDocument();
+    expect(screen.queryByText("auth:LOGIN_EMAIL_NOT_FOUND_MESSAGE")).not.toBeInTheDocument();
+    expect(onSwitchToRegister).not.toHaveBeenCalled();
   });
 
   it("shows keep-session only on the password step and reads the stored preference", () => {

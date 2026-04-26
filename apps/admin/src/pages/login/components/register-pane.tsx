@@ -34,6 +34,8 @@ import {
 
 type RegisterPaneStep = "email" | "details";
 
+const ACCOUNT_NAME_MAX_LENGTH = 32;
+
 type RegisterPaneProps = {
   onEmailSubmit: (email: string) => Promise<boolean>;
   onSubmit: (values: RegisterFormValues) => Promise<void>;
@@ -47,6 +49,20 @@ type RegisterPaneProps = {
   reducedMotion: boolean;
   itemVariants: Variants;
 };
+
+function deriveAccountNameFromEmail(email: string): string {
+  const localPart = email.split("@")[0] ?? "";
+  const normalized = localPart
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, ACCOUNT_NAME_MAX_LENGTH)
+    .replace(/-+$/g, "");
+
+  return normalized.length >= 3 ? normalized : "user";
+}
 
 function RegisterField(props: {
   title: string;
@@ -80,7 +96,6 @@ export function RegisterPane(props: RegisterPaneProps) {
           .string()
           .min(1, t("auth:VALIDATION_EMAIL_REQUIRED"))
           .email(t("auth:VALIDATION_EMAIL_INVALID")),
-        displayName: z.string().min(1, t("auth:VALIDATION_DISPLAY_NAME_REQUIRED")),
         username: z
           .string()
           .min(1, t("auth:VALIDATION_USERNAME_REQUIRED"))
@@ -93,7 +108,6 @@ export function RegisterPane(props: RegisterPaneProps) {
     ),
     defaultValues: {
       email: "",
-      displayName: "",
       username: "",
       password: "",
     },
@@ -157,8 +171,7 @@ export function RegisterPane(props: RegisterPaneProps) {
     const nextStep = seedStep === "details" && seedEmail ? "details" : "email";
     resetRef.current({
       email: seedEmail,
-      displayName: "",
-      username: "",
+      username: nextStep === "details" ? deriveAccountNameFromEmail(seedEmail) : "",
       password: "",
     });
     setStep(nextStep);
@@ -181,7 +194,13 @@ export function RegisterPane(props: RegisterPaneProps) {
       return;
     }
     setStep("details");
-    form.clearErrors(["displayName", "username", "password"]);
+    if (!form.getValues("username").trim()) {
+      form.setValue("username", deriveAccountNameFromEmail(form.getValues("email")), {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+    }
+    form.clearErrors(["username", "password"]);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -196,10 +215,9 @@ export function RegisterPane(props: RegisterPaneProps) {
   const handleUseAnotherEmail = () => {
     setStep("email");
     setEmailExists(false);
-    form.setValue("displayName", "");
     form.setValue("username", "");
     form.setValue("password", "");
-    form.clearErrors(["displayName", "username", "password"]);
+    form.clearErrors(["username", "password"]);
   };
 
   return (
@@ -281,30 +299,6 @@ export function RegisterPane(props: RegisterPaneProps) {
 
           {step === "details" ? (
             <>
-              <RegisterField
-                title={t("auth:FIELD_DISPLAY_NAME_LABEL")}
-                helpText={t("auth:FIELD_DISPLAY_NAME_HELP")}
-                error={
-                  form.formState.errors.displayName?.message
-                    ? String(form.formState.errors.displayName.message)
-                    : undefined
-                }
-                variants={variants}
-              >
-                <AuthInputControl
-                  autoComplete="name"
-                  aria-label={t("auth:FIELD_DISPLAY_NAME_LABEL")}
-                  aria-invalid={form.formState.errors.displayName ? true : undefined}
-                  className={AUTH_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_INPUT_CLASS}
-                  placeholder={t("auth:FIELD_DISPLAY_NAME_PLACEHOLDER")}
-                  startIcon={<User size={16} />}
-                  disabled={props.loading}
-                  spellCheck={false}
-                  {...form.register("displayName")}
-                />
-              </RegisterField>
-
               <RegisterField
                 title={t("auth:FIELD_USERNAME_LABEL")}
                 helpText={t("auth:FIELD_USERNAME_HELP")}

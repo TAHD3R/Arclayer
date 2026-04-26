@@ -1,31 +1,36 @@
-import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { initialsFromName } from "@/lib/auth/user-profile";
-import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
-import { buildTimezoneOptions } from "@/lib/settings/general/localization-options";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Switch } from "@arclayer/ui/switch";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { WelcomeFieldError } from "../welcome-field-error";
+
+type ProfileSelectOption = {
+  label: string;
+  value: string;
+};
 
 export function UserProfilePreferencesStep(props: {
   displayName: string;
   avatarUrl: string | null;
-  locale: AppLocale;
-  timezone: string;
+  jobRole: string | null;
+  companySize: string | null;
+  subscribedProductUpdates: boolean;
+  jobRoleOptions: ProfileSelectOption[];
+  companySizeOptions: ProfileSelectOption[];
   displayNameError: string | null;
   avatarBusy: boolean;
   onDisplayNameChange: (value: string) => void;
-  onLocaleChange: (value: AppLocale) => void;
-  onTimezoneChange: (value: string) => void;
+  onJobRoleChange: (value: string) => void;
+  onCompanySizeChange: (value: string) => void;
+  onSubscribedProductUpdatesChange: (checked: boolean) => void;
   onPickAvatar: () => void;
   onRemoveAvatar: () => void;
 }) {
   const { t } = useTranslation(["onboarding", "account"]);
-  const languageOptions = useMemo(() => buildSupportedLocaleOptions(SUPPORTED_LOCALES, t), [t]);
-  const timezoneOptions = useMemo(() => buildTimezoneOptions(props.timezone), [props.timezone]);
 
   return (
     <div className="flex flex-col gap-6 py-6">
@@ -69,19 +74,13 @@ export function UserProfilePreferencesStep(props: {
       </div>
 
       <SettingDialogFields>
-        <SettingDialogField
-          title={t("account:ACCOUNT_SETTINGS_LANGUAGE_LABEL")}
-          description={t("account:ME_PREF_LANGUAGE_DESC")}
-        >
-          <Select
-            value={props.locale}
-            onValueChange={(value) => props.onLocaleChange(value as AppLocale)}
-          >
+        <SettingDialogField title={t("onboarding:WELCOME_PROFILE_JOB_ROLE_TITLE")}>
+          <Select value={props.jobRole ?? ""} onValueChange={props.onJobRoleChange}>
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue placeholder={t("onboarding:WELCOME_PROFILE_JOB_ROLE_PLACEHOLDER")} />
             </SelectTrigger>
             <SelectContent position="popper" align="start">
-              {languageOptions.map((option) => (
+              {props.jobRoleOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -90,16 +89,13 @@ export function UserProfilePreferencesStep(props: {
           </Select>
         </SettingDialogField>
 
-        <SettingDialogField
-          title={t("account:ME_PREF_TIMEZONE_TITLE")}
-          description={t("account:ME_PREF_TIMEZONE_DESC")}
-        >
-          <Select value={props.timezone} onValueChange={props.onTimezoneChange}>
+        <SettingDialogField title={t("onboarding:WELCOME_PROFILE_COMPANY_SIZE_TITLE")}>
+          <Select value={props.companySize ?? ""} onValueChange={props.onCompanySizeChange}>
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue placeholder={t("onboarding:WELCOME_PROFILE_COMPANY_SIZE_PLACEHOLDER")} />
             </SelectTrigger>
             <SelectContent position="popper" align="start">
-              {timezoneOptions.map((option) => (
+              {props.companySizeOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -107,6 +103,22 @@ export function UserProfilePreferencesStep(props: {
             </SelectContent>
           </Select>
         </SettingDialogField>
+
+        <div className="flex min-w-0 items-center justify-between gap-4">
+          <div className="grid min-w-0 gap-1">
+            <div className="text-headline text-label-primary">
+              {t("onboarding:WELCOME_PROFILE_PRODUCT_UPDATES_TITLE")}
+            </div>
+            <div className="text-label-secondary">
+              {t("onboarding:WELCOME_PROFILE_PRODUCT_UPDATES_DESC")}
+            </div>
+          </div>
+          <Switch
+            aria-label={t("onboarding:WELCOME_PROFILE_PRODUCT_UPDATES_TITLE")}
+            checked={props.subscribedProductUpdates}
+            onCheckedChange={props.onSubscribedProductUpdatesChange}
+          />
+        </div>
       </SettingDialogFields>
     </div>
   );

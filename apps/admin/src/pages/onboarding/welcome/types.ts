@@ -20,8 +20,9 @@ export type UserProfileDraft = {
   displayName: string;
   avatarUrl: string | null;
   avatarAssetId: string | null;
-  locale: AppLocale;
-  timezone: string;
+  jobRole: string | null;
+  companySize: string | null;
+  subscribedProductUpdates: boolean;
 };
 
 export type WorkspaceDraft = {

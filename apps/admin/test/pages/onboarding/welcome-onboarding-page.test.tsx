@@ -17,6 +17,8 @@ const {
   createTeamInvitationMock,
   meMock,
   updateMyProfileMock,
+  getMyOnboardingProfileMock,
+  patchMyOnboardingProfileMock,
   patchCoreSettingsMock,
   workspaceState,
   preferenceState,
@@ -32,6 +34,8 @@ const {
   createTeamInvitationMock: vi.fn(),
   meMock: vi.fn(),
   updateMyProfileMock: vi.fn(),
+  getMyOnboardingProfileMock: vi.fn(),
+  patchMyOnboardingProfileMock: vi.fn(),
   patchCoreSettingsMock: vi.fn(),
   workspaceState: {
     setCurrentWorkspaceId: vi.fn(),
@@ -81,6 +85,8 @@ vi.mock("@/api/settings", () => ({
 vi.mock("@/api/auth", () => ({
   me: (...args: unknown[]) => meMock(...args),
   updateMyProfile: (...args: unknown[]) => updateMyProfileMock(...args),
+  getMyOnboardingProfile: (...args: unknown[]) => getMyOnboardingProfileMock(...args),
+  patchMyOnboardingProfile: (...args: unknown[]) => patchMyOnboardingProfileMock(...args),
   logout: vi.fn(),
 }));
 
@@ -129,7 +135,6 @@ vi.mock("react-i18next", () => ({
           WELCOME_STEP_TEAM_TITLE: "Collaborate with your team",
           WELCOME_STEP_TEAM_DESC: "Invite teammates.",
           WELCOME_STEP_CUSTOMIZE_TITLE: "Help us customize your workspace",
-          WELCOME_STEP_CUSTOMIZE_DESC: "Tune your starting workspace.",
           WELCOME_CONTINUE: "Continue",
           WELCOME_FINAL_CTA: "Start building",
           WELCOME_PROFILE_DISPLAY_NAME_LABEL: "Display name",
@@ -137,10 +142,27 @@ vi.mock("react-i18next", () => ({
           WELCOME_PROFILE_DISPLAY_NAME_REQUIRED: "Enter a display name.",
           WELCOME_PROFILE_DISPLAY_NAME_INVALID: "Invalid display name",
           WELCOME_PROFILE_SAVED: "Profile saved.",
-          WELCOME_PROFILE_LANGUAGE_LABEL: "Language",
-          WELCOME_PROFILE_BROWSER_LANGUAGE_LABEL: "Use browser language",
-          WELCOME_PROFILE_TIMEZONE_LABEL: "Timezone",
-          WELCOME_PROFILE_AUTO_TIMEZONE_LABEL: "Use browser timezone",
+          WELCOME_PROFILE_JOB_ROLE_TITLE: "Job role (optional)",
+          WELCOME_PROFILE_JOB_ROLE_PLACEHOLDER: "Select your role",
+          WELCOME_PROFILE_JOB_ROLE_CONTENT_MANAGER: "Content manager",
+          WELCOME_PROFILE_JOB_ROLE_WEBSITE_MANAGER: "Website manager",
+          WELCOME_PROFILE_JOB_ROLE_MARKETING_LEAD: "Marketing lead",
+          WELCOME_PROFILE_JOB_ROLE_FOUNDER_OWNER: "Founder / business owner",
+          WELCOME_PROFILE_JOB_ROLE_DEVELOPER_BUILDER: "Developer / technical builder",
+          WELCOME_PROFILE_JOB_ROLE_PRODUCT_MANAGER: "Product manager",
+          WELCOME_PROFILE_JOB_ROLE_AI_OPERATIONS: "AI operations lead",
+          WELCOME_PROFILE_JOB_ROLE_AGENCY_PARTNER: "Agency / implementation partner",
+          WELCOME_PROFILE_JOB_ROLE_OTHER: "Other",
+          WELCOME_PROFILE_COMPANY_SIZE_TITLE: "Company size (optional)",
+          WELCOME_PROFILE_COMPANY_SIZE_PLACEHOLDER: "Select company size",
+          WELCOME_PROFILE_COMPANY_SIZE_SOLO: "Just me",
+          WELCOME_PROFILE_COMPANY_SIZE_2_10: "2-10",
+          WELCOME_PROFILE_COMPANY_SIZE_11_50: "11-50",
+          WELCOME_PROFILE_COMPANY_SIZE_51_200: "51-200",
+          WELCOME_PROFILE_COMPANY_SIZE_201_1000: "201-1,000",
+          WELCOME_PROFILE_COMPANY_SIZE_1001_PLUS: "1,001+",
+          WELCOME_PROFILE_PRODUCT_UPDATES_TITLE: "Subscribe to product update emails",
+          WELCOME_PROFILE_PRODUCT_UPDATES_DESC: "Get the latest updates.",
           WELCOME_WORKSPACE_ICON_LABEL: "Workspace icon",
           WELCOME_WORKSPACE_ICON_PLACEHOLDER: "Emoji or initials",
           WELCOME_WORKSPACE_NAME_LABEL: "Workspace name",
@@ -164,9 +186,12 @@ vi.mock("react-i18next", () => ({
           WELCOME_INVITE_SAVED: "Team invites saved.",
           WELCOME_CUSTOMIZE_TEAM_TYPE_QUESTION: "What best describes your team?",
           WELCOME_CUSTOMIZE_GOAL_QUESTION: "What do you want to set up first?",
-          WELCOME_CUSTOMIZE_PROGRESS_1: "Question 1 of 2",
-          WELCOME_CUSTOMIZE_PROGRESS_2: "Question 2 of 2",
+          WELCOME_CUSTOMIZE_HEARD_ABOUT_US_QUESTION: "How did you hear about us?",
+          WELCOME_CUSTOMIZE_PROGRESS_1: "Question 1 of 3",
+          WELCOME_CUSTOMIZE_PROGRESS_2: "Question 2 of 3",
+          WELCOME_CUSTOMIZE_PROGRESS_3: "Question 3 of 3",
           WELCOME_CUSTOMIZE_BACK_TO_TEAM_TYPE: "Back to question 1",
+          WELCOME_CUSTOMIZE_BACK_TO_GOAL: "Back to question 2",
           WELCOME_CUSTOMIZE_SKIP: "Skip for now",
           WELCOME_CUSTOMIZE_TEAM_TYPE_CONTENT: "Content team",
           WELCOME_CUSTOMIZE_TEAM_TYPE_MARKETING: "Marketing team",
@@ -180,6 +205,14 @@ vi.mock("react-i18next", () => ({
           WELCOME_CUSTOMIZE_GOAL_LOCALIZATION: "Localize content",
           WELCOME_CUSTOMIZE_GOAL_AUTOMATION: "Automate publishing",
           WELCOME_CUSTOMIZE_GOAL_EVALUATE: "Evaluate Arclayer",
+          WELCOME_CUSTOMIZE_HEARD_SEARCH: "Search engine",
+          WELCOME_CUSTOMIZE_HEARD_SOCIAL: "Social media",
+          WELCOME_CUSTOMIZE_HEARD_REFERRAL: "Friend or colleague",
+          WELCOME_CUSTOMIZE_HEARD_COMMUNITY_EVENT: "Community or event",
+          WELCOME_CUSTOMIZE_HEARD_ARTICLE_NEWSLETTER: "Article or newsletter",
+          WELCOME_CUSTOMIZE_HEARD_AI_DIRECTORY: "AI tool directory",
+          WELCOME_CUSTOMIZE_HEARD_AGENCY_CONSULTANT: "Agency or consultant",
+          WELCOME_CUSTOMIZE_HEARD_OTHER: "Other",
           BACK: "Back",
           RETRY: "Retry",
           ORG_WORKSPACES_FIELD_NAME_REQUIRED: "Workspace name is required",
@@ -230,6 +263,8 @@ beforeEach(() => {
   createTeamInvitationMock.mockReset();
   meMock.mockReset();
   updateMyProfileMock.mockReset();
+  getMyOnboardingProfileMock.mockReset();
+  patchMyOnboardingProfileMock.mockReset();
   patchCoreSettingsMock.mockReset();
   workspaceState.setCurrentWorkspaceId.mockReset();
   workspaceState.setCurrentProjectId.mockReset();
@@ -245,6 +280,14 @@ describe("WelcomeOnboardingPage", () => {
 
     expect(screen.getByText("Let's get to know you!")).toBeInTheDocument();
     expect(screen.getByText("Copyright © 2026 Arclayer. All rights reserved.")).toBeInTheDocument();
+    expect(screen.getByText("Job role (optional)")).toBeInTheDocument();
+    expect(screen.getByText("Company size (optional)")).toBeInTheDocument();
+    expect(screen.getByText("Subscribe to product update emails")).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: "Subscribe to product update emails" }),
+    ).toBeChecked();
+    expect(screen.queryByText("Language")).not.toBeInTheDocument();
+    expect(screen.queryByText("Time zone")).not.toBeInTheDocument();
 
     await user.type(await screen.findByLabelText("Display name"), "Philip Cole");
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -261,8 +304,14 @@ describe("WelcomeOnboardingPage", () => {
     await user.click(screen.getByRole("button", { name: "Invite members" }));
 
     await screen.findByText("Help us customize your workspace");
+    expect(screen.getByRole("button", { name: "Skip for now" })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Content team" }));
+    expect(screen.getByRole("button", { name: "Skip for now" })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Manage structured content" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("How did you hear about us?");
+    expect(screen.getByRole("button", { name: "Skip for now" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Friend or colleague" }));
     await user.click(screen.getByRole("button", { name: "Start building" }));
 
     await waitFor(() => {
@@ -271,6 +320,61 @@ describe("WelcomeOnboardingPage", () => {
     expect(createMyOnboardingWorkspaceMock).not.toHaveBeenCalled();
     expect(patchCoreSettingsMock).not.toHaveBeenCalled();
     expect(createTeamInvitationMock).not.toHaveBeenCalled();
+    expect(patchMyOnboardingProfileMock).not.toHaveBeenCalled();
+  });
+
+  it("saves onboarding profile signals on the first real step", async () => {
+    searchState.dryRun = undefined;
+    listMyWorkspacesMock.mockResolvedValue({
+      items: [],
+      onboarding: { status: "pending_workspace", workspaceId: null },
+    });
+    meMock.mockResolvedValue({
+      id: "user-1",
+      username: "philip",
+      email: "philip@example.com",
+      displayName: "Philip Cole",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    getMyOnboardingProfileMock.mockResolvedValue({
+      jobRole: "content_manager",
+      companySize: "11_50",
+      subscribedProductUpdates: true,
+      heardAboutUs: null,
+    });
+    updateMyProfileMock.mockResolvedValue({
+      id: "user-1",
+      username: "philip",
+      email: "philip@example.com",
+      displayName: "Philip Cole",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    patchMyOnboardingProfileMock.mockResolvedValue({
+      jobRole: "content_manager",
+      companySize: "11_50",
+      subscribedProductUpdates: true,
+      heardAboutUs: null,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByDisplayValue("Philip Cole");
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => {
+      expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({
+        job_role: "content_manager",
+        company_size: "11_50",
+        subscribed_product_updates: true,
+      });
+    });
+    expect(preferenceState.setLocale).not.toHaveBeenCalled();
+    expect(preferenceState.setTimeZonePreference).not.toHaveBeenCalled();
   });
 
   it("blocks invalid invite email before advancing", async () => {

@@ -9,6 +9,8 @@ import type {
   ConfirmRemoveMyPasswordPayload,
   LoginEmailCodeRequestOut,
   MySecurityCapability,
+  OnboardingProfile,
+  PatchOnboardingProfilePayload,
   RequestRemoveMyPasswordPayload,
   RegisterPayload,
   RequestMyEmailChangeOut,
@@ -97,6 +99,16 @@ export async function me(): Promise<UserProfile> {
 
 export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<UserProfile> {
   return api.patch<UserProfile>("/auth/me", payload);
+}
+
+export async function getMyOnboardingProfile(): Promise<OnboardingProfile> {
+  return api.get<OnboardingProfile>("/auth/me/onboarding-profile");
+}
+
+export async function patchMyOnboardingProfile(
+  payload: PatchOnboardingProfilePayload,
+): Promise<OnboardingProfile> {
+  return api.patch<OnboardingProfile>("/auth/me/onboarding-profile", payload);
 }
 
 export async function requestMyEmailChange(

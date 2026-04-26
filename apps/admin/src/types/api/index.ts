@@ -1,7 +1,9 @@
 export type {
   TokenPair,
   UserProfile,
+  OnboardingProfile,
   UpdateMyProfilePayload,
+  PatchOnboardingProfilePayload,
   RequestMyEmailChangePayload,
   RequestMyEmailChangeOut,
   ConfirmMyEmailChangePayload,

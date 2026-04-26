@@ -39,7 +39,6 @@ export interface LoginEmailLookupResult {
 
 export interface RegisterFormValues {
   email: string;
-  displayName: string;
   username: string;
   password: string;
 }
@@ -91,6 +90,7 @@ export interface LoginViewProps {
   onForgotPasswordSubmit: (email: string) => Promise<void>;
   forgotPasswordInitialEmail?: string;
   forgotPasswordLoading?: boolean;
+  authTransitionLoading?: boolean;
   onRegisterEmailSubmit: (email: string) => Promise<boolean>;
   onRegisterSubmit: (values: RegisterFormValues) => Promise<void>;
   registerSeed?: RegisterPaneSeed | null;

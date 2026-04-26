@@ -105,3 +105,42 @@ async def test_workspace_tenant_context_creates_ready_schema(prepared_db) -> Non
     assert schema_payload
     assert [row["version"] for row in migration_payload] == [1, 2]
     assert {row["status"] for row in migration_payload} == {"applied"}
+
+
+@pytest.mark.asyncio
+async def test_same_name_workspaces_get_distinct_tenant_schemas(prepared_db) -> None:
+    _ = prepared_db
+    organization = await Organization.create(slug=f"org_{uuid4().hex[:12]}", name="Tenant Org")
+    owner = await User.create(username=f"user_{uuid4().hex[:10]}", email=f"{uuid4().hex[:10]}@example.com")
+    await OrgMembership.create(
+        organization_id=organization.id,
+        user_id=owner.id,
+        role=OrgRole.OWNER,
+        role_code=OrgRole.OWNER.value,
+        status="active",
+    )
+    first = await Workspace.create(
+        organization_id=organization.id,
+        name="CMS Team",
+        is_active=True,
+        created_by_user_id=owner.id,
+    )
+    second = await Workspace.create(
+        organization_id=organization.id,
+        name="CMS Team",
+        is_active=True,
+        created_by_user_id=owner.id,
+    )
+
+    first_context = await bind_workspace_tenant_context(
+        workspace_id=first.id,
+        organization_id=organization.id,
+    )
+    second_context = await bind_workspace_tenant_context(
+        workspace_id=second.id,
+        organization_id=organization.id,
+    )
+
+    assert first.id != second.id
+    assert first.name == second.name == "CMS Team"
+    assert first_context.schema_name != second_context.schema_name

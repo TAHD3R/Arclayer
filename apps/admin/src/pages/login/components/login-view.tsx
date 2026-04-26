@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
 
+import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import type { LoginMode } from "@/lib/auth/auth-mode";
 
@@ -34,6 +35,7 @@ export function LoginView({
   onForgotPasswordSubmit,
   forgotPasswordInitialEmail,
   forgotPasswordLoading = false,
+  authTransitionLoading = false,
   onRegisterEmailSubmit,
   onRegisterSubmit,
   registerSeed,
@@ -80,6 +82,7 @@ export function LoginView({
 
   return (
     <div className="w-full">
+      <SceneLoadingOverlay visible={authTransitionLoading} />
       <MotionConfig transition={transition}>
         <div className="relative">
           <AnimatePresence mode="wait">

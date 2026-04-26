@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from typing import Literal
 
 from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator, model_validator
 
@@ -290,6 +291,50 @@ class UserProfile(BaseOut):
         description="Whether the avatar asset was auto-aligned (purpose/visibility/indexable) in this response.",
     )
     is_super_admin: bool = False
+
+
+OnboardingJobRole = Literal[
+    "content_manager",
+    "website_manager",
+    "marketing_lead",
+    "founder_owner",
+    "developer_builder",
+    "product_manager",
+    "ai_operations",
+    "agency_partner",
+    "other",
+]
+
+OnboardingCompanySize = Literal["solo", "2_10", "11_50", "51_200", "201_1000", "1001_plus"]
+
+OnboardingHeardAboutUs = Literal[
+    "search",
+    "social",
+    "referral",
+    "community_event",
+    "article_newsletter",
+    "ai_directory",
+    "agency_consultant",
+    "other",
+]
+
+
+class OnboardingProfileOut(BaseSchema):
+    """Current user's onboarding profile signals."""
+
+    job_role: OnboardingJobRole | None = None
+    company_size: OnboardingCompanySize | None = None
+    subscribed_product_updates: bool = True
+    heard_about_us: OnboardingHeardAboutUs | None = None
+
+
+class OnboardingProfilePatchRequest(BaseSchema):
+    """Patch current user's onboarding profile signals."""
+
+    job_role: OnboardingJobRole | None = None
+    company_size: OnboardingCompanySize | None = None
+    subscribed_product_updates: bool | None = None
+    heard_about_us: OnboardingHeardAboutUs | None = None
 
 
 class UpdateMyProfileRequest(BaseSchema):

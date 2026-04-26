@@ -13,6 +13,13 @@ from src.modules.tenancy.schema_names import validate_tenant_schema_name
 _MIGRATION_TABLE_NAME = "tenant_schema_migrations"
 
 
+async def acquire_tenant_schema_lock(schema_name: str, conn: BaseDBAsyncClient) -> None:
+    await conn.execute_query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+        [f"tenant_schema:{validate_tenant_schema_name(schema_name)}"],
+    )
+
+
 async def ensure_tenant_migration_table(schema_name: str, conn: BaseDBAsyncClient) -> None:
     schema = quote_schema_name(schema_name)
     await conn.execute_query(
@@ -61,6 +68,7 @@ class TenantMigrationRunner:
     async def apply_all(self, schema_name: str) -> int:
         validated = validate_tenant_schema_name(schema_name)
         async with in_transaction() as conn:
+            await acquire_tenant_schema_lock(validated, conn)
             await create_tenant_schema(validated, conn=conn)
             await ensure_tenant_migration_table(validated, conn)
             applied = await _load_applied_versions(validated, conn)

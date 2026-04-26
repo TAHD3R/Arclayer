@@ -9,39 +9,63 @@ type QuestionnaireOption = {
 };
 
 export function WorkspaceCustomizationStep(props: {
-  substep: 0 | 1;
+  substep: 0 | 1 | 2;
   selectedTeamType: string | null;
   selectedGoal: string | null;
+  selectedHeardAboutUs: string | null;
   teamTypeOptions: QuestionnaireOption[];
   goalOptions: QuestionnaireOption[];
+  heardAboutUsOptions: QuestionnaireOption[];
   onTeamTypeChange: (value: string) => void;
   onGoalChange: (value: string) => void;
-  onBackToTeamType: () => void;
+  onHeardAboutUsChange: (value: string) => void;
+  onBackToPreviousQuestion: () => void;
 }) {
   const { t } = useTranslation("onboarding");
-  const options = props.substep === 0 ? props.teamTypeOptions : props.goalOptions;
-  const selected = props.substep === 0 ? props.selectedTeamType : props.selectedGoal;
-  const onSelect = props.substep === 0 ? props.onTeamTypeChange : props.onGoalChange;
+  const options =
+    props.substep === 0
+      ? props.teamTypeOptions
+      : props.substep === 1
+        ? props.goalOptions
+        : props.heardAboutUsOptions;
+  const selected =
+    props.substep === 0
+      ? props.selectedTeamType
+      : props.substep === 1
+        ? props.selectedGoal
+        : props.selectedHeardAboutUs;
+  const onSelect =
+    props.substep === 0
+      ? props.onTeamTypeChange
+      : props.substep === 1
+        ? props.onGoalChange
+        : props.onHeardAboutUsChange;
+  const question =
+    props.substep === 0
+      ? t("WELCOME_CUSTOMIZE_TEAM_TYPE_QUESTION")
+      : props.substep === 1
+        ? t("WELCOME_CUSTOMIZE_GOAL_QUESTION")
+        : t("WELCOME_CUSTOMIZE_HEARD_ABOUT_US_QUESTION");
+  const progress =
+    props.substep === 0
+      ? t("WELCOME_CUSTOMIZE_PROGRESS_1")
+      : props.substep === 1
+        ? t("WELCOME_CUSTOMIZE_PROGRESS_2")
+        : t("WELCOME_CUSTOMIZE_PROGRESS_3");
 
   return (
     <div className="flex flex-col gap-4 py-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <div className="text-title3 text-label-primary">
-            {props.substep === 0
-              ? t("WELCOME_CUSTOMIZE_TEAM_TYPE_QUESTION")
-              : t("WELCOME_CUSTOMIZE_GOAL_QUESTION")}
-          </div>
-          <div className="mt-1 text-footnote text-label-secondary">
-            {props.substep === 0
-              ? t("WELCOME_CUSTOMIZE_PROGRESS_1")
-              : t("WELCOME_CUSTOMIZE_PROGRESS_2")}
-          </div>
+          <div className="text-title3 text-label-primary">{question}</div>
+          <div className="mt-1 text-footnote text-label-secondary">{progress}</div>
         </div>
-        {props.substep === 1 ? (
-          <Button variant="ghost" className="gap-2" onClick={props.onBackToTeamType}>
+        {props.substep > 0 ? (
+          <Button variant="ghost" className="gap-2" onClick={props.onBackToPreviousQuestion}>
             <ArrowLeft className="size-4" />
-            {t("WELCOME_CUSTOMIZE_BACK_TO_TEAM_TYPE")}
+            {props.substep === 1
+              ? t("WELCOME_CUSTOMIZE_BACK_TO_TEAM_TYPE")
+              : t("WELCOME_CUSTOMIZE_BACK_TO_GOAL")}
           </Button>
         ) : null}
       </div>
