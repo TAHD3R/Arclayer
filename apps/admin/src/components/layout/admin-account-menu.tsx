@@ -14,23 +14,33 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  BookOpen,
   Check,
   ChevronRight,
   ChevronDown,
-  Keyboard,
+  CircleHelp,
+  CreditCard,
+  ExternalLink,
+  FileText,
+  History,
   Languages,
+  LifeBuoy,
   LogOut,
   Monitor,
   Moon,
+  Settings,
+  Shield,
+  SquareStack,
   Sun,
-  UserCog,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
+import { LegalModalDialogs, type LegalModal } from "@/components/layout/legal-footer";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
+import { LocaleFlag } from "@/components/ui/tags";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
@@ -51,7 +61,15 @@ import {
 import { Popover, PopoverAnchor, PopoverContent } from "@arclayer/ui/popover";
 import { useSidebar } from "@arclayer/ui/sidebar";
 
-const SHORTCUTS_HELP_HASH = "#shortcuts";
+const ACCOUNT_MENU_RESOURCE_URLS = {
+  documentation: "https://docs.arclayer.com",
+  changelog: "https://arclayer.com/changelog",
+  helpCenter: "https://arclayer.com/help",
+  subscription: "https://arclayer.com/pricing",
+} as const;
+
+type AccountMenuResource = keyof typeof ACCOUNT_MENU_RESOURCE_URLS;
+
 const HEADER_TRIGGER_CLASSNAME = cn(
   "group/panel-trigger flex h-10 items-center gap-1.5 rounded-md border border-transparent bg-transparent",
   "text-label-secondary transition-[background-color,color,border-color] duration-200",
@@ -83,17 +101,20 @@ type AdminAccountMenuModel = {
   locale: AppLocale;
   onLogout: () => Promise<void>;
   onAccountSettings: () => void;
+  onWorkspaceSettings: () => void;
+  onSubscription: () => void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void>;
   onLocaleChange: (next: AppLocale) => void;
-  onShortcuts: () => void;
+  onOpenResource: (resource: AccountMenuResource) => void;
 };
 
-type AccountMenuSubmenu = "language" | "appearance";
+type AccountMenuSubmenu = "language" | "appearance" | "docs" | "legal";
 
-type PreferenceOption = {
+type AccountSubmenuOption = {
   icon: ReactNode;
   label: string;
-  selected: boolean;
+  right?: ReactNode;
+  selected?: boolean;
   onClick: () => Promise<void> | void;
 };
 
@@ -105,13 +126,16 @@ type AdminAccountPanelContentProps = {
   locale: AppLocale;
   onLogout: () => Promise<void>;
   onAccountSettings: () => Promise<void> | void;
+  onWorkspaceSettings: () => Promise<void> | void;
+  onSubscription: () => Promise<void> | void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
   onLocaleChange: (next: AppLocale) => Promise<void> | void;
-  onShortcuts: () => Promise<void> | void;
+  onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
+  onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void;
 };
 
-const PANEL_WIDTH_CLASSNAME = "w-75";
-const SUBMENU_PANEL_WIDTH_CLASSNAME = "w-64";
+const PANEL_WIDTH_CLASSNAME = "w-60";
+const SUBMENU_PANEL_WIDTH_CLASSNAME = "w-60";
 const SUBMENU_CLOSE_DELAY_MS = 120;
 const MENU_ITEM_CLASSNAME = cn(
   "group transition-[background-color,color] duration-200",
@@ -134,7 +158,7 @@ function MenuItemContent(props: { icon?: ReactNode; label: string; right?: React
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
         {props.icon ? <span className="shrink-0">{normalizeIcon(props.icon)}</span> : null}
-        <span className="min-w-0 truncate text-body">{props.label}</span>
+        <span className="min-w-0 flex-1 truncate text-callout">{props.label}</span>
       </span>
       {props.right ? (
         <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
@@ -198,10 +222,13 @@ function RootMenu(props: {
   locale: AppLocale;
   themePreference: ThemePreference;
   onAccountSettings: () => Promise<void> | void;
+  onWorkspaceSettings: () => Promise<void> | void;
+  onSubscription: () => Promise<void> | void;
   onLocaleChange: (next: AppLocale) => Promise<void> | void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
   onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
-  onShortcuts: () => Promise<void> | void;
+  onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
+  onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void;
   onLogout: () => Promise<void>;
 }) {
   const { t } = useTranslation("account");
@@ -209,22 +236,34 @@ function RootMenu(props: {
     <>
       <div className="py-1">
         <MenuAction
-          icon={<UserCog />}
+          icon={<Settings />}
           label={t("ACCOUNT_MENU_ACCOUNT")}
           onClick={props.onAccountSettings}
         />
-        <PreferenceSubmenuAction
+        <MenuAction
+          icon={<SquareStack />}
+          label={t("ACCOUNT_MENU_WORKSPACE_SETTINGS")}
+          onClick={props.onWorkspaceSettings}
+        />
+        <MenuAction
+          icon={<CreditCard />}
+          label={t("ACCOUNT_MENU_SUBSCRIPTION")}
+          onClick={props.onSubscription}
+        />
+        <AccountSubmenuAction
           panelOpen={props.panelOpen}
           icon={<Languages />}
-          label={t("ACCOUNT_MENU_LANGUAGE_PREFERENCES")}
+          label={t("ACCOUNT_MENU_LANGUAGE")}
           submenu="language"
           locale={props.locale}
           themePreference={props.themePreference}
           onLocaleChange={props.onLocaleChange}
           onThemePreferenceChange={props.onThemePreferenceChange}
+          onOpenResource={props.onOpenResource}
+          onOpenLegal={props.onOpenLegal}
           onSelectAndClose={props.onSelectAndClose}
         />
-        <PreferenceSubmenuAction
+        <AccountSubmenuAction
           panelOpen={props.panelOpen}
           icon={<Monitor />}
           label={t("ACCOUNT_MENU_APPEARANCE")}
@@ -233,15 +272,38 @@ function RootMenu(props: {
           themePreference={props.themePreference}
           onLocaleChange={props.onLocaleChange}
           onThemePreferenceChange={props.onThemePreferenceChange}
+          onOpenResource={props.onOpenResource}
+          onOpenLegal={props.onOpenLegal}
           onSelectAndClose={props.onSelectAndClose}
         />
       </div>
       <MenuDivider />
       <div className="py-1">
-        <MenuAction
-          icon={<Keyboard />}
-          label={t("ACCOUNT_SHORTCUTS")}
-          onClick={props.onShortcuts}
+        <AccountSubmenuAction
+          panelOpen={props.panelOpen}
+          icon={<LifeBuoy />}
+          label={t("ACCOUNT_MENU_DOCS_RESOURCES")}
+          submenu="docs"
+          locale={props.locale}
+          themePreference={props.themePreference}
+          onLocaleChange={props.onLocaleChange}
+          onThemePreferenceChange={props.onThemePreferenceChange}
+          onOpenResource={props.onOpenResource}
+          onOpenLegal={props.onOpenLegal}
+          onSelectAndClose={props.onSelectAndClose}
+        />
+        <AccountSubmenuAction
+          panelOpen={props.panelOpen}
+          icon={<Shield />}
+          label={t("ACCOUNT_MENU_TERMS_PRIVACY")}
+          submenu="legal"
+          locale={props.locale}
+          themePreference={props.themePreference}
+          onLocaleChange={props.onLocaleChange}
+          onThemePreferenceChange={props.onThemePreferenceChange}
+          onOpenResource={props.onOpenResource}
+          onOpenLegal={props.onOpenLegal}
+          onSelectAndClose={props.onSelectAndClose}
         />
       </div>
       <MenuDivider />
@@ -252,46 +314,88 @@ function RootMenu(props: {
   );
 }
 
-function buildPreferenceOptions(
+function buildAccountSubmenuOptions(
   submenu: AccountMenuSubmenu,
   t: (key: string) => string,
   locale: AppLocale,
   themePreference: ThemePreference,
   onLocaleChange: (next: AppLocale) => Promise<void> | void,
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void,
-): PreferenceOption[] {
+  onOpenResource: (resource: AccountMenuResource) => Promise<void> | void,
+  onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void,
+): AccountSubmenuOption[] {
   if (submenu === "language") {
     return buildSupportedLocaleOptions(SUPPORTED_LOCALES, t).map((option) => ({
-      icon: <Languages />,
+      icon: <LocaleFlag locale={option.value} className="text-body" />,
       label: option.label,
       selected: locale === option.value,
       onClick: () => onLocaleChange(option.value as AppLocale),
     }));
   }
 
+  if (submenu === "appearance") {
+    return [
+      {
+        icon: <Monitor />,
+        label: t("ACCOUNT_THEME_SYSTEM"),
+        selected: themePreference === "system",
+        onClick: () => onThemePreferenceChange("system"),
+      },
+      {
+        icon: <Sun />,
+        label: t("ACCOUNT_THEME_LIGHT"),
+        selected: themePreference === "light",
+        onClick: () => onThemePreferenceChange("light"),
+      },
+      {
+        icon: <Moon />,
+        label: t("ACCOUNT_THEME_DARK"),
+        selected: themePreference === "dark",
+        onClick: () => onThemePreferenceChange("dark"),
+      },
+    ];
+  }
+
+  if (submenu === "docs") {
+    return [
+      {
+        icon: <BookOpen />,
+        label: t("ACCOUNT_MENU_DOCUMENTATION"),
+        right: <ExternalLink />,
+        onClick: () => onOpenResource("documentation"),
+      },
+      {
+        icon: <History />,
+        label: t("ACCOUNT_MENU_CHANGELOG"),
+        right: <ExternalLink />,
+        onClick: () => onOpenResource("changelog"),
+      },
+      {
+        icon: <CircleHelp />,
+        label: t("ACCOUNT_MENU_HELP_CENTER"),
+        right: <ExternalLink />,
+        onClick: () => onOpenResource("helpCenter"),
+      },
+    ];
+  }
+
   return [
     {
-      icon: <Monitor />,
-      label: t("ACCOUNT_THEME_SYSTEM"),
-      selected: themePreference === "system",
-      onClick: () => onThemePreferenceChange("system"),
+      icon: <FileText />,
+      label: t("ACCOUNT_MENU_TERMS"),
+      right: <ExternalLink />,
+      onClick: () => onOpenLegal("terms"),
     },
     {
-      icon: <Sun />,
-      label: t("ACCOUNT_THEME_LIGHT"),
-      selected: themePreference === "light",
-      onClick: () => onThemePreferenceChange("light"),
-    },
-    {
-      icon: <Moon />,
-      label: t("ACCOUNT_THEME_DARK"),
-      selected: themePreference === "dark",
-      onClick: () => onThemePreferenceChange("dark"),
+      icon: <Shield />,
+      label: t("ACCOUNT_MENU_PRIVACY_POLICY"),
+      right: <ExternalLink />,
+      onClick: () => onOpenLegal("privacy"),
     },
   ];
 }
 
-function PreferenceSubmenuContent(props: {
+function AccountSubmenuContent(props: {
   submenu: AccountMenuSubmenu;
   locale: AppLocale;
   themePreference: ThemePreference;
@@ -299,6 +403,8 @@ function PreferenceSubmenuContent(props: {
   shouldFocusInitialItem: boolean;
   onLocaleChange: (next: AppLocale) => Promise<void> | void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
+  onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
+  onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void;
   onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
   onInitialItemFocused: () => void;
   onMouseEnter: MouseEventHandler<HTMLDivElement>;
@@ -311,13 +417,15 @@ function PreferenceSubmenuContent(props: {
   const translateLocaleLabel = (key: string) =>
     translate(key.startsWith("account:") ? key.slice("account:".length) : key);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const options = buildPreferenceOptions(
+  const options = buildAccountSubmenuOptions(
     props.submenu,
     translateLocaleLabel,
     props.locale,
     props.themePreference,
     props.onLocaleChange,
     props.onThemePreferenceChange,
+    props.onOpenResource,
+    props.onOpenLegal,
   );
 
   useEffect(() => {
@@ -344,7 +452,7 @@ function PreferenceSubmenuContent(props: {
           key={option.label}
           icon={option.icon}
           label={option.label}
-          right={option.selected ? <Check className="text-primary" /> : null}
+          right={option.selected ? <Check className="text-primary" /> : option.right}
           onClick={() => props.onSelectAndClose(option.onClick)}
         />
       ))}
@@ -352,7 +460,7 @@ function PreferenceSubmenuContent(props: {
   );
 }
 
-function PreferenceSubmenuAction(props: {
+function AccountSubmenuAction(props: {
   panelOpen: boolean;
   icon: ReactNode;
   label: string;
@@ -361,6 +469,8 @@ function PreferenceSubmenuAction(props: {
   themePreference: ThemePreference;
   onLocaleChange: (next: AppLocale) => Promise<void> | void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
+  onOpenResource: (resource: AccountMenuResource) => Promise<void> | void;
+  onOpenLegal: (modal: Exclude<LegalModal, null>) => Promise<void> | void;
   onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
 }) {
   const closeTimeoutRef = useRef<number | null>(null);
@@ -435,7 +545,7 @@ function PreferenceSubmenuAction(props: {
         onMouseDownCapture={(event) => event.stopPropagation()}
         onPointerDownCapture={(event) => event.stopPropagation()}
       >
-        <PreferenceSubmenuContent
+        <AccountSubmenuContent
           submenu={props.submenu}
           locale={props.locale}
           themePreference={props.themePreference}
@@ -443,6 +553,8 @@ function PreferenceSubmenuAction(props: {
           shouldFocusInitialItem={focusInitialItem}
           onLocaleChange={props.onLocaleChange}
           onThemePreferenceChange={props.onThemePreferenceChange}
+          onOpenResource={props.onOpenResource}
+          onOpenLegal={props.onOpenLegal}
           onSelectAndClose={props.onSelectAndClose}
           onInitialItemFocused={() => setFocusInitialItem(false)}
           onMouseEnter={clearCloseTimeout}
@@ -476,10 +588,13 @@ function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
         locale={props.locale}
         themePreference={props.themePreference}
         onAccountSettings={() => onClickAndClose(props.onAccountSettings)}
+        onWorkspaceSettings={() => onClickAndClose(props.onWorkspaceSettings)}
+        onSubscription={() => onClickAndClose(props.onSubscription)}
         onLocaleChange={props.onLocaleChange}
         onThemePreferenceChange={props.onThemePreferenceChange}
         onSelectAndClose={onClickAndClose}
-        onShortcuts={() => onClickAndClose(props.onShortcuts)}
+        onOpenResource={props.onOpenResource}
+        onOpenLegal={props.onOpenLegal}
         onLogout={() => onClickAndClose(props.onLogout)}
       />
     </div>
@@ -537,11 +652,19 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     onAccountSettings: () => {
       settingsScreen.openSettings({ screen: "personal.profile" });
     },
+    onWorkspaceSettings: () => {
+      settingsScreen.openSettings({ screen: "workspace.general" });
+    },
+    onSubscription: () => {
+      window.open(ACCOUNT_MENU_RESOURCE_URLS.subscription, "_blank", "noopener,noreferrer");
+    },
     onThemePreferenceChange: async (next) => {
       await setThemePreferenceWithTransition(next, { direction: "ltr" });
     },
     onLocaleChange: (next) => setLocale(next),
-    onShortcuts: () => window.location.assign(SHORTCUTS_HELP_HASH),
+    onOpenResource: (resource) => {
+      window.open(ACCOUNT_MENU_RESOURCE_URLS[resource], "_blank", "noopener,noreferrer");
+    },
   };
 }
 
@@ -611,13 +734,48 @@ function SidebarAccountMenuTrigger(props: {
 export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {}) {
   const model = useAdminAccountMenuModel();
   const { state: sidebarState, isMobile } = useSidebar();
+  const [legalModal, setLegalModal] = useState<LegalModal>(null);
   const isCollapsed = sidebarState === "collapsed" && !isMobile;
   const isHeaderVariant = props.variant === "header";
 
   if (isHeaderVariant) {
     return (
-      <FloatingPanelRoot>
-        <HeaderAccountMenuTrigger displayName={model.displayName} avatarUrl={model.avatarUrl} />
+      <>
+        <FloatingPanelRoot>
+          <HeaderAccountMenuTrigger displayName={model.displayName} avatarUrl={model.avatarUrl} />
+
+          <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
+            <AdminAccountPanelContent
+              displayName={model.displayName}
+              email={model.email}
+              avatarUrl={model.avatarUrl}
+              themePreference={model.themePreference}
+              locale={model.locale}
+              onLogout={model.onLogout}
+              onAccountSettings={model.onAccountSettings}
+              onWorkspaceSettings={model.onWorkspaceSettings}
+              onSubscription={model.onSubscription}
+              onThemePreferenceChange={model.onThemePreferenceChange}
+              onLocaleChange={model.onLocaleChange}
+              onOpenResource={model.onOpenResource}
+              onOpenLegal={setLegalModal}
+            />
+          </FloatingPanelContent>
+        </FloatingPanelRoot>
+        <LegalModalDialogs openModal={legalModal} setOpenModal={setLegalModal} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <FloatingPanelRoot className="w-full">
+        <SidebarAccountMenuTrigger
+          displayName={model.displayName}
+          email={model.email}
+          avatarUrl={model.avatarUrl}
+          isCollapsed={isCollapsed}
+        />
 
         <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
           <AdminAccountPanelContent
@@ -628,38 +786,16 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
             locale={model.locale}
             onLogout={model.onLogout}
             onAccountSettings={model.onAccountSettings}
+            onWorkspaceSettings={model.onWorkspaceSettings}
+            onSubscription={model.onSubscription}
             onThemePreferenceChange={model.onThemePreferenceChange}
             onLocaleChange={model.onLocaleChange}
-            onShortcuts={model.onShortcuts}
+            onOpenResource={model.onOpenResource}
+            onOpenLegal={setLegalModal}
           />
         </FloatingPanelContent>
       </FloatingPanelRoot>
-    );
-  }
-
-  return (
-    <FloatingPanelRoot className="w-full">
-      <SidebarAccountMenuTrigger
-        displayName={model.displayName}
-        email={model.email}
-        avatarUrl={model.avatarUrl}
-        isCollapsed={isCollapsed}
-      />
-
-      <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
-        <AdminAccountPanelContent
-          displayName={model.displayName}
-          email={model.email}
-          avatarUrl={model.avatarUrl}
-          themePreference={model.themePreference}
-          locale={model.locale}
-          onLogout={model.onLogout}
-          onAccountSettings={model.onAccountSettings}
-          onThemePreferenceChange={model.onThemePreferenceChange}
-          onLocaleChange={model.onLocaleChange}
-          onShortcuts={model.onShortcuts}
-        />
-      </FloatingPanelContent>
-    </FloatingPanelRoot>
+      <LegalModalDialogs openModal={legalModal} setOpenModal={setLegalModal} />
+    </>
   );
 }

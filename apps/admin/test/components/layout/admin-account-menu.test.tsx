@@ -16,6 +16,7 @@ import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
+const openMock = vi.fn();
 const routerState = {
   pathname: "/w/ws-1/",
   hash: "",
@@ -33,6 +34,9 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: {
+      t: (key: string) => key,
+    },
   }),
 }));
 
@@ -128,10 +132,12 @@ describe("AdminAccountMenu", () => {
     }
 
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+    vi.stubGlobal("open", openMock);
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
+    openMock.mockClear();
     routerState.pathname = "/w/ws-1/";
     routerState.hash = "";
 
@@ -158,27 +164,34 @@ describe("AdminAccountMenu", () => {
     vi.mocked(authApi.logout).mockResolvedValue(null);
   });
 
-  it("只展示统一账号入口 + 偏好子菜单入口 + 快捷键 + 退出，不再展示组织/工作区/通知/帮助入口", async () => {
+  it("展示设置、订阅、偏好、资源、法律与退出入口", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
 
     expect(await screen.findByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_WORKSPACE_SETTINGS" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_SUBSCRIPTION" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE" })).toBeVisible();
     expect(screen.getByRole("button", { name: "ACCOUNT_MENU_APPEARANCE" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_SHORTCUTS" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_DOCS_RESOURCES" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_TERMS_PRIVACY" })).toBeVisible();
     expect(screen.getByRole("button", { name: "ACCOUNT_LOGOUT" })).toBeVisible();
+    expect(screen.queryByText("ACCOUNT_MENU_WORKSPACE_SETTINGS_DESC")).toBeNull();
+    expect(screen.queryByText("ACCOUNT_MENU_DOCS_RESOURCES_DESC")).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_SYSTEM" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_LIGHT" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_DARK" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_DOCUMENTATION" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_TERMS" })).toBeNull();
 
+    expect(screen.queryByRole("button", { name: "ACCOUNT_SHORTCUTS" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_ORGANIZATION_SETTINGS" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_WORKSPACES" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_NOTIFICATIONS" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "ACCOUNT_HELP_CENTER" })).toBeNull();
   });
 
   it("账号菜单 action icon 会被约束为标准 16px 尺寸，不再膨胀到面板宽度", async () => {
@@ -196,13 +209,15 @@ describe("AdminAccountMenu", () => {
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeVisible();
       expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeVisible();
       expect(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeVisible();
     });
+    expect(document.body.querySelector(".fi-cn")).not.toBeNull();
+    expect(document.body.querySelector(".fi-us")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "common:BACK" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_DARK" })).toBeNull();
   });
@@ -218,12 +233,38 @@ describe("AdminAccountMenu", () => {
     expect(setThemePreferenceWithTransition).toHaveBeenCalledWith("dark", { direction: "ltr" });
   });
 
+  it("hover 文档资源入口后会显示右侧子浮层并打开文档链接", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_DOCS_RESOURCES" }));
+    await user.click(await screen.findByRole("button", { name: "ACCOUNT_MENU_DOCUMENTATION" }));
+
+    expect(openMock).toHaveBeenCalledWith(
+      "https://docs.arclayer.com",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
+  it("hover 条款隐私入口后会显示右侧子浮层并打开法律弹窗", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_TERMS_PRIVACY" }));
+    await user.click(await screen.findByRole("button", { name: "ACCOUNT_MENU_TERMS" }));
+
+    expect(await screen.findByText("auth:TERMS_OF_SERVICE_MODAL_TITLE")).toBeVisible();
+  });
+
   it("点击语言子浮层项会更新语言偏好", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE" }));
     await user.click(await screen.findByRole("button", { name: "ACCOUNT_LANGUAGE_EN" }));
 
     expect(usePreferencesStore.getState().locale).toBe("en-US");
@@ -234,7 +275,7 @@ describe("AdminAccountMenu", () => {
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE" }));
     await user.click(await screen.findByRole("button", { name: "ACCOUNT_LANGUAGE_EN" }));
 
     await waitFor(() => {
@@ -269,6 +310,32 @@ describe("AdminAccountMenu", () => {
     expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("personal.profile");
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("从账号菜单打开 workspace settings 时会切到工作空间设置 screen", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_WORKSPACE_SETTINGS" }));
+
+    expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.general");
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("点击 Subscription 会打开订阅产品链接", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_SUBSCRIPTION" }));
+
+    expect(openMock).toHaveBeenCalledWith(
+      "https://arclayer.com/pricing",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
   it("在 /workspaces 打开个人设置时复用同一套 provider contract", async () => {

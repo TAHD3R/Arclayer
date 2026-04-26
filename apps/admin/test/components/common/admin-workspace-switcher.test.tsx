@@ -571,6 +571,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     await user.click(trigger);
 
     const panel = getLatestDialog();
+    expect(panel.querySelector(".w-70")).toBeInTheDocument();
     const workspaceBetaButton = within(panel).getByRole("button", { name: /Workspace Beta/ });
     const settingsButton = within(panel).getByRole("button", { name: /Workspace settings/ });
     const inviteMembersButton = within(panel).getByRole("button", { name: /Invite members/ });
@@ -580,9 +581,14 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     const addWorkspaceButton = within(panel).getByRole("button", { name: /Add workspace/ });
 
     expect(settingsButton).toBeInTheDocument();
+    expect(settingsButton.querySelector(".lucide-square-stack")).toBeInTheDocument();
+    expect(settingsButton.className).toContain("!text-callout");
     expect(inviteMembersButton).toBeInTheDocument();
+    expect(inviteMembersButton.className).toContain("!text-callout");
     expect(viewAllWorkspacesButton).toBeInTheDocument();
+    expect(viewAllWorkspacesButton.className).toContain("!text-callout");
     expect(addWorkspaceButton).toBeInTheDocument();
+    expect(addWorkspaceButton.className).toContain("!text-callout");
     expect(
       within(panel).queryByRole("button", { name: "Open organization workspaces" }),
     ).not.toBeInTheDocument();

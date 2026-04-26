@@ -5,12 +5,13 @@ import { Button } from "@arclayer/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@arclayer/ui/dialog";
 
-type LegalModal = "terms" | "privacy" | null;
+export type LegalModal = "terms" | "privacy" | null;
 
 interface LegalFooterProps {
   i18nKey: string;
@@ -36,7 +37,7 @@ function LegalFooterButton(props: {
   );
 }
 
-function LegalModalDialogs(props: {
+export function LegalModalDialogs(props: {
   openModal: LegalModal;
   setOpenModal: (modal: LegalModal) => void;
 }) {
@@ -52,9 +53,9 @@ function LegalModalDialogs(props: {
           <DialogHeader>
             <DialogTitle>{t("auth:TERMS_OF_SERVICE_MODAL_TITLE")}</DialogTitle>
           </DialogHeader>
-          <div className="max-h-[min(60vh,32rem)] space-y-3 overflow-y-auto pr-1 text-callout text-label-secondary">
-            <p>{t("auth:TERMS_OF_SERVICE_MODAL_CONTENT")}</p>
-          </div>
+          <DialogDescription className="max-h-[min(60vh,32rem)] overflow-y-auto pr-1 text-callout text-label-secondary">
+            {t("auth:TERMS_OF_SERVICE_MODAL_CONTENT")}
+          </DialogDescription>
           <DialogFooter>
             <Button onClick={() => props.setOpenModal(null)}>{t("auth:MODAL_OK")}</Button>
           </DialogFooter>
@@ -69,9 +70,9 @@ function LegalModalDialogs(props: {
           <DialogHeader>
             <DialogTitle>{t("auth:PRIVACY_POLICY_MODAL_TITLE")}</DialogTitle>
           </DialogHeader>
-          <div className="max-h-[min(60vh,32rem)] space-y-3 overflow-y-auto pr-1 text-callout text-label-secondary">
-            <p>{t("auth:PRIVACY_POLICY_MODAL_CONTENT")}</p>
-          </div>
+          <DialogDescription className="max-h-[min(60vh,32rem)] overflow-y-auto pr-1 text-callout text-label-secondary">
+            {t("auth:PRIVACY_POLICY_MODAL_CONTENT")}
+          </DialogDescription>
           <DialogFooter>
             <Button onClick={() => props.setOpenModal(null)}>{t("auth:MODAL_OK")}</Button>
           </DialogFooter>

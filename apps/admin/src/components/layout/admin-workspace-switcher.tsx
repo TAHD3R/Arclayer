@@ -8,7 +8,7 @@ import {
   PanelLeftIcon,
   PanelsTopLeft,
   Plus,
-  Settings2,
+  SquareStack,
   Users,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -105,6 +105,7 @@ function PanelMenuItemContent(props: {
 const panelMenuButtonClassName = cn(
   "group",
   "min-h-10 rounded-xl",
+  "!text-callout",
   "text-label-secondary",
   INTERACTION_TRANSITION_CLASSNAME,
   GHOST_HOVER_CLASSNAME,
@@ -288,7 +289,7 @@ function PanelPickerSkeleton(props: { rows: number }) {
           <div
             key={index}
             className={cn(
-              "flex w-full items-center gap-2 rounded-none px-4 py-2 text-left text-footnote",
+              "flex w-full items-center gap-2 rounded-none px-4 py-2 text-left text-callout",
               panelMenuButtonClassName,
               "pointer-events-none",
             )}
@@ -506,7 +507,7 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
   const divider = <div className="mx-3 h-px bg-border/45" />;
 
   return (
-    <div className="w-[min(21rem,calc(100vw-1rem))] max-w-full">
+    <div className="w-70 max-w-[calc(100vw-1rem)]">
       <div className="py-1.5">
         {workspacesQuery.isError ? (
           <PanelErrorMessage message={t("common:REQUEST_FAILED")} />
@@ -534,7 +535,7 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
 
       <div className="py-1.5 space-y-1">
         <WorkspaceActionButton
-          icon={<Settings2 className="h-4 w-4" aria-hidden="true" />}
+          icon={<SquareStack className="h-4 w-4" aria-hidden="true" />}
           text={t("common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS")}
           disabled={!effectiveWorkspaceId}
           onClick={() => {
