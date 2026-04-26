@@ -39,6 +39,7 @@ export function useUserCenterProjectsTables(options: UseUserCenterProjectsTables
       };
     },
     queryOptions: {
+      enabled: Boolean(workspaceId),
       staleTime: 30 * 1000,
       retry: false,
       meta: { silent: true },
@@ -63,6 +64,7 @@ export function useUserCenterProjectsTables(options: UseUserCenterProjectsTables
       };
     },
     queryOptions: {
+      enabled: Boolean(workspaceId),
       staleTime: 30 * 1000,
       retry: false,
       meta: { silent: true },

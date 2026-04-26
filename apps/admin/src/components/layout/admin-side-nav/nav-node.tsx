@@ -1,6 +1,6 @@
 import { useNavigate, type NavigateOptions } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import type { OpenGroupKeys } from "./nav-utils";
@@ -12,6 +12,7 @@ import type { ResolvedChildItem } from "./node-collapsed-group";
 import { NodeLeaf } from "./node-leaf";
 import { NodeAction } from "./node-action";
 import { NodeExpandedGroupRoot, NodeExpandedGroupSub } from "./node-expanded-group";
+import { NavDivider, NavGroupMarker, resolveLeadingLabel } from "./nav-markers";
 
 type NodeProps = {
   item: AdminNavItem;
@@ -56,30 +57,39 @@ function resolveCollapsedChildren(
   }));
 }
 
-function renderChildNodes(props: NodeProps): ReactNode {
+function renderChildNodes(props: NodeProps, t: TFn): ReactNode {
   const children = props.item.children ?? [];
   if (children.length === 0) return null;
-  return children.map((child) => (
-    <NavNode
-      key={child.key}
-      item={child}
-      commandNavItems={props.commandNavItems}
-      depth={props.depth + 1}
-      parentKey={props.item.key}
-      pathname={props.pathname}
-      activeSource={props.activeSource}
-      activeKeys={props.activeKeys}
-      baseActiveKeys={props.baseActiveKeys}
-      starredActiveKeys={props.starredActiveKeys}
-      suppressedKeys={props.suppressedKeys}
-      openGroupKeys={props.openGroupKeys}
-      openChainForKey={props.openChainForKey}
-      selectActiveSource={props.selectActiveSource}
-      resolvePermissionName={props.resolvePermissionName}
-      isCollapsed={props.isCollapsed}
-      hoverDropdown={props.hoverDropdown}
-    />
-  ));
+
+  return children.map((child) => {
+    const leadingLabel = resolveLeadingLabel(child, t);
+
+    return (
+      <Fragment key={child.key}>
+        {leadingLabel ? <NavGroupMarker label={leadingLabel} /> : null}
+        {child.dividerBefore ? <NavDivider /> : null}
+        <NavNode
+          item={child}
+          commandNavItems={props.commandNavItems}
+          depth={props.depth + 1}
+          parentKey={props.item.key}
+          pathname={props.pathname}
+          activeSource={props.activeSource}
+          activeKeys={props.activeKeys}
+          baseActiveKeys={props.baseActiveKeys}
+          starredActiveKeys={props.starredActiveKeys}
+          suppressedKeys={props.suppressedKeys}
+          openGroupKeys={props.openGroupKeys}
+          openChainForKey={props.openChainForKey}
+          selectActiveSource={props.selectActiveSource}
+          resolvePermissionName={props.resolvePermissionName}
+          isCollapsed={props.isCollapsed}
+          hoverDropdown={props.hoverDropdown}
+        />
+        {child.dividerAfter ? <NavDivider /> : null}
+      </Fragment>
+    );
+  });
 }
 
 function renderExpandedGroupNode(args: {
@@ -293,7 +303,7 @@ function NavNodeImpl(
       if (!allowSamePathNavigate && isExactMatch(to, props.pathname)) return;
       void navigate({ to: to as never });
     },
-    childNodes: renderChildNodes(props),
+    childNodes: renderChildNodes(props, t),
     onToggle: createExpandedGroupToggle({
       item,
       isOpen,

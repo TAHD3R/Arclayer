@@ -1,5 +1,7 @@
 {
   "NAV_HOME": "首页",
+  "NAV_ALL_PROJECTS": "所有项目",
+  "NAV_CURRENT_PROJECT": "当前项目",
   "NAV_DASHBOARD": "概览",
   "NAV_FAVORITES": "收藏",
   "NAV_STARRED": "星标",
@@ -100,6 +102,7 @@
   "NAV_SETTINGS_MAINTENANCE_STATUS": "系统状态",
   "NAV_ORG_OVERVIEW": "概览",
   "NAV_ORG_WORKSPACES": "工作空间",
+  "NAV_OTHER_PROJECTS": "其他项目",
   "NAV_SYSTEM_SETTINGS": "系统设置",
   "NAV_ORG_MEMBERS": "成员",
   "NAV_HELP_CENTER": "支持",

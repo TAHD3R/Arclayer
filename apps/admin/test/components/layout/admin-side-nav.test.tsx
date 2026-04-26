@@ -346,6 +346,31 @@ const subItemActionItems: AdminNavItem[] = [
   },
 ];
 
+const unifiedProjectItems: AdminNavItem[] = [
+  {
+    key: "global.projects",
+    label: "Projects",
+    icon: Users,
+    defaultExpanded: true,
+    children: [
+      {
+        key: "global.projects.current.project-alpha",
+        label: "Project Alpha",
+        icon: Home,
+        to: "/projects/project-alpha",
+        groupLabelBeforeKey: "nav:NAV_CURRENT_PROJECT",
+      },
+      {
+        key: "global.projects.other.project-beta",
+        label: "Project Beta",
+        icon: Home,
+        to: "/projects/project-beta",
+        groupLabelBeforeKey: "nav:NAV_OTHER_PROJECTS",
+      },
+    ],
+  },
+];
+
 describe("AdminSiderNav collapsed groups", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
@@ -595,6 +620,19 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(
       document.querySelector('[data-slot="admin-side-nav-group-marker-divider"]'),
     ).not.toBeNull();
+  });
+
+  it("renders translated group markers inside nested project groups", () => {
+    renderTreeNav({
+      items: unifiedProjectItems,
+      favoriteWorkspaceBase: "/projects/project-alpha",
+      pathnameOverride: "/projects/project-alpha",
+    });
+
+    expect(screen.getByText("en-US:nav:NAV_CURRENT_PROJECT")).toBeVisible();
+    expect(screen.getByText("en-US:nav:NAV_OTHER_PROJECTS")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Project Alpha" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Project Beta" })).toBeVisible();
   });
 
   it("keeps all top-level groups collapsed by default", () => {

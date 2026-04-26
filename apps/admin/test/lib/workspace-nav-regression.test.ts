@@ -31,8 +31,8 @@ describe("workspace nav regression", () => {
     expect(listWorkspaceNavTargets()).toEqual([
       "/",
       "/assets",
-      "/content/models",
       "/content/library",
+      "/content/models",
       "/content/general",
       "/activity",
       "/settings/general",
@@ -70,7 +70,7 @@ describe("workspace nav regression", () => {
 
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "website")?.children?.map((item) => item.key),
-    ).toEqual(["assets", "content.models", "content.library", "settings.site"]);
+    ).toEqual(["assets", "content.library", "content.models", "settings.site"]);
   });
 
   test("returns the project-first workspace nav tree", () => {

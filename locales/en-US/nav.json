@@ -1,5 +1,7 @@
 {
   "NAV_HOME": "Home",
+  "NAV_ALL_PROJECTS": "All projects",
+  "NAV_CURRENT_PROJECT": "Current project",
   "NAV_DASHBOARD": "Overview",
   "NAV_FAVORITES": "Favorites",
   "NAV_STARRED": "Starred",
@@ -100,6 +102,7 @@
   "NAV_SETTINGS_MAINTENANCE_STATUS": "System status",
   "NAV_ORG_OVERVIEW": "Overview",
   "NAV_ORG_WORKSPACES": "Workspaces",
+  "NAV_OTHER_PROJECTS": "Other projects",
   "NAV_SYSTEM_SETTINGS": "System Settings",
   "NAV_ORG_MEMBERS": "Members",
   "NAV_HELP_CENTER": "Support",

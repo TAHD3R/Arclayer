@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
@@ -65,6 +65,29 @@ const GHOST_OPEN_CLASSNAME =
 const GHOST_SELECTED_CLASSNAME = "bg-accent text-accent-foreground dark:bg-accent/50";
 const GHOST_ACTIVE_PRESS_CLASSNAME =
   "active:!bg-accent active:!text-accent-foreground dark:active:!bg-accent/50";
+
+function sortWorkspacePickerItems(workspaces: readonly MyWorkspace[] | undefined): MyWorkspace[] {
+  return [...(workspaces ?? [])].sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function resolveWorkspaceSelection(params: {
+  workspaces: readonly MyWorkspace[];
+  currentWorkspaceId: string | null | undefined;
+  lastWorkspaceId: string | null | undefined;
+}): string | null {
+  const { workspaces, currentWorkspaceId, lastWorkspaceId } = params;
+  const currentMatch = currentWorkspaceId
+    ? workspaces.find((workspace) => String(workspace.workspaceId) === String(currentWorkspaceId))
+    : null;
+  if (currentMatch) return currentMatch.workspaceId;
+
+  const lastMatch = lastWorkspaceId
+    ? workspaces.find((workspace) => String(workspace.workspaceId) === String(lastWorkspaceId))
+    : null;
+  if (lastMatch) return lastMatch.workspaceId;
+
+  return workspaces[0]?.workspaceId ?? null;
+}
 
 function TruncatedText(props: { text: string; className?: string }) {
   return <span className={cn("block w-full min-w-0 truncate", props.className)}>{props.text}</span>;
@@ -478,23 +501,17 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
   });
 
   const teamWorkspaces = useMemo(
-    () =>
-      [...(workspacesQuery.data?.switcher.teams ?? [])].sort((left, right) =>
-        left.name.localeCompare(right.name),
-      ),
+    () => sortWorkspacePickerItems(workspacesQuery.data?.switcher.teams),
     [workspacesQuery.data?.switcher.teams],
   );
   const pickerWorkspaces = teamWorkspaces;
   const hasWorkspaceItems = pickerWorkspaces.length > 0;
 
-  const effectiveWorkspaceId =
-    currentWorkspaceId ??
-    (lastWorkspaceId &&
-    pickerWorkspaces.some((workspace) => String(workspace.workspaceId) === String(lastWorkspaceId))
-      ? lastWorkspaceId
-      : null) ??
-    pickerWorkspaces[0]?.workspaceId ??
-    null;
+  const effectiveWorkspaceId = resolveWorkspaceSelection({
+    workspaces: pickerWorkspaces,
+    currentWorkspaceId,
+    lastWorkspaceId,
+  });
   const effectiveProjectId =
     currentProjectId ??
     (effectiveWorkspaceId
@@ -750,6 +767,7 @@ export function AdminWorkspaceSwitcher({
   const accessToken = useAuthStore((state) => state.accessToken);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
+  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const [createOpen, setCreateOpen] = useState(false);
   const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>({
     name: "",
@@ -766,16 +784,55 @@ export function AdminWorkspaceSwitcher({
     onDeleteSuccess: () => undefined,
   });
 
+  const workspacesQuery = useQuery({
+    queryKey: ["me", "workspaces", "switcher", sessionVersion],
+    enabled: Boolean(accessToken),
+    queryFn: listMyWorkspaces,
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+  const pickerWorkspaces = useMemo(
+    () => sortWorkspacePickerItems(workspacesQuery.data?.switcher.teams),
+    [workspacesQuery.data?.switcher.teams],
+  );
+  const selectedWorkspaceId = resolveWorkspaceSelection({
+    workspaces: pickerWorkspaces,
+    currentWorkspaceId,
+    lastWorkspaceId,
+  });
+  const selectedWorkspace = useMemo(
+    () =>
+      selectedWorkspaceId
+        ? (pickerWorkspaces.find(
+            (workspace) => String(workspace.workspaceId) === String(selectedWorkspaceId),
+          ) ?? null)
+        : null,
+    [pickerWorkspaces, selectedWorkspaceId],
+  );
+
+  useEffect(() => {
+    if (!accessToken || !workspacesQuery.isSuccess || !selectedWorkspaceId) return;
+    if (String(currentWorkspaceId || "") === String(selectedWorkspaceId)) return;
+    setCurrentWorkspaceId(selectedWorkspaceId);
+  }, [
+    accessToken,
+    currentWorkspaceId,
+    selectedWorkspaceId,
+    setCurrentWorkspaceId,
+    workspacesQuery.isSuccess,
+  ]);
+
   const workspaceDetailQuery = useQuery({
-    queryKey: ["workspace", "detail", currentWorkspaceId ?? lastWorkspaceId, sessionVersion],
-    enabled: Boolean(accessToken && (currentWorkspaceId || lastWorkspaceId)),
-    queryFn: async () => getWorkspaceDetail(String(currentWorkspaceId ?? lastWorkspaceId)),
+    queryKey: ["workspace", "detail", selectedWorkspaceId, sessionVersion],
+    enabled: Boolean(accessToken && selectedWorkspaceId),
+    queryFn: async () => getWorkspaceDetail(String(selectedWorkspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
   });
-  const workspaceName = workspaceDetailQuery.data?.name ?? "";
-  const workspaceIdentity = workspaceDetailQuery.data ?? null;
+  const workspaceName = workspaceDetailQuery.data?.name ?? selectedWorkspace?.name ?? "";
+  const workspaceIdentity = workspaceDetailQuery.data ?? selectedWorkspace;
   const isWorkspaceScopeRoute =
     pathname.startsWith("/projects/") || pathname === "/projects" || pathname === "/projects/";
   const isHeaderVariant = variant === "header";

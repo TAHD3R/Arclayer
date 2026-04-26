@@ -65,7 +65,7 @@ export function ProjectsCardGrid(props: ProjectsCardGridProps) {
     t,
   } = props;
 
-  const scope = workspaceId ?? "all";
+  const scope = workspaceId ? `workspace:${workspaceId}` : "pending-workspace";
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const query = useInfiniteQuery({
@@ -80,6 +80,7 @@ export function ProjectsCardGrid(props: ProjectsCardGridProps) {
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
+    enabled: Boolean(workspaceId),
     staleTime: 30 * 1000,
     meta: { silent: true },
   });

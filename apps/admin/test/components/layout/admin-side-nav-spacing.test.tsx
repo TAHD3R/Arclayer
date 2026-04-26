@@ -218,17 +218,10 @@ describe("AdminSiderNav spacing", () => {
     const dashboardRow = dashboardButton.parentElement;
     const teamRow = teamButton.parentElement;
 
-    expect(dashboardRow).toHaveClass(
-      "h-9",
-      "rounded-md",
-      "!pl-3",
-      "!pr-2.5",
-      "!py-1.5",
-      "text-callout",
-    );
+    expect(dashboardRow).toHaveClass("h-9", "rounded-md", "!px-2.5", "!py-1.5", "text-callout");
     expect(dashboardRow?.className).not.toContain("data-[active=true]:bg-accent/50");
 
-    expect(teamRow).toHaveClass("h-9", "rounded-md", "!pl-3", "!pr-2.5", "!py-1.5", "text-callout");
+    expect(teamRow).toHaveClass("h-9", "rounded-md", "!px-2.5", "!py-1.5", "text-callout");
     expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:size-8!");
     expect(teamRow?.className).toContain("data-[active=true]:bg-transparent");
 
@@ -263,7 +256,7 @@ describe("AdminSiderNav spacing", () => {
 
     expect(screen.getByText("Website")).toBeVisible();
     expect(document.querySelector('[data-slot="admin-side-nav-group-marker"]')).not.toBeNull();
-    expect(groupRow).toHaveClass("!pl-3", "!pr-2.5", "h-9", "rounded-md", "text-callout");
+    expect(groupRow).toHaveClass("!px-2.5", "h-9", "rounded-md", "text-callout");
     expect(groupLabel?.className).toContain(
       "[[data-layout-collapsible=icon]:not([data-hover-preview=true])_&]:max-w-0",
     );

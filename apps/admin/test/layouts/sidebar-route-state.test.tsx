@@ -102,7 +102,13 @@ function latestSceneProps() {
   const latest = capturedSceneProps.at(-1);
   expect(latest).toBeDefined();
   return latest as {
-    mainItems: Array<{ key: string }>;
+    mainItems: Array<{
+      key: string;
+      children?: Array<{
+        key: string;
+        children?: Array<{ key: string }>;
+      }>;
+    }>;
     favoriteWorkspaceBase?: string | null;
     sidebarPathnameOverride?: string;
     loading?: boolean;
@@ -163,17 +169,26 @@ describe("sidebar route state wiring", () => {
     );
 
     const props = latestSceneProps();
+    const projectsNode = props.mainItems.find((item) => item.key === "global.projects");
+    const currentProjectNode = projectsNode?.children?.find(
+      (item) => item.key === "global.projects.current.ws-1",
+    );
 
     expect(screen.getByTestId("scene-layout")).toBeInTheDocument();
     expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
     expect(props.mainItems.map((item) => item.key)).toEqual([
-      "dashboard",
-      "website",
-      "analytics",
-      "apps",
-      "automations",
-      "activity",
-      "settings.project",
+      "global.home",
+      "global.resources",
+      "global.projects",
+    ]);
+    expect(currentProjectNode?.children?.map((item) => item.key)).toEqual([
+      "global.projects.current.ws-1.dashboard",
+      "global.projects.current.ws-1.website",
+      "global.projects.current.ws-1.analytics",
+      "global.projects.current.ws-1.apps",
+      "global.projects.current.ws-1.automations",
+      "global.projects.current.ws-1.activity",
+      "global.projects.current.ws-1.settings.project",
     ]);
   });
 

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PanelsTopLeft } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,7 +15,7 @@ import {
 } from "@/pages/usercenter/projects/project-list-items";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
-import { resolveGlobalNavItems } from "@/constants/menu/global";
+import { resolveUnifiedNavItems } from "@/constants/menu/unified";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
 import { projectHomePath } from "@/lib/routing/workspace-routing";
@@ -47,10 +46,14 @@ export function GlobalLayout() {
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const sidebarWidthPx = usePreferencesStore((state) => state.sidebarWidthPx);
   const setSidebarWidthPx = usePreferencesStore((state) => state.setSidebarWidthPx);
+  const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
+  const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const { isSuperAdmin } = useCurrentUserProfile();
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
+  const effectiveWorkspaceId = currentWorkspaceId ?? lastWorkspaceId;
 
   const handleEnterProject = useCallback(
     (project: { workspaceId: string; projectId: string }) => {
@@ -71,17 +74,22 @@ export function GlobalLayout() {
   );
 
   const projectMenuActions = useProjectMenuActions({
-    workspaceId: undefined,
+    workspaceId: effectiveWorkspaceId ?? undefined,
     t,
     onEnterProject: handleEnterProject,
     onManageProject: handleManageProject,
   });
 
   const projectsQuery = useQuery({
-    queryKey: ["global-nav", "projects", sessionVersion],
-    enabled: Boolean(accessToken),
+    queryKey: ["global-nav", "projects", effectiveWorkspaceId, sessionVersion],
+    enabled: Boolean(accessToken && effectiveWorkspaceId),
     queryFn: async () => {
-      const items = await listProjects({ archived: false, page: 1, size: 100 });
+      const items = await listProjects({
+        workspaceId: String(effectiveWorkspaceId),
+        archived: false,
+        page: 1,
+        size: 100,
+      });
 
       return items.items
         .map(mapProjectToListItem)
@@ -97,14 +105,14 @@ export function GlobalLayout() {
     [projectsQuery.data],
   );
 
-  const projectChildren = useMemo(
+  const unifiedProjects = useMemo(
     () =>
       (projectsQuery.data ?? []).map((project) => ({
-        key: `global.projects.${project.projectId}`,
-        label: project.name,
-        to: projectHomePath(project.projectId),
-        icon: PanelsTopLeft,
-        disabled: !project.enterable,
+        projectId: project.projectId,
+        workspaceId: project.workspaceId,
+        name: project.name,
+        description: project.description,
+        enterable: project.enterable,
         renderLabel: () => (
           <ProjectInlineNameEditor
             editing={
@@ -166,8 +174,13 @@ export function GlobalLayout() {
   );
 
   const navItems = useMemo(
-    () => resolveGlobalNavItems({ isSuperAdmin, projectChildren }),
-    [isSuperAdmin, projectChildren],
+    () =>
+      resolveUnifiedNavItems({
+        isSuperAdmin,
+        projects: unifiedProjects,
+        activeProjectId: currentProjectId,
+      }),
+    [currentProjectId, isSuperAdmin, unifiedProjects],
   );
 
   if (contentOnlyMode) {
@@ -204,7 +217,7 @@ export function GlobalLayout() {
       mainItems={navItems}
       commandScope={GLOBAL_COMMAND_SCOPE}
       browseProjects={browseProjects}
-      activeBrowseProjectId={null}
+      activeBrowseProjectId={currentProjectId}
       sidebarCollapsible="icon"
     >
       <Outlet />

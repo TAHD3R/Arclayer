@@ -440,6 +440,66 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(getWorkspaceDetail).toHaveBeenCalledWith("ws-alpha");
   });
 
+  it("global scope: selects the only workspace when no current or last selection exists", async () => {
+    mockPathname = "/projects";
+    const onlyWorkspace = {
+      ...workspaceFixtures[0],
+      workspaceId: "ws-solo",
+      projectId: "project-solo",
+      name: "Solo Workspace",
+    };
+    useWorkspaceStore.setState({
+      currentWorkspaceId: null,
+      currentProjectId: null,
+      lastWorkspaceId: null,
+      lastProjectId: null,
+    });
+    vi.mocked(listMyWorkspaces).mockResolvedValue(
+      createWorkspaceListResult({
+        items: [onlyWorkspace],
+        switcher: { teams: [onlyWorkspace] },
+      }),
+    );
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "ws-solo",
+      project: null,
+      organizationId: "org-1",
+      name: "Solo Workspace",
+      kind: "team",
+      iconMode: "initials",
+      iconColor: "#337ea9",
+      iconGlyph: null,
+      iconEmoji: null,
+      iconUrl: null,
+    });
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher variant="header" />);
+
+    await waitFor(() => {
+      expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-solo");
+      expect(screen.getByText("Solo Workspace")).toBeInTheDocument();
+    });
+    expect(getWorkspaceDetail).toHaveBeenCalledWith("ws-solo");
+  });
+
+  it("global scope: selects the first workspace when multiple workspaces have no stored selection", async () => {
+    mockPathname = "/projects";
+    useWorkspaceStore.setState({
+      currentWorkspaceId: null,
+      currentProjectId: null,
+      lastWorkspaceId: null,
+      lastProjectId: null,
+    });
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher variant="header" />);
+
+    await waitFor(() => {
+      expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-alpha");
+      expect(screen.getByText("Workspace Alpha")).toBeInTheDocument();
+    });
+    expect(getWorkspaceDetail).toHaveBeenCalledWith("ws-alpha");
+  });
+
   it("workspace scope: opening panel shows team workspaces only", async () => {
     const user = userEvent.setup();
 

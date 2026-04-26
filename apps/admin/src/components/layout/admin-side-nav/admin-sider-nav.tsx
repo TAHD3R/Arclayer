@@ -8,13 +8,7 @@ import type { FavoriteNode } from "@/types/stores/favorites";
 import { cn } from "@arclayer/lib/utils";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  useSidebar,
-} from "@arclayer/ui/sidebar";
+import { SidebarGroup, SidebarGroupContent, SidebarMenu, useSidebar } from "@arclayer/ui/sidebar";
 import {
   buildNavIndex,
   collectDefaultExpandedGroupKeys,
@@ -28,6 +22,7 @@ import {
 import { resolveFavoriteNavItems } from "./favorite-nav-items";
 import { NavNode } from "./nav-node";
 import { NAV_ROOT_MENU_GAP_CLASSNAME } from "./nav-utils";
+import { NavDivider, NavGroupMarker, resolveLeadingLabel } from "./nav-markers";
 import {
   buildFavoriteAdminChildren,
   flattenFavoriteNavItems,
@@ -57,55 +52,6 @@ type AdminSiderNavState = {
   selectActiveSource: (source: "base" | "starred", targetPath?: string) => void;
   collapsedMode: boolean;
 };
-
-function resolveLeadingLabel(item: AdminNavItem, t: (key: string) => string): string | null {
-  if (item.groupLabelBeforeKey) return t(item.groupLabelBeforeKey);
-  return item.groupLabelBefore ?? null;
-}
-
-function NavGroupMarker(props: { label: string }) {
-  return (
-    <li
-      data-slot="admin-side-nav-group-marker"
-      className={cn(
-        "relative overflow-hidden py-2",
-        "transition-[padding] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
-        "group-data-[state=expanded]:px-3",
-        "group-data-[state=expanded]:pt-3",
-        "group-data-[state=expanded]:pb-1",
-      )}
-      aria-hidden="true"
-    >
-      <div
-        data-slot="admin-side-nav-group-marker-divider"
-        className={cn(
-          "border-b border-sidebar-border origin-left transform-gpu",
-          "transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
-          "group-data-[state=expanded]:scale-x-95 group-data-[state=expanded]:opacity-0",
-        )}
-      />
-      <SidebarGroupLabel
-        data-slot="admin-side-nav-group-label"
-        className={cn(
-          "pointer-events-none absolute inset-x-3 top-1.5 h-auto px-0 py-0 text-xs font-semibold text-label-tertiary truncate",
-          "origin-left transform-gpu transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
-          "-translate-y-1 opacity-0",
-          "group-data-[state=expanded]:translate-y-0 group-data-[state=expanded]:opacity-100",
-        )}
-      >
-        {props.label}
-      </SidebarGroupLabel>
-    </li>
-  );
-}
-
-function NavDivider() {
-  return (
-    <li data-slot="admin-side-nav-divider" className="py-2" aria-hidden="true">
-      <div className="border-b border-sidebar-border" />
-    </li>
-  );
-}
 
 type ActiveSource = "base" | "starred";
 

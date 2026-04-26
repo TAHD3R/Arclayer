@@ -128,7 +128,7 @@ export function resolveGlobalNavItems(params: {
     items.flatMap((item) => {
       const nextItem =
         item.key === "global.projects" && params.projectChildren?.length
-          ? { ...item, children: params.projectChildren }
+          ? { ...item, children: params.projectChildren, defaultExpanded: true }
           : item;
 
       if (nextItem.key === "global.platform" && !params.isSuperAdmin) {

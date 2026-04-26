@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,6 +7,7 @@ import { GlobalLayout } from "@/layouts/global-layout";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 let mockSearchStr = "";
 let preferencesState = {
@@ -171,6 +172,12 @@ describe("GlobalLayout", () => {
     };
     mockSearchStr = "";
     useAuthStore.setState({ accessToken: null, sessionVersion: 0 });
+    useWorkspaceStore.setState({
+      currentWorkspaceId: null,
+      currentProjectId: null,
+      lastWorkspaceId: null,
+      lastProjectId: null,
+    });
     vi.mocked(listProjects).mockResolvedValue({
       items: [],
       total: 0,
@@ -259,6 +266,12 @@ describe("GlobalLayout", () => {
 
   it("passes browse projects into the global admin scene layout", async () => {
     useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "workspace-alpha",
+      currentProjectId: null,
+      lastWorkspaceId: "workspace-alpha",
+      lastProjectId: null,
+    });
     vi.mocked(listProjects).mockResolvedValue({
       items: [
         {
@@ -294,6 +307,9 @@ describe("GlobalLayout", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     await waitFor(() => {
+      expect(listProjects).toHaveBeenCalledWith(
+        expect.objectContaining({ workspaceId: "workspace-alpha" }),
+      );
       expect(sceneLayoutSpy.mock.calls.at(-1)?.[0]?.browseProjects).toEqual([
         expect.objectContaining({
           projectId: "project-alpha",
@@ -306,6 +322,85 @@ describe("GlobalLayout", () => {
           iconUrl: "/assets/project-alpha-icon",
         }),
       ]);
+    });
+  });
+
+  it("refreshes global projects navigation when the current workspace changes", async () => {
+    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "workspace-alpha",
+      currentProjectId: null,
+      lastWorkspaceId: "workspace-alpha",
+      lastProjectId: null,
+    });
+    vi.mocked(listProjects).mockImplementation(async (params = {}) => {
+      if (params.workspaceId === "workspace-alpha") {
+        return {
+          items: [
+            {
+              id: "project-alpha",
+              workspaceId: "workspace-alpha",
+              organizationId: "org-alpha",
+              slug: "project-alpha",
+              name: "Project Alpha",
+              description: null,
+              iconMode: "initials",
+              iconColor: "#337ea9",
+              iconGlyph: null,
+              iconEmoji: null,
+              iconUrl: null,
+              isActive: true,
+              archivedAt: null,
+              archivedByUserId: null,
+              memberCount: 0,
+              membersPreview: [],
+              createdAt: "2026-04-22T00:00:00Z",
+              enterable: true,
+              primaryRuntime: null,
+            },
+          ],
+          total: 1,
+          page: 1,
+          size: 100,
+          pages: 1,
+          next: null,
+          prev: null,
+        };
+      }
+
+      return {
+        items: [],
+        total: 0,
+        page: 1,
+        size: 100,
+        pages: 1,
+        next: null,
+        prev: null,
+      };
+    });
+
+    renderWithQueryClient(<GlobalLayout />);
+
+    await waitFor(() => {
+      expect(sceneLayoutSpy.mock.calls.at(-1)?.[0]?.browseProjects).toEqual([
+        expect.objectContaining({ projectId: "project-alpha" }),
+      ]);
+    });
+
+    act(() => {
+      useWorkspaceStore.setState({
+        currentWorkspaceId: "workspace-empty",
+        currentProjectId: null,
+        lastWorkspaceId: "workspace-empty",
+        lastProjectId: null,
+      });
+    });
+
+    await waitFor(() => {
+      expect(listProjects).toHaveBeenCalledWith(
+        expect.objectContaining({ workspaceId: "workspace-empty" }),
+      );
+      expect(sceneLayoutSpy.mock.calls.at(-1)?.[0]?.browseProjects).toEqual([]);
     });
   });
 });

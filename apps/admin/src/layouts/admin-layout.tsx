@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { listProjects } from "@/api/projects";
-import { getProjectNavItems } from "@/constants/menu/project";
+import { resolveUnifiedNavItems, type UnifiedNavProject } from "@/constants/menu/unified";
+import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -17,7 +18,7 @@ import { RouteTransition } from "@/components/layout/route-transition";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
-import { extractWorkspaceBaseFromPath, mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
+import { extractWorkspaceBaseFromPath } from "@/layouts/admin-scene-utils";
 import {
   mapProjectListItemToSidebarBrowseProject,
   mapProjectToListItem,
@@ -41,9 +42,12 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
+  const { isSuperAdmin } = useCurrentUserProfile();
 
   const workspaceBase = useMemo(() => extractWorkspaceBaseFromPath(pathname), [pathname]);
   const effectiveWorkspaceId = workspaceIdFromStore;
+  const projectIdFromPath = workspaceBase?.replace(/^\/projects\//, "") ?? null;
+  const effectiveProjectId = currentProjectId ?? projectIdFromPath;
 
   const resolvePermissionName = useMemo(() => {
     return (code: string) => {
@@ -93,19 +97,49 @@ export function AdminLayout({ children }: PropsWithChildren) {
     [projectsQuery.data],
   );
 
-  const workspaceNav = useMemo(
+  const unifiedProjects = useMemo<UnifiedNavProject[]>(() => {
+    const projects = (projectsQuery.data ?? []).map((project) => ({
+      projectId: project.projectId,
+      workspaceId: project.workspaceId,
+      name: project.name,
+      description: project.description,
+      enterable: project.enterable,
+    }));
+
+    if (
+      !effectiveProjectId ||
+      projects.some((project) => project.projectId === effectiveProjectId)
+    ) {
+      return projects;
+    }
+
+    return [
+      {
+        projectId: effectiveProjectId,
+        workspaceId: effectiveWorkspaceId ?? "",
+        name: effectiveProjectId,
+        description: null,
+        enterable: true,
+      },
+      ...projects,
+    ];
+  }, [effectiveProjectId, effectiveWorkspaceId, projectsQuery.data]);
+
+  const unifiedNav = useMemo(
     () =>
-      workspaceBase && currentProjectId
-        ? mapWorkspaceNavItems(getProjectNavItems(), `/projects/${currentProjectId}`)
-        : workspaceBase
-          ? mapWorkspaceNavItems(getProjectNavItems(), workspaceBase)
-          : [],
-    [currentProjectId, workspaceBase],
+      isWorkspaceScopeRoute
+        ? resolveUnifiedNavItems({
+            isSuperAdmin,
+            projects: unifiedProjects,
+            activeProjectId: effectiveProjectId,
+          })
+        : [],
+    [effectiveProjectId, isSuperAdmin, isWorkspaceScopeRoute, unifiedProjects],
   );
 
   const mainItems = useMemo(
-    () => workspaceNav.filter((item) => item.position !== "footer"),
-    [workspaceNav],
+    () => unifiedNav.filter((item) => item.position !== "footer"),
+    [unifiedNav],
   );
 
   const workspaceLocalization = useWorkspaceLocalization();
@@ -142,11 +176,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
       kind: "workspace",
       pathname,
       workspaceId: effectiveWorkspaceId ? String(effectiveWorkspaceId) : null,
-      projectId: currentProjectId ? String(currentProjectId) : null,
+      projectId: effectiveProjectId ? String(effectiveProjectId) : null,
       organizationId: workspaceDetailQuery.data?.organizationId ?? null,
     } as const;
   }, [
-    currentProjectId,
+    effectiveProjectId,
     effectiveWorkspaceId,
     isWorkspaceScopeRoute,
     pathname,
@@ -201,11 +235,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
       commandScope={commandScope}
       browseProjects={browseProjects}
-      activeBrowseProjectId={currentProjectId}
+      activeBrowseProjectId={effectiveProjectId}
       favoriteWorkspaceBase={
         isWorkspaceScopeRoute
-          ? currentProjectId
-            ? `/projects/${currentProjectId}`
+          ? effectiveProjectId
+            ? `/projects/${effectiveProjectId}`
             : workspaceBase
           : null
       }
