@@ -5,9 +5,14 @@ import { GLOBAL_NAV_ITEMS, resolveGlobalNavItems } from "@/constants/menu/global
 describe("global nav regression", () => {
   test("registers all projects and platform global entries", () => {
     const projectsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.projects");
-    const platformItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.platform");
-    const platformChildren = platformItem?.children?.map((item) => item.key);
-    const configurationItem = platformItem?.children?.find(
+    const platformItems = GLOBAL_NAV_ITEMS.filter((item) =>
+      item.key.startsWith("global.platform."),
+    );
+    const platformKeys = platformItems.map((item) => item.key);
+    const platformOverview = GLOBAL_NAV_ITEMS.find(
+      (item) => item.key === "global.platform.overview",
+    );
+    const configurationItem = GLOBAL_NAV_ITEMS.find(
       (item) => item.key === "global.platform.configuration",
     );
 
@@ -18,11 +23,11 @@ describe("global nav regression", () => {
       to: "/projects",
     });
     expect(projectsItem?.children).toBeUndefined();
-    expect(platformItem).toMatchObject({
-      key: "global.platform",
-      label: "Platform",
+    expect(platformOverview).toMatchObject({
+      key: "global.platform.overview",
+      groupLabelBeforeKey: "nav:NAV_SECTION_PLATFORM",
     });
-    expect(platformChildren).toEqual([
+    expect(platformKeys).toEqual([
       "global.platform.overview",
       "global.platform.tenants",
       "global.platform.plans",
@@ -35,9 +40,7 @@ describe("global nav regression", () => {
       to: "/system",
     });
     expect(configurationItem?.disabled).toBeUndefined();
-    const tenantsItem = platformItem?.children?.find(
-      (item) => item.key === "global.platform.tenants",
-    );
+    const tenantsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.platform.tenants");
     expect(tenantsItem?.to).toBe("/system/tenants");
     expect(tenantsItem?.disabled).toBeUndefined();
   });
@@ -46,15 +49,14 @@ describe("global nav regression", () => {
     const regularKeys = resolveGlobalNavItems({ isSuperAdmin: false }).map((item) => item.key);
     const superAdminItems = resolveGlobalNavItems({ isSuperAdmin: true });
     const superAdminKeys = superAdminItems.map((item) => item.key);
-    const platformItem = superAdminItems.find((item) => item.key === "global.platform");
     const projectsItem = superAdminItems.find((item) => item.key === "global.projects");
 
     expect(regularKeys).toContain("global.projects");
-    expect(regularKeys).not.toContain("global.platform");
+    expect(regularKeys.some((key) => key.startsWith("global.platform."))).toBe(false);
     expect(superAdminKeys).toContain("global.projects");
-    expect(superAdminKeys).toContain("global.platform");
+    expect(superAdminKeys).toContain("global.platform.overview");
+    expect(superAdminKeys).toContain("global.platform.tenants");
     expect(projectsItem?.to).toBe("/projects");
-    expect(platformItem?.children?.map((item) => item.key)).toContain("global.platform.overview");
   });
 
   test("marks all projects as a leaf link with a projects section label", () => {

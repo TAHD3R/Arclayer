@@ -52,25 +52,38 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav tree aligned with the approved IA", () => {
     expect(ADMIN_NAV_ITEMS.map((item) => item.key)).toEqual([
       "dashboard",
-      "website",
-      "analytics",
-      "apps",
+      "assets",
+      "content.library",
+      "content.models",
+      "settings.site",
+      "analytics.highlights",
+      "analytics.real-time",
+      "analytics.traffic",
+      "analytics.insights",
+      "apps.manage",
+      "apps.market",
       "automations",
       "activity",
       "settings.project",
     ]);
 
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website")).toMatchObject({
-      labelKey: "nav:NAV_GROUP_WEBSITE",
-      dividerBefore: true,
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "assets")).toMatchObject({
+      groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
+    });
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "analytics.highlights")).toMatchObject({
+      groupLabelBeforeKey: "nav:NAV_SECTION_ANALYTICS",
+    });
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "apps.manage")).toMatchObject({
+      groupLabelBeforeKey: "nav:NAV_SECTION_APPS",
     });
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "activity")).toMatchObject({
-      dividerBefore: true,
+      groupLabelBeforeKey: "nav:NAV_SECTION_OPERATIONS",
+    });
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "settings.project")).toMatchObject({
+      groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",
     });
 
-    expect(
-      ADMIN_NAV_ITEMS.find((item) => item.key === "website")?.children?.map((item) => item.key),
-    ).toEqual(["assets", "content.library", "content.models", "settings.site"]);
+    expect(ADMIN_NAV_ITEMS.some((item) => item.children?.length)).toBe(false);
   });
 
   test("returns the project-first workspace nav tree", () => {
@@ -78,9 +91,16 @@ describe("workspace nav regression", () => {
 
     expect(projectNav.map((item) => item.key)).toEqual([
       "dashboard",
-      "website",
-      "analytics",
-      "apps",
+      "assets",
+      "content.library",
+      "content.models",
+      "settings.site",
+      "analytics.highlights",
+      "analytics.real-time",
+      "analytics.traffic",
+      "analytics.insights",
+      "apps.manage",
+      "apps.market",
       "automations",
       "activity",
       "settings.project",

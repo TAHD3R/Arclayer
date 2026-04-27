@@ -128,7 +128,10 @@ function createWorkspaceListResult(
   };
 }
 
-function renderWithQueryClient(component: React.ReactElement) {
+function renderWithQueryClient(
+  component: React.ReactElement,
+  options: { sidebarDefaultOpen?: boolean } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -142,7 +145,7 @@ function renderWithQueryClient(component: React.ReactElement) {
       <ChromeTabsProvider
         labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
       >
-        <SidebarProvider defaultOpen className="h-screen">
+        <SidebarProvider defaultOpen={options.sidebarDefaultOpen ?? true} className="h-screen">
           <SettingsScreenProvider>
             {component}
             <SettingsScreenProbe />
@@ -287,6 +290,32 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       expect(avatarImage?.parentElement).toHaveClass("rounded-sm");
       expect(avatarImage?.parentElement).toHaveClass("self-center");
       expect(avatarImage?.parentElement).toHaveStyle({ width: "28px", height: "28px" });
+    });
+  });
+
+  it("workspace scope: trigger avatar grows in the collapsed sidebar state", async () => {
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "ws-alpha",
+      project: null,
+      organizationId: "org-1",
+      name: "Workspace Alpha",
+      kind: "team",
+      iconMode: "image",
+      iconColor: "#337ea9",
+      iconGlyph: null,
+      iconEmoji: null,
+      iconUrl: "https://example.com/workspace-alpha-icon.png",
+    });
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />, { sidebarDefaultOpen: false });
+
+    const trigger = await screen.findByRole("button", {
+      name: "Select workspace",
+    });
+
+    await waitFor(() => {
+      const avatarImage = trigger.querySelector('img[alt="Workspace Alpha"]');
+      expect(avatarImage?.parentElement).toHaveStyle({ width: "32px", height: "32px" });
     });
   });
 

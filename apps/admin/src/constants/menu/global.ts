@@ -39,91 +39,58 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
   },
   {
-    key: "global.platform",
-    label: "Platform",
-    labelKey: "nav:NAV_SECTION_PLATFORM",
+    key: "global.platform.overview",
+    label: "Platform Overview",
+    labelKey: "nav:NAV_GLOBAL_PLATFORM_OVERVIEW",
+    to: "/system/overview",
+    icon: LayoutDashboard,
+    disabled: true,
+    groupLabelBeforeKey: "nav:NAV_SECTION_PLATFORM",
+  },
+  {
+    key: "global.platform.tenants",
+    label: "Tenants",
+    labelKey: "nav:NAV_GLOBAL_PLATFORM_TENANTS",
+    to: "/system/tenants",
+    icon: Users,
+  },
+  {
+    key: "global.platform.plans",
+    label: "Plans & Limits",
+    labelKey: "nav:NAV_GLOBAL_PLATFORM_PLANS_LIMITS",
+    to: "/system/plans",
+    icon: CreditCard,
+    disabled: true,
+  },
+  {
+    key: "global.platform.audit",
+    label: "Audit Log",
+    labelKey: "nav:NAV_GLOBAL_PLATFORM_AUDIT_LOG",
+    to: "/system/audit-log",
+    icon: ReceiptText,
+    disabled: true,
+  },
+  {
+    key: "global.platform.jobs",
+    label: "Jobs",
+    labelKey: "nav:NAV_GLOBAL_PLATFORM_JOBS",
+    to: "/system/jobs",
     icon: Wrench,
-    dividerBefore: true,
-    defaultExpanded: true,
-    children: [
-      {
-        key: "global.platform.overview",
-        label: "Platform Overview",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_OVERVIEW",
-        to: "/system/overview",
-        icon: LayoutDashboard,
-        disabled: true,
-      },
-      {
-        key: "global.platform.tenants",
-        label: "Tenants",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_TENANTS",
-        to: "/system/tenants",
-        icon: Users,
-      },
-      {
-        key: "global.platform.plans",
-        label: "Plans & Limits",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_PLANS_LIMITS",
-        to: "/system/plans",
-        icon: CreditCard,
-        disabled: true,
-      },
-      // {
-      //   key: "global.platform.access",
-      //   label: "Access Control",
-      //   labelKey: "nav:NAV_GLOBAL_PLATFORM_ACCESS_CONTROL",
-      //   to: "/system/access-control",
-      //   icon: Shield,
-      //   disabled: true,
-      // },
-      {
-        key: "global.platform.audit",
-        label: "Audit Log",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_AUDIT_LOG",
-        to: "/system/audit-log",
-        icon: ReceiptText,
-        disabled: true,
-      },
-      {
-        key: "global.platform.jobs",
-        label: "Jobs",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_JOBS",
-        to: "/system/jobs",
-        icon: Wrench,
-        disabled: true,
-      },
-      {
-        key: "global.platform.configuration",
-        label: "Configuration",
-        labelKey: "nav:NAV_GLOBAL_PLATFORM_CONFIGURATION",
-        to: "/system",
-        icon: Settings2,
-      },
-      // {
-      //   key: "global.platform.revenue",
-      //   label: "Revenue",
-      //   labelKey: "nav:NAV_GLOBAL_PLATFORM_REVENUE",
-      //   to: "/system/revenue",
-      //   icon: Wallet,
-      //   disabled: true,
-      // },
-      // {
-      //   key: "global.platform.support",
-      //   label: "Support Center",
-      //   labelKey: "nav:NAV_GLOBAL_PLATFORM_SUPPORT_CENTER",
-      //   to: "/system/support-center",
-      //   icon: LifeBuoy,
-      //   disabled: true,
-      // },
-    ],
+    disabled: true,
+  },
+  {
+    key: "global.platform.configuration",
+    label: "Configuration",
+    labelKey: "nav:NAV_GLOBAL_PLATFORM_CONFIGURATION",
+    to: "/system",
+    icon: Settings2,
   },
 ] as const;
 
 export function resolveGlobalNavItems(params: { isSuperAdmin: boolean }): AdminNavItem[] {
   const filterItems = (items: readonly AdminNavItem[]): AdminNavItem[] =>
     items.flatMap((item) => {
-      if (item.key === "global.platform" && !params.isSuperAdmin) {
+      if (item.key.startsWith("global.platform.") && !params.isSuperAdmin) {
         return [];
       }
 

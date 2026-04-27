@@ -650,6 +650,8 @@ function SidebarWorkspaceTrigger(props: {
   disabled: boolean;
 }) {
   const { isOpen } = useFloatingPanel();
+  const sidebar = useSidebar();
+  const avatarSize = sidebar.state === "collapsed" ? 32 : 28;
 
   return (
     <FloatingPanelTrigger
@@ -665,7 +667,7 @@ function SidebarWorkspaceTrigger(props: {
     >
       <WorkspaceAvatar
         name={props.workspaceTriggerText}
-        size={28}
+        size={avatarSize}
         className="shrink-0 self-center"
         {...workspaceAvatarPropsFromIdentity(props.workspaceIdentity)}
       />

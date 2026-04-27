@@ -34,6 +34,8 @@
   "NAV_SECTION_ANALYTICS": "Analytics",
   "NAV_SECTION_CUSTOMERS_LEADS": "Customers & Leads",
   "NAV_SECTION_APPS": "Apps",
+  "NAV_SECTION_OPERATIONS": "Operations",
+  "NAV_SECTION_CONFIGURATION": "Configuration",
   "NAV_SECTION_WORKSPACE": "Workspace",
   "NAV_SECTION_SETTINGS": "Settings",
   "NAV_SECTION_BILLING_SUBSCRIPTION": "Billing & Subscription",

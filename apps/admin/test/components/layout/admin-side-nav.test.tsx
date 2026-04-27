@@ -1280,7 +1280,7 @@ describe("AdminSiderNav collapsed groups", () => {
       pathnameOverride: "/projects/ws-1/content/create",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_CONTENT_LIBRARY" })).toHaveAttribute(
       "data-active",
       "true",
     );
@@ -1300,7 +1300,7 @@ describe("AdminSiderNav collapsed groups", () => {
       pathnameOverride: "/projects/ws-1/content/general",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS" })).toHaveAttribute(
       "data-active",
       "true",
     );
@@ -1316,7 +1316,7 @@ describe("AdminSiderNav collapsed groups", () => {
       </SidebarProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_ASSETS" })).toHaveAttribute(
       "data-active",
       "true",
     );
@@ -1335,7 +1335,7 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-active",
       "true",
     );
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_GROUP_WEBSITE" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS" })).toHaveAttribute(
       "data-active",
       "false",
     );

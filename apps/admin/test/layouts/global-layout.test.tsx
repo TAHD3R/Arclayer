@@ -222,7 +222,7 @@ describe("GlobalLayout", () => {
       to: "/projects",
     });
     expect(projectsItem?.children).toBeUndefined();
-    expect(navKeys).not.toContain("global.platform");
+    expect(navKeys.some((key: string) => key.startsWith("global.platform."))).toBe(false);
   });
 
   it("shows platform alongside projects when the current user is a super admin", () => {
@@ -241,7 +241,6 @@ describe("GlobalLayout", () => {
       (item: { key: string }) => item.key === "global.projects",
     );
     expect(navKeys).toContain("global.projects");
-    expect(navKeys).toContain("global.platform");
     expect(navKeys).toContain("global.platform.overview");
     expect(navKeys).toContain("global.platform.tenants");
     expect(projectsItem).toMatchObject({
