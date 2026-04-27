@@ -64,10 +64,18 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
 
   return (
     <div className="flex h-full min-h-80 flex-col">
-      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/70 px-4 py-3">
+      <div className="flex items-center justify-between py-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={pageNumber <= 1}
+          onClick={() => setPageNumber((value) => Math.max(1, value - 1))}
+        >
+          <ChevronLeft className="size-4" />
+          {props.t("common:PREVIOUS")}
+        </Button>
         <div>
-          <div className="text-footnote font-medium text-label-primary">PDF</div>
-          <div className="text-caption text-label-secondary">
+          <div className="text-callout font-semibold text-label-secondary">
             {pageCount > 0
               ? props.t("assets:ASSET_PDF_PAGE_STATUS", {
                   current: pageNumber,
@@ -76,26 +84,16 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
               : props.t("assets:ASSET_PDF_LOADING")}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={pageNumber <= 1}
-            onClick={() => setPageNumber((value) => Math.max(1, value - 1))}
-          >
-            <ChevronLeft className="size-4" />
-            {props.t("common:PREVIOUS")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={pageCount === 0 || pageNumber >= pageCount}
-            onClick={() => setPageNumber((value) => Math.min(pageCount, value + 1))}
-          >
-            {props.t("common:NEXT")}
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={pageCount === 0 || pageNumber >= pageCount}
+          onClick={() => setPageNumber((value) => Math.min(pageCount, value + 1))}
+        >
+          {props.t("common:NEXT")}
+          <ChevronRight className="size-4" />
+        </Button>
       </div>
 
       <div

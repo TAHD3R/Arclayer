@@ -41,7 +41,7 @@ export function AssetPreviewCell(props: { asset: AssetMasonryItem; subtitle: str
 
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/25">
+      <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted/25">
         {props.asset.previewUrl ? (
           <LazyAssetImage
             src={props.asset.previewUrl}
@@ -56,7 +56,9 @@ export function AssetPreviewCell(props: { asset: AssetMasonryItem; subtitle: str
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-body font-medium text-label-primary">{props.asset.name}</div>
+        <div className="truncate text-callout font-semibold text-label-primary">
+          {props.asset.name}
+        </div>
         <div className="truncate text-footnote text-label-secondary">{props.subtitle}</div>
       </div>
     </div>
