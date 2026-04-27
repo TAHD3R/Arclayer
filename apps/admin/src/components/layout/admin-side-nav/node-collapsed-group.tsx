@@ -38,10 +38,10 @@ type NodeCollapsedGroupProps = {
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
   "relative z-10 h-8 rounded-md text-callout text-label-secondary",
   "transition-[color,background-color] duration-200 ease-out",
-  "hover:bg-accent/40 hover:text-label-primary",
-  "focus:bg-accent/40 focus:text-label-primary",
-  "data-[active=true]:bg-accent/40 data-[active=true]:text-label-primary",
-  "aria-[current=page]:bg-accent/50 aria-[current=page]:text-label-primary aria-[current=page]:font-semibold",
+  "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+  "focus:bg-accent focus:text-accent-foreground dark:focus:bg-accent/50",
+  "data-[active=true]:bg-accent data-[active=true]:text-accent-foreground dark:data-[active=true]:bg-accent/50",
+  "aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground aria-[current=page]:font-semibold dark:aria-[current=page]:bg-accent/50",
 );
 
 const COLLAPSED_GROUP_LABEL_STYLE = {

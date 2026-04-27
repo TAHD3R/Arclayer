@@ -171,7 +171,7 @@ const FAVORITES_CHEVRON_CLASSNAME =
   "shrink-0 text-label-secondary transform-gpu transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
 
 const FAVORITES_ACTION_BUTTON_CLASSNAME =
-  "inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-label-secondary transition-colors hover:bg-accent/70 hover:text-label-primary";
+  "inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-label-secondary transition-colors hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50";
 
 const FAVORITES_TRAILING_CONTROLS_CLASSNAME =
   "ml-auto flex shrink-0 items-center gap-2 self-center";
@@ -188,7 +188,7 @@ const FAVORITES_ROW_ACTIONS_CLASSNAME = cn(
   "group-hover/favorite-row:opacity-100 group-focus-within/favorite-row:opacity-100",
 );
 const FAVORITE_OVERLAY_ICON_BUTTON_CLASSNAME =
-  "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-label-secondary transition-colors hover:bg-accent/70 hover:text-label-primary";
+  "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-label-secondary transition-colors hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50";
 
 type PointerActivatorEvent = { clientX: number; clientY: number };
 type TouchActivatorEvent = { touches: Array<PointerActivatorEvent> };
@@ -751,7 +751,7 @@ function FavoriteLeafRow(props: {
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-          "focus-within:bg-accent/40",
+          "focus-within:bg-accent",
           "text-callout data-[dragging=true]:opacity-15",
         )}
       >
@@ -810,7 +810,7 @@ function FavoriteFolderRow(props: {
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-          "focus-visible:bg-accent/40",
+          "focus-visible:bg-accent",
           "text-callout data-[dragging=true]:opacity-15",
           "data-[folder-drop-target=true]:animate-pulse",
         )}

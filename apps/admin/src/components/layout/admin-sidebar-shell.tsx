@@ -124,7 +124,7 @@ function AdminSidebarBranding() {
           className={cn(
             "ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-transparent text-label-secondary",
             "transition-[opacity,background-color,color,border-color] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
-            "hover:bg-accent/60 hover:text-label-primary",
+            GHOST_HOVER_CLASSNAME,
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             showExpandedHeaderRows ? "opacity-100" : "pointer-events-none opacity-0",
           )}

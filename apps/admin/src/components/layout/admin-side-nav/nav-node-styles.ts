@@ -12,8 +12,8 @@ export const NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME = cn(
 
 export const NAV_ITEM_INTERACTIVE_BG_CLASSNAME = cn(
   "bg-transparent",
-  "hover:bg-accent/40",
-  "data-[active=true]:bg-accent/50",
+  "hover:bg-accent dark:hover:bg-accent/50",
+  "data-[active=true]:bg-accent dark:data-[active=true]:bg-accent/50",
 );
 
 export const NAV_ITEM_COLLAPSE_HIDE_CLASSNAME = cn(

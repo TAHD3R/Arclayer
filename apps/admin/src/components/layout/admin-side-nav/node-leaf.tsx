@@ -83,7 +83,7 @@ function NodeLeafSub({
                   DISABLED_ITEM_CLASSNAME,
                   "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent",
                 )
-              : cn(NAV_ITEM_INTERACTIVE_BG_CLASSNAME, "focus-visible:bg-accent/40"),
+              : cn(NAV_ITEM_INTERACTIVE_BG_CLASSNAME, "focus-visible:bg-accent"),
           )}
         >
           <div className="flex min-w-0 flex-1 items-center gap-2">

@@ -98,8 +98,8 @@ function CommandTriggerButton(props: {
         className={cn(
           "inline-flex size-10 items-center justify-center rounded-xl border border-transparent bg-transparent text-label-secondary",
           TRANSITION_CLASSNAME,
-          "hover:bg-accent/70 hover:text-label-primary",
-          "data-[state=open]:bg-card data-[state=open]:text-label-primary data-[state=open]:shadow-sm",
+          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground dark:data-[state=open]:bg-accent/50",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           props.className,
         )}
@@ -120,8 +120,8 @@ function CommandTriggerButton(props: {
         "group flex h-10 w-full items-center gap-3 rounded-full border border-border/50",
         "bg-muted px-3 text-left text-footnote text-label-secondary ",
         TRANSITION_CLASSNAME,
-        "hover:bg-accent/70 hover:text-label-primary",
-        "data-[state=open]:bg-accent data-[state=open]:text-label-primary",
+        "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground dark:data-[state=open]:bg-accent/50",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         props.className,
       )}

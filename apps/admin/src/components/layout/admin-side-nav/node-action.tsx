@@ -52,7 +52,7 @@ function NodeActionSub({
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-          "focus-visible:bg-accent/40",
+          "focus-visible:bg-accent",
           "text-callout",
           isActive && "font-semibold text-label-primary!",
         )}
