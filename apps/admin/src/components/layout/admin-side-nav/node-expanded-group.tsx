@@ -307,7 +307,7 @@ export function NodeExpandedGroupSub({
           DISABLED_ITEM_CLASSNAME,
           "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent",
         )
-      : "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent [&:not([data-highlight])]:hover:bg-transparent hover:cursor-pointer",
+      : cn(NAV_ITEM_INTERACTIVE_BG_CLASSNAME, "focus-visible:bg-accent/40 hover:cursor-pointer"),
   );
 
   return (

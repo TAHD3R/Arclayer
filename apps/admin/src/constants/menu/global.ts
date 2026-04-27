@@ -36,7 +36,7 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     to: "/projects",
     groupBehavior: "navigate-self-and-expand",
     icon: Users,
-    dividerBefore: true,
+    groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
   },
   {
     key: "global.platform",

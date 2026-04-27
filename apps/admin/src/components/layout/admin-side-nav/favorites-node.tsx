@@ -750,8 +750,8 @@ function FavoriteLeafRow(props: {
           NAV_ITEM_BUTTON_PADDING_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-          "bg-transparent focus-within:bg-transparent data-[active=true]:bg-transparent",
-          "[&:not([data-highlight])]:hover:bg-transparent",
+          NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+          "focus-within:bg-accent/40",
           "text-callout data-[dragging=true]:opacity-15",
         )}
       >
@@ -809,8 +809,8 @@ function FavoriteFolderRow(props: {
           NAV_ITEM_BUTTON_PADDING_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-          "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent",
-          "[&:not([data-highlight])]:hover:bg-transparent",
+          NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+          "focus-visible:bg-accent/40",
           "text-callout data-[dragging=true]:opacity-15",
           "data-[folder-drop-target=true]:animate-pulse",
         )}

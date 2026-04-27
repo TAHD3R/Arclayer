@@ -51,8 +51,8 @@ function NodeActionSub({
           NAV_ITEM_RADIUS_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-          "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent",
-          "[&:not([data-highlight])]:hover:bg-transparent",
+          NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+          "focus-visible:bg-accent/40",
           "text-callout",
           isActive && "font-semibold text-label-primary!",
         )}

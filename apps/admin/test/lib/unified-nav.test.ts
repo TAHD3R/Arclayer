@@ -45,6 +45,8 @@ describe("resolveUnifiedNavItems", () => {
     const node = projectsNode();
 
     expect(node.defaultExpanded).toBe(true);
+    expect(node.groupLabelBeforeKey).toBe("nav:NAV_SECTION_PROJECTS");
+    expect(node.dividerBefore).toBeUndefined();
     expect(node.children?.[0]).toMatchObject({
       key: "global.projects.all",
       labelKey: "nav:NAV_ALL_PROJECTS",

@@ -319,7 +319,7 @@ const globalItems: AdminNavItem[] = [
     label: "Projects",
     icon: Users,
     to: "/projects",
-    dividerBefore: true,
+    groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
   },
 ];
 
@@ -620,6 +620,17 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(
       document.querySelector('[data-slot="admin-side-nav-group-marker-divider"]'),
     ).not.toBeNull();
+  });
+
+  it("renders the projects section label through i18n before the projects tree", () => {
+    renderTreeNav({
+      items: globalItems,
+      favoriteWorkspaceBase: "/projects",
+      pathnameOverride: "/projects",
+    });
+
+    expect(screen.getByText("en-US:nav:NAV_SECTION_PROJECTS")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Projects" })).toBeVisible();
   });
 
   it("renders translated group markers inside nested project groups", () => {

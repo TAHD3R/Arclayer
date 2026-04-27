@@ -219,11 +219,11 @@ describe("AdminSiderNav spacing", () => {
     const teamRow = teamButton.parentElement;
 
     expect(dashboardRow).toHaveClass("h-9", "rounded-md", "!px-2.5", "!py-1.5", "text-callout");
-    expect(dashboardRow?.className).not.toContain("data-[active=true]:bg-accent/50");
+    expect(dashboardRow?.className).toContain("data-[active=true]:bg-accent/50");
 
     expect(teamRow).toHaveClass("h-9", "rounded-md", "!px-2.5", "!py-1.5", "text-callout");
     expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:size-8!");
-    expect(teamRow?.className).toContain("data-[active=true]:bg-transparent");
+    expect(teamRow?.className).toContain("data-[active=true]:bg-accent/50");
 
     const dashboardLabel = dashboardButton.querySelector("span.min-w-0.flex-1");
     const teamLabel = teamButton.querySelector("span.min-w-0.flex-1");
@@ -336,11 +336,12 @@ describe("AdminSiderNav spacing", () => {
       .closest('[data-sidebar="menu-item"]');
     const subtree = contentItem?.querySelector('[data-slot="sidebar-menu-sub"]');
     const submenuButton = within(subtree as HTMLElement).getByRole("button", { name: "Overview" });
+    const submenuRow = submenuButton.closest('[data-sidebar="menu-sub-button"]');
 
     expect(subtree).toHaveClass("ml-0", "pl-7", "border-l-0");
     expect(subtree?.parentElement?.className).not.toContain("before:left-4");
     expect(subtree?.parentElement?.className).not.toContain("before:bg-border/60");
-    expect(submenuButton).toHaveClass("hover:bg-transparent");
+    expect(submenuRow?.className).toContain("data-[active=true]:bg-accent/50");
   });
 
   it("keeps fixed sidebars on the correct border edge when collapsible is none", () => {

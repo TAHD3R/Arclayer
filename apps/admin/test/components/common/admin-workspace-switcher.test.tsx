@@ -335,7 +335,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       name: "Select workspace",
     });
 
-    expect(trigger.className).toContain("!h-10");
+    expect(trigger.className).toContain("!h-9");
     expect(trigger.className).toContain("inline-flex");
     expect(trigger.className).toContain("border-transparent");
     expect(trigger.className).toContain("hover:bg-accent");
@@ -363,6 +363,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     });
 
     expect(trigger.className).toContain("group/panel-trigger");
+    expect(trigger.className).toContain("!h-9");
     expect(trigger.className).toContain("rounded-md");
     expect(trigger.className).toContain("!justify-start");
     expect(trigger.className).toContain("hover:!bg-accent");

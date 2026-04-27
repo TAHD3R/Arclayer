@@ -43,8 +43,8 @@ import {
 import { Button } from "@arclayer/ui/button";
 import { useSidebar } from "@arclayer/ui/sidebar";
 
-const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
-const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
+const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-9";
+const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-9";
 const INTERACTION_EASING = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 const WORKSPACE_PICKER_VISIBLE_ROWS = 5;
 const WORKSPACE_PICKER_ITEM_MIN_HEIGHT_REM = 4.5;
