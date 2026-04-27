@@ -665,8 +665,8 @@ function SidebarWorkspaceTrigger(props: {
     >
       <WorkspaceAvatar
         name={props.workspaceTriggerText}
-        size={32}
-        className="shrink-0"
+        size={28}
+        className="shrink-0 self-center"
         {...workspaceAvatarPropsFromIdentity(props.workspaceIdentity)}
       />
 

@@ -32,7 +32,7 @@ export function NavGroupMarker(props: { label: string }) {
       <SidebarGroupLabel
         data-slot="admin-side-nav-group-label"
         className={cn(
-          "pointer-events-none absolute inset-x-3 top-1.5 h-auto px-0 py-0 text-xs font-semibold text-label-tertiary truncate",
+          "pointer-events-none absolute inset-x-3 top-1.5 h-auto px-0 py-0 text-footnote! font-semibold text-label-tertiary truncate",
           "origin-left transform-gpu transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
           "-translate-y-1 opacity-0",
           "group-data-[state=expanded]:translate-y-0 group-data-[state=expanded]:opacity-100",

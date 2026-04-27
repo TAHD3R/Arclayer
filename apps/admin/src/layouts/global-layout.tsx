@@ -1,24 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import { Outlet, useRouterState } from "@tanstack/react-router";
+import { useMemo } from "react";
 
 import { listProjects } from "@/api/projects";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
-import { ProjectActionDialogs } from "@/pages/usercenter/projects/components/usercenter-projects-dialogs";
-import { ProjectActionsDropdown } from "@/pages/usercenter/projects/components/project-actions-dropdown";
-import { ProjectInlineNameEditor } from "@/pages/usercenter/projects/components/project-inline-name-editor";
-import { useProjectMenuActions } from "@/pages/usercenter/projects/hooks/use-project-menu-actions";
 import {
   mapProjectListItemToSidebarBrowseProject,
   mapProjectToListItem,
 } from "@/pages/usercenter/projects/project-list-items";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
-import { resolveUnifiedNavItems } from "@/constants/menu/unified";
+import { resolveGlobalNavItems } from "@/constants/menu/global";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
-import { projectHomePath } from "@/lib/routing/workspace-routing";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -33,11 +27,7 @@ const GLOBAL_COMMAND_SCOPE = {
   organizationId: null,
 } as const;
 
-const PROJECT_NAME_MAX_LENGTH = 128;
-
 export function GlobalLayout() {
-  const { t } = useTranslation(["account", "common"]);
-  const navigate = useNavigate();
   const searchStr = useRouterState({
     select: (s) => s.location.searchStr,
     structuralSharing: true,
@@ -48,37 +38,9 @@ export function GlobalLayout() {
   const setSidebarWidthPx = usePreferencesStore((state) => state.setSidebarWidthPx);
   const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
-  const currentProjectId = useWorkspaceStore((state) => state.currentProjectId);
-  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
-  const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const { isSuperAdmin } = useCurrentUserProfile();
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
   const effectiveWorkspaceId = currentWorkspaceId ?? lastWorkspaceId;
-
-  const handleEnterProject = useCallback(
-    (project: { workspaceId: string; projectId: string }) => {
-      setCurrentWorkspaceId(project.workspaceId);
-      setCurrentProjectId(project.projectId);
-      void navigate({ to: projectHomePath(project.projectId) as never });
-    },
-    [navigate, setCurrentProjectId, setCurrentWorkspaceId],
-  );
-
-  const handleManageProject = useCallback(
-    (project: { workspaceId: string; projectId: string }) => {
-      setCurrentWorkspaceId(project.workspaceId);
-      setCurrentProjectId(project.projectId);
-      void navigate({ to: `/projects/${project.projectId}/settings/general/` as never });
-    },
-    [navigate, setCurrentProjectId, setCurrentWorkspaceId],
-  );
-
-  const projectMenuActions = useProjectMenuActions({
-    workspaceId: effectiveWorkspaceId ?? undefined,
-    t,
-    onEnterProject: handleEnterProject,
-    onManageProject: handleManageProject,
-  });
 
   const projectsQuery = useQuery({
     queryKey: ["global-nav", "projects", effectiveWorkspaceId, sessionVersion],
@@ -105,83 +67,7 @@ export function GlobalLayout() {
     [projectsQuery.data],
   );
 
-  const unifiedProjects = useMemo(
-    () =>
-      (projectsQuery.data ?? []).map((project) => ({
-        projectId: project.projectId,
-        workspaceId: project.workspaceId,
-        name: project.name,
-        description: project.description,
-        enterable: project.enterable,
-        renderLabel: () => (
-          <ProjectInlineNameEditor
-            editing={
-              projectMenuActions.editingProjectId === project.projectId &&
-              projectMenuActions.editingProjectField === "name"
-            }
-            value={project.name}
-            draftValue={projectMenuActions.editingProjectName}
-            ariaLabel={t("account:ACCOUNT_PROJECTS_RENAME_INPUT_LABEL")}
-            maxLength={PROJECT_NAME_MAX_LENGTH}
-            counterPlacement="suffix"
-            className="block min-w-0 flex-1 truncate"
-            containerClassName="min-w-0 flex-1"
-            inputClassName="h-8 text-callout"
-            counterClassName="right-2"
-            onDraftChange={projectMenuActions.setEditingProjectName}
-            onCommit={() => void projectMenuActions.commitProjectEdit(project, "name")}
-            onCancel={projectMenuActions.cancelProjectEdit}
-          />
-        ),
-        actionRenderer: () => (
-          <ProjectActionsDropdown
-            menuItems={projectMenuActions
-              .buildMenuItems(project)
-              .map((item) => {
-                if (item.type === "divider" || item.key !== "edit-project") {
-                  return item;
-                }
-
-                const nextItem = Object.assign({}, item);
-                nextItem.children =
-                  item.children?.filter(
-                    (child): child is Exclude<typeof child, { type: "divider" }> =>
-                      child.key !== "edit-description",
-                  ) ?? [];
-                return nextItem;
-              })
-              .filter((item) =>
-                item.type === "divider" ? true : (item.children?.length ?? 1) > 0,
-              )}
-            onPrepareMenu={() => {
-              void projectMenuActions.prefetchProjectDangerCapabilities(project.projectId);
-            }}
-            buttonClassName="size-6 rounded-sm text-label-secondary opacity-0 transition-opacity duration-150 hover:bg-accent/70 hover:text-label-primary group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100"
-          />
-        ),
-      })),
-    [
-      t,
-      projectMenuActions.buildMenuItems,
-      projectMenuActions.cancelProjectEdit,
-      projectMenuActions.commitProjectEdit,
-      projectMenuActions.editingProjectField,
-      projectMenuActions.editingProjectId,
-      projectMenuActions.editingProjectName,
-      projectMenuActions.setEditingProjectName,
-      projectsQuery.data,
-    ],
-  );
-
-  const navItems = useMemo(
-    () =>
-      resolveUnifiedNavItems({
-        isSuperAdmin,
-        projects: unifiedProjects,
-        activeProjectId: currentProjectId,
-      }),
-    [currentProjectId, isSuperAdmin, unifiedProjects],
-  );
+  const navItems = useMemo(() => resolveGlobalNavItems({ isSuperAdmin }), [isSuperAdmin]);
 
   if (contentOnlyMode) {
     return (
@@ -217,16 +103,10 @@ export function GlobalLayout() {
       mainItems={navItems}
       commandScope={GLOBAL_COMMAND_SCOPE}
       browseProjects={browseProjects}
-      activeBrowseProjectId={currentProjectId}
+      activeBrowseProjectId={null}
       sidebarCollapsible="icon"
     >
       <Outlet />
-      <ProjectActionDialogs
-        t={t}
-        archiveDialog={projectMenuActions.archiveDialog}
-        deleteDialog={projectMenuActions.deleteDialog}
-        iconDialog={projectMenuActions.iconDialog}
-      />
     </AdminSceneLayout>
   );
 }

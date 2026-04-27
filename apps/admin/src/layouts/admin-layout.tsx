@@ -3,9 +3,8 @@ import { type PropsWithChildren, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { listProjects } from "@/api/projects";
-import { resolveUnifiedNavItems, type UnifiedNavProject } from "@/constants/menu/unified";
-import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
+import { getProjectDetail, listProjects } from "@/api/projects";
+import { resolveProjectSceneNavItems } from "@/constants/menu/project-scene";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -42,12 +41,11 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
-  const { isSuperAdmin } = useCurrentUserProfile();
 
   const workspaceBase = useMemo(() => extractWorkspaceBaseFromPath(pathname), [pathname]);
   const effectiveWorkspaceId = workspaceIdFromStore;
   const projectIdFromPath = workspaceBase?.replace(/^\/projects\//, "") ?? null;
-  const effectiveProjectId = currentProjectId ?? projectIdFromPath;
+  const effectiveProjectId = projectIdFromPath ?? currentProjectId;
 
   const resolvePermissionName = useMemo(() => {
     return (code: string) => {
@@ -92,54 +90,53 @@ export function AdminLayout({ children }: PropsWithChildren) {
     meta: { silent: true },
   });
 
-  const browseProjects = useMemo(
+  const projectDetailQuery = useQuery({
+    queryKey: ["project", "detail", effectiveProjectId, sessionVersion],
+    enabled: Boolean(accessToken && isWorkspaceScopeRoute && effectiveProjectId),
+    queryFn: async () => getProjectDetail(String(effectiveProjectId)),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const listedBrowseProjects = useMemo(
     () => (projectsQuery.data ?? []).map(mapProjectListItemToSidebarBrowseProject),
     [projectsQuery.data],
   );
 
-  const unifiedProjects = useMemo<UnifiedNavProject[]>(() => {
-    const projects = (projectsQuery.data ?? []).map((project) => ({
-      projectId: project.projectId,
+  const activeBrowseProject = useMemo(() => {
+    const project = projectDetailQuery.data?.project;
+    if (!project) return null;
+    return {
+      projectId: project.id,
       workspaceId: project.workspaceId,
       name: project.name,
       description: project.description,
-      enterable: project.enterable,
-    }));
+      enterable: project.isActive,
+      iconMode: project.iconMode,
+      iconColor: project.iconColor,
+      iconGlyph: project.iconGlyph ?? null,
+      iconEmoji: project.iconEmoji ?? null,
+      iconUrl: project.iconUrl,
+    };
+  }, [projectDetailQuery.data?.project]);
 
+  const browseProjects = useMemo(() => {
+    if (!activeBrowseProject) return listedBrowseProjects;
     if (
-      !effectiveProjectId ||
-      projects.some((project) => project.projectId === effectiveProjectId)
+      listedBrowseProjects.some((project) => project.projectId === activeBrowseProject.projectId)
     ) {
-      return projects;
+      return listedBrowseProjects;
     }
-
-    return [
-      {
-        projectId: effectiveProjectId,
-        workspaceId: effectiveWorkspaceId ?? "",
-        name: effectiveProjectId,
-        description: null,
-        enterable: true,
-      },
-      ...projects,
-    ];
-  }, [effectiveProjectId, effectiveWorkspaceId, projectsQuery.data]);
-
-  const unifiedNav = useMemo(
-    () =>
-      isWorkspaceScopeRoute
-        ? resolveUnifiedNavItems({
-            isSuperAdmin,
-            projects: unifiedProjects,
-            activeProjectId: effectiveProjectId,
-          })
-        : [],
-    [effectiveProjectId, isSuperAdmin, isWorkspaceScopeRoute, unifiedProjects],
-  );
+    return [activeBrowseProject, ...listedBrowseProjects];
+  }, [activeBrowseProject, listedBrowseProjects]);
 
   const mainItems = useMemo(
-    () => unifiedNav.filter((item) => item.position !== "footer"),
-    [unifiedNav],
+    () =>
+      isWorkspaceScopeRoute && effectiveProjectId
+        ? resolveProjectSceneNavItems(String(effectiveProjectId))
+        : [],
+    [effectiveProjectId, isWorkspaceScopeRoute],
   );
 
   const workspaceLocalization = useWorkspaceLocalization();
@@ -235,7 +232,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
       commandScope={commandScope}
       browseProjects={browseProjects}
-      activeBrowseProjectId={effectiveProjectId}
+      activeBrowseProjectId={isWorkspaceScopeRoute ? effectiveProjectId : null}
       favoriteWorkspaceBase={
         isWorkspaceScopeRoute
           ? effectiveProjectId

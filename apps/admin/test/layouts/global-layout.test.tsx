@@ -64,16 +64,18 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
     children,
     mainItems,
     browseProjects,
+    activeBrowseProjectId,
     renderTopbar,
     sidebarCollapsible,
   }: {
     children: React.ReactNode;
     mainItems: Array<{ key: string }>;
     browseProjects?: Array<{ projectId: string; workspaceId: string; name: string }>;
+    activeBrowseProjectId?: string | null;
     renderTopbar?: () => React.ReactNode;
     sidebarCollapsible?: "icon" | "none";
   }) => {
-    sceneLayoutSpy({ mainItems, browseProjects, sidebarCollapsible });
+    sceneLayoutSpy({ mainItems, browseProjects, activeBrowseProjectId, sidebarCollapsible });
     return (
       <div data-testid="admin-scene-layout" data-sidebar-collapsible={sidebarCollapsible}>
         {renderTopbar?.()}
@@ -206,13 +208,20 @@ describe("GlobalLayout", () => {
     expect(screen.getByTestId("admin-topbar")).toHaveAttribute("data-leading-mode", "none");
   });
 
-  it("keeps projects visible while hiding platform from non-super-admin global navigation", () => {
+  it("keeps all projects visible while hiding platform from non-super-admin global navigation", () => {
     renderWithQueryClient(<GlobalLayout />);
 
+    const projectsItem = sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.find(
+      (item: { key: string }) => item.key === "global.projects",
+    );
     const navKeys = sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.map(
       (item: { key: string }) => item.key,
     );
-    expect(navKeys).toContain("global.projects");
+    expect(projectsItem).toMatchObject({
+      labelKey: "nav:NAV_ALL_PROJECTS",
+      to: "/projects",
+    });
+    expect(projectsItem?.children).toBeUndefined();
     expect(navKeys).not.toContain("global.platform");
   });
 
@@ -228,10 +237,18 @@ describe("GlobalLayout", () => {
     renderWithQueryClient(<GlobalLayout />);
 
     const navKeys = collectNavKeys(sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems ?? []);
+    const projectsItem = sceneLayoutSpy.mock.calls[0]?.[0]?.mainItems?.find(
+      (item: { key: string }) => item.key === "global.projects",
+    );
     expect(navKeys).toContain("global.projects");
     expect(navKeys).toContain("global.platform");
     expect(navKeys).toContain("global.platform.overview");
     expect(navKeys).toContain("global.platform.tenants");
+    expect(projectsItem).toMatchObject({
+      labelKey: "nav:NAV_ALL_PROJECTS",
+      to: "/projects",
+    });
+    expect(projectsItem?.children).toBeUndefined();
   });
 
   it("includes the resources placeholder before projects in global navigation", () => {
@@ -322,6 +339,7 @@ describe("GlobalLayout", () => {
           iconUrl: "/assets/project-alpha-icon",
         }),
       ]);
+      expect(sceneLayoutSpy.mock.calls.at(-1)?.[0]?.activeBrowseProjectId).toBeNull();
     });
   });
 

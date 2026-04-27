@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { GLOBAL_NAV_ITEMS, resolveGlobalNavItems } from "@/constants/menu/global";
 
 describe("global nav regression", () => {
-  test("registers projects and platform global groups", () => {
+  test("registers all projects and platform global entries", () => {
     const projectsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.projects");
     const platformItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.platform");
     const platformChildren = platformItem?.children?.map((item) => item.key);
@@ -13,23 +13,22 @@ describe("global nav regression", () => {
 
     expect(projectsItem).toMatchObject({
       key: "global.projects",
-      label: "Projects",
+      label: "All projects",
+      labelKey: "nav:NAV_ALL_PROJECTS",
       to: "/projects",
     });
+    expect(projectsItem?.children).toBeUndefined();
     expect(platformItem).toMatchObject({
       key: "global.platform",
       label: "Platform",
     });
     expect(platformChildren).toEqual([
+      "global.platform.overview",
       "global.platform.tenants",
       "global.platform.plans",
-      "global.platform.access",
       "global.platform.audit",
-      "global.platform.overview",
       "global.platform.jobs",
       "global.platform.configuration",
-      "global.platform.revenue",
-      "global.platform.support",
     ]);
     expect(configurationItem).toMatchObject({
       key: "global.platform.configuration",
@@ -58,38 +57,17 @@ describe("global nav regression", () => {
     expect(platformItem?.children?.map((item) => item.key)).toContain("global.platform.overview");
   });
 
-  test("marks projects as a navigate-self-and-expand group", () => {
+  test("marks all projects as a leaf link with a projects section label", () => {
     const projectsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.projects");
 
     expect(projectsItem).toMatchObject({
       key: "global.projects",
-      label: "Projects",
+      label: "All projects",
+      labelKey: "nav:NAV_ALL_PROJECTS",
+      groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
       to: "/projects",
-      groupBehavior: "navigate-self-and-expand",
     });
-  });
-
-  test("injects runtime project children under the global projects node", () => {
-    const projectsItemTemplate = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.projects");
-
-    const injectedItems = resolveGlobalNavItems({
-      isSuperAdmin: false,
-      projectChildren: [
-        {
-          key: "global.projects.project-alpha",
-          label: "Alpha",
-          to: "/projects/project-alpha",
-          icon: projectsItemTemplate!.icon,
-        },
-      ],
-    });
-    const projectsItem = injectedItems.find((item) => item.key === "global.projects");
-
-    expect(projectsItem?.children).toHaveLength(1);
-    expect(projectsItem?.children?.[0]).toMatchObject({
-      key: "global.projects.project-alpha",
-      label: "Alpha",
-      to: "/projects/project-alpha",
-    });
+    expect(projectsItem?.groupBehavior).toBeUndefined();
+    expect(projectsItem?.children).toBeUndefined();
   });
 });

@@ -346,7 +346,7 @@ const subItemActionItems: AdminNavItem[] = [
   },
 ];
 
-const unifiedProjectItems: AdminNavItem[] = [
+const nestedProjectMarkerItems: AdminNavItem[] = [
   {
     key: "global.projects",
     label: "Projects",
@@ -606,7 +606,7 @@ describe("AdminSiderNav collapsed groups", () => {
     });
   });
 
-  it("renders group markers as part of the unified tree", () => {
+  it("renders group markers as part of the nav tree", () => {
     renderTreeNav({
       items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
@@ -635,7 +635,7 @@ describe("AdminSiderNav collapsed groups", () => {
 
   it("renders translated group markers inside nested project groups", () => {
     renderTreeNav({
-      items: unifiedProjectItems,
+      items: nestedProjectMarkerItems,
       favoriteWorkspaceBase: "/projects/project-alpha",
       pathnameOverride: "/projects/project-alpha",
     });

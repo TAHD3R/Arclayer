@@ -300,34 +300,38 @@ function AdminSidebarTopTabs(props: {
                   sideOffset={8}
                   className="w-[calc(100vw-2rem)] max-w-[16rem]"
                 >
-                  <DropdownMenuGroup>
-                    {browseMenuProjects.map((project) => (
-                      <DropdownMenuIconItem
-                        key={project.projectId}
-                        icon={
-                          <ProjectAvatar
-                            name={project.name}
-                            size={18}
-                            className="rounded-sm ring-0"
-                            {...projectAvatarPropsFromIdentity(project)}
-                          />
-                        }
-                        disabled={!project.enterable}
-                        onSelect={() => handleProjectSelect(project.projectId)}
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate text-callout font-semibold text-label-primary">
-                            {project.name}
-                          </div>
-                          <div className="truncate text-caption text-label-secondary">
-                            {project.description?.trim() ||
-                              t("common:SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK")}
-                          </div>
-                        </div>
-                      </DropdownMenuIconItem>
-                    ))}
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
+                  {browseMenuProjects.length > 0 ? (
+                    <>
+                      <DropdownMenuGroup>
+                        {browseMenuProjects.map((project) => (
+                          <DropdownMenuIconItem
+                            key={project.projectId}
+                            icon={
+                              <ProjectAvatar
+                                name={project.name}
+                                size={18}
+                                className="rounded-sm ring-0"
+                                {...projectAvatarPropsFromIdentity(project)}
+                              />
+                            }
+                            disabled={!project.enterable}
+                            onSelect={() => handleProjectSelect(project.projectId)}
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate text-callout font-semibold text-label-primary">
+                                {project.name}
+                              </div>
+                              <div className="truncate text-caption text-label-secondary">
+                                {project.description?.trim() ||
+                                  t("common:SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK")}
+                              </div>
+                            </div>
+                          </DropdownMenuIconItem>
+                        ))}
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : null}
                   <DropdownMenuGroup>
                     <DropdownMenuIconItem
                       icon={<House className="size-4" />}

@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
 import { AdminLayout } from "@/layouts/admin-layout";
+import { getProjectDetail, listProjects } from "@/api/projects";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -71,6 +72,11 @@ vi.mock("@/api/workspaces", () => ({
   getWorkspaceDetail: vi.fn(),
 }));
 
+vi.mock("@/api/projects", () => ({
+  getProjectDetail: vi.fn(),
+  listProjects: vi.fn(),
+}));
+
 vi.mock("@/layouts/admin-scene-layout", () => ({
   AdminSceneLayout: (props: Record<string, unknown> & { children?: ReactNode }) => {
     capturedSceneProps.push(props);
@@ -109,6 +115,8 @@ function latestSceneProps() {
         children?: Array<{ key: string }>;
       }>;
     }>;
+    browseProjects?: Array<{ projectId: string; name: string }>;
+    activeBrowseProjectId?: string | null;
     favoriteWorkspaceBase?: string | null;
     sidebarPathnameOverride?: string;
     loading?: boolean;
@@ -155,6 +163,32 @@ describe("sidebar route state wiring", () => {
       cacheWorkspaceLocale: vi.fn(),
     });
     useWorkspaceStore.setState({ currentWorkspaceId: null, lastWorkspaceId: null });
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 100,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+    vi.mocked(getProjectDetail).mockResolvedValue({
+      project: {
+        id: "ws-1",
+        workspaceId: "workspace-1",
+        organizationId: "org-1",
+        slug: "ws-1",
+        name: "Project ws-1",
+        description: null,
+        iconMode: "initials",
+        iconColor: "#337ea9",
+        iconGlyph: null,
+        iconEmoji: null,
+        iconUrl: null,
+        isActive: true,
+      },
+      primaryRuntime: null,
+    });
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "workspace-1",
       organizationId: "org-1",
@@ -169,26 +203,17 @@ describe("sidebar route state wiring", () => {
     );
 
     const props = latestSceneProps();
-    const projectsNode = props.mainItems.find((item) => item.key === "global.projects");
-    const currentProjectNode = projectsNode?.children?.find(
-      (item) => item.key === "global.projects.current.ws-1",
-    );
 
     expect(screen.getByTestId("scene-layout")).toBeInTheDocument();
     expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
     expect(props.mainItems.map((item) => item.key)).toEqual([
-      "global.home",
-      "global.resources",
-      "global.projects",
-    ]);
-    expect(currentProjectNode?.children?.map((item) => item.key)).toEqual([
-      "global.projects.current.ws-1.dashboard",
-      "global.projects.current.ws-1.website",
-      "global.projects.current.ws-1.analytics",
-      "global.projects.current.ws-1.apps",
-      "global.projects.current.ws-1.automations",
-      "global.projects.current.ws-1.activity",
-      "global.projects.current.ws-1.settings.project",
+      "dashboard",
+      "website",
+      "analytics",
+      "apps",
+      "automations",
+      "activity",
+      "settings.project",
     ]);
   });
 
@@ -213,6 +238,59 @@ describe("sidebar route state wiring", () => {
     expect(screen.getByTestId("scene-layout")).toBeInTheDocument();
     expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
     expect(props.loading).toBe(false);
+  });
+
+  it("syncs the browse tab project identity on project routes", async () => {
+    mockPathname = "/projects/project-alpha/content/library";
+    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "workspace-alpha",
+      currentProjectId: "project-alpha",
+    });
+    vi.mocked(listProjects).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 100,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+    vi.mocked(getProjectDetail).mockResolvedValue({
+      project: {
+        id: "project-alpha",
+        workspaceId: "workspace-alpha",
+        organizationId: "org-alpha",
+        slug: "project-alpha",
+        name: "Project Alpha",
+        description: null,
+        iconMode: "glyph",
+        iconColor: "#123456",
+        iconGlyph: "rocket",
+        iconEmoji: null,
+        iconUrl: null,
+        isActive: true,
+      },
+      primaryRuntime: null,
+    });
+
+    renderWithQueryClient(
+      <AdminLayout>
+        <div>content</div>
+      </AdminLayout>,
+    );
+
+    await waitFor(() => {
+      const props = latestSceneProps();
+
+      expect(props.activeBrowseProjectId).toBe("project-alpha");
+      expect(props.browseProjects).toEqual([
+        expect.objectContaining({
+          projectId: "project-alpha",
+          name: "Project Alpha",
+        }),
+      ]);
+    });
   });
 
   it("renders route content without the admin scene shell in favorite overlay content-only mode", () => {

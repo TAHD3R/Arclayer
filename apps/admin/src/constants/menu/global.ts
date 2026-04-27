@@ -2,6 +2,7 @@ import {
   CreditCard,
   House,
   LayoutDashboard,
+  PanelsTopLeft,
   ReceiptText,
   Rainbow,
   Settings2,
@@ -31,11 +32,10 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     key: "global.projects",
-    label: "Projects",
-    labelKey: "account:ACCOUNT_NAV_PROJECTS",
+    label: "All projects",
+    labelKey: "nav:NAV_ALL_PROJECTS",
     to: "/projects",
-    groupBehavior: "navigate-self-and-expand",
-    icon: Users,
+    icon: PanelsTopLeft,
     groupLabelBeforeKey: "nav:NAV_SECTION_PROJECTS",
   },
   {
@@ -120,27 +120,19 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
   },
 ] as const;
 
-export function resolveGlobalNavItems(params: {
-  isSuperAdmin: boolean;
-  projectChildren?: AdminNavItem[];
-}): AdminNavItem[] {
+export function resolveGlobalNavItems(params: { isSuperAdmin: boolean }): AdminNavItem[] {
   const filterItems = (items: readonly AdminNavItem[]): AdminNavItem[] =>
     items.flatMap((item) => {
-      const nextItem =
-        item.key === "global.projects" && params.projectChildren?.length
-          ? { ...item, children: params.projectChildren, defaultExpanded: true }
-          : item;
-
-      if (nextItem.key === "global.platform" && !params.isSuperAdmin) {
+      if (item.key === "global.platform" && !params.isSuperAdmin) {
         return [];
       }
 
-      if (!nextItem.children?.length) return [nextItem];
+      if (!item.children?.length) return [item];
 
-      const children = filterItems(nextItem.children);
+      const children = filterItems(item.children);
       if (children.length === 0) return [];
 
-      return [{ ...nextItem, children }];
+      return [{ ...item, children }];
     });
 
   return filterItems(GLOBAL_NAV_ITEMS);

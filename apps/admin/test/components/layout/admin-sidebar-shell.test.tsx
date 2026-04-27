@@ -506,6 +506,28 @@ describe("AdminSidebarShell", () => {
     expect(within(menu).getByText("Secondary sandbox")).toBeInTheDocument();
   });
 
+  it("omits the browse project divider when the current workspace has no projects", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        browseProjects={[]}
+        activeBrowseProjectId={null}
+        collapsible="icon"
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
+
+    const menu = screen.getByRole("menu");
+
+    expect(within(menu).queryByRole("separator")).toBeNull();
+    expect(within(menu).getByRole("menuitem", { name: "nav:NAV_HOME" })).toBeInTheDocument();
+  });
+
   it("switches sidebar content between browse, inbox, and chat tabs", async () => {
     const user = userEvent.setup();
 

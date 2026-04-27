@@ -285,6 +285,8 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       expect(avatarImage).toBeTruthy();
       expect(avatarImage).toHaveAttribute("src", "https://example.com/workspace-alpha-icon.png");
       expect(avatarImage?.parentElement).toHaveClass("rounded-sm");
+      expect(avatarImage?.parentElement).toHaveClass("self-center");
+      expect(avatarImage?.parentElement).toHaveStyle({ width: "28px", height: "28px" });
     });
   });
 
