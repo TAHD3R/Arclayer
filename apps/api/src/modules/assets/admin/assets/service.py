@@ -278,9 +278,17 @@ class AdminAssetsService(BaseService):
                     profile_key = str(getattr(row, "storage_profile_key", "") or "")
                 except Exception:
                     continue
-                if out.visibility == "public" and not is_local_storage_provider(provider):
+                if out.visibility == "public":
                     profile = await self._get_profile_for_key(profile_key)
-                    if self._can_direct_deliver(profile=profile, storage_bucket=storage_bucket):
+                    if is_local_storage_provider(provider) and self._can_direct_deliver(
+                        profile=profile,
+                        storage_bucket=None,
+                    ):
+                        out.public_direct_url = self._build_public_direct_url(
+                            base_url=profile.public_base_url,
+                            object_key=out.public_url_path,
+                        )
+                    elif self._can_direct_deliver(profile=profile, storage_bucket=storage_bucket):
                         out.public_direct_url = self._build_public_direct_url(
                             base_url=profile.public_base_url,
                             object_key=object_key,
@@ -370,12 +378,19 @@ class AdminAssetsService(BaseService):
             if asset is None:
                 raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
             detail = AdminAssetDetailOut.model_validate(asset, from_attributes=True)
-        if detail.visibility == "public" and not is_local_storage_provider(
-            str(getattr(asset, "storage_provider", "") or "")
-        ):
+        provider = str(getattr(asset, "storage_provider", "") or "")
+        if detail.visibility == "public":
             profile_key = str(getattr(asset, "storage_profile_key", "") or "")
             profile = await self._get_profile_for_key(profile_key)
-            if self._can_direct_deliver(
+            if is_local_storage_provider(provider) and self._can_direct_deliver(
+                profile=profile,
+                storage_bucket=None,
+            ):
+                detail.public_direct_url = self._build_public_direct_url(
+                    base_url=profile.public_base_url,
+                    object_key=detail.public_url_path,
+                )
+            elif self._can_direct_deliver(
                 profile=profile, storage_bucket=str(getattr(asset, "storage_bucket", "") or "") or None
             ):
                 detail.public_direct_url = self._build_public_direct_url(

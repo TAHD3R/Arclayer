@@ -21,6 +21,7 @@ from src.modules.assets.admin.uploads.schema import (
     UploadPartCommitRequest,
     UploadPartPresignOut,
     UploadStatusOut,
+    build_upload_init_out,
 )
 from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
@@ -78,17 +79,7 @@ async def init_upload(
         requested_indexable=payload.indexable,
         target_folder_id=payload.folder_id,
     )
-    return ApiResponse.success(
-        data=UploadInitOut(
-            upload_id=session.id,
-            chunk_size=session.chunk_size,
-            total_parts=session.total_parts,
-            expires_at=session.expires_at,
-            method=session.storage_provider if session.storage_provider != "s3" else "s3_multipart",
-            reserved_asset_id=session.reserved_asset_id,
-            object_key=session.object_key,
-        )
-    )
+    return ApiResponse.success(data=build_upload_init_out(session))
 
 
 @router.get(

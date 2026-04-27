@@ -6,7 +6,16 @@ import { cn } from "@arclayer/lib/utils";
 export type FileIconTheme = "light" | "dark";
 export type FileIconAutoTheme = FileIconTheme | "auto";
 
-export type FileTypeIconName = "empty" | "image" | "audio" | "video" | "pdf" | "zip" | "document";
+export type FileTypeIconName =
+  | "empty"
+  | "image"
+  | "audio"
+  | "video"
+  | "pdf"
+  | "zip"
+  | "document"
+  | "folder"
+  | "folder-open";
 
 export interface FileTypeIconProps extends Omit<SVGProps<SVGSVGElement>, "width" | "height"> {
   filename?: string;
@@ -250,6 +259,47 @@ function ZipIcon(
   );
 }
 
+function FolderClosedIcon(
+  props: Omit<SVGProps<SVGSVGElement>, "width" | "height"> & {
+    size?: number;
+  },
+) {
+  const { size, ...rest } = props;
+  const { width, height } = SvgSize({ size });
+
+  return (
+    <svg width={width} height={height} viewBox="0 0 48 48" aria-hidden="true" {...rest}>
+      <path fill="#FFA000" d="M40 12H22l-4-4H8c-2.2 0-4 1.8-4 4v8h40v-4c0-2.2-1.8-4-4-4" />
+      <path
+        fill="#FFCA28"
+        d="M40 12H8c-2.2 0-4 1.8-4 4v20c0 2.2 1.8 4 4 4h32c2.2 0 4-1.8 4-4V16c0-2.2-1.8-4-4-4"
+      />
+    </svg>
+  );
+}
+
+function FolderOpenIcon(
+  props: Omit<SVGProps<SVGSVGElement>, "width" | "height"> & {
+    size?: number;
+  },
+) {
+  const { size, ...rest } = props;
+  const { width, height } = SvgSize({ size });
+
+  return (
+    <svg width={width} height={height} viewBox="0 0 48 48" aria-hidden="true" {...rest}>
+      <path
+        fill="#FFA000"
+        d="M38 12H22l-4-4H8c-2.2 0-4 1.8-4 4v24c0 2.2 1.8 4 4 4h31c1.7 0 3-1.3 3-3V16c0-2.2-1.8-4-4-4"
+      />
+      <path
+        fill="#FFCA28"
+        d="M42.2 18H15.3c-1.9 0-3.6 1.4-3.9 3.3L8 40h31.7c1.9 0 3.6-1.4 3.9-3.3l2.5-14c.5-2.4-1.4-4.7-3.9-4.7"
+      />
+    </svg>
+  );
+}
+
 function renderIcon(
   type: FileTypeIconName,
   theme: FileIconTheme,
@@ -268,6 +318,10 @@ function renderIcon(
       return <ZipIcon theme={theme} {...svgProps} />;
     case "document":
       return <DocumentIcon theme={theme} {...svgProps} />;
+    case "folder":
+      return <FolderClosedIcon {...svgProps} />;
+    case "folder-open":
+      return <FolderOpenIcon {...svgProps} />;
     case "empty":
     default:
       return <EmptyIcon theme={theme} {...svgProps} />;

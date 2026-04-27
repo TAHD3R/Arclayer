@@ -78,6 +78,7 @@
   "ASSET_UPLOADER_UNKNOWN": "Unknown user",
   "ASSET_PREVIEW_UNAVAILABLE": "No preview available",
   "ASSET_PREVIEW_LOAD_FAILED": "Failed to load image.",
+  "ASSET_THUMBNAIL_LOAD_FAILED": "Failed to load thumbnail.",
   "ASSET_PREVIEW_UNSUPPORTED_DESC": "This file type does not have an inline preview yet. Use the original file actions to inspect or download it.",
   "ASSET_PDF_LOADING": "Loading document...",
   "ASSET_PDF_PAGE_STATUS": "Page {{current}} of {{total}}",

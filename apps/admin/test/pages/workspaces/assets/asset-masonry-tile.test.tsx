@@ -63,7 +63,7 @@ describe("AssetMasonryTile", () => {
 
       return (
         <AssetMasonryTile
-          asset={asset}
+          asset={previewAsset}
           selected={selected}
           onSelect={() => {
             onSelect();
@@ -86,7 +86,7 @@ describe("AssetMasonryTile", () => {
     expect(rerenderedTile).not.toBeNull();
     fireEvent.click(rerenderedTile as HTMLElement, { detail: 2 });
     expect(onOpen).toHaveBeenCalledTimes(1);
-    expect(onOpen).toHaveBeenCalledWith(asset);
+    expect(onOpen).toHaveBeenCalledWith(previewAsset);
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
@@ -94,7 +94,7 @@ describe("AssetMasonryTile", () => {
     const onPointerDown = vi.fn();
     render(
       <AssetMasonryTile
-        asset={asset}
+        asset={previewAsset}
         onSelect={vi.fn()}
         onOpen={vi.fn()}
         onToggleSelected={vi.fn()}
@@ -124,7 +124,7 @@ describe("AssetMasonryTile", () => {
 
     render(
       <AssetMasonryTile
-        asset={asset}
+        asset={previewAsset}
         selected
         onSelect={onSelect}
         onOpen={vi.fn()}
@@ -149,7 +149,7 @@ describe("AssetMasonryTile", () => {
 
       return (
         <AssetMasonryTile
-          asset={asset}
+          asset={previewAsset}
           selected={selected}
           onSelect={vi.fn()}
           onOpen={onOpen}
@@ -171,7 +171,7 @@ describe("AssetMasonryTile", () => {
     expect(checkbox).toHaveAttribute("data-state", "unchecked");
 
     fireEvent.click(tile as HTMLElement, { detail: 2 });
-    expect(onOpen).toHaveBeenCalledWith(asset);
+    expect(onOpen).toHaveBeenCalledWith(previewAsset);
   });
 
   it("uses tile-level selected styling without rendering a checkbox in tile affordance mode", () => {
@@ -197,23 +197,74 @@ describe("AssetMasonryTile", () => {
     expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("inset-0", "rounded-lg");
   });
 
+  it("renders non-image asset thumbnails with the file type badge", () => {
+    const { container } = render(
+      <AssetMasonryTile
+        asset={{
+          ...asset,
+          name: "clip.mp4",
+          ext: "mp4",
+          mimeType: "video/mp4",
+          previewUrl: "/assets/clip-thumb.jpg",
+        }}
+        onSelect={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('[data-asset-file-preview="image"]')).not.toBeNull();
+    expect(container.querySelector('[data-asset-file-type-icon="true"]')).not.toBeNull();
+    expect(screen.getByRole("img", { name: "clip.mp4" })).toHaveAttribute(
+      "src",
+      "/assets/clip-thumb.jpg",
+    );
+  });
+
+  it("renders file type icons for non-image assets without thumbnails", () => {
+    const { container } = render(
+      <AssetMasonryTile
+        asset={{
+          ...asset,
+          name: "brief.pdf",
+          ext: "pdf",
+          mimeType: "application/pdf",
+          previewUrl: undefined,
+        }}
+        onSelect={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('[data-asset-file-preview="icon"]')).not.toBeNull();
+    expect(container.querySelector('[data-asset-file-type-icon="true"]')).not.toBeNull();
+    expect(screen.getByText("pdf")).toBeInTheDocument();
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
+  });
+
   it("keeps edit actions local to the action button", () => {
     const onSelect = vi.fn();
     const onEdit = vi.fn();
 
-    render(<AssetMasonryTile asset={asset} onSelect={onSelect} onOpen={vi.fn()} onEdit={onEdit} />);
+    render(
+      <AssetMasonryTile
+        asset={previewAsset}
+        onSelect={onSelect}
+        onOpen={vi.fn()}
+        onEdit={onEdit}
+      />,
+    );
 
     fireEvent.pointerDown(screen.getByLabelText("assets:ASSET_ACTION_EDIT"));
     fireEvent.click(screen.getByLabelText("assets:ASSET_ACTION_EDIT"));
 
-    expect(onEdit).toHaveBeenCalledWith(asset);
+    expect(onEdit).toHaveBeenCalledWith(previewAsset);
     expect(onSelect).not.toHaveBeenCalled();
   });
 
   it("includes edit asset in the more actions menu", () => {
     const menuItems = buildAssetMoreMenuItems({
       t: (key: string) => key,
-      asset,
+      asset: previewAsset,
       publicUrl: "https://cdn.example.com/hero.png",
     });
 
@@ -231,7 +282,7 @@ describe("AssetMasonryTile", () => {
   it("includes view details in the more actions menu", () => {
     const menuItems = buildAssetMoreMenuItems({
       t: (key: string) => key,
-      asset,
+      asset: previewAsset,
       publicUrl: "https://cdn.example.com/hero.png",
     });
 
@@ -250,13 +301,13 @@ describe("AssetMasonryTile", () => {
     const onMoreAction = vi.fn();
     const menuItems = buildAssetMoreMenuItems({
       t: (key: string) => key,
-      asset,
+      asset: previewAsset,
       publicUrl: "https://cdn.example.com/hero.png",
     });
 
     const { container } = render(
       <AssetMasonryTile
-        asset={asset}
+        asset={previewAsset}
         onSelect={vi.fn()}
         onOpen={vi.fn()}
         onEdit={vi.fn()}
@@ -303,18 +354,21 @@ describe("AssetMasonryTile", () => {
     expect(screen.queryByLabelText("common:MORE")).not.toBeInTheDocument();
     expect(container.querySelector('[data-tile-actions-visible="true"]')).toBeNull();
     expect(container.querySelector('[data-tile-actions-visible="false"]')).toBeNull();
+    expect(screen.getByText("assets:ASSET_THUMBNAIL_LOAD_FAILED")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /common:RETRY/ })).toBeInTheDocument();
+    expect(container.querySelector('[data-asset-file-type-icon="true"]')).not.toBeNull();
   });
 
   it("uses a larger and tighter hover toolbar treatment", () => {
     const menuItems = buildAssetMoreMenuItems({
       t: (key: string) => key,
-      asset,
+      asset: previewAsset,
       publicUrl: "https://cdn.example.com/hero.png",
     });
 
     render(
       <AssetMasonryTile
-        asset={asset}
+        asset={previewAsset}
         onSelect={vi.fn()}
         onOpen={vi.fn()}
         onEdit={vi.fn()}

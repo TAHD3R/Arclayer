@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, TypeGuard
 from uuid import UUID
 
 from tortoise import Tortoise
@@ -15,7 +16,7 @@ from src.models.assets.asset import AssetRecord
 from src.modules.tenancy.database import TenantDatabaseRouter
 from src.modules.tenancy.router_helpers import bind_tenant_context
 from src.modules.tenancy.schema import TenantJobContextPayload
-from src.platform.assets.thumbnails import generate_image_thumbnails
+from src.platform.assets.thumbnails import generate_image_thumbnails, render_preview_source
 from src.platform.storage.factory import build_storage_provider
 from src.platform.storage.local import safe_object_key_to_path
 from src.platform.storage.profiles import (
@@ -38,6 +39,11 @@ _FATAL_THUMBNAILS_JOB_ERRORS: tuple[type[BaseException], ...] = (
 
 # Keep this aligned with the admin UI expectations (see `thumbBaseUrl` consumers).
 _DEFAULT_WIDTHS: tuple[int, ...] = (400, 800, 1200, 1600)
+
+
+class _AssetThumbnailCandidate(Protocol):
+    mime: str | None
+    ext: str | None
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -106,15 +112,19 @@ async def _release_lock(asset_id: UUID) -> None:
         return
 
 
+def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
+    return isinstance(value, Mapping)
+
+
 def _existing_thumb_widths(variants: object) -> set[int]:
-    if not isinstance(variants, dict):
+    if not _is_mapping(variants):
         return set()
     thumbs = variants.get("thumbnails")
     if not isinstance(thumbs, list):
         return set()
     out: set[int] = set()
     for item in thumbs:
-        if not isinstance(item, dict):
+        if not _is_mapping(item):
             continue
         w = item.get("width")
         if isinstance(w, int) and w > 0:
@@ -135,7 +145,7 @@ def _merge_thumbnails(existing: object, incoming: object) -> list[dict[str, Any]
 
     if isinstance(existing, list):
         for item in existing:
-            if not isinstance(item, dict):
+            if not _is_mapping(item):
                 continue
             w = item.get("width")
             if isinstance(w, int) and w > 0 and w not in merged_by_width:
@@ -143,7 +153,7 @@ def _merge_thumbnails(existing: object, incoming: object) -> list[dict[str, Any]
 
     if isinstance(incoming, list):
         for item in incoming:
-            if not isinstance(item, dict):
+            if not _is_mapping(item):
                 continue
             w = item.get("width")
             if not isinstance(w, int) or w <= 0:
@@ -156,9 +166,30 @@ def _merge_thumbnails(existing: object, incoming: object) -> list[dict[str, Any]
     return [merged_by_width[w] for w in sorted(merged_by_width.keys())]
 
 
-def _is_image_asset(asset: AssetRecord) -> bool:
+def _merge_meta_payload(base: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in incoming.items():
+        existing = merged.get(key)
+        if isinstance(existing, dict) and isinstance(value, dict):
+            merged[key] = {**existing, **value}
+            continue
+        merged[key] = value
+    return merged
+
+
+def _is_image_asset(asset: _AssetThumbnailCandidate) -> bool:
     ext = (asset.ext or "").lstrip(".").lower()
     return bool((asset.mime or "").startswith("image/") or ext in {"jpg", "jpeg", "png", "webp", "gif"})
+
+
+def _is_previewable_asset(asset: _AssetThumbnailCandidate) -> bool:
+    ext = (asset.ext or "").lstrip(".").lower()
+    mime = (asset.mime or "").lower()
+    if _is_image_asset(asset):
+        return True
+    if mime == "application/pdf" or ext == "pdf":
+        return True
+    return bool(mime.startswith("video/") or ext in {"mp4", "mov", "webm", "m4v"})
 
 
 async def generate_asset_thumbnails(
@@ -220,7 +251,7 @@ async def generate_asset_thumbnails(
         if asset is None:
             return
 
-        if not _is_image_asset(asset):
+        if not _is_previewable_asset(asset):
             return
 
         desired = set(_DEFAULT_WIDTHS)
@@ -234,16 +265,54 @@ async def generate_asset_thumbnails(
             if not in_path.is_file():
                 return
 
+            preview_source_path = safe_object_key_to_path(
+                settings.storage.local_tmp_dir,
+                f"thumbs/{project_id}/{asset_id}/preview-source.png",
+            )
+            try:
+                thumbnail_source_path, source_meta = await render_preview_source(
+                    in_path=in_path,
+                    out_path=preview_source_path,
+                    mime=asset.mime,
+                    ext=asset.ext,
+                )
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.warning(
+                    "Asset thumbnail job preview source failed",
+                    action="asset_thumbs_preview_source_failed",
+                    project_id=str(project_id),
+                    asset_id=str(asset_id),
+                    object_key=str(asset.object_key),
+                    error=str(exc),
+                )
+                return
+
             def _out_path_for_width(width: int, *, alpha: bool) -> tuple[Path, str]:
                 out_ext = "png" if alpha else "jpg"
                 key = f"projects/{project_id}/assets/{asset_id}/thumb-{width}.{out_ext}"
                 return safe_object_key_to_path(settings.storage.local_root_dir, key), key
 
             variants_payload, meta_payload = await generate_image_thumbnails(
-                in_path=in_path,
+                in_path=thumbnail_source_path,
                 out_path_for_width=_out_path_for_width,
                 widths=missing,
             )
+            meta_payload = _merge_meta_payload(meta_payload, source_meta)
+
+            if thumbnail_source_path != in_path:
+                try:
+                    thumbnail_source_path.unlink(missing_ok=True)
+                except BaseException as cleanup_exc:
+                    _raise_if_fatal(cleanup_exc)
+                    logger.warning(
+                        "Asset thumbnail job temp cleanup failed",
+                        action="asset_thumbs_cleanup_preview_source_failed",
+                        project_id=str(project_id),
+                        asset_id=str(asset_id),
+                        path=str(thumbnail_source_path),
+                        error=str(cleanup_exc),
+                    )
 
         else:
             profile_key = str(getattr(asset, "storage_profile_key", "") or "")
@@ -278,6 +347,41 @@ async def generate_asset_thumbnails(
                 return
 
             out_paths: dict[str, Path] = {}
+            preview_source_path = safe_object_key_to_path(
+                settings.storage.local_tmp_dir,
+                f"thumbs/{project_id}/{asset_id}/preview-source.png",
+            )
+
+            try:
+                thumbnail_source_path, source_meta = await render_preview_source(
+                    in_path=in_path,
+                    out_path=preview_source_path,
+                    mime=asset.mime,
+                    ext=asset.ext,
+                )
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                logger.warning(
+                    "Asset thumbnail job preview source failed",
+                    action="asset_thumbs_preview_source_failed",
+                    project_id=str(project_id),
+                    asset_id=str(asset_id),
+                    object_key=str(asset.object_key),
+                    error=str(exc),
+                )
+                try:
+                    in_path.unlink(missing_ok=True)
+                except BaseException as cleanup_exc:
+                    _raise_if_fatal(cleanup_exc)
+                    logger.warning(
+                        "Asset thumbnail job temp cleanup failed",
+                        action="asset_thumbs_cleanup_source_failed",
+                        project_id=str(project_id),
+                        asset_id=str(asset_id),
+                        path=str(in_path),
+                        error=str(cleanup_exc),
+                    )
+                return
 
             def _out_path_for_width(width: int, *, alpha: bool) -> tuple[Path, str]:
                 out_ext = "png" if alpha else "jpg"
@@ -288,10 +392,11 @@ async def generate_asset_thumbnails(
                 return out_path, object_key
 
             variants_payload, meta_payload = await generate_image_thumbnails(
-                in_path=in_path,
+                in_path=thumbnail_source_path,
                 out_path_for_width=_out_path_for_width,
                 widths=missing,
             )
+            meta_payload = _merge_meta_payload(meta_payload, source_meta)
 
             thumbs = (variants_payload or {}).get("thumbnails") if isinstance(variants_payload, dict) else None
             if isinstance(thumbs, list):
@@ -337,6 +442,19 @@ async def generate_asset_thumbnails(
                     path=str(in_path),
                     error=str(cleanup_exc),
                 )
+            if preview_source_path != in_path:
+                try:
+                    preview_source_path.unlink(missing_ok=True)
+                except BaseException as cleanup_exc:
+                    _raise_if_fatal(cleanup_exc)
+                    logger.warning(
+                        "Asset thumbnail job temp cleanup failed",
+                        action="asset_thumbs_cleanup_preview_source_failed",
+                        project_id=str(project_id),
+                        asset_id=str(asset_id),
+                        path=str(preview_source_path),
+                        error=str(cleanup_exc),
+                    )
             for p in out_paths.values():
                 try:
                     p.unlink(missing_ok=True)

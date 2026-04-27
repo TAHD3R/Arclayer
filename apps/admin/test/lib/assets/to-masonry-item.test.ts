@@ -68,6 +68,48 @@ describe("toMasonryItem", () => {
     );
   });
 
+  test("prefers direct public URLs for public image previews", () => {
+    const item = toMasonryItem({
+      id: "asset-direct",
+      purpose: "library",
+      visibility: "public",
+      indexable: false,
+      sizeBytes: 256,
+      createdAt: "2026-03-06T12:00:00Z",
+      contentUrlPath: "/api/v1/projects/project-1/assets/asset-direct/content",
+      publicThumbUrlPath: "/assets/asset-direct/thumb",
+      publicUrlPath: "/assets/asset-direct/image.png",
+      publicDirectUrl: "http://localhost:8000/assets/asset-direct/image.png",
+      publicDownloadUrlPath: "/assets/asset-direct/download",
+      mime: "image/png",
+      ext: "png",
+    } as never);
+
+    expect(item.previewUrl).toBe("http://localhost:8000/assets/asset-direct/image.png");
+    expect(item.publicUrl).toBe("http://localhost:8000/assets/asset-direct/image.png");
+    expect(item.thumbBaseUrl).toBe("http://api.test/assets/asset-direct/thumb");
+  });
+
+  test("uses public thumbnail routes for non-image file previews", () => {
+    const item = toMasonryItem({
+      id: "asset-video",
+      purpose: "library",
+      visibility: "public",
+      indexable: false,
+      sizeBytes: 1024,
+      createdAt: "2026-03-06T12:00:00Z",
+      contentUrlPath: "/api/v1/projects/project-1/assets/asset-video/content",
+      publicThumbUrlPath: "/assets/asset-video/thumb",
+      publicUrlPath: "/assets/asset-video/video.mp4",
+      publicDownloadUrlPath: "/assets/asset-video/download",
+      mime: "video/mp4",
+      ext: "mp4",
+    } as never);
+
+    expect(item.thumbBaseUrl).toBe("http://api.test/assets/asset-video/thumb");
+    expect(item.previewUrl).toBe("http://api.test/assets/asset-video/thumb?w=400");
+  });
+
   test("uses admin content route for non-public image previews", () => {
     const item = toMasonryItem({
       id: "asset-private",

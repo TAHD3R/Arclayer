@@ -78,6 +78,7 @@
   "ASSET_UPLOADER_UNKNOWN": "未知用户",
   "ASSET_PREVIEW_UNAVAILABLE": "暂无可预览内容",
   "ASSET_PREVIEW_LOAD_FAILED": "图片加载失败",
+  "ASSET_THUMBNAIL_LOAD_FAILED": "缩略图加载失败",
   "ASSET_PREVIEW_UNSUPPORTED_DESC": "当前文件类型暂不支持内嵌预览，请使用原文件操作查看或下载。",
   "ASSET_PDF_LOADING": "文档加载中...",
   "ASSET_PDF_PAGE_STATUS": "第 {{current}} / {{total}} 页",

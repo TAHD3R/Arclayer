@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import subprocess
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -144,3 +145,95 @@ async def generate_image_thumbnails(
         out_path_for_width=out_path_for_width,
         widths=widths,
     )
+
+
+def _render_pdf_preview_source_sync(*, in_path: Path, out_path: Path) -> dict[str, Any]:
+    import pypdfium2 as pdfium  # type: ignore[import-not-found]
+
+    if not in_path.is_file():
+        raise FileNotFoundError(str(in_path))
+
+    _ensure_parent_dir(out_path)
+    pdf = pdfium.PdfDocument(str(in_path))
+    try:
+        if len(pdf) < 1:
+            raise ValueError("PDF has no pages")
+        page = pdf[0]
+        try:
+            bitmap = page.render(scale=2.0)
+            image = bitmap.to_pil()
+            if image.mode not in {"RGB", "L"}:
+                image = image.convert("RGB")
+            image.save(out_path, format="PNG", optimize=True)
+            return {"document": {"preview_source": "first_page"}}
+        finally:
+            page.close()
+    finally:
+        pdf.close()
+
+
+def _render_video_preview_source_sync(*, in_path: Path, out_path: Path) -> dict[str, Any]:
+    from imageio_ffmpeg import get_ffmpeg_exe  # type: ignore[import-not-found]
+
+    if not in_path.is_file():
+        raise FileNotFoundError(str(in_path))
+
+    _ensure_parent_dir(out_path)
+    ffmpeg = get_ffmpeg_exe()
+    attempts = ("1", "0.1", "0")
+    last_error = ""
+
+    for seek in attempts:
+        cmd = [
+            ffmpeg,
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-ss",
+            seek,
+            "-i",
+            str(in_path),
+            "-frames:v",
+            "1",
+            "-an",
+            "-sn",
+            str(out_path),
+        ]
+        result = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=30)
+        if result.returncode == 0 and out_path.is_file() and out_path.stat().st_size > 0:
+            return {"video": {"preview_source": "frame", "seek_seconds": float(seek)}}
+        last_error = (result.stderr or result.stdout or "").strip()
+
+    raise RuntimeError(last_error or "ffmpeg did not produce a preview frame")
+
+
+def _source_kind_for_preview(*, mime: str | None, ext: str | None) -> str | None:
+    normalized_mime = (mime or "").strip().lower()
+    normalized_ext = (ext or "").strip().lstrip(".").lower()
+    if normalized_mime.startswith("image/") or normalized_ext in {"jpg", "jpeg", "png", "webp", "gif"}:
+        return "image"
+    if normalized_mime == "application/pdf" or normalized_ext == "pdf":
+        return "pdf"
+    if normalized_mime.startswith("video/") or normalized_ext in {"mp4", "mov", "webm", "m4v"}:
+        return "video"
+    return None
+
+
+async def render_preview_source(
+    *,
+    in_path: Path,
+    out_path: Path,
+    mime: str | None,
+    ext: str | None,
+) -> tuple[Path, dict[str, Any]]:
+    kind = _source_kind_for_preview(mime=mime, ext=ext)
+    if kind == "image":
+        return in_path, {"image": {"preview_source": "original"}}
+    if kind == "pdf":
+        meta = await asyncio.to_thread(_render_pdf_preview_source_sync, in_path=in_path, out_path=out_path)
+        return out_path, meta
+    if kind == "video":
+        meta = await asyncio.to_thread(_render_video_preview_source_sync, in_path=in_path, out_path=out_path)
+        return out_path, meta
+    raise ValueError("unsupported preview source")

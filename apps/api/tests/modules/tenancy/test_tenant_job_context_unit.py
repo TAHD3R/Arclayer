@@ -38,6 +38,10 @@ def test_tenant_job_payload_round_trip() -> None:
     payload = {"tenant": context.to_job_payload().model_dump(mode="json")}
     restored = tenant_context_from_payload(payload)
     assert restored == context
+    assert restored is not None
+    assert isinstance(restored.scope, TenantScope)
+    assert isinstance(restored.isolation_mode, TenantIsolationMode)
+    assert restored.scope.value == "runtime"
 
 
 def test_require_tenant_context_from_payload_raises_when_missing() -> None:

@@ -216,7 +216,7 @@ export function LazyAssetImage(props: {
               {showErrorOverlay ? (
                 <Button
                   size="xs"
-                  variant="outline"
+                  variant="ghost"
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();

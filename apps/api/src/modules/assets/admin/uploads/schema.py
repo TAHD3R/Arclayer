@@ -6,6 +6,7 @@ from pydantic import Field
 
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
+from src.platform.storage.profiles import is_local_storage_provider
 
 
 class UploadInitRequest(BaseSchema):
@@ -56,3 +57,16 @@ class UploadPartPresignOut(BaseSchema):
 class UploadPartCommitRequest(BaseSchema):
     etag: str = Field(..., min_length=1, max_length=128, description="ETag returned by S3 for this uploaded part.")
     size_bytes: int = Field(..., ge=0, description="Uploaded part size (bytes).")
+
+
+def build_upload_init_out(session) -> UploadInitOut:
+    method = "local" if is_local_storage_provider(str(session.storage_provider)) else "s3_multipart"
+    return UploadInitOut(
+        upload_id=session.id,
+        chunk_size=session.chunk_size,
+        total_parts=session.total_parts,
+        expires_at=session.expires_at,
+        method=method,
+        reserved_asset_id=session.reserved_asset_id,
+        object_key=session.object_key,
+    )

@@ -1,4 +1,4 @@
-import { memo, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
+import { memo, useEffect, useId, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@arclayer/lib/utils";
@@ -15,23 +15,10 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { EllipsisVertical, Pencil, Trash2 } from "lucide-react";
-import {
-  ExcelDocumentIcon,
-  GdocDocumentIcon,
-  HtmlDocumentIcon,
-  PdfDocumentIcon,
-  PptDocumentIcon,
-  PsdDocumentIcon,
-  TxtDocumentIcon,
-  UnknownDocumentIcon,
-  VideoDocumentIcon,
-  WordDocumentIcon,
-  ZipDocumentIcon,
-} from "@arclayer/ui/icons/document-icons";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { formatRelativeTime } from "@/lib/time/relative-time";
-import { LazyAssetImage } from "./lazy-asset-image";
 import type { AssetMoreActionKey, AssetMoreMenuItem } from "./asset-more-actions";
+import { AssetFilePreview } from "./asset-file-preview";
 
 const TILE_ACTION_BUTTON_CLASSNAME =
   "bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:bg-white/16 hover:text-white focus-visible:bg-white/16 focus-visible:text-white";
@@ -196,34 +183,13 @@ export const AssetMasonryTile = memo(
     const titleId = useId();
     const selectionAffordance = props.selectionAffordance ?? "checkbox";
     const showSelectionCheckbox = selectionAffordance === "checkbox";
-    const showActionToolbar = !previewFailed;
+    const showActionToolbar = hasPreview && !previewFailed;
     const overlayVisible = showActionToolbar && (selected || moreMenuOpen);
 
     useEffect(() => {
       // When src changes (or tile switches), reset error state.
       setPreviewFailed(false);
     }, [props.asset.previewUrl]);
-
-    const fallbackIcon = useMemo(() => {
-      const mime = (props.asset.mimeType || "").toLowerCase();
-      const extRaw = (props.asset.ext || props.asset.name.split(".").pop() || "").toLowerCase();
-      const ext = extRaw.replace(/[^a-z0-9]/g, "");
-
-      if (mime === "application/pdf" || ext === "pdf") return <PdfDocumentIcon size={56} />;
-      if (mime.startsWith("video/") || ext === "mp4" || ext === "mov" || ext === "webm") {
-        return <VideoDocumentIcon size={56} />;
-      }
-      if (mime === "text/plain" || ext === "txt") return <TxtDocumentIcon size={56} />;
-      if (mime === "text/html" || ext === "html" || ext === "htm")
-        return <HtmlDocumentIcon size={56} />;
-      if (ext === "doc" || ext === "docx") return <WordDocumentIcon size={56} />;
-      if (ext === "xls" || ext === "xlsx" || ext === "csv") return <ExcelDocumentIcon size={56} />;
-      if (ext === "ppt" || ext === "pptx") return <PptDocumentIcon size={56} />;
-      if (ext === "psd") return <PsdDocumentIcon size={56} />;
-      if (ext === "zip" || ext === "7z" || ext === "rar") return <ZipDocumentIcon size={56} />;
-      if (ext === "gdoc") return <GdocDocumentIcon size={56} />;
-      return <UnknownDocumentIcon size={56} />;
-    }, [props.asset.ext, props.asset.mimeType, props.asset.name]);
 
     const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -250,6 +216,7 @@ export const AssetMasonryTile = memo(
           props.dragHandle?.isDragging && "opacity-60",
         )}
         role="button"
+        aria-label={props.asset.name}
         tabIndex={0}
         data-asset-tile="true"
         data-selected={selected ? "true" : "false"}
@@ -273,36 +240,31 @@ export const AssetMasonryTile = memo(
             />
           ) : null}
 
-          {hasPreview ? (
-            <LazyAssetImage
-              src={props.asset.previewUrl as string}
-              alt={props.asset.name}
-              fit="cover"
-              className={cn(
-                "transition-transform duration-200 ease-out will-change-transform",
-                "group-hover:scale-[1.03]",
-              )}
-              showErrorOverlay
-              errorText={t("assets:ASSET_PREVIEW_LOAD_FAILED")}
-              retryText={t("common:RETRY")}
-              onLoaded={(info) => {
-                setPreviewFailed(false);
-                props.onAspectRatio?.(props.asset.id, info.aspectRatio);
-              }}
-              onError={() => setPreviewFailed(true)}
-            />
-          ) : (
-            <div className="absolute inset-0 grid place-items-center bg-muted/20">
-              <div className="flex flex-col items-center gap-3 text-label-secondary">
-                <div className="opacity-95">{fallbackIcon}</div>
-                <div className="text-caption font-medium opacity-80">
-                  {(props.asset.ext || props.asset.mimeType || t("assets:ASSET_FILE_GENERIC"))
-                    .toString()
-                    .replace(/^\\./, "")}
-                </div>
+          <AssetFilePreview
+            asset={props.asset}
+            iconSize={56}
+            fit="cover"
+            showTypeBadge
+            showErrorOverlay
+            errorText={t("assets:ASSET_THUMBNAIL_LOAD_FAILED")}
+            retryText={t("common:RETRY")}
+            imageClassName={cn(
+              "transition-transform duration-200 ease-out will-change-transform",
+              showActionToolbar && "group-hover:scale-[1.03]",
+            )}
+            onLoaded={(info) => {
+              setPreviewFailed(false);
+              props.onAspectRatio?.(props.asset.id, info.aspectRatio);
+            }}
+            onError={() => setPreviewFailed(true)}
+            fallback={
+              <div className="text-caption font-medium text-label-secondary opacity-80">
+                {(props.asset.ext || props.asset.mimeType || t("assets:ASSET_FILE_GENERIC"))
+                  .toString()
+                  .replace(/^\\./, "")}
               </div>
-            </div>
-          )}
+            }
+          />
 
           {showActionToolbar ? (
             <div

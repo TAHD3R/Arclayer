@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { CornerUpLeft, FolderClosed, MoreVertical, PencilLine, Trash2 } from "lucide-react";
+import { FolderClosed, MoreVertical, PencilLine, Trash2 } from "lucide-react";
 import {
   type ColumnPinningState,
   type ColumnDef,
@@ -44,6 +44,7 @@ import {
   useDataTableWrapHeadersPreference,
   writeVisibilityState,
 } from "@arclayer/ui/data-table";
+import { FileTypeIcon } from "@arclayer/ui/icons/file-type-icon";
 
 import type { AssetsViewController } from "../hooks/use-assets-view-controller";
 import { handleAssetMoreAction } from "./asset-more-actions";
@@ -113,8 +114,8 @@ function FolderNameCell(props: {
           className="w-full"
         >
           <div className="flex min-w-0 items-center gap-3">
-            <div className={folderTableIconClassName}>
-              <FolderClosed className="size-4" />
+            <div className={folderTableIconClassName} data-asset-folder-table-icon="folder">
+              <FileTypeIcon type="folder" size={36} />
             </div>
             <div className="min-w-0">
               <div className="truncate text-callout font-semibold text-label-primary">
@@ -152,8 +153,8 @@ function FolderUpNameCell(props: {
           className="w-full"
         >
           <div className="flex min-w-0 items-center gap-3">
-            <div className={folderTableIconClassName}>
-              <CornerUpLeft className="size-4" />
+            <div className={folderTableIconClassName} data-asset-folder-table-icon="folder-open">
+              <FileTypeIcon type="folder-open" size={36} />
             </div>
             <div className="min-w-0">
               <div className="truncate text-callout font-semibold text-label-primary">

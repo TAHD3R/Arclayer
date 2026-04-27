@@ -6610,6 +6610,54 @@ export type OAuthLinkedIdentityOut = {
 export type ObjectStorageProviderKind = 'local' | 'aws_s3' | 'minio' | 'cloudflare_r2' | 'aliyun_oss' | 'volcengine_tos';
 
 /**
+ * OnboardingProfileOut
+ *
+ * Current user's onboarding profile signals.
+ */
+export type OnboardingProfileOut = {
+    /**
+     * Companysize
+     */
+    companySize?: 'solo' | '2_10' | '11_50' | '51_200' | '201_1000' | '1001_plus' | null;
+    /**
+     * Heardaboutus
+     */
+    heardAboutUs?: 'search' | 'social' | 'referral' | 'community_event' | 'article_newsletter' | 'ai_directory' | 'agency_consultant' | 'other' | null;
+    /**
+     * Jobrole
+     */
+    jobRole?: 'content_manager' | 'website_manager' | 'marketing_lead' | 'founder_owner' | 'developer_builder' | 'product_manager' | 'ai_operations' | 'agency_partner' | 'other' | null;
+    /**
+     * Subscribedproductupdates
+     */
+    subscribedProductUpdates?: boolean;
+};
+
+/**
+ * OnboardingProfilePatchRequest
+ *
+ * Patch current user's onboarding profile signals.
+ */
+export type OnboardingProfilePatchRequest = {
+    /**
+     * Companysize
+     */
+    companySize?: 'solo' | '2_10' | '11_50' | '51_200' | '201_1000' | '1001_plus' | null;
+    /**
+     * Heardaboutus
+     */
+    heardAboutUs?: 'search' | 'social' | 'referral' | 'community_event' | 'article_newsletter' | 'ai_directory' | 'agency_consultant' | 'other' | null;
+    /**
+     * Jobrole
+     */
+    jobRole?: 'content_manager' | 'website_manager' | 'marketing_lead' | 'founder_owner' | 'developer_builder' | 'product_manager' | 'ai_operations' | 'agency_partner' | 'other' | null;
+    /**
+     * Subscribedproductupdates
+     */
+    subscribedProductUpdates?: boolean | null;
+};
+
+/**
  * OnboardingWorkspaceCreateOut
  */
 export type OnboardingWorkspaceCreateOut = {
@@ -13434,6 +13482,31 @@ export type ResponseModelNotificationReadResult = {
  */
 export type ResponseModelOAuthLinkedIdentityListOut = {
     data?: OAuthLinkedIdentityListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[OnboardingProfileOut]
+ */
+export type ResponseModelOnboardingProfileOut = {
+    data?: OnboardingProfileOut | null;
     /**
      * Error
      */
@@ -20962,6 +21035,47 @@ export type GlobalAuthMeInvitationsResponses = {
 };
 
 export type GlobalAuthMeInvitationsResponse = GlobalAuthMeInvitationsResponses[keyof GlobalAuthMeInvitationsResponses];
+
+export type GlobalAuthGetMyOnboardingProfileData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/onboarding-profile';
+};
+
+export type GlobalAuthGetMyOnboardingProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelOnboardingProfileOut;
+};
+
+export type GlobalAuthGetMyOnboardingProfileResponse = GlobalAuthGetMyOnboardingProfileResponses[keyof GlobalAuthGetMyOnboardingProfileResponses];
+
+export type GlobalAuthUpdateMyOnboardingProfileData = {
+    body: OnboardingProfilePatchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/onboarding-profile';
+};
+
+export type GlobalAuthUpdateMyOnboardingProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthUpdateMyOnboardingProfileError = GlobalAuthUpdateMyOnboardingProfileErrors[keyof GlobalAuthUpdateMyOnboardingProfileErrors];
+
+export type GlobalAuthUpdateMyOnboardingProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelOnboardingProfileOut;
+};
+
+export type GlobalAuthUpdateMyOnboardingProfileResponse = GlobalAuthUpdateMyOnboardingProfileResponses[keyof GlobalAuthUpdateMyOnboardingProfileResponses];
 
 export type GlobalAuthConfirmRemoveMyPasswordData = {
     body: ConfirmRemoveMyPasswordRequest;

@@ -37,13 +37,13 @@ export function toMasonryItem(
     (asset.slug && asset.ext ? `${asset.slug}.${asset.ext}` : asset.id);
 
   const isImage = Boolean(asset.mime?.startsWith("image/"));
-  const thumbBaseUrl =
-    isImage && asset.publicThumbUrlPath
-      ? resolvePublicAssetUrlPath(asset.publicThumbUrlPath)
-      : undefined;
-  const publicUrl = asset.publicUrlPath
-    ? resolvePublicAssetUrlPath(asset.publicUrlPath)
+  const thumbBaseUrl = asset.publicThumbUrlPath
+    ? resolvePublicAssetUrlPath(asset.publicThumbUrlPath)
     : undefined;
+  const directPublicUrl = asset.publicDirectUrl?.trim() || undefined;
+  const publicUrl =
+    directPublicUrl ??
+    (asset.publicUrlPath ? resolvePublicAssetUrlPath(asset.publicUrlPath) : undefined);
   const downloadUrl = asset.publicDownloadUrlPath
     ? resolvePublicAssetUrlPath(asset.publicDownloadUrlPath)
     : undefined;
@@ -58,7 +58,14 @@ export function toMasonryItem(
     return `${base}${p}`;
   };
   const contentUrl = asset.contentUrlPath ? joinApiBaseUrl(asset.contentUrlPath) : undefined;
-  const previewUrl = isImage ? (thumbBaseUrl ? `${thumbBaseUrl}?w=400` : contentUrl) : undefined;
+  let previewUrl: string | undefined;
+  if (isImage && directPublicUrl) {
+    previewUrl = directPublicUrl;
+  } else if (thumbBaseUrl) {
+    previewUrl = `${thumbBaseUrl}?w=400`;
+  } else if (isImage) {
+    previewUrl = contentUrl;
+  }
 
   return {
     id: asset.id,

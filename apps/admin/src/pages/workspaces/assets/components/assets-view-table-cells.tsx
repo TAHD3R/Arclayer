@@ -14,7 +14,7 @@ import {
 
 import { buildAssetMoreMenuItems, handleAssetMoreAction } from "./asset-more-actions";
 import { getMimeLabel, getPurposeLabel, getVisibilityLabel } from "./asset-masonry-tile";
-import { LazyAssetImage } from "./lazy-asset-image";
+import { AssetFilePreview } from "./asset-file-preview";
 
 const UNKNOWN_UPLOADER_FALLBACK = "-";
 
@@ -37,23 +37,16 @@ export function buildAssetFilenameSubtitle(
 }
 
 export function AssetPreviewCell(props: { asset: AssetMasonryItem; subtitle: string }) {
-  const extensionLabel = (props.asset.ext || props.asset.mimeType || "file").replace(/^\./, "");
-
   return (
     <div className="flex min-w-0 items-center gap-3">
       <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted/25">
-        {props.asset.previewUrl ? (
-          <LazyAssetImage
-            src={props.asset.previewUrl}
-            alt={props.asset.name}
-            fit="cover"
-            errorVariant="icon-only"
-          />
-        ) : (
-          <span className="px-2 text-caption font-semibold text-label-secondary">
-            {extensionLabel.slice(0, 4)}
-          </span>
-        )}
+        <AssetFilePreview
+          asset={props.asset}
+          iconSize={36}
+          fit="cover"
+          errorVariant="icon-only"
+          errorFallback="file-type-icon"
+        />
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-callout font-semibold text-label-primary">

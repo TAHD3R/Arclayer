@@ -382,7 +382,9 @@ describe("useAssetsViewTableController", () => {
     const { container: folderUpContainer } = render(
       <>{flexRender(folderUpNameCell!.column.columnDef.cell, folderUpNameCell!.getContext())}</>,
     );
-    const folderUpIconShell = folderUpContainer.querySelector("svg")?.parentElement;
+    const folderUpIconShell = folderUpContainer.querySelector(
+      '[data-asset-folder-table-icon="folder-open"]',
+    );
 
     expect(folderUpIconShell).toHaveClass(
       "rounded-md",
@@ -395,7 +397,9 @@ describe("useAssetsViewTableController", () => {
     const { container: folderContainer } = render(
       <>{flexRender(folderNameCell!.column.columnDef.cell, folderNameCell!.getContext())}</>,
     );
-    const folderIconShell = folderContainer.querySelector("svg")?.parentElement;
+    const folderIconShell = folderContainer.querySelector(
+      '[data-asset-folder-table-icon="folder"]',
+    );
 
     expect(folderIconShell).toHaveClass(
       "rounded-md",

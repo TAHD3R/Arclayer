@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -11,9 +12,11 @@ from src.common.constants.assets import ASSET_SCOPE_PROJECT
 from src.config import Settings
 from src.core.exceptions import BadRequest
 from src.modules.assets.admin.assets.service import AdminAssetsService
+from src.modules.assets.admin.uploads.schema import build_upload_init_out
 from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.naming.service import build_scoped_asset_object_key
 from src.modules.assets.scope import AssetScope
+from src.platform.jobs.assets_thumbnails import _is_previewable_asset, _merge_meta_payload
 from src.platform.storage.capabilities import ObjectStorageCapabilities, ObjectStorageProviderKind
 from src.platform.storage.profile_schema import StorageProfileConfig
 
@@ -56,6 +59,64 @@ def _settings() -> Settings:
             )
         }
     )
+
+
+def test_upload_init_out_maps_remote_providers_to_s3_multipart() -> None:
+    now = datetime.now(UTC)
+    session = SimpleNamespace(
+        id=uuid4(),
+        chunk_size=8 * 1024 * 1024,
+        total_parts=1,
+        expires_at=now,
+        storage_provider=ObjectStorageProviderKind.AWS_S3.value,
+        reserved_asset_id=uuid4(),
+        object_key="projects/demo/assets/demo.png",
+    )
+
+    out = build_upload_init_out(session)
+
+    assert out.method == "s3_multipart"
+
+
+def test_upload_init_out_keeps_local_method() -> None:
+    now = datetime.now(UTC)
+    session = SimpleNamespace(
+        id=uuid4(),
+        chunk_size=8 * 1024 * 1024,
+        total_parts=1,
+        expires_at=now,
+        storage_provider=ObjectStorageProviderKind.LOCAL.value,
+        reserved_asset_id=uuid4(),
+        object_key="projects/demo/assets/demo.png",
+    )
+
+    out = build_upload_init_out(session)
+
+    assert out.method == "local"
+
+
+@pytest.mark.parametrize(
+    ("mime", "ext", "expected"),
+    [
+        ("image/png", "png", True),
+        ("application/pdf", "pdf", True),
+        ("video/mp4", "mp4", True),
+        ("application/zip", "zip", False),
+    ],
+)
+def test_asset_thumbnail_job_previewable_types(mime: str, ext: str, expected: bool) -> None:
+    asset = SimpleNamespace(mime=mime, ext=ext)
+
+    assert _is_previewable_asset(asset) is expected
+
+
+def test_asset_thumbnail_meta_merge_preserves_image_dimensions() -> None:
+    merged = _merge_meta_payload(
+        {"image": {"width": 1200, "height": 800}},
+        {"image": {"preview_source": "original"}},
+    )
+
+    assert merged == {"image": {"width": 1200, "height": 800, "preview_source": "original"}}
 
 
 @asynccontextmanager
@@ -281,6 +342,26 @@ def test_r2_direct_delivery_uses_custom_public_base_url() -> None:
     )
 
     assert service._can_direct_deliver(profile=profile, storage_bucket=None) is True
+
+
+def test_local_direct_delivery_uses_public_asset_path() -> None:
+    service = AdminAssetsService(_settings())
+    profile = StorageProfileConfig(
+        provider=ObjectStorageProviderKind.LOCAL,
+        public_base_url="http://localhost:8000",
+        public_delivery_mode="direct",
+        local_root_dir=service.settings.storage.local_root_dir,
+        local_tmp_dir=service.settings.storage.local_tmp_dir,
+    )
+
+    assert service._can_direct_deliver(profile=profile, storage_bucket=None) is True
+    assert (
+        service._build_public_direct_url(
+            base_url=profile.public_base_url,
+            object_key="/assets/example-id/demo.png",
+        )
+        == "http://localhost:8000/assets/example-id/demo.png"
+    )
 
 
 @pytest.mark.asyncio

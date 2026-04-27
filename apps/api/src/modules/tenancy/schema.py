@@ -65,7 +65,7 @@ class TenantContext:
 
     @property
     def isolation_mode(self) -> TenantIsolationMode:
-        return self.identity.isolation_mode
+        return TenantIsolationMode(self.identity.isolation_mode)
 
     def with_project(
         self,
@@ -137,9 +137,9 @@ class TenantJobContextPayload(BaseSchema):
                 runtime_id=self.runtime_id,
                 site_id=self.site_id,
                 schema_name=self.schema_name,
-                isolation_mode=self.isolation_mode,
+                isolation_mode=TenantIsolationMode(self.isolation_mode),
             ),
-            scope=self.scope,
+            scope=TenantScope(self.scope),
         )
 
 
