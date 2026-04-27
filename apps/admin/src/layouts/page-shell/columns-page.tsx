@@ -26,6 +26,18 @@ export type ColumnsPageProps = BasePageProps & {
 
 const COLUMNS_PAGE_DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
 
+function PageShellTopSpacer() {
+  return (
+    <div
+      className="relative min-h-[20px] max-h-[88px] w-full overflow-hidden"
+      aria-hidden="true"
+      data-slot="page-shell-top-spacer"
+    >
+      <div className="relative w-full pb-0 xl:pb-[clamp(20px,calc(5.90277778vw_-_65px),88px)]" />
+    </div>
+  );
+}
+
 function getColumnsPageDesktopMatch() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
     return false;
@@ -109,6 +121,7 @@ export function ColumnsPage({
       innerClassName={clsx(hasFooter && "h-full min-h-0 overflow-hidden pb-0")}
       overlay={overlay}
     >
+      <PageShellTopSpacer />
       <div
         className={clsx("flex min-h-0 min-w-0 w-full flex-col", fillAvailableHeight && "flex-1")}
         data-slot="columns-page-stack"

@@ -31,9 +31,9 @@ export function AdminRouteContainer({
     >
       <div
         className={cn(
-          "flex min-h-0 min-w-0 w-full flex-col pt-8 pb-20 [--admin-route-frame-max-width:100rem] [--admin-route-gutter-x:1rem] sm:[--admin-route-gutter-x:1.5rem] lg:[--admin-route-gutter-x:2.5rem] 2xl:[--admin-route-gutter-x:3rem]",
+          "flex min-h-0 min-w-0 w-full flex-col pb-20 [--admin-route-gutter-x:1rem] sm:[--admin-route-gutter-x:1.5rem]",
           pageFrame === "contained"
-            ? "mx-auto max-w-[var(--admin-route-frame-max-width)] px-[var(--admin-route-gutter-x)]"
+            ? "mx-auto max-w-6xl px-[var(--admin-route-gutter-x)]"
             : "px-[var(--admin-route-gutter-x)]",
           innerClassName,
         )}

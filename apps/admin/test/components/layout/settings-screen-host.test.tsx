@@ -133,6 +133,8 @@ describe("SettingsScreenHost", () => {
 
     const closeButton = screen.getByRole("button", { name: "Close" });
     const overlayContent = screen.getByTestId("settings-shell-frame");
+    const routeFrame = document.querySelector('[data-slot="admin-route-frame"]');
+    const spacer = document.querySelector('[data-slot="page-shell-top-spacer"]');
     const nav = screen.getByRole("navigation", { name: "account:SETTINGS_SHELL_TITLE" });
 
     expect(overlayContent).toHaveClass(
@@ -147,6 +149,13 @@ describe("SettingsScreenHost", () => {
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");
     expect(closeButton).toHaveClass("shrink-0");
+    expect(routeFrame).toHaveClass(
+      "lg:[--admin-route-gutter-x:clamp(2.5rem,calc(15.85365854vw_-_122.439024px),9rem)]",
+    );
+    expect(spacer).toHaveAttribute("data-preset", "settings-dialog");
+    expect(spacer?.firstElementChild).toHaveClass(
+      "lg:pb-[clamp(20px,calc(10.36585366vw_-_86.146341px),88px)]",
+    );
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_PROFILE" })).toBeVisible();
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_APPEARANCE" })).toBeVisible();
     expect(screen.getByRole("button", { name: "account:ACCOUNT_NAV_NOTIFICATIONS" })).toBeVisible();

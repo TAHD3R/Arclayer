@@ -403,7 +403,6 @@ export function ProjectDomainSettingsPage(props: { projectId: string; embedded?:
       description={t("account:SETTINGS_PROJECT_DOMAINS_DESC")}
       showFavoriteToggle={false}
       pageFrame="full"
-      largeViewportGutters={false}
       className="min-h-full"
       contentClassName="min-h-full"
       contentContainerClassName="min-h-full"

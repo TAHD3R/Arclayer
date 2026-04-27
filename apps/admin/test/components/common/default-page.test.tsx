@@ -68,6 +68,7 @@ describe("DefaultPage", () => {
     const favoriteIcon = favoriteButton.firstElementChild;
     const favoriteSvg = favoriteButton.querySelector("svg");
     const titleCluster = title.parentElement;
+    const spacer = document.querySelector('[data-slot="page-shell-top-spacer"]');
     const shell = document.querySelector('[data-slot="default-page-shell"]');
     const body = shell?.querySelector('[data-slot="page-main-region"]');
     const content = body?.querySelector('[data-slot="page-content"]');
@@ -81,6 +82,21 @@ describe("DefaultPage", () => {
     expect(favoriteSvg).toHaveAttribute("width", "16");
     expect(favoriteSvg).toHaveAttribute("height", "16");
     expect(favoriteIcon).toHaveClass("inline-flex", "items-center", "justify-center");
+    expect(spacer).toHaveAttribute("aria-hidden", "true");
+    expect(spacer).toHaveAttribute("data-preset", "page");
+    expect(spacer).toHaveClass(
+      "relative",
+      "w-full",
+      "min-h-[20px]",
+      "max-h-[88px]",
+      "overflow-hidden",
+    );
+    expect(spacer?.firstElementChild).toHaveClass(
+      "relative",
+      "w-full",
+      "pb-0",
+      "xl:pb-[clamp(20px,calc(5.90277778vw_-_65px),88px)]",
+    );
     expect(shell).toHaveClass("flex", "min-h-0", "min-w-0", "w-full");
     expect(shell).not.toHaveClass("flex-1");
     expect(body).toHaveClass("flex", "min-h-0", "min-w-0", "w-full", "flex-1", "flex-col");
@@ -175,6 +191,28 @@ describe("DefaultPage", () => {
       "flex-col",
       "mx-auto",
       "max-w-4xl",
+    );
+  });
+
+  it("supports a tighter top spacing preset for contained settings dialogs", () => {
+    render(
+      <DefaultPage title="Settings" spacingPreset="settings-dialog">
+        <div>Body</div>
+      </DefaultPage>,
+    );
+
+    const routeFrame = document.querySelector('[data-slot="admin-route-frame"]');
+    const spacer = document.querySelector('[data-slot="page-shell-top-spacer"]');
+
+    expect(routeFrame).toHaveClass(
+      "lg:[--admin-route-gutter-x:clamp(2.5rem,calc(15.85365854vw_-_122.439024px),9rem)]",
+    );
+    expect(spacer).toHaveAttribute("data-preset", "settings-dialog");
+    expect(spacer?.firstElementChild).toHaveClass(
+      "relative",
+      "w-full",
+      "pb-0",
+      "lg:pb-[clamp(20px,calc(10.36585366vw_-_86.146341px),88px)]",
     );
   });
 });

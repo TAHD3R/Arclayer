@@ -155,7 +155,6 @@ function ProjectStandalonePage(props: { titleKey: string; descriptionKey?: strin
       description={t(props.descriptionKey ?? "common:PAGE_COMING_SOON_DESC")}
       showFavoriteToggle={false}
       pageFrame="full"
-      largeViewportGutters={false}
       className="min-h-full"
       contentClassName="min-h-full"
       contentContainerClassName="min-h-full"

@@ -274,7 +274,6 @@ export function ProjectDatabasesPage(props: { projectId: string; embedded?: bool
           description={t("account:SETTINGS_PROJECT_DATABASES_DESC")}
           showFavoriteToggle={false}
           pageFrame="full"
-          largeViewportGutters={false}
           className="min-h-full"
           contentClassName="min-h-full"
           contentContainerClassName="min-h-full"

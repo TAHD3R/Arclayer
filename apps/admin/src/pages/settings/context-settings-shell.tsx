@@ -92,7 +92,6 @@ export function ContextSettingsShell(props: ContextSettingsShellProps) {
       title={props.title}
       showFavoriteToggle={false}
       pageFrame="full"
-      largeViewportGutters
       className="min-h-full"
       contentClassName="min-h-full"
       contentContainerClassName="min-h-full"

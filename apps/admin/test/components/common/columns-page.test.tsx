@@ -90,6 +90,7 @@ describe("ColumnsPage", () => {
     );
 
     const shell = document.querySelector('[data-slot="columns-page-shell"]');
+    const spacer = document.querySelector('[data-slot="page-shell-top-spacer"]');
     const body = shell?.querySelector('[data-slot="page-main-region"]');
     const content = body?.querySelector('[data-slot="page-content"]');
     const leftSlotWrapper = screen
@@ -102,6 +103,20 @@ describe("ColumnsPage", () => {
     const rightSlot = rightSlotWrapper?.firstElementChild;
     const leftContentWrap = screen.getByText("Filters").parentElement;
 
+    expect(spacer).toHaveAttribute("aria-hidden", "true");
+    expect(spacer).toHaveClass(
+      "relative",
+      "w-full",
+      "min-h-[20px]",
+      "max-h-[88px]",
+      "overflow-hidden",
+    );
+    expect(spacer?.firstElementChild).toHaveClass(
+      "relative",
+      "w-full",
+      "pb-0",
+      "xl:pb-[clamp(20px,calc(5.90277778vw_-_65px),88px)]",
+    );
     expect(shell).toHaveClass("hidden", "min-h-0", "min-w-0", "w-full", "lg:flex");
     expect(shell).not.toHaveClass("flex-1");
     expect(body).toHaveClass("flex", "min-h-0", "min-w-0", "w-full", "flex-col");

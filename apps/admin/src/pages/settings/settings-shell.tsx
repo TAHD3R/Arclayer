@@ -29,7 +29,6 @@ type SettingsFrameProps = {
   children: ReactNode;
   onClose?: () => void;
   onSelectItem?: (item: SettingsNavItem) => void;
-  expandedGutters?: boolean;
   className?: string;
 };
 
@@ -167,7 +166,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
             showFavoriteToggle={false}
             action={props.action}
             pageFrame="full"
-            largeViewportGutters={props.expandedGutters}
+            spacingPreset="settings-dialog"
             className="min-h-full"
             contentClassName="min-h-full"
             contentContainerClassName="min-h-full"

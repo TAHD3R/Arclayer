@@ -29,11 +29,11 @@ describe("AdminRouteContainer", () => {
       "w-full",
       "flex-col",
       "mx-auto",
-      "max-w-[var(--admin-route-frame-max-width)]",
+      "max-w-6xl",
       "px-[var(--admin-route-gutter-x)]",
-      "pt-8",
       "pb-20",
     );
+    expect(inner).not.toHaveClass("pt-8");
     expect(inner).toHaveAttribute("data-slot", "admin-route-frame");
     expect(inner).not.toHaveClass("flex-1");
     expect(inner).not.toHaveClass("h-full");
@@ -54,7 +54,7 @@ describe("AdminRouteContainer", () => {
 
     expect(inner).toHaveClass("w-full", "flex-col");
     expect(inner).not.toHaveClass("mx-auto");
-    expect(inner).not.toHaveClass("max-w-[var(--admin-route-frame-max-width)]");
+    expect(inner).not.toHaveClass("max-w-6xl");
     expect(inner).toHaveClass("px-0", "pt-0", "pb-0");
   });
 });

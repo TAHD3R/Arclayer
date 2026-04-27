@@ -120,7 +120,6 @@ export function SettingsScreenHost() {
         <SettingsFrame
           activeScreen={activeScreen}
           action={action}
-          expandedGutters
           onClose={() => handleOpenChange(false)}
           onSelectItem={(item) => settingsScreen.switchSettingsScreen(item.screen)}
           className="h-full w-full max-w-none rounded-none border-0 shadow-none"
