@@ -30,6 +30,7 @@ type AssetsFolderRailRecentSectionProps = {
   onOpenAsset: (asset: AssetMasonryItem) => void;
   onRemoveRecentAsset: (key: string) => void;
   onClearRecentAssets: () => void;
+  standalone?: boolean;
 };
 
 function RecentFileRowSkeleton() {
@@ -170,7 +171,9 @@ export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSecti
   const gridClassName = layoutMode === "single" ? "grid-cols-1" : "grid-cols-2";
 
   return (
-    <section className="mt-8 space-y-3.5 border-t border-border/50 pt-6">
+    <section
+      className={cn("space-y-3.5", props.standalone ? null : "mt-8 border-t border-border/50 pt-6")}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="text-title3 text-label-primary">{props.t("assets:ASSET_RECENT_TITLE")}</div>
         <RecentSectionMenu

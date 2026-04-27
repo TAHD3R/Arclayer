@@ -13,11 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 
-import {
-  buildFolderById,
-  buildFolderPath,
-  flattenFoldersDepthFirst,
-} from "./assets-folder-rail-utils";
+import { flattenFoldersDepthFirst } from "./assets-folder-rail-utils";
 import { AssetsFolderRailEmptyCard } from "./assets-folder-rail-empty-card";
 import { FolderCard, FolderCardSkeleton } from "./assets-folder-rail-folder-cards";
 import { toFolderDndId } from "./assets-view-dnd";
@@ -46,7 +42,6 @@ type AssetsFolderRailFolderSectionProps = {
 export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSectionProps) {
   const [layoutMode, setLayoutMode] = useState<"single" | "multi">("single");
   const canManageAssets = props.canManageAssets !== false;
-  const folderById = useMemo(() => buildFolderById(props.folders), [props.folders]);
   const orderedFolders = useMemo(() => flattenFoldersDepthFirst(props.folders), [props.folders]);
   const gridClassName = layoutMode === "single" ? "grid-cols-1" : "grid-cols-2";
 
@@ -120,39 +115,26 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
 
       {!props.foldersLoading && !props.foldersError && orderedFolders.length > 0 ? (
         <div className={cn("grid gap-3", gridClassName)}>
-          {orderedFolders.map((folder) => {
-            const parentPath = buildFolderPath(
-              folder.parentId ? String(folder.parentId) : null,
-              folderById,
-            )
-              .map((item) => item.name)
-              .join(" / ");
-            const locationLabel = parentPath
-              ? props.t("assets:ASSET_FOLDER_CARD_NESTED_IN", { name: parentPath })
-              : props.t("assets:ASSET_FOLDER_CARD_ROOT");
-
-            return (
-              <FolderCard
-                key={String(folder.id)}
-                t={props.t}
-                folder={folder}
-                isActive={props.currentFolderId === String(folder.id)}
-                locationLabel={locationLabel}
-                onSelectFolder={props.onSelectFolder}
-                onEditFolder={props.onEditFolder}
-                onMoveFolder={props.onMoveFolder}
-                onDeleteFolder={props.onDeleteFolder}
-                dropPulseNonce={
-                  props.dropSuccessPulse?.droppableId === toFolderDndId(String(folder.id))
-                    ? props.dropSuccessPulse.nonce
-                    : null
-                }
-                tooltipDisabled={props.tooltipDisabled}
-                layoutMode={layoutMode}
-                canManageAssets={canManageAssets}
-              />
-            );
-          })}
+          {orderedFolders.map((folder) => (
+            <FolderCard
+              key={String(folder.id)}
+              t={props.t}
+              folder={folder}
+              isActive={props.currentFolderId === String(folder.id)}
+              onSelectFolder={props.onSelectFolder}
+              onEditFolder={props.onEditFolder}
+              onMoveFolder={props.onMoveFolder}
+              onDeleteFolder={props.onDeleteFolder}
+              dropPulseNonce={
+                props.dropSuccessPulse?.droppableId === toFolderDndId(String(folder.id))
+                  ? props.dropSuccessPulse.nonce
+                  : null
+              }
+              tooltipDisabled={props.tooltipDisabled}
+              layoutMode={layoutMode}
+              canManageAssets={canManageAssets}
+            />
+          ))}
         </div>
       ) : null}
     </section>

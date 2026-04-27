@@ -26,6 +26,31 @@ vi.mock("@arclayer/ui/tooltip", () => ({
   TooltipContent: ({ children }: PropsWithChildren) => <>{children}</>,
 }));
 
+function mockOverflowingTitle() {
+  const keys = {
+    clientWidth: 80,
+    scrollWidth: 240,
+    clientHeight: 24,
+    scrollHeight: 24,
+  } as const;
+  const restores = Object.entries(keys).map(([key, value]) => {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, key);
+    Object.defineProperty(HTMLElement.prototype, key, {
+      configurable: true,
+      get: () => value,
+    });
+    return () => {
+      if (original) {
+        Object.defineProperty(HTMLElement.prototype, key, original);
+        return;
+      }
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>)[key];
+    };
+  });
+
+  return () => restores.forEach((restore) => restore());
+}
+
 describe("DefaultPage", () => {
   beforeEach(() => {
     useFavoritesStore.setState({ paths: [] });
@@ -61,6 +86,28 @@ describe("DefaultPage", () => {
     expect(body).toHaveClass("flex", "min-h-0", "min-w-0", "w-full", "flex-1", "flex-col");
     expect(content).toHaveClass("min-h-0", "min-w-0", "w-full", "flex-1");
     expect(document.querySelector('[data-slot="columns-page-shell"]')).toBeNull();
+  });
+
+  it("truncates overflowing page titles and exposes the full title in a tooltip", () => {
+    const restore = mockOverflowingTitle();
+    const title = "Campaign folder name that should truncate inside the page header";
+
+    try {
+      render(
+        <DefaultPage title={title} showFavoriteToggle={false}>
+          <div>Body</div>
+        </DefaultPage>,
+      );
+
+      const titleMatches = screen.getAllByText(title);
+      const pageTitle = document.querySelector('[data-slot="page-title"]');
+
+      expect(titleMatches).toHaveLength(2);
+      expect(pageTitle).toHaveTextContent(title);
+      expect(pageTitle).toHaveClass("truncate", "min-w-0", "max-w-full");
+    } finally {
+      restore();
+    }
   });
 
   it("uses an amber favorite accent when the current page is starred", () => {

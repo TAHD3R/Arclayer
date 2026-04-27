@@ -11,7 +11,9 @@ type FolderDescriptionTooltipProps = {
 
 function isTextClamped(element: HTMLDivElement | null) {
   if (!element) return false;
-  return element.scrollHeight > element.clientHeight + 1;
+  return (
+    element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1
+  );
 }
 
 export function FolderDescriptionTooltip(props: FolderDescriptionTooltipProps) {

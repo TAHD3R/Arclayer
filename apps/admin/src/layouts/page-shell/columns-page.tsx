@@ -11,7 +11,12 @@ import {
   type ColumnsPagePaneToggle,
   type ColumnsPageSideSlots,
 } from "./columns-page-layout";
-import { PageMainRegion, shouldHidePageHeader, type BasePageProps } from "./page-main-region";
+import {
+  getPageTitleTooltipLabel,
+  PageMainRegion,
+  shouldHidePageHeader,
+  type BasePageProps,
+} from "./page-main-region";
 
 export type ColumnsPageProps = BasePageProps & {
   sideSlots: ColumnsPageSideSlots;
@@ -30,6 +35,7 @@ function getColumnsPageDesktopMatch() {
 
 export function ColumnsPage({
   title,
+  titleTooltip,
   description,
   showFavoriteToggle = true,
   headerVisibility = "auto",
@@ -43,6 +49,7 @@ export function ColumnsPage({
   contentClassName,
 }: ColumnsPageProps) {
   const hideHeader = headerVisibility === "always" ? false : shouldHidePageHeader(children);
+  const resolvedTitleTooltip = titleTooltip ?? getPageTitleTooltipLabel(title);
   const leftSideSlot = hideHeader ? undefined : sideSlots?.left;
   const rightSideSlot = hideHeader ? undefined : sideSlots?.right;
   const hasSideSlots = Boolean(leftSideSlot || rightSideSlot);
@@ -74,6 +81,7 @@ export function ColumnsPage({
   const mainRegion = (
     <PageMainRegion
       title={hideHeader ? undefined : title}
+      titleTooltip={hideHeader ? undefined : resolvedTitleTooltip}
       description={hideHeader ? undefined : description}
       showFavoriteToggle={hideHeader ? false : showFavoriteToggle}
       action={hideHeader ? undefined : action}

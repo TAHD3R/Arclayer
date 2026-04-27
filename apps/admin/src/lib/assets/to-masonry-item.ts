@@ -79,6 +79,7 @@ export function toMasonryItem(
     publicUrl,
     downloadUrl,
     contentUrl,
+    folderId: asset.folderId ?? null,
     uploaderName: asset.uploaderName || undefined,
     uploaderAvatarUrl: asset.uploaderAvatarUrl || undefined,
     uploaderEmail: asset.uploaderEmail || undefined,

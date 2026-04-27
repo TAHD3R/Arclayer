@@ -1,4 +1,4 @@
-import { FolderClosed, MoreVertical, PencilLine, Trash2 } from "lucide-react";
+import { CornerUpLeft, FolderClosed, MoreVertical, PencilLine, Trash2 } from "lucide-react";
 
 import type { AdminAssetFolder } from "@/types/api";
 import { cn } from "@arclayer/lib/utils";
@@ -14,6 +14,7 @@ import { Skeleton } from "@arclayer/ui/skeleton";
 import { FolderDescriptionTooltip } from "./folder-description-tooltip";
 import {
   CreateFolderDroppableProvider,
+  DND_ROOT_ID,
   DroppablePulse,
   FolderDroppableProvider,
   toFolderDndId,
@@ -30,6 +31,11 @@ const folderActionButtonClassName =
 const folderGlyphDecorationClassName =
   "pointer-events-none absolute -bottom-3 -right-1 scale-[2.55] opacity-[0.24] transition-transform duration-300 group-hover:scale-[2.7] xl:-bottom-4 xl:right-0 xl:scale-[3] xl:group-hover:scale-[3.15]";
 
+const folderCardHeightClassNameByLayoutMode: Record<FolderLayoutMode, string> = {
+  single: "min-h-[5rem]",
+  multi: "min-h-[10.75rem]",
+};
+
 function FolderGlyph(props: { large?: boolean; withPlus?: boolean; className?: string }) {
   const sizeClassName = props.large ? "size-16" : "size-8";
 
@@ -45,14 +51,6 @@ function FolderGlyph(props: { large?: boolean; withPlus?: boolean; className?: s
           <path d="M12 9.25v5.5M9.25 12h5.5" strokeWidth="1.7" strokeLinecap="round" />
         ) : null}
       </svg>
-    </div>
-  );
-}
-
-function FolderMetaLine(props: { label: string }) {
-  return (
-    <div className="relative mt-auto flex min-w-0 items-center gap-1.5 pt-2 text-caption text-label-tertiary xl:gap-2">
-      <span className="truncate">{props.label}</span>
     </div>
   );
 }
@@ -105,25 +103,36 @@ function FolderCardMenu(props: {
 }
 
 function FolderCardSkeletonInner(props: { layoutMode: FolderLayoutMode }) {
+  const isSingle = props.layoutMode === "single";
+
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-lg border border-border/60 bg-card p-3 dark:border-white/8 dark:bg-[#101010] xl:p-4",
-        props.layoutMode === "single" ? "min-h-[6.5rem]" : "min-h-[10.75rem]",
+        "relative overflow-hidden rounded-lg border border-border/60 bg-card p-3 dark:border-white/8 dark:bg-[#101010]",
+        !isSingle && "xl:p-4",
+        folderCardHeightClassNameByLayoutMode[props.layoutMode],
       )}
       data-layout-mode={props.layoutMode}
     >
-      <div className="mb-4 flex items-start justify-end gap-3">
-        <Skeleton className="size-7 rounded-full bg-muted/70 dark:bg-white/10" />
-      </div>
-      <div className="space-y-3">
+      {isSingle ? (
+        <Skeleton className="absolute right-3 top-3 size-7 rounded-full bg-muted/70 dark:bg-white/10" />
+      ) : (
+        <div className="mb-4 flex items-start justify-end gap-3">
+          <Skeleton className="size-7 rounded-full bg-muted/70 dark:bg-white/10" />
+        </div>
+      )}
+      <div className={cn(isSingle ? "space-y-2 pr-10" : "space-y-3")}>
         <Skeleton className="h-4 w-3/5 rounded-full bg-muted/80 dark:bg-white/10 xl:h-5" />
         <Skeleton className="h-3.5 w-full rounded-full bg-muted/65 dark:bg-white/8 xl:h-4" />
-        <Skeleton className="h-3.5 w-4/5 rounded-full bg-muted/65 dark:bg-white/8 xl:h-4" />
+        {!isSingle ? (
+          <Skeleton className="h-3.5 w-4/5 rounded-full bg-muted/65 dark:bg-white/8 xl:h-4" />
+        ) : null}
       </div>
-      <div className="mt-4">
-        <Skeleton className="h-3.5 w-20 rounded-full bg-muted/65 dark:bg-white/8 xl:h-4 xl:w-24" />
-      </div>
+      {!isSingle ? (
+        <div className="mt-4">
+          <Skeleton className="h-3.5 w-20 rounded-full bg-muted/65 dark:bg-white/8 xl:h-4 xl:w-24" />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -156,8 +165,9 @@ export function FolderAddCard(props: {
           disabled={props.disabled}
           className={cn(
             folderCardBaseClassName,
-            "border-dashed p-3 text-left xl:p-4",
-            props.layoutMode === "single" ? "min-h-[6.5rem]" : "min-h-[10.75rem]",
+            "border-dashed p-3 text-left",
+            props.layoutMode === "multi" && "xl:p-4",
+            folderCardHeightClassNameByLayoutMode[props.layoutMode],
             props.disabled && "cursor-not-allowed opacity-60",
             isOver && props.isDraggingAssets
               ? "border-border bg-accent/40 ring-2 ring-black/5 ring-offset-2 ring-offset-background dark:border-white/18 dark:bg-[#171717] dark:ring-white/12"
@@ -177,7 +187,7 @@ export function FolderAddCard(props: {
                 className={cn(
                   "font-semibold text-label-primary",
                   props.layoutMode === "single"
-                    ? "pr-10 text-headline xl:pr-11"
+                    ? "truncate pr-10 text-headline xl:pr-11"
                     : "max-w-full pr-7 text-body leading-5 line-clamp-3",
                 )}
               >
@@ -207,7 +217,6 @@ export function FolderCard(props: {
   t: (key: string, options?: Record<string, unknown>) => string;
   folder: AdminAssetFolder;
   isActive: boolean;
-  locationLabel: string;
   onSelectFolder: (folderId: string | null) => void;
   onEditFolder: (folder: AdminAssetFolder) => void;
   onMoveFolder: (folder: AdminAssetFolder) => void;
@@ -218,9 +227,6 @@ export function FolderCard(props: {
   canManageAssets?: boolean;
 }) {
   const droppableId = toFolderDndId(String(props.folder.id));
-  const metaLabel = props.isActive
-    ? props.t("assets:ASSET_FOLDER_CARD_SELECTED")
-    : props.locationLabel;
 
   return (
     <FolderDroppableProvider droppableId={droppableId}>
@@ -235,8 +241,9 @@ export function FolderCard(props: {
           <div
             className={cn(
               folderCardBaseClassName,
-              "p-3 xl:p-4",
-              props.layoutMode === "single" ? "min-h-[6.5rem]" : "min-h-[10.75rem]",
+              "p-3",
+              props.layoutMode === "multi" && "xl:p-4",
+              folderCardHeightClassNameByLayoutMode[props.layoutMode],
               props.isActive
                 ? "border-border bg-[linear-gradient(180deg,rgba(246,249,255,0.98)_0%,rgba(236,242,248,0.98)_100%)] dark:border-white/18 dark:bg-[linear-gradient(180deg,rgba(20,20,22,0.98)_0%,rgba(10,10,11,0.98)_100%)]"
                 : "border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,250,0.98)_100%)] hover:border-border hover:-translate-y-[1px] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(18,18,20,0.96)_0%,rgba(11,11,12,0.98)_100%)] dark:hover:border-white/15",
@@ -268,7 +275,7 @@ export function FolderCard(props: {
                   className={cn(
                     "font-semibold text-label-primary",
                     props.layoutMode === "single"
-                      ? "pr-10 text-headline xl:pr-11"
+                      ? "truncate pr-10 text-headline xl:pr-11"
                       : "max-w-full pr-7 text-body leading-5 line-clamp-3",
                   )}
                   title={props.folder.name}
@@ -281,13 +288,75 @@ export function FolderCard(props: {
                   disabled={props.tooltipDisabled}
                   className={cn(
                     "mt-1.5 min-h-0 overflow-hidden text-callout! text-label-secondary xl:mt-2",
-                    props.layoutMode === "multi" && "text-footnote! line-clamp-3",
+                    props.layoutMode === "single"
+                      ? "truncate line-clamp-1 xl:mt-1.5"
+                      : "text-footnote! line-clamp-3",
                   )}
                 />
-                <FolderMetaLine label={metaLabel} />
               </div>
             </div>
           </div>
+        </DroppablePulse>
+      )}
+    </FolderDroppableProvider>
+  );
+}
+
+export function FolderUpCard(props: {
+  t: (key: string, options?: Record<string, unknown>) => string;
+  parentFolderId: string | null;
+  parentFolderName: string | null;
+  onSelectFolder: (folderId: string | null) => void;
+  dropPulseNonce: number | null;
+  layoutMode: FolderLayoutMode;
+}) {
+  const droppableId = props.parentFolderId ? toFolderDndId(props.parentFolderId) : DND_ROOT_ID;
+
+  return (
+    <FolderDroppableProvider droppableId={droppableId}>
+      {({ setNodeRef, isOver }) => (
+        <DroppablePulse
+          droppableId={droppableId}
+          setNodeRef={setNodeRef}
+          isOver={isOver}
+          pulseNonce={props.dropPulseNonce}
+          className="w-full"
+        >
+          <button
+            type="button"
+            className={cn(
+              folderCardBaseClassName,
+              "w-full p-3 text-left",
+              props.layoutMode === "multi" && "xl:p-4",
+              folderCardHeightClassNameByLayoutMode[props.layoutMode],
+              "border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,250,0.98)_100%)] hover:border-border hover:-translate-y-[1px] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(18,18,20,0.96)_0%,rgba(11,11,12,0.98)_100%)] dark:hover:border-white/15",
+              isOver &&
+                "border-border bg-accent/40 ring-2 ring-black/5 ring-offset-2 ring-offset-background dark:border-white/20 dark:bg-[#181818] dark:ring-white/12",
+            )}
+            onClick={() => props.onSelectFolder(props.parentFolderId)}
+            data-folder-card="folder-up"
+            data-layout-mode={props.layoutMode}
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(15,23,42,0.06),transparent_26%)] dark:bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,0.05),transparent_26%)]" />
+            <div className="absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0)_100%)] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0)_100%)] xl:h-20" />
+            <div className={folderGlyphDecorationClassName}>
+              <FolderGlyph large className="text-slate-950/24 dark:text-white/22" />
+            </div>
+
+            <div className="relative flex h-full flex-col">
+              <div className="mb-1.5 flex min-w-0 items-center gap-2 text-label-secondary">
+                <CornerUpLeft className="size-4" />
+                <span className="truncate text-caption font-semibold">
+                  {props.t("assets:ASSET_FOLDER_UP")}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-headline font-semibold text-label-primary">
+                  {props.parentFolderName ?? props.t("assets:ASSET_BREADCRUMB_ROOT")}
+                </div>
+              </div>
+            </div>
+          </button>
         </DroppablePulse>
       )}
     </FolderDroppableProvider>

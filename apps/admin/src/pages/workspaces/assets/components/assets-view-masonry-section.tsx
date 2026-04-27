@@ -101,6 +101,8 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     openAssetDeleteDialog,
     openAssetEditAccessDialog,
   } = controller;
+  const hasFolderNavigation =
+    controller.assetLibraryHasContent && controller.folderEntries.length > 0;
   const orderedAssetIdsRef = useRef(orderedAssetIds);
   const masonryGridRef = useRef<HTMLElement | null>(null);
   const [masonryGridNode, setMasonryGridNode] = useState<HTMLElement | null>(null);
@@ -365,7 +367,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
       onRetry={() => void assetsQuery.refetch()}
       wrapperSpacing="flush"
       errorDescription={assetsQuery.isError ? t("assets:ASSET_LIST_LOAD_FAILED_DESC") : undefined}
-      empty={items.length === 0}
+      empty={items.length === 0 && !hasFolderNavigation}
       emptyTitle={
         explicitFilterActive ? t("assets:ASSET_EMPTY_SEARCH_TITLE") : t("assets:ASSET_EMPTY")
       }
@@ -389,7 +391,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
       }
     >
       <div
-        className="min-w-0 w-full max-w-full overflow-x-hidden select-none"
+        className="min-w-0 w-full max-w-full overflow-x-hidden select-none px-1"
         onMouseDown={(event) => {
           if (event.button !== 0) return;
           const target = event.target as HTMLElement | null;

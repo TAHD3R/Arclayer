@@ -189,11 +189,12 @@ describe("AssetMasonryTile", () => {
 
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(tile).toHaveAttribute("data-selected", "true");
+    expect(tile).toHaveClass("rounded-lg");
     expect(tile).toHaveClass("border-primary/80");
     expect(
       screen.queryByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }),
     ).not.toBeInTheDocument();
-    expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("inset-0");
+    expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("inset-0", "rounded-lg");
   });
 
   it("keeps edit actions local to the action button", () => {

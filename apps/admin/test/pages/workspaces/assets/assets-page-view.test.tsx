@@ -1,10 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { STORAGE_KEYS } from "@/constants/storage";
 import { AssetsPageView } from "@/pages/workspaces/assets/components/assets-page-view";
 
 const mocked = vi.hoisted(() => ({
@@ -16,6 +15,7 @@ const tableControllerState = { current: createTableControllerStub() };
 
 vi.mock("@/layouts/page-shell/columns-page", () => ({
   ColumnsPage: ({
+    title,
     action,
     extra,
     overlay,
@@ -24,32 +24,21 @@ vi.mock("@/layouts/page-shell/columns-page", () => ({
     children,
   }: Record<string, unknown>) => (
     <div>
+      <div data-testid="columns-page-title">{title as React.ReactNode}</div>
       <div data-testid="columns-page-action">{action as React.ReactNode}</div>
       <div data-testid="columns-page-extra">{extra as React.ReactNode}</div>
       <div data-testid="columns-page-overlay">{overlay as React.ReactNode}</div>
       <div data-testid="columns-page-footer">{footer as React.ReactNode}</div>
-      <div data-testid="columns-page-right-slot">
-        {sideSlots && typeof sideSlots === "object" && "left" in sideSlots ? "visible" : "hidden"}
-      </div>
-      <div data-testid="columns-page-right-slot-sticky">
-        {sideSlots &&
-        typeof sideSlots === "object" &&
-        "left" in sideSlots &&
-        sideSlots.left &&
-        typeof sideSlots.left === "object" &&
-        "sticky" in sideSlots.left
-          ? String(sideSlots.left.sticky)
-          : "false"}
-      </div>
-      <div data-testid="columns-page-right-slot-content">
-        {sideSlots &&
-        typeof sideSlots === "object" &&
-        "left" in sideSlots &&
-        sideSlots.left &&
-        typeof sideSlots.left === "object" &&
-        "content" in sideSlots.left
-          ? (sideSlots.left.content as React.ReactNode)
-          : null}
+      <div data-testid="columns-page-left-side">
+        {
+          (
+            sideSlots as
+              | {
+                  left?: { content?: React.ReactNode };
+                }
+              | undefined
+          )?.left?.content
+        }
       </div>
       <div>{children as React.ReactNode}</div>
     </div>
@@ -68,9 +57,31 @@ vi.mock("@/pages/workspaces/assets/components/assets-view-table-section", () => 
   useAssetsViewTableController: () => tableControllerState.current,
 }));
 
-vi.mock("@/pages/workspaces/assets/components/assets-folder-rail", () => ({
-  AssetsFolderRail: ({ canManageAssets }: { canManageAssets?: boolean }) => (
-    <div data-can-manage-assets={String(canManageAssets)}>folder-rail</div>
+vi.mock("@/pages/workspaces/assets/components/assets-folder-strip", () => ({
+  AssetsFolderStrip: ({
+    canManageAssets,
+    assetLibraryHasContent,
+    folderEntries,
+  }: {
+    canManageAssets?: boolean;
+    assetLibraryHasContent?: boolean;
+    folderEntries?: unknown[];
+  }) => (
+    <div
+      data-testid="assets-folder-strip"
+      data-can-manage-assets={String(canManageAssets)}
+      data-asset-library-has-content={String(assetLibraryHasContent)}
+      data-folder-entry-count={String(folderEntries?.length ?? 0)}
+    />
+  ),
+}));
+
+vi.mock("@/pages/workspaces/assets/components/assets-folder-rail-recent-section", () => ({
+  AssetsFolderRailRecentSection: ({ recentAssets }: { recentAssets?: unknown[] }) => (
+    <div
+      data-testid="assets-recent-sidebar"
+      data-recent-count={String(recentAssets?.length ?? 0)}
+    />
   ),
 }));
 
@@ -243,7 +254,10 @@ function createControllerStub(overrides: Record<string, unknown> = {}) {
     dropSuccessPulse: null,
     draggingFolderId: null,
     draggingAssetIds: [],
+    folderEntries: [],
     masonryEntries: [],
+    assetLibraryHasAssets: true,
+    assetLibraryHasContent: true,
     pagedAssetsQuery: {
       isFetching: false,
       isLoading: false,
@@ -283,6 +297,7 @@ function createTableControllerStub(overrides: Record<string, unknown> = {}) {
 
 describe("AssetsPageView", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     controllerState.current = createControllerStub();
     tableControllerState.current = createTableControllerStub();
     mocked.getMyProjectAuthz.mockReset();
@@ -300,50 +315,98 @@ describe("AssetsPageView", () => {
         permissionCodes: ["project:assets:manage"],
       },
     ]);
-    window.localStorage.removeItem(STORAGE_KEYS.assetsFolderRailOpen);
   });
 
-  it("shows the folder rail by default and persists the user's collapse choice", async () => {
+  it("moves folder creation into the header action before upload", async () => {
     const user = userEvent.setup();
-
-    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
-
-    expect(screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_UPLOAD" })).toBeInTheDocument();
-    expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("visible");
-    expect(screen.getByTestId("columns-page-right-slot-sticky")).toHaveTextContent("true");
-    expect(window.localStorage.getItem(STORAGE_KEYS.assetsFolderRailOpen)).toBeNull();
-
-    await user.click(screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" }));
-
-    expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
-    expect(window.localStorage.getItem(STORAGE_KEYS.assetsFolderRailOpen)).toBe("false");
-  });
-
-  it("honors a persisted collapsed rail preference on revisit", () => {
-    window.localStorage.setItem(STORAGE_KEYS.assetsFolderRailOpen, "false");
-
-    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
-
-    expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
-  });
-
-  it("hides the card-mode sidebar entirely when the root library is empty", () => {
+    const setCreateFolderParentId = vi.fn();
+    const setCreateFolderOpen = vi.fn();
     controllerState.current = createControllerStub({
-      assetsQuery: {
-        isLoading: false,
-        refetch: vi.fn(),
-        data: { pages: [{ total: 0 }] },
-      },
-      items: [],
-      currentFolderId: null,
-      explicitFilterActive: false,
+      currentFolderId: "folder-1",
+      setCreateFolderParentId,
+      setCreateFolderOpen,
     });
 
     renderWithQueryClient(<AssetsPageView projectId="project-1" />);
 
-    expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
-    expect(screen.queryByRole("button", { name: "common:SIDEBAR_TOGGLE" })).not.toBeInTheDocument();
+    const actions = within(screen.getByTestId("columns-page-action")).getAllByRole("button");
+    expect(actions[0]).toHaveAttribute("aria-label", "common:SIDEBAR_TOGGLE");
+    expect(actions[0]).toHaveClass("border");
+    expect(actions[1]).toHaveTextContent("assets:ASSET_ACTION_CREATE_FOLDER");
+    expect(actions[1]).toHaveClass("border");
+    expect(actions[2]).toHaveTextContent("assets:ASSET_ACTION_UPLOAD");
+    expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_UPLOAD" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "assets:ASSET_ACTION_CREATE_FOLDER" }));
+
+    expect(setCreateFolderParentId).toHaveBeenCalledWith("folder-1");
+    expect(setCreateFolderOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("keeps the recent-files sidebar behind the header toggle", async () => {
+    const user = userEvent.setup();
+    controllerState.current = createControllerStub({
+      recentAssets: [{ key: "asset-1", asset: { id: "asset-1" }, visitedAt: "2026-04-27" }],
+    });
+
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
+
+    expect(screen.getByTestId("assets-recent-sidebar")).toHaveAttribute("data-recent-count", "1");
+
+    await user.click(screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" }));
+
+    expect(screen.queryByTestId("assets-recent-sidebar")).not.toBeInTheDocument();
+  });
+
+  it("uses the current folder name as the page title", () => {
+    controllerState.current = createControllerStub({
+      currentFolderId: "folder-1",
+      folderPath: [
+        {
+          id: "folder-1",
+          name: "Campaign assets",
+          createdAt: "2026-04-27T00:00:00Z",
+        },
+      ],
+    });
+
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
+
+    expect(screen.getByTestId("columns-page-title")).toHaveTextContent("Campaign assets");
+  });
+
+  it("passes folder entries and asset existence into the main-pane folder strip", () => {
+    controllerState.current = createControllerStub({
+      assetLibraryHasAssets: false,
+      assetLibraryHasContent: true,
+      folderEntries: [{ kind: "folder", folder: { id: "folder-1", name: "Campaign" } }],
+    });
+
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
+
+    expect(screen.getByTestId("assets-folder-strip")).toHaveAttribute(
+      "data-asset-library-has-content",
+      "true",
+    );
+    expect(screen.getByTestId("assets-folder-strip")).toHaveAttribute(
+      "data-folder-entry-count",
+      "1",
+    );
+  });
+
+  it("keeps the main-pane folder strip exclusive to card mode", async () => {
+    const user = userEvent.setup();
+    controllerState.current = createControllerStub({
+      folderEntries: [{ kind: "folder", folder: { id: "folder-1", name: "Campaign" } }],
+    });
+
+    renderWithQueryClient(<AssetsPageView projectId="project-1" />);
+
+    expect(screen.getByTestId("assets-folder-strip")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "switch-table" }));
+
+    expect(screen.queryByTestId("assets-folder-strip")).not.toBeInTheDocument();
   });
 
   it("keeps the bulk selection toolbar visible after switching to table mode", async () => {
@@ -362,7 +425,6 @@ describe("AssetsPageView", () => {
     await user.click(screen.getByRole("button", { name: "switch-table" }));
 
     expect(screen.getByTestId("assets-view-mode")).toHaveTextContent("table");
-    expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
     expect(screen.getByTestId("columns-page-overlay")).toBeEmptyDOMElement();
     expect(screen.getByTestId("columns-page-footer")).not.toBeEmptyDOMElement();
     expect(
@@ -408,11 +470,17 @@ describe("AssetsPageView", () => {
       "assets:ASSET_LIBRARY_NO_ACCESS_DESC",
     );
     expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_UPLOAD" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "assets:ASSET_ACTION_CREATE_FOLDER" }),
+    ).toBeDisabled();
     expect(screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" })).toHaveAttribute(
       "data-can-manage-assets",
       "false",
     );
-    expect(screen.getByText("folder-rail")).toHaveAttribute("data-can-manage-assets", "false");
+    expect(screen.getByTestId("assets-folder-strip")).toHaveAttribute(
+      "data-can-manage-assets",
+      "false",
+    );
     expect(screen.getByTestId("assets-view-overlays")).toHaveAttribute(
       "data-can-manage-assets",
       "false",

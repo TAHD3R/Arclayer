@@ -26,6 +26,31 @@ vi.mock("@arclayer/ui/tooltip", () => ({
   TooltipContent: ({ children }: PropsWithChildren) => <>{children}</>,
 }));
 
+function mockOverflowingTitle() {
+  const keys = {
+    clientWidth: 80,
+    scrollWidth: 240,
+    clientHeight: 24,
+    scrollHeight: 24,
+  } as const;
+  const restores = Object.entries(keys).map(([key, value]) => {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, key);
+    Object.defineProperty(HTMLElement.prototype, key, {
+      configurable: true,
+      get: () => value,
+    });
+    return () => {
+      if (original) {
+        Object.defineProperty(HTMLElement.prototype, key, original);
+        return;
+      }
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>)[key];
+    };
+  });
+
+  return () => restores.forEach((restore) => restore());
+}
+
 describe("ColumnsPage", () => {
   beforeEach(() => {
     useFavoritesStore.setState({ paths: [] });
@@ -111,6 +136,28 @@ describe("ColumnsPage", () => {
     expect(rightSlot).not.toHaveClass("sticky");
     expect(leftContentWrap).toHaveClass("min-w-0", "pr-8", "pb-8");
     expect(screen.getAllByText("Table content")).toHaveLength(1);
+  });
+
+  it("truncates overflowing page titles and exposes the full title in a tooltip", () => {
+    const restore = mockOverflowingTitle();
+    const title = "Campaign folder name that should truncate inside the columns header";
+
+    try {
+      render(
+        <ColumnsPage title={title} showFavoriteToggle={false} sideSlots={{}}>
+          <div>Main content</div>
+        </ColumnsPage>,
+      );
+
+      const titleMatches = screen.getAllByText(title);
+      const pageTitle = document.querySelector('[data-slot="page-title"]');
+
+      expect(titleMatches).toHaveLength(2);
+      expect(pageTitle).toHaveTextContent(title);
+      expect(pageTitle).toHaveClass("truncate", "min-w-0", "max-w-full");
+    } finally {
+      restore();
+    }
   });
 
   it("enables sticky rail only when requested", () => {

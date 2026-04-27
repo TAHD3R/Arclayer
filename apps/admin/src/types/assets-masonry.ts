@@ -18,6 +18,7 @@ export type AssetMasonryItem = {
   publicUrl?: string;
   downloadUrl?: string;
   contentUrl?: string;
+  folderId?: string | null;
   uploaderName?: string;
   uploaderAvatarUrl?: string;
   uploaderEmail?: string;

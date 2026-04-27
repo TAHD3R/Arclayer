@@ -2,7 +2,12 @@ import clsx from "clsx";
 
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 
-import { PageMainRegion, shouldHidePageHeader, type BasePageProps } from "./page-main-region";
+import {
+  getPageTitleTooltipLabel,
+  PageMainRegion,
+  shouldHidePageHeader,
+  type BasePageProps,
+} from "./page-main-region";
 
 export type DefaultPageProps = BasePageProps & {
   pageFrame?: "contained" | "full";
@@ -11,6 +16,7 @@ export type DefaultPageProps = BasePageProps & {
 
 export function DefaultPage({
   title,
+  titleTooltip,
   description,
   showFavoriteToggle = true,
   headerVisibility = "auto",
@@ -24,6 +30,7 @@ export function DefaultPage({
   largeViewportGutters = false,
 }: DefaultPageProps) {
   const hideHeader = headerVisibility === "always" ? false : shouldHidePageHeader(children);
+  const resolvedTitleTooltip = titleTooltip ?? getPageTitleTooltipLabel(title);
 
   return (
     <AdminRouteContainer
@@ -38,6 +45,7 @@ export function DefaultPage({
       <div className="flex min-h-0 min-w-0 w-full" data-slot="default-page-shell">
         <PageMainRegion
           title={hideHeader ? undefined : title}
+          titleTooltip={hideHeader ? undefined : resolvedTitleTooltip}
           description={hideHeader ? undefined : description}
           showFavoriteToggle={hideHeader ? false : showFavoriteToggle}
           action={hideHeader ? undefined : action}

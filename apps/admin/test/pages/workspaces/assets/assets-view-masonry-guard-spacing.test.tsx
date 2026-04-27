@@ -20,8 +20,12 @@ vi.mock("@/pages/workspaces/assets/components/assets-view-masonry-render-cell", 
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
-  ContentGuard: (props: { wrapperSpacing?: string; children?: ReactNode }) => (
-    <div data-testid="content-guard" data-wrapper-spacing={props.wrapperSpacing ?? ""}>
+  ContentGuard: (props: { wrapperSpacing?: string; empty?: boolean; children?: ReactNode }) => (
+    <div
+      data-testid="content-guard"
+      data-wrapper-spacing={props.wrapperSpacing ?? ""}
+      data-empty={String(props.empty)}
+    >
       {props.children}
     </div>
   ),
@@ -47,6 +51,9 @@ describe("AssetsViewMasonrySection guard spacing", () => {
             },
             assetsListQueryKey: ["assets"],
             items: [],
+            folderEntries: [],
+            assetLibraryHasAssets: false,
+            assetLibraryHasContent: false,
             explicitFilterActive: false,
             setSearchInput: vi.fn(),
             setSearchQuery: vi.fn(),
@@ -68,5 +75,59 @@ describe("AssetsViewMasonrySection guard spacing", () => {
     );
 
     expect(screen.getByTestId("content-guard")).toHaveAttribute("data-wrapper-spacing", "flush");
+  });
+
+  it("keeps masonry out of the empty state when folders exist without assets", () => {
+    render(
+      <AssetsViewMasonrySection
+        controller={
+          {
+            t: (key: string) => key,
+            assetsQuery: {
+              isLoading: false,
+              data: { pages: [{ total: 0 }] },
+              isError: false,
+              error: null,
+              refetch: vi.fn(),
+              hasNextPage: false,
+              isFetchingNextPage: false,
+              fetchNextPage: vi.fn(),
+              dataUpdatedAt: 0,
+            },
+            assetsListQueryKey: ["assets"],
+            items: [],
+            folderEntries: [
+              {
+                kind: "folder",
+                folder: {
+                  id: "folder-1",
+                  name: "Campaign",
+                  createdAt: "2026-04-27T00:00:00Z",
+                },
+              },
+            ],
+            assetLibraryHasAssets: false,
+            assetLibraryHasContent: true,
+            explicitFilterActive: false,
+            setSearchInput: vi.fn(),
+            setSearchQuery: vi.fn(),
+            setFilters: vi.fn(),
+            setMoreOpen: vi.fn(),
+            setFocusedFolderId: vi.fn(),
+            setSelection: vi.fn(),
+            selectedIds: new Set<string>(),
+            orderedAssetIds: [],
+            aspectRatioRef: { current: new Map<string, number>() },
+            forceLayoutTick: vi.fn(),
+            setActive: vi.fn(),
+            openEditAssetDialog: vi.fn(),
+            openAssetDeleteDialog: vi.fn(),
+            openAssetEditAccessDialog: vi.fn(),
+          } as never
+        }
+      />,
+    );
+
+    expect(screen.getByTestId("content-guard")).toHaveAttribute("data-empty", "false");
   });
 });

@@ -242,7 +242,7 @@ export const AssetMasonryTile = memo(
         {...props.dragHandle?.listeners}
         className={cn(
           "group relative w-full overflow-hidden bg-card",
-          "rounded-none",
+          "rounded-lg",
           " transition-[box-shadow,opacity,transform] duration-200 ease-out hover:",
           "cursor-pointer outline-none select-none",
           "scale-100 opacity-100",
@@ -268,7 +268,7 @@ export const AssetMasonryTile = memo(
         <div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
           {selected ? (
             <div
-              className="pointer-events-none absolute inset-0 z-10 rounded-none border-[3px] border-primary/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]"
+              className="pointer-events-none absolute inset-0 z-10 rounded-lg border-[3px] border-primary/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]"
               aria-hidden="true"
             />
           ) : null}

@@ -52,6 +52,26 @@ type UseAssetsExplorerControllerOptions = {
 
 const DEFAULT_PAGED_PAGE_SIZE = 10;
 
+function buildFolderAssetQuery(currentFolderId: string | null) {
+  if (!currentFolderId) return {};
+  return {
+    folderId: currentFolderId,
+    includeChildren: true,
+  };
+}
+
+function dedupeAssetsById(rows: AdminAssetSummary[]) {
+  const seen = new Set<string>();
+  const out: AdminAssetSummary[] = [];
+  for (const row of rows) {
+    const id = String(row.id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(row);
+  }
+  return out;
+}
+
 export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOptions) {
   const scope = opts.scope;
   const scopeId = scope?.id ? String(scope.id) : null;
@@ -123,6 +143,31 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     staleTime: 60 * 1000,
   });
 
+  const globalAssetsQuery = useQuery({
+    queryKey: [
+      "assets",
+      "globalAssetCount",
+      scopeKey,
+      {
+        purpose: opts.purpose,
+        visibility: opts.defaultVisibility,
+      },
+    ],
+    enabled: Boolean(scopeId) && scopeSupported,
+    queryFn: async () => {
+      if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
+      const listFn = scope.type === "organization" ? listOrganizationAssets : listAssets;
+      return listFn(String(scopeId), {
+        page: 1,
+        size: 1,
+        purpose: opts.purpose,
+        visibility: opts.defaultVisibility,
+      });
+    },
+    staleTime: 30 * 1000,
+    meta: { silent: true },
+  });
+
   const assetsListQueryKey = useMemo(
     () => [
       "assets",
@@ -132,8 +177,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
         purpose: opts.purpose,
         q: searchQuery || undefined,
         mimePrefix: filters.mimePrefix,
-        folderId: currentFolderId || undefined,
-        folderIsNull: currentFolderId ? undefined : true,
+        ...buildFolderAssetQuery(currentFolderId),
         visibility: effectiveVisibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
@@ -165,8 +209,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
             purpose: opts.purpose,
             q: searchQuery || undefined,
             mimePrefix: filters.mimePrefix,
-            folderId: currentFolderId || undefined,
-            folderIsNull: currentFolderId ? undefined : true,
+            ...buildFolderAssetQuery(currentFolderId),
             visibility: effectiveVisibility,
             createdFrom: filters.createdFrom,
             createdTo: filters.createdTo,
@@ -219,8 +262,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
         purpose: opts.purpose,
         q: searchQuery || undefined,
         mimePrefix: filters.mimePrefix,
-        folderId: currentFolderId || undefined,
-        folderIsNull: currentFolderId ? undefined : true,
+        ...buildFolderAssetQuery(currentFolderId),
         visibility: effectiveVisibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
@@ -239,8 +281,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
             purpose: opts.purpose,
             q: searchQuery || undefined,
             mimePrefix: filters.mimePrefix,
-            folderId: currentFolderId || undefined,
-            folderIsNull: currentFolderId ? undefined : true,
+            ...buildFolderAssetQuery(currentFolderId),
             visibility: effectiveVisibility,
             createdFrom: filters.createdFrom,
             createdTo: filters.createdTo,
@@ -266,11 +307,11 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
 
     if (opts.pagination === "paged") {
       const rows = pagedAssetsQuery.data?.items ?? [];
-      return mapRows(rows);
+      return mapRows(dedupeAssetsById(rows));
     }
 
     if (!infiniteAssetsQuery.data) return [];
-    const rows = infiniteAssetsQuery.data.pages.flatMap((p) => p.items);
+    const rows = dedupeAssetsById(infiniteAssetsQuery.data.pages.flatMap((p) => p.items));
     return mapRows(rows);
   }, [
     aspectRatioById,
@@ -400,6 +441,14 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
       : infiniteAssetsQuery;
 
   const total = opts.pagination === "paged" ? (pagedAssetsQuery.data?.total ?? 0) : 0;
+  const currentQueryTotal =
+    opts.pagination === "paged"
+      ? (pagedAssetsQuery.data?.total ?? 0)
+      : (infiniteAssetsQuery.data?.pages?.[0]?.total ?? 0);
+  const assetLibraryHasAssets =
+    (globalAssetsQuery.data?.total ?? 0) > 0 || currentQueryTotal > 0 || items.length > 0;
+  const assetLibraryHasContent =
+    assetLibraryHasAssets || (foldersQuery.data?.total ?? 0) > 0 || folderEntries.length > 0;
 
   return {
     searchInput,
@@ -421,12 +470,15 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     explicitFilterActive,
 
     foldersQuery,
+    globalAssetsQuery,
     tagsQuery,
     assetsListQueryKey,
     items,
     orderedAssetIds,
     folderEntries,
     masonryEntries,
+    assetLibraryHasAssets,
+    assetLibraryHasContent,
     folderById,
     folderPath,
 

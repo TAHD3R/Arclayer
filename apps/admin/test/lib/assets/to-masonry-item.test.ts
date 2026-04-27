@@ -26,6 +26,23 @@ describe("toMasonryItem", () => {
     expect(item.uploaderAvatarUrl).toBe("/assets/uploader.png");
   });
 
+  test("preserves folder id for drag move checks", () => {
+    const item = toMasonryItem({
+      id: "asset-1",
+      purpose: "library",
+      visibility: "public",
+      indexable: false,
+      sizeBytes: 128,
+      folderId: "folder-1",
+      createdAt: "2026-03-06T12:00:00Z",
+      contentUrlPath: "/api/v1/projects/project-1/assets/asset-1/content",
+      mime: "image/png",
+      ext: "png",
+    } as never);
+
+    expect(item.folderId).toBe("folder-1");
+  });
+
   test("uses public thumbnail routes for public images", () => {
     const item = toMasonryItem({
       id: "asset-public",

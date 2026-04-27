@@ -1,4 +1,13 @@
-import { Children, Fragment, isValidElement, type ReactNode, useState } from "react";
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  type ReactNode,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import clsx from "clsx";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -12,6 +21,7 @@ import { useFavoritesStore } from "@/stores/use-favorites-store";
 
 export type BasePageProps = {
   title?: ReactNode;
+  titleTooltip?: string;
   description?: ReactNode;
   showFavoriteToggle?: boolean;
   headerVisibility?: "auto" | "always";
@@ -93,12 +103,62 @@ function shouldHideHeaderForError(err: unknown | null): boolean {
   return true;
 }
 
+function isElementTruncated(element: HTMLElement | null) {
+  if (!element) return false;
+  return (
+    element.scrollWidth > element.clientWidth + 1 || element.scrollHeight > element.clientHeight + 1
+  );
+}
+
+export function getPageTitleTooltipLabel(title: ReactNode): string | undefined {
+  if (typeof title === "string") return title.trim() || undefined;
+  if (typeof title === "number") return String(title);
+  return undefined;
+}
+
+function PageTitle(props: { children: ReactNode; tooltip?: string }) {
+  const titleRef = useRef<HTMLDivElement | null>(null);
+  const [truncated, setTruncated] = useState(false);
+  const measure = useCallback(() => {
+    setTruncated(isElementTruncated(titleRef.current));
+  }, []);
+  const titleNode = (
+    <div
+      ref={titleRef}
+      className="min-w-0 max-w-full truncate text-title text-label-primary select-none"
+      data-slot="page-title"
+    >
+      {props.children}
+    </div>
+  );
+
+  useLayoutEffect(() => {
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const element = titleRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [measure, props.children]);
+
+  if (!props.tooltip || !truncated) return titleNode;
+
+  return (
+    <Tooltip align="start" side="bottom">
+      <TooltipTrigger asChild>{titleNode}</TooltipTrigger>
+      <TooltipContent className="max-w-96 text-left">{props.tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function shouldHidePageHeader(children: ReactNode): boolean {
   return shouldHideHeaderForError(resolveContentGuardError(children));
 }
 
 export function PageMainRegion(props: {
   title?: ReactNode;
+  titleTooltip?: string;
   description?: ReactNode;
   showFavoriteToggle?: boolean;
   action?: ReactNode;
@@ -141,9 +201,9 @@ export function PageMainRegion(props: {
           <header className="mb-4">
             {props.title || props.action || paneToggles.length > 0 ? (
               <div className="flex items-center justify-between gap-4">
-                <div className="my-2 flex min-w-0 items-end gap-2">
+                <div className="my-2 flex min-w-0 flex-1 items-end gap-2">
                   {props.title ? (
-                    <div className="text-title text-label-primary select-none">{props.title}</div>
+                    <PageTitle tooltip={props.titleTooltip}>{props.title}</PageTitle>
                   ) : null}
                   {titleAdornment}
                 </div>

@@ -52,8 +52,17 @@ function getDraggedAssetIds(activeAssetId: string, selectedIds: Set<string>) {
   return Array.from(selectedIds);
 }
 
-function isSameFolderDrop(currentFolderId: string | null, destinationFolderId: string | null) {
-  return String(currentFolderId || "") === String(destinationFolderId || "");
+function areDraggedAssetsAlreadyInFolder(
+  assetIds: string[],
+  destinationFolderId: string | null,
+  items: AssetMasonryItem[],
+) {
+  if (assetIds.length === 0) return false;
+  const assetById = new Map(items.map((item) => [String(item.id), item]));
+  return assetIds.every((assetId) => {
+    const asset = assetById.get(String(assetId));
+    return String(asset?.folderId ?? "") === String(destinationFolderId ?? "");
+  });
 }
 
 function triggerDropPulse(
@@ -155,7 +164,10 @@ export function useAssetsViewController(projectId: string, _viewMode: AssetsView
     infiniteAssetsQuery: assetsQuery,
     items,
     orderedAssetIds,
+    folderEntries,
     masonryEntries,
+    assetLibraryHasAssets,
+    assetLibraryHasContent,
     folderById,
     folderPath,
     pagedAssetsQuery,
@@ -604,7 +616,7 @@ export function useAssetsViewController(projectId: string, _viewMode: AssetsView
           return;
         }
         if (!canMove) return;
-        if (isSameFolderDrop(currentFolderId, destFolderId)) return;
+        if (areDraggedAssetsAlreadyInFolder(draggedAssetIds, destFolderId, items)) return;
         await bulkMoveMutation.mutateAsync({ assetIds: draggedAssetIds, folderId: destFolderId });
         triggerDropPulse(overId, setDropSuccessPulse);
         const shouldClearSelection = draggedAssetIds.some((assetId) => selectedIds.has(assetId));
@@ -692,7 +704,10 @@ export function useAssetsViewController(projectId: string, _viewMode: AssetsView
     removeRecentAsset,
     clearRecentAssets,
     orderedAssetIds,
+    folderEntries,
     masonryEntries,
+    assetLibraryHasAssets,
+    assetLibraryHasContent,
     folderById,
     folderPath,
     page,
