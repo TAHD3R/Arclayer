@@ -151,13 +151,13 @@ export function useAssetPreviewDialogController(props: {
   }, [active?.id]);
 
   const initializedIdRef = useRef<string | null>(null);
-  const dirtyRef = useRef<{ description: boolean; tags: boolean }>({
-    description: false,
+  const dirtyRef = useRef<{ altName: boolean; tags: boolean }>({
+    altName: false,
     tags: false,
   });
   const debounceTimerRef = useRef<number | null>(null);
 
-  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [altNameDraft, setAltNameDraft] = useState("");
   const [tagIdsDraft, setTagIdsDraft] = useState<string[]>([]);
   const [inputVisible, setInputVisible] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -174,7 +174,7 @@ export function useAssetPreviewDialogController(props: {
     const id = active?.id || null;
     // Force re-initialization once detailQuery has data for the new asset.
     initializedIdRef.current = null;
-    dirtyRef.current = { description: false, tags: false };
+    dirtyRef.current = { altName: false, tags: false };
     setInputVisible(false);
     setInputValue("");
     setEditInputIndex(-1);
@@ -184,13 +184,13 @@ export function useAssetPreviewDialogController(props: {
     setEditAccessOpen(false);
 
     if (!id) {
-      setDescriptionDraft("");
+      setAltNameDraft("");
       setTagIdsDraft([]);
       return;
     }
 
     // Avoid showing stale drafts when switching between assets.
-    setDescriptionDraft("");
+    setAltNameDraft("");
     setTagIdsDraft([]);
   }, [active?.id]);
 
@@ -213,26 +213,26 @@ export function useAssetPreviewDialogController(props: {
     // Only initialize drafts once per asset id (avoid overwriting user's in-progress edits).
     if (initializedIdRef.current !== id) {
       initializedIdRef.current = id;
-      dirtyRef.current = { description: false, tags: false };
-      setDescriptionDraft(detail.description || "");
+      dirtyRef.current = { altName: false, tags: false };
+      setAltNameDraft(detail.altName || "");
       setTagIdsDraft(detail.tags.map((x: AdminAssetTag) => x.id));
       return;
     }
 
     // If user hasn't touched a field, keep it in sync with server.
-    if (!dirtyRef.current.description) setDescriptionDraft(detail.description || "");
+    if (!dirtyRef.current.altName) setAltNameDraft(detail.altName || "");
     if (!dirtyRef.current.tags) setTagIdsDraft(detail.tags.map((x: AdminAssetTag) => x.id));
   }, [active?.id, detailQuery.data]);
 
   const patchMutation = useMutation({
-    mutationFn: async (payload: { description?: string | null; tagIds?: string[] }) => {
+    mutationFn: async (payload: { altName?: string | null; tagIds?: string[] }) => {
       if (!active?.id) throw new Error("missing asset id");
       if (!props.projectId) throw new Error("PROJECT_NOT_SELECTED");
       return patchAsset(String(props.projectId), active.id, payload);
     },
     onSuccess: (updated) => {
       setSaveState("saved");
-      dirtyRef.current = { description: false, tags: false };
+      dirtyRef.current = { altName: false, tags: false };
       if (scopeKey) queryClient.setQueryData(["assets", "detail", scopeKey, active?.id], updated);
       // Lists might not include description/tags today, but keep caches consistent.
       void invalidateAssetListQueries(queryClient, scopeKey);
@@ -323,13 +323,13 @@ export function useAssetPreviewDialogController(props: {
 
   useEffect(() => {
     if (!active?.id) return;
-    if (!dirtyRef.current.description && !dirtyRef.current.tags) return;
+    if (!dirtyRef.current.altName && !dirtyRef.current.tags) return;
 
     if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
     setSaveState("saving");
     debounceTimerRef.current = window.setTimeout(() => {
-      const payload: { description?: string | null; tagIds?: string[] } = {};
-      if (dirtyRef.current.description) payload.description = descriptionDraft.trim() || null;
+      const payload: { altName?: string | null; tagIds?: string[] } = {};
+      if (dirtyRef.current.altName) payload.altName = altNameDraft.trim() || null;
       if (dirtyRef.current.tags) payload.tagIds = tagIdsDraft;
       patchMutation.mutate(payload);
     }, 650);
@@ -337,7 +337,7 @@ export function useAssetPreviewDialogController(props: {
     return () => {
       if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
     };
-  }, [active?.id, descriptionDraft, tagIdsDraft, patchMutation]);
+  }, [active?.id, altNameDraft, tagIdsDraft, patchMutation]);
 
   const allTags = useMemo(() => tagsQuery.data?.items || [], [tagsQuery.data]);
   const detailTags = useMemo(() => detailQuery.data?.tags || [], [detailQuery.data]);
@@ -447,8 +447,8 @@ export function useAssetPreviewDialogController(props: {
     linkSnippets,
     previewCandidates,
     dirtyRef,
-    descriptionDraft,
-    setDescriptionDraft,
+    altNameDraft,
+    setAltNameDraft,
     tagIdsDraft,
     setTagIdsDraft,
     inputVisible,

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { FolderPlus, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 
+import { getProjectDetail } from "@/api/projects";
 import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { type ViewMode as AssetsViewMode } from "@/components/common/view-mode-toggle";
 import { STORAGE_KEYS } from "@/constants/storage";
@@ -116,6 +118,13 @@ export function AssetsPageView(props: {
     setActive(null);
   };
   const permissionAccess = useProjectPermissionAccess(props.projectId);
+  const projectDetailQuery = useQuery({
+    queryKey: ["project", "detail", props.projectId],
+    enabled: Boolean(props.projectId),
+    queryFn: async () => getProjectDetail(props.projectId),
+    retry: false,
+    meta: { silent: true },
+  });
   const permissionReady =
     permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
   const canManageAssets = !permissionReady || permissionAccess.hasAction("project:assets:manage");
@@ -149,6 +158,18 @@ export function AssetsPageView(props: {
     () => controller.folderPath.map((folder) => folder.name),
     [controller.folderPath],
   );
+  const projectBreadcrumb = useMemo(() => {
+    const project = projectDetailQuery.data?.project;
+    if (!project) return null;
+    return {
+      name: project.name,
+      iconMode: project.iconMode,
+      iconColor: project.iconColor,
+      iconGlyph: project.iconGlyph ?? null,
+      iconEmoji: project.iconEmoji ?? null,
+      iconUrl: project.iconUrl,
+    };
+  }, [projectDetailQuery.data]);
   const currentFolderTitle = currentFolderId
     ? (controller.folderPath.at(-1)?.name ?? t("nav:NAV_ASSETS"))
     : t("nav:NAV_ASSETS");
@@ -310,7 +331,7 @@ export function AssetsPageView(props: {
             items={controller.items}
             currentFolderPathLabel={currentFolderPathLabel}
             folderBreadcrumbs={folderBreadcrumbs}
-            workspaceBreadcrumb={null}
+            projectBreadcrumb={projectBreadcrumb}
             moveModalOpen={moveModalOpen}
             setMoveModalOpen={setMoveModalOpen}
             folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}

@@ -74,7 +74,7 @@ describe("AssetPreviewDialog", () => {
         onSelectAsset={vi.fn()}
         currentFolderPathLabel="Root"
         folderBreadcrumbs={["Campaigns", "May"]}
-        workspaceBreadcrumb={{ name: "Philip Cole's Workspace 2" }}
+        projectBreadcrumb={{ name: "Brand site" }}
         onOpenEditAsset={vi.fn()}
       />,
     );
@@ -95,7 +95,7 @@ describe("AssetPreviewDialog", () => {
         onSelectAsset={vi.fn()}
         currentFolderPathLabel="Root"
         folderBreadcrumbs={["Campaigns", "May"]}
-        workspaceBreadcrumb={{ name: "Philip Cole's Workspace 2" }}
+        projectBreadcrumb={{ name: "Brand site" }}
         onOpenEditAsset={vi.fn()}
       />,
     );
@@ -104,10 +104,38 @@ describe("AssetPreviewDialog", () => {
     expect(title).toHaveClass("text-callout");
     expect(title.closest(".bg-muted")).not.toBeNull();
     expect(title.closest(".items-center")).not.toBeNull();
-    expect(screen.getByText("Philip Cole's Workspace 2")).toBeInTheDocument();
+    expect(screen.getByText("Brand site")).toBeInTheDocument();
     expect(screen.getByText("Campaigns")).toBeInTheDocument();
     expect(screen.getByText("May")).toBeInTheDocument();
     expect(screen.queryByText("Philip Cole · 2026-04-15")).not.toBeInTheDocument();
+  });
+
+  it("renders the preview stage as the full body with a floating sidebar", () => {
+    render(
+      <AssetPreviewDialog
+        projectId="project-1"
+        active={asset}
+        onClose={vi.fn()}
+        items={[asset]}
+        onSelectAsset={vi.fn()}
+        currentFolderPathLabel="Root"
+        folderBreadcrumbs={["Campaigns", "May"]}
+        projectBreadcrumb={{ name: "Brand site" }}
+        onOpenEditAsset={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("asset-preview-stage-region")).toHaveClass(
+      "absolute",
+      "p-6",
+      "sm:right-[25rem]",
+      "lg:p-8",
+    );
+    expect(screen.getByTestId("asset-preview-floating-sidebar")).toHaveClass(
+      "absolute",
+      "z-10",
+      "sm:w-[24rem]",
+    );
   });
 
   it("disables preview write actions in read-only asset mode", async () => {
@@ -122,7 +150,7 @@ describe("AssetPreviewDialog", () => {
         onSelectAsset={vi.fn()}
         currentFolderPathLabel="Root"
         folderBreadcrumbs={["Campaigns", "May"]}
-        workspaceBreadcrumb={{ name: "Philip Cole's Workspace 2" }}
+        projectBreadcrumb={{ name: "Brand site" }}
         onOpenEditAsset={vi.fn()}
         canManageAssets={false}
       />,

@@ -1,8 +1,14 @@
 import { Link2, Plus } from "lucide-react";
+import type { ReactNode } from "react";
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@arclayer/ui/accordion";
 import { Input } from "@arclayer/ui/input";
 
-import { UserAvatar } from "@/components/common/entity-avatar";
 import { AssetAddTagActionTag, AssetUserTagChip } from "@/components/ui/tags";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
@@ -128,16 +134,16 @@ function AssetTagEditor(props: { controller: AssetPreviewController }) {
   );
 }
 
-function AssetDescriptionEditor(props: { controller: AssetPreviewController }) {
+function AssetAltNameEditor(props: { controller: AssetPreviewController }) {
   return (
     <div className="space-y-3">
       <textarea
         className="min-h-28 w-full resize-none rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-callout text-label-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        placeholder={props.controller.t("assets:ASSET_META_DESCRIPTION_PLACEHOLDER")}
-        value={props.controller.descriptionDraft}
+        placeholder={props.controller.t("assets:ASSET_EDIT_ALT_NAME_PLACEHOLDER")}
+        value={props.controller.altNameDraft}
         onChange={(event) => {
-          props.controller.dirtyRef.current.description = true;
-          props.controller.setDescriptionDraft(event.target.value);
+          props.controller.dirtyRef.current.altName = true;
+          props.controller.setAltNameDraft(event.target.value);
         }}
       />
       {props.controller.saveState !== "idle" ? (
@@ -153,80 +159,88 @@ function AssetDescriptionEditor(props: { controller: AssetPreviewController }) {
   );
 }
 
+function AssetSidebarAccordionItem(props: { value: string; title: string; children: ReactNode }) {
+  return (
+    <AccordionItem
+      value={props.value}
+      className="overflow-hidden rounded-lg border border-border/70 bg-card/95 px-4 shadow-sm shadow-black/5 backdrop-blur-sm last:border-b dark:border-white/10 dark:bg-card/90 dark:shadow-black/30"
+    >
+      <AccordionTrigger className="py-3 text-callout font-semibold text-label-primary hover:no-underline">
+        {props.title}
+      </AccordionTrigger>
+      <AccordionContent className="space-y-4">{props.children}</AccordionContent>
+    </AccordionItem>
+  );
+}
+
 export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
   const { active, controller } = props;
 
   return (
     <AssetInspectorShell>
-      <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_OVERVIEW")}>
-        <div className="flex items-center gap-3">
-          <UserAvatar
-            name={controller.uploaderName}
-            assetRef={active.uploaderAvatarUrl}
-            size={40}
-          />
-          <div className="min-w-0">
-            <div className="truncate text-footnote font-semibold text-label-primary">
-              {controller.uploaderName}
-            </div>
-            <div className="truncate text-caption text-label-secondary">
-              {controller.uploaderAndTimeText}
-            </div>
-          </div>
-        </div>
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue="overview"
+        className="w-full space-y-3"
+        data-testid="asset-preview-sidebar-accordion"
+      >
+        <AssetSidebarAccordionItem
+          value="overview"
+          title={controller.t("assets:ASSET_DIALOG_OVERVIEW")}
+        >
+          <AssetInspectorList>
+            <AssetInspectorRow
+              label={controller.t("assets:ASSET_DIALOG_LOCATION")}
+              value={<span className="break-words">{props.currentFolderPathLabel}</span>}
+            />
+            <AssetInspectorRow
+              label={controller.t("assets:ASSET_META_SIZE")}
+              value={active.sizeText || "-"}
+            />
+            <AssetInspectorRow
+              label={controller.t("assets:ASSET_META_CREATED_AT")}
+              value={formatCreatedAt(active.createdAt, active.createdAtText, controller.dateTime)}
+            />
+            <AssetInspectorRow
+              label={controller.t("assets:ASSET_META_MIME")}
+              value={getMimeLabel(active.mimeType, controller.t)}
+            />
+            <AssetInspectorRow
+              label={controller.t("assets:ASSET_META_INDEXABLE")}
+              value={getIndexableLabel(active.indexable, controller.t)}
+            />
+          </AssetInspectorList>
 
-        <AssetInspectorList>
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_DIALOG_LOCATION")}
-            value={<span className="break-words">{props.currentFolderPathLabel}</span>}
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_SIZE")}
-            value={active.sizeText || "-"}
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_CREATED_AT")}
-            value={formatCreatedAt(active.createdAt, active.createdAtText, controller.dateTime)}
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_MIME")}
-            value={getMimeLabel(active.mimeType, controller.t)}
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_INDEXABLE")}
-            value={getIndexableLabel(active.indexable, controller.t)}
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_EDIT_ALT_NAME")}
-            value={active.altName?.trim() || "-"}
-          />
-        </AssetInspectorList>
-      </AssetInspectorPanel>
+          <AssetInspectorPanel title={controller.t("assets:ASSET_EDIT_ALT_NAME")}>
+            <AssetAltNameEditor controller={controller} />
+          </AssetInspectorPanel>
 
-      <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_NOTES")}>
-        <AssetDescriptionEditor controller={controller} />
-      </AssetInspectorPanel>
+          <AssetInspectorPanel title={controller.t("assets:ASSET_TAG_FIELD_TITLE")}>
+            <AssetTagEditor controller={controller} />
+          </AssetInspectorPanel>
+        </AssetSidebarAccordionItem>
 
-      <AssetInspectorPanel title={controller.t("assets:ASSET_TAG_FIELD_TITLE")}>
-        <AssetTagEditor controller={controller} />
-      </AssetInspectorPanel>
+        <AssetSidebarAccordionItem value="share" title={controller.t("assets:ASSET_DIALOG_SHARE")}>
+          <AssetShareLinks controller={controller} />
+        </AssetSidebarAccordionItem>
 
-      <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_SHARE")}>
-        <AssetShareLinks controller={controller} />
-      </AssetInspectorPanel>
-
-      <AssetInspectorPanel title={controller.t("assets:ASSET_META_ADVANCED_TITLE")}>
-        <AssetInspectorList>
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_ID")}
-            value={<AssetInspectorMono value={active.id} />}
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_SHA256")}
-            value={<AssetInspectorMono value={active.checksumSha256} />}
-          />
-        </AssetInspectorList>
-      </AssetInspectorPanel>
+        <AssetSidebarAccordionItem
+          value="advanced"
+          title={controller.t("assets:ASSET_META_ADVANCED_TITLE")}
+        >
+          <AssetInspectorList>
+            <AssetInspectorRow
+              label={controller.t("assets:ASSET_META_ID")}
+              value={<AssetInspectorMono value={active.id} />}
+            />
+            <AssetInspectorRow
+              label={controller.t("assets:ASSET_META_SHA256")}
+              value={<AssetInspectorMono value={active.checksumSha256} />}
+            />
+          </AssetInspectorList>
+        </AssetSidebarAccordionItem>
+      </Accordion>
     </AssetInspectorShell>
   );
 }

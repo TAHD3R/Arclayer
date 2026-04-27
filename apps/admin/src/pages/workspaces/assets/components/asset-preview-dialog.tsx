@@ -30,10 +30,10 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 
 import {
-  WorkspaceAvatar,
-  workspaceAvatarPropsFromIdentity,
-  type WorkspaceAvatarIdentity,
-} from "@/components/common/entity-avatar";
+  ProjectAvatar,
+  projectAvatarPropsFromIdentity,
+  type ProjectAvatarIdentity,
+} from "@/components/common/project-avatar";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import {
@@ -55,14 +55,14 @@ type AssetPreviewDialogProps = {
   onSelectAsset: (asset: AssetMasonryItem) => void;
   currentFolderPathLabel: string;
   folderBreadcrumbs: string[];
-  workspaceBreadcrumb: AssetPreviewWorkspaceBreadcrumb | null;
+  projectBreadcrumb: AssetPreviewProjectBreadcrumb | null;
   onOpenEditAsset: (asset: AssetMasonryItem) => void;
   canManageAssets?: boolean;
 };
 
-export type AssetPreviewWorkspaceBreadcrumb = {
+export type AssetPreviewProjectBreadcrumb = {
   name: string;
-} & WorkspaceAvatarIdentity;
+} & ProjectAvatarIdentity;
 
 function PreviewToolbar(props: {
   previousAsset: AssetMasonryItem | null;
@@ -167,6 +167,21 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
       return item;
     });
   }, [active, canManageAssets, controller.publicAbsoluteUrl, controller.t]);
+  const breadcrumbSegments = useMemo(
+    () => [
+      {
+        key: "project",
+        label: props.projectBreadcrumb?.name ?? controller.t("nav:NAV_PROJECTS"),
+        project: props.projectBreadcrumb,
+      },
+      ...props.folderBreadcrumbs.map((segment, index) => ({
+        key: `folder:${index}:${segment}`,
+        label: segment,
+        project: null,
+      })),
+    ],
+    [controller.t, props.folderBreadcrumbs, props.projectBreadcrumb],
+  );
 
   useEffect(() => {
     if (!active) return;
@@ -217,33 +232,24 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
               aria-labelledby={titleId}
               className="flex h-full min-h-0 flex-col"
             >
-              <div className="flex items-center gap-4 border-b border-border/70 bg-muted px-6 py-4 sm:px-8 sm:py-5">
+              <div className="flex items-center gap-4 border-b border-border/70 bg-card px-6 py-4 sm:px-8 sm:py-5">
                 <div className="min-w-0 flex-1">
                   <Breadcrumb>
                     <BreadcrumbList className="m-0 mb-0! flex-nowrap overflow-hidden whitespace-nowrap p-0 text-callout">
-                      {props.workspaceBreadcrumb ? (
-                        <BreadcrumbItem className="min-w-0">
-                          <span className="flex min-w-0 items-center gap-2 truncate text-label-secondary">
-                            <WorkspaceAvatar
-                              name={props.workspaceBreadcrumb.name}
-                              size={18}
-                              className="rounded-[4px]"
-                              {...workspaceAvatarPropsFromIdentity(props.workspaceBreadcrumb)}
-                            />
-                            <span className="truncate">{props.workspaceBreadcrumb.name}</span>
-                          </span>
-                        </BreadcrumbItem>
-                      ) : null}
-
-                      {(props.workspaceBreadcrumb
-                        ? [controller.t("assets:ASSET_BREADCRUMB_ROOT"), ...props.folderBreadcrumbs]
-                        : props.folderBreadcrumbs
-                      ).map((segment, index) => (
-                        <Fragment key={`${segment}-${index}`}>
-                          <BreadcrumbSeparator />
+                      {breadcrumbSegments.map((segment, index) => (
+                        <Fragment key={segment.key}>
+                          {index > 0 ? <BreadcrumbSeparator /> : null}
                           <BreadcrumbItem className="min-w-0">
                             <span className="flex min-w-0 items-center gap-2 truncate text-label-secondary">
-                              <span className="truncate">{segment}</span>
+                              {segment.project ? (
+                                <ProjectAvatar
+                                  name={segment.project.name}
+                                  size={18}
+                                  className="rounded-[4px]"
+                                  {...projectAvatarPropsFromIdentity(segment.project)}
+                                />
+                              ) : null}
+                              <span className="truncate">{segment.label}</span>
                             </span>
                           </BreadcrumbItem>
                         </Fragment>
@@ -284,25 +290,29 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
                 </div>
               </div>
 
-              <div className="flex min-h-0 flex-1 gap-0 overflow-hidden bg-card">
-                <section className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border/60 bg-card">
-                  <div className="min-h-0 flex-1 overflow-hidden">
-                    <AssetPreviewStage
-                      active={active}
-                      activeAspectRatio={controller.activeAspectRatio}
-                      previewAspectRatio={controller.previewAspectRatio}
-                      setPreviewAspectRatio={controller.setPreviewAspectRatio}
-                      previewSrc={controller.previewSrc}
-                      setPreviewSrc={controller.setPreviewSrc}
-                      previewCandidates={controller.previewCandidates}
-                      failedPreviewRef={controller.failedPreviewRef}
-                      t={controller.t}
-                    />
-                  </div>
-                </section>
+              <div className="relative min-h-0 flex-1 overflow-hidden bg-card">
+                <div
+                  className="absolute inset-y-0 left-0 right-0 px-6 sm:right-100 lg:px-8"
+                  data-testid="asset-preview-stage-region"
+                >
+                  <AssetPreviewStage
+                    active={active}
+                    activeAspectRatio={controller.activeAspectRatio}
+                    previewAspectRatio={controller.previewAspectRatio}
+                    setPreviewAspectRatio={controller.setPreviewAspectRatio}
+                    previewSrc={controller.previewSrc}
+                    setPreviewSrc={controller.setPreviewSrc}
+                    previewCandidates={controller.previewCandidates}
+                    failedPreviewRef={controller.failedPreviewRef}
+                    t={controller.t}
+                  />
+                </div>
 
-                <aside className="flex w-[24rem] min-w-0 flex-col bg-card/95 backdrop-blur-sm">
-                  <div className="min-h-0 flex-1 overflow-auto p-4">
+                <aside
+                  className="absolute inset-x-4 bottom-4 top-4 z-10 flex min-w-0 flex-col sm:left-auto sm:w-[24rem]"
+                  data-testid="asset-preview-floating-sidebar"
+                >
+                  <div className="min-h-0 flex-1 overflow-auto p-1 scrollbar-none">
                     <AssetPreviewSidebar
                       active={active}
                       controller={controller}

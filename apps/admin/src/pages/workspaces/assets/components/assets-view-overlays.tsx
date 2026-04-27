@@ -3,7 +3,7 @@ import { FolderInput, Settings2, Trash2 } from "lucide-react";
 import { FloatingBulkToolbar } from "@/components/common/floating-bulk-toolbar";
 import type { AdminAssetFolder } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import { AssetPreviewDialog, type AssetPreviewWorkspaceBreadcrumb } from "./asset-preview-dialog";
+import { AssetPreviewDialog, type AssetPreviewProjectBreadcrumb } from "./asset-preview-dialog";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";
 import { CreateAssetFolderDialog } from "./create-asset-folder-dialog";
 import { DeleteAssetDialog } from "./delete-asset-dialog";
@@ -27,7 +27,7 @@ interface AssetsViewOverlaysProps {
   items: AssetMasonryItem[];
   currentFolderPathLabel: string;
   folderBreadcrumbs: string[];
-  workspaceBreadcrumb: AssetPreviewWorkspaceBreadcrumb | null;
+  projectBreadcrumb: AssetPreviewProjectBreadcrumb | null;
   moveModalOpen: boolean;
   setMoveModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   folders: AdminAssetFolder[];
@@ -163,7 +163,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         items={props.items}
         currentFolderPathLabel={props.currentFolderPathLabel}
         folderBreadcrumbs={props.folderBreadcrumbs}
-        workspaceBreadcrumb={props.workspaceBreadcrumb}
+        projectBreadcrumb={props.projectBreadcrumb}
         onSelectAsset={(asset) => props.setActive(asset)}
         onOpenEditAsset={props.onOpenEditAsset}
         onClose={() => props.setActive(null)}
