@@ -1,9 +1,11 @@
 import * as React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { FileText, House } from "lucide-react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
+import type { AdminNavItem } from "@/types/admin-nav";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -563,6 +565,70 @@ describe("AdminSidebarShell", () => {
     await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
     await waitFor(() => {
       expect(screen.getByTestId("admin-sider-nav")).toBeInTheDocument();
+    });
+  });
+
+  it("uses a changing browse menu tree key for global and project menu switches", async () => {
+    const globalItems: readonly AdminNavItem[] = [
+      {
+        key: "projects",
+        label: "All projects",
+        labelKey: "nav:NAV_ALL_PROJECTS",
+        to: "/projects",
+        icon: House,
+      },
+    ];
+    const projectItems: readonly AdminNavItem[] = [
+      {
+        key: "content",
+        label: "Content",
+        labelKey: "nav:NAV_CONTENT",
+        groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
+        to: "/projects/project-alpha/content",
+        icon: FileText,
+        children: [
+          {
+            key: "entries",
+            label: "Entries",
+            labelKey: "nav:NAV_CONTENT_ENTRIES",
+            to: "/projects/project-alpha/content/entries",
+            icon: FileText,
+          },
+        ],
+      },
+    ];
+
+    const { container, rerender } = render(
+      <SidebarProvider defaultOpen className="h-screen">
+        <AdminSidebarShell
+          showNavSkeleton={false}
+          showOrgNavErrorOverlay={false}
+          mainItems={globalItems}
+          collapsible="icon"
+        />
+      </SidebarProvider>,
+    );
+
+    expect(container.querySelector('[data-menu-tree-key*="projects"]')).not.toBeNull();
+    expect(container.querySelector('[data-menu-tree-key*="/projects"]')).not.toBeNull();
+
+    rerender(
+      <SidebarProvider defaultOpen className="h-screen">
+        <AdminSidebarShell
+          showNavSkeleton={false}
+          showOrgNavErrorOverlay={false}
+          mainItems={projectItems}
+          collapsible="icon"
+        />
+      </SidebarProvider>,
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-menu-tree-key*="content"]')).not.toBeNull();
+      expect(
+        container.querySelector('[data-menu-tree-key*="/projects/project-alpha/content"]'),
+      ).not.toBeNull();
+      expect(container.querySelector('[data-menu-tree-key*="entries"]')).not.toBeNull();
     });
   });
 

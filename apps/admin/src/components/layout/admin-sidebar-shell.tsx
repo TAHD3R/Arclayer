@@ -80,6 +80,13 @@ const SIDEBAR_CONTENT_TRANSITION = {
   ease: [0.22, 1, 0.36, 1],
 } as const;
 
+function getSidebarMenuTreeItemKey(item: AdminNavItem): string {
+  const childrenKey = item.children?.map(getSidebarMenuTreeItemKey).join(",");
+  const groupKey = item.groupLabelBeforeKey ?? item.groupLabelBefore ?? "";
+  const targetKey = item.to ?? "";
+  return [item.key, item.labelKey ?? item.label, groupKey, targetKey, childrenKey ?? ""].join(":");
+}
+
 function useSidebarExpandedHeaderRows() {
   const { motionPhase, state } = useSidebar();
   return state !== "collapsed" && motionPhase !== "collapsing";
@@ -485,6 +492,13 @@ function AdminSidebarContentArea(props: {
   pathnameOverride?: string;
 }) {
   const { t } = useTranslation(["common"]);
+  const menuTreeKey = useMemo(
+    () =>
+      props.showMenuSkeleton
+        ? "skeleton"
+        : props.mainItems.map(getSidebarMenuTreeItemKey).join("|"),
+    [props.mainItems, props.showMenuSkeleton],
+  );
   const mainMenu = props.showMenuSkeleton ? (
     <AdminSidebarMainMenuSkeleton />
   ) : (
@@ -498,8 +512,23 @@ function AdminSidebarContentArea(props: {
   );
 
   const browseContent = (
-    <div className="flex min-h-0 flex-1">
-      <div className="flex min-h-0 flex-1 flex-col overflow-auto scrollbar-none">{mainMenu}</div>
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={menuTreeKey}
+            data-testid="sidebar-menu-tree"
+            data-menu-tree-key={menuTreeKey}
+            className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-auto scrollbar-none"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            transition={SIDEBAR_CONTENT_TRANSITION}
+          >
+            {mainMenu}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 
