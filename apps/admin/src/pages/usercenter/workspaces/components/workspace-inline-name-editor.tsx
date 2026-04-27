@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 import { cn } from "@arclayer/lib/utils";
+import { Textarea } from "@arclayer/ui/textarea";
 
 type WorkspaceInlineNameEditorProps = {
   editing: boolean;
@@ -49,7 +50,7 @@ export function WorkspaceInlineNameEditor(props: WorkspaceInlineNameEditorProps)
   return (
     <div className={cn("min-w-0", props.containerClassName)}>
       {props.multiline ? (
-        <textarea
+        <Textarea
           ref={inputRef as RefObject<HTMLTextAreaElement>}
           value={props.draftValue}
           rows={props.rows ?? 3}
@@ -71,7 +72,7 @@ export function WorkspaceInlineNameEditor(props: WorkspaceInlineNameEditorProps)
               props.onCancel();
             }
           }}
-          className={cn("w-full resize-none", sharedInputClassName)}
+          className={cn("resize-none", sharedInputClassName)}
         />
       ) : (
         <div className="relative">

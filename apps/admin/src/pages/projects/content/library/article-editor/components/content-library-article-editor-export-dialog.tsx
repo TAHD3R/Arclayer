@@ -8,6 +8,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Textarea } from "@arclayer/ui/textarea";
 
 import {
   downloadArticleEditorExport,
@@ -128,11 +129,11 @@ export function ContentLibraryArticleEditorExportDialog(props: {
           </div>
         ) : (
           <SettingDialogField title={t("CONTENT_LIBRARY_EDITOR_EXPORT_PREVIEW_LABEL")}>
-            <textarea
+            <Textarea
               id="article-editor-export-preview"
               readOnly
               value={preview}
-              className="min-h-64 w-full rounded-lg border border-border/70 bg-card px-3 py-3 text-body outline-none"
+              className="min-h-64 rounded-lg border-border/70 bg-card py-3 text-body"
             />
           </SettingDialogField>
         )}

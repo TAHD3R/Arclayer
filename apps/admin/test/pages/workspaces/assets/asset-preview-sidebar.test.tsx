@@ -1,6 +1,6 @@
 import { createRef, type ComponentProps } from "react";
 
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AssetPreviewSidebar } from "@/pages/workspaces/assets/components/asset-preview-sidebar";
@@ -42,19 +42,23 @@ function createController(): ComponentProps<typeof AssetPreviewSidebar>["control
     confirmAddTag: vi.fn(),
     setInputVisible: vi.fn(),
     removeTag: vi.fn(),
+    filenameDraft: "hero.png",
+    setFilenameDraft: vi.fn(),
     altNameDraft: "Hero",
     setAltNameDraft: vi.fn(),
-    dirtyRef: { current: { altName: false, tags: false } },
+    dirtyRef: { current: { filename: false, altName: false, tags: false } },
     saveState: "idle",
   } as unknown as ComponentProps<typeof AssetPreviewSidebar>["controller"];
 }
 
 describe("AssetPreviewSidebar", () => {
   it("renders Overview and Share as the first two accordion items", () => {
+    const controller = createController();
+
     render(
       <AssetPreviewSidebar
         active={asset}
-        controller={createController()}
+        controller={controller}
         currentFolderPathLabel="Root / Campaigns"
       />,
     );
@@ -71,6 +75,26 @@ describe("AssetPreviewSidebar", () => {
     expect(triggers[1]).toHaveAttribute("aria-expanded", "false");
     expect(triggers[2]).toHaveAttribute("aria-expanded", "false");
     expect(triggers[2].parentElement?.parentElement).toHaveClass("last:border-b");
+    expect(triggers[0].querySelector("svg")).not.toBeNull();
+    expect(triggers[1].querySelector("svg")).not.toBeNull();
+    expect(triggers[2].querySelector("svg")).not.toBeNull();
+
+    const filenameInput = screen.getByDisplayValue("hero.png");
+    fireEvent.change(filenameInput, { target: { value: "renamed.png" } });
+    expect(controller.dirtyRef.current.filename).toBe(true);
+    expect(controller.setFilenameDraft).toHaveBeenCalledWith("renamed.png");
+
+    expect(screen.queryByText("assets:ASSET_TAG_FIELD_TITLE")).toBeNull();
+    expect(screen.getByText("assets:ASSET_META_TITLE")).toBeInTheDocument();
+    const altNameTitle = screen.getByText("assets:ASSET_EDIT_ALT_NAME");
+    const locationLabel = screen.getByText("assets:ASSET_DIALOG_LOCATION");
+    expect(altNameTitle.compareDocumentPosition(locationLabel)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(screen.getByDisplayValue("hero.png")).toHaveClass("border-input");
+    expect(screen.getByPlaceholderText("assets:ASSET_EDIT_ALT_NAME_PLACEHOLDER")).toHaveClass(
+      "border-input",
+    );
     expect(screen.getByText("Root / Campaigns")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Hero")).toBeInTheDocument();
     expect(screen.queryByText("https://cdn.example.com/hero.png")).toBeNull();

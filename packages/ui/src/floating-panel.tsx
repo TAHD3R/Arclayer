@@ -18,6 +18,7 @@ import {
   trapFocusWithinFloatingPanel,
 } from "./floating-panel-focus";
 import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "./layer-shadow";
+import { Textarea } from "./textarea";
 
 const TRANSITION = {
   type: "spring" as const,
@@ -516,10 +517,10 @@ export function FloatingPanelTextarea({ className, id }: FloatingPanelTextareaPr
   const { note, setNote } = useFloatingPanel();
 
   return (
-    <textarea
+    <Textarea
       id={id}
       className={cn(
-        "h-full w-full resize-none rounded-md bg-transparent px-4 py-3 text-footnote outline-none",
+        "h-full min-h-0 resize-none border-none px-4 py-3 text-footnote focus-visible:ring-0",
         className,
       )}
       autoFocus

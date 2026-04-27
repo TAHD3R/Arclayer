@@ -13,6 +13,7 @@ import type { UserCenterWorkspaceListItem } from "@/pages/usercenter/workspaces/
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingCard, SettingCardContent } from "@arclayer/ui/setting-card";
+import { Textarea } from "@arclayer/ui/textarea";
 
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
 
@@ -216,7 +217,7 @@ export function WorkspaceSettingsIconAccordionItem(props: {
                 {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
               </label>
               <div className="flex items-start gap-2 max-w-xl">
-                <textarea
+                <Textarea
                   rows={3}
                   value={descriptionDraft}
                   onChange={(event) => {
@@ -226,7 +227,7 @@ export function WorkspaceSettingsIconAccordionItem(props: {
                   maxLength={WORKSPACE_DESCRIPTION_MAX_LENGTH}
                   placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
                   disabled={c.disabled || !workspace}
-                  className="w-full  max-w-sm resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body transition-colors placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="max-w-sm resize-none text-body"
                 />
                 {hasDescriptionChanged || c.savingKey === "workspace:description" ? (
                   <Button

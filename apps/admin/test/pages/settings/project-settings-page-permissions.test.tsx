@@ -152,10 +152,6 @@ vi.mock("@arclayer/ui/input", () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
-vi.mock("@arclayer/ui/textarea", () => ({
-  Textarea: (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...props} />,
-}));
-
 function renderWithQuery(node: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -227,7 +223,9 @@ describe("ProjectSettingsPage permission consumption", () => {
 
     renderWithQuery(<ProjectSettingsPage activeTab="general" projectId="project-1" />);
 
-    expect(await screen.findByText("account:SETTINGS_PROJECT_READ_ONLY_DESC")).toBeInTheDocument();
+    expect(await screen.findAllByText("account:SETTINGS_PROJECT_READ_ONLY_DESC")).not.toHaveLength(
+      0,
+    );
     expect(screen.getByTestId("project-icon-action")).toBeDisabled();
     expect(screen.getByTestId("accordion-project_name")).toHaveAttribute("data-disabled", "true");
     expect(screen.getByTestId("accordion-project_slug")).toHaveAttribute("data-disabled", "true");

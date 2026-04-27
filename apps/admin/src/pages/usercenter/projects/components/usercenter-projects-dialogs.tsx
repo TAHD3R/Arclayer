@@ -8,7 +8,6 @@ import {
   syncProjectSlugWithName,
   type ProjectSlugSource,
 } from "@/lib/project-slug";
-import { cn } from "@arclayer/lib/utils";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -25,6 +24,7 @@ import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Textarea } from "@arclayer/ui/textarea";
 
 import type { ProjectIconDialogValues } from "../hooks/use-project-menu-actions";
 import type { UserCenterProjectListItem, UserCenterProjectsTranslateFn } from "../types";
@@ -442,7 +442,7 @@ export function ProjectCreateDialog(props: {
           title={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION")}
           description={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_DESC")}
         >
-          <textarea
+          <Textarea
             rows={3}
             value={createDialog.values.description ?? ""}
             onChange={(event) => {
@@ -452,11 +452,7 @@ export function ProjectCreateDialog(props: {
               }));
             }}
             placeholder={t("account:ACCOUNT_PROJECTS_FIELD_DESCRIPTION_PLACEHOLDER")}
-            className={cn(
-              "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body transition-colors",
-              "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
+            className="resize-none"
           />
         </SettingDialogField>
       </SettingDialogFields>

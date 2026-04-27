@@ -4,6 +4,8 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Textarea } from "@arclayer/ui/textarea";
+
 let currentElement: Record<string, unknown> = {};
 let currentIsEditing = false;
 let currentSelected = true;
@@ -69,7 +71,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("react-textarea-autosize", () => ({
   default: React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"textarea">>((props, ref) => (
-    <textarea ref={ref} {...props} />
+    <Textarea ref={ref} {...props} />
   )),
 }));
 

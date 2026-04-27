@@ -232,7 +232,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
               aria-labelledby={titleId}
               className="flex h-full min-h-0 flex-col"
             >
-              <div className="flex items-center gap-4 border-b border-border/70 bg-card px-6 py-4 sm:px-8 sm:py-5">
+              <div className="flex items-center gap-4 px-6 py-3">
                 <div className="min-w-0 flex-1">
                   <Breadcrumb>
                     <BreadcrumbList className="m-0 mb-0! flex-nowrap overflow-hidden whitespace-nowrap p-0 text-callout">
@@ -290,7 +290,12 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
                 </div>
               </div>
 
-              <div className="relative min-h-0 flex-1 overflow-hidden bg-card">
+              <div className="relative min-h-0 flex-1 overflow-hidden">
+                <div
+                  aria-hidden="true"
+                  data-testid="asset-preview-dot-grid"
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.18)_1px,transparent_1px)] bg-[size:22px_22px] opacity-75 dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_1px,transparent_1px)] dark:opacity-75"
+                />
                 <div
                   className="absolute inset-y-0 left-0 right-0 px-6 sm:right-100 lg:px-8"
                   data-testid="asset-preview-stage-region"

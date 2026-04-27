@@ -102,7 +102,6 @@ describe("AssetPreviewDialog", () => {
 
     const title = screen.getByRole("heading", { name: "hero.png" });
     expect(title).toHaveClass("text-callout");
-    expect(title.closest(".bg-muted")).not.toBeNull();
     expect(title.closest(".items-center")).not.toBeNull();
     expect(screen.getByText("Brand site")).toBeInTheDocument();
     expect(screen.getByText("Campaigns")).toBeInTheDocument();
@@ -127,9 +126,15 @@ describe("AssetPreviewDialog", () => {
 
     expect(screen.getByTestId("asset-preview-stage-region")).toHaveClass(
       "absolute",
-      "p-6",
-      "sm:right-[25rem]",
-      "lg:p-8",
+      "px-6",
+      "sm:right-100",
+      "lg:px-8",
+    );
+    expect(screen.getByTestId("asset-preview-dot-grid")).toHaveClass(
+      "pointer-events-none",
+      "absolute",
+      "opacity-75",
+      "dark:opacity-75",
     );
     expect(screen.getByTestId("asset-preview-floating-sidebar")).toHaveClass(
       "absolute",

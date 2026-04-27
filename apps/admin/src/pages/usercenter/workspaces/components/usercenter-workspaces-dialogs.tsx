@@ -1,5 +1,4 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { cn } from "@arclayer/lib/utils";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -16,6 +15,7 @@ import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Textarea } from "@arclayer/ui/textarea";
 
 import type { UserCenterWorkspacesTranslateFn } from "../types";
 import type { UserCenterWorkspaceListItem } from "../types";
@@ -274,7 +274,7 @@ export function WorkspaceCreateDialog(props: {
           title={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
           description={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
         >
-          <textarea
+          <Textarea
             rows={3}
             value={createDialog.values.description ?? ""}
             onChange={(event) => {
@@ -284,11 +284,7 @@ export function WorkspaceCreateDialog(props: {
               }));
             }}
             placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
-            className={cn(
-              "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
-              "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
+            className="resize-none"
           />
         </SettingDialogField>
       </SettingDialogFields>

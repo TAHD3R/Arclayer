@@ -19,6 +19,7 @@ import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-
 import { Button } from "@arclayer/ui/button";
 import { Badge } from "@arclayer/ui/badge";
 import { Skeleton } from "@arclayer/ui/skeleton";
+import { Textarea } from "@arclayer/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
@@ -537,11 +538,11 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                         )}
                       />
 
-                      <textarea
+                      <Textarea
                         value={props.summary}
                         onChange={(event) => props.onSummaryChange(event.target.value)}
                         placeholder={t("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER")}
-                        className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-body text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
+                        className="min-h-0 resize-none overflow-hidden border-none bg-transparent p-0 text-body text-label-secondary placeholder:text-label-tertiary focus-visible:ring-0"
                         rows={2}
                       />
                     </div>
@@ -610,11 +611,11 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                         )}
                       />
 
-                      <textarea
+                      <Textarea
                         value={props.summary}
                         onChange={(event) => props.onSummaryChange(event.target.value)}
                         placeholder={t("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER")}
-                        className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-body text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
+                        className="min-h-0 resize-none overflow-hidden border-none bg-transparent p-0 text-body text-label-secondary placeholder:text-label-tertiary focus-visible:ring-0"
                         rows={2}
                       />
                     </div>

@@ -8,6 +8,7 @@ vi.mock("katex/dist/katex.min.css", () => ({}));
 
 import { ContentLibraryPage } from "@/pages/projects/content/library/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { Textarea } from "@arclayer/ui/textarea";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const mocked = vi.hoisted(() => ({
@@ -168,7 +169,7 @@ vi.mock("@/pages/projects/content/library/components/content-library-preview-pan
       </button>
       <button type="button" aria-label="CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU" />
       <input readOnly value={props.initialTitle ?? ""} />
-      <textarea
+      <Textarea
         readOnly
         placeholder="CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER"
         value={props.initialSummary ?? ""}

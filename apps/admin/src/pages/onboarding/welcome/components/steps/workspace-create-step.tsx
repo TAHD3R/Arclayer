@@ -5,6 +5,7 @@ import { initialsFromName } from "@/lib/auth/user-profile";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { Textarea } from "@arclayer/ui/textarea";
 import type { RoleOption } from "../../types";
 import { WelcomeFieldError } from "../welcome-field-error";
 
@@ -73,14 +74,14 @@ export function WorkspaceCreateStep(props: {
         <label htmlFor="workspace-description" className="text-headline text-label-primary">
           {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
         </label>
-        <textarea
+        <Textarea
           id="workspace-description"
           rows={3}
           value={props.description}
           onChange={(event) => props.onDescriptionChange(event.target.value)}
           maxLength={WORKSPACE_DESCRIPTION_MAX_LENGTH}
           placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
-          className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body transition-colors placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="resize-none text-body"
         />
         <div className="text-footnote text-label-secondary">
           {`${props.description.length}/${WORKSPACE_DESCRIPTION_MAX_LENGTH}`}

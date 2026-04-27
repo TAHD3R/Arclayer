@@ -8,6 +8,7 @@ import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Textarea } from "@arclayer/ui/textarea";
 
 import {
   importArticleEditorDocument,
@@ -124,11 +125,11 @@ export function ContentLibraryArticleEditorImportDialog(props: {
             title={t("CONTENT_LIBRARY_EDITOR_IMPORT_TEXT_LABEL")}
             description={t("CONTENT_LIBRARY_EDITOR_IMPORT_TEXT_HELP")}
           >
-            <textarea
+            <Textarea
               id="article-editor-import-text"
               value={textValue}
               onChange={(event) => setTextValue(event.target.value)}
-              className="min-h-64 w-full rounded-lg border border-border/70 bg-card px-3 py-3 text-body outline-none focus-visible:border-ring"
+              className="min-h-64 rounded-lg border-border/70 bg-card py-3 text-body"
               placeholder={t("CONTENT_LIBRARY_EDITOR_IMPORT_TEXT_PLACEHOLDER")}
             />
           </SettingDialogField>

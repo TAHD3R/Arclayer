@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Textarea } from "@arclayer/ui/textarea";
 import { buildSupportedLocaleOptions, getLocaleMetadata } from "@/lib/i18n";
 
 type LocaleRow = {
@@ -160,15 +160,12 @@ export function LocalizedStringDictField(props: {
               </div>
 
               {props.multiline ? (
-                <textarea
+                <Textarea
                   value={currentValue}
                   placeholder={props.placeholder}
                   rows={3}
                   onChange={(event) => setValueForLocale(locale, event.target.value)}
-                  className={cn(
-                    "min-h-24 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
-                    "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  )}
+                  className="min-h-24 resize-y text-body"
                 />
               ) : (
                 <Input
