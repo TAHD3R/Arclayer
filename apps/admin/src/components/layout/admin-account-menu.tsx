@@ -582,7 +582,6 @@ function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
         email={props.email}
         avatarUrl={props.avatarUrl}
       />
-      <MenuDivider />
       <RootMenu
         panelOpen={isOpen}
         locale={props.locale}
@@ -679,7 +678,7 @@ function HeaderAccountMenuTrigger(props: { displayName: string; avatarUrl: strin
         name={props.displayName}
         assetRef={props.avatarUrl}
         size={40}
-        className="shrink-0"
+        className="shrink-0 ring-border dark:ring-input"
       />
     </FloatingPanelTrigger>
   );

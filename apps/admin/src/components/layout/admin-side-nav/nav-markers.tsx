@@ -15,7 +15,7 @@ export function NavGroupMarker(props: { label: string }) {
       className={cn(
         "relative overflow-hidden py-2",
         "transition-[padding] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
-        "group-data-[state=expanded]:px-3",
+        "group-data-[state=expanded]:px-2",
         "group-data-[state=expanded]:pt-3",
         "group-data-[state=expanded]:pb-2.5",
       )}

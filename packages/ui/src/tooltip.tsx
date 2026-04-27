@@ -13,6 +13,7 @@ import {
   type TooltipContentProps as TooltipContentPrimitiveProps,
 } from "@arclayer/ui/animate-tooltip";
 import { cn } from "@arclayer/lib/utils";
+import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "./layer-shadow";
 
 type TooltipProviderProps = TooltipProviderPrimitiveProps;
 
@@ -50,7 +51,8 @@ function TooltipContent({
   return (
     <TooltipContentPrimitive
       className={cn(
-        "w-fit rounded-md border border-[hsl(210_10%_14%)]/70 bg-[hsl(220_15%_8%)] text-[hsl(220_15%_92%)] shadow-lg shadow-black/20",
+        "w-fit rounded-md border border-[hsl(210_10%_14%)]/70 bg-[hsl(220_15%_8%)] text-[hsl(220_15%_92%)]",
+        OVERLAY_LAYER_SHADOW_CLASSNAME,
         className,
       )}
       {...props}

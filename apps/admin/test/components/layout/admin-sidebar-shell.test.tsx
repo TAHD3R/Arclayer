@@ -328,7 +328,7 @@ describe("AdminSidebarShell", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
-  it("opens a browse dropdown from the active pill and lists workspace projects plus home", async () => {
+  it("opens a browse dropdown from the active pill and lists workspace projects plus global targets", async () => {
     const user = userEvent.setup();
 
     renderWithSidebar(
@@ -372,12 +372,20 @@ describe("AdminSidebarShell", () => {
 
     const menu = screen.getByRole("menu");
 
-    expect(within(menu).getByRole("menuitem", { name: /Project Alpha/ })).toBeInTheDocument();
+    const projectAlphaItem = within(menu).getByRole("menuitem", { name: /Project Alpha/ });
+    const projectBetaItem = within(menu).getByRole("menuitem", { name: /Project Beta/ });
+    const allProjectsItem = within(menu).getByRole("menuitem", { name: "nav:NAV_ALL_PROJECTS" });
+    const homeItem = within(menu).getByRole("menuitem", { name: "nav:NAV_HOME" });
+    expect(projectAlphaItem).toBeInTheDocument();
     expect(within(menu).getByText("Primary publishing surface")).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /Project Beta/ })).toBeInTheDocument();
+    expect(projectBetaItem).toBeInTheDocument();
     expect(within(menu).getByText("Secondary sandbox")).toBeInTheDocument();
     expect(within(menu).queryByText("Project Gamma")).toBeNull();
-    expect(within(menu).getByRole("menuitem", { name: "nav:NAV_HOME" })).toBeInTheDocument();
+    expect(allProjectsItem).toBeInTheDocument();
+    expect(homeItem).toBeInTheDocument();
+    const menuItems = within(menu).getAllByRole("menuitem");
+    expect(menuItems.indexOf(allProjectsItem)).toBeGreaterThan(menuItems.indexOf(projectBetaItem));
+    expect(menuItems.indexOf(homeItem)).toBeGreaterThan(menuItems.indexOf(allProjectsItem));
   });
 
   it("renders real project icons for both the active browse pill and dropdown items", async () => {
@@ -427,7 +435,7 @@ describe("AdminSidebarShell", () => {
     expect(projectBetaItem.querySelector("svg")).not.toBeNull();
   });
 
-  it("navigates from the browse dropdown to another project and home", async () => {
+  it("navigates from the browse dropdown to another project, all projects, and home", async () => {
     const user = userEvent.setup();
 
     renderWithSidebar(
@@ -460,6 +468,11 @@ describe("AdminSidebarShell", () => {
     await user.click(screen.getByRole("menuitem", { name: /Project Beta/ }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-beta" });
+
+    await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
+    await user.click(screen.getByRole("menuitem", { name: "nav:NAV_ALL_PROJECTS" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
 
     await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
     await user.click(screen.getByRole("menuitem", { name: "nav:NAV_HOME" }));
@@ -508,7 +521,7 @@ describe("AdminSidebarShell", () => {
     expect(within(menu).getByText("Secondary sandbox")).toBeInTheDocument();
   });
 
-  it("omits the browse project divider when the current workspace has no projects", async () => {
+  it("keeps all projects above the home divider when there are no browse projects", async () => {
     const user = userEvent.setup();
 
     renderWithSidebar(
@@ -526,8 +539,13 @@ describe("AdminSidebarShell", () => {
 
     const menu = screen.getByRole("menu");
 
-    expect(within(menu).queryByRole("separator")).toBeNull();
-    expect(within(menu).getByRole("menuitem", { name: "nav:NAV_HOME" })).toBeInTheDocument();
+    expect(within(menu).getByRole("separator")).toBeInTheDocument();
+    const allProjectsItem = within(menu).getByRole("menuitem", { name: "nav:NAV_ALL_PROJECTS" });
+    const homeItem = within(menu).getByRole("menuitem", { name: "nav:NAV_HOME" });
+    expect(allProjectsItem).toBeInTheDocument();
+    expect(homeItem).toBeInTheDocument();
+    const menuItems = within(menu).getAllByRole("menuitem");
+    expect(menuItems.indexOf(homeItem)).toBeGreaterThan(menuItems.indexOf(allProjectsItem));
   });
 
   it("switches sidebar content between browse, inbox, and chat tabs", async () => {

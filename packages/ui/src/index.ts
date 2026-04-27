@@ -31,6 +31,7 @@ export * from "./input-otp";
 export * from "./item";
 export * from "./kbd";
 export * from "./label";
+export * from "./layer-shadow";
 export * from "./menubar";
 export * from "./native-select";
 export * from "./navigation-menu";

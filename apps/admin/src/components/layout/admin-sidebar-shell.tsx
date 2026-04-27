@@ -1,32 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  House,
-  Inbox,
-  MessageCircle,
-  PanelLeft as PanelLeftIcon,
-  PanelsTopLeft,
-} from "lucide-react";
+import { Inbox, MessageCircle, PanelLeft as PanelLeftIcon, PanelsTopLeft } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
+import {
+  ProjectBrowseMenuContent,
+  type SidebarBrowseProject,
+} from "@/components/layout/project-browse-menu";
 import { AdminSidebarInbox } from "@/components/layout/admin-sidebar-inbox";
 import { AdminFullLogo, AdminLogo } from "@/components/layout/admin-logo";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminSidebarMainMenuSkeleton } from "@/components/layout/admin-sidebar-skeleton";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuIconItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@arclayer/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -40,16 +31,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@a
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import type { CommandScope } from "@/lib/command/command-types";
-import { projectHomePath } from "@/lib/routing/workspace-routing";
-import type { ProjectAvatarIdentity } from "@/components/common/project-avatar";
-
-export type SidebarBrowseProject = ProjectAvatarIdentity & {
-  projectId: string;
-  workspaceId: string;
-  name: string;
-  description?: string | null;
-  enterable: boolean;
-};
+import { projectHomePath, projectsHomePath } from "@/lib/routing/workspace-routing";
 
 export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;
@@ -245,6 +227,10 @@ function AdminSidebarTopTabs(props: {
     void navigate({ to: "/" as never });
   };
 
+  const handleAllProjectsSelect = () => {
+    void navigate({ to: projectsHomePath() as never });
+  };
+
   if (!showExpandedHeaderRows) {
     return null;
   }
@@ -307,46 +293,16 @@ function AdminSidebarTopTabs(props: {
                   sideOffset={8}
                   className="w-[calc(100vw-2rem)] max-w-[16rem]"
                 >
-                  {browseMenuProjects.length > 0 ? (
-                    <>
-                      <DropdownMenuGroup>
-                        {browseMenuProjects.map((project) => (
-                          <DropdownMenuIconItem
-                            key={project.projectId}
-                            icon={
-                              <ProjectAvatar
-                                name={project.name}
-                                size={18}
-                                className="rounded-sm ring-0"
-                                {...projectAvatarPropsFromIdentity(project)}
-                              />
-                            }
-                            disabled={!project.enterable}
-                            onSelect={() => handleProjectSelect(project.projectId)}
-                          >
-                            <div className="min-w-0">
-                              <div className="truncate text-callout font-semibold text-label-primary">
-                                {project.name}
-                              </div>
-                              <div className="truncate text-caption text-label-secondary">
-                                {project.description?.trim() ||
-                                  t("common:SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK")}
-                              </div>
-                            </div>
-                          </DropdownMenuIconItem>
-                        ))}
-                      </DropdownMenuGroup>
-                      <DropdownMenuSeparator />
-                    </>
-                  ) : null}
-                  <DropdownMenuGroup>
-                    <DropdownMenuIconItem
-                      icon={<House className="size-4" />}
-                      onSelect={handleHomeSelect}
-                    >
-                      {t("nav:NAV_HOME")}
-                    </DropdownMenuIconItem>
-                  </DropdownMenuGroup>
+                  <ProjectBrowseMenuContent
+                    projects={browseMenuProjects}
+                    activeProjectId={props.activeBrowseProjectId}
+                    descriptionFallback={t("common:SIDEBAR_BROWSE_PROJECT_DESCRIPTION_FALLBACK")}
+                    allProjectsLabel={t("nav:NAV_ALL_PROJECTS")}
+                    homeLabel={t("nav:NAV_HOME")}
+                    onProjectSelect={handleProjectSelect}
+                    onAllProjectsSelect={handleAllProjectsSelect}
+                    onHomeSelect={handleHomeSelect}
+                  />
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (

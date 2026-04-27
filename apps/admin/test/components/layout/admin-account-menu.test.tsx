@@ -204,6 +204,19 @@ describe("AdminAccountMenu", () => {
     expect(accountAction.querySelector(".size-4")).not.toBeNull();
   });
 
+  it("header trigger keeps the shell transparent and uses the outline border token on the avatar", async () => {
+    renderWithProviders(<AdminAccountMenu variant="header" />);
+
+    const avatar = await screen.findByLabelText("Tester");
+    const trigger = avatar.closest("button");
+
+    expect(trigger).not.toBeNull();
+    expect(trigger?.className).toContain("border-transparent");
+    expect(trigger?.className).toContain("bg-transparent");
+    expect(avatar.className).toContain("ring-border");
+    expect(avatar.className).toContain("dark:ring-input");
+  });
+
   it("hover 语言偏好入口时会在右侧显示语言子浮层，不再切换整块菜单", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);

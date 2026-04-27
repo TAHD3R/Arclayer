@@ -6,10 +6,8 @@ import { toast } from "sonner";
 import { getUnreadNotificationPreview } from "@/api/notifications";
 import { NotificationToastContent } from "@/components/common/notification-toast-content";
 import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
-import {
-  AdminSidebarShell,
-  type SidebarBrowseProject,
-} from "@/components/layout/admin-sidebar-shell";
+import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
+import type { SidebarBrowseProject } from "@/components/layout/project-browse-menu";
 import { useNotificationActions } from "@/hooks/use-notification-actions";
 import { RouteTransition } from "@/components/layout/route-transition";
 import type { AdminNavItem } from "@/types/admin-nav";

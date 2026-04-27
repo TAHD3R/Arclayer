@@ -3,6 +3,7 @@ import * as MenubarPrimitive from "@radix-ui/react-menubar";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@arclayer/lib/utils";
+import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "./layer-shadow";
 
 function MenubarMenu({ ...props }: React.ComponentProps<typeof MenubarPrimitive.Menu>) {
   return <MenubarPrimitive.Menu {...props} />;
@@ -80,6 +81,7 @@ const MenubarSubContent = React.forwardRef<
     ref={ref}
     className={cn(
       "z-50 flex max-h-[--radix-menubar-content-available-height] min-w-32 flex-col rounded-xl border bg-popover p-2 text-popover-foreground  outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-menubar-content-transform-origin]",
+      OVERLAY_LAYER_SHADOW_CLASSNAME,
       className,
     )}
     {...props}
@@ -99,6 +101,7 @@ const MenubarContent = React.forwardRef<
       sideOffset={sideOffset}
       className={cn(
         "z-50 flex max-h-[--radix-menubar-content-available-height] min-w-32 flex-col rounded-xl border bg-popover p-2 text-popover-foreground  outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-menubar-content-transform-origin]",
+        OVERLAY_LAYER_SHADOW_CLASSNAME,
         className,
       )}
       {...props}

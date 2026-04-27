@@ -133,7 +133,7 @@ function ToastDescription(props: { description?: React.ReactNode; requestId: str
             align: "start",
             sideOffset: 8,
             container: popoverContainer,
-            className: "grid w-80 max-w-[calc(100vw-2rem)] gap-3 p-3 shadow-lg shadow-black/5",
+            className: "grid w-80 max-w-[calc(100vw-2rem)] gap-3 p-3",
             onPointerEnter: openPopover,
             onPointerLeave: scheduleClose,
             onOpenAutoFocus: (event) => event.preventDefault(),

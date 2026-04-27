@@ -3,6 +3,7 @@ import { Archive, Trash2 } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 
 import { FloatingBulkToolbar } from "@/components/common/floating-bulk-toolbar";
+import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "@arclayer/ui/layer-shadow";
 
 describe("FloatingBulkToolbar", () => {
   it("renders selected count as tag and places clear action first", () => {
@@ -27,6 +28,7 @@ describe("FloatingBulkToolbar", () => {
       "py-1.5",
       "bg-background/96",
       "supports-[backdrop-filter]:bg-background/88",
+      ...OVERLAY_LAYER_SHADOW_CLASSNAME.split(" "),
     );
     expect(
       screen.getByText("已选择 3 项").closest("[data-slot='floating-toolbar-group']"),

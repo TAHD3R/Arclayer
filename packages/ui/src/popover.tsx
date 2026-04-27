@@ -12,6 +12,7 @@ import {
   type PopoverCloseProps as PopoverClosePrimitiveProps,
 } from "@arclayer/ui/radix-primitives/radix-popover";
 import { cn } from "@arclayer/lib/utils";
+import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "./layer-shadow";
 
 const POPOVER_LAYER_Z_INDEX_CLASSNAME = "z-[2400]";
 
@@ -49,6 +50,7 @@ function PopoverContent({
         className={cn(
           "bg-popover text-popover-foreground w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4  outline-hidden",
           POPOVER_LAYER_Z_INDEX_CLASSNAME,
+          OVERLAY_LAYER_SHADOW_CLASSNAME,
           className,
         )}
         {...props}

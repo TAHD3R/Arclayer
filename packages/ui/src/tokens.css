@@ -1,5 +1,4 @@
-@import "@fontsource-variable/ibm-plex-sans";
-@import "@fontsource/ibm-plex-mono";
+@import "@fontsource-variable/inter";
 
 html {
   text-rendering: optimizeLegibility;
@@ -67,7 +66,7 @@ body {
   --popover: hsl(0 0% 100%);
   --popover-foreground: var(--foreground);
 
-  --primary: hsl(211.1 97.4% 45.1%);
+  --primary: hsl(201.9 53.6% 43.1%);
   --primary-hover: hsl(216 88% 45%);
   --primary-selected: hsl(216 92% 91%);
   --primary-selected-hover: hsl(216 88% 84%);
@@ -105,7 +104,7 @@ body {
   --input: hsl(229 16.5% 79.8%);
   --ui-border: hsl(229 16.5% 79.8%);
   --layout-border: hsl(210 10% 82%);
-  --ring: hsl(211.1 97.4% 45.1%);
+  --ring: hsl(201.9 53.6% 43.1%);
   --link: hsl(216 88% 43%);
 
   --chart-1: var(--primary);
@@ -125,41 +124,10 @@ body {
   --header: var(--background);
   --header-foreground: var(--foreground);
 
-  --font-sans:
-    "Figtree",
-    "IBM Plex Sans Variable",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    "PingFang SC",
-    "Hiragino Sans GB",
-    "Microsoft YaHei UI",
-    "Microsoft YaHei",
-    "Noto Sans Hebrew",
-    "Noto Kufi Arabic",
-    "Noto Sans JP",
-    "Noto Sans SC",
-    sans-serif;
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  --font-family-heading:
-    "Poppins",
-    "Figtree",
-    "IBM Plex Sans Variable",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    "Noto Sans Hebrew",
-    "Noto Kufi Arabic",
-    "Noto Sans JP",
-    "Noto Sans SC",
-    sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-family-heading: var(--font-sans);
   --font-family-body: var(--font-sans);
   --radius: 0.5rem;
 
@@ -205,7 +173,7 @@ body {
   --card: hsl(220 15% 8%);
   --popover: hsl(220 15% 8%);
 
-  --primary: hsl(211.1 97.4% 45.1%);
+  --primary: hsl(201.9 53.6% 43.1%);
   --primary-hover: hsl(216 92% 66%);
   --primary-selected: hsl(216 64% 20%);
   --primary-selected-hover: hsl(216 64% 27%);
@@ -235,7 +203,7 @@ body {
   --input: hsl(220 10% 22%);
   --ui-border: hsl(220 10% 30%);
   --layout-border: hsl(210 10% 14%);
-  --ring: hsl(211.1 97.4% 45.1%);
+  --ring: hsl(201.9 53.6% 43.1%);
   --link: hsl(216 92% 68%);
 
   --sidebar: var(--background);

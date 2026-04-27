@@ -1,4 +1,4 @@
-import { Outlet, useRouterState } from "@tanstack/react-router";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type PropsWithChildren, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,8 @@ import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { extractWorkspaceBaseFromPath } from "@/layouts/admin-scene-utils";
+import { buildAdminTopbarBreadcrumbs } from "@/lib/admin-topbar-breadcrumbs";
+import { projectHomePath, projectsHomePath } from "@/lib/routing/workspace-routing";
 import {
   mapProjectListItemToSidebarBrowseProject,
   mapProjectToListItem,
@@ -25,6 +27,7 @@ import {
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { pathname, searchStr } = useRouterState({
     select: (s) => ({
       pathname: s.location.pathname,
@@ -131,6 +134,13 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return [activeBrowseProject, ...listedBrowseProjects];
   }, [activeBrowseProject, listedBrowseProjects]);
 
+  const topbarProject = useMemo(() => {
+    if (!isWorkspaceScopeRoute || !effectiveProjectId) return null;
+    return (
+      browseProjects.find((project) => project.projectId === String(effectiveProjectId)) ?? null
+    );
+  }, [browseProjects, effectiveProjectId, isWorkspaceScopeRoute]);
+
   const mainItems = useMemo(
     () =>
       isWorkspaceScopeRoute && effectiveProjectId
@@ -138,6 +148,14 @@ export function AdminLayout({ children }: PropsWithChildren) {
         : [],
     [effectiveProjectId, isWorkspaceScopeRoute],
   );
+  const topbarBreadcrumbs = useMemo(
+    () => buildAdminTopbarBreadcrumbs(mainItems, pathname),
+    [mainItems, pathname],
+  );
+  const topbarProjectMenuProjects = useMemo(() => {
+    if (!topbarProject) return [];
+    return browseProjects.filter((project) => project.workspaceId === topbarProject.workspaceId);
+  }, [browseProjects, topbarProject]);
 
   const workspaceLocalization = useWorkspaceLocalization();
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
@@ -228,7 +246,28 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   return (
     <AdminSceneLayout
-      renderTopbar={() => <AdminTopbar />}
+      renderTopbar={() => (
+        <AdminTopbar
+          project={topbarProject}
+          breadcrumbs={topbarBreadcrumbs}
+          onNavigate={(to) => {
+            void navigate({ to: to as never });
+          }}
+          projectMenu={{
+            projects: topbarProjectMenuProjects,
+            activeProjectId: effectiveProjectId,
+            onProjectSelect: (projectId) => {
+              void navigate({ to: projectHomePath(projectId) as never });
+            },
+            onAllProjectsSelect: () => {
+              void navigate({ to: projectsHomePath() as never });
+            },
+            onHomeSelect: () => {
+              void navigate({ to: "/" as never });
+            },
+          }}
+        />
+      )}
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
       commandScope={commandScope}
       browseProjects={browseProjects}

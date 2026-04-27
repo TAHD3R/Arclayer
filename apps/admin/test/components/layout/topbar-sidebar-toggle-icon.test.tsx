@@ -1,4 +1,6 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ImageIcon } from "lucide-react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UserCenterTopbar } from "@/components/layout/usercenter-topbar";
@@ -79,7 +81,129 @@ describe("topbar sidebar toggle icon", () => {
 
     expect(screen.queryByTestId("workspace-switcher")).toBeNull();
     expect(screen.queryByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toBeNull();
+    expect(screen.getByRole("navigation", { name: "common:BREADCRUMB_LABEL" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "nav:NAV_HOME" })).toBeInTheDocument();
+    const feedbackButton = screen.getByRole("button", { name: "common:TOPBAR_FEEDBACK" });
+    const askAiButton = screen.getByRole("button", { name: "common:TOPBAR_ASK_AI" });
+    expect(feedbackButton).toHaveAttribute("data-variant", "outline");
+    expect(feedbackButton).toHaveAttribute("data-size", "sm");
+    expect(askAiButton).toHaveAttribute("data-variant", "outline");
+    expect(askAiButton).toHaveAttribute("data-size", "sm");
     expect(screen.getByTestId("account-menu")).toBeInTheDocument();
+  });
+
+  it("AdminTopbar 在项目范围显示项目名称与真实导航 breadcrumb", async () => {
+    const user = userEvent.setup();
+    const handleProjectSelect = vi.fn();
+    const handleNavigate = vi.fn();
+    const handleAllProjectsSelect = vi.fn();
+    const handleHomeSelect = vi.fn();
+
+    renderWithSidebar(
+      <AdminTopbar
+        project={{
+          projectId: "project-alpha",
+          name: "Project Alpha",
+          iconMode: "glyph",
+          iconColor: "#2563eb",
+          iconGlyph: "rocket",
+          iconEmoji: null,
+          iconUrl: null,
+        }}
+        projectMenu={{
+          projects: [
+            {
+              projectId: "project-alpha",
+              workspaceId: "workspace-alpha",
+              name: "Project Alpha",
+              description: "Primary project",
+              enterable: true,
+              iconMode: "glyph",
+              iconColor: "#2563eb",
+              iconGlyph: "rocket",
+              iconEmoji: null,
+              iconUrl: null,
+            },
+            {
+              projectId: "project-beta",
+              workspaceId: "workspace-alpha",
+              name: "Project Beta",
+              description: null,
+              enterable: true,
+              iconMode: "initials",
+              iconColor: "#16a34a",
+              iconGlyph: null,
+              iconEmoji: null,
+              iconUrl: null,
+            },
+          ],
+          activeProjectId: "project-alpha",
+          onProjectSelect: handleProjectSelect,
+          onAllProjectsSelect: handleAllProjectsSelect,
+          onHomeSelect: handleHomeSelect,
+        }}
+        breadcrumbs={[
+          {
+            key: "section:nav:NAV_GROUP_WEBSITE",
+            label: "Website",
+            labelKey: "nav:NAV_GROUP_WEBSITE",
+            menuItems: [
+              {
+                key: "assets",
+                label: "Assets",
+                labelKey: "nav:NAV_ASSETS",
+                to: "/projects/project-alpha/assets",
+                isCurrent: true,
+                icon: ImageIcon,
+              },
+              {
+                key: "content.library",
+                label: "Content",
+                labelKey: "nav:NAV_CONTENT_LIBRARY",
+                to: "/projects/project-alpha/content/library",
+              },
+            ],
+          },
+          {
+            key: "assets",
+            label: "Assets",
+            labelKey: "nav:NAV_ASSETS",
+            to: "/projects/project-alpha/assets",
+            isCurrent: true,
+          },
+        ]}
+        onNavigate={handleNavigate}
+      />,
+    );
+
+    const projectButton = screen.getByRole("button", { name: "Project Alpha" });
+    expect(projectButton).toBeInTheDocument();
+    expect(projectButton).toHaveAttribute("data-size", "sm");
+    expect(projectButton.querySelector("svg,img")).toBeNull();
+    const websiteButton = screen.getByRole("button", { name: "nav:NAV_GROUP_WEBSITE" });
+    const assetsButton = screen.getByRole("button", { name: "nav:NAV_ASSETS" });
+    expect(websiteButton).toHaveAttribute("data-size", "sm");
+    expect(assetsButton).toHaveAttribute("data-size", "sm");
+    expect(websiteButton.querySelector("svg,img")).toBeNull();
+    expect(assetsButton.querySelector("svg,img")).toBeNull();
+
+    await user.click(projectButton);
+    await user.click(await screen.findByRole("menuitem", { name: /Project Beta/ }));
+    expect(handleProjectSelect).toHaveBeenCalledWith("project-beta");
+
+    await user.click(projectButton);
+    await user.click(await screen.findByRole("menuitem", { name: "nav:NAV_ALL_PROJECTS" }));
+    expect(handleAllProjectsSelect).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "nav:NAV_GROUP_WEBSITE" }));
+    const currentAssetsItem = await screen.findByRole("menuitem", { name: "nav:NAV_ASSETS" });
+    expect(currentAssetsItem.className).toContain("bg-accent");
+    expect(currentAssetsItem.className).toContain("text-footnote");
+    expect(currentAssetsItem.className).not.toContain("bg-accent text-accent-foreground");
+    expect(currentAssetsItem.className).not.toContain("text-callout");
+    expect(currentAssetsItem.querySelector("svg")).not.toBeNull();
+    await user.click(await screen.findByRole("menuitem", { name: "nav:NAV_CONTENT_LIBRARY" }));
+    expect(handleNavigate).toHaveBeenCalledWith("/projects/project-alpha/content/library");
   });
 
   it("AdminTopbar 不再在 topbar 中间渲染 command trigger", async () => {
@@ -121,7 +245,7 @@ describe("topbar sidebar toggle icon", () => {
     expect(screen.getByTestId("account-menu")).toBeInTheDocument();
   });
 
-  it("AdminTopbar 将右侧操作区收束为账号菜单", () => {
+  it("AdminTopbar 将右侧操作区排列为反馈、AI 与账号菜单", () => {
     renderWithSidebar(<AdminTopbar />);
 
     const trailing = screen.getByTestId("account-menu").parentElement;
@@ -129,6 +253,8 @@ describe("topbar sidebar toggle icon", () => {
     if (!trailing) throw new Error("Missing topbar trailing container");
 
     const children = Array.from(trailing.children);
-    expect(children.map((child) => child.getAttribute("data-testid"))).toEqual(["account-menu"]);
+    expect(children.map((child) => child.textContent || child.getAttribute("data-testid"))).toEqual(
+      ["common:TOPBAR_FEEDBACK", "common:TOPBAR_ASK_AI", "account-menu"],
+    );
   });
 });

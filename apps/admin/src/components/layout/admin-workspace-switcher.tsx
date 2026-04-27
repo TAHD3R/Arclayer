@@ -1,16 +1,8 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
-import {
-  Check,
-  ChevronDown,
-  PanelLeftIcon,
-  PanelsTopLeft,
-  Plus,
-  SquareStack,
-  Users,
-} from "lucide-react";
+import { useRouterState } from "@tanstack/react-router";
+import { Check, ChevronDown, PanelLeftIcon, Plus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
@@ -22,7 +14,6 @@ import {
 } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
-import { projectsHomePath } from "@/lib/routing/workspace-routing";
 import {
   WorkspaceCreateDialog,
   type CreateWorkspaceFormValues,
@@ -461,23 +452,6 @@ function WorkspaceActionButton(props: {
   );
 }
 
-function ViewAllWorkspacesButton() {
-  const { t } = useTranslation(["common"]);
-  const navigate = useNavigate();
-  const { closeFloatingPanel } = useFloatingPanel();
-
-  return (
-    <WorkspaceActionButton
-      icon={<PanelsTopLeft className="h-4 w-4" aria-hidden="true" />}
-      text={t("common:WORKSPACE_SWITCHER_VIEW_ALL_PROJECTS")}
-      onClick={() => {
-        closeFloatingPanel();
-        void navigate({ to: projectsHomePath() as never });
-      }}
-    />
-  );
-}
-
 function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
   const { t } = useTranslation(["common", "team"]);
   const { closeFloatingPanel } = useFloatingPanel();
@@ -550,20 +524,6 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
       {divider}
 
       <div className="py-1.5 space-y-1">
-        <WorkspaceActionButton
-          icon={<SquareStack className="h-4 w-4" aria-hidden="true" />}
-          text={t("common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS")}
-          disabled={!effectiveWorkspaceId}
-          onClick={() => {
-            if (!effectiveWorkspaceId) return;
-            if (effectiveProjectId) {
-              setCurrentProjectId(effectiveProjectId);
-            }
-            setCurrentWorkspaceId(effectiveWorkspaceId);
-            closeFloatingPanel();
-            settingsScreen.openSettings({ screen: "workspace.general" });
-          }}
-        />
         {effectiveWorkspaceId ? (
           <WorkspaceActionButton
             icon={<Users className="h-4 w-4" aria-hidden="true" />}
@@ -583,7 +543,6 @@ function PanelContentInner(props: { onOpenCreateDialog: () => void }) {
             }}
           />
         ) : null}
-        <ViewAllWorkspacesButton />
       </div>
 
       {divider}

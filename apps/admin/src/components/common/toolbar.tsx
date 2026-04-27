@@ -3,11 +3,14 @@
 import * as React from "react";
 
 import { cn } from "@arclayer/lib/utils";
+import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "@arclayer/ui/layer-shadow";
 
 type ToolbarProps = React.HTMLAttributes<HTMLDivElement>;
 
-export const FLOATING_TOOLBAR_SURFACE_CLASSNAME =
-  "inline-flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-full border border-border/70 bg-background/96 px-2.5 py-1.5 shadow-lg shadow-black/5 supports-[backdrop-filter]:bg-background/88 supports-[backdrop-filter]:backdrop-blur-md dark:shadow-black/25";
+export const FLOATING_TOOLBAR_SURFACE_CLASSNAME = cn(
+  "inline-flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-full border border-border/70 bg-background/96 px-2.5 py-1.5 supports-[backdrop-filter]:bg-background/88 supports-[backdrop-filter]:backdrop-blur-md",
+  OVERLAY_LAYER_SHADOW_CLASSNAME,
+);
 
 const Toolbar = React.forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
   { className, ...props },

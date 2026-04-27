@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Outlet, useRouterState } from "@tanstack/react-router";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { listProjects } from "@/api/projects";
@@ -14,6 +14,7 @@ import { resolveGlobalNavItems } from "@/constants/menu/global";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
+import { buildAdminTopbarBreadcrumbs } from "@/lib/admin-topbar-breadcrumbs";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -28,8 +29,9 @@ const GLOBAL_COMMAND_SCOPE = {
 } as const;
 
 export function GlobalLayout() {
-  const searchStr = useRouterState({
-    select: (s) => s.location.searchStr,
+  const navigate = useNavigate();
+  const { pathname, searchStr } = useRouterState({
+    select: (s) => ({ pathname: s.location.pathname, searchStr: s.location.searchStr }),
     structuralSharing: true,
   });
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -68,6 +70,10 @@ export function GlobalLayout() {
   );
 
   const navItems = useMemo(() => resolveGlobalNavItems({ isSuperAdmin }), [isSuperAdmin]);
+  const topbarBreadcrumbs = useMemo(
+    () => buildAdminTopbarBreadcrumbs(navItems, pathname),
+    [navItems, pathname],
+  );
 
   if (contentOnlyMode) {
     return (
@@ -99,7 +105,14 @@ export function GlobalLayout() {
 
   return (
     <AdminSceneLayout
-      renderTopbar={() => <AdminTopbar />}
+      renderTopbar={() => (
+        <AdminTopbar
+          breadcrumbs={topbarBreadcrumbs}
+          onNavigate={(to) => {
+            void navigate({ to: to as never });
+          }}
+        />
+      )}
       mainItems={navItems}
       commandScope={GLOBAL_COMMAND_SCOPE}
       browseProjects={browseProjects}

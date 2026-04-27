@@ -19,9 +19,7 @@ const navigateMock = vi.fn();
 let mockPathname = "/projects/project-alpha/assets";
 const translations: Record<string, string> = {
   "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE": "Select workspace",
-  "common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS": "Workspace settings",
   "team:TEAM_INVITE_MEMBER": "Invite members",
-  "common:WORKSPACE_SWITCHER_VIEW_ALL_PROJECTS": "View all projects",
   "common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY": "No workspaces yet",
   "common:WORKSPACE_SWITCHER_ADD_WORKSPACE": "Add workspace",
   "common:WORKSPACE_SWITCHER_ORG_SETTINGS": "Organization settings",
@@ -652,7 +650,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(workspaceList).toHaveClass("overscroll-contain");
   });
 
-  it("workspace scope: action groups expose settings, invites, workspaces index, and add workspace", async () => {
+  it("workspace scope: action groups expose invites and add workspace", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
@@ -665,41 +663,32 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     const panel = getLatestDialog();
     expect(panel.querySelector(".w-70")).toBeInTheDocument();
     const workspaceBetaButton = within(panel).getByRole("button", { name: /Workspace Beta/ });
-    const settingsButton = within(panel).getByRole("button", { name: /Workspace settings/ });
     const inviteMembersButton = within(panel).getByRole("button", { name: /Invite members/ });
-    const viewAllWorkspacesButton = within(panel).getByRole("button", {
-      name: /View all projects/,
-    });
     const addWorkspaceButton = within(panel).getByRole("button", { name: /Add workspace/ });
 
-    expect(settingsButton).toBeInTheDocument();
-    expect(settingsButton.querySelector(".lucide-square-stack")).toBeInTheDocument();
-    expect(settingsButton.className).toContain("!text-callout");
     expect(inviteMembersButton).toBeInTheDocument();
     expect(inviteMembersButton.className).toContain("!text-callout");
-    expect(viewAllWorkspacesButton).toBeInTheDocument();
-    expect(viewAllWorkspacesButton.className).toContain("!text-callout");
     expect(addWorkspaceButton).toBeInTheDocument();
     expect(addWorkspaceButton.className).toContain("!text-callout");
+    expect(within(panel).queryByRole("button", { name: /Workspace settings/ })).toBeNull();
+    expect(within(panel).queryByRole("button", { name: /View all projects/ })).toBeNull();
     expect(
       within(panel).queryByRole("button", { name: "Open organization workspaces" }),
     ).not.toBeInTheDocument();
-    expect(settingsButton.className).toContain("hover:bg-accent");
-    expect(settingsButton.className).toContain("hover:text-accent-foreground");
-    expect(settingsButton.className).toContain("dark:hover:bg-accent/50");
+    expect(inviteMembersButton.className).toContain("hover:bg-accent");
+    expect(inviteMembersButton.className).toContain("hover:text-accent-foreground");
+    expect(inviteMembersButton.className).toContain("dark:hover:bg-accent/50");
 
     const buttons = within(panel).getAllByRole("button");
-    expect(buttons.indexOf(settingsButton)).toBeGreaterThan(buttons.indexOf(workspaceBetaButton));
-    expect(buttons.indexOf(inviteMembersButton)).toBeGreaterThan(buttons.indexOf(settingsButton));
-    expect(buttons.indexOf(viewAllWorkspacesButton)).toBeGreaterThan(
-      buttons.indexOf(inviteMembersButton),
+    expect(buttons.indexOf(inviteMembersButton)).toBeGreaterThan(
+      buttons.indexOf(workspaceBetaButton),
     );
     expect(buttons.indexOf(addWorkspaceButton)).toBeGreaterThan(
-      buttons.indexOf(viewAllWorkspacesButton),
+      buttons.indexOf(inviteMembersButton),
     );
   });
 
-  it("workspace scope: action buttons open workspace settings through provider", async () => {
+  it("workspace scope: action buttons open invite flow and create workspace dialog", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
@@ -709,24 +698,11 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     });
 
     await user.click(trigger);
-    await user.click(within(getLatestDialog()).getByRole("button", { name: /Workspace settings/ }));
-    await waitFor(() => {
-      expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
-      expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.general");
-    });
-
-    await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Invite members/ }));
     await waitFor(() => {
       expect(screen.getByTestId("settings-open")).toHaveTextContent("true");
       expect(screen.getByTestId("settings-screen")).toHaveTextContent("workspace.members");
       expect(screen.getByTestId("settings-section")).toHaveTextContent("invite-member");
-    });
-
-    await user.click(trigger);
-    await user.click(within(getLatestDialog()).getByRole("button", { name: /View all projects/ }));
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
     });
 
     await user.click(trigger);

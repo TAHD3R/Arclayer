@@ -17,6 +17,7 @@ import {
   focusInitialFloatingPanelTarget,
   trapFocusWithinFloatingPanel,
 } from "./floating-panel-focus";
+import { OVERLAY_LAYER_SHADOW_CLASSNAME } from "./layer-shadow";
 
 const TRANSITION = {
   type: "spring" as const,
@@ -386,6 +387,7 @@ export function FloatingPanelContent({
             className={cn(
               "fixed z-50 overflow-hidden outline-none",
               "rounded-xl border border-border bg-popover text-popover-foreground ",
+              OVERLAY_LAYER_SHADOW_CLASSNAME,
               className,
             )}
             style={{
