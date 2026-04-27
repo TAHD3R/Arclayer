@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.expressions import Q
 
 from src.models.content._enums import (
     ContentModelFieldType,
@@ -40,7 +41,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
                 ContentModelDefinitionRecord
                 .filter(workspace_id=workspace_id, site_id=site_id)
                 .prefetch_related("fields", "relations", "views")
-                .order_by("name", "key")
+                .order_by("name", "singular_key")
             )
             return list(await self.using_db(qs, tenant_conn))
 
@@ -70,7 +71,8 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         *,
         workspace_id: UUID,
         site_id: UUID,
-        key: str,
+        singular_key: str,
+        plural_key: str,
         name: str,
         description: str | None,
         category: str,
@@ -101,7 +103,8 @@ class ProjectContentModelsRepository(TenantScopedRepository):
             record = await ContentModelDefinitionRecord.create(
                 workspace_id=workspace_id,
                 site_id=site_id,
-                key=key,
+                singular_key=singular_key,
+                plural_key=plural_key,
                 name=name,
                 description=description,
                 category=category,
@@ -144,6 +147,24 @@ class ProjectContentModelsRepository(TenantScopedRepository):
             if hydrated is None:
                 raise RuntimeError("Created content model could not be reloaded")
             return hydrated
+
+    async def identifier_exists(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        value: str,
+        exclude_model_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> bool:
+        async with self.connection(conn) as tenant_conn:
+            qs = ContentModelDefinitionRecord.filter(
+                workspace_id=workspace_id,
+                site_id=site_id,
+            ).filter(Q(singular_key=value) | Q(plural_key=value))
+            if exclude_model_id is not None:
+                qs = qs.exclude(id=exclude_model_id)
+            return await self.using_db(qs, tenant_conn).exists()
 
     async def update_model_definition(
         self,
@@ -309,14 +330,15 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         if not unique_keys:
             return {}
 
+        # Relation targets use the target model's singular API identifier.
         rows = await (
             ContentModelDefinitionRecord
             .filter(
                 workspace_id=workspace_id,
                 site_id=site_id,
-                key__in=unique_keys,
+                singular_key__in=unique_keys,
             )
             .using_db(conn)
-            .values("id", "key")
+            .values("id", "singular_key")
         )
-        return {str(item["key"]): UUID(str(item["id"])) for item in rows}
+        return {str(item["singular_key"]): UUID(str(item["id"])) for item in rows}

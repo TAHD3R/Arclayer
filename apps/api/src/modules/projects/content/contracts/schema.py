@@ -294,7 +294,8 @@ class ContentModelOut(BaseSchema):
     id: PublicUUID = Field(..., description="Content model id.")
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     site_id: PublicUUID = Field(..., description="Site id.")
-    key: str = Field(..., min_length=1, max_length=64, description="Stable model key.")
+    singular_key: str = Field(..., min_length=1, max_length=64, description="Stable singular API identifier.")
+    plural_key: str = Field(..., min_length=1, max_length=64, description="Stable plural API identifier.")
     name: str = Field(..., min_length=1, max_length=128, description="Display name.")
     description: str | None = Field(default=None, max_length=512, description="Optional model description.")
     protocol_key: ContentModelProtocolKey | None = Field(
@@ -650,7 +651,8 @@ class ContentModelViewContract(BaseSchema):
 class ContentModelDefinitionContract(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    key: str = Field(..., min_length=1, max_length=64, description="Stable model key.")
+    singular_key: str = Field(..., min_length=1, max_length=64, description="Stable singular API identifier.")
+    plural_key: str = Field(..., min_length=1, max_length=64, description="Stable plural API identifier.")
     name: str = Field(..., min_length=1, max_length=128, description="Display model name.")
     description: str | None = Field(default=None, max_length=512, description="Optional model description.")
     category: ContentModelCategory = Field(default="custom", description="Product surface grouping.")

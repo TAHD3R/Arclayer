@@ -251,7 +251,7 @@ def resolve_item_continuation_truth(
                 resolved_surface=None,
                 shape_state=str(ContentShapeState.UNSHAPED),
                 shape_reason_code=MODEL_DEFAULT_INVALID_REASON_CODE,
-                shape_reason_meta={"modelKey": model.key},
+                shape_reason_meta={"modelKey": model.singular_key},
             )
         return ContentItemContinuationTruth(
             resolved_role=defaults.default_role,

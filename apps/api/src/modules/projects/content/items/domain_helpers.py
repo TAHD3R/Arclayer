@@ -212,7 +212,11 @@ def _model_capabilities(model: ContentModelDefinitionRecord | None) -> set[str]:
 def _normalized_model_tokens(model: ContentModelDefinitionRecord | None) -> list[str]:
     if model is None:
         return []
-    return [token for token in [str(model.key or "").strip().lower(), str(model.name or "").strip().lower()] if token]
+    return [
+        token
+        for token in [str(model.singular_key or "").strip().lower(), str(model.name or "").strip().lower()]
+        if token
+    ]
 
 
 def _model_matches_any_token(model: ContentModelDefinitionRecord | None, candidates: list[str]) -> bool:
@@ -411,7 +415,7 @@ def to_item_out(
         workspace_id=item.workspace_id,
         site_id=item.site_id,
         model_id=model.id if model is not None else None,
-        model_key=model.key if model is not None else None,
+        model_key=model.singular_key if model is not None else None,
         slug=slug or item.slug,
         title=title or item.title,
         summary=summary,
@@ -517,7 +521,7 @@ def validate_version_publish_contract(
     if model is None:
         return []
 
-    protocol = get_official_model_protocol(str(model.protocol_key or model.key))
+    protocol = get_official_model_protocol(str(model.protocol_key or model.singular_key))
     if protocol is None:
         return []
 

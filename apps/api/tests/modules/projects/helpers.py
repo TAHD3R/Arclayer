@@ -23,7 +23,8 @@ async def create_project_content_model(client, project_id: str, **overrides: obj
     response = await client.post(
         f"/api/v1/projects/{project_id}/content/models",
         json={
-            "key": "article",
+            "singularKey": "article",
+            "pluralKey": "articles",
             "name": "Article",
             "fields": [],
             "relations": [],
@@ -55,7 +56,8 @@ async def create_project_page_model(client, project_id: str) -> dict:
     return await create_project_content_model(
         client,
         project_id,
-        key="page",
+        singularKey="page",
+        pluralKey="pages",
         name="Page",
         category="site_builder",
         capabilities=["publishable", "routable", "treeable"],

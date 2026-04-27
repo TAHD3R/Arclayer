@@ -106,8 +106,8 @@ function SummaryField(props: Pick<StepOnePanelProps, "busy" | "summary" | "onSum
 
 function ModelOption(props: { model: AdminContentModel; selectedModelKey: string | null }) {
   const { t } = useTranslation("content");
-  const selected = props.selectedModelKey === props.model.key;
-  const presentation = getOfficialContentTypePresentation(props.model.key);
+  const selected = props.selectedModelKey === props.model.singularKey;
+  const presentation = getOfficialContentTypePresentation(props.model.singularKey);
   const Icon = presentation?.icon;
   const name = presentation ? t(presentation.nameKey) : props.model.name;
   const description = presentation
@@ -116,7 +116,7 @@ function ModelOption(props: { model: AdminContentModel; selectedModelKey: string
 
   return (
     <ToggleGroupItem
-      value={props.model.key}
+      value={props.model.singularKey}
       aria-label={name}
       aria-pressed={selected}
       className={cn(
@@ -137,8 +137,8 @@ function ModelOption(props: { model: AdminContentModel; selectedModelKey: string
         ) : null}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="text-headline font-semibold text-label-primary">{name}</div>
-          {!presentation && props.model.key.trim() ? (
-            <div className="text-footnote text-label-secondary">{props.model.key}</div>
+          {!presentation && props.model.singularKey.trim() ? (
+            <div className="text-footnote text-label-secondary">{props.model.singularKey}</div>
           ) : null}
           {description ? (
             <div className="break-words whitespace-normal text-footnote text-label-secondary/90">

@@ -106,7 +106,8 @@ async def _runtime_id(client, project_id: str) -> str:
 
 def _page_model_payload() -> dict:
     return {
-        "key": "page",
+        "singularKey": "page",
+        "pluralKey": "pages",
         "name": "Page",
         "fields": [{"key": "hero_variant", "label": "Hero Variant", "scalar": "text", "required": False}],
     }

@@ -10,10 +10,6 @@ from src.common.utils.public_ids import encode_uuid
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
-from src.models.content.model_definition import ContentModelDefinitionRecord
-from src.models.content.model_field import ContentModelFieldRecord
-from src.models.content.model_relation import ContentModelRelationRecord
-from src.models.content.model_view import ContentModelViewRecord
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
@@ -27,7 +23,8 @@ pytestmark = pytest.mark.integration
 
 def _blank_first_create_payload() -> dict:
     return {
-        "key": "article",
+        "singularKey": "article",
+        "pluralKey": "articles",
         "name": "Article",
     }
 
@@ -102,6 +99,15 @@ async def _patch_model_with_preview(
     return response
 
 
+async def _list_model_payload(client: AsyncClient, *, project_id: str, singular_key: str) -> dict:
+    list_response = await client.get(f"/api/v1/projects/{project_id}/content/models")
+    assert list_response.status_code == 200, list_response.text
+    for item in list_response.json()["data"]["items"]:
+        if item["singularKey"] == singular_key:
+            return item
+    raise AssertionError(f"Content model not found: {singular_key}")
+
+
 @asynccontextmanager
 async def _workspace_client(prepared_db, integration_valkey_settings):
     _ = prepared_db
@@ -163,8 +169,10 @@ async def test_content_models_create_blank_first_payload_returns_201(
         )
         assert response.status_code == 201, response.text
         payload = response.json()["data"]
-        assert payload["key"] == "article"
+        assert payload["singularKey"] == "article"
+        assert payload["pluralKey"] == "articles"
         assert payload["name"] == "Article"
+        assert "key" not in payload
         assert "kind" not in payload
         assert payload["protocolKey"] == "article"
         assert payload["protocolVersion"] == 1
@@ -173,34 +181,10 @@ async def test_content_models_create_blank_first_payload_returns_201(
         assert payload["draftContractRevision"] == 1
         assert payload["publishedContractRevision"] == 1
 
-        saved = await ContentModelDefinitionRecord.filter(key="article").first()
-        assert saved is not None
-        assert saved.name == "Article"
-        assert saved.category == "content_library"
-        assert saved.default_editor == "rich_text"
-        assert saved.protocol_key == "article"
-        assert saved.protocol_version == 1
-        assert saved.is_system_managed is True
-        assert saved.system_field_keys == ["title", "slug", "summary", "content", "published_at"]
-        assert saved.draft_contract_revision == 1
-        assert saved.published_contract_revision == 1
-        assert saved.capabilities == [
-            "versioned",
-            "rich_text_editable",
-            "has_relations",
-            "publishable",
-            "seo_managed",
-        ]
-        assert saved.routing_policy == {"mode": "none"}
-        assert saved.presentation_policy == {"allowedKinds": ["form_data", "rich_text_document", "seo"]}
-        assert saved.seo_policy == {"titleField": "title", "descriptionField": "summary"}
-        assert saved.workflow_policy == {"states": ["draft", "published"], "initial_state": "draft"}
-        assert saved.published_contract_snapshot is not None
-
-        list_response = await client.get(f"/api/v1/projects/{project_id}/content/models")
-        assert list_response.status_code == 200, list_response.text
-        model_payload = list_response.json()["data"]["items"][0]
-        assert model_payload["key"] == "article"
+        model_payload = await _list_model_payload(client, project_id=project_id, singular_key="article")
+        assert model_payload["singularKey"] == "article"
+        assert model_payload["pluralKey"] == "articles"
+        assert "key" not in model_payload
         assert model_payload["protocolKey"] == "article"
         assert model_payload["category"] == "content_library"
         assert model_payload["defaultEditor"] == "rich_text"
@@ -237,49 +221,16 @@ async def test_content_models_patch_updates_explicit_contract_sections(
         assert patched_payload["impact"]["breakingChanges"] == []
         assert patched_payload["impact"]["warnings"] == []
 
-        saved = await ContentModelDefinitionRecord.filter(key="article").first()
-        assert saved is not None
-        assert saved.name == "Article"
-        assert saved.description == "Updated contract"
-        assert saved.category == "content_library"
-        assert saved.default_editor == "rich_text"
-        assert saved.capabilities == [
-            "versioned",
-            "rich_text_editable",
-            "has_relations",
-            "publishable",
-            "seo_managed",
-        ]
-        assert saved.routing_policy == {"mode": "none"}
-        assert saved.presentation_policy == {"allowedKinds": ["form_data", "rich_text_document", "seo"]}
-        assert saved.seo_policy == {"titleField": "title", "descriptionField": "summary"}
-        assert saved.workflow_policy == {"states": ["draft", "published"], "initial_state": "draft"}
-        assert saved.draft_contract_revision == 2
-        assert saved.published_contract_revision == 1
-        assert saved.published_contract_snapshot is not None
-        published_snapshot = dict(saved.published_contract_snapshot)
-        published_snapshot_fields = {field["key"] for field in published_snapshot["fields"]}
-        assert "reading_time_minutes" not in published_snapshot_fields
-
-        saved_fields = await ContentModelFieldRecord.filter(model_definition_id=saved.id).order_by("sort_order")
-        assert [field.key for field in saved_fields] == [
-            "title",
-            "slug",
-            "summary",
-            "content",
-            "published_at",
-            "reading_time_minutes",
-        ]
-        assert saved_fields[-1].label == "Reading Time"
-
-        saved_relations = await ContentModelRelationRecord.filter(model_definition_id=saved.id).order_by("sort_order")
-        assert len(saved_relations) == 1
-        assert saved_relations[0].key == "primary_category"
-        assert saved_relations[0].target_model_key == "category"
-
-        saved_views = await ContentModelViewRecord.filter(model_definition_id=saved.id).order_by("sort_order")
-        assert len(saved_views) == 1
-        assert saved_views[0].key == "table_main"
+        saved_payload = await _list_model_payload(client, project_id=project_id, singular_key="article")
+        assert saved_payload["name"] == "Article"
+        assert saved_payload["description"] == "Updated contract"
+        assert saved_payload["category"] == "content_library"
+        assert saved_payload["defaultEditor"] == "rich_text"
+        assert saved_payload["draftContractRevision"] == 2
+        assert saved_payload["publishedContractRevision"] == 1
+        assert saved_payload["fieldSchema"]["reading_time_minutes"]["label"] == "Reading Time"
+        assert saved_payload["relationSchema"]["primary_category"]["targetModelKey"] == "category"
+        assert saved_payload["viewSchema"]["views"][0]["key"] == "table_main"
 
 
 @pytest.mark.asyncio
@@ -371,14 +322,85 @@ async def test_content_models_patch_returns_breaking_impact_for_destructive_sche
 
 
 @pytest.mark.asyncio
-async def test_content_models_rejects_non_official_model_keys(
+async def test_content_models_create_custom_content_type_with_dual_identifiers(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         response = await client.post(
             f"/api/v1/projects/{project_id}/content/models",
-            json={"key": "author", "name": "Author"},
+            json={
+                "singularKey": "author",
+                "pluralKey": "authors",
+                "name": "Author",
+                "description": "Editorial profile records.",
+                "modelKind": "collection_type",
+                "fields": [],
+                "relations": [],
+                "capabilities": ["queryable"],
+                "routing": {"mode": "none"},
+                "workflow": {"states": ["draft"], "initialState": "draft"},
+                "views": [],
+            },
         )
-        assert response.status_code == 409, response.text
-        assert response.json()["error"] == "CONTENT_MODEL_PROTOCOL_UNSUPPORTED"
+        assert response.status_code == 201, response.text
+        payload = response.json()["data"]
+        assert payload["singularKey"] == "author"
+        assert payload["pluralKey"] == "authors"
+        assert payload["name"] == "Author"
+        assert payload["description"] == "Editorial profile records."
+        assert payload["systemManaged"] is False
+        assert "key" not in payload
+
+        saved_payload = await _list_model_payload(client, project_id=project_id, singular_key="author")
+        assert saved_payload["pluralKey"] == "authors"
+
+
+@pytest.mark.asyncio
+async def test_content_models_rejects_identical_singular_and_plural_identifiers(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        response = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json={"singularKey": "news", "pluralKey": "news", "name": "News"},
+        )
+        assert response.status_code in {400, 409, 422}, response.text
+
+
+@pytest.mark.asyncio
+async def test_content_models_rejects_duplicate_and_cross_identifier_collisions(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        first = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json={"singularKey": "author", "pluralKey": "authors", "name": "Author"},
+        )
+        assert first.status_code == 201, first.text
+
+        duplicate_singular = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json={"singularKey": "author", "pluralKey": "writers", "name": "Writer"},
+        )
+        assert duplicate_singular.status_code in {400, 409, 422}, duplicate_singular.text
+
+        duplicate_plural = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json={"singularKey": "writer", "pluralKey": "authors", "name": "Writer"},
+        )
+        assert duplicate_plural.status_code in {400, 409, 422}, duplicate_plural.text
+
+        singular_matches_existing_plural = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json={"singularKey": "authors", "pluralKey": "author-groups", "name": "Author Group"},
+        )
+        assert singular_matches_existing_plural.status_code in {400, 409, 422}, singular_matches_existing_plural.text
+
+        plural_matches_existing_singular = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json={"singularKey": "profile", "pluralKey": "author", "name": "Profile"},
+        )
+        assert plural_matches_existing_singular.status_code in {400, 409, 422}, plural_matches_existing_singular.text

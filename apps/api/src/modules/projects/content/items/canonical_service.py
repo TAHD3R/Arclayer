@@ -524,7 +524,7 @@ class ProjectContentCanonicalItemsService:
                         "Content publish validation failed",
                         error="CONTENT_PUBLISH_VALIDATION_FAILED",
                         meta={
-                            "protocolKey": str(item.model_definition.protocol_key or item.model_definition.key)
+                            "protocolKey": str(item.model_definition.protocol_key or item.model_definition.singular_key)
                             if item.model_definition is not None
                             else None,
                             "reasons": publish_reasons,

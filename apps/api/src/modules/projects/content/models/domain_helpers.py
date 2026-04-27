@@ -131,7 +131,7 @@ def _registry_capabilities(capabilities: Iterable[str]) -> ContentModelCapabilit
 
 
 def _graphql_policy(record: ContentModelDefinitionRecord, capabilities: list[str]) -> dict[str, Any]:
-    protocol = get_official_model_protocol(record.protocol_key or record.key)
+    protocol = get_official_model_protocol(record.protocol_key or record.singular_key)
     if protocol is None:
         return {
             "enabled": "queryable" in capabilities,
@@ -178,7 +178,8 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
         id=record.id,
         workspace_id=record.workspace_id,
         site_id=record.site_id,
-        key=record.key,
+        singular_key=record.singular_key,
+        plural_key=record.plural_key,
         name=record.name,
         description=record.description,
         protocol_key=cast(

@@ -148,7 +148,7 @@ def test_content_model_impact_preview_out_exposes_change_plan() -> None:
                 "field_count": 3,
                 "relation_count": 1,
                 "view_count": 1,
-                "payload": {"key": "page", "fields": [{"key": "title"}]},
+                "payload": {"singular_key": "page", "plural_key": "pages", "fields": [{"key": "title"}]},
             },
             "next_snapshot": {
                 "stage": "next_draft",
@@ -156,7 +156,11 @@ def test_content_model_impact_preview_out_exposes_change_plan() -> None:
                 "field_count": 4,
                 "relation_count": 1,
                 "view_count": 1,
-                "payload": {"key": "page", "fields": [{"key": "title"}, {"key": "summary"}]},
+                "payload": {
+                    "singular_key": "page",
+                    "plural_key": "pages",
+                    "fields": [{"key": "title"}, {"key": "summary"}],
+                },
             },
             "published_snapshot": {
                 "stage": "published",
@@ -164,7 +168,7 @@ def test_content_model_impact_preview_out_exposes_change_plan() -> None:
                 "field_count": 3,
                 "relation_count": 1,
                 "view_count": 1,
-                "payload": {"key": "page", "fields": [{"key": "title"}]},
+                "payload": {"singular_key": "page", "plural_key": "pages", "fields": [{"key": "title"}]},
             },
             "diff": {
                 "has_changes": True,

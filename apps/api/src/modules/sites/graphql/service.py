@@ -559,7 +559,7 @@ class SiteGraphQLService:
 
     def _to_structured_record(self, record: DocumentQueryRecord) -> StructuredContentRecord:
         item = record.item
-        model_key = str(item.model_definition.key if item.model_definition is not None else "")
+        model_key = str(item.model_definition.singular_key if item.model_definition is not None else "")
         title = _extract_system_field(model_key=model_key, fields=record.fields, field_key="title")
         slug = _extract_system_field(model_key=model_key, fields=record.fields, field_key="slug")
         return StructuredContentRecord(

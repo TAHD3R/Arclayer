@@ -702,7 +702,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   }, [previewRowId, sidebar]);
   React.useEffect(() => {
     if (!toolbarFilters.modelKey) return;
-    if (models.some((model) => model.key === toolbarFilters.modelKey)) return;
+    if (models.some((model) => model.singularKey === toolbarFilters.modelKey)) return;
     setToolbarFilters((prev) => ({ ...prev, modelKey: undefined }));
   }, [models, toolbarFilters.modelKey]);
   const archiveMutation = useMutation({
@@ -1370,11 +1370,11 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
       onResetColumnVisibility={tableHook.resetColumnVisibility}
       toolsLabels={toolsLabels}
       modelOptions={models.map((model) => ({
-        value: model.key,
+        value: model.singularKey,
         label: getContentTypeLabel({
-          modelKey: model.key,
+          modelKey: model.singularKey,
           fallbackName: model.name,
-          fallbackLabel: model.key,
+          fallbackLabel: model.singularKey,
           t: (key) => t(`content:${key}`),
         }),
       }))}

@@ -4,6 +4,7 @@ import base64
 import binascii
 import hmac
 import json
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from hashlib import sha256
@@ -69,7 +70,8 @@ from src.modules.projects.content.models.repository import ProjectContentModelsR
 class ContentModelDefinitionPatchContract(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    key: str | None = Field(default=None, min_length=1, max_length=64)
+    singular_key: str | None = Field(default=None, min_length=1, max_length=64)
+    plural_key: str | None = Field(default=None, min_length=1, max_length=64)
     name: str | None = Field(default=None, min_length=1, max_length=128)
     description: str | None = Field(default=None, max_length=512)
     category: ContentModelCategory | None = None
@@ -96,6 +98,26 @@ def _normalize_required_text(value: str, *, error: str) -> str:
     if not out:
         raise Conflict(error, error="CONTENT_MODEL_CONTRACT_INVALID")
     return out
+
+
+_MODEL_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
+
+def _normalize_model_identifier(value: str, *, field_name: str) -> str:
+    normalized = value.strip().lower()
+    if not normalized:
+        raise Conflict(
+            f"{field_name} is required",
+            error="CONTENT_MODEL_IDENTIFIER_REQUIRED",
+            meta={"field": field_name},
+        )
+    if len(normalized) > 64 or _MODEL_IDENTIFIER_PATTERN.fullmatch(normalized) is None:
+        raise Conflict(
+            f"{field_name} must be a lowercase API identifier",
+            error="CONTENT_MODEL_IDENTIFIER_INVALID",
+            meta={"field": field_name},
+        )
+    return normalized
 
 
 def _capabilities(values: list[ContentModelCapability]) -> list[str]:
@@ -895,6 +917,16 @@ def _assert_protocol_identity_matches_payload(
     payload: ContentModelDefinitionContract,
     protocol: OfficialModelProtocol,
 ) -> None:
+    if payload.singular_key.strip() != protocol.singular_key or payload.plural_key.strip() != protocol.plural_key:
+        raise Conflict(
+            "Official protocol API identifiers must match the platform contract",
+            error="CONTENT_MODEL_PROTOCOL_IDENTITY_MISMATCH",
+            meta={
+                "expectedSingularKey": protocol.singular_key,
+                "expectedPluralKey": protocol.plural_key,
+                "protocolKey": protocol.key,
+            },
+        )
     if payload.name.strip() != protocol.name:
         raise Conflict(
             "Official protocol model name must match the platform contract",
@@ -943,7 +975,8 @@ def _contract_snapshot_payload(
         "protocol_version": protocol.protocol_version,
         "system_managed": protocol.system_managed,
         "system_field_keys": _system_field_keys(protocol),
-        "key": protocol.key,
+        "singular_key": protocol.singular_key,
+        "plural_key": protocol.plural_key,
         "name": protocol.name,
         "description": description,
         "category": protocol.category,
@@ -976,10 +1009,14 @@ def _bump_draft_contract_revision(record: ContentModelDefinitionRecord, *, field
 def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[str, Any]:
     updates: dict[str, Any] = {}
     fields_set = payload.model_fields_set
-    if "key" in fields_set:
-        if payload.key is None:
-            raise Conflict("Invalid model key", error="CONTENT_MODEL_CONTRACT_INVALID")
-        updates["key"] = _normalize_required_text(payload.key, error="Invalid model key")
+    if "singular_key" in fields_set:
+        if payload.singular_key is None:
+            raise Conflict("Invalid singular API identifier", error="CONTENT_MODEL_CONTRACT_INVALID")
+        updates["singular_key"] = _normalize_model_identifier(payload.singular_key, field_name="singularKey")
+    if "plural_key" in fields_set:
+        if payload.plural_key is None:
+            raise Conflict("Invalid plural API identifier", error="CONTENT_MODEL_CONTRACT_INVALID")
+        updates["plural_key"] = _normalize_model_identifier(payload.plural_key, field_name="pluralKey")
     if "name" in fields_set:
         if payload.name is None:
             raise Conflict("Invalid model name", error="CONTENT_MODEL_CONTRACT_INVALID")
@@ -1021,7 +1058,8 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, 
         "protocol_version": int(record.protocol_version or 1),
         "system_managed": bool(record.is_system_managed),
         "system_field_keys": list(record.system_field_keys or []),
-        "key": str(record.key),
+        "singular_key": str(record.singular_key),
+        "plural_key": str(record.plural_key),
         "name": str(record.name),
         "description": record.description,
         "category": str(record.category or "custom"),
@@ -1130,6 +1168,34 @@ class ProjectContentCanonicalModelsService:
     def __init__(self, repo: ProjectContentModelsRepository, settings: Settings) -> None:
         self.repo = repo
         self.settings = settings
+
+    async def _validate_model_identifiers(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        singular_key: str,
+        plural_key: str,
+        exclude_model_id: UUID | None = None,
+    ) -> None:
+        if singular_key == plural_key:
+            raise Conflict(
+                "Content model singular and plural API identifiers must be different",
+                error="CONTENT_MODEL_IDENTIFIER_COLLISION",
+                meta={"fields": ["singularKey", "pluralKey"]},
+            )
+        for field_name, value in (("singularKey", singular_key), ("pluralKey", plural_key)):
+            if await self.repo.identifier_exists(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                value=value,
+                exclude_model_id=exclude_model_id,
+            ):
+                raise Conflict(
+                    f"Content model API identifier already exists: {value}",
+                    error="CONTENT_MODEL_IDENTIFIER_EXISTS",
+                    meta={"field": field_name, "value": value},
+                )
 
     async def list_models_paginated(
         self,
@@ -1311,11 +1377,19 @@ class ProjectContentCanonicalModelsService:
         site_id: UUID,
         payload: ContentModelDefinitionContract,
     ) -> ContentModelMutationResult:
-        protocol = get_official_model_protocol(payload.key)
+        singular_key = _normalize_model_identifier(payload.singular_key, field_name="singularKey")
+        plural_key = _normalize_model_identifier(payload.plural_key, field_name="pluralKey")
+        await self._validate_model_identifiers(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            singular_key=singular_key,
+            plural_key=plural_key,
+        )
+        protocol = get_official_model_protocol(singular_key)
         custom_model_requested = protocol is None or "model_kind" in payload.model_fields_set
         if custom_model_requested:
             defaults = resolve_model_continuation_defaults(
-                key=payload.key,
+                key=singular_key,
                 name=payload.name,
                 category=payload.category,
                 default_editor=payload.default_editor,
@@ -1331,7 +1405,8 @@ class ProjectContentCanonicalModelsService:
             record = await self.repo.create_model_definition(
                 workspace_id=workspace_id,
                 site_id=site_id,
-                key=_normalize_required_text(payload.key, error="Invalid model key"),
+                singular_key=singular_key,
+                plural_key=plural_key,
                 name=_normalize_required_text(payload.name, error="Invalid model name"),
                 description=payload.description,
                 category=normalize_model_category(payload.category),
@@ -1377,7 +1452,7 @@ class ProjectContentCanonicalModelsService:
             views=payload.views,
         )
         defaults = resolve_model_continuation_defaults(
-            key=protocol.key,
+            key=protocol.singular_key,
             name=protocol.name,
             category=protocol.category,
             default_editor=protocol.default_editor,
@@ -1393,7 +1468,8 @@ class ProjectContentCanonicalModelsService:
         record = await self.repo.create_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
-            key=_normalize_required_text(protocol.key, error="Invalid model key"),
+            singular_key=protocol.singular_key,
+            plural_key=protocol.plural_key,
             name=_normalize_required_text(protocol.name, error="Invalid model name"),
             description=payload.description,
             category=normalize_model_category(cast(ContentModelCategory, protocol.category)),
@@ -1433,16 +1509,26 @@ class ProjectContentCanonicalModelsService:
     ) -> _ModelUpdateContext:
         fields_set = set(payload.model_fields_set)
         _assert_system_patch_fields_are_not_mutated(record=record, fields_set=fields_set)
-        protocol = get_official_model_protocol(record.protocol_key or record.key)
+        protocol = get_official_model_protocol(record.protocol_key or record.singular_key)
         if record.is_system_managed and protocol is None:
             raise Conflict(
                 "System managed model is missing an official protocol registry entry",
                 error="CONTENT_MODEL_PROTOCOL_MISSING",
-                meta={"protocolKey": record.protocol_key or record.key},
+                meta={"protocolKey": record.protocol_key or record.singular_key},
             )
         if protocol is not None and "fields" in fields_set:
             _assert_custom_fields_do_not_shadow_system_fields(protocol=protocol, fields=payload.fields or [])
         fields_to_update = _build_patch_updates(payload)
+        next_singular_key = cast(str, fields_to_update.get("singular_key", record.singular_key))
+        next_plural_key = cast(str, fields_to_update.get("plural_key", record.plural_key))
+        if "singular_key" in fields_set or "plural_key" in fields_set:
+            await self._validate_model_identifiers(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                singular_key=next_singular_key,
+                plural_key=next_plural_key,
+                exclude_model_id=record.id,
+            )
         if record.is_system_managed and protocol is not None and "fields" in fields_set:
             payload_fields = _merge_system_and_custom_fields(protocol=protocol, custom_fields=payload.fields or [])
         else:
@@ -1495,7 +1581,7 @@ class ProjectContentCanonicalModelsService:
             fields_set=fields_set,
         )
         next_truth = _build_preview_truth(
-            model_key=str(record.key),
+            model_key=str(record.singular_key),
             default_role=next_default_role,
             default_posture=next_default_posture,
             default_surface=next_default_surface,
@@ -1691,7 +1777,7 @@ class ProjectContentCanonicalModelsService:
                 error="CONTENT_MODEL_IMPACT_PREVIEW_BLOCKING",
             )
         fields_set = payload.model_fields_set
-        protocol = get_official_model_protocol(existing.protocol_key or existing.key)
+        protocol = get_official_model_protocol(existing.protocol_key or existing.singular_key)
         merged_fields = (
             _merge_system_and_custom_fields(protocol=protocol, custom_fields=payload.fields or [])
             if protocol is not None and "fields" in fields_set

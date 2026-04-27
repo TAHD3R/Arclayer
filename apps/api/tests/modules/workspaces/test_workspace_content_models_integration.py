@@ -75,7 +75,8 @@ async def test_project_content_models_list_maps_legacy_types_to_model_contracts(
             page_model_res = await client.post(
                 f"/api/v1/projects/{project_id}/content/models",
                 json={
-                    "key": "page",
+                    "singularKey": "page",
+                    "pluralKey": "pages",
                     "name": "Page",
                     "fields": [
                         {"key": "hero_variant", "label": "Hero Variant", "scalar": "text", "required": False},
@@ -87,7 +88,8 @@ async def test_project_content_models_list_maps_legacy_types_to_model_contracts(
             article_model_res = await client.post(
                 f"/api/v1/projects/{project_id}/content/models",
                 json={
-                    "key": "article",
+                    "singularKey": "article",
+                    "pluralKey": "articles",
                     "name": "Article",
                     "fields": [
                         {"key": "reading_time_minutes", "label": "Reading Time", "scalar": "number", "required": False},
@@ -101,8 +103,8 @@ async def test_project_content_models_list_maps_legacy_types_to_model_contracts(
             payload = models_res.json()["data"]
             assert payload["total"] >= 2
 
-            page_model = next(item for item in payload["items"] if item["key"] == "page")
-            article_model = next(item for item in payload["items"] if item["key"] == "article")
+            page_model = next(item for item in payload["items"] if item["singularKey"] == "page")
+            article_model = next(item for item in payload["items"] if item["singularKey"] == "article")
 
             assert "kind" not in page_model
             assert page_model["protocolKey"] == "page"
@@ -130,7 +132,7 @@ async def test_project_content_models_list_maps_legacy_types_to_model_contracts(
 
 
 @pytest.mark.asyncio
-async def test_project_content_models_rejects_non_official_custom_model_creation(
+async def test_project_content_models_create_custom_model_with_dual_identifiers(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -184,9 +186,24 @@ async def test_project_content_models_rejects_non_official_custom_model_creation
             create_res = await client.post(
                 f"/api/v1/projects/{project_id}/content/models",
                 json={
-                    "key": "author",
+                    "singularKey": "author",
+                    "pluralKey": "authors",
                     "name": "Author",
+                    "description": "Editorial profile records.",
+                    "modelKind": "collection_type",
+                    "fields": [],
+                    "relations": [],
+                    "capabilities": ["queryable"],
+                    "routing": {"mode": "none"},
+                    "workflow": {"states": ["draft"], "initialState": "draft"},
+                    "views": [],
                 },
             )
-            assert create_res.status_code == 409, create_res.text
-            assert create_res.json()["error"] == "CONTENT_MODEL_PROTOCOL_UNSUPPORTED"
+            assert create_res.status_code == 201, create_res.text
+            payload = create_res.json()["data"]
+            assert payload["singularKey"] == "author"
+            assert payload["pluralKey"] == "authors"
+            assert payload["name"] == "Author"
+            assert payload["description"] == "Editorial profile records."
+            assert payload["systemManaged"] is False
+            assert "key" not in payload

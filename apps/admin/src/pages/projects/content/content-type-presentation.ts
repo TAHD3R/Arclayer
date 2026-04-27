@@ -81,8 +81,8 @@ export function sortContentModelsByPresentation(
   models: readonly AdminContentModel[],
 ): AdminContentModel[] {
   return [...models].sort((left, right) => {
-    const leftOfficial = getOfficialContentTypePresentation(left.key);
-    const rightOfficial = getOfficialContentTypePresentation(right.key);
+    const leftOfficial = getOfficialContentTypePresentation(left.singularKey);
+    const rightOfficial = getOfficialContentTypePresentation(right.singularKey);
 
     if (leftOfficial && rightOfficial) {
       return leftOfficial.order - rightOfficial.order;
@@ -101,7 +101,7 @@ export function filterOfficialContentModels(
   models: readonly AdminContentModel[],
 ): AdminContentModel[] {
   return sortContentModelsByPresentation(models).filter((model) =>
-    Boolean(getOfficialContentTypePresentation(model.key)),
+    Boolean(getOfficialContentTypePresentation(model.singularKey)),
   );
 }
 
@@ -109,14 +109,19 @@ export function resolveContentBootstrapVariant(
   model:
     | Pick<
         AdminContentModel,
-        "key" | "category" | "capabilities" | "defaultRole" | "defaultPosture" | "defaultSurface"
+        | "singularKey"
+        | "category"
+        | "capabilities"
+        | "defaultRole"
+        | "defaultPosture"
+        | "defaultSurface"
       >
     | null
     | undefined,
 ): ContentBootstrapVariant | null {
   if (!model) return null;
 
-  const official = getOfficialContentTypePresentation(model.key);
+  const official = getOfficialContentTypePresentation(model.singularKey);
   if (official?.key === "article") return "article";
   if (official?.key === "page") return "page";
   if (official?.key === "reusable-section") return "reusable-section";

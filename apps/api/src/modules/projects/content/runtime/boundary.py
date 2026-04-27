@@ -78,7 +78,7 @@ class DocumentQueryBoundary:
             record
             for record in self.records
             if record.item.site_id == query.site_id
-            and str(record.item.model_definition.key if record.item.model_definition is not None else "")
+            and str(record.item.model_definition.singular_key if record.item.model_definition is not None else "")
             == query.model_key
             and (query.protocol_key is None or record.metadata.protocol_key == query.protocol_key)
             and (query.status is None or record.revision_state == query.status)

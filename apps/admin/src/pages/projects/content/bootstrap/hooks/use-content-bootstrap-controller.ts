@@ -113,7 +113,7 @@ function useCreateDraftMutation(params: {
     mutationFn: async () => {
       const nextTitle = params.title.trim();
       if (!nextTitle) throw new Error("CONTENT_BOOTSTRAP_TITLE_REQUIRED");
-      const nextModelKey = params.model?.key.trim();
+      const nextModelKey = params.model?.singularKey.trim();
       if (!nextModelKey || !params.model) throw new Error("CONTENT_BOOTSTRAP_MODEL_REQUIRED");
 
       let draftItem: AdminContentItem | null = null;
@@ -183,12 +183,12 @@ export function useContentBootstrapController(projectId: string) {
 
   React.useEffect(() => {
     if (!selectedModelKey) return;
-    if (modelsQuery.data?.some((model) => model.key === selectedModelKey)) return;
+    if (modelsQuery.data?.some((model) => model.singularKey === selectedModelKey)) return;
     setSelectedModelKey(null);
   }, [modelsQuery.data, selectedModelKey]);
 
   const selectedModel = React.useMemo(
-    () => modelsQuery.data?.find((model) => model.key === selectedModelKey) ?? null,
+    () => modelsQuery.data?.find((model) => model.singularKey === selectedModelKey) ?? null,
     [modelsQuery.data, selectedModelKey],
   );
 

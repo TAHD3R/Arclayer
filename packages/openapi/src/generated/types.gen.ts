@@ -2618,12 +2618,6 @@ export type ContentModelDefinitionContract = {
      */
     fields?: Array<ContentModelFieldContract>;
     /**
-     * Key
-     *
-     * Stable model key.
-     */
-    key: string;
-    /**
      * Modelkind
      *
      * Builder model kind.
@@ -2635,6 +2629,12 @@ export type ContentModelDefinitionContract = {
      * Display model name.
      */
     name: string;
+    /**
+     * Pluralkey
+     *
+     * Stable plural API identifier.
+     */
+    pluralKey: string;
     /**
      * Presentation
      *
@@ -2661,6 +2661,12 @@ export type ContentModelDefinitionContract = {
     seo?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Singularkey
+     *
+     * Stable singular API identifier.
+     */
+    singularKey: string;
     /**
      * Starterpackpolicy
      *
@@ -2730,10 +2736,6 @@ export type ContentModelDefinitionPatchContract = {
      */
     impactPreviewToken?: string | null;
     /**
-     * Key
-     */
-    key?: string | null;
-    /**
      * Modelkind
      */
     modelKind?: 'collection_type' | 'single_type' | 'component' | null;
@@ -2741,6 +2743,10 @@ export type ContentModelDefinitionPatchContract = {
      * Name
      */
     name?: string | null;
+    /**
+     * Pluralkey
+     */
+    pluralKey?: string | null;
     /**
      * Presentation
      */
@@ -2758,6 +2764,10 @@ export type ContentModelDefinitionPatchContract = {
     seo?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Singularkey
+     */
+    singularKey?: string | null;
     /**
      * Starterpackpolicy
      */
@@ -3019,10 +3029,6 @@ export type ContentModelMutationOut = {
     id: string;
     impact: ContentModelImpactOut;
     /**
-     * Key
-     */
-    key: string;
-    /**
      * Modelkind
      */
     modelKind?: string;
@@ -3030,6 +3036,10 @@ export type ContentModelMutationOut = {
      * Name
      */
     name: string;
+    /**
+     * Pluralkey
+     */
+    pluralKey: string;
     /**
      * Protocolkey
      */
@@ -3042,6 +3052,10 @@ export type ContentModelMutationOut = {
      * Publishedcontractrevision
      */
     publishedContractRevision?: number | null;
+    /**
+     * Singularkey
+     */
+    singularKey: string;
     /**
      * Siteid
      */
@@ -3143,12 +3157,6 @@ export type ContentModelOut = {
      */
     id: string;
     /**
-     * Key
-     *
-     * Stable model key.
-     */
-    key: string;
-    /**
      * Modelkind
      *
      * Builder model kind.
@@ -3160,6 +3168,12 @@ export type ContentModelOut = {
      * Display name.
      */
     name: string;
+    /**
+     * Pluralkey
+     *
+     * Stable plural API identifier.
+     */
+    pluralKey: string;
     /**
      * Presentationschema
      *
@@ -3202,6 +3216,12 @@ export type ContentModelOut = {
     routingSchema?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Singularkey
+     *
+     * Stable singular API identifier.
+     */
+    singularKey: string;
     /**
      * Siteid
      *

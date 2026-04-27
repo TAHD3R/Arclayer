@@ -34,7 +34,8 @@ class ContentModelMutationOut(BaseSchema):
     id: PublicUUID
     workspace_id: PublicUUID
     site_id: PublicUUID
-    key: str
+    singular_key: str
+    plural_key: str
     name: str
     description: str | None = None
     protocol_key: str | None = None
@@ -91,7 +92,8 @@ def to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutationO
         id=UUID(str(record.id)),
         workspace_id=UUID(str(record.workspace_id)),
         site_id=UUID(str(record.site_id)),
-        key=str(record.key),
+        singular_key=str(record.singular_key),
+        plural_key=str(record.plural_key),
         name=str(record.name),
         description=record.description,
         protocol_key=record.protocol_key,
@@ -143,7 +145,7 @@ async def publish_content_model_activity_event(
     result: ContentModelMutationResult,
 ) -> None:
     properties = {
-        "model_key": str(result.record.key),
+        "model_key": str(result.record.singular_key),
         "model_name": str(result.record.name),
         "draft_contract_revision": int(result.record.draft_contract_revision or 1),
         "published_contract_revision": (

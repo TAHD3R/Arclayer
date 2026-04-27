@@ -436,7 +436,7 @@ class ContentPageRouteResolver(BaseService):
             page_fields = _summarize_depth_one(page_snapshot.fields) or {}
             return SitePrimaryContextOut(
                 id=UUID(str(page_item.id)),
-                modelKey=(page_item.model_definition.key if page_item.model_definition is not None else None),
+                modelKey=(page_item.model_definition.singular_key if page_item.model_definition is not None else None),
                 slug=page_item.slug,
                 title=page_item.title,
                 data=page_fields,
@@ -471,7 +471,9 @@ class ContentPageRouteResolver(BaseService):
                 snapshot_fields = published_fields or {}
                 return SitePrimaryContextOut(
                     id=UUID(str(candidate.id)),
-                    modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
+                    modelKey=(
+                        candidate.model_definition.singular_key if candidate.model_definition is not None else None
+                    ),
                     slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
                     title=str(snapshot_fields.get("title") or candidate.title or ""),
                     data=_summarize_depth_one(snapshot_fields) or {},
@@ -495,7 +497,9 @@ class ContentPageRouteResolver(BaseService):
                     snapshot_fields = draft_fields or {}
                     return SitePrimaryContextOut(
                         id=UUID(str(candidate.id)),
-                        modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
+                        modelKey=(
+                            candidate.model_definition.singular_key if candidate.model_definition is not None else None
+                        ),
                         slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
                         title=str(snapshot_fields.get("title") or candidate.title or ""),
                         data=_summarize_depth_one(snapshot_fields) or {},
@@ -509,7 +513,9 @@ class ContentPageRouteResolver(BaseService):
                     snapshot_fields = published_fields or {}
                     return SitePrimaryContextOut(
                         id=UUID(str(candidate.id)),
-                        modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
+                        modelKey=(
+                            candidate.model_definition.singular_key if candidate.model_definition is not None else None
+                        ),
                         slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
                         title=str(snapshot_fields.get("title") or candidate.title or ""),
                         data=_summarize_depth_one(snapshot_fields) or {},
@@ -532,7 +538,9 @@ class ContentPageRouteResolver(BaseService):
                 snapshot_fields = published_fields or {}
                 return SitePrimaryContextOut(
                     id=UUID(str(candidate.id)),
-                    modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
+                    modelKey=(
+                        candidate.model_definition.singular_key if candidate.model_definition is not None else None
+                    ),
                     slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
                     title=str(snapshot_fields.get("title") or candidate.title or ""),
                     data=_summarize_depth_one(snapshot_fields) or {},

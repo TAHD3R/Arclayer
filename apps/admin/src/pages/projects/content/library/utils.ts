@@ -538,7 +538,7 @@ export function buildContentLibraryRows(
   items: AdminContentItem[],
   models: AdminContentModel[],
 ): ContentLibraryTableRow[] {
-  const modelByKey = new Map(models.map((model) => [model.key, model]));
+  const modelByKey = new Map(models.map((model) => [model.singularKey, model]));
   return items.map((item) => {
     const modelKey = item.modelKey || "";
     const model = modelKey ? modelByKey.get(modelKey) : undefined;

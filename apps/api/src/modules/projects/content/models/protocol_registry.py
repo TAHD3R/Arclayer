@@ -49,6 +49,8 @@ class OfficialModelGraphQLPolicy:
 @dataclass(frozen=True)
 class OfficialModelProtocol:
     key: str
+    singular_key: str
+    plural_key: str
     name: str
     description: str
     category: str
@@ -72,6 +74,8 @@ class OfficialModelProtocol:
 _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
     "article": OfficialModelProtocol(
         key="article",
+        singular_key="article",
+        plural_key="articles",
         name="Article",
         description="Structured long-form content with SEO and publishing semantics.",
         category="content_library",
@@ -127,6 +131,8 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
     ),
     "page": OfficialModelProtocol(
         key="page",
+        singular_key="page",
+        plural_key="pages",
         name="Page",
         description="Route-owned page protocol for static and dynamic delivery.",
         category="site_builder",
@@ -182,6 +188,8 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
     ),
     "reusable-section": OfficialModelProtocol(
         key="reusable-section",
+        singular_key="reusable-section",
+        plural_key="reusable-sections",
         name="Reusable Section",
         description="Reusable visual section protocol for slots, globals, and composition.",
         category="site_builder",
@@ -234,6 +242,8 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
     ),
     "category": OfficialModelProtocol(
         key="category",
+        singular_key="category",
+        plural_key="categories",
         name="Category",
         description="Taxonomy protocol for relation modeling and primary-context lookups.",
         category="content_library",
@@ -286,12 +296,12 @@ def list_official_model_protocols() -> tuple[OfficialModelProtocol, ...]:
     return tuple(_OFFICIAL_MODEL_PROTOCOLS.values())
 
 
-def get_official_model_protocol(key: str | None) -> OfficialModelProtocol | None:
-    normalized = (key or "").strip()
+def get_official_model_protocol(singular_key: str | None) -> OfficialModelProtocol | None:
+    normalized = (singular_key or "").strip()
     if not normalized:
         return None
     return _OFFICIAL_MODEL_PROTOCOLS.get(normalized)
 
 
-def is_official_model_key(key: str | None) -> bool:
-    return get_official_model_protocol(key) is not None
+def is_official_model_singular_key(singular_key: str | None) -> bool:
+    return get_official_model_protocol(singular_key) is not None

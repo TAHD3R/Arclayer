@@ -32,7 +32,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
             query = ContentModelDefinitionRecord.filter(
                 workspace_id=workspace_id,
                 site_id=site_id,
-                key=model_key,
+                singular_key=model_key,
             ).first()
             return await self.using_db(query, tenant_conn)
 

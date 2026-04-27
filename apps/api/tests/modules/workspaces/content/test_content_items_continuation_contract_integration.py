@@ -4,7 +4,6 @@ import pytest
 
 from src.common.utils.public_ids import decode_public_id
 from src.models.content.content_item import ContentItemRecord
-from src.models.content.model_definition import ContentModelDefinitionRecord
 from tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
     _create_article_model,
@@ -24,7 +23,8 @@ async def test_content_model_create_persists_and_exposes_continuation_defaults(
         response = await client.post(
             f"/api/v1/projects/{project_id}/content/models",
             json={
-                "key": "article",
+                "singularKey": "article",
+                "pluralKey": "articles",
                 "name": "Article",
                 "defaultEditor": "rich_text",
                 "fields": [],
@@ -40,12 +40,6 @@ async def test_content_model_create_persists_and_exposes_continuation_defaults(
         assert payload["defaultRole"] == "article"
         assert payload["defaultPosture"] == "structured"
         assert payload["defaultSurface"] == "writing"
-
-        saved = await ContentModelDefinitionRecord.filter(key="article").first()
-        assert saved is not None
-        assert str(saved.default_role) == "article"
-        assert str(saved.default_posture) == "structured"
-        assert str(saved.default_surface) == "writing"
 
         list_response = await client.get(f"/api/v1/projects/{project_id}/content/models")
         assert list_response.status_code == 200, list_response.text

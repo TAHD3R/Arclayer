@@ -204,11 +204,11 @@ export function ContentLibrarySidebar(props: {
                 props.models.map((model) => (
                   <SidebarMenuSubItem key={model.id}>
                     <TreeLeafButton
-                      active={isTypeScopeActive(props.activeScope, model.key)}
+                      active={isTypeScopeActive(props.activeScope, model.singularKey)}
                       icon={<FileStack className="size-4" />}
                       label={model.name}
-                      count={props.counts.models[model.key] ?? 0}
-                      onClick={() => props.onScopeChange(`tree:type:${model.key}`)}
+                      count={props.counts.models[model.singularKey] ?? 0}
+                      onClick={() => props.onScopeChange(`tree:type:${model.singularKey}`)}
                     />
                   </SidebarMenuSubItem>
                 ))

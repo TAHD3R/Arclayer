@@ -90,7 +90,7 @@ export type ContentLibrarySidebarCounts = {
 
 export type ContentLibrarySidebarModel = Pick<
   AdminContentModel,
-  "id" | "key" | "name" | "description" | "capabilities"
+  "id" | "singularKey" | "name" | "description" | "capabilities"
 >;
 
 export type ContentLibrarySelectedVersions = {

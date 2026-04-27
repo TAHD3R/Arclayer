@@ -28,7 +28,8 @@ class ContentModelDefinitionRecord(BaseModel):
         on_delete=fields.CASCADE,
     )
 
-    key = fields.CharField(max_length=64, db_index=True)
+    singular_key = fields.CharField(max_length=64, db_index=True)
+    plural_key = fields.CharField(max_length=64, db_index=True)
     name = fields.CharField(max_length=128)
     description = fields.CharField(max_length=512, null=True)
     category = fields.CharField(max_length=32, default="custom", db_index=True)
@@ -81,4 +82,7 @@ class ContentModelDefinitionRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "domain_content_model_definitions"
         abstract = False
-        unique_together = (("workspace_id", "site_id", "key"),)
+        unique_together = (
+            ("workspace_id", "site_id", "singular_key"),
+            ("workspace_id", "site_id", "plural_key"),
+        )

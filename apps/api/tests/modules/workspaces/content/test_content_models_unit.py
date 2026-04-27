@@ -106,7 +106,18 @@ def test_content_item_record_does_not_persist_route_or_page_blueprint_state() ->
 
 def test_model_definition_record_persists_explicit_category_editor_and_policy_contracts() -> None:
     model_fields = set(contracts_schema.ContentModelDefinitionContract.model_fields.keys())
+    out_fields = set(contracts_schema.ContentModelOut.model_fields.keys())
     record_fields = _field_names(ContentModelDefinitionRecord)
+
+    assert "singular_key" in model_fields
+    assert "plural_key" in model_fields
+    assert "key" not in model_fields
+    assert "singular_key" in out_fields
+    assert "plural_key" in out_fields
+    assert "key" not in out_fields
+    assert "singular_key" in record_fields
+    assert "plural_key" in record_fields
+    assert "key" not in record_fields
 
     assert "category" in model_fields
     assert "default_editor" in model_fields
@@ -131,6 +142,14 @@ def test_official_model_registry_defines_v1_protocol_surface() -> None:
     protocols = {protocol.key: protocol for protocol in list_official_model_protocols()}
 
     assert set(protocols) == {"article", "page", "reusable-section", "category"}
+    assert protocols["article"].singular_key == "article"
+    assert protocols["article"].plural_key == "articles"
+    assert protocols["page"].singular_key == "page"
+    assert protocols["page"].plural_key == "pages"
+    assert protocols["reusable-section"].singular_key == "reusable-section"
+    assert protocols["reusable-section"].plural_key == "reusable-sections"
+    assert protocols["category"].singular_key == "category"
+    assert protocols["category"].plural_key == "categories"
     assert [field.key for field in protocols["article"].system_fields] == [
         "title",
         "slug",

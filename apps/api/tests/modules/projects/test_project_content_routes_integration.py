@@ -47,7 +47,8 @@ async def test_project_content_models_and_items_use_project_entry_paths(
             json=_blank_first_create_payload(),
         )
         assert model_res.status_code == 201, model_res.text
-        assert model_res.json()["data"]["key"] == "article"
+        assert model_res.json()["data"]["singularKey"] == "article"
+        assert model_res.json()["data"]["pluralKey"] == "articles"
 
         item_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items",

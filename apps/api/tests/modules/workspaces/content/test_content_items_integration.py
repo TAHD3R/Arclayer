@@ -134,7 +134,8 @@ def _item_payload() -> dict:
 
 def _model_payload() -> dict:
     return {
-        "key": "article",
+        "singularKey": "article",
+        "pluralKey": "articles",
         "name": "Article",
         "fields": [],
         "relations": [],
@@ -180,7 +181,8 @@ async def _create_page_model(client: AsyncClient, workspace_id: str) -> dict:
     return await _create_content_model(
         client,
         project_id,
-        key="page",
+        singularKey="page",
+        pluralKey="pages",
         name="Page",
         category="site_builder",
         capabilities=["publishable", "routable", "treeable"],

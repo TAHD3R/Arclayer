@@ -1,37 +1,20 @@
 import type { PropsWithChildren } from "react";
+import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/page";
 
-const listAllContentModelsMock = vi.fn();
 const createContentModelMock = vi.fn();
-const getContentModelJsonPreviewMock = vi.fn();
-const addContentModelFieldMock = vi.fn();
-const updateContentModelFieldMock = vi.fn();
-const reorderContentModelFieldsMock = vi.fn();
-const deleteContentModelFieldMock = vi.fn();
-const getMyProjectAuthzMock = vi.fn();
-const listProjectPermissionActionsMock = vi.fn();
 
 vi.mock("@/api/content", () => ({
   buildContentModelsQueryKey: (...args: unknown[]) => ["content", "models", ...args],
-  listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
   createContentModel: (...args: unknown[]) => createContentModelMock(...args),
-  getContentModelJsonPreview: (...args: unknown[]) => getContentModelJsonPreviewMock(...args),
-  addContentModelField: (...args: unknown[]) => addContentModelFieldMock(...args),
-  updateContentModelField: (...args: unknown[]) => updateContentModelFieldMock(...args),
-  reorderContentModelFields: (...args: unknown[]) => reorderContentModelFieldsMock(...args),
-  deleteContentModelField: (...args: unknown[]) => deleteContentModelFieldMock(...args),
 }));
 
-vi.mock("@/api/workspaces", () => ({
-  getMyProjectAuthz: (...args: unknown[]) => getMyProjectAuthzMock(...args),
-}));
-
-vi.mock("@/api/rbac", () => ({
-  listProjectPermissionActions: (...args: unknown[]) => listProjectPermissionActionsMock(...args),
+vi.mock("@/lib/notifications", () => ({
+  notifyError: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -39,9 +22,20 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/layouts/page-shell/default-page", () => ({
-  DefaultPage: ({ title, children }: PropsWithChildren<{ title: string }>) => (
+  DefaultPage: ({
+    title,
+    action,
+    showFavoriteToggle = true,
+    children,
+  }: PropsWithChildren<{
+    title: string;
+    action?: React.ReactNode;
+    showFavoriteToggle?: boolean;
+  }>) => (
     <div>
       <h1>{title}</h1>
+      {showFavoriteToggle ? <button type="button" aria-label="favorite" /> : null}
+      {action}
       {children}
     </div>
   ),
@@ -65,21 +59,14 @@ function buildModel(overrides: Record<string, unknown> = {}) {
     id: "model-1",
     workspaceId: "workspace-1",
     siteId: "site-1",
-    key: "article",
+    singularKey: "article",
+    pluralKey: "articles",
     name: "Article",
     description: "Article model",
     category: "custom",
     modelKind: "collection_type",
     capabilities: ["queryable"],
     defaultEditor: "form",
-    fieldSchema: {
-      title: {
-        key: "title",
-        label: "Title",
-        scalar: "text",
-        required: false,
-      },
-    },
     draftContractRevision: 1,
     ...overrides,
   };
@@ -87,38 +74,16 @@ function buildModel(overrides: Record<string, unknown> = {}) {
 
 describe("content model builder", () => {
   beforeEach(() => {
-    listAllContentModelsMock.mockReset();
     createContentModelMock.mockReset();
-    getContentModelJsonPreviewMock.mockReset();
-    addContentModelFieldMock.mockReset();
-    updateContentModelFieldMock.mockReset();
-    reorderContentModelFieldsMock.mockReset();
-    deleteContentModelFieldMock.mockReset();
-    getMyProjectAuthzMock.mockReset();
-    listProjectPermissionActionsMock.mockReset();
-    getMyProjectAuthzMock.mockResolvedValue({
-      projectId: "project-1",
-      permissionCodes: ["system:content:manage"],
-      isSuperuser: false,
-    });
-    listProjectPermissionActionsMock.mockResolvedValue([
-      {
-        code: "project:content:models:write",
-        permissionCodes: ["system:content:manage"],
-        subjectKinds: ["project_member"],
-        description: "Allow mutating content models via management APIs.",
-      },
-    ]);
   });
 
-  test("creates models manually and keeps AI generation explicitly unavailable", async () => {
-    listAllContentModelsMock.mockResolvedValue([]);
+  test("opens create content type dialog and creates with dual identifiers", async () => {
     createContentModelMock.mockResolvedValue(
       buildModel({
         id: "model-2",
-        key: "product",
-        name: "Product",
-        modelKind: "single_type",
+        singularKey: "article",
+        pluralKey: "articles",
+        name: "Article",
       }),
     );
 
@@ -126,35 +91,41 @@ describe("content model builder", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_ACTION" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "favorite" })).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
+    );
+
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+      target: { value: "Article" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_ACTION" }));
-    expect(screen.getByTestId("content-model-create-dialog")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "CONTENT_MODELS_CREATE_AI_TAB" }));
-    expect(screen.getByText("CONTENT_MODELS_CREATE_AI_UNAVAILABLE")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONFIRM" })).toBeDisabled();
+    expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
+      "article",
+    );
+    expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
+      "articles",
+    );
 
-    fireEvent.click(screen.getByRole("tab", { name: "CONTENT_MODELS_CREATE_MANUAL_TAB" }));
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_KEY"), {
-      target: { value: "product" },
-    });
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_NAME"), {
-      target: { value: "Product" },
-    });
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_MODEL_KIND"), {
-      target: { value: "single_type" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONFIRM" }));
+    fireEvent.change(
+      screen.getByPlaceholderText("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER"),
+      {
+        target: { value: "Editorial entries." },
+      },
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_SUBMIT" }),
+    );
 
     await waitFor(() => {
       expect(createContentModelMock).toHaveBeenCalledWith("project-1", {
-        key: "product",
-        name: "Product",
-        description: null,
-        modelKind: "single_type",
-        fields: [{ key: "title", label: "Title", scalar: "text", required: true }],
+        name: "Article",
+        singularKey: "article",
+        pluralKey: "articles",
+        description: "Editorial entries.",
+        modelKind: "collection_type",
+        fields: [],
         relations: [],
         capabilities: ["queryable"],
         routing: { mode: "none" },
@@ -162,122 +133,33 @@ describe("content model builder", () => {
         views: [],
       });
     });
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Product" })).toBeInTheDocument();
-    });
   });
 
-  test("runs field lifecycle operations through project model endpoints", async () => {
-    listAllContentModelsMock.mockResolvedValue([buildModel()]);
-    addContentModelFieldMock.mockResolvedValue(
-      buildModel({
-        fieldSchema: {
-          title: { key: "title", label: "Title", scalar: "text", required: false },
-          gallery: {
-            key: "gallery",
-            label: "Gallery",
-            scalar: "json",
-            required: false,
-            config: {
-              kind: "media",
-              assetScope: "project",
-              assetIdStorage: "internal_project_asset_id",
-              repeatable: true,
-            },
-          },
-        },
-      }),
-    );
-    updateContentModelFieldMock.mockResolvedValue(
-      buildModel({
-        fieldSchema: { title: { key: "title", label: "Title", scalar: "text", required: true } },
-      }),
-    );
-    reorderContentModelFieldsMock.mockResolvedValue(buildModel());
-    deleteContentModelFieldMock.mockResolvedValue(buildModel({ fieldSchema: {} }));
+  test("keeps manually edited identifiers stable when name changes", async () => {
+    createContentModelMock.mockResolvedValue(buildModel());
 
     render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("Title")).toBeInTheDocument();
-    });
-
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_KEY"), {
-      target: { value: "gallery" },
-    });
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_LABEL"), {
-      target: { value: "Gallery" },
-    });
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_SCALAR"), {
-      target: { value: "json" },
-    });
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_KIND"), {
-      target: { value: "media" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_ADD" }));
-
-    await waitFor(() => {
-      expect(addContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", {
-        key: "gallery",
-        label: "Gallery",
-        scalar: "json",
-        required: false,
-        config: {
-          kind: "media",
-          assetScope: "project",
-          assetIdStorage: "internal_project_asset_id",
-          repeatable: true,
-        },
-      });
     });
 
     fireEvent.click(
-      screen.getAllByRole("button", { name: "CONTENT_MODELS_FIELD_MARK_REQUIRED" })[0],
+      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
     );
-    await waitFor(() => {
-      expect(updateContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", "title", {
-        required: true,
-      });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+      target: { value: "News item" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL"), {
+      target: { value: "story" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+      target: { value: "Press release" },
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "CONTENT_MODELS_FIELD_MOVE_UP" })[0]);
-    await waitFor(() => {
-      expect(reorderContentModelFieldsMock).toHaveBeenCalledTimes(0);
-    });
-
-    fireEvent.click(screen.getAllByRole("button", { name: "CONTENT_MODELS_FIELD_DELETE" })[0]);
-    await waitFor(() => {
-      expect(deleteContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", "title");
-    });
-  });
-
-  test("loads JSON preview from the current draft schema", async () => {
-    listAllContentModelsMock.mockResolvedValue([buildModel()]);
-    getContentModelJsonPreviewMock.mockResolvedValue({
-      stage: "current_draft",
-      revision: 1,
-      fieldCount: 1,
-      relationCount: 0,
-      viewCount: 0,
-      payload: { key: "article", model_kind: "collection_type" },
-    });
-
-    render(<ContentModelsControlCenterPage projectId="project-1" />, {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(screen.getByRole("tab", { name: "CONTENT_MODELS_TAB_JSON" })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole("tab", { name: "CONTENT_MODELS_TAB_JSON" }));
-    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_JSON_REFRESH" }));
-
-    await waitFor(() => {
-      expect(getContentModelJsonPreviewMock).toHaveBeenCalledWith("project-1", "model-1");
-    });
-    expect(screen.getByText(/collection_type/)).toBeInTheDocument();
+    expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
+      "story",
+    );
+    expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
+      "press-releases",
+    );
   });
 });
