@@ -57,6 +57,8 @@
   "CONFIG_ITEM_INVALID": "配置项不合法",
   "CONFIG_TYPE_INVALID": "配置项类型不正确",
   "CONFLICT": "资源冲突",
+  "CONTENT_MODEL_DELETE_BLOCKED_BY_ITEMS": "这个内容模型下仍有内容条目。请先迁移或删除这些条目，再删除模型。",
+  "CONTENT_MODEL_DELETE_SYSTEM_MANAGED": "平台管理的内容模型受保护，当前不能删除。",
   "CONTENT_MODEL_PREVIEW_SECRET_MISSING": "预览签名密钥不可用",
   "DNS_LOOKUP_FAILED": "DNS 查询失败",
   "DNS_LOOKUP_TIMEOUT": "DNS 查询超时",

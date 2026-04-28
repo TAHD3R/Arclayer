@@ -1328,6 +1328,44 @@ class ProjectContentCanonicalModelsService:
             payload=_record_snapshot_payload(record),
         )
 
+    async def delete_model(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+    ) -> bool:
+        record = await self.repo.get_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        if record is None:
+            return False
+        if record.is_system_managed:
+            raise Conflict(
+                "System managed content models cannot be deleted",
+                error="CONTENT_MODEL_DELETE_SYSTEM_MANAGED",
+            )
+
+        items = await self.repo.list_items_for_model(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        if items:
+            raise Conflict(
+                "Content model still has content items",
+                error="CONTENT_MODEL_DELETE_BLOCKED_BY_ITEMS",
+                meta={"itemCount": len(items)},
+            )
+
+        return await self.repo.delete_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+
     async def add_model_field(
         self,
         *,

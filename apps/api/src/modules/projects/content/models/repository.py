@@ -253,6 +253,34 @@ class ProjectContentModelsRepository(TenantScopedRepository):
             ).order_by("id")
             return list(await self.using_db(qs, tenant_conn))
 
+    async def delete_model_definition(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+    ) -> bool:
+        async with self.connection() as conn:
+            record = await (
+                ContentModelDefinitionRecord
+                .filter(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    id=model_id,
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if record is None:
+                return False
+
+            await ContentModelFieldRecord.filter(model_definition_id=model_id).using_db(conn).delete()
+            await ContentModelRelationRecord.filter(model_definition_id=model_id).using_db(conn).delete()
+            await ContentModelViewRecord.filter(model_definition_id=model_id).using_db(conn).delete()
+            await ContentModelDefinitionRecord.filter(id=model_id).using_db(conn).delete()
+            return True
+
     async def _replace_fields(
         self,
         *,

@@ -299,3 +299,26 @@ async def update_project_content_model(
         result=record,
     )
     return ApiResponse.success(data=to_mutation_out(record))
+
+
+@router.delete(
+    "/models/{model_id}",
+    response_model=ResponseModel[None],
+    summary="Delete rebuilt content model contract (project RBAC protected)",
+)
+async def delete_project_content_model(
+    model_id: PublicUUID,
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    service: Annotated[
+        ProjectContentCanonicalModelsService,
+        Depends(get_project_content_canonical_models_service),
+    ],
+) -> ResponseModel[None]:
+    deleted = await service.delete_model(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        model_id=model_id,
+    )
+    if not deleted:
+        raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+    return ApiResponse.success()

@@ -3,11 +3,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { buildContentModelsQueryKey, createContentModel, listContentModels } from "@/api/content";
+import {
+  buildContentModelsQueryKey,
+  createContentModel,
+  deleteContentModel,
+  listAllContentModels,
+  listContentModels,
+} from "@/api/content";
+import { AccessNoticeAlert } from "@/components/common/access-notice-alert";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
+import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { notifyError } from "@/lib/notifications";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   useDataTable,
   useDataTableRowHeightPreference,
@@ -15,6 +23,9 @@ import {
 } from "@arclayer/ui/data-table";
 import { Button } from "@arclayer/ui/button";
 
+import { ContentModelsActionDialogs } from "./components/content-models-action-dialogs";
+import { ContentModelEditScreen } from "./components/content-model-edit-screen";
+import { ContentModelsSelectionToolbar } from "./components/content-models-selection-toolbar";
 import { buildContentModelsTableColumns } from "./components/content-models-table-columns";
 import { ContentModelsToolbar } from "./components/content-models-toolbar";
 import { CreateContentTypeDialog } from "./components/create-content-type-dialog";
@@ -24,7 +35,7 @@ import type {
   ContentModelsTableRow,
   CreateContentTypeSubmitValues,
 } from "./types";
-import { toContentModelsTableQuery } from "./utils";
+import { buildDuplicateContentModelPayload, toContentModelsTableQuery } from "./utils";
 
 type ContentModelsControlCenterPageProps = {
   projectId: string;
@@ -33,23 +44,91 @@ type ContentModelsControlCenterPageProps = {
 export function ContentModelsControlCenterPage({ projectId }: ContentModelsControlCenterPageProps) {
   const { t } = useTranslation(["content", "common"]);
   const queryClient = useQueryClient();
+  const permissionAccess = useProjectPermissionAccess(projectId);
+  const canManageModels = permissionAccess.hasAction("project:content:models:write");
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [editModel, setEditModel] = React.useState<ContentModelsTableRow | null>(null);
+  const [duplicateModel, setDuplicateModel] = React.useState<ContentModelsTableRow | null>(null);
+  const [bulkDuplicateOpen, setBulkDuplicateOpen] = React.useState(false);
+  const [deleteModelState, setDeleteModelState] = React.useState<ContentModelsTableRow | null>(
+    null,
+  );
+  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<ContentModelsFilters>({});
   const tableId = React.useMemo(() => `project-content-models:${projectId}`, [projectId]);
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId });
   const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId });
   const dateTime = useAdminDateTimeFormatter({ projectId });
 
+  const refreshModels = React.useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: buildContentModelsQueryKey(projectId) }),
+      queryClient.invalidateQueries({ queryKey: ["dataTable", tableId] }),
+    ]);
+  }, [projectId, queryClient, tableId]);
+
   const createMutation = useMutation({
     mutationFn: (values: CreateContentTypeSubmitValues) =>
       createContentModel(projectId, values.payload),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: buildContentModelsQueryKey(projectId) }),
-        queryClient.invalidateQueries({ queryKey: ["dataTable", tableId] }),
-      ]);
+      await refreshModels();
       setCreateOpen(false);
     },
+    onError: notifyError,
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (model: ContentModelsTableRow) => {
+      const existingModels = await listAllContentModels(projectId);
+      return createContentModel(
+        projectId,
+        buildDuplicateContentModelPayload({ model, existingModels, t }),
+      );
+    },
+    onSuccess: async (model) => {
+      await refreshModels();
+      setDuplicateModel(null);
+      setEditModel(model);
+      notifySuccessText(t("content:CONTENT_MODELS_DUPLICATE_SUCCESS"));
+    },
+    onError: notifyError,
+  });
+
+  const bulkDuplicateMutation = useMutation({
+    mutationFn: async (models: ContentModelsTableRow[]) => {
+      const existingModels = await listAllContentModels(projectId);
+      const knownModels = [...existingModels];
+      const payloads = models.map((model) => {
+        const payload = buildDuplicateContentModelPayload({
+          model,
+          existingModels: knownModels,
+          t,
+        });
+        knownModels.push({
+          ...model,
+          singularKey: payload.singularKey,
+          pluralKey: payload.pluralKey,
+          name: payload.name,
+        });
+        return payload;
+      });
+
+      return Promise.all(payloads.map((payload) => createContentModel(projectId, payload)));
+    },
+    onSuccess: async (models) => {
+      await refreshModels();
+      setBulkDuplicateOpen(false);
+      tableHook.table.resetRowSelection();
+      if (models[0]) setEditModel(models[0]);
+      notifySuccessText(
+        t("content:CONTENT_MODELS_BULK_DUPLICATE_SUCCESS", { count: models.length }),
+      );
+    },
+    onError: notifyError,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (modelId: string) => deleteContentModel(projectId, modelId),
     onError: notifyError,
   });
 
@@ -57,9 +136,24 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
     () =>
       buildContentModelsTableColumns({
         t,
+        canManageModels,
+        pending:
+          duplicateMutation.isPending ||
+          bulkDuplicateMutation.isPending ||
+          deleteMutation.isPending,
         formatDateTime: (value) => dateTime.formatDateTime(value, { emptyValue: "" }),
+        onEdit: setEditModel,
+        onDuplicate: setDuplicateModel,
+        onDelete: setDeleteModelState,
       }),
-    [dateTime.formatDateTime, t],
+    [
+      bulkDuplicateMutation.isPending,
+      canManageModels,
+      dateTime.formatDateTime,
+      deleteMutation.isPending,
+      duplicateMutation.isPending,
+      t,
+    ],
   );
 
   const tableQuery = React.useMemo(() => toContentModelsTableQuery(filters), [filters]);
@@ -72,17 +166,25 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
       pageSize: 50,
       sorting: [{ id: "updatedAt", desc: true }],
     },
+    rowSelection: {
+      enabled: true,
+      getRowId: (row) => row.id,
+    },
     storage: {
       visibility: { keyPrefix: "arclayer:admin:dataTable:visibility", version: "v3" },
       preferences: { keyPrefix: "arclayer:admin:dataTable:preferences", version: "v3" },
     },
   });
 
+  const selectedModels = tableHook.table.getSelectedRowModel().rows.map((row) => row.original);
+  const selectedCount = selectedModels.length;
   const hasActiveQuery = Boolean(tableHook.searchInput.trim()) || Object.keys(filters).length > 0;
   const toolbar = (
     <ContentModelsToolbar
       t={t}
       table={tableHook.table}
+      sorting={tableHook.sorting}
+      onSortingChange={tableHook.setSorting}
       searchInput={tableHook.searchInput}
       onSearchInputChange={tableHook.setSearchInput}
       filters={filters}
@@ -103,12 +205,19 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
         title={t("CONTENT_MODELS_TITLE")}
         showFavoriteToggle
         action={
-          <Button type="button" onClick={() => setCreateOpen(true)}>
+          <Button type="button" disabled={!canManageModels} onClick={() => setCreateOpen(true)}>
             <PlusIcon className="size-4" />
             {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION")}
           </Button>
         }
       >
+        {!canManageModels ? (
+          <AccessNoticeAlert
+            className="mb-4"
+            description={t("content:CONTENT_MODELS_NO_ACCESS_DESC")}
+            data-testid="content-models-no-access"
+          />
+        ) : null}
         <AdminDataTableSection
           table={tableHook.table}
           emptyText={t("content:CONTENT_MODELS_TABLE_EMPTY_TEXT")}
@@ -146,6 +255,16 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
           toolbar={toolbar}
         />
       </DefaultPage>
+      <ContentModelsSelectionToolbar
+        t={t}
+        selectedCount={selectedCount}
+        canManageModels={canManageModels}
+        duplicatePending={bulkDuplicateMutation.isPending}
+        deletePending={deleteMutation.isPending}
+        onClearSelection={() => tableHook.table.resetRowSelection()}
+        onOpenDuplicate={() => setBulkDuplicateOpen(true)}
+        onOpenDelete={() => setBulkDeleteOpen(true)}
+      />
       <CreateContentTypeDialog
         open={createOpen}
         pending={createMutation.isPending}
@@ -153,6 +272,77 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
         onSubmit={async (values) => {
           await createMutation.mutateAsync(values);
         }}
+      />
+      <ContentModelsActionDialogs
+        duplicateDialog={{
+          row: duplicateModel,
+          pending: duplicateMutation.isPending,
+          onOpenChange: (open) => {
+            if (!open && !duplicateMutation.isPending) setDuplicateModel(null);
+          },
+          onConfirm: async () => {
+            if (!duplicateModel) return;
+            await duplicateMutation.mutateAsync(duplicateModel);
+          },
+        }}
+        deleteDialog={{
+          row: deleteModelState,
+          pending: deleteMutation.isPending,
+          onOpenChange: (open) => {
+            if (!open && !deleteMutation.isPending) setDeleteModelState(null);
+          },
+          onConfirm: async () => {
+            const targetModel = deleteModelState;
+            if (!targetModel) return;
+            await deleteMutation.mutateAsync(targetModel.id);
+            await refreshModels();
+            if (editModel?.id === targetModel.id) setEditModel(null);
+            setDeleteModelState(null);
+            tableHook.table.resetRowSelection();
+            notifySuccessText(t("content:CONTENT_MODELS_DELETE_SUCCESS"));
+          },
+        }}
+        bulkDuplicateDialog={{
+          count: selectedCount,
+          open: bulkDuplicateOpen,
+          pending: bulkDuplicateMutation.isPending,
+          onOpenChange: (open) => {
+            if (!open && !bulkDuplicateMutation.isPending) setBulkDuplicateOpen(false);
+          },
+          onConfirm: async () => {
+            const targets = selectedModels;
+            await bulkDuplicateMutation.mutateAsync(targets);
+          },
+        }}
+        bulkDeleteDialog={{
+          count: selectedCount,
+          open: bulkDeleteOpen,
+          pending: deleteMutation.isPending,
+          onOpenChange: (open) => {
+            if (!open && !deleteMutation.isPending) setBulkDeleteOpen(false);
+          },
+          onConfirm: async () => {
+            const targets = selectedModels;
+            await Promise.all(targets.map((model) => deleteMutation.mutateAsync(model.id)));
+            await refreshModels();
+            if (editModel && targets.some((model) => model.id === editModel.id)) setEditModel(null);
+            setBulkDeleteOpen(false);
+            tableHook.table.resetRowSelection();
+            notifySuccessText(
+              t("content:CONTENT_MODELS_BULK_DELETE_SUCCESS", { count: targets.length }),
+            );
+          },
+        }}
+      />
+      <ContentModelEditScreen
+        model={editModel}
+        canManageModels={canManageModels}
+        pending={
+          duplicateMutation.isPending || bulkDuplicateMutation.isPending || deleteMutation.isPending
+        }
+        onDuplicate={setDuplicateModel}
+        onDelete={setDeleteModelState}
+        onClose={() => setEditModel(null)}
       />
     </>
   );

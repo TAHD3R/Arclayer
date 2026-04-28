@@ -1,5 +1,5 @@
 import { applyManualProjectSlugInput, buildProjectSlug } from "@/lib/project-slug";
-import type { CreateAdminContentModelPayload } from "@/types/api";
+import type { AdminContentModel, CreateAdminContentModelPayload } from "@/types/api";
 
 import type {
   ContentModelsFilters,
@@ -10,6 +10,8 @@ import type {
 } from "./types";
 
 const IDENTIFIER_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const CONTENT_MODEL_IDENTIFIER_MAX_LENGTH = 64;
+const CONTENT_MODEL_NAME_MAX_LENGTH = 128;
 
 const IRREGULAR_PLURALS = new Map<string, string>([
   ["category", "categories"],
@@ -95,6 +97,256 @@ export function buildCreateContentTypePayload(values: {
     routing: { mode: "none" },
     workflow: { states: ["draft"], initialState: "draft" },
     views: [],
+  };
+}
+
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+type ContentModelFieldScalar = NonNullable<
+  CreateAdminContentModelPayload["fields"]
+>[number]["scalar"];
+type ContentModelRelationType = NonNullable<
+  CreateAdminContentModelPayload["relations"]
+>[number]["relation"];
+type ContentModelViewType = NonNullable<CreateAdminContentModelPayload["views"]>[number]["type"];
+
+type WorkflowPolicyRecord = {
+  states?: unknown;
+  initialState?: unknown;
+  initial_state?: unknown;
+};
+
+type RoutingPolicyRecord = {
+  mode?: unknown;
+  slugField?: unknown;
+  slug_field?: unknown;
+};
+
+type FieldSchemaRecord = {
+  label?: unknown;
+  scalar?: unknown;
+  required?: unknown;
+  config?: unknown;
+};
+
+type RelationSchemaRecord = {
+  relation?: unknown;
+  targetModelKey?: unknown;
+  target_model_key?: unknown;
+  required?: unknown;
+  config?: unknown;
+};
+
+type ViewSchemaRecord = {
+  key?: unknown;
+  label?: unknown;
+  type?: unknown;
+  config?: unknown;
+};
+
+type ViewSchemaContainer = {
+  views?: unknown;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function trimToLength(value: string, maxLength: number): string {
+  return value.trim().slice(0, maxLength).trimEnd();
+}
+
+function appendIdentifierSuffix(value: string, suffix: string): string {
+  const normalized = applyManualProjectSlugInput(value).value || "model";
+  const joinedSuffix = `-${suffix}`;
+  const nextBase = normalized
+    .slice(0, Math.max(1, CONTENT_MODEL_IDENTIFIER_MAX_LENGTH - joinedSuffix.length))
+    .replace(/-+$/g, "");
+  return `${nextBase}${joinedSuffix}`;
+}
+
+export function buildDuplicateContentModelName(name: string, t: TranslateFn): string {
+  const baseName = trimToLength(name || "Untitled model", CONTENT_MODEL_NAME_MAX_LENGTH);
+  const duplicateSuffixLabel = t("content:CONTENT_MODELS_DUPLICATE_NAME_SUFFIX");
+  const duplicateSuffix =
+    duplicateSuffixLabel === "content:CONTENT_MODELS_DUPLICATE_NAME_SUFFIX"
+      ? "Copy"
+      : duplicateSuffixLabel;
+  const localized = t("content:CONTENT_MODELS_DUPLICATE_NAME_FORMAT", {
+    name: baseName,
+    suffix: duplicateSuffix,
+  });
+  const fallback = `${baseName} (${duplicateSuffix})`;
+  return trimToLength(
+    localized === "content:CONTENT_MODELS_DUPLICATE_NAME_FORMAT" ? fallback : localized,
+    CONTENT_MODEL_NAME_MAX_LENGTH,
+  );
+}
+
+export function buildDuplicateContentModelIdentifiers(
+  model: Pick<AdminContentModel, "singularKey" | "pluralKey">,
+  existingModels: Pick<AdminContentModel, "singularKey" | "pluralKey">[],
+): { singularKey: string; pluralKey: string } {
+  const usedIdentifiers = new Set(
+    existingModels.flatMap((entry) =>
+      [entry.singularKey, entry.pluralKey]
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .filter(Boolean),
+    ),
+  );
+
+  for (let index = 0; index < 200; index += 1) {
+    const suffix = index === 0 ? "copy" : `copy-${index + 1}`;
+    const singularKey = appendIdentifierSuffix(model.singularKey, suffix);
+    const pluralKey = appendIdentifierSuffix(model.pluralKey, suffix);
+    if (!usedIdentifiers.has(singularKey) && !usedIdentifiers.has(pluralKey)) {
+      return { singularKey, pluralKey };
+    }
+  }
+
+  throw new Error("CONTENT_MODELS_DUPLICATE_IDENTIFIER_EXHAUSTED");
+}
+
+function toFieldContracts(model: AdminContentModel): CreateAdminContentModelPayload["fields"] {
+  const fieldSchema = asRecord(model.fieldSchema);
+  if (!fieldSchema) return [];
+
+  return Object.entries(fieldSchema).flatMap(([key, rawValue]) => {
+    const value = asRecord(rawValue) as FieldSchemaRecord | null;
+    const scalar = asString(value?.scalar);
+    const label = asString(value?.label);
+    if (!scalar || !label) return [];
+    const config = asRecord(value?.config) ?? undefined;
+    return [
+      {
+        key,
+        label,
+        scalar: scalar as ContentModelFieldScalar,
+        required: Boolean(value?.required),
+        ...(config ? { config } : {}),
+      },
+    ];
+  });
+}
+
+function toRelationContracts(
+  model: AdminContentModel,
+): CreateAdminContentModelPayload["relations"] {
+  const relationSchema = asRecord(model.relationSchema);
+  if (!relationSchema) return [];
+
+  return Object.entries(relationSchema).flatMap(([key, rawValue]) => {
+    const value = asRecord(rawValue) as RelationSchemaRecord | null;
+    const relation = asString(value?.relation);
+    const targetModelKey = asString(value?.targetModelKey ?? value?.target_model_key);
+    if (!relation || !targetModelKey) return [];
+    const config = asRecord(value?.config) ?? undefined;
+    return [
+      {
+        key,
+        relation: relation as ContentModelRelationType,
+        targetModelKey,
+        required: Boolean(value?.required),
+        ...(config ? { config } : {}),
+      },
+    ];
+  });
+}
+
+function toViewContracts(model: AdminContentModel): CreateAdminContentModelPayload["views"] {
+  const viewSchema = asRecord(model.viewSchema) as ViewSchemaContainer | null;
+  if (!viewSchema) return [];
+
+  return asArray<unknown>(viewSchema.views).flatMap((rawValue) => {
+    const value = asRecord(rawValue) as ViewSchemaRecord | null;
+    const key = asString(value?.key);
+    const label = asString(value?.label);
+    const type = asString(value?.type);
+    if (!key || !label || !type) return [];
+    const config = asRecord(value?.config) ?? undefined;
+    return [
+      {
+        key,
+        label,
+        type: type as ContentModelViewType,
+        ...(config ? { config } : {}),
+      },
+    ];
+  });
+}
+
+function toRoutingContract(model: AdminContentModel): CreateAdminContentModelPayload["routing"] {
+  const routingSchema = (asRecord(model.routingSchema) as RoutingPolicyRecord | null) ?? {};
+  const mode = asString(routingSchema.mode);
+  const slugField = asString(routingSchema.slugField ?? routingSchema.slug_field);
+  return {
+    mode: mode === "single" || mode === "localized" ? mode : "none",
+    ...(slugField ? { slugField } : {}),
+  };
+}
+
+function toWorkflowContract(model: AdminContentModel): CreateAdminContentModelPayload["workflow"] {
+  const workflowPolicy = (asRecord(model.workflowPolicy) as WorkflowPolicyRecord | null) ?? {};
+  const states = asArray<unknown>(workflowPolicy.states).filter(
+    (value): value is string => typeof value === "string" && value.trim().length > 0,
+  );
+  const initialState = asString(workflowPolicy.initialState ?? workflowPolicy.initial_state);
+
+  return {
+    states,
+    ...(initialState ? { initialState } : {}),
+  };
+}
+
+function readSeoPolicy(model: AdminContentModel): Record<string, unknown> | null {
+  const contractRegistry = asRecord(model.contractRegistry);
+  const deliveryPolicy = asRecord(contractRegistry?.deliveryPolicy);
+  return asRecord(deliveryPolicy?.seo);
+}
+
+export function buildDuplicateContentModelPayload(params: {
+  model: AdminContentModel;
+  existingModels: AdminContentModel[];
+  t: TranslateFn;
+}): CreateAdminContentModelPayload {
+  const identifiers = buildDuplicateContentModelIdentifiers(params.model, params.existingModels);
+
+  return {
+    singularKey: identifiers.singularKey,
+    pluralKey: identifiers.pluralKey,
+    name: buildDuplicateContentModelName(params.model.name, params.t),
+    description: params.model.description ?? null,
+    category: params.model.category,
+    modelKind: params.model.modelKind,
+    defaultEditor: params.model.defaultEditor,
+    ...(params.model.defaultRole ? { defaultRole: params.model.defaultRole } : {}),
+    ...(params.model.defaultPosture ? { defaultPosture: params.model.defaultPosture } : {}),
+    ...(params.model.defaultSurface ? { defaultSurface: params.model.defaultSurface } : {}),
+    fields: toFieldContracts(params.model),
+    relations: toRelationContracts(params.model),
+    capabilities: params.model.capabilities,
+    routing: toRoutingContract(params.model),
+    workflow: toWorkflowContract(params.model),
+    views: toViewContracts(params.model),
+    ...(asRecord(params.model.presentationSchema)
+      ? { presentation: asRecord(params.model.presentationSchema) }
+      : {}),
+    ...(readSeoPolicy(params.model) ? { seo: readSeoPolicy(params.model) } : {}),
+    ...(asRecord(params.model.starterPackPolicy)
+      ? { starterPackPolicy: asRecord(params.model.starterPackPolicy) }
+      : {}),
+    ...(asRecord(params.model.surfacePolicy)
+      ? { surfacePolicy: asRecord(params.model.surfacePolicy) }
+      : {}),
   };
 }
 

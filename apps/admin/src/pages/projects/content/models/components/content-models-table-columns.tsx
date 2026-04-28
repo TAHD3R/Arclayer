@@ -1,7 +1,14 @@
 import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import { UserAvatar } from "@/components/common/entity-avatar";
+import { Checkbox } from "@arclayer/ui/checkbox";
+
+import { ContentModelsRowActions } from "./content-models-row-actions";
 import type { ContentModelsTableRow } from "../types";
 import { getContentModelFieldCount } from "../utils";
 
@@ -49,10 +56,47 @@ function UpdatedByCell(props: { model: ContentModelsTableRow; emptyValue: string
 export function buildContentModelsTableColumns(params: {
   t: TranslateFn;
   formatDateTime: (value: string | null | undefined) => string;
+  canManageModels?: boolean;
+  pending?: boolean;
+  onEdit: (row: ContentModelsTableRow) => void;
+  onDuplicate: (row: ContentModelsTableRow) => void;
+  onDelete: (row: ContentModelsTableRow) => void;
 }): ColumnDef<ContentModelsTableRow, unknown>[] {
   const emptyValue = params.t("content:CONTENT_MODELS_TABLE_EMPTY_VALUE");
 
   return [
+    {
+      id: "select",
+      enableSorting: false,
+      enableHiding: false,
+      meta: {
+        title: "",
+        kind: "select",
+        headerAlign: "center",
+        pin: "left",
+      },
+      header: ({ table }) => (
+        <div className="flex w-full items-center justify-center">
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            aria-label={params.t("common:SELECT_ALL")}
+            onCheckedChange={(checked) => table.toggleAllPageRowsSelected(Boolean(checked))}
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex w-full items-center justify-center">
+          <Checkbox
+            checked={row.getIsSelected()}
+            aria-label={params.t("common:SELECT")}
+            onClick={(event) => event.stopPropagation()}
+            onCheckedChange={(checked) => row.toggleSelected(Boolean(checked))}
+          />
+        </div>
+      ),
+      size: 52,
+      minSize: 52,
+    },
     {
       accessorKey: "name",
       meta: {
@@ -108,6 +152,27 @@ export function buildContentModelsTableColumns(params: {
       },
       size: 190,
       minSize: 160,
+    },
+    {
+      id: "actions",
+      enableSorting: false,
+      enableHiding: false,
+      meta: buildDataTableActionsColumnMeta("right", "right"),
+      header: "",
+      cell: ({ row }) => (
+        <DataTableActionsCell>
+          <ContentModelsRowActions
+            row={row.original}
+            canManageModels={params.canManageModels}
+            pending={params.pending}
+            onEdit={params.onEdit}
+            onDuplicate={params.onDuplicate}
+            onDelete={params.onDelete}
+          />
+        </DataTableActionsCell>
+      ),
+      size: 84,
+      minSize: 84,
     },
   ];
 }

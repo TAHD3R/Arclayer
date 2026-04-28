@@ -180,6 +180,10 @@ export async function patchContentModel(
   );
 }
 
+export async function deleteContentModel(projectId: string, modelId: string): Promise<void> {
+  await api.delete(projectPath(projectId, `/content/models/${modelId}`));
+}
+
 export async function listContentItems(
   projectId: string,
   params: ListAdminContentItemsParams = {},

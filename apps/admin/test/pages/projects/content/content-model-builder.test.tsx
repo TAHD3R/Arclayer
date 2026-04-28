@@ -6,28 +6,41 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/page";
 import {
+  buildDuplicateContentModelPayload,
   getContentModelFieldCount,
   toContentModelsTableQuery,
 } from "@/pages/projects/content/models/utils";
 import type { AdminContentModel } from "@/types/api";
 
 const createContentModelMock = vi.fn();
+const deleteContentModelMock = vi.fn();
+const listAllContentModelsMock = vi.fn();
 const listContentModelsMock = vi.fn();
+const permissionAccessMock = {
+  hasAction: vi.fn(() => true),
+};
 
 vi.mock("@/api/content", () => ({
   buildContentModelsQueryKey: (...args: unknown[]) => ["content", "models", ...args],
   createContentModel: (...args: unknown[]) => createContentModelMock(...args),
+  deleteContentModel: (...args: unknown[]) => deleteContentModelMock(...args),
+  listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
   listContentModels: (...args: unknown[]) => listContentModelsMock(...args),
 }));
 
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
+  notifySuccessText: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
   useAdminDateTimeFormatter: () => ({
     formatDateTime: (value: string | null | undefined) => value ?? "",
   }),
+}));
+
+vi.mock("@/hooks/use-workspace-permission-access", () => ({
+  useProjectPermissionAccess: () => permissionAccessMock,
 }));
 
 vi.mock("react-i18next", () => ({
@@ -97,7 +110,10 @@ function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentMod
 describe("content model builder", () => {
   beforeEach(() => {
     createContentModelMock.mockReset();
+    deleteContentModelMock.mockReset();
+    listAllContentModelsMock.mockReset();
     listContentModelsMock.mockReset();
+    permissionAccessMock.hasAction.mockReturnValue(true);
     listContentModelsMock.mockResolvedValue({
       items: [],
       total: 0,
@@ -107,6 +123,7 @@ describe("content model builder", () => {
       next: null,
       prev: null,
     });
+    listAllContentModelsMock.mockResolvedValue([]);
   });
 
   test("opens create content type dialog and creates with dual identifiers", async () => {
@@ -195,6 +212,19 @@ describe("content model builder", () => {
     );
   });
 
+  test("disables create entry points when project content model write access is missing", () => {
+    permissionAccessMock.hasAction.mockReturnValue(false);
+
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
+    ).toBeDisabled();
+    expect(screen.getByTestId("content-models-no-access")).toBeInTheDocument();
+  });
+
   test("maps model table filters and field counts for read-only table queries", () => {
     expect(
       toContentModelsTableQuery({
@@ -223,5 +253,134 @@ describe("content model builder", () => {
         }),
       ),
     ).toBe(3);
+  });
+
+  test("builds a duplicate payload with localized name and unique identifiers", () => {
+    const model = buildModel({
+      singularKey: "article",
+      pluralKey: "articles",
+      fieldSchema: {
+        title: {
+          label: "Title",
+          scalar: "text",
+          required: true,
+        },
+      },
+      relationSchema: {
+        category: {
+          relation: "many_to_one",
+          targetModelKey: "category",
+          required: false,
+        },
+      },
+      viewSchema: {
+        views: [
+          {
+            key: "default",
+            label: "Default",
+            type: "table",
+            config: { columns: ["title"] },
+          },
+        ],
+      },
+      routingSchema: {
+        mode: "single",
+        slug_field: "slug",
+      },
+      workflowPolicy: {
+        states: ["draft", "published"],
+        initial_state: "draft",
+      },
+      presentationSchema: {
+        kind: "article",
+      },
+      starterPackPolicy: {
+        preset: "starter",
+      },
+      surfacePolicy: {
+        primary: "structured",
+      },
+      contractRegistry: {
+        deliveryPolicy: {
+          seo: {
+            metaTitleField: "title",
+          },
+        },
+      },
+    });
+
+    const payload = buildDuplicateContentModelPayload({
+      model,
+      existingModels: [
+        model,
+        buildModel({
+          id: "model-2",
+          singularKey: "article-copy",
+          pluralKey: "articles-copy",
+        }),
+      ],
+      t: (key, options) => {
+        if (key === "content:CONTENT_MODELS_DUPLICATE_NAME_SUFFIX") return "Copy";
+        if (key === "content:CONTENT_MODELS_DUPLICATE_NAME_FORMAT") {
+          return `${options?.name as string} (${options?.suffix as string})`;
+        }
+        return key;
+      },
+    });
+
+    expect(payload).toEqual({
+      singularKey: "article-copy-2",
+      pluralKey: "articles-copy-2",
+      name: "Article (Copy)",
+      description: "Article model",
+      category: "custom",
+      modelKind: "collection_type",
+      defaultEditor: "form",
+      fields: [
+        {
+          key: "title",
+          label: "Title",
+          scalar: "text",
+          required: true,
+        },
+      ],
+      relations: [
+        {
+          key: "category",
+          relation: "many_to_one",
+          targetModelKey: "category",
+          required: false,
+        },
+      ],
+      capabilities: ["queryable"],
+      routing: {
+        mode: "single",
+        slugField: "slug",
+      },
+      workflow: {
+        states: ["draft", "published"],
+        initialState: "draft",
+      },
+      views: [
+        {
+          key: "default",
+          label: "Default",
+          type: "table",
+          config: { columns: ["title"] },
+        },
+      ],
+      presentation: {
+        kind: "article",
+      },
+      seo: {
+        metaTitleField: "title",
+      },
+      starterPackPolicy: {
+        preset: "starter",
+      },
+      surfacePolicy: {
+        primary: "structured",
+      },
+    });
   });
 });

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from tests.modules.workspaces.content.test_content_models_integration import _workspace_client
+from tests.modules.workspaces.content.test_content_models_integration import (
+    _blank_first_create_payload,
+    _workspace_client,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -83,3 +86,42 @@ async def test_project_content_model_json_preview_returns_current_draft_schema(
         assert preview["payload"]["singular_key"] == "product"
         assert preview["payload"]["plural_key"] == "products"
         assert preview["payload"]["fields"][0]["key"] == "title"
+
+
+@pytest.mark.asyncio
+async def test_project_content_model_delete_removes_custom_model(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, _workspace_id, project_id):
+        create_response = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json=_model_payload("product", "products", "Product", model_kind="collection_type"),
+        )
+        assert create_response.status_code == 201, create_response.text
+        model_id = create_response.json()["data"]["id"]
+
+        delete_response = await client.delete(f"/api/v1/projects/{project_id}/content/models/{model_id}")
+        assert delete_response.status_code == 200, delete_response.text
+
+        list_response = await client.get(f"/api/v1/projects/{project_id}/content/models")
+        assert list_response.status_code == 200, list_response.text
+        assert "product" not in {item["singularKey"] for item in list_response.json()["data"]["items"]}
+
+
+@pytest.mark.asyncio
+async def test_project_content_model_delete_rejects_system_managed_model(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, _workspace_id, project_id):
+        create_response = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json=_blank_first_create_payload(),
+        )
+        assert create_response.status_code == 201, create_response.text
+        model_id = create_response.json()["data"]["id"]
+
+        delete_response = await client.delete(f"/api/v1/projects/{project_id}/content/models/{model_id}")
+        assert delete_response.status_code == 409, delete_response.text
+        assert delete_response.json()["error"] == "CONTENT_MODEL_DELETE_SYSTEM_MANAGED"

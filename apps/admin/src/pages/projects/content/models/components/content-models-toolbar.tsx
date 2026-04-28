@@ -6,6 +6,7 @@ import {
   ShapesIcon,
   ShieldCheckIcon,
 } from "lucide-react";
+import type { SortingState, Table as ReactTable } from "@tanstack/react-table";
 
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
@@ -15,12 +16,19 @@ import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { Button } from "@arclayer/ui/button";
 import { DataTableToolbarTools, type DataTableRowHeight } from "@arclayer/ui/data-table";
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from "@arclayer/ui/filters";
-import type { Table as ReactTable } from "@tanstack/react-table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
 import type { ContentModelsFilters, ContentModelsTableRow } from "../types";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 type FilterValue = string;
+type ContentModelsSortValue =
+  | "updated_desc"
+  | "updated_asc"
+  | "name_asc"
+  | "name_desc"
+  | "field_count_desc"
+  | "field_count_asc";
 
 const FILTER_OPERATORS = [{ value: "is", labelKey: "common:FILTER_OPERATOR_IS" }] as const;
 
@@ -97,9 +105,29 @@ function buildFilterFields(t: TranslateFn): FilterFieldConfig<FilterValue>[] {
   ];
 }
 
+function sortingToSortValue(sorting: SortingState): ContentModelsSortValue {
+  const primary = sorting[0];
+  if (!primary) return "updated_desc";
+  if (primary.id === "updatedAt") return primary.desc ? "updated_desc" : "updated_asc";
+  if (primary.id === "name") return primary.desc ? "name_desc" : "name_asc";
+  if (primary.id === "fieldCount") return primary.desc ? "field_count_desc" : "field_count_asc";
+  return "updated_desc";
+}
+
+function sortValueToSorting(value: ContentModelsSortValue): SortingState {
+  if (value === "updated_asc") return [{ id: "updatedAt", desc: false }];
+  if (value === "name_asc") return [{ id: "name", desc: false }];
+  if (value === "name_desc") return [{ id: "name", desc: true }];
+  if (value === "field_count_desc") return [{ id: "fieldCount", desc: true }];
+  if (value === "field_count_asc") return [{ id: "fieldCount", desc: false }];
+  return [{ id: "updatedAt", desc: true }];
+}
+
 export function ContentModelsToolbar(props: {
   t: TranslateFn;
   table: ReactTable<ContentModelsTableRow>;
+  sorting: SortingState;
+  onSortingChange: (next: SortingState) => void;
   searchInput: string;
   onSearchInputChange: (next: string) => void;
   filters: ContentModelsFilters;
@@ -119,6 +147,27 @@ export function ContentModelsToolbar(props: {
     [props.t],
   );
   const toolsLabels = React.useMemo(() => buildDataTableToolsLabels(props.t), [props.t]);
+  const sortValue = React.useMemo(() => sortingToSortValue(props.sorting), [props.sorting]);
+  const sortOptions = React.useMemo(
+    () => [
+      {
+        value: "updated_desc" as const,
+        label: props.t("content:CONTENT_MODELS_SORT_UPDATED_DESC"),
+      },
+      { value: "updated_asc" as const, label: props.t("content:CONTENT_MODELS_SORT_UPDATED_ASC") },
+      { value: "name_asc" as const, label: props.t("content:CONTENT_MODELS_SORT_NAME_ASC") },
+      { value: "name_desc" as const, label: props.t("content:CONTENT_MODELS_SORT_NAME_DESC") },
+      {
+        value: "field_count_desc" as const,
+        label: props.t("content:CONTENT_MODELS_SORT_FIELD_COUNT_DESC"),
+      },
+      {
+        value: "field_count_asc" as const,
+        label: props.t("content:CONTENT_MODELS_SORT_FIELD_COUNT_ASC"),
+      },
+    ],
+    [props.t],
+  );
 
   return (
     <PageExtraToolbar
@@ -130,6 +179,23 @@ export function ContentModelsToolbar(props: {
             placeholder={props.t("content:CONTENT_MODELS_SEARCH_PLACEHOLDER")}
             clearLabel={props.t("common:CLEAR")}
           />
+          <Select
+            value={sortValue}
+            onValueChange={(next) =>
+              props.onSortingChange(sortValueToSorting(next as ContentModelsSortValue))
+            }
+          >
+            <SelectTrigger className="w-[12rem] min-w-[12rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end" position="popper">
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Filters
             filters={filterItems}
             fields={filterFields}

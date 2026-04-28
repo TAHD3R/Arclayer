@@ -57,6 +57,8 @@
   "CONFIG_ITEM_INVALID": "Configuration item is invalid",
   "CONFIG_TYPE_INVALID": "Configuration item type is invalid",
   "CONFLICT": "Resource conflict",
+  "CONTENT_MODEL_DELETE_BLOCKED_BY_ITEMS": "This content model still has content entries. Move or remove those entries before deleting the model.",
+  "CONTENT_MODEL_DELETE_SYSTEM_MANAGED": "Platform-managed content models stay protected and cannot be deleted.",
   "CONTENT_MODEL_PREVIEW_SECRET_MISSING": "Preview signing secret is unavailable",
   "DNS_LOOKUP_FAILED": "DNS lookup failed",
   "DNS_LOOKUP_TIMEOUT": "DNS lookup timed out",
