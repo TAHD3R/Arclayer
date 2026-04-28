@@ -1,4 +1,5 @@
 import * as React from "react";
+import { CircleHelp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
@@ -6,6 +7,7 @@ import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Textarea } from "@arclayer/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 import type { CreateContentTypeFormValues, CreateContentTypeSubmitValues } from "../types";
 import {
@@ -32,6 +34,25 @@ type CreateContentTypeDialogProps = {
 
 type FormErrors = Partial<Record<"name" | "singularKey" | "pluralKey", string>>;
 
+function IdentifierHelpTooltip(props: { content: string }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild focusTrigger={false}>
+          <button
+            type="button"
+            aria-label={props.content}
+            className="inline-flex size-4 items-center justify-center rounded-full text-label-tertiary transition-colors hover:text-label-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+          >
+            <CircleHelp className="size-3.5" aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-72 text-left">{props.content}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function CreateContentTypeDialog({
   open,
   pending = false,
@@ -41,6 +62,8 @@ export function CreateContentTypeDialog({
   const { t } = useTranslation("content");
   const [values, setValues] = React.useState<CreateContentTypeFormValues>(DEFAULT_VALUES);
   const [errors, setErrors] = React.useState<FormErrors>({});
+  const singularInputId = React.useId();
+  const pluralInputId = React.useId();
 
   React.useEffect(() => {
     if (open) return;
@@ -126,6 +149,7 @@ export function CreateContentTypeDialog({
             <Input
               value={values.name}
               disabled={pending}
+              placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_PLACEHOLDER")}
               aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
               aria-invalid={errors.name ? true : undefined}
               onChange={(event) => {
@@ -142,34 +166,25 @@ export function CreateContentTypeDialog({
             error={
               errors.pluralKey || errors.singularKey ? (
                 <div className="text-footnote text-destructive">
-                  {[errors.pluralKey, errors.singularKey].filter(Boolean).join(" ")}
+                  {[errors.singularKey, errors.pluralKey].filter(Boolean).join(" ")}
                 </div>
               ) : undefined
             }
           >
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid space-y-1.5 gap-1">
-                <span className="font-semibold text-label-secondary">
-                  {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")}
-                </span>
+              <div className="grid space-y-1.5 gap-1">
+                <div className="flex items-center gap-1.5">
+                  <label htmlFor={singularInputId} className="grid space-y-1.5 gap-1">
+                    <span className="font-semibold text-label-secondary">
+                      {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")}
+                    </span>
+                  </label>
+                  <IdentifierHelpTooltip
+                    content={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_TOOLTIP")}
+                  />
+                </div>
                 <Input
-                  value={values.pluralKey.value}
-                  disabled={pending}
-                  placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_PLACEHOLDER")}
-                  aria-invalid={errors.pluralKey ? true : undefined}
-                  onChange={(event) => {
-                    setValues((current) => ({
-                      ...current,
-                      pluralKey: createManualIdentifier(event.target.value),
-                    }));
-                  }}
-                />
-              </label>
-              <label className="grid space-y-1.5 gap-1">
-                <span className="font-semibold text-label-secondary">
-                  {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")}
-                </span>
-                <Input
+                  id={singularInputId}
                   value={values.singularKey.value}
                   disabled={pending}
                   placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_PLACEHOLDER")}
@@ -181,7 +196,32 @@ export function CreateContentTypeDialog({
                     }));
                   }}
                 />
-              </label>
+              </div>
+              <div className="grid space-y-1.5 gap-1">
+                <div className="flex items-center gap-1.5">
+                  <label htmlFor={pluralInputId} className="grid space-y-1.5 gap-1">
+                    <span className="font-semibold text-label-secondary">
+                      {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")}
+                    </span>
+                  </label>
+                  <IdentifierHelpTooltip
+                    content={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_TOOLTIP")}
+                  />
+                </div>
+                <Input
+                  id={pluralInputId}
+                  value={values.pluralKey.value}
+                  disabled={pending}
+                  placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_PLACEHOLDER")}
+                  aria-invalid={errors.pluralKey ? true : undefined}
+                  onChange={(event) => {
+                    setValues((current) => ({
+                      ...current,
+                      pluralKey: createManualIdentifier(event.target.value),
+                    }));
+                  }}
+                />
+              </div>
             </div>
           </SettingDialogField>
 
