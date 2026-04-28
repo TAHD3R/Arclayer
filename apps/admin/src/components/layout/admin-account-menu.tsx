@@ -234,7 +234,7 @@ function RootMenu(props: {
   const { t } = useTranslation("account");
   return (
     <>
-      <div className="py-1">
+      <div className="p-1">
         <MenuAction
           icon={<Settings />}
           label={t("ACCOUNT_MENU_ACCOUNT")}
@@ -278,7 +278,7 @@ function RootMenu(props: {
         />
       </div>
       <MenuDivider />
-      <div className="py-1">
+      <div className="p-1">
         <AccountSubmenuAction
           panelOpen={props.panelOpen}
           icon={<LifeBuoy />}
@@ -307,7 +307,7 @@ function RootMenu(props: {
         />
       </div>
       <MenuDivider />
-      <div className="pb-4">
+      <div className="pb-4 px-1 pt-1">
         <MenuAction icon={<LogOut />} label={t("ACCOUNT_LOGOUT")} onClick={props.onLogout} />
       </div>
     </>

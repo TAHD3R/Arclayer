@@ -648,7 +648,7 @@ export function FloatingPanelButton({
   return (
     <motion.button
       className={cn(
-        "flex w-full items-center gap-2 rounded-sm px-4 py-2 text-left text-footnote",
+        "flex w-full items-center gap-2 rounded-md px-4 py-2 text-left text-footnote",
         "hover:bg-muted",
         className,
       )}
