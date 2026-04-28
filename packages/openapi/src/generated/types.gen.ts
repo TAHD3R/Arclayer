@@ -3263,6 +3263,10 @@ export type ContentModelOut = {
      */
     updatedAt: string;
     /**
+     * Last updater user summary.
+     */
+    updatedBy?: ContentModelUserRefOut | null;
+    /**
      * Updatedbyuserid
      *
      * Last updater user id.
@@ -3542,6 +3546,42 @@ export type ContentModelSchemaSnapshotOut = {
      * Number of views stored in the snapshot payload.
      */
     viewCount?: number;
+};
+
+/**
+ * ContentModelUserRefOut
+ */
+export type ContentModelUserRefOut = {
+    /**
+     * Avatarurl
+     *
+     * Avatar URL.
+     */
+    avatarUrl?: string | null;
+    /**
+     * Displayname
+     *
+     * Display name.
+     */
+    displayName?: string | null;
+    /**
+     * Email
+     *
+     * Email.
+     */
+    email?: string | null;
+    /**
+     * Userid
+     *
+     * User id.
+     */
+    userId: string;
+    /**
+     * Username
+     *
+     * Username.
+     */
+    username: string;
 };
 
 /**

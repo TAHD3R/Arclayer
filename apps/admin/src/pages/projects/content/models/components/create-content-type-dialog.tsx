@@ -148,8 +148,8 @@ export function CreateContentTypeDialog({
             }
           >
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5">
-                <span className="text-caption text-label-secondary">
+              <label className="grid space-y-1.5 gap-1">
+                <span className="font-semibold text-label-secondary">
                   {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")}
                 </span>
                 <Input
@@ -165,8 +165,8 @@ export function CreateContentTypeDialog({
                   }}
                 />
               </label>
-              <label className="space-y-1.5">
-                <span className="text-caption text-label-secondary">
+              <label className="grid space-y-1.5 gap-1">
+                <span className="font-semibold text-label-secondary">
                   {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")}
                 </span>
                 <Input
@@ -193,6 +193,7 @@ export function CreateContentTypeDialog({
               value={values.description}
               disabled={pending}
               placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER")}
+              rows={4}
               onChange={(event) =>
                 setValues((current) => ({ ...current, description: event.target.value }))
               }

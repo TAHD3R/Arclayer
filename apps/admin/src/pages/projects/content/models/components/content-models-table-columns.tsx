@@ -1,6 +1,7 @@
 import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 
+import { UserAvatar } from "@/components/common/entity-avatar";
 import type { ContentModelsTableRow } from "../types";
 import { getContentModelFieldCount } from "../utils";
 
@@ -19,6 +20,28 @@ function ContentModelNameCell(props: { model: ContentModelsTableRow; emptyValue:
       <div className="mt-1 truncate text-footnote text-label-secondary">
         {description || props.emptyValue}
       </div>
+    </div>
+  );
+}
+
+function resolveUserName(user: ContentModelsTableRow["updatedBy"]): string {
+  if (!user) return "";
+  return (user.displayName || user.username || user.email || user.userId || "").trim();
+}
+
+function UpdatedByCell(props: { model: ContentModelsTableRow; emptyValue: string }) {
+  const name = resolveUserName(props.model.updatedBy);
+  if (!props.model.updatedBy || !name) return <EmptyValue>{props.emptyValue}</EmptyValue>;
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <UserAvatar
+        name={name}
+        assetRef={props.model.updatedBy.avatarUrl}
+        size={24}
+        className="shrink-0"
+      />
+      <span className="truncate text-label-primary">{name}</span>
     </div>
   );
 }
@@ -60,14 +83,14 @@ export function buildContentModelsTableColumns(params: {
       minSize: 120,
     },
     {
-      accessorKey: "updatedByUserId",
+      accessorKey: "updatedBy",
       meta: {
         title: params.t("content:CONTENT_MODELS_TABLE_COL_UPDATED_BY"),
         sortKey: "updated_by_user_id",
         kind: "meta",
       },
       header: params.t("content:CONTENT_MODELS_TABLE_COL_UPDATED_BY"),
-      cell: ({ row }) => row.original.updatedByUserId || <EmptyValue>{emptyValue}</EmptyValue>,
+      cell: ({ row }) => <UpdatedByCell model={row.original} emptyValue={emptyValue} />,
       size: 220,
       minSize: 180,
     },

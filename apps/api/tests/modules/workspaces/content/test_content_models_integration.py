@@ -404,6 +404,8 @@ async def test_content_models_list_supports_search_filters_and_field_count_order
         assert filtered.status_code == 200, filtered.text
         items = filtered.json()["data"]["items"]
         assert [item["singularKey"] for item in items] == ["press-release", "profile"]
+        assert all(item["updatedBy"]["userId"] for item in items)
+        assert all(item["updatedBy"]["username"].startswith("owner_") for item in items)
 
         searched = await client.get(
             f"/api/v1/projects/{project_id}/content/models",

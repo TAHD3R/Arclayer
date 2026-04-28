@@ -89,6 +89,7 @@ function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentMod
     draftContractRevision: 1,
     updatedAt: "2026-04-28T00:00:00Z",
     updatedByUserId: null,
+    updatedBy: null,
     ...overrides,
   };
 }

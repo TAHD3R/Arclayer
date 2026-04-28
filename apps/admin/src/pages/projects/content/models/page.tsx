@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { buildContentModelsQueryKey, createContentModel, listContentModels } from "@/api/content";
@@ -103,6 +104,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
         showFavoriteToggle
         action={
           <Button type="button" onClick={() => setCreateOpen(true)}>
+            <PlusIcon className="size-4" />
             {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION")}
           </Button>
         }

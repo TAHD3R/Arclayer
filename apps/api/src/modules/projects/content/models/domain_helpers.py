@@ -20,6 +20,7 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelKind,
     ContentModelOut,
     ContentModelProtocolKey,
+    ContentModelUserRefOut,
 )
 from src.modules.projects.content.models.protocol_registry import get_official_model_protocol
 
@@ -166,7 +167,11 @@ def _graphql_policy(record: ContentModelDefinitionRecord, capabilities: list[str
     }
 
 
-def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOut:
+def to_content_model_out(
+    record: ContentModelDefinitionRecord,
+    *,
+    updated_by: ContentModelUserRefOut | None = None,
+) -> ContentModelOut:
     fields = cast(Iterable[ContentModelFieldRecord], getattr(record, "fields", []))
     relations = cast(Iterable[ContentModelRelationRecord], getattr(record, "relations", []))
     views = cast(Iterable[ContentModelViewRecord], getattr(record, "views", []))
@@ -194,6 +199,7 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
             int(record.published_contract_revision) if record.published_contract_revision is not None else None
         ),
         updated_by_user_id=getattr(record, "updated_by_user_id", None),
+        updated_by=updated_by,
         updated_at=record.updated_at,
         category=cast(ContentModelCategory, str(record.category or "custom")),
         model_kind=cast(ContentModelKind, str(record.model_kind or "collection_type")),

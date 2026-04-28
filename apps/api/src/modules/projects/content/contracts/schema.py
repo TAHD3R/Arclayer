@@ -132,6 +132,16 @@ class ContentModelCapabilityRegistryOut(BaseSchema):
     )
 
 
+class ContentModelUserRefOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    user_id: PublicUUID = Field(..., description="User id.")
+    username: str = Field(..., description="Username.")
+    email: str | None = Field(default=None, description="Email.")
+    display_name: str | None = Field(default=None, description="Display name.")
+    avatar_url: str | None = Field(default=None, description="Avatar URL.")
+
+
 class ContentModelContractRegistryOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -315,6 +325,7 @@ class ContentModelOut(BaseSchema):
         description="Published contract revision used by delivery reads.",
     )
     updated_by_user_id: PublicUUID | None = Field(default=None, description="Last updater user id.")
+    updated_by: ContentModelUserRefOut | None = Field(default=None, description="Last updater user summary.")
     updated_at: datetime = Field(..., description="Last update timestamp.")
     category: ContentModelCategory = Field(..., description="Model grouping category.")
     model_kind: ContentModelKind = Field(default="collection_type", description="Builder model kind.")

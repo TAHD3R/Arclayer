@@ -22,6 +22,7 @@ from src.models.content.content_item import ContentItemRecord
 from src.models.content.model_definition import ContentModelDefinitionRecord
 from src.models.content.model_field import ContentModelFieldRecord
 from src.models.content.model_relation import ContentModelRelationRecord
+from src.models.organization.user import User
 from src.modules.projects.content.continuation import (
     MODEL_DEFAULT_INVALID_REASON_CODE,
     ContentItemContinuationTruth,
@@ -48,6 +49,7 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelSchemaDiffEntryOut,
     ContentModelSchemaDiffOut,
     ContentModelSchemaSnapshotOut,
+    ContentModelUserRefOut,
     ContentModelViewContract,
     ContentRoutingContract,
     ContentWorkflowContract,
@@ -221,6 +223,43 @@ def _sort_model_records(
             continue
         rows.sort(key=lambda record: str(getattr(record, key, "") or "").lower(), reverse=desc)
     return rows
+
+
+def _content_model_user_ref(user: dict[str, Any]) -> ContentModelUserRefOut | None:
+    user_id = user.get("id")
+    username = user.get("username")
+    if not isinstance(user_id, UUID) or not isinstance(username, str) or not username.strip():
+        return None
+    return ContentModelUserRefOut(
+        user_id=user_id,
+        username=username,
+        email=cast(str | None, user.get("email")),
+        display_name=cast(str | None, user.get("display_name")),
+        avatar_url=cast(str | None, user.get("avatar_url")),
+    )
+
+
+async def _load_content_model_user_refs(
+    records: Iterable[ContentModelDefinitionRecord],
+) -> dict[UUID, ContentModelUserRefOut]:
+    user_ids = {
+        UUID(str(user_id)) for record in records if (user_id := getattr(record, "updated_by_user_id", None)) is not None
+    }
+    if not user_ids:
+        return {}
+    users = await User.filter(id__in=list(user_ids)).values(
+        "id",
+        "username",
+        "email",
+        "display_name",
+        "avatar_url",
+    )
+    refs: dict[UUID, ContentModelUserRefOut] = {}
+    for user in users:
+        ref = _content_model_user_ref(user)
+        if ref is not None:
+            refs[UUID(str(ref.user_id))] = ref
+    return refs
 
 
 def _snapshot_counts(payload: dict[str, Any]) -> tuple[int, int, int]:
@@ -1257,7 +1296,16 @@ class ProjectContentCanonicalModelsService:
             model_kind=model_kind,
             system_managed=system_managed,
         )
-        rows = [to_content_model_out(record) for record in _sort_model_records(records, ordering=ordering)]
+        user_refs = await _load_content_model_user_refs(records)
+        rows = [
+            to_content_model_out(
+                record,
+                updated_by=user_refs.get(UUID(str(record.updated_by_user_id)))
+                if record.updated_by_user_id is not None
+                else None,
+            )
+            for record in _sort_model_records(records, ordering=ordering)
+        ]
         return paginate_items(rows, params=params)
 
     async def get_model_json_preview(
