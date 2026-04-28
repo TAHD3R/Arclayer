@@ -83,6 +83,11 @@ export async function listContentModels(
   const query = toQueryString({
     page: params.page ?? 1,
     size: params.size ?? CONTENT_LIST_PAGE_SIZE,
+    q: params.q,
+    ordering: params.ordering,
+    category: params.category,
+    model_kind: params.model_kind,
+    system_managed: params.system_managed,
   });
   return api.get<PageData<AdminContentModel>>(projectPath(projectId, `/content/models${query}`));
 }

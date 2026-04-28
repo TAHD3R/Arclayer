@@ -183,6 +183,46 @@ class _ModelUpdateContext:
     default_changes: dict[str, dict[str, Any | None]]
 
 
+def _field_count(record: ContentModelDefinitionRecord) -> int:
+    return len(list(cast(Iterable[ContentModelFieldRecord], getattr(record, "fields", []))))
+
+
+def _normalize_model_ordering(value: str | None) -> list[tuple[str, bool]]:
+    allowed = {
+        "name",
+        "field_count",
+        "updated_at",
+        "updated_by_user_id",
+        "model_kind",
+        "category",
+    }
+    parts = [part.strip() for part in str(value or "").split(",") if part.strip()]
+    normalized: list[tuple[str, bool]] = []
+    for part in parts:
+        desc = part.startswith("-")
+        key = part[1:] if desc else part
+        if key in allowed:
+            normalized.append((key, desc))
+    return normalized or [("name", False)]
+
+
+def _sort_model_records(
+    records: list[ContentModelDefinitionRecord],
+    *,
+    ordering: str | None,
+) -> list[ContentModelDefinitionRecord]:
+    rows = list(records)
+    for key, desc in reversed(_normalize_model_ordering(ordering)):
+        if key == "field_count":
+            rows.sort(key=_field_count, reverse=desc)
+            continue
+        if key == "updated_at":
+            rows.sort(key=lambda record: record.updated_at, reverse=desc)
+            continue
+        rows.sort(key=lambda record: str(getattr(record, key, "") or "").lower(), reverse=desc)
+    return rows
+
+
 def _snapshot_counts(payload: dict[str, Any]) -> tuple[int, int, int]:
     fields = payload.get("fields")
     relations = payload.get("relations")
@@ -1203,9 +1243,21 @@ class ProjectContentCanonicalModelsService:
         workspace_id: UUID,
         site_id: UUID,
         params: PageParams,
+        q: str | None = None,
+        ordering: str | None = None,
+        category: str | None = None,
+        model_kind: str | None = None,
+        system_managed: bool | None = None,
     ) -> PageData[ContentModelOut]:
-        records = await self.repo.list_model_definitions(workspace_id=workspace_id, site_id=site_id)
-        rows = [to_content_model_out(record) for record in records]
+        records = await self.repo.list_model_definitions(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            q=q,
+            category=category,
+            model_kind=model_kind,
+            system_managed=system_managed,
+        )
+        rows = [to_content_model_out(record) for record in _sort_model_records(records, ordering=ordering)]
         return paginate_items(rows, params=params)
 
     async def get_model_json_preview(
@@ -1234,6 +1286,7 @@ class ProjectContentCanonicalModelsService:
         workspace_id: UUID,
         site_id: UUID,
         model_id: UUID,
+        actor_user_id: UUID | None,
         payload: ContentModelFieldContract,
     ) -> ContentModelOut | None:
         record = await self.repo.get_model_definition(
@@ -1251,6 +1304,7 @@ class ProjectContentCanonicalModelsService:
             site_id=site_id,
             model_id=model_id,
             record=record,
+            actor_user_id=actor_user_id,
             fields=[*fields, payload],
         )
 
@@ -1261,6 +1315,7 @@ class ProjectContentCanonicalModelsService:
         site_id: UUID,
         model_id: UUID,
         field_key: str,
+        actor_user_id: UUID | None,
         payload: ContentModelFieldPatchContract,
     ) -> ContentModelOut | None:
         record = await self.repo.get_model_definition(
@@ -1293,6 +1348,7 @@ class ProjectContentCanonicalModelsService:
             site_id=site_id,
             model_id=model_id,
             record=record,
+            actor_user_id=actor_user_id,
             fields=fields,
         )
 
@@ -1302,6 +1358,7 @@ class ProjectContentCanonicalModelsService:
         workspace_id: UUID,
         site_id: UUID,
         model_id: UUID,
+        actor_user_id: UUID | None,
         field_keys: list[str],
     ) -> ContentModelOut | None:
         record = await self.repo.get_model_definition(
@@ -1321,6 +1378,7 @@ class ProjectContentCanonicalModelsService:
             site_id=site_id,
             model_id=model_id,
             record=record,
+            actor_user_id=actor_user_id,
             fields=[fields_by_key[key] for key in field_keys],
         )
 
@@ -1330,6 +1388,7 @@ class ProjectContentCanonicalModelsService:
         workspace_id: UUID,
         site_id: UUID,
         model_id: UUID,
+        actor_user_id: UUID | None,
         field_key: str,
     ) -> ContentModelOut | None:
         record = await self.repo.get_model_definition(
@@ -1347,6 +1406,7 @@ class ProjectContentCanonicalModelsService:
             site_id=site_id,
             model_id=model_id,
             record=record,
+            actor_user_id=actor_user_id,
             fields=fields,
         )
 
@@ -1357,13 +1417,17 @@ class ProjectContentCanonicalModelsService:
         site_id: UUID,
         model_id: UUID,
         record: ContentModelDefinitionRecord,
+        actor_user_id: UUID | None,
         fields: list[ContentModelFieldContract],
     ) -> ContentModelOut | None:
         updated = await self.repo.update_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
             model_id=model_id,
-            fields_to_update={"draft_contract_revision": int(record.draft_contract_revision or 1) + 1},
+            fields_to_update={
+                "draft_contract_revision": int(record.draft_contract_revision or 1) + 1,
+                "updated_by_user_id": actor_user_id,
+            },
             fields=fields,
             relations=None,
             views=None,
@@ -1375,6 +1439,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        actor_user_id: UUID | None,
         payload: ContentModelDefinitionContract,
     ) -> ContentModelMutationResult:
         singular_key = _normalize_model_identifier(payload.singular_key, field_name="singularKey")
@@ -1422,6 +1487,7 @@ class ProjectContentCanonicalModelsService:
                 draft_contract_revision=1,
                 published_contract_revision=None,
                 published_contract_snapshot=None,
+                updated_by_user_id=actor_user_id,
                 capabilities=_capabilities(payload.capabilities),
                 routing_policy=dump_contract(payload.routing),
                 presentation_policy=dump_contract(payload.presentation),
@@ -1485,6 +1551,7 @@ class ProjectContentCanonicalModelsService:
             draft_contract_revision=1,
             published_contract_revision=1,
             published_contract_snapshot=published_contract_snapshot,
+            updated_by_user_id=actor_user_id,
             capabilities=list(protocol.capabilities),
             routing_policy=protocol.routing_policy,
             presentation_policy=protocol.presentation_policy,
@@ -1733,6 +1800,7 @@ class ProjectContentCanonicalModelsService:
         workspace_id: UUID,
         site_id: UUID,
         model_id: UUID,
+        actor_user_id: UUID | None,
         payload: ContentModelDefinitionPatchContract,
     ) -> ContentModelMutationResult | None:
         existing = await self.repo.get_model_definition(
@@ -1787,7 +1855,7 @@ class ProjectContentCanonicalModelsService:
             workspace_id=workspace_id,
             site_id=site_id,
             model_id=model_id,
-            fields_to_update=context.fields_to_update,
+            fields_to_update={**context.fields_to_update, "updated_by_user_id": actor_user_id},
             fields=(merged_fields if "fields" in fields_set else None),
             relations=(payload.relations if "relations" in fields_set else None),
             views=(payload.views if "views" in fields_set else None),

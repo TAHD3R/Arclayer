@@ -357,6 +357,63 @@ async def test_content_models_create_custom_content_type_with_dual_identifiers(
 
 
 @pytest.mark.asyncio
+async def test_content_models_list_supports_search_filters_and_field_count_ordering(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        first = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json={
+                "singularKey": "profile",
+                "pluralKey": "profiles",
+                "name": "Profile",
+                "description": "People profile records.",
+                "fields": [
+                    {"key": "title", "label": "Title", "scalar": "text"},
+                ],
+            },
+        )
+        assert first.status_code == 201, first.text
+
+        second = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json={
+                "singularKey": "press-release",
+                "pluralKey": "press-releases",
+                "name": "Press Release",
+                "description": "Media announcement records.",
+                "fields": [
+                    {"key": "headline", "label": "Headline", "scalar": "text"},
+                    {"key": "body", "label": "Body", "scalar": "long_text"},
+                ],
+            },
+        )
+        assert second.status_code == 201, second.text
+
+        filtered = await client.get(
+            f"/api/v1/projects/{project_id}/content/models",
+            params={
+                "q": "records",
+                "category": "custom",
+                "model_kind": "collection_type",
+                "system_managed": "false",
+                "ordering": "-field_count",
+            },
+        )
+        assert filtered.status_code == 200, filtered.text
+        items = filtered.json()["data"]["items"]
+        assert [item["singularKey"] for item in items] == ["press-release", "profile"]
+
+        searched = await client.get(
+            f"/api/v1/projects/{project_id}/content/models",
+            params={"q": "profiles"},
+        )
+        assert searched.status_code == 200, searched.text
+        assert [item["singularKey"] for item in searched.json()["data"]["items"]] == ["profile"]
+
+
+@pytest.mark.asyncio
 async def test_content_models_rejects_identical_singular_and_plural_identifiers(
     prepared_db,
     integration_valkey_settings,

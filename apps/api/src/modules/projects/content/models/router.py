@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, status
+from fastapi import APIRouter, Body, Depends, Query, status
 
 from src.common.types.public_uuid import PublicUUID
 from src.core.events import EventBus
@@ -54,6 +54,7 @@ router = APIRouter(
 async def create_project_content_model(
     payload: Annotated[ContentModelDefinitionContract, Body(description="Create model contract payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
     service: Annotated[
         ProjectContentCanonicalModelsService,
         Depends(get_project_content_canonical_models_service),
@@ -62,6 +63,7 @@ async def create_project_content_model(
     record = await service.create_model(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        actor_user_id=actor_user_id,
         payload=payload,
     )
     return ApiResponse.success(data=to_mutation_out(record))
@@ -79,12 +81,22 @@ async def list_project_content_models(
         ProjectContentCanonicalModelsService,
         Depends(get_project_content_canonical_models_service),
     ],
+    q: str | None = Query(default=None, description="Search models by name, description, or API identifier."),
+    ordering: str | None = Query(default=None, description="Ordering fields, for example name or -updated_at."),
+    category: str | None = Query(default=None, description="Filter by model category."),
+    model_kind: str | None = Query(default=None, description="Filter by model kind."),
+    system_managed: bool | None = Query(default=None, description="Filter by platform-managed status."),
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[ContentModelOut]]:
     data = await service.list_models_paginated(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
         params=params,
+        q=q,
+        ordering=ordering,
+        category=category,
+        model_kind=model_kind,
+        system_managed=system_managed,
     )
     return ApiResponse.success(data=data)
 
@@ -123,6 +135,7 @@ async def create_project_content_model_field(
     model_id: PublicUUID,
     payload: Annotated[ContentModelFieldContract, Body(description="Create field contract payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
     service: Annotated[
         ProjectContentCanonicalModelsService,
         Depends(get_project_content_canonical_models_service),
@@ -132,6 +145,7 @@ async def create_project_content_model_field(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
         model_id=model_id,
+        actor_user_id=actor_user_id,
         payload=payload,
     )
     if result is None:
@@ -150,6 +164,7 @@ async def update_project_content_model_field(
     field_key: str,
     payload: Annotated[ContentModelFieldPatchContract, Body(description="Patch field contract payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
     service: Annotated[
         ProjectContentCanonicalModelsService,
         Depends(get_project_content_canonical_models_service),
@@ -160,6 +175,7 @@ async def update_project_content_model_field(
         site_id=ctx.site_id,
         model_id=model_id,
         field_key=field_key,
+        actor_user_id=actor_user_id,
         payload=payload,
     )
     if result is None:
@@ -177,6 +193,7 @@ async def reorder_project_content_model_fields(
     model_id: PublicUUID,
     payload: Annotated[ContentModelFieldReorderContract, Body(description="Reorder field contract payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
     service: Annotated[
         ProjectContentCanonicalModelsService,
         Depends(get_project_content_canonical_models_service),
@@ -186,6 +203,7 @@ async def reorder_project_content_model_fields(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
         model_id=model_id,
+        actor_user_id=actor_user_id,
         field_keys=payload.field_keys,
     )
     if result is None:
@@ -203,6 +221,7 @@ async def delete_project_content_model_field(
     model_id: PublicUUID,
     field_key: str,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
     service: Annotated[
         ProjectContentCanonicalModelsService,
         Depends(get_project_content_canonical_models_service),
@@ -212,6 +231,7 @@ async def delete_project_content_model_field(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
         model_id=model_id,
+        actor_user_id=actor_user_id,
         field_key=field_key,
     )
     if result is None:
@@ -266,6 +286,7 @@ async def update_project_content_model(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
         model_id=model_id,
+        actor_user_id=actor_user_id,
         payload=payload,
     )
     if record is None:

@@ -34,6 +34,10 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         *,
         workspace_id: UUID,
         site_id: UUID,
+        q: str | None = None,
+        category: str | None = None,
+        model_kind: str | None = None,
+        system_managed: bool | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> list[ContentModelDefinitionRecord]:
         async with self.connection(conn) as tenant_conn:
@@ -43,6 +47,20 @@ class ProjectContentModelsRepository(TenantScopedRepository):
                 .prefetch_related("fields", "relations", "views")
                 .order_by("name", "singular_key")
             )
+            search = (q or "").strip()
+            if search:
+                qs = qs.filter(
+                    Q(name__icontains=search)
+                    | Q(description__icontains=search)
+                    | Q(singular_key__icontains=search)
+                    | Q(plural_key__icontains=search)
+                )
+            if category:
+                qs = qs.filter(category=category)
+            if model_kind:
+                qs = qs.filter(model_kind=model_kind)
+            if system_managed is not None:
+                qs = qs.filter(is_system_managed=system_managed)
             return list(await self.using_db(qs, tenant_conn))
 
     async def get_model_definition(
@@ -88,6 +106,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         draft_contract_revision: int,
         published_contract_revision: int | None,
         published_contract_snapshot: dict[str, Any] | None,
+        updated_by_user_id: UUID | None,
         capabilities: list[str],
         routing_policy: dict[str, Any] | None,
         presentation_policy: dict[str, Any] | None,
@@ -120,6 +139,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
                 draft_contract_revision=draft_contract_revision,
                 published_contract_revision=published_contract_revision,
                 published_contract_snapshot=published_contract_snapshot,
+                updated_by_user_id=updated_by_user_id,
                 starter_pack_policy=starter_pack_policy,
                 surface_policy=surface_policy,
                 capabilities=capabilities,

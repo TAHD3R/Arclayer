@@ -3257,6 +3257,18 @@ export type ContentModelOut = {
      */
     systemManaged?: boolean;
     /**
+     * Updatedat
+     *
+     * Last update timestamp.
+     */
+    updatedAt: string;
+    /**
+     * Updatedbyuserid
+     *
+     * Last updater user id.
+     */
+    updatedByUserId?: string | null;
+    /**
      * Viewschema
      *
      * View schema payload.
@@ -26648,6 +26660,36 @@ export type DomainProjectsListProjectContentModelsData = {
         project_id: string;
     };
     query?: {
+        /**
+         * Q
+         *
+         * Search models by name, description, or API identifier.
+         */
+        q?: string | null;
+        /**
+         * Ordering
+         *
+         * Ordering fields, for example name or -updated_at.
+         */
+        ordering?: string | null;
+        /**
+         * Category
+         *
+         * Filter by model category.
+         */
+        category?: string | null;
+        /**
+         * Model Kind
+         *
+         * Filter by model kind.
+         */
+        model_kind?: string | null;
+        /**
+         * System Managed
+         *
+         * Filter by platform-managed status.
+         */
+        system_managed?: boolean | null;
         /**
          * Page
          *

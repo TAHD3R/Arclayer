@@ -1,7 +1,13 @@
 import { applyManualProjectSlugInput, buildProjectSlug } from "@/lib/project-slug";
 import type { CreateAdminContentModelPayload } from "@/types/api";
 
-import type { ContentTypeIdentifierState, CreateContentTypeFormValues } from "./types";
+import type {
+  ContentModelsFilters,
+  ContentModelsTableQuery,
+  ContentModelsTableRow,
+  ContentTypeIdentifierState,
+  CreateContentTypeFormValues,
+} from "./types";
 
 const IDENTIFIER_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -90,4 +96,21 @@ export function buildCreateContentTypePayload(values: {
     workflow: { states: ["draft"], initialState: "draft" },
     views: [],
   };
+}
+
+export function toContentModelsTableQuery(filters: ContentModelsFilters): ContentModelsTableQuery {
+  return {
+    category: filters.category,
+    model_kind: filters.modelKind,
+    system_managed:
+      filters.systemManaged === "yes" ? true : filters.systemManaged === "no" ? false : undefined,
+  };
+}
+
+export function getContentModelFieldCount(model: ContentModelsTableRow): number {
+  const boundaries = model.contractRegistry?.boundaries;
+  const boundaryCount =
+    (boundaries?.customFields?.length ?? 0) + (boundaries?.systemFields?.length ?? 0);
+  if (boundaryCount > 0) return boundaryCount;
+  return model.fieldSchema ? Object.keys(model.fieldSchema).length : 0;
 }

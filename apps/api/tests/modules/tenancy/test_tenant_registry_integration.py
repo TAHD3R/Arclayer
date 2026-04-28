@@ -105,7 +105,7 @@ SELECT column_name
 FROM information_schema.columns
 WHERE table_schema = $1
   AND table_name = 'domain_content_model_definitions'
-  AND column_name IN ('key', 'singular_key', 'plural_key')
+  AND column_name IN ('key', 'singular_key', 'plural_key', 'updated_by_user_id')
 ORDER BY column_name
 """.strip(),
             [record.schema_name],
@@ -118,7 +118,11 @@ ORDER BY column_name
     column_payload = column_rows[1] if isinstance(column_rows, tuple) else column_rows
     migration_payload = migration_rows[1] if isinstance(migration_rows, tuple) else migration_rows
     assert schema_payload
-    assert [row["column_name"] for row in column_payload] == ["plural_key", "singular_key"]
+    assert [row["column_name"] for row in column_payload] == [
+        "plural_key",
+        "singular_key",
+        "updated_by_user_id",
+    ]
     assert [row["version"] for row in migration_payload] == [
         migration.version for migration in TENANT_CONTROL_MIGRATIONS
     ]

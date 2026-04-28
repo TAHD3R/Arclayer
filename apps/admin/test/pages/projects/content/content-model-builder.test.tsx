@@ -5,16 +5,29 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/page";
+import {
+  getContentModelFieldCount,
+  toContentModelsTableQuery,
+} from "@/pages/projects/content/models/utils";
+import type { AdminContentModel } from "@/types/api";
 
 const createContentModelMock = vi.fn();
+const listContentModelsMock = vi.fn();
 
 vi.mock("@/api/content", () => ({
   buildContentModelsQueryKey: (...args: unknown[]) => ["content", "models", ...args],
   createContentModel: (...args: unknown[]) => createContentModelMock(...args),
+  listContentModels: (...args: unknown[]) => listContentModelsMock(...args),
 }));
 
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-admin-date-time-formatter", () => ({
+  useAdminDateTimeFormatter: () => ({
+    formatDateTime: (value: string | null | undefined) => value ?? "",
+  }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -41,6 +54,12 @@ vi.mock("@/layouts/page-shell/default-page", () => ({
   ),
 }));
 
+vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
+  AdminDataTableSection: ({ toolbar }: PropsWithChildren<{ toolbar?: React.ReactNode }>) => (
+    <div>{toolbar}</div>
+  ),
+}));
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -54,7 +73,7 @@ function createWrapper() {
   };
 }
 
-function buildModel(overrides: Record<string, unknown> = {}) {
+function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentModel {
   return {
     id: "model-1",
     workspaceId: "workspace-1",
@@ -68,6 +87,8 @@ function buildModel(overrides: Record<string, unknown> = {}) {
     capabilities: ["queryable"],
     defaultEditor: "form",
     draftContractRevision: 1,
+    updatedAt: "2026-04-28T00:00:00Z",
+    updatedByUserId: null,
     ...overrides,
   };
 }
@@ -75,6 +96,16 @@ function buildModel(overrides: Record<string, unknown> = {}) {
 describe("content model builder", () => {
   beforeEach(() => {
     createContentModelMock.mockReset();
+    listContentModelsMock.mockReset();
+    listContentModelsMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 50,
+      pages: 0,
+      next: null,
+      prev: null,
+    });
   });
 
   test("opens create content type dialog and creates with dual identifiers", async () => {
@@ -161,5 +192,35 @@ describe("content model builder", () => {
     expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
       "press-releases",
     );
+  });
+
+  test("maps model table filters and field counts for read-only table queries", () => {
+    expect(
+      toContentModelsTableQuery({
+        category: "custom",
+        modelKind: "collection_type",
+        systemManaged: "no",
+      }),
+    ).toEqual({
+      category: "custom",
+      model_kind: "collection_type",
+      system_managed: false,
+    });
+
+    expect(
+      getContentModelFieldCount(
+        buildModel({
+          contractRegistry: {
+            boundaries: {
+              customFields: [
+                { key: "title", label: "Title", scalar: "text" },
+                { key: "summary", label: "Summary", scalar: "text" },
+              ],
+              systemFields: [{ key: "id", label: "ID", scalar: "text" }],
+            },
+          },
+        }),
+      ),
+    ).toBe(3);
   });
 });

@@ -62,6 +62,7 @@ class ContentModelDefinitionRecord(BaseModel):
     draft_contract_revision = fields.IntField(default=1)
     published_contract_revision = fields.IntField(null=True)
     published_contract_snapshot = fields.JSONField(null=True)
+    updated_by_user_id = fields.UUIDField(null=True, db_index=True)
     capabilities = fields.JSONField(null=True)
     routing_policy = fields.JSONField(null=True)
     presentation_policy = fields.JSONField(null=True)

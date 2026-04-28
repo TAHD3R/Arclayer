@@ -314,6 +314,8 @@ class ContentModelOut(BaseSchema):
         ge=1,
         description="Published contract revision used by delivery reads.",
     )
+    updated_by_user_id: PublicUUID | None = Field(default=None, description="Last updater user id.")
+    updated_at: datetime = Field(..., description="Last update timestamp.")
     category: ContentModelCategory = Field(..., description="Model grouping category.")
     model_kind: ContentModelKind = Field(default="collection_type", description="Builder model kind.")
     capabilities: list[ContentModelCapability] = Field(default_factory=list, description="Enabled model capabilities.")

@@ -278,6 +278,7 @@ describe("content-library-utils", () => {
           category: "site_builder",
           capabilities: ["visual_editable", "publishable", "routable"],
           defaultEditor: "visual",
+          updatedAt: "2026-03-21T00:00:00Z",
         },
         {
           id: "model-article",
@@ -289,6 +290,7 @@ describe("content-library-utils", () => {
           category: "content_library",
           capabilities: ["rich_text_editable", "publishable"],
           defaultEditor: "rich_text",
+          updatedAt: "2026-03-21T00:00:00Z",
         },
         {
           id: "model-person",
@@ -300,6 +302,7 @@ describe("content-library-utils", () => {
           category: "custom",
           capabilities: ["queryable", "has_relations"],
           defaultEditor: "form",
+          updatedAt: "2026-03-21T00:00:00Z",
         },
       ],
     );

@@ -45,6 +45,7 @@ describe("content-library-no-heuristics", () => {
           category: "site_builder",
           capabilities: ["visual_editable", "publishable", "routable"],
           defaultEditor: "visual",
+          updatedAt: "2026-04-04T08:00:00Z",
         },
       ],
     );

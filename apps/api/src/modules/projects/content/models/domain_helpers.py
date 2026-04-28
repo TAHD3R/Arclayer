@@ -193,6 +193,8 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
         published_contract_revision=(
             int(record.published_contract_revision) if record.published_contract_revision is not None else None
         ),
+        updated_by_user_id=getattr(record, "updated_by_user_id", None),
+        updated_at=record.updated_at,
         category=cast(ContentModelCategory, str(record.category or "custom")),
         model_kind=cast(ContentModelKind, str(record.model_kind or "collection_type")),
         capabilities=cast(list[Any], capabilities),

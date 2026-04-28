@@ -150,4 +150,18 @@ ALTER TABLE {schema}.domain_content_model_definitions
 """.strip(),
         ),
     ),
+    TenantMigration.create(
+        version=4,
+        name="content_model_update_actor",
+        sql=(
+            """
+ALTER TABLE {schema}.domain_content_model_definitions
+    ADD COLUMN IF NOT EXISTS updated_by_user_id UUID NULL
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_domain_content_model_definitions_updated_by_user_id
+    ON {schema}.domain_content_model_definitions (updated_by_user_id)
+""".strip(),
+        ),
+    ),
 )
