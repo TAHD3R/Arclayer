@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+from fastapi import FastAPI
 
 from src.core.plugin.extensions import ExtensionOverlay
 from src.core.plugin.lifecycle import PluginLifecycle, PluginLifecyclePhase
+from src.core.plugin.loader import PluginLoadError
 from src.core.plugin.manager import PluginManager
+from src.core.plugin.runtime import close_plugin_runtime, init_plugin_runtime
 from src.core.registries import (
     ComponentRegistry,
     ContentTypeRegistry,
@@ -20,6 +25,12 @@ from src.core.registries import (
     ServiceRegistry,
     ValidatorRegistry,
 )
+
+
+def _write_plugin(root: Path, name: str, source: str) -> None:
+    plugin_dir = root / "plugins" / name
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "__init__.py").write_text(source, encoding="utf-8")
 
 
 class TestPluginLifecycle:
@@ -87,6 +98,113 @@ class TestPluginManager:
 
         pm.register(FakePlugin(), name="test-plugin")
         assert "test-plugin" in pm.plugin_names
+
+
+class TestPluginRuntimeStartup:
+    async def test_startup_registers_internal_plugin_and_registry(self, tmp_path):
+        app = FastAPI()
+
+        runtime = await init_plugin_runtime(app, project_root=tmp_path)
+
+        assert runtime is app.state.plugin_runtime
+        assert "arclayer-core" in app.state.plugin_manager.plugin_names
+        assert isinstance(app.state.plugin_registry, PluginRegistry)
+        assert app.state.plugin_registry is app.state.plugin_runtime.registry
+
+        await close_plugin_runtime(app)
+
+    async def test_startup_discovers_local_project_plugins(self, tmp_path):
+        _write_plugin(
+            tmp_path,
+            "local_probe",
+            """
+from src.core.plugin import arclayer_hookimpl
+
+
+class LocalProbePlugin:
+    @arclayer_hookimpl
+    def arclayer_register(self, registry):
+        registry.services.register("local-probe", {"source": "local"})
+
+
+def create_plugin():
+    return LocalProbePlugin()
+""",
+        )
+        app = FastAPI()
+
+        await init_plugin_runtime(app, project_root=tmp_path)
+
+        assert "local_probe" in app.state.plugin_manager.plugin_names
+        assert app.state.plugin_registry.services.resolve("local-probe") == {"source": "local"}
+
+        await close_plugin_runtime(app)
+
+    async def test_startup_runs_lifecycle_order_and_destroy(self, tmp_path, monkeypatch):
+        log_path = tmp_path / "plugin-events.log"
+        monkeypatch.setenv("PLUGIN_EVENT_LOG", str(log_path))
+        _write_plugin(
+            tmp_path,
+            "ordered_probe",
+            """
+import os
+from pathlib import Path
+
+from src.core.plugin import arclayer_hookimpl
+
+
+def _record(phase):
+    with Path(os.environ["PLUGIN_EVENT_LOG"]).open("a", encoding="utf-8") as handle:
+        handle.write(phase + "\\n")
+
+
+class OrderedProbePlugin:
+    @arclayer_hookimpl
+    def arclayer_register(self, registry):
+        _record("register")
+
+    @arclayer_hookimpl
+    def arclayer_bootstrap(self, app):
+        _record("bootstrap")
+
+    @arclayer_hookimpl
+    def arclayer_ready(self, app):
+        _record("ready")
+
+    @arclayer_hookimpl
+    def arclayer_destroy(self):
+        _record("destroy")
+
+
+def create_plugin():
+    return OrderedProbePlugin()
+""",
+        )
+        app = FastAPI()
+
+        await init_plugin_runtime(app, project_root=tmp_path)
+        await close_plugin_runtime(app)
+
+        assert log_path.read_text(encoding="utf-8").splitlines() == [
+            "register",
+            "bootstrap",
+            "ready",
+            "destroy",
+        ]
+
+    async def test_startup_plugin_load_failure_propagates(self, tmp_path):
+        _write_plugin(
+            tmp_path,
+            "broken_probe",
+            """
+def create_plugin():
+    raise RuntimeError("broken plugin startup")
+""",
+        )
+        app = FastAPI()
+
+        with pytest.raises(PluginLoadError, match="broken_probe"):
+            await init_plugin_runtime(app, project_root=tmp_path)
 
 
 class TestExtensionOverlay:

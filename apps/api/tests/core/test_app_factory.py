@@ -1,3 +1,4 @@
+from src.core.registries import PluginRegistry
 from src.core.registry import create_app
 from tests.utils.asgi_client import asgi_client
 
@@ -11,6 +12,8 @@ async def test_create_app_openapi_enabled_but_docs_ui_disabled_in_test_env(monke
     assert app.debug is False
 
     async with asgi_client(app) as client:
+        assert "arclayer-core" in app.state.plugin_manager.plugin_names
+        assert isinstance(app.state.plugin_registry, PluginRegistry)
         assert (await client.get("/docs")).status_code == 404
         assert (await client.get("/openapi.json")).status_code == 200
 

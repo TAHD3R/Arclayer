@@ -24,6 +24,7 @@ from src.core.middleware.guard_integration import (
     close_guard_runtime,
     initialize_guard_runtime,
 )
+from src.core.plugin.runtime import close_plugin_runtime, init_plugin_runtime
 from src.core.routes import register_routes
 from src.core.runtime_init import close_domain_runtime, init_domain_runtime
 from src.platform.cache.valkey import close_valkey, init_valkey
@@ -83,6 +84,7 @@ def _build_lifespan(settings: Settings):
             # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can
             # skip heavyweight startup steps and still exercise routers/middlewares safely.
             if settings.app_env == "test" and not settings.database.enabled and not settings.valkey.enabled:
+                await init_plugin_runtime(app)
                 yield
                 return
 
@@ -105,8 +107,10 @@ def _build_lifespan(settings: Settings):
             await init_domain_runtime(app, settings, event_bus=event_bus)
             await init_valkey(app, settings)
             await init_taskiq_client(app, settings)
+            await init_plugin_runtime(app)
             yield
         finally:
+            await close_plugin_runtime(app)
             if event_bus is not None:
                 await close_domain_runtime(app, event_bus=event_bus)
             try:

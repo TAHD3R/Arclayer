@@ -3,13 +3,31 @@ from __future__ import annotations
 import importlib.metadata
 import importlib.util
 from pathlib import Path
+from typing import Any
 
 from src.core.logging import get_logger
+from src.core.plugin.internal import discover_internal_plugins
 
 logger = get_logger(__name__)
 
 _ENTRY_POINT_GROUP = "arclayer.plugins"
 _DEFAULT_PLUGINS_DIR = "plugins"
+
+
+class PluginLoadError(RuntimeError):
+    """Raised when a configured plugin cannot be loaded during startup."""
+
+
+def _plugin_load_error(*, source: str, name: str, message: str) -> PluginLoadError:
+    return PluginLoadError(f"Failed to load {source} plugin '{name}': {message}")
+
+
+def _instantiate_plugin(*, source: str, name: str, factory_or_plugin: Any) -> object:
+    try:
+        return factory_or_plugin() if callable(factory_or_plugin) else factory_or_plugin
+    except Exception as exc:
+        logger.exception("Plugin factory failed", source=source, name=name)
+        raise _plugin_load_error(source=source, name=name, message=str(exc)) from exc
 
 
 def discover_entry_point_plugins() -> list[tuple[str, object]]:
@@ -30,11 +48,14 @@ def discover_entry_point_plugins() -> list[tuple[str, object]]:
     for ep in entry_points:
         try:
             factory = ep.load()
-            plugin = factory() if callable(factory) else factory
+            plugin = _instantiate_plugin(source="entry point", name=ep.name, factory_or_plugin=factory)
             plugins.append((ep.name, plugin))
             logger.info("Plugin discovered via entry point", name=ep.name, group=_ENTRY_POINT_GROUP)
-        except Exception:
+        except PluginLoadError:
+            raise
+        except Exception as exc:
             logger.exception("Failed to load plugin entry point", name=ep.name)
+            raise _plugin_load_error(source="entry point", name=ep.name, message=str(exc)) from exc
     return plugins
 
 
@@ -68,17 +89,20 @@ def scan_directory_plugins(
                 str(init_file),
             )
             if spec is None or spec.loader is None:
-                continue
+                raise _plugin_load_error(source="directory", name=child.name, message="module spec is unavailable")
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             factory = getattr(module, "create_plugin", None)
             if factory is None:
-                continue
-            plugin = factory() if callable(factory) else factory
+                raise _plugin_load_error(source="directory", name=child.name, message="create_plugin is missing")
+            plugin = _instantiate_plugin(source="directory", name=child.name, factory_or_plugin=factory)
             plugins.append((child.name, plugin))
             logger.info("Plugin discovered via directory scan", name=child.name)
-        except Exception:
+        except PluginLoadError:
+            raise
+        except Exception as exc:
             logger.exception("Failed to load plugin from directory", name=child.name)
+            raise _plugin_load_error(source="directory", name=child.name, message=str(exc)) from exc
     return plugins
 
 
@@ -86,8 +110,10 @@ def discover_plugins(
     *,
     root_dir: str | Path | None = None,
     plugins_dir_name: str = _DEFAULT_PLUGINS_DIR,
+    include_internal: bool = True,
 ) -> list[tuple[str, object]]:
     """Discover plugins from entry points and directory scanning."""
-    plugins = discover_entry_point_plugins()
+    plugins = discover_internal_plugins() if include_internal else []
+    plugins.extend(discover_entry_point_plugins())
     plugins.extend(scan_directory_plugins(root_dir=root_dir, plugins_dir_name=plugins_dir_name))
     return plugins

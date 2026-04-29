@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from pluggy import HookspecMarker
+from pluggy import HookimplMarker, HookspecMarker
 
 arclayer_hookspec = HookspecMarker("arclayer")
+arclayer_hookimpl = HookimplMarker("arclayer")
 
 
 class ArclayerSpec:

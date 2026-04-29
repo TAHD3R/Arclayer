@@ -14,9 +14,6 @@ from src.core.lifecycles.specs import LifecycleAction
 from src.core.lifecycles.subscribers.audit import audit_lifecycle_events
 from src.core.lifecycles.subscribers.timestamps import auto_timestamps
 from src.core.logging import get_logger
-from src.core.plugin.lifecycle import PluginLifecycle, PluginLifecyclePhase
-from src.core.plugin.loader import discover_plugins
-from src.core.plugin.manager import PluginManager
 from src.modules.analytics.ingest.service import ActivityIngestor
 from src.modules.projects.automation.runtime import AutomationRuntime
 from src.modules.projects.webhooks.service import WebhookService
@@ -166,37 +163,6 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
 
     app.state.webhook_service = webhook_service
 
-    # ── Plugin system bootstrap ────────────────────────────────────────────
-    plugin_manager = PluginManager()
-    plugin_lifecycle = PluginLifecycle()
-    from pathlib import Path
-
-    _api_src_root = str(Path(__file__).resolve().parent.parent)
-
-    await plugin_lifecycle.transition(
-        PluginLifecyclePhase.LOAD,
-        plugin_manager=plugin_manager,
-        app=app,
-        loader=lambda: discover_plugins(root_dir=_api_src_root),
-    )
-    await plugin_lifecycle.transition(
-        PluginLifecyclePhase.REGISTER,
-        plugin_manager=plugin_manager,
-        app=app,
-    )
-    await plugin_lifecycle.transition(
-        PluginLifecyclePhase.BOOTSTRAP,
-        plugin_manager=plugin_manager,
-        app=app,
-    )
-    await plugin_lifecycle.transition(
-        PluginLifecyclePhase.READY,
-        plugin_manager=plugin_manager,
-        app=app,
-    )
-    app.state.plugin_manager = plugin_manager
-    app.state.plugin_lifecycle = plugin_lifecycle
-
 
 async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
     ingestor: ActivityIngestor | None = getattr(app.state, "activity_ingestor", None)
@@ -225,15 +191,3 @@ async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
     except BaseException as exc:
         _raise_if_fatal(exc)
         logger.warning("Automation runtime shutdown failed", action="close_automation_runtime", error=str(exc))
-
-    plugin_lifecycle: PluginLifecycle | None = getattr(app.state, "plugin_lifecycle", None)
-    plugin_manager: PluginManager | None = getattr(app.state, "plugin_manager", None)
-    if plugin_lifecycle is not None and plugin_manager is not None:
-        try:
-            await plugin_lifecycle.transition(
-                PluginLifecyclePhase.DESTROY,
-                plugin_manager=plugin_manager,
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            logger.warning("Plugin destroy phase failed", action="close_plugin_system", error=str(exc))

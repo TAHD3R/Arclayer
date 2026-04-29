@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from pluggy import HookimplMarker
-
-arclayer_hookimpl = HookimplMarker("arclayer")
+from src.core.plugin.specs import arclayer_hookimpl
 
 
 class CorePlugin:
@@ -30,3 +28,9 @@ class CorePlugin:
     @arclayer_hookimpl
     def arclayer_destroy(self) -> None:
         pass
+
+
+def discover_internal_plugins() -> list[tuple[str, object]]:
+    """Return built-in plugins that always participate in app startup."""
+
+    return [("arclayer-core", CorePlugin())]
