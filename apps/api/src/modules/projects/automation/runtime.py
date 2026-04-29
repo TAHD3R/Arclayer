@@ -4,6 +4,7 @@ import asyncio
 
 from src.config import Settings
 from src.core.events import Event, EventBus
+from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.logging import get_logger
 from src.modules.projects.automation.catalog import list_automation_triggers
 from src.modules.projects.automation.service import ProjectAutomationService
@@ -19,8 +20,8 @@ def _raise_if_fatal(exc: BaseException) -> None:
 
 
 class AutomationRuntime:
-    def __init__(self, settings: Settings) -> None:
-        self.service = ProjectAutomationService(settings)
+    def __init__(self, settings: Settings, *, lifecycle_dispatcher: LifecycleDispatcher) -> None:
+        self.service = ProjectAutomationService(settings, lifecycle_dispatcher=lifecycle_dispatcher)
 
     async def start(self, *, event_bus: EventBus) -> None:
         for trigger in list_automation_triggers():

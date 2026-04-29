@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
 
 from src.core.events import Event
-from src.core.exceptions import BadRequest
+from src.core.exceptions import BadRequest, ServiceUnavailable
+from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.models.automation.flow import (
     AutomationFlowStatus,
     AutomationOperationKind,
@@ -17,6 +19,8 @@ from src.models.automation.flow import (
 )
 from src.modules.projects.automation.schema import AutomationFlowCreateIn, AutomationOperationIn
 from src.modules.projects.automation.service import ProjectAutomationService
+from src.modules.tenancy.router_helpers import tenant_payload_from_context
+from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
 
 
 class _FakeRepo:
@@ -297,6 +301,88 @@ async def test_handle_event_executes_matching_project_flows(monkeypatch: pytest.
 
     assert len(result) == 1
     assert executed == [repo.project_enabled_flows[0].id]
+
+
+@pytest.mark.asyncio
+async def test_execute_content_update_requires_lifecycle_dispatcher(monkeypatch: pytest.MonkeyPatch) -> None:
+    service = ProjectAutomationService(repo=cast(Any, _FakeRepo()))
+    workspace_id = uuid4()
+
+    monkeypatch.setattr(
+        "src.modules.projects.automation.service.require_tenant_context_from_payload",
+        lambda _payload: SimpleNamespace(),
+    )
+
+    with pytest.raises(ServiceUnavailable) as excinfo:
+        await service._execute_content_update(
+            config={"itemId": str(uuid4()), "siteId": str(uuid4()), "stage": "in_review"},
+            event=Event(name="project.content.item.workflow.updated", payload={"workspace_id": str(workspace_id)}),
+            workspace_id=workspace_id,
+        )
+
+    assert excinfo.value.error == "AUTOMATION_LIFECYCLE_DISPATCHER_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_execute_content_update_passes_lifecycle_dispatcher_to_entity_manager(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dispatcher = LifecycleDispatcher()
+    service = ProjectAutomationService(repo=cast(Any, _FakeRepo()), lifecycle_dispatcher=dispatcher)
+    organization_id = uuid4()
+    workspace_id = uuid4()
+    project_id = uuid4()
+    runtime_id = uuid4()
+    site_id = uuid4()
+    item_id = uuid4()
+    observed: dict[str, object] = {}
+    tenant_context = TenantContext(
+        identity=TenantIdentity(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            site_id=site_id,
+            schema_name="tenant_workspace",
+            isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
+        ),
+        scope=TenantScope.RUNTIME,
+    )
+
+    def _fake_items_repo(received_tenant_context):  # type: ignore[no-untyped-def]
+        observed["tenant_context"] = received_tenant_context
+        return SimpleNamespace()
+
+    monkeypatch.setattr(
+        "src.modules.projects.automation.service.ProjectContentItemsRepository",
+        _fake_items_repo,
+    )
+
+    class _FakeContentService:
+        def __init__(self, *, repo, entity_manager):  # type: ignore[no-untyped-def]
+            observed["repo"] = repo
+            observed["lifecycle"] = entity_manager._lifecycle
+
+        async def patch_workflow(self, **kwargs):  # type: ignore[no-untyped-def]
+            return SimpleNamespace(id=kwargs["item_id"], workflow_stage=kwargs["payload"].stage)
+
+    monkeypatch.setattr(
+        "src.modules.projects.automation.service.ProjectContentCanonicalItemsService",
+        _FakeContentService,
+    )
+
+    result = await service._execute_content_update(
+        config={"itemId": str(item_id), "siteId": str(site_id), "stage": "in_review"},
+        event=Event(
+            name="project.content.item.workflow.updated",
+            payload={"workspace_id": str(workspace_id), "tenant": tenant_payload_from_context(tenant_context)},
+        ),
+        workspace_id=workspace_id,
+    )
+
+    assert observed["lifecycle"] is dispatcher
+    assert observed["tenant_context"] == tenant_context
+    assert result == {"itemId": str(item_id), "workflowStage": "in_review"}
 
 
 def test_validate_operation_config_rejects_missing_webhook_url() -> None:

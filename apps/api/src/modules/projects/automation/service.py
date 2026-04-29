@@ -9,8 +9,9 @@ from tortoise.exceptions import IntegrityError
 
 from src.config import Settings
 from src.core.events import Event
-from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from src.core.i18n import t
+from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.logging import get_logger
 from src.models.automation.flow import (
     AutomationFlowRecord,
@@ -58,9 +59,15 @@ DEFAULT_HTTP_TIMEOUT_S = 5.0
 
 
 class ProjectAutomationService:
-    def __init__(self, settings: Settings | None = None, repo: AutomationRepository | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        repo: AutomationRepository | None = None,
+        lifecycle_dispatcher: LifecycleDispatcher | None = None,
+    ) -> None:
         self.settings = settings
         self.repo = repo or AutomationRepository()
+        self.lifecycle_dispatcher = lifecycle_dispatcher
 
     async def get_catalog_out(self) -> AutomationCatalogOut:
         return await self.get_global_catalog_out()
@@ -536,7 +543,18 @@ class ProjectAutomationService:
             raise BadRequest(
                 "Content update requires itemId, siteId, and stage.", error="AUTOMATION_CONTENT_UPDATE_INVALID"
             )
-        service = ProjectContentCanonicalItemsService(repo=ProjectContentItemsRepository(tenant_context))
+        from src.core.entity_manager.manager import EntityManager
+
+        if self.lifecycle_dispatcher is None:
+            raise ServiceUnavailable(
+                t("settings", "AUTOMATION_LIFECYCLE_DISPATCHER_UNAVAILABLE"),
+                error="AUTOMATION_LIFECYCLE_DISPATCHER_UNAVAILABLE",
+            )
+        repo = ProjectContentItemsRepository(tenant_context)
+        service = ProjectContentCanonicalItemsService(
+            repo=repo,
+            entity_manager=EntityManager(items_repo=repo, lifecycle=self.lifecycle_dispatcher),
+        )
         item = await service.patch_workflow(
             workspace_id=workspace_id,
             site_id=site_id,

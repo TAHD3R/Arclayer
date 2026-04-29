@@ -10,6 +10,21 @@ class ContentModelFieldType(StrEnum):
     BOOLEAN = "boolean"
     DATE_TIME = "date_time"
     JSON = "json"
+    RICH_TEXT = "rich_text"
+    MARKDOWN = "markdown"
+    SLUG = "slug"
+    ENUMERATION = "enumeration"
+    EMAIL = "email"
+    MEDIA = "media"
+    LOCATION = "location"
+    REFERENCE = "reference"
+    COMPONENT = "component"
+    DYNAMIC_ZONE = "dynamic_zone"
+    TIME = "time"
+    DATE = "date"
+    DECIMAL = "decimal"
+    BIG_INTEGER = "biginteger"
+    BLOCKS = "blocks"
 
 
 class ContentModelRelationType(StrEnum):
@@ -17,6 +32,8 @@ class ContentModelRelationType(StrEnum):
     ONE_TO_MANY = "one_to_many"
     MANY_TO_ONE = "many_to_one"
     MANY_TO_MANY = "many_to_many"
+    MORPH_TO_ONE = "morph_to_one"
+    MORPH_TO_MANY = "morph_to_many"
 
 
 class ContentModelViewType(StrEnum):

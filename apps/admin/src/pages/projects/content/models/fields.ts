@@ -12,16 +12,22 @@ export type ContentModelBuiltInFieldTypeId =
   | "short_text"
   | "markdown"
   | "slug"
+  | "email"
   | "number"
+  | "decimal"
+  | "biginteger"
   | "enumeration"
   | "date_time"
+  | "time"
+  | "date"
   | "media"
   | "location"
   | "boolean"
   | "json_object"
   | "reference"
   | "component"
-  | "dynamic_zone";
+  | "dynamic_zone"
+  | "blocks";
 
 export type ContentModelFieldTypeId = ContentModelBuiltInFieldTypeId | "custom";
 
@@ -30,19 +36,19 @@ export type ContentModelFieldTypeGroupId = "text" | "value_logic" | "time_media"
 export const CONTENT_MODEL_FIELD_TYPE_GROUPS = [
   {
     id: "text",
-    typeIds: ["short_text", "rich_text", "markdown", "slug"],
+    typeIds: ["short_text", "rich_text", "markdown", "slug", "email"],
   },
   {
     id: "value_logic",
-    typeIds: ["number", "boolean", "enumeration"],
+    typeIds: ["number", "decimal", "biginteger", "boolean", "enumeration"],
   },
   {
     id: "time_media",
-    typeIds: ["date_time", "media", "location"],
+    typeIds: ["date_time", "time", "date", "media", "location"],
   },
   {
     id: "structure",
-    typeIds: ["reference", "json_object", "component", "dynamic_zone"],
+    typeIds: ["reference", "json_object", "component", "dynamic_zone", "blocks"],
   },
 ] as const satisfies ReadonlyArray<{
   id: ContentModelFieldTypeGroupId;
@@ -115,7 +121,18 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
   slug: {
     localizable: false,
   },
+  email: {
+    localizable: false,
+  },
   number: {
+    localizable: false,
+    numberFormat: "integer",
+  },
+  decimal: {
+    localizable: false,
+    numberFormat: "decimal",
+  },
+  biginteger: {
     localizable: false,
     numberFormat: "integer",
   },
@@ -123,6 +140,12 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
     localizable: false,
   },
   date_time: {
+    localizable: false,
+  },
+  time: {
+    localizable: false,
+  },
+  date: {
     localizable: false,
   },
   media: {
@@ -148,6 +171,9 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
     localizable: false,
   },
   dynamic_zone: {
+    localizable: false,
+  },
+  blocks: {
     localizable: false,
   },
 };
@@ -192,9 +218,14 @@ function readFieldTypeId(
   if (kind === "short_text") return "short_text";
   if (kind === "markdown") return "markdown";
   if (kind === "slug") return "slug";
+  if (kind === "email") return "email";
   if (kind === "number") return "number";
+  if (kind === "decimal") return "decimal";
+  if (kind === "biginteger") return "biginteger";
   if (kind === "enumeration") return "enumeration";
   if (kind === "date_time") return "date_time";
+  if (kind === "time") return "time";
+  if (kind === "date") return "date";
   if (kind === "media") return "media";
   if (kind === "location") return "location";
   if (kind === "boolean") return "boolean";
@@ -202,6 +233,7 @@ function readFieldTypeId(
   if (kind === "reference") return "reference";
   if (kind === "component") return "component";
   if (kind === "dynamic_zone") return "dynamic_zone";
+  if (kind === "blocks") return "blocks";
   if (kind === "custom") return "custom";
 
   if (scalar === "text") return "short_text";
@@ -374,10 +406,16 @@ function buildFieldScalar(
   draft?: ContentModelFieldDraft,
 ): CreateAdminContentModelFieldPayload["scalar"] {
   if (typeId === "custom") return draft?.customFieldScalar ?? "json";
-  if (typeId === "short_text" || typeId === "slug" || typeId === "enumeration") return "text";
+  if (
+    typeId === "short_text" ||
+    typeId === "slug" ||
+    typeId === "email" ||
+    typeId === "enumeration"
+  )
+    return "text";
   if (typeId === "rich_text" || typeId === "markdown") return "long_text";
-  if (typeId === "number") return "number";
-  if (typeId === "date_time") return "date_time";
+  if (typeId === "number" || typeId === "decimal" || typeId === "biginteger") return "number";
+  if (typeId === "date_time" || typeId === "time" || typeId === "date") return "date_time";
   if (typeId === "boolean") return "boolean";
   return "json";
 }
@@ -428,7 +466,8 @@ export function buildContentModelFieldPayload(
     draft.typeId === "short_text" ||
     draft.typeId === "rich_text" ||
     draft.typeId === "markdown" ||
-    draft.typeId === "slug"
+    draft.typeId === "slug" ||
+    draft.typeId === "email"
   ) {
     const minLength = readIntegerString(draft.minLength);
     const maxLength = readIntegerString(draft.maxLength);
@@ -446,7 +485,7 @@ export function buildContentModelFieldPayload(
     if (options.length > 0) config.options = options;
   }
 
-  if (draft.typeId === "number") {
+  if (draft.typeId === "number" || draft.typeId === "decimal" || draft.typeId === "biginteger") {
     config.numberFormat = draft.numberFormat;
     const min = readNumberString(draft.numberMin);
     const max = readNumberString(draft.numberMax);

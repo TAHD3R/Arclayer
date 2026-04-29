@@ -67,7 +67,6 @@ def register_routes(app: FastAPI, settings: Settings) -> None:
     # Public delivery routes stay outside the versioned API surface.
     app.include_router(public_assets_router)
     app.include_router(public_library_router)
-
     include_auth_router_with_prefix(app, settings=settings)
     include_router_with_global_prefix_prepended(app, project_runtime_router, settings=settings)
     include_router_with_global_prefix_prepended(app, sites_router, settings=settings)

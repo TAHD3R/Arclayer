@@ -117,9 +117,9 @@ class WebhooksService(BaseService):
         event: str,
         payload: dict[str, Any],
     ) -> None:
-        asyncio.create_task(self._emit_workspace_event(workspace_id=workspace_id, event=event, payload=payload))
+        asyncio.create_task(self.emit_workspace_event(workspace_id=workspace_id, event=event, payload=payload))
 
-    async def _emit_workspace_event(self, *, workspace_id: UUID, event: str, payload: dict[str, Any]) -> None:
+    async def emit_workspace_event(self, *, workspace_id: UUID, event: str, payload: dict[str, Any]) -> None:
         subs = await self.repo.list_enabled_subscriptions(workspace_id=workspace_id, event=event)
         if not subs:
             return

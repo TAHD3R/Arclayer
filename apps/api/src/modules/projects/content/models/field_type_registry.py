@@ -80,11 +80,32 @@ _BUILT_IN_FIELD_TYPES: tuple[ContentModelFieldTypeDefinitionOut, ...] = (
         config_schema={"properties": {"minLength": "integer", "maxLength": "integer", "pattern": "string"}},
     ),
     _field_type(
+        "email",
+        scalar="text",
+        group="text",
+        icon="at-sign",
+        config_schema={"properties": {"minLength": "integer", "maxLength": "integer", "pattern": "string"}},
+    ),
+    _field_type(
         "number",
         scalar="number",
         group="value_logic",
         icon="hash",
         config_schema={"properties": {"numberFormat": ["integer", "decimal"], "min": "number", "max": "number"}},
+    ),
+    _field_type(
+        "decimal",
+        scalar="number",
+        group="value_logic",
+        icon="sigma",
+        config_schema={"properties": {"min": "number", "max": "number", "decimalPlaces": "integer"}},
+    ),
+    _field_type(
+        "biginteger",
+        scalar="number",
+        group="value_logic",
+        icon="infinity",
+        config_schema={"properties": {"min": "number", "max": "number"}},
     ),
     _field_type(
         "enumeration",
@@ -94,6 +115,8 @@ _BUILT_IN_FIELD_TYPES: tuple[ContentModelFieldTypeDefinitionOut, ...] = (
         config_schema={"properties": {"options": "string[]"}},
     ),
     _field_type("date_time", scalar="date_time", group="time_media", icon="calendar"),
+    _field_type("time", scalar="date_time", group="time_media", icon="clock"),
+    _field_type("date", scalar="date_time", group="time_media", icon="calendar-days"),
     _field_type(
         "media",
         scalar="json",
@@ -131,6 +154,13 @@ _BUILT_IN_FIELD_TYPES: tuple[ContentModelFieldTypeDefinitionOut, ...] = (
         group="structure",
         icon="blocks",
         config_schema={"properties": {"components": "string[]", "min": "integer", "max": "integer"}},
+    ),
+    _field_type(
+        "blocks",
+        scalar="json",
+        group="structure",
+        icon="layout-grid",
+        config_schema={"properties": {"allowedBlocks": "string[]", "min": "integer", "max": "integer"}},
     ),
 )
 
@@ -312,6 +342,22 @@ def _assert_text_validation(field: ContentModelFieldContract, config: dict[str, 
         ) from exc
 
 
+def _assert_email_config(field: ContentModelFieldContract, config: dict[str, Any]) -> None:
+    pattern = config.get("pattern")
+    if pattern is None:
+        return
+    if not isinstance(pattern, str):
+        raise Conflict("pattern must be a string", error="CONTENT_MODEL_FIELD_VALIDATION_INVALID")
+    try:
+        re.compile(pattern)
+    except re.error as exc:
+        raise Conflict(
+            "pattern must be a valid regular expression",
+            error="CONTENT_MODEL_FIELD_VALIDATION_INVALID",
+            meta={"fieldKey": field.key, "message": str(exc)},
+        ) from exc
+
+
 def _assert_number_validation(config: dict[str, Any]) -> None:
     min_value = config.get("min")
     max_value = config.get("max")
@@ -321,6 +367,13 @@ def _assert_number_validation(config: dict[str, Any]) -> None:
         raise Conflict("max must be a number", error="CONTENT_MODEL_FIELD_VALIDATION_INVALID")
     if isinstance(min_value, int | float) and isinstance(max_value, int | float) and min_value > max_value:
         raise Conflict("min cannot exceed max", error="CONTENT_MODEL_FIELD_VALIDATION_INVALID")
+
+
+def _assert_decimal_validation(config: dict[str, Any]) -> None:
+    _assert_number_validation(config)
+    decimal_places = config.get("decimalPlaces")
+    if decimal_places is not None and (not isinstance(decimal_places, int) or decimal_places < 0):
+        raise Conflict("decimalPlaces must be a non-negative integer", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
 
 
 def _assert_non_empty_string_list(value: Any, *, field: ContentModelFieldContract, config_key: str) -> list[str]:
@@ -383,9 +436,15 @@ def validate_content_model_field_contract(
         raise Conflict("Content model field config must be an object", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
     _assert_common_config(field, config)
 
-    if definition.config_kind in {"short_text", "rich_text", "markdown", "slug"}:
+    if definition.config_kind in {"short_text", "rich_text", "markdown", "slug", "email"}:
         _assert_text_validation(field, config)
+    if definition.config_kind == "email":
+        _assert_email_config(field, config)
     if definition.config_kind == "number":
+        _assert_number_validation(config)
+    if definition.config_kind == "decimal":
+        _assert_decimal_validation(config)
+    if definition.config_kind == "biginteger":
         _assert_number_validation(config)
     if definition.config_kind == "enumeration":
         _assert_enum_options(field, config)
@@ -418,6 +477,11 @@ def validate_content_model_field_contract(
             )
     if definition.config_kind == "dynamic_zone":
         _assert_dynamic_zone_validation(field, config)
+    if definition.config_kind == "blocks":
+        allowed_blocks = config.get("allowedBlocks")
+        if allowed_blocks is not None:
+            _assert_non_empty_string_list(allowed_blocks, field=field, config_key="allowedBlocks")
+        _assert_number_validation(config)
 
 
 def validate_content_model_field_contracts(

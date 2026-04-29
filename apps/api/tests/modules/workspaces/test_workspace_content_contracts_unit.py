@@ -22,7 +22,8 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
         id=uuid4(),
         workspace_id=uuid4(),
         site_id=uuid4(),
-        key="page",
+        singular_key="page",
+        plural_key="pages",
         name="Page",
         description="Reusable routed pages for the site builder.",
         protocol_key="page",
@@ -89,6 +90,12 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
         presentation_schema={"allowed": ["visual_blueprint", "seo"]},
         workflow_policy={"supportsSchedule": True},
         view_schema={"defaultView": "tree"},
+        updated_at=datetime.now(UTC),
+        updated_by_user_id=uuid4(),
+        updated_by={
+            "user_id": str(uuid4()),
+            "username": "admin",
+        },
     )
 
     payload = model.model_dump(mode="json")

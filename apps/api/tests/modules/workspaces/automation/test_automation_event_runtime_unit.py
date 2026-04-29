@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from src.core.events import Event, EventBus
+from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.modules.projects.automation.runtime import AutomationRuntime
 
 
@@ -12,7 +13,7 @@ class _FakeSettings:
 
 @pytest.mark.asyncio
 async def test_automation_runtime_subscribes_all_trigger_events() -> None:
-    runtime = AutomationRuntime(_FakeSettings())  # type: ignore[arg-type]
+    runtime = AutomationRuntime(_FakeSettings(), lifecycle_dispatcher=LifecycleDispatcher())  # type: ignore[arg-type]
     bus = EventBus()
 
     await runtime.start(event_bus=bus)
@@ -27,7 +28,7 @@ async def test_automation_runtime_subscribes_all_trigger_events() -> None:
 
 @pytest.mark.asyncio
 async def test_automation_runtime_unsubscribes_all_handlers_on_stop() -> None:
-    runtime = AutomationRuntime(_FakeSettings())  # type: ignore[arg-type]
+    runtime = AutomationRuntime(_FakeSettings(), lifecycle_dispatcher=LifecycleDispatcher())  # type: ignore[arg-type]
     bus = EventBus()
 
     await runtime.start(event_bus=bus)
@@ -38,7 +39,8 @@ async def test_automation_runtime_unsubscribes_all_handlers_on_stop() -> None:
 
 @pytest.mark.asyncio
 async def test_automation_runtime_delegates_event_to_service(monkeypatch: pytest.MonkeyPatch) -> None:
-    runtime = AutomationRuntime(_FakeSettings())  # type: ignore[arg-type]
+    dispatcher = LifecycleDispatcher()
+    runtime = AutomationRuntime(_FakeSettings(), lifecycle_dispatcher=dispatcher)  # type: ignore[arg-type]
     observed: list[str] = []
 
     async def _fake_handle_event(event: Event) -> None:
@@ -51,3 +53,4 @@ async def test_automation_runtime_delegates_event_to_service(monkeypatch: pytest
     )
 
     assert observed == ["project.release.published"]
+    assert runtime.service.lifecycle_dispatcher is dispatcher

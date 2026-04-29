@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 from uuid import UUID
 
 from fastapi import FastAPI
@@ -8,9 +9,17 @@ from fastapi import FastAPI
 from src.common.constants.assets import ASSET_UPLOADED_EVENT
 from src.config import Settings
 from src.core.events import Event, EventBus
+from src.core.lifecycles.dispatcher import LifecycleDispatcher
+from src.core.lifecycles.specs import LifecycleAction
+from src.core.lifecycles.subscribers.audit import audit_lifecycle_events
+from src.core.lifecycles.subscribers.timestamps import auto_timestamps
 from src.core.logging import get_logger
+from src.core.plugin.lifecycle import PluginLifecycle, PluginLifecyclePhase
+from src.core.plugin.loader import discover_plugins
+from src.core.plugin.manager import PluginManager
 from src.modules.analytics.ingest.service import ActivityIngestor
 from src.modules.projects.automation.runtime import AutomationRuntime
+from src.modules.projects.webhooks.service import WebhookService
 from src.modules.system.rbac.service import RBACService
 from src.modules.workspaces.rbac.service import WorkspaceRBACService
 from src.platform.jobs.assets_thumbnails import generate_asset_thumbnails
@@ -91,13 +100,102 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
     if not settings.database.enabled:
         return
 
-    automation_runtime = AutomationRuntime(settings)
+    # ── Lifecycle + EntityManager + Webhook infrastructure ──────────────
+    lifecycle_dispatcher = LifecycleDispatcher()
+    await lifecycle_dispatcher.register(
+        subscriber_id="core",
+        action=LifecycleAction.BEFORE_CREATE,
+        handler=auto_timestamps,
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="core",
+        action=LifecycleAction.BEFORE_UPDATE,
+        handler=auto_timestamps,
+    )
+    app.state.lifecycle_dispatcher = lifecycle_dispatcher
+
+    automation_runtime = AutomationRuntime(settings, lifecycle_dispatcher=lifecycle_dispatcher)
     app.state.automation_runtime = automation_runtime
     await automation_runtime.start(event_bus=event_bus)
 
     rbac = RBACService(settings)
     await rbac.sync_permission_catalog()
     await WorkspaceRBACService(settings).ensure_all_workspaces_ready()
+
+    webhook_service = WebhookService(settings)
+    await lifecycle_dispatcher.register(
+        subscriber_id="webhooks",
+        action=LifecycleAction.AFTER_CREATE,
+        handler=webhook_service.handle_lifecycle_event,
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="webhooks",
+        action=LifecycleAction.AFTER_UPDATE,
+        handler=webhook_service.handle_lifecycle_event,
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="webhooks",
+        action=LifecycleAction.AFTER_DELETE,
+        handler=webhook_service.handle_lifecycle_event,
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="webhooks",
+        action=LifecycleAction.AFTER_PUBLISH,
+        handler=webhook_service.handle_lifecycle_event,
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="audit",
+        action=LifecycleAction.AFTER_CREATE,
+        handler=lambda evt: audit_lifecycle_events(evt, event_bus=event_bus),
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="audit",
+        action=LifecycleAction.AFTER_UPDATE,
+        handler=lambda evt: audit_lifecycle_events(evt, event_bus=event_bus),
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="audit",
+        action=LifecycleAction.AFTER_DELETE,
+        handler=lambda evt: audit_lifecycle_events(evt, event_bus=event_bus),
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="audit",
+        action=LifecycleAction.AFTER_PUBLISH,
+        handler=lambda evt: audit_lifecycle_events(evt, event_bus=event_bus),
+    )
+
+    app.state.webhook_service = webhook_service
+
+    # ── Plugin system bootstrap ────────────────────────────────────────────
+    plugin_manager = PluginManager()
+    plugin_lifecycle = PluginLifecycle()
+    from pathlib import Path
+
+    _api_src_root = str(Path(__file__).resolve().parent.parent)
+
+    await plugin_lifecycle.transition(
+        PluginLifecyclePhase.LOAD,
+        plugin_manager=plugin_manager,
+        app=app,
+        loader=lambda: discover_plugins(root_dir=_api_src_root),
+    )
+    await plugin_lifecycle.transition(
+        PluginLifecyclePhase.REGISTER,
+        plugin_manager=plugin_manager,
+        app=app,
+    )
+    await plugin_lifecycle.transition(
+        PluginLifecyclePhase.BOOTSTRAP,
+        plugin_manager=plugin_manager,
+        app=app,
+    )
+    await plugin_lifecycle.transition(
+        PluginLifecyclePhase.READY,
+        plugin_manager=plugin_manager,
+        app=app,
+    )
+    app.state.plugin_manager = plugin_manager
+    app.state.plugin_lifecycle = plugin_lifecycle
 
 
 async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
@@ -111,6 +209,14 @@ async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
                 "Activity ingestor shutdown failed (ignored)", action="close_activity_ingestor", error=str(exc)
             )
 
+    webhook_service: Any | None = getattr(app.state, "webhook_service", None)
+    if webhook_service is not None:
+        try:
+            await webhook_service.close()
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning("Webhook service shutdown failed", action="close_webhook_service", error=str(exc))
+
     automation_runtime: AutomationRuntime | None = getattr(app.state, "automation_runtime", None)
     if automation_runtime is None:
         return
@@ -119,3 +225,15 @@ async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
     except BaseException as exc:
         _raise_if_fatal(exc)
         logger.warning("Automation runtime shutdown failed", action="close_automation_runtime", error=str(exc))
+
+    plugin_lifecycle: PluginLifecycle | None = getattr(app.state, "plugin_lifecycle", None)
+    plugin_manager: PluginManager | None = getattr(app.state, "plugin_manager", None)
+    if plugin_lifecycle is not None and plugin_manager is not None:
+        try:
+            await plugin_lifecycle.transition(
+                PluginLifecyclePhase.DESTROY,
+                plugin_manager=plugin_manager,
+            )
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            logger.warning("Plugin destroy phase failed", action="close_plugin_system", error=str(exc))

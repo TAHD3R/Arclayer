@@ -792,5 +792,7 @@
   "CONFIG_TYPE_INVALID": "配置项类型不正确",
   "CORE_SETTINGS_DESC": "站点设置与基础系统配置。",
   "CORE_SETTINGS_TITLE": "系统设置",
+  "AUTOMATION_LIFECYCLE_DISPATCHER_UNAVAILABLE": "自动化生命周期服务暂不可用",
+  "LIFECYCLE_DISPATCHER_UNAVAILABLE": "内容生命周期服务暂不可用",
   "NAMESPACE_NOT_FOUND": "配置域不存在"
 }

@@ -79,7 +79,7 @@ FieldScalarType = Literal[
     "json",
 ]
 
-RelationType = Literal["one_to_one", "one_to_many", "many_to_one", "many_to_many"]
+RelationType = Literal["one_to_one", "one_to_many", "many_to_one", "many_to_many", "morph_to_one", "morph_to_many"]
 ViewType = Literal["detail", "list", "table", "grid", "tree"]
 ContentModelSchemaSnapshotStage = Literal["published", "current_draft", "next_draft"]
 ContentModelSchemaDiffKind = Literal["field", "relation", "view", "policy", "default", "meta", "capability"]

@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 from tortoise.fields.data import CharEnumFieldInstance
 
+from src.core.entity_manager.manager import EntityManager
 from src.core.exceptions import Conflict
 from src.models.content._enums import (
     ContentBootstrapPresetState,
@@ -226,7 +227,20 @@ def test_content_model_field_type_registry_exposes_builtin_and_plugin_contracts(
     assert set(model_kinds) == {"collection_type", "single_type", "component"}
     assert model_kinds["collection_type"].default_capabilities == ["queryable"]
     assert model_kinds["component"].default_capabilities == []
-    assert {"short_text", "rich_text", "number", "media", "reference", "component", "dynamic_zone"} <= set(field_types)
+    assert {
+        "short_text",
+        "rich_text",
+        "email",
+        "number",
+        "decimal",
+        "media",
+        "reference",
+        "component",
+        "dynamic_zone",
+        "blocks",
+    } <= set(field_types)
+    assert "password" not in field_types
+    assert "uid" not in field_types
     assert field_types["short_text"].scalar == "text"
     assert field_types["reference"].allowed_model_kinds == ["collection_type", "single_type"]
     assert field_types["dynamic_zone"].config_schema["properties"]["components"] == "string[]"
@@ -356,6 +370,21 @@ def test_content_model_field_contract_validation_requires_dynamic_zone_component
     assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_CONFIG_INVALID"
 
 
+def test_content_model_field_contract_validation_rejects_invalid_decimal_places() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="price",
+                label="Price",
+                scalar="number",
+                config={"kind": "decimal", "decimalPlaces": -1},
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_CONFIG_INVALID"
+
+
 def test_component_model_kind_rejects_delivery_capabilities() -> None:
     with pytest.raises(Exception) as exc:
         validate_model_kind_contract(
@@ -378,7 +407,9 @@ async def test_content_item_creation_rejects_component_models() -> None:
         count_items_for_model=AsyncMock(return_value=0),
         create_item=AsyncMock(),
     )
-    service = ProjectContentCanonicalItemsService(repo=cast(Any, repo))
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo), entity_manager=cast(Any, EntityManager(items_repo=repo))
+    )
 
     with pytest.raises(Conflict) as exc:
         await service.create_item(
@@ -404,7 +435,9 @@ async def test_content_item_creation_rejects_second_single_type_for_locale() -> 
         count_items_for_model=AsyncMock(return_value=1),
         create_item=AsyncMock(),
     )
-    service = ProjectContentCanonicalItemsService(repo=cast(Any, repo))
+    service = ProjectContentCanonicalItemsService(
+        repo=cast(Any, repo), entity_manager=cast(Any, EntityManager(items_repo=repo))
+    )
 
     with pytest.raises(Conflict) as exc:
         await service.create_item(

@@ -793,5 +793,7 @@
   "CONFIG_TYPE_INVALID": "Configuration item type is invalid",
   "CORE_SETTINGS_DESC": "Site settings and foundational system configuration.",
   "CORE_SETTINGS_TITLE": "System settings",
+  "AUTOMATION_LIFECYCLE_DISPATCHER_UNAVAILABLE": "Automation lifecycle services are unavailable",
+  "LIFECYCLE_DISPATCHER_UNAVAILABLE": "Content lifecycle services are unavailable",
   "NAMESPACE_NOT_FOUND": "Settings namespace not found"
 }

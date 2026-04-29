@@ -7,9 +7,9 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
+from src.core.entity_manager.manager import EntityManager
 from src.core.exceptions import Conflict, NotFound
 from src.models.content._enums import (
-    ContentBootstrapPresetState,
     ContentItemStatus,
     ContentItemVisibility,
     ContentVersionState,
@@ -88,8 +88,14 @@ def _compare_version_payloads(
 
 
 class ProjectContentCanonicalItemsService:
-    def __init__(self, repo: ProjectContentItemsRepository) -> None:
+    def __init__(
+        self,
+        repo: ProjectContentItemsRepository,
+        *,
+        entity_manager: EntityManager,
+    ) -> None:
         self.repo = repo
+        self.entity_manager: EntityManager = entity_manager
         self.reads = ProjectContentCanonicalItemReadService(repo)
 
     async def _replace_presentations(
@@ -196,26 +202,23 @@ class ProjectContentCanonicalItemsService:
                 preset_key=None,
                 capability_pack_ids=[],
             )
-            item = await self.repo.create_item(
+            em_result = await self.entity_manager.create(
                 workspace_id=workspace_id,
                 site_id=site_id,
-                model_definition_id=model.id,
+                model_key=model_key,
+                data={"title": payload.title.strip()} if payload.title else {},
                 slug=build_formless_draft_slug(payload.title),
-                title=payload.title.strip(),
+                title=payload.title.strip() if payload.title else None,
                 locale=payload.locale,
-                status=normalize_initial_status(ContentItemStatus.DRAFT),
-                visibility=normalize_visibility(ContentItemVisibility.PUBLIC),
-                bootstrap_preset_key=None,
-                bootstrap_preset_state=str(ContentBootstrapPresetState.NONE),
-                capability_pack_ids=[],
+                actor_id=actor_user_id,
                 resolved_role=continuation.resolved_role,
                 resolved_posture=continuation.resolved_posture,
                 resolved_surface=continuation.resolved_surface,
                 shape_state=continuation.shape_state,
                 shape_reason_code=continuation.shape_reason_code,
                 shape_reason_meta=continuation.shape_reason_meta,
-                actor_user_id=actor_user_id,
             )
+            item = em_result.item
         except IntegrityError as exc:
             raise Conflict(
                 "Content item conflict",
@@ -379,15 +382,27 @@ class ProjectContentCanonicalItemsService:
         workspace_id: UUID,
         site_id: UUID,
         item_id: UUID,
+        actor_user_id: UUID | None,
     ) -> None:
-        async with in_transaction() as conn:
-            item = await self._get_locked_item(
-                workspace_id=workspace_id,
-                site_id=site_id,
-                item_id=item_id,
-                conn=conn,
-            )
-            await self.repo.delete_item(item_id=item.id, conn=conn)
+        item = await self.repo.get_item_with_model(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            item_id=item_id,
+        )
+        if item is None:
+            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
+        if item.model_definition is None:
+            raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+        model_key = str(item.model_definition.singular_key)
+        deleted = await self.entity_manager.delete(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_key=model_key,
+            item_id=item_id,
+            actor_id=actor_user_id,
+        )
+        if not deleted:
+            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
 
     async def archive_item(
         self,
@@ -504,6 +519,8 @@ class ProjectContentCanonicalItemsService:
         if allowed_from is None:
             raise Conflict("Invalid version transition target", error="CONTENT_VERSION_TRANSITION_INVALID")
 
+        published_model_key: str | None = None
+        published_item_id: UUID | None = None
         async with in_transaction() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
@@ -516,6 +533,17 @@ class ProjectContentCanonicalItemsService:
                 raise Conflict("Invalid version transition", error="CONTENT_VERSION_TRANSITION_INVALID")
 
             if target_state == ContentVersionState.PUBLISHED:
+                if item.model_definition is None:
+                    raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+                published_model_key = str(item.model_definition.singular_key)
+                published_item_id = item.id
+                await self.entity_manager.dispatch_before_publish(
+                    model_key=published_model_key,
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=published_item_id,
+                    actor_id=actor_user_id,
+                )
                 blocker_codes = derive_item_publish_blocker_codes(item)
                 if blocker_codes:
                     raise Conflict(
@@ -566,7 +594,18 @@ class ProjectContentCanonicalItemsService:
                 ),
                 conn=conn,
             )
-            return await self.reads.build_version_out(version=version, conn=conn)
+            result = await self.reads.build_version_out(version=version, conn=conn)
+
+        if published_model_key is not None and published_item_id is not None:
+            await self.entity_manager.dispatch_after_publish(
+                model_key=published_model_key,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=published_item_id,
+                result=result,
+                actor_id=actor_user_id,
+            )
+        return result
 
     async def bulk_publish_items(
         self,

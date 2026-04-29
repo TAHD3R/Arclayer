@@ -2908,6 +2908,122 @@ export type ContentModelFieldReorderContract = {
 };
 
 /**
+ * ContentModelFieldTypeDefinitionOut
+ */
+export type ContentModelFieldTypeDefinitionOut = {
+    /**
+     * Allowedmodelkinds
+     *
+     * Model kinds that may use this field type.
+     */
+    allowedModelKinds?: Array<'collection_type' | 'single_type' | 'component'>;
+    /**
+     * Configkind
+     *
+     * Value stored in field config.kind.
+     */
+    configKind: string;
+    /**
+     * Configschema
+     *
+     * JSON-schema-like config contract owned by the registry definition.
+     */
+    configSchema?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Description
+     *
+     * Plugin provided description.
+     */
+    description?: string | null;
+    /**
+     * Descriptionkey
+     *
+     * Admin i18n description key.
+     */
+    descriptionKey?: string | null;
+    /**
+     * Group
+     *
+     * Admin picker group.
+     */
+    group: 'text' | 'value_logic' | 'time_media' | 'structure' | 'custom';
+    /**
+     * Icon
+     *
+     * Admin icon token.
+     */
+    icon?: string | null;
+    /**
+     * Label
+     *
+     * Plugin provided label.
+     */
+    label?: string | null;
+    /**
+     * Labelkey
+     *
+     * Admin i18n label key.
+     */
+    labelKey?: string | null;
+    /**
+     * Lifecycle
+     *
+     * Registration lifecycle state.
+     */
+    lifecycle?: 'active' | 'deprecated' | 'disabled';
+    /**
+     * Pluginid
+     *
+     * Owning plugin id.
+     */
+    pluginId?: string | null;
+    /**
+     * Scalar
+     *
+     * Persisted storage scalar.
+     */
+    scalar: 'text' | 'long_text' | 'number' | 'boolean' | 'date_time' | 'json';
+    /**
+     * Settingssections
+     *
+     * Admin settings sections supplied by this field type.
+     */
+    settingsSections?: Array<'basic' | 'advanced'>;
+    /**
+     * Source
+     *
+     * Definition source.
+     */
+    source: 'built_in' | 'plugin';
+    /**
+     * Uid
+     *
+     * Field type registry UID.
+     */
+    uid: string;
+};
+
+/**
+ * ContentModelFieldTypeRegistryOut
+ */
+export type ContentModelFieldTypeRegistryOut = {
+    /**
+     * Fieldtypes
+     *
+     * Registered built-in and plugin field types.
+     */
+    fieldTypes?: Array<ContentModelFieldTypeDefinitionOut>;
+    /**
+     * Modelkinds
+     *
+     * Supported content model kinds.
+     */
+    modelKinds?: Array<ContentModelKindDefinitionOut>;
+};
+
+/**
  * ContentModelImpactChangeOut
  */
 export type ContentModelImpactChangeOut = {
@@ -2997,6 +3113,42 @@ export type ContentModelImpactPreviewOut = {
      * Items that would stay ready but require reshaping.
      */
     reshapeItemsCount?: number;
+};
+
+/**
+ * ContentModelKindDefinitionOut
+ */
+export type ContentModelKindDefinitionOut = {
+    /**
+     * Defaultcapabilities
+     *
+     * Capabilities applied when a model of this kind is created.
+     */
+    defaultCapabilities?: Array<'versioned' | 'routable' | 'treeable' | 'visual_editable' | 'rich_text_editable' | 'queryable' | 'has_slots' | 'has_relations' | 'localizable' | 'publishable' | 'schedulable' | 'seo_managed'>;
+    /**
+     * Defaulteditor
+     *
+     * Default editor for this model kind.
+     */
+    defaultEditor: 'form' | 'visual' | 'rich_text' | 'table';
+    /**
+     * Descriptionkey
+     *
+     * Admin i18n description key.
+     */
+    descriptionKey: string;
+    /**
+     * Id
+     *
+     * Model kind identifier.
+     */
+    id: 'collection_type' | 'single_type' | 'component';
+    /**
+     * Labelkey
+     *
+     * Admin i18n label key.
+     */
+    labelKey: string;
 };
 
 /**
@@ -3319,7 +3471,7 @@ export type ContentModelRelationContract = {
      *
      * Relation cardinality.
      */
-    relation: 'one_to_one' | 'one_to_many' | 'many_to_one' | 'many_to_many';
+    relation: 'one_to_one' | 'one_to_many' | 'many_to_one' | 'many_to_many' | 'morph_to_one' | 'morph_to_many';
     /**
      * Required
      *
@@ -12501,6 +12653,31 @@ export type ResponseModelContentItemOut = {
  */
 export type ResponseModelContentLibraryViewsStateOut = {
     data?: ContentLibraryViewsStateOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentModelFieldTypeRegistryOut]
+ */
+export type ResponseModelContentModelFieldTypeRegistryOut = {
+    data?: ContentModelFieldTypeRegistryOut | null;
     /**
      * Error
      */
@@ -26798,6 +26975,74 @@ export type DomainProjectsCreateProjectContentModelResponses = {
 };
 
 export type DomainProjectsCreateProjectContentModelResponse = DomainProjectsCreateProjectContentModelResponses[keyof DomainProjectsCreateProjectContentModelResponses];
+
+export type DomainProjectsListProjectContentModelFieldTypesData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/field-types';
+};
+
+export type DomainProjectsListProjectContentModelFieldTypesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentModelFieldTypesError = DomainProjectsListProjectContentModelFieldTypesErrors[keyof DomainProjectsListProjectContentModelFieldTypesErrors];
+
+export type DomainProjectsListProjectContentModelFieldTypesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentModelFieldTypeRegistryOut;
+};
+
+export type DomainProjectsListProjectContentModelFieldTypesResponse = DomainProjectsListProjectContentModelFieldTypesResponses[keyof DomainProjectsListProjectContentModelFieldTypesResponses];
+
+export type DomainProjectsDeleteProjectContentModelData = {
+    body?: never;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/content/models/{model_id}';
+};
+
+export type DomainProjectsDeleteProjectContentModelErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsDeleteProjectContentModelError = DomainProjectsDeleteProjectContentModelErrors[keyof DomainProjectsDeleteProjectContentModelErrors];
+
+export type DomainProjectsDeleteProjectContentModelResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainProjectsDeleteProjectContentModelResponse = DomainProjectsDeleteProjectContentModelResponses[keyof DomainProjectsDeleteProjectContentModelResponses];
 
 export type DomainProjectsUpdateProjectContentModelData = {
     /**

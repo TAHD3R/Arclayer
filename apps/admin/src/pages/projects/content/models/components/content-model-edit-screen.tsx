@@ -3,18 +3,23 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
   ArrowLeft,
+  AtSign,
   Blocks,
   Binary,
   Braces,
+  CalendarDays,
   CalendarClock,
+  Clock,
   Copy,
   EyeOff,
   FileText,
   GripVertical,
   Hash,
   ImagePlus,
+  Infinity as InfinityIcon,
   Link2,
   ListChecks,
+  LayoutGrid,
   MapPinned,
   MoreVertical,
   Pencil,
@@ -22,6 +27,7 @@ import {
   Puzzle,
   RefreshCw,
   ShieldOff,
+  Sigma,
   TextCursorInput,
   ToggleLeft,
   Type,
@@ -113,15 +119,21 @@ import {
 import type { ContentModelsTableRow } from "../types";
 import { validateContentTypeIdentifier } from "../utils";
 import { ContentModelsRowActions } from "./content-models-row-actions";
+import { ContentModelSettingsTab } from "./content-model-settings-tab";
 
 const FIELD_TYPE_ICON_MAP: Record<ContentModelFieldTypeId, LucideIcon> = {
   rich_text: TextCursorInput,
   short_text: Type,
   markdown: FileText,
   slug: Hash,
+  email: AtSign,
   number: Binary,
+  decimal: Sigma,
+  biginteger: InfinityIcon,
   enumeration: ListChecks,
   date_time: CalendarClock,
+  time: Clock,
+  date: CalendarDays,
   media: ImagePlus,
   location: MapPinned,
   boolean: ToggleLeft,
@@ -129,6 +141,7 @@ const FIELD_TYPE_ICON_MAP: Record<ContentModelFieldTypeId, LucideIcon> = {
   reference: Link2,
   component: Blocks,
   dynamic_zone: Blocks,
+  blocks: LayoutGrid,
   custom: Puzzle,
 };
 
@@ -1320,6 +1333,7 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
   const [fieldToEdit, setFieldToEdit] = React.useState<ContentModelFieldRow | null>(null);
   const [fieldToDelete, setFieldToDelete] = React.useState<ContentModelFieldRow | null>(null);
   const [fieldsRefreshing, setFieldsRefreshing] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("fields");
   const tableId = React.useMemo(
     () => `project-content-model-fields:${props.projectId}:${activeModel?.id ?? "none"}`,
     [activeModel?.id, props.projectId],
@@ -1334,6 +1348,7 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
       setFieldToEdit(null);
       setFieldToDelete(null);
       setFieldsRefreshing(false);
+      setActiveTab("fields");
     }
   }, [activeModel]);
 
@@ -1717,18 +1732,17 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     </div>
   );
   const pageDescription = activeModel.description?.trim() || undefined;
-  const pageExtra =
-    fieldRows.length > 0 ? (
-      <ChromeTabsList className="w-auto">
-        <ChromeTabsTrigger value="fields">{t("CONTENT_MODELS_EDIT_TAB_FIELDS")}</ChromeTabsTrigger>
-        <ChromeTabsTrigger value="settings">
-          {t("CONTENT_MODELS_EDIT_TAB_SETTINGS")}
-        </ChromeTabsTrigger>
-      </ChromeTabsList>
-    ) : undefined;
+  const pageExtra = (
+    <ChromeTabsList className="w-auto">
+      <ChromeTabsTrigger value="fields">{t("CONTENT_MODELS_EDIT_TAB_FIELDS")}</ChromeTabsTrigger>
+      <ChromeTabsTrigger value="settings">
+        {t("CONTENT_MODELS_EDIT_TAB_SETTINGS")}
+      </ChromeTabsTrigger>
+    </ChromeTabsList>
+  );
 
   return (
-    <ChromeTabs value="fields">
+    <ChromeTabs value={activeTab} onValueChange={setActiveTab}>
       <DefaultPage
         title={activeModel.name}
         description={pageDescription}
@@ -1739,28 +1753,30 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
         extra={pageExtra}
       >
         {fieldRows.length === 0 ? (
-          <div className="flex min-h-[420px] items-center justify-center">
-            <ContentGuard
-              loading={false}
-              empty
-              variant="compact"
-              wrapperSpacing="flush"
-              className="flex w-full items-center justify-center py-0"
-              emptyTitle={t("CONTENT_MODELS_FIELDS_EMPTY_TITLE")}
-              emptyDescription={t("CONTENT_MODELS_FIELDS_EMPTY_DESC")}
-              emptyExtra={
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <Button onClick={handleOpenAddField} disabled={!canManageFields || pending}>
-                    <PlusIcon className="size-4" />
-                    {t("CONTENT_MODELS_FIELDS_EMPTY_ACTION")}
-                  </Button>
-                  <Button variant="outline" onClick={props.onClose} disabled={pending}>
-                    {t("CONTENT_MODELS_FIELDS_EMPTY_SECONDARY_ACTION")}
-                  </Button>
-                </div>
-              }
-            />
-          </div>
+          <ChromeTabsContent value="fields" className="min-h-0 flex-1 pb-8">
+            <div className="flex min-h-[420px] items-center justify-center">
+              <ContentGuard
+                loading={false}
+                empty
+                variant="compact"
+                wrapperSpacing="flush"
+                className="flex w-full items-center justify-center py-0"
+                emptyTitle={t("CONTENT_MODELS_FIELDS_EMPTY_TITLE")}
+                emptyDescription={t("CONTENT_MODELS_FIELDS_EMPTY_DESC")}
+                emptyExtra={
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <Button onClick={handleOpenAddField} disabled={!canManageFields || pending}>
+                      <PlusIcon className="size-4" />
+                      {t("CONTENT_MODELS_FIELDS_EMPTY_ACTION")}
+                    </Button>
+                    <Button variant="outline" onClick={props.onClose} disabled={pending}>
+                      {t("CONTENT_MODELS_FIELDS_EMPTY_SECONDARY_ACTION")}
+                    </Button>
+                  </div>
+                }
+              />
+            </div>
+          </ChromeTabsContent>
         ) : (
           <ChromeTabsContent value="fields" className="min-h-0 flex-1 pb-8">
             <div className="mx-auto flex min-h-full w-full flex-col">
@@ -1830,6 +1846,13 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
             if (!fieldToDelete) return;
             void deleteFieldMutation.mutateAsync(fieldToDelete.key);
           }}
+        />
+        <ContentModelSettingsTab
+          projectId={props.projectId}
+          model={activeModel}
+          canManageModels={props.canManageModels !== false}
+          pending={pending}
+          onModelChange={props.onModelChange}
         />
       </DefaultPage>
     </ChromeTabs>

@@ -282,6 +282,7 @@ async def delete_project_content_item(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
         item_id=item_id,
+        actor_user_id=actor_user_id,
     )
     await _publish_project_content_activity_event(
         actor_user_id=actor_user_id,
