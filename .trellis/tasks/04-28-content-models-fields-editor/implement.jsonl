@@ -1,4 +1,0 @@
-{"file":".trellis/spec/admin/frontend/index.md","reason":"Admin frontend implementation rules for page shells, overlays, tables, tokens, and accessibility."}
-{"file":".trellis/spec/api/backend/index.md","reason":"Backend implementation guardrails for content model contract changes and route/service layering."}
-{"file":".trellis/spec/guides/index.md","reason":"Cross-layer and reuse thinking guides because this task spans admin UI and content model contracts."}
-{"file":".trellis/tasks/04-28-content-models-fields-editor/research/field-type-gap.md","reason":"Summarizes current field contract limits, old prototype reuse, and Strapi gap convergence for this task."}

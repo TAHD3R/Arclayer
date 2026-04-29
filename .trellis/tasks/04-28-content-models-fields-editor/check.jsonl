@@ -1,4 +1,0 @@
-{"file":".trellis/spec/admin/frontend/index.md","reason":"Check page-shell, overlay, table, token, and accessibility compliance on the admin side."}
-{"file":".trellis/spec/api/backend/index.md","reason":"Check route/service/schema layering and contract correctness for content model backend changes."}
-{"file":".trellis/spec/guides/index.md","reason":"Check cross-layer consistency and reuse discipline across admin and API changes."}
-{"file":".trellis/tasks/04-28-content-models-fields-editor/research/field-type-gap.md","reason":"Verify final implementation still matches the chosen field-type scope and contract boundary."}

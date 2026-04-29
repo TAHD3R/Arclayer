@@ -74,3 +74,6 @@ htmlcov/
 .playwright-mcp/
 .gitnexus
 .worktrees/
+
+# Trellis
+.trellis/
