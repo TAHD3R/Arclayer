@@ -75,3 +75,36 @@ Split Admin API and Content API route/auth boundaries, moved delivery routes to 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: F02 plugin startup integration
+
+**Date**: 2026-04-29
+**Task**: F02 plugin startup integration
+**Branch**: `develop`
+
+### Summary
+
+Initialized the API plugin runtime during app startup, added local plugin discovery and lifecycle tests, verified with pnpm api:check, then committed and archived the F02 task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `127e4ef6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
