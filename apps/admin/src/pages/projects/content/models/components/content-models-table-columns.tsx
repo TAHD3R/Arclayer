@@ -6,12 +6,13 @@ import {
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
 import { UserAvatar } from "@/components/common/entity-avatar";
-import { UsesCountTag } from "@/components/ui/tags";
+import { BaseTag, UsesCountTag } from "@/components/ui/tags";
 import { Checkbox } from "@arclayer/ui/checkbox";
 
 import { ContentModelsRowActions } from "./content-models-row-actions";
 import type { ContentModelsTableRow } from "../types";
 import { getContentModelFieldCount } from "../utils";
+import { readContentModelFieldRows } from "../fields";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -28,6 +29,32 @@ function ContentModelNameCell(props: { model: ContentModelsTableRow; emptyDescri
       <div className="mt-1 truncate text-footnote text-label-secondary">
         {description || props.emptyDescription}
       </div>
+    </div>
+  );
+}
+
+function ApiIdentifierCell(props: { value: string }) {
+  return (
+    <BaseTag textStyle="caption" className="max-w-full">
+      <span className="truncate font-mono">{props.value}</span>
+    </BaseTag>
+  );
+}
+
+function AvailableFieldsCell(props: { model: ContentModelsTableRow; emptyValue: string }) {
+  const fields = readContentModelFieldRows(props.model);
+  if (fields.length === 0) return <EmptyValue>{props.emptyValue}</EmptyValue>;
+  const visibleFields = fields.slice(0, 3);
+  const remainingCount = fields.length - visibleFields.length;
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+      {visibleFields.map((field) => (
+        <BaseTag key={field.key} textStyle="caption" className="max-w-36">
+          <span className="truncate">{field.label}</span>
+        </BaseTag>
+      ))}
+      {remainingCount > 0 ? <BaseTag textStyle="caption">+{remainingCount}</BaseTag> : null}
     </div>
   );
 }
@@ -134,6 +161,86 @@ export function buildContentModelsTableColumns(params: {
       },
       size: 140,
       minSize: 120,
+    },
+    {
+      id: "availableFields",
+      accessorFn: (row) =>
+        readContentModelFieldRows(row)
+          .map((field) => field.label)
+          .join(", "),
+      meta: {
+        title: params.t("content:CONTENT_MODELS_TABLE_COL_AVAILABLE_FIELDS"),
+        kind: "meta",
+        defaultHidden: true,
+      },
+      header: params.t("content:CONTENT_MODELS_TABLE_COL_AVAILABLE_FIELDS"),
+      cell: ({ row }) => <AvailableFieldsCell model={row.original} emptyValue={emptyValue} />,
+      size: 300,
+      minSize: 220,
+    },
+    {
+      accessorKey: "singularKey",
+      meta: {
+        title: params.t("content:CONTENT_MODELS_TABLE_COL_SINGULAR_KEY"),
+        sortKey: "singular_key",
+        kind: "meta",
+        defaultHidden: true,
+      },
+      header: params.t("content:CONTENT_MODELS_TABLE_COL_SINGULAR_KEY"),
+      cell: ({ row }) => <ApiIdentifierCell value={row.original.singularKey} />,
+      size: 180,
+      minSize: 150,
+    },
+    {
+      accessorKey: "pluralKey",
+      meta: {
+        title: params.t("content:CONTENT_MODELS_TABLE_COL_PLURAL_KEY"),
+        sortKey: "plural_key",
+        kind: "meta",
+        defaultHidden: true,
+      },
+      header: params.t("content:CONTENT_MODELS_TABLE_COL_PLURAL_KEY"),
+      cell: ({ row }) => <ApiIdentifierCell value={row.original.pluralKey} />,
+      size: 180,
+      minSize: 150,
+    },
+    {
+      accessorKey: "description",
+      meta: {
+        title: params.t("content:CONTENT_MODELS_TABLE_COL_DESCRIPTION"),
+        kind: "meta",
+        defaultHidden: true,
+      },
+      header: params.t("content:CONTENT_MODELS_TABLE_COL_DESCRIPTION"),
+      cell: ({ row }) => {
+        const description = row.original.description?.trim();
+        return description ? (
+          <span className="line-clamp-2 text-label-secondary">{description}</span>
+        ) : (
+          <EmptyValue>{emptyDescription}</EmptyValue>
+        );
+      },
+      size: 300,
+      minSize: 220,
+    },
+    {
+      accessorKey: "modelKind",
+      meta: {
+        title: params.t("content:CONTENT_MODELS_TABLE_COL_MODEL_KIND"),
+        kind: "meta",
+        defaultHidden: true,
+      },
+      header: params.t("content:CONTENT_MODELS_TABLE_COL_MODEL_KIND"),
+      cell: ({ row }) => {
+        const modelKind = row.original.modelKind ?? "collection_type";
+        return (
+          <BaseTag textStyle="caption">
+            {params.t(`content:CONTENT_MODELS_KIND_${modelKind.toUpperCase()}`)}
+          </BaseTag>
+        );
+      },
+      size: 160,
+      minSize: 140,
     },
     {
       accessorKey: "updatedBy",

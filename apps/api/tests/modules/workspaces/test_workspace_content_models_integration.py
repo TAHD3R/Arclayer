@@ -186,9 +186,9 @@ async def test_project_content_models_create_custom_model_with_dual_identifiers(
             create_res = await client.post(
                 f"/api/v1/projects/{project_id}/content/models",
                 json={
-                    "singularKey": "author",
-                    "pluralKey": "authors",
-                    "name": "Author",
+                    "singularKey": "blogPost",
+                    "pluralKey": "blogPosts",
+                    "name": "Blog Post",
                     "description": "Editorial profile records.",
                     "modelKind": "collection_type",
                     "fields": [],
@@ -201,9 +201,9 @@ async def test_project_content_models_create_custom_model_with_dual_identifiers(
             )
             assert create_res.status_code == 201, create_res.text
             payload = create_res.json()["data"]
-            assert payload["singularKey"] == "author"
-            assert payload["pluralKey"] == "authors"
-            assert payload["name"] == "Author"
+            assert payload["singularKey"] == "blogPost"
+            assert payload["pluralKey"] == "blogPosts"
+            assert payload["name"] == "Blog Post"
             assert payload["description"] == "Editorial profile records."
             assert payload["systemManaged"] is False
             assert "key" not in payload

@@ -12,14 +12,18 @@ import {
 } from "@/pages/projects/content/models/utils";
 import type { AdminContentModel } from "@/types/api";
 
-const contentModelEditScreenMock = vi.fn();
 const createContentModelMock = vi.fn();
 const deleteContentModelMock = vi.fn();
 const listAllContentModelsMock = vi.fn();
 const listContentModelsMock = vi.fn();
+const navigateMock = vi.fn();
 const permissionAccessMock = {
   hasAction: vi.fn(() => true),
 };
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => navigateMock,
+}));
 
 vi.mock("@/api/content", () => ({
   buildContentModelsQueryKey: (...args: unknown[]) => ["content", "models", ...args],
@@ -137,13 +141,6 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
   ),
 }));
 
-vi.mock("@/pages/projects/content/models/components/content-model-edit-screen", () => ({
-  ContentModelEditScreen: (props: Record<string, unknown>) => {
-    contentModelEditScreenMock(props);
-    return null;
-  },
-}));
-
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -180,11 +177,11 @@ function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentMod
 
 describe("content model builder", () => {
   beforeEach(() => {
-    contentModelEditScreenMock.mockReset();
     createContentModelMock.mockReset();
     deleteContentModelMock.mockReset();
     listAllContentModelsMock.mockReset();
     listContentModelsMock.mockReset();
+    navigateMock.mockReset();
     permissionAccessMock.hasAction.mockReturnValue(true);
     listContentModelsMock.mockResolvedValue({
       items: [],
@@ -198,13 +195,13 @@ describe("content model builder", () => {
     listAllContentModelsMock.mockResolvedValue([]);
   });
 
-  test("opens create content type dialog and creates with dual identifiers", async () => {
+  test("opens create content type dialog and creates with camelCase identifiers", async () => {
     createContentModelMock.mockResolvedValue(
       buildModel({
         id: "model-2",
-        singularKey: "article",
-        pluralKey: "articles",
-        name: "Article",
+        singularKey: "blogPost",
+        pluralKey: "blogPosts",
+        name: "Blog Post",
       }),
     );
 
@@ -218,14 +215,14 @@ describe("content model builder", () => {
     );
 
     fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
-      target: { value: "Article" },
+      target: { value: "Blog Post" },
     });
 
     expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
-      "article",
+      "blogPost",
     );
     expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
-      "articles",
+      "blogPosts",
     );
 
     fireEvent.change(
@@ -241,9 +238,9 @@ describe("content model builder", () => {
 
     await waitFor(() => {
       expect(createContentModelMock).toHaveBeenCalledWith("project-1", {
-        name: "Article",
-        singularKey: "article",
-        pluralKey: "articles",
+        name: "Blog Post",
+        singularKey: "blogPost",
+        pluralKey: "blogPosts",
         description: "Editorial entries.",
         modelKind: "collection_type",
         fields: [],
@@ -270,17 +267,17 @@ describe("content model builder", () => {
       target: { value: "News item" },
     });
     fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL"), {
-      target: { value: "story" },
+      target: { value: "storyBlock" },
     });
     fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "Press release" },
     });
 
     expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
-      "story",
+      "storyBlock",
     );
     expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
-      "press-releases",
+      "pressReleases",
     );
   });
 
@@ -297,19 +294,26 @@ describe("content model builder", () => {
     expect(screen.getByTestId("content-models-no-access")).toBeInTheDocument();
   });
 
-  test("passes project context into the content model edit screen surface", () => {
+  test("navigates to the dedicated content model edit route", async () => {
+    listContentModelsMock.mockResolvedValue({
+      items: [buildModel()],
+      total: 1,
+      page: 1,
+      size: 50,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+
     render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
 
-    const lastCall = contentModelEditScreenMock.mock.calls.at(-1);
-    expect(lastCall?.[0]).toEqual(
-      expect.objectContaining({
-        projectId: "project-1",
-        onModelChange: expect.any(Function),
-        onRefreshModels: expect.any(Function),
-      }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "row-double-click-model-1" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/projects/project-1/content/models/edit?modelId=model-1",
+    });
   });
 
   test("single click selects a row and double click opens the model editor", async () => {
@@ -347,12 +351,9 @@ describe("content model builder", () => {
     fireEvent.click(screen.getByRole("button", { name: "row-double-click-model-1" }));
 
     await waitFor(() => {
-      const lastCall = contentModelEditScreenMock.mock.calls.at(-1);
-      expect(lastCall?.[0]).toEqual(
-        expect.objectContaining({
-          model: expect.objectContaining({ id: "model-1", name: "Article" }),
-        }),
-      );
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-1/content/models/edit?modelId=model-1",
+      });
     });
   });
 
@@ -446,8 +447,8 @@ describe("content model builder", () => {
         model,
         buildModel({
           id: "model-2",
-          singularKey: "article-copy",
-          pluralKey: "articles-copy",
+          singularKey: "articleCopy",
+          pluralKey: "articlesCopy",
         }),
       ],
       t: (key, options) => {
@@ -460,8 +461,8 @@ describe("content model builder", () => {
     });
 
     expect(payload).toEqual({
-      singularKey: "article-copy-2",
-      pluralKey: "articles-copy-2",
+      singularKey: "articleCopy2",
+      pluralKey: "articlesCopy2",
       name: "Article (Copy)",
       description: "Article model",
       category: "custom",

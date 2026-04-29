@@ -379,8 +379,8 @@ async def test_content_models_list_supports_search_filters_and_field_count_order
         second = await client.post(
             f"/api/v1/projects/{project_id}/content/models",
             json={
-                "singularKey": "press-release",
-                "pluralKey": "press-releases",
+                "singularKey": "pressRelease",
+                "pluralKey": "pressReleases",
                 "name": "Press Release",
                 "description": "Media announcement records.",
                 "fields": [
@@ -403,7 +403,7 @@ async def test_content_models_list_supports_search_filters_and_field_count_order
         )
         assert filtered.status_code == 200, filtered.text
         items = filtered.json()["data"]["items"]
-        assert [item["singularKey"] for item in items] == ["press-release", "profile"]
+        assert [item["singularKey"] for item in items] == ["pressRelease", "profile"]
         assert all(item["updatedBy"]["userId"] for item in items)
         assert all(item["updatedBy"]["username"].startswith("owner_") for item in items)
 
@@ -454,7 +454,7 @@ async def test_content_models_rejects_duplicate_and_cross_identifier_collisions(
 
         singular_matches_existing_plural = await client.post(
             f"/api/v1/projects/{project_id}/content/models",
-            json={"singularKey": "authors", "pluralKey": "author-groups", "name": "Author Group"},
+            json={"singularKey": "authors", "pluralKey": "authorGroups", "name": "Author Group"},
         )
         assert singular_matches_existing_plural.status_code in {400, 409, 422}, singular_matches_existing_plural.text
 

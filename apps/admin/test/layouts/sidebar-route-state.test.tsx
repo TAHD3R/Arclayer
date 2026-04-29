@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
 import { AdminLayout } from "@/layouts/admin-layout";
+import { listAllContentModels } from "@/api/content";
 import { getProjectDetail, listProjects } from "@/api/projects";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -72,6 +73,11 @@ vi.mock("@/api/workspaces", () => ({
   getWorkspaceDetail: vi.fn(),
 }));
 
+vi.mock("@/api/content", () => ({
+  buildContentModelsQueryKey: (projectId: string) => ["content", "models", projectId],
+  listAllContentModels: vi.fn(),
+}));
+
 vi.mock("@/api/projects", () => ({
   getProjectDetail: vi.fn(),
   listProjects: vi.fn(),
@@ -120,6 +126,7 @@ function latestSceneProps() {
     favoriteWorkspaceBase?: string | null;
     sidebarPathnameOverride?: string;
     loading?: boolean;
+    renderTopbar?: () => React.ReactElement<{ breadcrumbs?: Array<{ label: string }> }>;
   };
 }
 
@@ -193,6 +200,7 @@ describe("sidebar route state wiring", () => {
       id: "workspace-1",
       organizationId: "org-1",
     } as Awaited<ReturnType<typeof getWorkspaceDetail>>);
+    vi.mocked(listAllContentModels).mockResolvedValue([]);
   });
 
   it("derives workspace sidebar items from the pathname even before workspace store hydration", () => {
@@ -296,6 +304,50 @@ describe("sidebar route state wiring", () => {
           projectId: "project-alpha",
           name: "Project Alpha",
         }),
+      ]);
+    });
+  });
+
+  it("adds the selected content model to project breadcrumbs on the edit route", async () => {
+    mockPathname = "/projects/project-alpha/content/models/edit";
+    mockSearchStr = "?modelId=model-1";
+    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+    useWorkspaceStore.setState({
+      currentWorkspaceId: "workspace-alpha",
+      currentProjectId: "project-alpha",
+    });
+    vi.mocked(listAllContentModels).mockResolvedValue([
+      {
+        id: "model-1",
+        workspaceId: "workspace-alpha",
+        siteId: "site-1",
+        singularKey: "article",
+        pluralKey: "articles",
+        name: "Article",
+        description: null,
+        category: "custom",
+        modelKind: "collection_type",
+        capabilities: ["queryable"],
+        defaultEditor: "form",
+        draftContractRevision: 1,
+        updatedAt: "2026-04-28T00:00:00Z",
+        updatedByUserId: null,
+        updatedBy: null,
+      },
+    ]);
+
+    renderWithQueryClient(
+      <AdminLayout>
+        <div>content</div>
+      </AdminLayout>,
+    );
+
+    await waitFor(() => {
+      const topbar = latestSceneProps().renderTopbar?.();
+      expect(topbar?.props.breadcrumbs?.map((item) => item.label)).toEqual([
+        "nav:NAV_GROUP_WEBSITE",
+        "Content Model",
+        "Article",
       ]);
     });
   });

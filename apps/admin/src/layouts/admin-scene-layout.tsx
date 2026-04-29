@@ -7,6 +7,7 @@ import { getUnreadNotificationPreview } from "@/api/notifications";
 import { NotificationToastContent } from "@/components/common/notification-toast-content";
 import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
+import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-nav/favorite-nav-items";
 import type { SidebarBrowseProject } from "@/components/layout/project-browse-menu";
 import { useNotificationActions } from "@/hooks/use-notification-actions";
 import { RouteTransition } from "@/components/layout/route-transition";
@@ -26,6 +27,7 @@ type AdminSceneLayoutProps = PropsWithChildren<{
   browseProjects?: readonly SidebarBrowseProject[];
   activeBrowseProjectId?: string | null;
   favoriteWorkspaceBase?: string | null;
+  favoriteDynamicLabels?: FavoriteDynamicLabelIndex;
   resolvePermissionName?: (code: string) => string | null;
   showNavSkeleton?: boolean;
   showOrgNavErrorOverlay?: boolean;
@@ -45,6 +47,7 @@ export function AdminSceneLayout({
   browseProjects,
   activeBrowseProjectId,
   favoriteWorkspaceBase,
+  favoriteDynamicLabels,
   resolvePermissionName,
   showNavSkeleton = false,
   showOrgNavErrorOverlay = false,
@@ -192,6 +195,7 @@ export function AdminSceneLayout({
           browseProjects={browseProjects}
           activeBrowseProjectId={activeBrowseProjectId}
           favoriteWorkspaceBase={favoriteWorkspaceBase}
+          favoriteDynamicLabels={favoriteDynamicLabels}
           resolvePermissionName={resolvePermissionName}
           pathnameOverride={sidebarPathnameOverride}
           showInboxBadge={showNotificationsBadge}

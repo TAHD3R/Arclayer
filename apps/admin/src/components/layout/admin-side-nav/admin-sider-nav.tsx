@@ -25,13 +25,16 @@ import { NAV_ROOT_MENU_GAP_CLASSNAME } from "./nav-utils";
 import { NavDivider, NavGroupMarker, resolveLeadingLabel } from "./nav-markers";
 import {
   buildFavoriteAdminChildren,
+  favoriteNavItemMatchesPath,
   flattenFavoriteNavItems,
+  type FavoriteDynamicLabelIndex,
   type FavoriteNavNode,
 } from "./favorite-nav-items";
 
 type AdminSiderNavProps = {
   items?: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
+  favoriteDynamicLabels?: FavoriteDynamicLabelIndex;
   showFavorites?: boolean;
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
@@ -61,7 +64,9 @@ function buildStarredItem(items: FavoriteNavNode[], pathname: string): AdminNavI
     label: "Favorites",
     labelKey: "nav:NAV_FAVORITES",
     icon: Star,
-    isActive: flattenFavoriteNavItems(items).some((item) => isExactMatch(item.path, pathname)),
+    isActive: flattenFavoriteNavItems(items).some((item) =>
+      favoriteNavItemMatchesPath(item, pathname),
+    ),
     children: buildFavoriteAdminChildren(items, pathname),
   };
 }
@@ -84,6 +89,20 @@ function injectStarredItem(
     return [firstItem, starredItem, ...rest];
   }
   return [starredItem, ...items];
+}
+
+function hasExactNavMatch(items: readonly AdminNavItem[], pathname: string): boolean {
+  const walk = (nodes: readonly AdminNavItem[]): boolean => {
+    for (const item of nodes) {
+      const candidates = [item.to, ...(item.activeMatchPaths ?? [])].filter(
+        (value): value is string => Boolean(value),
+      );
+      if (candidates.some((candidate) => isExactMatch(candidate, pathname))) return true;
+      if (item.children?.length && walk(item.children)) return true;
+    }
+    return false;
+  };
+  return walk(items);
 }
 
 function useOpenChain(items: readonly AdminNavItem[]) {
@@ -159,8 +178,11 @@ function useOpenChain(items: readonly AdminNavItem[]) {
 }
 
 function useDisplayItems(
-  props: Pick<AdminSiderNavProps, "items" | "favoriteWorkspaceBase" | "showFavorites">,
-  pathname: string,
+  props: Pick<
+    AdminSiderNavProps,
+    "items" | "favoriteWorkspaceBase" | "favoriteDynamicLabels" | "showFavorites"
+  >,
+  currentPath: string,
 ) {
   const { t, i18n } = useTranslation();
   const storedFavoriteTree = useFavoritesStore((state) => state.items);
@@ -188,15 +210,24 @@ function useDisplayItems(
         items: baseItems,
         t,
         workspaceBase: props.favoriteWorkspaceBase,
+        dynamicLabels: props.favoriteDynamicLabels,
       }),
-    [favoriteTree, baseItems, props.favoriteWorkspaceBase, i18n.language, i18n.resolvedLanguage, t],
+    [
+      favoriteTree,
+      baseItems,
+      props.favoriteWorkspaceBase,
+      props.favoriteDynamicLabels,
+      i18n.language,
+      i18n.resolvedLanguage,
+      t,
+    ],
   );
   const starredItem = useMemo(
     () =>
       props.showFavorites && sidebarItemVisibility.favorites
-        ? buildStarredItem(favoriteItems, pathname)
+        ? buildStarredItem(favoriteItems, currentPath)
         : null,
-    [favoriteItems, pathname, props.showFavorites, sidebarItemVisibility.favorites],
+    [currentPath, favoriteItems, props.showFavorites, sidebarItemVisibility.favorites],
   );
   const displayItems = useMemo(
     () => injectStarredItem(baseItems, starredItem),
@@ -213,11 +244,20 @@ function useDisplayItems(
 
 function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   const { state: sidebarState, isMobile } = useSidebar();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const location = useRouterState({
+    select: (state) => ({
+      pathname: state.location.pathname,
+      searchStr: state.location.searchStr,
+    }),
+    structuralSharing: true,
+  });
+  const pathname = location.pathname;
+  const currentPath = `${location.pathname}${location.searchStr ?? ""}`;
   const activePathname = props.pathnameOverride ?? pathname;
+  const activeFavoritePath = props.pathnameOverride ?? currentPath;
   const { baseItems, favoriteItems, starredItem, displayItems } = useDisplayItems(
     props,
-    activePathname,
+    activeFavoritePath,
   );
   const baseActiveTrail = useMemo(
     () => findActiveTrail(baseItems, activePathname),
@@ -227,23 +267,36 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   const starredActive = useMemo(
     () =>
       flattenFavoriteNavItems(favoriteItems).some((item) =>
-        isExactMatch(item.path, activePathname),
+        favoriteNavItemMatchesPath(item, activeFavoritePath),
       ),
-    [activePathname, favoriteItems],
+    [activeFavoritePath, favoriteItems],
+  );
+  const starredActiveHasQuery = useMemo(
+    () =>
+      flattenFavoriteNavItems(favoriteItems).some(
+        (item) => favoriteNavItemMatchesPath(item, activeFavoritePath) && /[?#]/.test(item.path),
+      ),
+    [activeFavoritePath, favoriteItems],
   );
   const starredActiveTrail = useMemo(
-    () => (starredItem && starredActive ? findActiveTrail([starredItem], activePathname) : []),
-    [activePathname, starredActive, starredItem],
+    () => (starredItem && starredActive ? findActiveTrail([starredItem], activeFavoritePath) : []),
+    [activeFavoritePath, starredActive, starredItem],
   );
   const starredActiveKeys = useMemo(() => new Set(starredActiveTrail), [starredActiveTrail]);
+  const baseHasExactMatch = useMemo(
+    () => hasExactNavMatch(baseItems, activePathname),
+    [activePathname, baseItems],
+  );
   const [sourcePreference, setSourcePreference] = useState<{
     targetPath: string;
     source: ActiveSource;
   } | null>(null);
+  const preferBasePrefixMatch =
+    starredActive && baseActiveTrail.length > 0 && !baseHasExactMatch && !starredActiveHasQuery;
   const activeSource: ActiveSource =
     sourcePreference && isPrefixMatch(sourcePreference.targetPath, activePathname)
       ? sourcePreference.source
-      : starredActive
+      : starredActive && !preferBasePrefixMatch
         ? "starred"
         : "base";
   const activeTrail = activeSource === "starred" ? starredActiveTrail : baseActiveTrail;
@@ -251,7 +304,13 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   const suppressedKeys = useMemo(
     () =>
       new Set(
-        !starredActive ? [] : activeSource === "starred" ? baseActiveTrail : starredActiveTrail,
+        !starredActive
+          ? []
+          : activeSource === "starred"
+            ? baseActiveTrail
+            : starredActiveTrail.length > 0
+              ? starredActiveTrail
+              : ["favorites"],
       ),
     [activeSource, baseActiveTrail, starredActive, starredActiveTrail],
   );

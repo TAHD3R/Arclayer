@@ -1,4 +1,4 @@
-import { applyManualProjectSlugInput, buildProjectSlug } from "@/lib/project-slug";
+import { buildProjectSlug } from "@/lib/project-slug";
 import type { AdminContentModel, CreateAdminContentModelPayload } from "@/types/api";
 
 import type {
@@ -9,9 +9,11 @@ import type {
   CreateContentTypeFormValues,
 } from "./types";
 
-const IDENTIFIER_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const IDENTIFIER_PATTERN = /^[a-z][A-Za-z0-9]*$/;
 const CONTENT_MODEL_IDENTIFIER_MAX_LENGTH = 64;
 const CONTENT_MODEL_NAME_MAX_LENGTH = 128;
+const ACRONYM_IDENTIFIER_BOUNDARY_PATTERN = /([A-Z]+)([A-Z][a-z])/g;
+const CAMEL_IDENTIFIER_BOUNDARY_PATTERN = /([a-z0-9])([A-Z])/g;
 
 const IRREGULAR_PLURALS = new Map<string, string>([
   ["category", "categories"],
@@ -20,20 +22,47 @@ const IRREGULAR_PLURALS = new Map<string, string>([
 
 export function createGeneratedIdentifier(value: string): ContentTypeIdentifierState {
   return {
-    value,
+    value: buildContentModelIdentifier(value),
     source: "generated",
   };
 }
 
 export function createManualIdentifier(value: string): ContentTypeIdentifierState {
   return {
-    value: applyManualProjectSlugInput(value).value,
+    value: buildContentModelIdentifier(value),
     source: "manual",
   };
 }
 
+function decapitalize(value: string): string {
+  if (!value) return "";
+  return `${value.charAt(0).toLowerCase()}${value.slice(1)}`;
+}
+
+function capitalize(value: string): string {
+  if (!value) return "";
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function readIdentifierWords(value: string): string[] {
+  const separatedSeed = value
+    .replace(ACRONYM_IDENTIFIER_BOUNDARY_PATTERN, "$1 $2")
+    .replace(CAMEL_IDENTIFIER_BOUNDARY_PATTERN, "$1 $2");
+  return buildProjectSlug(separatedSeed).split("-").filter(Boolean);
+}
+
+export function buildContentModelIdentifier(value: string): string {
+  const words = readIdentifierWords(value);
+  if (words.length === 0) return "";
+  const [first = "", ...rest] = words;
+  const raw = [decapitalize(first), ...rest.map(capitalize)]
+    .join("")
+    .slice(0, CONTENT_MODEL_IDENTIFIER_MAX_LENGTH);
+  return decapitalize(raw.replace(/^[^A-Za-z]+/, ""));
+}
+
 export function toContentTypeIdentifierSeed(name: string): string {
-  return buildProjectSlug(name);
+  return buildContentModelIdentifier(name);
 }
 
 export function pluralizeContentTypeIdentifier(singularKey: string): string {
@@ -166,11 +195,11 @@ function trimToLength(value: string, maxLength: number): string {
 }
 
 function appendIdentifierSuffix(value: string, suffix: string): string {
-  const normalized = applyManualProjectSlugInput(value).value || "model";
-  const joinedSuffix = `-${suffix}`;
+  const normalized = buildContentModelIdentifier(value) || "model";
+  const joinedSuffix = capitalize(buildContentModelIdentifier(suffix) || "copy");
   const nextBase = normalized
     .slice(0, Math.max(1, CONTENT_MODEL_IDENTIFIER_MAX_LENGTH - joinedSuffix.length))
-    .replace(/-+$/g, "");
+    .replace(/[^A-Za-z0-9]+$/g, "");
   return `${nextBase}${joinedSuffix}`;
 }
 

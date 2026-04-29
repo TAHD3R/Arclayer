@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
+import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-nav/favorite-nav-items";
 import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
 import {
   ProjectBrowseMenuContent,
@@ -43,6 +44,7 @@ export type AdminSidebarShellProps = {
   browseProjects?: readonly SidebarBrowseProject[];
   activeBrowseProjectId?: string | null;
   favoriteWorkspaceBase?: string | null;
+  favoriteDynamicLabels?: FavoriteDynamicLabelIndex;
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
   collapsible?: "icon" | "none";
@@ -444,6 +446,7 @@ function AdminSidebarContentArea(props: {
   showMenuSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
+  favoriteDynamicLabels?: FavoriteDynamicLabelIndex;
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
 }) {
@@ -461,6 +464,7 @@ function AdminSidebarContentArea(props: {
     <AdminSiderNav
       items={props.mainItems}
       favoriteWorkspaceBase={props.favoriteWorkspaceBase}
+      favoriteDynamicLabels={props.favoriteDynamicLabels}
       showFavorites
       resolvePermissionName={props.resolvePermissionName}
       pathnameOverride={props.pathnameOverride}
@@ -545,6 +549,7 @@ export function AdminSidebarShell({
   browseProjects,
   activeBrowseProjectId,
   favoriteWorkspaceBase,
+  favoriteDynamicLabels,
   resolvePermissionName,
   pathnameOverride,
   collapsible = "icon",
@@ -578,6 +583,7 @@ export function AdminSidebarShell({
         showMenuSkeleton={showMenuSkeleton}
         mainItems={mainItems}
         favoriteWorkspaceBase={favoriteWorkspaceBase}
+        favoriteDynamicLabels={favoriteDynamicLabels}
         resolvePermissionName={resolvePermissionName}
         pathnameOverride={pathnameOverride}
       />

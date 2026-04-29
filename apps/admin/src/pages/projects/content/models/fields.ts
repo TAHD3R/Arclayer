@@ -1,10 +1,11 @@
-import {
-  applyManualProjectSlugInput,
-  createNameSeedProjectSlugState,
-  syncProjectSlugWithName,
-  type ProjectSlugState,
-} from "@/lib/project-slug";
 import type { AdminContentModel, CreateAdminContentModelFieldPayload } from "@/types/api";
+
+import type { ContentTypeIdentifierState } from "./types";
+import {
+  createGeneratedIdentifier,
+  createManualIdentifier,
+  toContentTypeIdentifierSeed,
+} from "./utils";
 
 export type ContentModelFieldTypeId =
   | "rich_text"
@@ -57,7 +58,7 @@ export type ContentModelFieldRow = {
 export type ContentModelFieldDraft = {
   typeId: ContentModelFieldTypeId;
   name: string;
-  key: ProjectSlugState;
+  key: ContentTypeIdentifierState;
   description: string;
   required: boolean;
   localizable: boolean;
@@ -224,7 +225,7 @@ export function createContentModelFieldDraft(
   return {
     typeId,
     name: previous?.name ?? "",
-    key: previous?.key ?? createNameSeedProjectSlugState(""),
+    key: previous?.key ?? createGeneratedIdentifier(""),
     description: previous?.description ?? "",
     required: previous?.required ?? false,
     localizable: previous?.localizable ?? false,
@@ -247,7 +248,10 @@ export function syncContentModelFieldDraftName(
   return {
     ...draft,
     name: nextName,
-    key: syncProjectSlugWithName(draft.key, nextName),
+    key:
+      draft.key.source === "generated"
+        ? createGeneratedIdentifier(toContentTypeIdentifierSeed(nextName))
+        : draft.key,
   };
 }
 
@@ -257,7 +261,7 @@ export function updateContentModelFieldDraftKey(
 ): ContentModelFieldDraft {
   return {
     ...draft,
-    key: applyManualProjectSlugInput(nextKey),
+    key: createManualIdentifier(nextKey),
   };
 }
 

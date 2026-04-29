@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TFunction } from "i18next";
 
 import {
+  buildFavoriteAdminChildren,
   flattenFavoriteNavItems,
   resolveFavoriteNavItems,
 } from "@/components/layout/admin-side-nav/favorite-nav-items";
@@ -158,6 +159,52 @@ describe("resolveFavoriteNavItems", () => {
     ]);
   });
 
+  it("resolves query-backed edit favorites from the pathname template", () => {
+    const favorites = resolveFavoriteNavItems({
+      favorites: [
+        {
+          id: "item:/projects/ws-9/content/models/edit?modelId=model-1",
+          type: "item",
+          path: "/projects/ws-9/content/models/edit?modelId=model-1",
+        },
+      ],
+      items: [],
+      dynamicLabels: new Map([["/projects/ws-9/content/models/edit?modelId=model-1", "Article"]]),
+      t: ((key: string) => key) as TFunction,
+    });
+
+    expect(flattenFavoriteNavItems(favorites)).toEqual([
+      expect.objectContaining({
+        path: "/projects/ws-9/content/models/edit?modelId=model-1",
+        label: "Article",
+        isCurrentWorkspace: false,
+      }),
+    ]);
+  });
+
+  it("keeps query-backed edit favorites active only for the matching model id", () => {
+    const favorites = resolveFavoriteNavItems({
+      favorites: [
+        {
+          id: "item:/projects/ws-9/content/models/edit?modelId=model-1",
+          type: "item",
+          path: "/projects/ws-9/content/models/edit?modelId=model-1",
+        },
+      ],
+      items: [],
+      t: ((key: string) => key) as TFunction,
+    });
+
+    expect(
+      buildFavoriteAdminChildren(favorites, "/projects/ws-9/content/models/edit?modelId=model-1")[0]
+        ?.isActive,
+    ).toBe(true);
+    expect(
+      buildFavoriteAdminChildren(favorites, "/projects/ws-9/content/models/edit?modelId=model-2")[0]
+        ?.isActive,
+    ).toBe(false);
+  });
+
   it("prefers workspace page labels over workspace ancestor labels in the global view", () => {
     const favorites = resolveFavoriteNavItems({
       favorites: [
@@ -208,7 +255,7 @@ describe("resolveFavoriteNavItems", () => {
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
         path: "/projects/ws-1/content/general",
-        label: "nav:NAV_SETTINGS_SITE",
+        label: "nav:NAV_SETTINGS",
         isCurrentWorkspace: true,
       }),
       expect.objectContaining({
@@ -240,11 +287,11 @@ describe("resolveFavoriteNavItems", () => {
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
         path: "/projects/ws-9/content/localization",
-        label: "nav:NAV_SETTINGS_SITE",
+        label: "nav:NAV_SETTINGS",
       }),
       expect.objectContaining({
         path: "/projects/ws-9/content/domain",
-        label: "nav:NAV_SETTINGS_SITE",
+        label: "nav:NAV_SETTINGS",
       }),
     ]);
   });

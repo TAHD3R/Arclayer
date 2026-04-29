@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelEditScreen } from "@/pages/projects/content/models/components/content-model-edit-screen";
 import type { AdminContentModel } from "@/types/api";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const addContentModelFieldMock = vi.fn();
 const deleteContentModelFieldMock = vi.fn();
@@ -33,20 +34,27 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("@arclayer/ui/expandable-screen", () => ({
-  ExpandableScreen: ({ children }: PropsWithChildren) => <div>{children}</div>,
-  ExpandableScreenContent: ({ children }: PropsWithChildren) => <div>{children}</div>,
-}));
-
 vi.mock("@/layouts/page-shell/default-page", () => ({
   DefaultPage: ({
     title,
+    description,
+    afterFavorite,
     action,
+    extra,
     children,
-  }: PropsWithChildren<{ title: ReactNode; action?: ReactNode }>) => (
+  }: PropsWithChildren<{
+    title: ReactNode;
+    description?: ReactNode;
+    afterFavorite?: ReactNode;
+    action?: ReactNode;
+    extra?: ReactNode;
+  }>) => (
     <div>
       <h1>{title}</h1>
+      {description ? <p>{description}</p> : null}
+      {afterFavorite}
       {action}
+      {extra}
       {children}
     </div>
   ),
@@ -61,7 +69,18 @@ function createWrapper() {
   });
 
   return function Wrapper({ children }: PropsWithChildren) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ChromeTabsProvider
+          labels={{
+            scrollLeftAriaLabel: "scroll left",
+            scrollRightAriaLabel: "scroll right",
+          }}
+        >
+          {children}
+        </ChromeTabsProvider>
+      </QueryClientProvider>
+    );
   };
 }
 
@@ -192,23 +211,23 @@ describe("content model edit screen", () => {
       buildModel(),
       buildModel({
         id: "model-2",
-        singularKey: "author-profile",
-        pluralKey: "author-profiles",
+        singularKey: "authorProfile",
+        pluralKey: "authorProfiles",
         name: "Author profile",
       }),
     ]);
 
     const createdModel = buildModel({
       fieldSchema: {
-        author: {
-          label: "Author",
+        heroImage: {
+          label: "Hero Image",
           scalar: "json",
           required: false,
           config: {
             kind: "reference",
             localizable: false,
             referenceMode: "single",
-            targetModelKey: "author-profile",
+            targetModelKey: "authorProfile",
           },
         },
       },
@@ -246,37 +265,38 @@ describe("content model edit screen", () => {
     ).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL"), {
-      target: { value: "Author" },
+      target: { value: "Hero Image" },
     });
+    expect(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_KEY_LABEL")).toHaveValue("heroImage");
     await waitFor(() => {
       expect(
         screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_LABEL"),
       ).not.toBeDisabled();
     });
     fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_LABEL"), {
-      target: { value: "author-profile" },
+      target: { value: "authorProfile" },
     });
 
     fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_CONFIG_SUBMIT" }));
 
     await waitFor(() => {
       expect(addContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", {
-        key: "author",
-        label: "Author",
+        key: "heroImage",
+        label: "Hero Image",
         scalar: "json",
         required: false,
         config: {
           kind: "reference",
           localizable: false,
           referenceMode: "single",
-          targetModelKey: "author-profile",
+          targetModelKey: "authorProfile",
         },
       });
     });
     expect(onModelChange).toHaveBeenCalledWith(createdModel);
   });
 
-  test("renders the fields table once fields exist", () => {
+  test("renders the model title, copy ID action, and fields table once fields exist", () => {
     render(
       <ContentModelEditScreen
         projectId="project-1"
@@ -304,14 +324,24 @@ describe("content model edit screen", () => {
       },
     );
 
+    expect(screen.getByRole("heading", { level: 1, name: "Article" })).toBeInTheDocument();
+    expect(screen.getByText("Article model")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { level: 1, name: "CONTENT_MODELS_FIELDS_PAGE_TITLE" }),
+      screen.getByRole("button", { name: "CONTENT_MODELS_COPY_ID_ACTION" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "CONTENT_MODELS_EDIT_SAVE_ACTION" })).toBeDisabled();
+    expect(screen.getByRole("tab", { name: "CONTENT_MODELS_EDIT_TAB_FIELDS" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "CONTENT_MODELS_EDIT_TAB_SETTINGS" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Title")).toBeInTheDocument();
+    expect(screen.getByText("title")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_MODELS_FIELD_TYPE_SHORT_TEXT_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_MODELS_FIELD_LOCALIZATION_LOCALIZED")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_ROW_EDIT_ACTION" }),
+      screen.getByRole("button", { name: "content:CONTENT_MODELS_FIELD_ROW_EDIT_ACTION" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "content:CONTENT_MODELS_FIELDS_ADD_ACTION" }),
     ).toBeInTheDocument();
   });
 });

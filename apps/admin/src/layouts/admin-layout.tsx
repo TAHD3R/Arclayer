@@ -3,11 +3,13 @@ import { type PropsWithChildren, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
+import { buildContentModelsQueryKey, listAllContentModels } from "@/api/content";
 import { getProjectDetail, listProjects } from "@/api/projects";
 import { resolveProjectSceneNavItems } from "@/constants/menu/project-scene";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
@@ -19,11 +21,19 @@ import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { extractWorkspaceBaseFromPath } from "@/layouts/admin-scene-utils";
 import { buildAdminTopbarBreadcrumbs } from "@/lib/admin-topbar-breadcrumbs";
+import { projectContentModelsEditPath } from "@/lib/routing/project-content-routing";
 import { projectHomePath, projectsHomePath } from "@/lib/routing/workspace-routing";
 import {
   mapProjectListItemToSidebarBrowseProject,
   mapProjectToListItem,
 } from "@/pages/usercenter/projects/project-list-items";
+
+function readContentModelEditModelId(path: string): string | null {
+  const [pathname, search = ""] = path.split("?", 2);
+  if (!/\/content\/models\/edit\/?$/.test(pathname)) return null;
+  const modelId = new URLSearchParams(search).get("modelId")?.trim();
+  return modelId || null;
+}
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
@@ -42,6 +52,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const setSidebarWidthPx = usePreferencesStore((s) => s.setSidebarWidthPx);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
+  const favoritePaths = useFavoritesStore((s) => s.paths);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
 
@@ -148,10 +159,53 @@ export function AdminLayout({ children }: PropsWithChildren) {
         : [],
     [effectiveProjectId, isWorkspaceScopeRoute],
   );
-  const topbarBreadcrumbs = useMemo(
-    () => buildAdminTopbarBreadcrumbs(mainItems, pathname),
-    [mainItems, pathname],
+
+  const contentModelEditModelId = useMemo(() => {
+    return readContentModelEditModelId(`${pathname}${searchStr}`);
+  }, [pathname, searchStr]);
+  const hasContentModelEditFavorite = useMemo(
+    () => favoritePaths.some((path) => Boolean(readContentModelEditModelId(path))),
+    [favoritePaths],
   );
+
+  const contentModelBreadcrumbQuery = useQuery({
+    queryKey: effectiveProjectId
+      ? buildContentModelsQueryKey(String(effectiveProjectId))
+      : ["content", "models", "missing-project"],
+    enabled: Boolean(
+      accessToken && effectiveProjectId && (contentModelEditModelId || hasContentModelEditFavorite),
+    ),
+    queryFn: () => listAllContentModels(String(effectiveProjectId)),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const topbarBreadcrumbs = useMemo(() => {
+    const baseBreadcrumbs = buildAdminTopbarBreadcrumbs(mainItems, pathname);
+    if (!contentModelEditModelId) return baseBreadcrumbs;
+
+    const model = (contentModelBreadcrumbQuery.data ?? []).find(
+      (item) => item.id === contentModelEditModelId,
+    );
+    return [
+      ...baseBreadcrumbs.map((item) => Object.assign({}, item, { isCurrent: false })),
+      {
+        key: `content-model:${contentModelEditModelId}`,
+        label: model?.name ?? t("content:CONTENT_MODELS_EDIT_BREADCRUMB_FALLBACK"),
+        disabled: true,
+        isCurrent: true,
+      },
+    ];
+  }, [contentModelBreadcrumbQuery.data, contentModelEditModelId, mainItems, pathname, t]);
+  const favoriteDynamicLabels = useMemo(() => {
+    if (!effectiveProjectId) return undefined;
+    const labels = new Map<string, string>();
+    for (const model of contentModelBreadcrumbQuery.data ?? []) {
+      labels.set(projectContentModelsEditPath(String(effectiveProjectId), model.id), model.name);
+    }
+    return labels;
+  }, [contentModelBreadcrumbQuery.data, effectiveProjectId]);
   const topbarProjectMenuProjects = useMemo(() => {
     if (!topbarProject) return [];
     return browseProjects.filter((project) => project.workspaceId === topbarProject.workspaceId);
@@ -279,6 +333,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
             : workspaceBase
           : null
       }
+      favoriteDynamicLabels={favoriteDynamicLabels}
       resolvePermissionName={resolvePermissionName}
       showNavSkeleton={false}
       sidebarCollapsible="icon"

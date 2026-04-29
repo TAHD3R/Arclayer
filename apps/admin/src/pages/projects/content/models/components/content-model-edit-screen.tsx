@@ -1,14 +1,14 @@
 import * as React from "react";
-import { arrayMove } from "@dnd-kit/sortable";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { type ColumnDef, type Table as ReactTable } from "@tanstack/react-table";
 import {
+  ArrowLeft,
   Blocks,
   Binary,
   Braces,
   CalendarClock,
   Copy,
   FileText,
-  GripVertical,
   Hash,
   ImagePlus,
   Link2,
@@ -17,6 +17,7 @@ import {
   MoreVertical,
   Pencil,
   PlusIcon,
+  Save,
   TextCursorInput,
   ToggleLeft,
   Type,
@@ -24,12 +25,15 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { addContentModelField, deleteContentModelField, listAllContentModels } from "@/api/content";
 import {
-  addContentModelField,
-  deleteContentModelField,
-  listAllContentModels,
-  reorderContentModelFields,
-} from "@/api/content";
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
+import { BaseTag } from "@/components/ui/tags";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
   notifyError,
@@ -37,6 +41,8 @@ import {
   notifyInfoText,
   notifySuccessText,
 } from "@/lib/notifications";
+import { projectContentModelsEditPath } from "@/lib/routing/project-content-routing";
+import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { cn } from "@arclayer/lib/utils";
@@ -58,12 +64,22 @@ import {
   DropdownMenuIconItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { Sortable, SortableItem, SortableItemHandle } from "@arclayer/ui/sortable";
 import { Textarea } from "@arclayer/ui/textarea";
+import {
+  ChromeTabs,
+  ChromeTabsContent,
+  ChromeTabsList,
+  ChromeTabsTrigger,
+} from "@arclayer/ui/chrome-tabs";
+import {
+  DataTableToolbarTools,
+  useDataTableCore,
+  useDataTableRowHeightPreference,
+  useDataTableWrapHeadersPreference,
+} from "@arclayer/ui/data-table";
 
 import {
   buildContentModelFieldPayload,
@@ -83,6 +99,7 @@ import {
   type ContentModelFieldTypeId,
 } from "../fields";
 import type { ContentModelsTableRow } from "../types";
+import { validateContentTypeIdentifier } from "../utils";
 import { ContentModelsRowActions } from "./content-models-row-actions";
 
 const FIELD_TYPE_ICON_MAP: Record<
@@ -573,121 +590,180 @@ function FieldRowMenu(props: { disabled?: boolean; onDelete: () => void }) {
 }
 
 function FieldsTable(props: {
+  tableId: string;
   rows: ContentModelFieldRow[];
   canManageFields: boolean;
   pending: boolean;
+  refreshing: boolean;
   onAddField: () => void;
   onEditField: (row: ContentModelFieldRow) => void;
   onDeleteField: (row: ContentModelFieldRow) => void;
-  onMove: (rows: ContentModelFieldRow[]) => void;
+  onRefresh: () => void;
 }) {
-  const { t } = useTranslation("content");
+  const { t } = useTranslation(["content", "common"]);
+  const [searchInput, setSearchInput] = React.useState("");
+  const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId: props.tableId });
+  const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: props.tableId,
+  });
+  const filteredRows = React.useMemo(() => {
+    const query = searchInput.trim().toLowerCase();
+    if (!query) return props.rows;
+    return props.rows.filter((row) => {
+      const typeId = getContentModelFieldTypeFromRow(row);
+      const typeLabel = t(getContentModelFieldTypeLabelKey(typeId)).toLowerCase();
+      return [row.label, row.key, typeLabel].some((value) => value.toLowerCase().includes(query));
+    });
+  }, [props.rows, searchInput, t]);
+  const columns = React.useMemo<ColumnDef<ContentModelFieldRow, unknown>[]>(
+    () => [
+      {
+        accessorKey: "label",
+        meta: {
+          title: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_NAME"),
+          kind: "primary",
+          pin: "left",
+        },
+        header: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_NAME"),
+        cell: ({ row }) => (
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 truncate text-headline text-label-primary">
+              {row.original.label}
+            </span>
+            <BaseTag textStyle="caption" className="shrink-0">
+              <span className="font-mono">{row.original.key}</span>
+            </BaseTag>
+          </div>
+        ),
+        size: 360,
+        minSize: 280,
+      },
+      {
+        id: "fieldType",
+        accessorFn: getContentModelFieldTypeFromRow,
+        meta: {
+          title: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_TYPE"),
+          kind: "meta",
+        },
+        header: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_TYPE"),
+        cell: ({ row }) => {
+          const typeId = getContentModelFieldTypeFromRow(row.original);
+          return (
+            <BaseTag color="blue" textStyle="caption">
+              {t(getContentModelFieldTypeLabelKey(typeId))}
+            </BaseTag>
+          );
+        },
+        size: 180,
+        minSize: 150,
+      },
+      {
+        id: "localization",
+        accessorFn: isContentModelFieldLocalized,
+        meta: {
+          title: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_LOCALIZATION"),
+          kind: "meta",
+        },
+        header: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_LOCALIZATION"),
+        cell: () => null,
+        size: 160,
+        minSize: 140,
+      },
+      {
+        id: "actions",
+        enableSorting: false,
+        enableHiding: false,
+        meta: buildDataTableActionsColumnMeta("right", "right"),
+        header: "",
+        cell: ({ row }) => (
+          <DataTableActionsCell>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={props.pending}
+              onClick={() => props.onEditField(row.original)}
+            >
+              <Pencil className="size-4" />
+              {t("content:CONTENT_MODELS_FIELD_ROW_EDIT_ACTION")}
+            </Button>
+            <FieldRowMenu
+              disabled={props.pending}
+              onDelete={() => props.onDeleteField(row.original)}
+            />
+          </DataTableActionsCell>
+        ),
+        size: 132,
+        minSize: 132,
+      },
+    ],
+    [props, t],
+  );
+  const tableCore = useDataTableCore<ContentModelFieldRow>({
+    columns,
+    data: filteredRows,
+    pageCount: 1,
+    initialState: {
+      pageSize: 500,
+    },
+    rowSelection: {
+      enabled: false,
+      getRowId: (row) => row.key,
+    },
+    features: {
+      sorting: { enabled: true, mode: "client" },
+    },
+  });
+  const toolsLabels = React.useMemo(() => buildDataTableToolsLabels(t), [t]);
+  const toolbar = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <DataTableSearchInput
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder={t("content:CONTENT_MODELS_FIELDS_SEARCH_PLACEHOLDER")}
+        clearLabel={t("common:CLEAR")}
+      />
+      <DataTableToolbarTools
+        table={tableCore.table as ReactTable<ContentModelFieldRow>}
+        rowHeight={rowHeight}
+        onRowHeightChange={setRowHeight}
+        wrapHeaders={wrapHeaders}
+        onWrapHeadersChange={setWrapHeaders}
+        onRefresh={props.onRefresh}
+        refreshing={props.refreshing}
+        labels={toolsLabels}
+        components={{ IconButton: DataTableToolbarAntdIconButton }}
+      />
+    </div>
+  );
+  const footerSlot = (
+    <div className="flex w-full justify-center">
+      <Button
+        variant="outline"
+        onClick={props.onAddField}
+        disabled={!props.canManageFields || props.pending}
+      >
+        <PlusIcon className="size-4" />
+        {t("content:CONTENT_MODELS_FIELDS_ADD_ACTION")}
+      </Button>
+    </div>
+  );
 
   return (
-    <div className="rounded-lg border border-border/70 bg-card shadow-xs">
-      <div
-        role="row"
-        className="grid grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_auto] gap-4 border-b border-border/70 px-4 py-3"
-      >
-        <div className="text-caption font-semibold text-label-secondary">
-          {t("CONTENT_MODELS_FIELDS_TABLE_COL_NAME")}
-        </div>
-        <div className="text-caption font-semibold text-label-secondary">
-          {t("CONTENT_MODELS_FIELDS_TABLE_COL_TYPE")}
-        </div>
-        <div className="text-caption font-semibold text-label-secondary">
-          {t("CONTENT_MODELS_FIELDS_TABLE_COL_LOCALIZATION")}
-        </div>
-        <div className="text-caption font-semibold text-label-secondary">
-          {t("CONTENT_MODELS_FIELDS_TABLE_COL_ACTIONS")}
-        </div>
-      </div>
-
-      <Sortable
-        value={props.rows}
-        getItemValue={(row) => row.key}
-        onValueChange={() => undefined}
-        onMove={({ activeIndex, overIndex }) =>
-          props.onMove(arrayMove(props.rows, activeIndex, overIndex))
-        }
-        className="divide-y divide-border/70"
-      >
-        {props.rows.map((row) => {
-          const typeId = getContentModelFieldTypeFromRow(row);
-          return (
-            <SortableItem
-              key={row.key}
-              value={row.key}
-              asChild
-              disabled={!props.canManageFields || props.pending}
-            >
-              <div
-                role="row"
-                className="grid grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_auto] gap-4 px-4 py-4"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  <SortableItemHandle
-                    className={cn(
-                      "mt-1 text-label-tertiary",
-                      (!props.canManageFields || props.pending) && "opacity-40",
-                    )}
-                  >
-                    <GripVertical className="size-4" />
-                  </SortableItemHandle>
-                  <div className="min-w-0">
-                    <div className="truncate text-headline text-label-primary">{row.label}</div>
-                    <div className="mt-1 truncate text-footnote text-label-secondary">
-                      {row.key}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex min-w-0 items-center">
-                  <span className="truncate text-footnote text-label-primary">
-                    {t(getContentModelFieldTypeLabelKey(typeId))}
-                  </span>
-                </div>
-                <div className="flex min-w-0 items-center">
-                  <span className="truncate text-footnote text-label-secondary">
-                    {isContentModelFieldLocalized(row)
-                      ? t("CONTENT_MODELS_FIELD_LOCALIZATION_LOCALIZED")
-                      : t("CONTENT_MODELS_FIELD_LOCALIZATION_SHARED")}
-                  </span>
-                </div>
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={props.pending}
-                    onClick={() => props.onEditField(row)}
-                  >
-                    <Pencil className="size-4" />
-                    {t("CONTENT_MODELS_FIELD_ROW_EDIT_ACTION")}
-                  </Button>
-                  <FieldRowMenu
-                    disabled={props.pending}
-                    onDelete={() => props.onDeleteField(row)}
-                  />
-                </div>
-              </div>
-            </SortableItem>
-          );
-        })}
-      </Sortable>
-
-      <div className="flex items-center justify-between gap-4 border-t border-border/70 px-4 py-4">
-        <div className="text-footnote text-label-secondary">
-          {t("CONTENT_MODELS_FIELDS_TABLE_HINT")}
-        </div>
-        <Button
-          variant="outline"
-          onClick={props.onAddField}
-          disabled={!props.canManageFields || props.pending}
-        >
-          <PlusIcon className="size-4" />
-          {t("CONTENT_MODELS_FIELDS_ADD_ACTION")}
-        </Button>
-      </div>
-    </div>
+    <AdminDataTableSection
+      table={tableCore.table}
+      emptyText={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_TEXT")}
+      emptyTitle={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_TITLE")}
+      emptyDescription={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_DESC")}
+      loading={false}
+      error={null}
+      onRetry={props.onRefresh}
+      t={t}
+      rowHeight={rowHeight}
+      wrapHeaders={wrapHeaders}
+      refreshing={props.refreshing}
+      toolbar={toolbar}
+      footerSlot={footerSlot}
+    />
   );
 }
 
@@ -706,6 +782,11 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
   );
   const [draftErrors, setDraftErrors] = React.useState<FieldDraftErrors>({});
   const [fieldToDelete, setFieldToDelete] = React.useState<ContentModelFieldRow | null>(null);
+  const [fieldsRefreshing, setFieldsRefreshing] = React.useState(false);
+  const tableId = React.useMemo(
+    () => `project-content-model-fields:${props.projectId}:${activeModel?.id ?? "none"}`,
+    [activeModel?.id, props.projectId],
+  );
 
   React.useEffect(() => {
     if (!activeModel) {
@@ -714,6 +795,7 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
       setDraft(createContentModelFieldDraft("short_text"));
       setDraftErrors({});
       setFieldToDelete(null);
+      setFieldsRefreshing(false);
     }
   }, [activeModel]);
 
@@ -767,19 +849,6 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     onError: notifyError,
   });
 
-  const reorderFieldMutation = useMutation({
-    mutationFn: async (nextRows: ContentModelFieldRow[]) => {
-      if (!activeModel) throw new Error("CONTENT_MODELS_ACTIVE_MODEL_REQUIRED");
-      return reorderContentModelFields(props.projectId, activeModel.id, {
-        fieldKeys: nextRows.map((row) => row.key),
-      });
-    },
-    onSuccess: async (model) => {
-      await syncModel(model);
-    },
-    onError: notifyError,
-  });
-
   const deleteFieldMutation = useMutation({
     mutationFn: async (fieldKey: string) => {
       if (!activeModel) throw new Error("CONTENT_MODELS_ACTIVE_MODEL_REQUIRED");
@@ -804,6 +873,8 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     }
     if (!key) {
       errors.key = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_KEY");
+    } else if (!validateContentTypeIdentifier(key)) {
+      errors.key = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_KEY_FORMAT");
     } else if (existingKeys.has(key)) {
       errors.key = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_KEY_EXISTS");
     }
@@ -846,165 +917,154 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     void addFieldMutation.mutateAsync();
   }, [addFieldMutation, validateDraft]);
 
+  const handleRefreshFields = React.useCallback(async () => {
+    setFieldsRefreshing(true);
+    try {
+      await props.onRefreshModels();
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setFieldsRefreshing(false);
+    }
+  }, [props]);
+
   const pending =
     props.pending ||
     addFieldMutation.isPending ||
-    reorderFieldMutation.isPending ||
-    deleteFieldMutation.isPending;
+    deleteFieldMutation.isPending ||
+    fieldsRefreshing;
+
+  if (!activeModel) return null;
+
+  const copyIdAction = (
+    <Button variant="ghost" size="sm" onClick={() => void handleCopyId()} disabled={pending}>
+      <Copy className="size-4" />
+      {t("CONTENT_MODELS_COPY_ID_ACTION")}
+    </Button>
+  );
+
+  const headerAction = (
+    <div className="inline-flex items-center gap-2">
+      <ContentModelsRowActions
+        row={activeModel}
+        canManageModels={props.canManageModels}
+        pending={pending}
+        triggerVariant="outline"
+        onDuplicate={props.onDuplicate}
+        onDelete={props.onDelete}
+      />
+      <Button variant="outline" onClick={props.onClose} disabled={pending}>
+        <ArrowLeft className="size-4" />
+        {t("CONTENT_MODELS_EDIT_BACK_ACTION")}
+      </Button>
+      {fieldRows.length > 0 ? (
+        <Button variant="primary" disabled>
+          <Save className="size-4" />
+          {t("CONTENT_MODELS_EDIT_SAVE_ACTION")}
+        </Button>
+      ) : null}
+    </div>
+  );
+  const pageDescription = activeModel.description?.trim() || undefined;
+  const pageExtra =
+    fieldRows.length > 0 ? (
+      <ChromeTabsList className="w-auto">
+        <ChromeTabsTrigger value="fields">{t("CONTENT_MODELS_EDIT_TAB_FIELDS")}</ChromeTabsTrigger>
+        <ChromeTabsTrigger value="settings">
+          {t("CONTENT_MODELS_EDIT_TAB_SETTINGS")}
+        </ChromeTabsTrigger>
+      </ChromeTabsList>
+    ) : undefined;
 
   return (
-    <ExpandableScreen
-      expanded={Boolean(activeModel)}
-      onExpandChange={(open) => {
-        if (!open) props.onClose();
-      }}
-      layoutId="content-model-edit-screen"
-    >
-      <ExpandableScreenContent
-        showCloseButton={false}
-        className="border border-border/80 bg-background shadow-2xl"
+    <ChromeTabs value="fields">
+      <DefaultPage
+        title={activeModel.name}
+        description={pageDescription}
+        showFavoriteToggle
+        favoritePath={projectContentModelsEditPath(props.projectId, activeModel.id)}
+        afterFavorite={copyIdAction}
+        action={headerAction}
+        extra={pageExtra}
       >
-        {activeModel ? (
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="content-model-edit-screen-title"
-            className="flex h-full min-h-0 flex-col bg-background"
-          >
-            <div className="flex items-center justify-between gap-6 border-b border-border/70 px-6 py-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <h2
-                  id="content-model-edit-screen-title"
-                  className="truncate text-callout font-semibold text-label-primary"
-                >
-                  {activeModel.name}
-                </h2>
-                <Button variant="outline" size="sm" onClick={() => void handleCopyId()}>
-                  <Copy className="size-4" />
-                  {t("CONTENT_MODELS_COPY_ID_ACTION")}
-                </Button>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-3">
-                <ContentModelsRowActions
-                  row={activeModel}
-                  canManageModels={props.canManageModels}
-                  pending={pending}
-                  onDuplicate={props.onDuplicate}
-                  onDelete={props.onDelete}
-                />
-                <div className="h-5 w-px bg-border/70" />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t("common:CLOSE")}
-                  onClick={props.onClose}
-                >
-                  <X className="size-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-hidden">
-              {fieldRows.length === 0 ? (
-                <div className="flex h-full items-center justify-center px-6">
-                  <ContentGuard
-                    loading={false}
-                    empty
-                    variant="compact"
-                    wrapperSpacing="flush"
-                    className="flex w-full items-center justify-center py-0"
-                    emptyTitle={t("CONTENT_MODELS_FIELDS_EMPTY_TITLE")}
-                    emptyDescription={t("CONTENT_MODELS_FIELDS_EMPTY_DESC")}
-                    emptyExtra={
-                      <div className="flex flex-wrap items-center justify-center gap-3">
-                        <Button onClick={handleOpenAddField} disabled={!canManageFields || pending}>
-                          <PlusIcon className="size-4" />
-                          {t("CONTENT_MODELS_FIELDS_EMPTY_ACTION")}
-                        </Button>
-                        <Button variant="outline" onClick={props.onClose} disabled={pending}>
-                          {t("CONTENT_MODELS_FIELDS_EMPTY_SECONDARY_ACTION")}
-                        </Button>
-                      </div>
-                    }
-                  />
+        {fieldRows.length === 0 ? (
+          <div className="flex min-h-[420px] items-center justify-center">
+            <ContentGuard
+              loading={false}
+              empty
+              variant="compact"
+              wrapperSpacing="flush"
+              className="flex w-full items-center justify-center py-0"
+              emptyTitle={t("CONTENT_MODELS_FIELDS_EMPTY_TITLE")}
+              emptyDescription={t("CONTENT_MODELS_FIELDS_EMPTY_DESC")}
+              emptyExtra={
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Button onClick={handleOpenAddField} disabled={!canManageFields || pending}>
+                    <PlusIcon className="size-4" />
+                    {t("CONTENT_MODELS_FIELDS_EMPTY_ACTION")}
+                  </Button>
+                  <Button variant="outline" onClick={props.onClose} disabled={pending}>
+                    {t("CONTENT_MODELS_FIELDS_EMPTY_SECONDARY_ACTION")}
+                  </Button>
                 </div>
-              ) : (
-                <div className="h-full overflow-y-auto overflow-x-hidden">
-                  <DefaultPage
-                    title={t("CONTENT_MODELS_FIELDS_PAGE_TITLE")}
-                    description={t("CONTENT_MODELS_FIELDS_PAGE_DESC")}
-                    showFavoriteToggle={false}
-                    action={
-                      <Button onClick={handleOpenAddField} disabled={!canManageFields || pending}>
-                        <PlusIcon className="size-4" />
-                        {t("CONTENT_MODELS_FIELDS_ADD_ACTION")}
-                      </Button>
-                    }
-                    pageFrame="full"
-                    spacingPreset="settings-dialog"
-                    className="min-h-full"
-                    contentClassName="min-h-full"
-                    contentContainerClassName="min-h-full"
-                  >
-                    <div className="mx-auto flex min-h-full w-full flex-col pb-8">
-                      <FieldsTable
-                        rows={fieldRows}
-                        canManageFields={canManageFields}
-                        pending={pending}
-                        onAddField={handleOpenAddField}
-                        onEditField={() =>
-                          notifyInfoText(t("CONTENT_MODELS_FIELD_EDIT_UNAVAILABLE"))
-                        }
-                        onDeleteField={setFieldToDelete}
-                        onMove={(nextRows) => reorderFieldMutation.mutate(nextRows)}
-                      />
-                    </div>
-                  </DefaultPage>
-                </div>
-              )}
-            </div>
-
-            <FieldTypePickerDialog
-              open={typePickerOpen}
-              canManageFields={canManageFields}
-              onOpenChange={setTypePickerOpen}
-              onSelect={handleSelectType}
-            />
-            <FieldConfigDialog
-              open={configDialogOpen}
-              draft={draft}
-              errors={draftErrors}
-              pending={addFieldMutation.isPending}
-              referenceOptions={referenceOptions}
-              referenceLoading={referenceModelsQuery.isLoading}
-              canManageFields={canManageFields}
-              onOpenChange={setConfigDialogOpen}
-              onDraftChange={(updater) => {
-                setDraft((current) => updater(current));
-                setDraftErrors({});
-              }}
-              onChangeType={() => {
-                setConfigDialogOpen(false);
-                setTypePickerOpen(true);
-              }}
-              onSubmit={handleSubmitDraft}
-            />
-            <FieldDeleteDialog
-              field={fieldToDelete}
-              pending={deleteFieldMutation.isPending}
-              onOpenChange={(open) => {
-                if (!open) setFieldToDelete(null);
-              }}
-              onConfirm={() => {
-                if (!fieldToDelete) return;
-                void deleteFieldMutation.mutateAsync(fieldToDelete.key);
-              }}
+              }
             />
           </div>
-        ) : null}
-      </ExpandableScreenContent>
-    </ExpandableScreen>
+        ) : (
+          <ChromeTabsContent value="fields" className="min-h-0 flex-1 pb-8">
+            <div className="mx-auto flex min-h-full w-full flex-col">
+              <FieldsTable
+                tableId={tableId}
+                rows={fieldRows}
+                canManageFields={canManageFields}
+                pending={pending}
+                refreshing={fieldsRefreshing}
+                onAddField={handleOpenAddField}
+                onEditField={() => notifyInfoText(t("CONTENT_MODELS_FIELD_EDIT_UNAVAILABLE"))}
+                onDeleteField={setFieldToDelete}
+                onRefresh={() => void handleRefreshFields()}
+              />
+            </div>
+          </ChromeTabsContent>
+        )}
+
+        <FieldTypePickerDialog
+          open={typePickerOpen}
+          canManageFields={canManageFields}
+          onOpenChange={setTypePickerOpen}
+          onSelect={handleSelectType}
+        />
+        <FieldConfigDialog
+          open={configDialogOpen}
+          draft={draft}
+          errors={draftErrors}
+          pending={addFieldMutation.isPending}
+          referenceOptions={referenceOptions}
+          referenceLoading={referenceModelsQuery.isLoading}
+          canManageFields={canManageFields}
+          onOpenChange={setConfigDialogOpen}
+          onDraftChange={(updater) => {
+            setDraft((current) => updater(current));
+            setDraftErrors({});
+          }}
+          onChangeType={() => {
+            setConfigDialogOpen(false);
+            setTypePickerOpen(true);
+          }}
+          onSubmit={handleSubmitDraft}
+        />
+        <FieldDeleteDialog
+          field={fieldToDelete}
+          pending={deleteFieldMutation.isPending}
+          onOpenChange={(open) => {
+            if (!open) setFieldToDelete(null);
+          }}
+          onConfirm={() => {
+            if (!fieldToDelete) return;
+            void deleteFieldMutation.mutateAsync(fieldToDelete.key);
+          }}
+        />
+      </DefaultPage>
+    </ChromeTabs>
   );
 }

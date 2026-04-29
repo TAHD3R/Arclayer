@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { RowSelectionState } from "@tanstack/react-table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -23,6 +24,7 @@ import {
   type AssetSelectionState,
 } from "@/lib/assets/asset-selection";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { projectContentModelsEditPath } from "@/lib/routing/project-content-routing";
 import {
   useDataTable,
   useDataTableRowHeightPreference,
@@ -31,7 +33,6 @@ import {
 import { Button } from "@arclayer/ui/button";
 
 import { ContentModelsActionDialogs } from "./components/content-models-action-dialogs";
-import { ContentModelEditScreen } from "./components/content-model-edit-screen";
 import { ContentModelsSelectionToolbar } from "./components/content-models-selection-toolbar";
 import { buildContentModelsTableColumns } from "./components/content-models-table-columns";
 import { ContentModelsToolbar } from "./components/content-models-toolbar";
@@ -68,11 +69,11 @@ function writeModelTableSelection(selection: AssetSelectionState): RowSelectionS
 
 export function ContentModelsControlCenterPage({ projectId }: ContentModelsControlCenterPageProps) {
   const { t } = useTranslation(["content", "common"]);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(projectId);
   const canManageModels = permissionAccess.hasAction("project:content:models:write");
   const [createOpen, setCreateOpen] = React.useState(false);
-  const [editModel, setEditModel] = React.useState<ContentModelsTableRow | null>(null);
   const [duplicateModel, setDuplicateModel] = React.useState<ContentModelsTableRow | null>(null);
   const [bulkDuplicateOpen, setBulkDuplicateOpen] = React.useState(false);
   const [deleteModelState, setDeleteModelState] = React.useState<ContentModelsTableRow | null>(
@@ -92,6 +93,13 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
       queryClient.invalidateQueries({ queryKey: ["dataTable", tableId] }),
     ]);
   }, [projectId, queryClient, tableId]);
+
+  const openModelEditor = React.useCallback(
+    (model: ContentModelsTableRow) => {
+      void navigate({ to: projectContentModelsEditPath(projectId, model.id) });
+    },
+    [navigate, projectId],
+  );
 
   const createMutation = useMutation({
     mutationFn: (values: CreateContentTypeSubmitValues) =>
@@ -114,7 +122,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
     onSuccess: async (model) => {
       await refreshModels();
       setDuplicateModel(null);
-      setEditModel(model);
+      openModelEditor(model);
       notifySuccessText(t("content:CONTENT_MODELS_DUPLICATE_SUCCESS"));
     },
     onError: notifyError,
@@ -146,7 +154,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
       setBulkDuplicateOpen(false);
       tableHook.table.resetRowSelection();
       setLastSelectedModelId(null);
-      if (models[0]) setEditModel(models[0]);
+      if (models[0]) openModelEditor(models[0]);
       notifySuccessText(
         t("content:CONTENT_MODELS_BULK_DUPLICATE_SUCCESS", { count: models.length }),
       );
@@ -169,7 +177,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
           bulkDuplicateMutation.isPending ||
           deleteMutation.isPending,
         formatDateTime: (value) => dateTime.formatDateTime(value, { emptyValue: "" }),
-        onEdit: setEditModel,
+        onEdit: openModelEditor,
         onDuplicate: setDuplicateModel,
         onDelete: setDeleteModelState,
       }),
@@ -179,6 +187,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
       dateTime.formatDateTime,
       deleteMutation.isPending,
       duplicateMutation.isPending,
+      openModelEditor,
       t,
     ],
   );
@@ -217,7 +226,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
     ) => {
       if (event.detail >= 2) {
         event.preventDefault();
-        setEditModel(model);
+        openModelEditor(model);
         return;
       }
 
@@ -234,7 +243,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
       tableHook.table.setRowSelection(writeModelTableSelection(nextSelection));
       setLastSelectedModelId(nextSelection.lastActiveId);
     },
-    [lastSelectedModelId, orderedModelIds, tableHook.table],
+    [lastSelectedModelId, openModelEditor, orderedModelIds, tableHook.table],
   );
   const toolbar = (
     <ContentModelsToolbar
@@ -362,7 +371,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
             if (!targetModel) return;
             await deleteMutation.mutateAsync(targetModel.id);
             await refreshModels();
-            if (editModel?.id === targetModel.id) setEditModel(null);
             setDeleteModelState(null);
             tableHook.table.resetRowSelection();
             setLastSelectedModelId(null);
@@ -392,7 +400,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
             const targets = selectedModels;
             await Promise.all(targets.map((model) => deleteMutation.mutateAsync(model.id)));
             await refreshModels();
-            if (editModel && targets.some((model) => model.id === editModel.id)) setEditModel(null);
             setBulkDeleteOpen(false);
             tableHook.table.resetRowSelection();
             setLastSelectedModelId(null);
@@ -401,19 +408,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
             );
           },
         }}
-      />
-      <ContentModelEditScreen
-        projectId={projectId}
-        model={editModel}
-        canManageModels={canManageModels}
-        pending={
-          duplicateMutation.isPending || bulkDuplicateMutation.isPending || deleteMutation.isPending
-        }
-        onDuplicate={setDuplicateModel}
-        onDelete={setDeleteModelState}
-        onModelChange={setEditModel}
-        onRefreshModels={refreshModels}
-        onClose={() => setEditModel(null)}
       />
     </>
   );

@@ -24,6 +24,8 @@ export type BasePageProps = {
   titleTooltip?: string;
   description?: ReactNode;
   showFavoriteToggle?: boolean;
+  favoritePath?: string;
+  afterFavorite?: ReactNode;
   headerVisibility?: "auto" | "always";
   action?: ReactNode;
   extra?: ReactNode;
@@ -38,12 +40,15 @@ export type PagePaneToggle = {
   label: ReactNode;
 };
 
-function FavoriteToggle() {
+function FavoriteToggle(props: { path?: string }) {
   const { t } = useTranslation(["common"]);
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const currentPath = useRouterState({
+    select: (s) => `${s.location.pathname}${s.location.searchStr}`,
+  });
+  const favoritePath = props.path ?? currentPath;
   const paths = useFavoritesStore((s) => s.paths);
   const toggle = useFavoritesStore((s) => s.toggle);
-  const isFavorited = paths.includes(pathname);
+  const isFavorited = paths.includes(favoritePath);
   const [hovered, setHovered] = useState(false);
   const actionLabel = isFavorited ? t("common:FAVORITE_REMOVE") : t("common:FAVORITE_ADD");
 
@@ -54,7 +59,7 @@ function FavoriteToggle() {
           size="icon-sm"
           variant="ghost"
           aria-label={actionLabel}
-          onClick={() => toggle(pathname)}
+          onClick={() => toggle(favoritePath)}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           className={clsx(
@@ -161,6 +166,8 @@ export function PageMainRegion(props: {
   titleTooltip?: string;
   description?: ReactNode;
   showFavoriteToggle?: boolean;
+  favoritePath?: string;
+  afterFavorite?: ReactNode;
   action?: ReactNode;
   extra?: ReactNode;
   contentClassName?: string;
@@ -174,7 +181,10 @@ export function PageMainRegion(props: {
   const onOpenPane = props.onOpenPane ?? (() => undefined);
   const fillAvailableHeight = props.fillAvailableHeight ?? true;
   const titleAdornment =
-    props.title && props.showFavoriteToggle !== false ? <FavoriteToggle /> : null;
+    props.title && props.showFavoriteToggle !== false ? (
+      <FavoriteToggle path={props.favoritePath} />
+    ) : null;
+  const afterFavorite = props.title && titleAdornment ? props.afterFavorite : null;
 
   return (
     <div
@@ -206,6 +216,7 @@ export function PageMainRegion(props: {
                     <PageTitle tooltip={props.titleTooltip}>{props.title}</PageTitle>
                   ) : null}
                   {titleAdornment}
+                  {afterFavorite}
                 </div>
                 <div className="inline-flex shrink-0 items-center gap-2.5">
                   {paneToggles.length > 0 ? (

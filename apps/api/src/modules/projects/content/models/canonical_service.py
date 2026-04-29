@@ -65,6 +65,7 @@ from src.modules.projects.content.models.protocol_registry import (
     OfficialModelFieldDefinition,
     OfficialModelProtocol,
     get_official_model_protocol,
+    list_official_model_protocols,
 )
 from src.modules.projects.content.models.repository import ProjectContentModelsRepository
 
@@ -102,20 +103,28 @@ def _normalize_required_text(value: str, *, error: str) -> str:
     return out
 
 
-_MODEL_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+_CAMEL_CASE_MODEL_IDENTIFIER_PATTERN = re.compile(r"^[a-z][A-Za-z0-9]*$")
+
+
+def _official_model_identifier_values() -> frozenset[str]:
+    return frozenset(
+        value for protocol in list_official_model_protocols() for value in (protocol.singular_key, protocol.plural_key)
+    )
 
 
 def _normalize_model_identifier(value: str, *, field_name: str) -> str:
-    normalized = value.strip().lower()
+    normalized = value.strip()
     if not normalized:
         raise Conflict(
             f"{field_name} is required",
             error="CONTENT_MODEL_IDENTIFIER_REQUIRED",
             meta={"field": field_name},
         )
-    if len(normalized) > 64 or _MODEL_IDENTIFIER_PATTERN.fullmatch(normalized) is None:
+    is_official_identifier = normalized in _official_model_identifier_values()
+    is_camel_case_identifier = _CAMEL_CASE_MODEL_IDENTIFIER_PATTERN.fullmatch(normalized) is not None
+    if len(normalized) > 64 or not (is_camel_case_identifier or is_official_identifier):
         raise Conflict(
-            f"{field_name} must be a lowercase API identifier",
+            f"{field_name} must be a camelCase API identifier",
             error="CONTENT_MODEL_IDENTIFIER_INVALID",
             meta={"field": field_name},
         )

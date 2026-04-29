@@ -25,6 +25,11 @@ export function projectContentModelsPath(projectId: string): string {
   return `/projects/${encodeURIComponent(projectId)}/content/models`;
 }
 
+export function projectContentModelsEditPath(projectId: string, modelId: string): string {
+  const search = new URLSearchParams({ modelId });
+  return `${projectContentModelsPath(projectId)}/edit?${search.toString()}`;
+}
+
 export function projectContentReleasesPath(projectId: string): string {
   return `/projects/${encodeURIComponent(projectId)}/content/releases`;
 }

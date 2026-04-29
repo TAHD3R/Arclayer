@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
@@ -10,8 +10,8 @@ vi.mock("@tanstack/react-router", () => ({
   useRouterState: ({
     select,
   }: {
-    select: (state: { location: { pathname: string } }) => unknown;
-  }) => select({ location: { pathname: "/w/ws-1/assets" } }),
+    select: (state: { location: { pathname: string; searchStr: string } }) => unknown;
+  }) => select({ location: { pathname: "/w/ws-1/assets", searchStr: "" } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -142,6 +142,39 @@ describe("DefaultPage", () => {
       "hover:text-amber-500",
       "dark:text-amber-300",
       "dark:hover:text-amber-300",
+    );
+  });
+
+  it("renders after-favorite actions next to the page title favorite toggle", () => {
+    render(
+      <DefaultPage title="Article" afterFavorite={<button type="button">Copy ID</button>}>
+        <div>Body</div>
+      </DefaultPage>,
+    );
+
+    const title = screen.getByText("Article");
+    const titleCluster = title.parentElement;
+    const favoriteButton = screen.getByRole("button", { name: /common:FAVORITE_ADD/ });
+    const copyButton = screen.getByRole("button", { name: "Copy ID" });
+
+    expect(titleCluster).toContainElement(favoriteButton);
+    expect(titleCluster).toContainElement(copyButton);
+  });
+
+  it("uses an explicit favorite path when the route needs search params", () => {
+    render(
+      <DefaultPage
+        title="Article"
+        favoritePath="/projects/project-1/content/models/edit?modelId=model-1"
+      >
+        <div>Body</div>
+      </DefaultPage>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /common:FAVORITE_ADD/ }));
+
+    expect(useFavoritesStore.getState().paths).toContain(
+      "/projects/project-1/content/models/edit?modelId=model-1",
     );
   });
 

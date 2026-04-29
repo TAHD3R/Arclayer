@@ -50,6 +50,8 @@ export function ColumnsPage({
   titleTooltip,
   description,
   showFavoriteToggle = true,
+  favoritePath,
+  afterFavorite,
   headerVisibility = "auto",
   action,
   extra,
@@ -96,6 +98,8 @@ export function ColumnsPage({
       titleTooltip={hideHeader ? undefined : resolvedTitleTooltip}
       description={hideHeader ? undefined : description}
       showFavoriteToggle={hideHeader ? false : showFavoriteToggle}
+      favoritePath={hideHeader ? undefined : favoritePath}
+      afterFavorite={hideHeader ? undefined : afterFavorite}
       action={hideHeader ? undefined : action}
       extra={hideHeader ? undefined : extra}
       contentClassName={contentClassName}

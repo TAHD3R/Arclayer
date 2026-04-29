@@ -17,6 +17,7 @@ type ContentModelsRowActionsProps = {
   row: ContentModelsTableRow;
   canManageModels?: boolean;
   pending?: boolean;
+  triggerVariant?: "ghost" | "outline";
   onEdit?: (row: ContentModelsTableRow) => void;
   onCopyId?: (row: ContentModelsTableRow) => void;
   onDuplicate?: (row: ContentModelsTableRow) => void;
@@ -33,7 +34,7 @@ export function ContentModelsRowActions(props: ContentModelsRowActionsProps) {
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
+          variant={props.triggerVariant ?? "ghost"}
           size="icon-sm"
           aria-label={t("common:MORE")}
           disabled={props.pending}

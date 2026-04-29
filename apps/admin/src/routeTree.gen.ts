@@ -53,6 +53,7 @@ import { Route as ProjectsProjectIdContentGeneralIndexRouteImport } from './rout
 import { Route as ProjectsProjectIdContentDomainIndexRouteImport } from './routes/projects/$projectId/content/domain/index'
 import { Route as ProjectsProjectIdContentCreateIndexRouteImport } from './routes/projects/$projectId/content/create/index'
 import { Route as ProjectsProjectIdContentAutomationIndexRouteImport } from './routes/projects/$projectId/content/automation/index'
+import { Route as ProjectsProjectIdContentModelsEditIndexRouteImport } from './routes/projects/$projectId/content/models/edit/index'
 import { Route as ProjectsProjectIdContentLibraryItemIdIndexRouteImport } from './routes/projects/$projectId/content/library/$itemId/index'
 
 const SystemRoute = SystemRouteImport.update({
@@ -370,6 +371,16 @@ const ProjectsProjectIdContentAutomationIndexRoute =
       (d) => d.Route,
     ),
   )
+const ProjectsProjectIdContentModelsEditIndexRoute =
+  ProjectsProjectIdContentModelsEditIndexRouteImport.update({
+    id: '/content/models/edit/',
+    path: '/content/models/edit/',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/content/models/edit/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const ProjectsProjectIdContentLibraryItemIdIndexRoute =
   ProjectsProjectIdContentLibraryItemIdIndexRouteImport.update({
     id: '/content/library/$itemId/',
@@ -427,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
+  '/projects/$projectId/content/models/edit/': typeof ProjectsProjectIdContentModelsEditIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -472,6 +484,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/settings/runtime': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/content/library/$itemId': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
+  '/projects/$projectId/content/models/edit': typeof ProjectsProjectIdContentModelsEditIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -520,6 +533,7 @@ export interface FileRoutesById {
   '/projects/$projectId/settings/runtime/': typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   '/projects/$projectId/settings/seo/': typeof ProjectsProjectIdSettingsSeoIndexRoute
   '/projects/$projectId/content/library/$itemId/': typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
+  '/projects/$projectId/content/models/edit/': typeof ProjectsProjectIdContentModelsEditIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -569,6 +583,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/runtime/'
     | '/projects/$projectId/settings/seo/'
     | '/projects/$projectId/content/library/$itemId/'
+    | '/projects/$projectId/content/models/edit/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -614,6 +629,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/runtime'
     | '/projects/$projectId/settings/seo'
     | '/projects/$projectId/content/library/$itemId'
+    | '/projects/$projectId/content/models/edit'
   id:
     | '__root__'
     | '/'
@@ -661,6 +677,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/runtime/'
     | '/projects/$projectId/settings/seo/'
     | '/projects/$projectId/content/library/$itemId/'
+    | '/projects/$projectId/content/models/edit/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -985,6 +1002,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdContentAutomationIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/content/models/edit/': {
+      id: '/projects/$projectId/content/models/edit/'
+      path: '/content/models/edit'
+      fullPath: '/projects/$projectId/content/models/edit/'
+      preLoaderRoute: typeof ProjectsProjectIdContentModelsEditIndexRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/content/library/$itemId/': {
       id: '/projects/$projectId/content/library/$itemId/'
       path: '/content/library/$itemId'
@@ -1052,6 +1076,7 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdSettingsRuntimeIndexRoute: typeof ProjectsProjectIdSettingsRuntimeIndexRoute
   ProjectsProjectIdSettingsSeoIndexRoute: typeof ProjectsProjectIdSettingsSeoIndexRoute
   ProjectsProjectIdContentLibraryItemIdIndexRoute: typeof ProjectsProjectIdContentLibraryItemIdIndexRoute
+  ProjectsProjectIdContentModelsEditIndexRoute: typeof ProjectsProjectIdContentModelsEditIndexRoute
 }
 
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
@@ -1101,6 +1126,8 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
     ProjectsProjectIdSettingsSeoIndexRoute,
   ProjectsProjectIdContentLibraryItemIdIndexRoute:
     ProjectsProjectIdContentLibraryItemIdIndexRoute,
+  ProjectsProjectIdContentModelsEditIndexRoute:
+    ProjectsProjectIdContentModelsEditIndexRoute,
 }
 
 const ProjectsProjectIdRouteWithChildren =
