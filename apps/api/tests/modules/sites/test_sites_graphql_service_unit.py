@@ -189,7 +189,7 @@ def test_record_matches_all_supports_exact_and_contains_filters() -> None:
     assert _record_matches_all(
         record,
         exact_filters={"slug": "HELLO-GRAPHQL", "revision_state": "draft"},
-        contains_filters={"title": "graphql"},
+        contains_filters={"title": "GRAPHQL"},
     )
     assert not _record_matches_all(record, exact_filters={"slug": "missing"}, contains_filters={})
     assert not _record_matches_all(record, exact_filters={}, contains_filters={"title": "absent"})

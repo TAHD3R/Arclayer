@@ -203,7 +203,7 @@ async def _create_article_item(client, project_id: str, *, slug: str, title: str
 async def _publish_page_item(client, project_id: str, *, item_id: str, title: str, path: str) -> None:
     draft_res = await client.post(
         f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
-        json=_page_draft_payload(title=title, path=path),
+        json={**_page_draft_payload(title=title, path=path), "expectedVersion": 1},
     )
     assert draft_res.status_code == 201, draft_res.text
     workflow_res = await client.patch(
@@ -212,7 +212,7 @@ async def _publish_page_item(client, project_id: str, *, item_id: str, title: st
     )
     assert workflow_res.status_code == 200, workflow_res.text
     publish_res = await client.post(
-        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/publish",
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text

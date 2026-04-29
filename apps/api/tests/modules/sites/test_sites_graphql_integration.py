@@ -48,7 +48,7 @@ def _article_draft_payload(*, expected_version: int, title: str, slug: str, rati
 
 def _page_template_draft_payload(*, title: str, path: str) -> dict:
     return {
-        "expectedVersion": 0,
+        "expectedVersion": 1,
         "changeSummary": f"{title} draft",
         "fieldsSnapshot": {"title": title, "path": path},
         "presentations": [
@@ -142,7 +142,7 @@ async def _publish_page_template(client, project_id: str, *, item_id: str, title
     )
     assert workflow_res.status_code == 200, workflow_res.text
     publish_res = await client.post(
-        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
+        f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/publish",
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text
@@ -188,7 +188,8 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
         await _create_content_model(
             client,
             project_id,
-            key="article",
+            singularKey="article",
+            pluralKey="articles",
             name="Article",
             category="content_library",
             fields=[{"key": "rating", "label": "Rating", "scalar": "number", "required": False}],
@@ -206,10 +207,10 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
         )
         patch_v1_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{article_item_id}/versions/draft",
-            json=_article_draft_payload(expected_version=0, title="World v1", slug="world", rating=5),
+            json=_article_draft_payload(expected_version=1, title="World v1", slug="world", rating=5),
         )
         assert patch_v1_res.status_code == 201, patch_v1_res.text
-        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=2)
 
         await _upsert_route_binding(
             client,
@@ -236,7 +237,7 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
 
         preview_draft_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{article_item_id}/versions/draft",
-            json=_article_draft_payload(expected_version=1, title="World v2 draft", slug="world", rating=9),
+            json=_article_draft_payload(expected_version=2, title="World v2 draft", slug="world", rating=9),
         )
         assert preview_draft_res.status_code == 201, preview_draft_res.text
 
@@ -274,6 +275,7 @@ async def test_sites_graphql_queries_follow_published_preview_and_custom_fields(
         assert published_res.status_code == 200, published_res.text
         published_payload = published_res.json()
         assert "errors" not in published_payload, published_payload
+        assert published_payload["data"]["resolvePage"] is not None, published_payload
         assert published_payload["data"]["resolvePage"]["context"]["primary"]["title"] == "World v1"
         assert published_payload["data"]["resolvePage"]["document"]["sections"][0]["props"]["headline"] == "World v1"
         assert published_payload["data"]["resolvePage"]["document"]["sections"][0]["props"]["rating"] == 5
@@ -388,7 +390,8 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         await _create_content_model(
             client,
             project_id,
-            key="article",
+            singularKey="article",
+            pluralKey="articles",
             name="Article",
             category="content_library",
             fields=[{"key": "rating", "label": "Rating", "scalar": "number", "required": False}],
@@ -400,7 +403,8 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         await _create_content_model(
             client,
             project_id,
-            key="reusable-section",
+            singularKey="reusable-section",
+            pluralKey="reusable-sections",
             name="Reusable Section",
             category="site_builder",
             capabilities=["publishable"],
@@ -411,7 +415,8 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         await _create_content_model(
             client,
             project_id,
-            key="category",
+            singularKey="category",
+            pluralKey="categories",
             name="Category",
             category="content_library",
             capabilities=["publishable"],
@@ -431,18 +436,18 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
 
         article_v1_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{article_v1}/versions/draft",
-            json=_article_draft_payload(expected_version=0, title="Hello world", slug="hello-world", rating=5),
+            json=_article_draft_payload(expected_version=1, title="Hello world", slug="hello-world", rating=5),
         )
         assert article_v1_res.status_code == 201, article_v1_res.text
         article_v2_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{article_v2}/versions/draft",
-            json=_article_draft_payload(expected_version=0, title="Hello world v2", slug="hello-world", rating=9),
+            json=_article_draft_payload(expected_version=1, title="Hello world v2", slug="hello-world", rating=9),
         )
         assert article_v2_res.status_code == 201, article_v2_res.text
         article_v2_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{article_v2}/versions/draft",
             json=_article_draft_payload(
-                expected_version=1,
+                expected_version=2,
                 title="Hello world v2",
                 slug="hello-world",
                 rating=10,
@@ -453,7 +458,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         page_1_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{page_1}/versions/draft",
             json=_simple_form_draft_payload(
-                expected_version=0,
+                expected_version=1,
                 fields_snapshot={"title": "Alpha Page", "path": "/alpha"},
             ),
         )
@@ -461,7 +466,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         page_2_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{page_2}/versions/draft",
             json=_simple_form_draft_payload(
-                expected_version=0,
+                expected_version=1,
                 fields_snapshot={"title": "Beta Page", "path": "/beta"},
             ),
         )
@@ -470,7 +475,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         section_1_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{section_1}/versions/draft",
             json=_simple_form_draft_payload(
-                expected_version=0,
+                expected_version=1,
                 fields_snapshot={
                     "title": "Header Alpha",
                     "section_key": "site-header",
@@ -482,7 +487,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         section_2_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{section_2}/versions/draft",
             json=_simple_form_draft_payload(
-                expected_version=0,
+                expected_version=1,
                 fields_snapshot={
                     "title": "Header Beta",
                     "section_key": "site-footer",
@@ -495,7 +500,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         category_1_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{category_1}/versions/draft",
             json=_simple_form_draft_payload(
-                expected_version=0,
+                expected_version=1,
                 fields_snapshot={"name": "News Category", "slug": "news", "description": "News"},
             ),
         )
@@ -503,7 +508,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         category_2_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{category_2}/versions/draft",
             json=_simple_form_draft_payload(
-                expected_version=0,
+                expected_version=1,
                 fields_snapshot={"name": "Docs Category", "slug": "docs", "description": "Docs"},
             ),
         )
@@ -591,7 +596,7 @@ async def test_sites_graphql_list_queries_support_filter_sort_and_pagination(
         assert response.status_code == 200, response.text
         payload = response.json()
         assert "errors" not in payload, payload
-        assert payload["data"]["articleEntries"] == [{"title": "Hello world v2", "slug": "hello-world", "revision": 2}]
+        assert payload["data"]["articleEntries"] == [{"title": "Hello world v2", "slug": "hello-world", "revision": 3}]
         assert payload["data"]["pages"] == [{"title": "Beta Page", "path": "/beta"}]
         assert payload["data"]["reusableSections"] == [{"title": "Header Alpha", "sectionKey": "site-header"}]
         assert payload["data"]["categories"] == [{"name": "News Category", "slug": "news"}]

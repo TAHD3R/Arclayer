@@ -6,6 +6,7 @@ from src.core.exceptions.types import (
     Forbidden,
     NotFound,
     ServiceUnavailable,
+    TooManyRequests,
     Unauthorized,
 )
 
@@ -16,6 +17,7 @@ __all__ = [
     "Forbidden",
     "NotFound",
     "Conflict",
+    "TooManyRequests",
     "ServiceUnavailable",
     "init_exception_handlers",
 ]

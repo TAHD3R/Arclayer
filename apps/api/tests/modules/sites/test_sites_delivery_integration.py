@@ -144,7 +144,8 @@ async def _create_reusable_section_model(client, workspace_id: str) -> dict:
     return await _create_content_model(
         client,
         project_id,
-        key="reusable-section",
+        singularKey="reusable-section",
+        pluralKey="reusable-sections",
         name="Reusable Section",
         category="site_builder",
         capabilities=["publishable"],
@@ -243,11 +244,11 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
             client,
             project_id,
             item_id=article_item_id,
-            expected_version=0,
+            expected_version=1,
             title="Entry world v1",
             slug="world",
         )
-        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=2)
 
         await _upsert_route_binding(
             client,
@@ -269,7 +270,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
             client,
             project_id,
             item_id=article_item_id,
-            expected_version=1,
+            expected_version=2,
             title="Entry world v2 (draft)",
             slug="world",
         )
@@ -333,10 +334,10 @@ async def test_delivery_pages_resolve_surfaces_binding_resolution_failures(
 
         article_draft_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{article_item_id}/versions/draft",
-            json=_article_draft_payload(expected_version=0, title="Entry world v1", slug="world"),
+            json=_article_draft_payload(expected_version=1, title="Entry world v1", slug="world"),
         )
         assert article_draft_res.status_code == 201, article_draft_res.text
-        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=2)
 
         await _upsert_route_binding(
             client,

@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/api/backend/index.md", "reason": "Backend package spec index for API implementation context."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared thinking guides for cross-layer and code reuse checks."}
+{"file": "docs/guidelines/backend-endpoint-contract.md", "reason": "Normative HTTP route, schema, auth boundary, and error contract for API work."}
+{"file": "docs/guidelines/backend-folder-architecture.md", "reason": "Normative backend routing, module, and layer placement rules."}
+{"file": "docs/plans/full-repo-audit-gap-execution-2026-04-29/README.md", "reason": "Execution coordination rules and F01 status row contract."}
+{"file": "docs/plans/full-repo-audit-gap-execution-2026-04-29/f01-content-delivery-api.md", "reason": "Current implementation task card and acceptance criteria."}
+{"file": "docs/plans/full-repo-audit-arclayer-strapi-contentful-2026-04-29.md", "reason": "Source audit sections 3.1 and 4.2 define the gap being closed."}

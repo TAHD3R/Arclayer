@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastapi import Request
 from strawberry.fastapi import BaseContext
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.config import Settings
 from src.core.exceptions import APIError, Forbidden, ServiceUnavailable
@@ -190,20 +191,30 @@ def _record_matches_all(
             return False
     for field_key, expected in contains_filters.items():
         value = _record_text_field(record, field_key)
-        if value is None or expected not in value.lower():
+        if value is None or expected.lower() not in value.lower():
             return False
     return True
 
 
 class SiteGraphQLService:
-    def __init__(self, settings: Settings, *, valkey: ValkeyClientLike | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        valkey: ValkeyClientLike | None = None,
+        repo: SitesRepository | None = None,
+    ) -> None:
         self._settings = settings
-        self._repo = SitesRepository()
+        self._valkey = valkey
+        self._repo = repo or SitesRepository()
         self._content_service = SiteContentService(settings, repo=self._repo)
         self._site_service = SiteService(settings, valkey=valkey, repo=self._repo)
         self._api_keys_repo = ProjectApiKeysRepository()
         self._document_runtime_boundary = DocumentRuntimeBoundary.for_items_repo(self._repo)
         self._runtime_site_cache: dict[UUID, UUID] = {}
+
+    def with_database_connection(self, conn: BaseDBAsyncClient) -> SiteGraphQLService:
+        return SiteGraphQLService(self._settings, valkey=self._valkey, repo=SitesRepository(conn=conn))
 
     async def _resolve_site_id(self, *, runtime_id: UUID) -> UUID:
         cached = self._runtime_site_cache.get(runtime_id)
@@ -391,10 +402,11 @@ class SiteGraphQLService:
             )
         ]
 
-        if plan.sort_field:
+        sort_field = plan.sort_field
+        if sort_field is not None:
             filtered = sorted(
                 filtered,
-                key=lambda record: _record_sort_value(record, plan.sort_field),
+                key=lambda record: _record_sort_value(record, sort_field),
                 reverse=plan.sort_direction == "desc",
             )
 
@@ -684,10 +696,11 @@ class SiteGraphQLContext(BaseContext):
         request: Request,
         settings: Settings,
         valkey: ValkeyClientLike | None = None,
+        graphql: SiteGraphQLService | None = None,
     ) -> None:
         self.runtime_id = runtime_id
         self.request = request
-        self.graphql = SiteGraphQLService(settings, valkey=valkey)
+        self.graphql = graphql or SiteGraphQLService(settings, valkey=valkey)
 
 
 def graphql_error_extensions(exc: APIError) -> dict[str, Any]:

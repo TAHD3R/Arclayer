@@ -114,7 +114,8 @@ async def test_headless_cms_benchmark_baselines(
         await _create_content_model(
             client,
             project_id,
-            key="article",
+            singularKey="article",
+            pluralKey="articles",
             name="Article",
             category="content_library",
             fields=[{"key": "rating", "label": "Rating", "scalar": "number", "required": False}],
@@ -136,10 +137,10 @@ async def test_headless_cms_benchmark_baselines(
         )
         draft_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{article_item_id}/versions/draft",
-            json=_article_draft_payload(expected_version=0, title="Benchmark Article", slug="world", rating=8),
+            json=_article_draft_payload(expected_version=1, title="Benchmark Article", slug="world", rating=8),
         )
         assert draft_res.status_code == 201, draft_res.text
-        await _publish_article_version(client, project_id, item_id=article_item_id, version=1)
+        await _publish_article_version(client, project_id, item_id=article_item_id, version=2)
 
         await _upsert_route_binding(
             client,
