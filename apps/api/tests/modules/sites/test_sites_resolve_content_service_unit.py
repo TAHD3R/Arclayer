@@ -293,7 +293,7 @@ async def test_resolve_primary_context_handles_page_fallback_release_and_errors(
         id=uuid4(),
         slug="landing",
         title="Landing",
-        model_definition=SimpleNamespace(key="page"),
+        model_definition=SimpleNamespace(key="page", singular_key="page"),
     )
     page_snapshot = SimpleNamespace(
         fields={"headline": "Hello", "seo": {"title": "SEO"}, "empty": {"nested": object()}}
@@ -328,7 +328,7 @@ async def test_resolve_primary_context_handles_page_fallback_release_and_errors(
         id=uuid4(),
         slug="candidate",
         title="Candidate",
-        model_definition=SimpleNamespace(key="article"),
+        model_definition=SimpleNamespace(key="article", singular_key="article"),
     )
     graph_node = SimpleNamespace(
         item=release_candidate,
@@ -370,7 +370,7 @@ async def test_resolve_primary_context_handles_page_fallback_release_and_errors(
         id=uuid4(),
         slug="preview-fallback",
         title="Preview fallback",
-        model_definition=SimpleNamespace(key="article"),
+        model_definition=SimpleNamespace(key="article", singular_key="article"),
         draft_version=1,
         published_version=1,
     )
@@ -404,7 +404,7 @@ async def test_resolve_primary_context_handles_page_fallback_release_and_errors(
         id=uuid4(),
         slug="hidden",
         title="Hidden",
-        model_definition=SimpleNamespace(key="article"),
+        model_definition=SimpleNamespace(key="article", singular_key="article"),
         draft_version=1,
         published_version=0,
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from uuid import UUID, uuid4
@@ -27,8 +28,10 @@ from src.modules.sites.graphql.service import (
     SiteGraphQLService,
     StructuredContentRecord,
     _build_custom_fields,
+    _delivery_omitted_field_keys,
     _extract_system_field,
     _field_aliases,
+    _filter_delivery_fields,
     _normalize_json_value,
     _normalized_contains,
     _normalized_string,
@@ -37,6 +40,9 @@ from src.modules.sites.graphql.service import (
     _record_text_field,
     graphql_error_extensions,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[5]
+RUNTIME_REPOSITORY = REPO_ROOT / "apps/api/src/modules/sites/runtime/repository.py"
 
 
 def _article_record(**overrides) -> StructuredContentRecord:
@@ -99,6 +105,75 @@ def test_build_custom_fields_keeps_all_fields_for_unknown_model() -> None:
     custom_fields = _build_custom_fields(model_key="unknown-model", fields={"title": "Raw", "count": 2})
 
     assert custom_fields == {"title": "Raw", "count": 2}
+
+
+def test_delivery_omitted_field_keys_reads_model_field_config() -> None:
+    item = SimpleNamespace(
+        model_definition=SimpleNamespace(
+            fields=[
+                SimpleNamespace(key="publicTitle", config={}),
+                SimpleNamespace(key="internalNotes", config={"omitFromApiResponse": True}),
+                SimpleNamespace(key="editorOnly", config={"hiddenInEditor": True}),
+            ]
+        )
+    )
+
+    assert _delivery_omitted_field_keys(item) == {"internalNotes"}
+
+
+def test_build_query_record_omits_delivery_hidden_fields() -> None:
+    service = _service()
+    item = SimpleNamespace(
+        id=UUID("00000000-0000-0000-0000-000000000001"),
+        model_definition=SimpleNamespace(
+            fields=[
+                SimpleNamespace(key="title", config={}),
+                SimpleNamespace(key="secret", config={"omitFromApiResponse": True}),
+            ]
+        ),
+    )
+    snapshot = SimpleNamespace(fields={"title": "Public", "secret": "Private"})
+
+    record = service._build_query_record(
+        item=item,
+        revision=1,
+        revision_state="published",
+        snapshot=snapshot,
+        metadata=DocumentRuntimeMetadata(),
+    )
+
+    assert record.fields == {"title": "Public"}
+
+
+def test_filter_delivery_fields_excludes_omitted_fields_before_custom_field_projection() -> None:
+    item = SimpleNamespace(
+        model_definition=SimpleNamespace(
+            fields=[
+                SimpleNamespace(key="title", config={}),
+                SimpleNamespace(key="rating", config={}),
+                SimpleNamespace(key="internalScore", config={"omitFromApiResponse": True}),
+            ]
+        )
+    )
+
+    filtered = _filter_delivery_fields(
+        item=item,
+        fields={
+            "title": "Public title",
+            "rating": 9,
+            "internalScore": 100,
+        },
+    )
+
+    assert filtered == {"title": "Public title", "rating": 9}
+    assert _build_custom_fields(model_key="article", fields=filtered) == {"rating": 9}
+
+
+def test_runtime_repository_queries_content_models_by_singular_key() -> None:
+    source = RUNTIME_REPOSITORY.read_text()
+
+    assert "model_definition__singular_key=model_key" in source
+    assert "model_definition__key=model_key" not in source
 
 
 def test_record_sort_value_uses_stable_revision_tie_breaker() -> None:
@@ -350,12 +425,12 @@ def test_document_query_boundary_filters_by_model_status_and_route_metadata() ->
     article_item = SimpleNamespace(
         id=UUID("00000000-0000-0000-0000-000000000010"),
         site_id=UUID("00000000-0000-0000-0000-000000000111"),
-        model_definition=SimpleNamespace(key="article"),
+        model_definition=SimpleNamespace(singular_key="article"),
     )
     page_item = SimpleNamespace(
         id=UUID("00000000-0000-0000-0000-000000000020"),
         site_id=UUID("00000000-0000-0000-0000-000000000111"),
-        model_definition=SimpleNamespace(key="page"),
+        model_definition=SimpleNamespace(singular_key="page"),
     )
     boundary = DocumentQueryBoundary(
         records=[
@@ -641,14 +716,21 @@ async def test_load_preview_snapshot_and_build_structured_record_edges() -> None
         title="Fallback title",
         slug="fallback-slug",
         locale="en-US",
-        model_definition=SimpleNamespace(key="article"),
+        model_definition=SimpleNamespace(
+            singular_key="article",
+            fields=[
+                SimpleNamespace(key="body", config={}),
+                SimpleNamespace(key="rating", config={}),
+                SimpleNamespace(key="internalScore", config={"omitFromApiResponse": True}),
+            ],
+        ),
     )
 
     async def _get_content_revision_by_number(*, entry_id, revision):  # type: ignore[no-untyped-def]
         return version if revision == 2 else None
 
     async def _build_snapshot(*, item, version):  # type: ignore[no-untyped-def]
-        return SimpleNamespace(fields={"body": {"ops": [{"insert": "Body"}]}, "rating": 9})
+        return SimpleNamespace(fields={"body": {"ops": [{"insert": "Body"}]}, "rating": 9, "internalScore": 100})
 
     service._repo = SimpleNamespace(get_content_revision_by_number=_get_content_revision_by_number)
     service._build_snapshot = _build_snapshot  # type: ignore[method-assign]
@@ -674,6 +756,7 @@ async def test_load_preview_snapshot_and_build_structured_record_edges() -> None
     assert record.title == "Fallback title"
     assert record.slug == "fallback-slug"
     assert record.custom_fields == {"rating": 9}
+    assert "internalScore" not in record.fields
 
 
 @pytest.mark.asyncio

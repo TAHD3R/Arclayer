@@ -86,6 +86,25 @@ class ProjectContentItemsRepository(TenantScopedRepository):
                 updated_by_user_id=actor_user_id,
             )
 
+    async def count_items_for_model(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_definition_id: UUID,
+        locale: str | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> int:
+        async with self.connection(conn) as tenant_conn:
+            query = ContentItemRecord.filter(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                model_definition_id=model_definition_id,
+            )
+            if locale is not None:
+                query = query.filter(locale=locale)
+            return await self.using_db(query, tenant_conn).count()
+
     async def get_item_with_model(
         self,
         *,

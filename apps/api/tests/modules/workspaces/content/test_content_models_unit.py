@@ -3,10 +3,14 @@ from __future__ import annotations
 from enum import StrEnum
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
+from unittest.mock import AsyncMock
+from uuid import uuid4
 
+import pytest
 from tortoise.fields.data import CharEnumFieldInstance
 
+from src.core.exceptions import Conflict
 from src.models.content._enums import (
     ContentBootstrapPresetState,
     ContentItemStatus,
@@ -28,10 +32,19 @@ from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.modules.projects.content.contracts import schema as contracts_schema
+from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
 from src.modules.projects.content.items.domain_helpers import (
     item_has_capability,
     read_summary_field,
     read_title_field,
+)
+from src.modules.projects.content.items.input_schema import ContentItemCreateIn
+from src.modules.projects.content.models.field_type_registry import (
+    clear_custom_content_model_field_types,
+    content_model_field_type_registry,
+    register_custom_content_model_field_type,
+    validate_content_model_field_contract,
+    validate_model_kind_contract,
 )
 from src.modules.projects.content.models.protocol_registry import list_official_model_protocols
 
@@ -188,6 +201,227 @@ def test_content_model_out_contract_registry_surfaces_formal_governance_sections
     assert "workflow" in capability_fields
     assert "delivery" in capability_fields
     assert "graphql" in capability_fields
+
+
+def test_content_model_field_type_registry_exposes_builtin_and_plugin_contracts() -> None:
+    clear_custom_content_model_field_types()
+    register_custom_content_model_field_type(
+        contracts_schema.ContentModelFieldTypeDefinitionOut(
+            uid="plugin.color.swatch",
+            config_kind="custom",
+            source="plugin",
+            scalar="text",
+            group="custom",
+            label="Color swatch",
+            plugin_id="plugin.color",
+            settings_sections=["basic", "advanced"],
+            allowed_model_kinds=["collection_type", "single_type"],
+        )
+    )
+    registry = content_model_field_type_registry()
+    field_types = {field_type.uid: field_type for field_type in registry.field_types}
+    model_kinds = {model_kind.id: model_kind for model_kind in registry.model_kinds}
+    clear_custom_content_model_field_types()
+
+    assert set(model_kinds) == {"collection_type", "single_type", "component"}
+    assert model_kinds["collection_type"].default_capabilities == ["queryable"]
+    assert model_kinds["component"].default_capabilities == []
+    assert {"short_text", "rich_text", "number", "media", "reference", "component", "dynamic_zone"} <= set(field_types)
+    assert field_types["short_text"].scalar == "text"
+    assert field_types["reference"].allowed_model_kinds == ["collection_type", "single_type"]
+    assert field_types["dynamic_zone"].config_schema["properties"]["components"] == "string[]"
+    assert field_types["plugin.color.swatch"].source == "plugin"
+
+
+def test_content_model_field_contract_validation_rejects_unsafe_graphql_names() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="sys",
+                label="System",
+                scalar="text",
+                config={"kind": "short_text"},
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_KEY_RESERVED"
+
+
+def test_content_model_field_contract_validation_rejects_unknown_custom_field_uid() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="color",
+                label="Color",
+                scalar="text",
+                config={"kind": "custom", "customFieldUid": "plugin.colors.color"},
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_TYPE_UNREGISTERED"
+
+
+def test_content_model_field_contract_validation_rejects_disabled_custom_field_type() -> None:
+    clear_custom_content_model_field_types()
+    contracts_schema.ContentModelFieldTypeDefinitionOut(
+        uid="plugin.colors.legacy",
+        config_kind="custom",
+        source="plugin",
+        lifecycle="disabled",
+        scalar="text",
+        group="custom",
+        label="Legacy color",
+        plugin_id="plugin.colors",
+        settings_sections=["basic", "advanced"],
+        allowed_model_kinds=["collection_type"],
+    )
+
+    with pytest.raises(ValueError, match="Disabled custom content model field types cannot be registered"):
+        register_custom_content_model_field_type(
+            contracts_schema.ContentModelFieldTypeDefinitionOut(
+                uid="plugin.colors.legacy",
+                config_kind="custom",
+                source="plugin",
+                lifecycle="disabled",
+                scalar="text",
+                group="custom",
+                label="Legacy color",
+                plugin_id="plugin.colors",
+                settings_sections=["basic", "advanced"],
+                allowed_model_kinds=["collection_type"],
+            )
+        )
+
+
+def test_content_model_field_contract_validation_rejects_custom_field_model_kind_mismatch() -> None:
+    clear_custom_content_model_field_types()
+    register_custom_content_model_field_type(
+        contracts_schema.ContentModelFieldTypeDefinitionOut(
+            uid="plugin.colors.swatch",
+            config_kind="custom",
+            source="plugin",
+            scalar="text",
+            group="custom",
+            label="Color swatch",
+            plugin_id="plugin.colors",
+            settings_sections=["basic", "advanced"],
+            allowed_model_kinds=["collection_type"],
+        )
+    )
+
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="brandColor",
+                label="Brand color",
+                scalar="text",
+                config={"kind": "custom", "customFieldUid": "plugin.colors.swatch"},
+            ),
+            model_kind="component",
+        )
+
+    clear_custom_content_model_field_types()
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_TYPE_MODEL_KIND_UNSUPPORTED"
+
+
+def test_content_model_field_contract_validation_requires_component_target() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="seo",
+                label="SEO",
+                scalar="json",
+                config={"kind": "component"},
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_COMPONENT_TARGET_REQUIRED"
+
+
+def test_content_model_field_contract_validation_requires_dynamic_zone_components() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="sections",
+                label="Sections",
+                scalar="json",
+                config={"kind": "dynamic_zone", "components": []},
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_CONFIG_INVALID"
+
+
+def test_component_model_kind_rejects_delivery_capabilities() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_model_kind_contract(
+            model_kind="component",
+            capabilities=["queryable"],
+            routing_mode="none",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_COMPONENT_DELIVERY_UNSUPPORTED"
+
+
+@pytest.mark.asyncio
+async def test_content_item_creation_rejects_component_models() -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    repo = SimpleNamespace(
+        get_model_definition_by_key=AsyncMock(
+            return_value=SimpleNamespace(id=uuid4(), model_kind="component"),
+        ),
+        count_items_for_model=AsyncMock(return_value=0),
+        create_item=AsyncMock(),
+    )
+    service = ProjectContentCanonicalItemsService(repo=cast(Any, repo))
+
+    with pytest.raises(Conflict) as exc:
+        await service.create_item(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            actor_user_id=None,
+            payload=ContentItemCreateIn(title="SEO Card", locale="en-US", model_key="seoCard"),
+        )
+
+    assert exc.value.error == "CONTENT_ITEM_COMPONENT_MODEL_UNSUPPORTED"
+    repo.create_item.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_content_item_creation_rejects_second_single_type_for_locale() -> None:
+    workspace_id = uuid4()
+    site_id = uuid4()
+    model_id = uuid4()
+    repo = SimpleNamespace(
+        get_model_definition_by_key=AsyncMock(
+            return_value=SimpleNamespace(id=model_id, model_kind="single_type"),
+        ),
+        count_items_for_model=AsyncMock(return_value=1),
+        create_item=AsyncMock(),
+    )
+    service = ProjectContentCanonicalItemsService(repo=cast(Any, repo))
+
+    with pytest.raises(Conflict) as exc:
+        await service.create_item(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            actor_user_id=None,
+            payload=ContentItemCreateIn(title="Homepage", locale="en-US", model_key="homepage"),
+        )
+
+    assert exc.value.error == "CONTENT_ITEM_SINGLE_TYPE_ALREADY_EXISTS"
+    repo.count_items_for_model.assert_awaited_once_with(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        model_definition_id=model_id,
+        locale="en-US",
+    )
+    repo.create_item.assert_not_awaited()
 
 
 def test_content_model_impact_preview_contract_surfaces_change_plan_artifacts() -> None:

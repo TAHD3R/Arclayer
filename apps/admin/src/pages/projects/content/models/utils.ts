@@ -1,5 +1,9 @@
 import { buildProjectSlug } from "@/lib/project-slug";
-import type { AdminContentModel, CreateAdminContentModelPayload } from "@/types/api";
+import type {
+  AdminContentModel,
+  AdminContentModelKind,
+  CreateAdminContentModelPayload,
+} from "@/types/api";
 
 import type {
   ContentModelsFilters,
@@ -113,16 +117,18 @@ export function buildCreateContentTypePayload(values: {
   singularKey: string;
   pluralKey: string;
   description: string | null;
+  modelKind: AdminContentModelKind;
 }): CreateAdminContentModelPayload {
+  const isComponent = values.modelKind === "component";
   return {
     name: values.name,
     singularKey: values.singularKey,
     pluralKey: values.pluralKey,
     description: values.description,
-    modelKind: "collection_type",
+    modelKind: values.modelKind,
     fields: [],
     relations: [],
-    capabilities: ["queryable"],
+    capabilities: isComponent ? [] : ["queryable"],
     routing: { mode: "none" },
     workflow: { states: ["draft"], initialState: "draft" },
     views: [],

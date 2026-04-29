@@ -31,6 +31,7 @@ def _build_item(*, title: str = "Stored Title", slug: str = "stored-slug") -> Si
     model_definition = SimpleNamespace(
         id=model_id,
         key="article",
+        singular_key="article",
         category="content_library",
         default_editor="form",
         capabilities=["queryable"],

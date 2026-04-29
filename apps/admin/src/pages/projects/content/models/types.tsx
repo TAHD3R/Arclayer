@@ -31,6 +31,7 @@ export type CreateContentTypeFormValues = {
   singularKey: ContentTypeIdentifierState;
   pluralKey: ContentTypeIdentifierState;
   description: string;
+  modelKind: AdminContentModelKind;
 };
 
 export type CreateContentTypeSubmitValues = {

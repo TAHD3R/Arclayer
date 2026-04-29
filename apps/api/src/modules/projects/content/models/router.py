@@ -16,6 +16,7 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelFieldContract,
     ContentModelFieldPatchContract,
     ContentModelFieldReorderContract,
+    ContentModelFieldTypeRegistryOut,
     ContentModelImpactPreviewOut,
     ContentModelOut,
     ContentModelSchemaSnapshotOut,
@@ -24,6 +25,7 @@ from src.modules.projects.content.models.canonical_service import (
     ContentModelDefinitionPatchContract,
     ProjectContentCanonicalModelsService,
 )
+from src.modules.projects.content.models.field_type_registry import content_model_field_type_registry
 from src.modules.projects.content.models.router_helpers import (
     ContentModelMutationOut,
     get_event_bus,
@@ -99,6 +101,18 @@ async def list_project_content_models(
         system_managed=system_managed,
     )
     return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/models/field-types",
+    response_model=ResponseModel[ContentModelFieldTypeRegistryOut],
+    response_model_exclude_none=True,
+    summary="List registered content model field types (project RBAC protected)",
+)
+async def list_project_content_model_field_types(
+    _ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
+) -> ResponseModel[ContentModelFieldTypeRegistryOut]:
+    return ApiResponse.success(data=content_model_field_type_registry())
 
 
 @router.get(

@@ -11,6 +11,7 @@ pytestmark = pytest.mark.integration
 
 
 def _model_payload(singular_key: str, plural_key: str, name: str, *, model_kind: str) -> dict:
+    capabilities = [] if model_kind == "component" else ["queryable"]
     return {
         "singularKey": singular_key,
         "pluralKey": plural_key,
@@ -25,7 +26,7 @@ def _model_payload(singular_key: str, plural_key: str, name: str, *, model_kind:
             }
         ],
         "relations": [],
-        "capabilities": ["queryable"],
+        "capabilities": capabilities,
         "routing": {"mode": "none"},
         "workflow": {"states": ["draft"], "initialState": "draft"},
         "views": [],
@@ -41,7 +42,7 @@ async def test_project_content_model_builder_creates_collection_single_and_compo
         for payload in (
             _model_payload("article", "articles", "Article", model_kind="collection_type"),
             _model_payload("homepage", "homepages", "Homepage", model_kind="single_type"),
-            _model_payload("seo-card", "seo-cards", "SEO Card", model_kind="component"),
+            _model_payload("seoCard", "seoCards", "SEO Card", model_kind="component"),
         ):
             response = await client.post(
                 f"/api/v1/projects/{project_id}/content/models",
@@ -60,7 +61,7 @@ async def test_project_content_model_builder_creates_collection_single_and_compo
         rows = {item["singularKey"]: item for item in list_response.json()["data"]["items"]}
         assert rows["article"]["modelKind"] == "collection_type"
         assert rows["homepage"]["modelKind"] == "single_type"
-        assert rows["seo-card"]["modelKind"] == "component"
+        assert rows["seoCard"]["modelKind"] == "component"
 
 
 @pytest.mark.asyncio

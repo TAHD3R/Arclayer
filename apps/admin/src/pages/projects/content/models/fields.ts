@@ -7,7 +7,7 @@ import {
   toContentTypeIdentifierSeed,
 } from "./utils";
 
-export type ContentModelFieldTypeId =
+export type ContentModelBuiltInFieldTypeId =
   | "rich_text"
   | "short_text"
   | "markdown"
@@ -20,14 +20,17 @@ export type ContentModelFieldTypeId =
   | "boolean"
   | "json_object"
   | "reference"
-  | "component";
+  | "component"
+  | "dynamic_zone";
+
+export type ContentModelFieldTypeId = ContentModelBuiltInFieldTypeId | "custom";
 
 export type ContentModelFieldTypeGroupId = "text" | "value_logic" | "time_media" | "structure";
 
 export const CONTENT_MODEL_FIELD_TYPE_GROUPS = [
   {
     id: "text",
-    typeIds: ["short_text", "rich_text", "slug"],
+    typeIds: ["short_text", "rich_text", "markdown", "slug"],
   },
   {
     id: "value_logic",
@@ -39,7 +42,7 @@ export const CONTENT_MODEL_FIELD_TYPE_GROUPS = [
   },
   {
     id: "structure",
-    typeIds: ["reference", "json_object", "component"],
+    typeIds: ["reference", "json_object", "component", "dynamic_zone"],
   },
 ] as const satisfies ReadonlyArray<{
   id: ContentModelFieldTypeGroupId;
@@ -62,6 +65,15 @@ export type ContentModelFieldDraft = {
   description: string;
   required: boolean;
   localizable: boolean;
+  unique: boolean;
+  hiddenInEditor: boolean;
+  omitFromApiResponse: boolean;
+  defaultValue: string;
+  regexPattern: string;
+  minLength: string;
+  maxLength: string;
+  condition: string;
+  enumerationOptions: string;
   numberFormat: "integer" | "decimal";
   numberMin: string;
   numberMax: string;
@@ -70,6 +82,12 @@ export type ContentModelFieldDraft = {
   booleanDefault: "none" | "true" | "false";
   referenceMode: "single" | "multiple";
   referenceTargetModelKey: string;
+  componentTargetModelKey: string;
+  dynamicZoneComponentKeys: string;
+  dynamicZoneMin: string;
+  dynamicZoneMax: string;
+  customFieldUid: string;
+  customFieldScalar: CreateAdminContentModelFieldPayload["scalar"];
 };
 
 type FieldConfigRecord = {
@@ -84,7 +102,7 @@ type FieldSchemaRecord = {
   config?: unknown;
 };
 
-const DEFAULTS_BY_TYPE: Record<ContentModelFieldTypeId, Partial<ContentModelFieldDraft>> = {
+const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentModelFieldDraft>> = {
   rich_text: {
     localizable: true,
   },
@@ -129,6 +147,9 @@ const DEFAULTS_BY_TYPE: Record<ContentModelFieldTypeId, Partial<ContentModelFiel
   component: {
     localizable: false,
   },
+  dynamic_zone: {
+    localizable: false,
+  },
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -140,6 +161,12 @@ function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function asInputString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return "";
+}
+
 function readBoolean(value: unknown, fallback = false) {
   return typeof value === "boolean" ? value : fallback;
 }
@@ -149,6 +176,11 @@ function readNumberString(value: string): number | null {
   if (!trimmed) return null;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readIntegerString(value: string): number | null {
+  const parsed = readNumberString(value);
+  return parsed !== null && Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function readFieldTypeId(
@@ -169,6 +201,8 @@ function readFieldTypeId(
   if (kind === "json_object") return "json_object";
   if (kind === "reference") return "reference";
   if (kind === "component") return "component";
+  if (kind === "dynamic_zone") return "dynamic_zone";
+  if (kind === "custom") return "custom";
 
   if (scalar === "text") return "short_text";
   if (scalar === "number") return "number";
@@ -222,23 +256,93 @@ export function createContentModelFieldDraft(
   typeId: ContentModelFieldTypeId,
   previous?: Partial<ContentModelFieldDraft>,
 ): ContentModelFieldDraft {
+  const defaults = typeId === "custom" ? {} : DEFAULTS_BY_TYPE[typeId];
   return {
     typeId,
     name: previous?.name ?? "",
     key: previous?.key ?? createGeneratedIdentifier(""),
     description: previous?.description ?? "",
     required: previous?.required ?? false,
-    localizable: previous?.localizable ?? false,
-    numberFormat: previous?.numberFormat ?? "integer",
+    localizable: previous?.localizable ?? defaults.localizable ?? false,
+    unique: previous?.unique ?? false,
+    hiddenInEditor: previous?.hiddenInEditor ?? false,
+    omitFromApiResponse: previous?.omitFromApiResponse ?? false,
+    defaultValue: previous?.defaultValue ?? "",
+    regexPattern: previous?.regexPattern ?? "",
+    minLength: previous?.minLength ?? "",
+    maxLength: previous?.maxLength ?? "",
+    condition: previous?.condition ?? "",
+    enumerationOptions: previous?.enumerationOptions ?? "",
+    numberFormat: previous?.numberFormat ?? defaults.numberFormat ?? "integer",
     numberMin: previous?.numberMin ?? "",
     numberMax: previous?.numberMax ?? "",
-    mediaMode: previous?.mediaMode ?? "single",
-    mediaKind: previous?.mediaKind ?? "image",
-    booleanDefault: previous?.booleanDefault ?? "none",
-    referenceMode: previous?.referenceMode ?? "single",
+    mediaMode: previous?.mediaMode ?? defaults.mediaMode ?? "single",
+    mediaKind: previous?.mediaKind ?? defaults.mediaKind ?? "image",
+    booleanDefault: previous?.booleanDefault ?? defaults.booleanDefault ?? "none",
+    referenceMode: previous?.referenceMode ?? defaults.referenceMode ?? "single",
     referenceTargetModelKey: previous?.referenceTargetModelKey ?? "",
-    ...DEFAULTS_BY_TYPE[typeId],
+    componentTargetModelKey: previous?.componentTargetModelKey ?? "",
+    dynamicZoneComponentKeys: previous?.dynamicZoneComponentKeys ?? "",
+    dynamicZoneMin: previous?.dynamicZoneMin ?? "",
+    dynamicZoneMax: previous?.dynamicZoneMax ?? "",
+    customFieldUid: previous?.customFieldUid ?? "",
+    customFieldScalar: previous?.customFieldScalar ?? "json",
   };
+}
+
+export function createContentModelFieldDraftFromRow(
+  row: ContentModelFieldRow,
+): ContentModelFieldDraft {
+  const config = row.config ?? {};
+  const typeId = getContentModelFieldTypeFromRow(row);
+  const defaultValue = config.defaultValue;
+  const booleanDefault =
+    defaultValue === true ? "true" : defaultValue === false ? "false" : undefined;
+  const options = Array.isArray(config.options)
+    ? config.options.filter((option): option is string => typeof option === "string").join("\n")
+    : "";
+
+  return createContentModelFieldDraft(typeId, {
+    name: row.label,
+    key: createManualIdentifier(row.key),
+    description: asInputString(config.description),
+    required: row.required,
+    localizable: readBoolean(config.localizable),
+    unique: readBoolean(config.unique),
+    hiddenInEditor: readBoolean(config.hiddenInEditor),
+    omitFromApiResponse: readBoolean(config.omitFromApiResponse),
+    defaultValue: booleanDefault ? "" : asInputString(defaultValue),
+    regexPattern: asInputString(config.pattern),
+    minLength: asInputString(config.minLength),
+    maxLength: asInputString(config.maxLength),
+    condition: asInputString(config.condition),
+    enumerationOptions: options,
+    numberFormat: config.numberFormat === "decimal" ? "decimal" : "integer",
+    numberMin: asInputString(config.min),
+    numberMax: asInputString(config.max),
+    mediaMode: config.mediaMode === "multiple" ? "multiple" : "single",
+    mediaKind:
+      config.mediaKind === "video" ? "video" : config.mediaKind === "file" ? "file" : "image",
+    booleanDefault,
+    referenceMode: config.referenceMode === "multiple" ? "multiple" : "single",
+    referenceTargetModelKey: asInputString(config.targetModelKey),
+    componentTargetModelKey: asInputString(config.targetComponentKey),
+    dynamicZoneComponentKeys: Array.isArray(config.components)
+      ? config.components.filter((item): item is string => typeof item === "string").join("\n")
+      : "",
+    dynamicZoneMin: asInputString(config.min),
+    dynamicZoneMax: asInputString(config.max),
+    customFieldUid: asInputString(config.customFieldUid),
+    customFieldScalar:
+      row.scalar === "text" ||
+      row.scalar === "long_text" ||
+      row.scalar === "number" ||
+      row.scalar === "boolean" ||
+      row.scalar === "date_time" ||
+      row.scalar === "json"
+        ? row.scalar
+        : "json",
+  });
 }
 
 export function syncContentModelFieldDraftName(
@@ -267,7 +371,9 @@ export function updateContentModelFieldDraftKey(
 
 function buildFieldScalar(
   typeId: ContentModelFieldTypeId,
+  draft?: ContentModelFieldDraft,
 ): CreateAdminContentModelFieldPayload["scalar"] {
+  if (typeId === "custom") return draft?.customFieldScalar ?? "json";
   if (typeId === "short_text" || typeId === "slug" || typeId === "enumeration") return "text";
   if (typeId === "rich_text" || typeId === "markdown") return "long_text";
   if (typeId === "number") return "number";
@@ -284,9 +390,30 @@ export function buildContentModelFieldPayload(
     localizable: draft.localizable,
   };
 
+  if (draft.typeId === "custom") {
+    config.customFieldUid = draft.customFieldUid;
+  }
+
   const description = draft.description.trim();
   if (description) {
     config.description = description;
+  }
+  if (draft.unique) {
+    config.unique = true;
+  }
+  if (draft.hiddenInEditor) {
+    config.hiddenInEditor = true;
+  }
+  if (draft.omitFromApiResponse) {
+    config.omitFromApiResponse = true;
+  }
+  const defaultValue = draft.defaultValue.trim();
+  if (defaultValue) {
+    config.defaultValue = defaultValue;
+  }
+  const condition = draft.condition.trim();
+  if (condition) {
+    config.condition = condition;
   }
 
   if (draft.typeId === "rich_text") {
@@ -295,6 +422,28 @@ export function buildContentModelFieldPayload(
 
   if (draft.typeId === "markdown") {
     config.editor = "markdown";
+  }
+
+  if (
+    draft.typeId === "short_text" ||
+    draft.typeId === "rich_text" ||
+    draft.typeId === "markdown" ||
+    draft.typeId === "slug"
+  ) {
+    const minLength = readIntegerString(draft.minLength);
+    const maxLength = readIntegerString(draft.maxLength);
+    const pattern = draft.regexPattern.trim();
+    if (minLength !== null) config.minLength = minLength;
+    if (maxLength !== null) config.maxLength = maxLength;
+    if (pattern) config.pattern = pattern;
+  }
+
+  if (draft.typeId === "enumeration") {
+    const options = draft.enumerationOptions
+      .split("\n")
+      .map((option) => option.trim())
+      .filter(Boolean);
+    if (options.length > 0) config.options = options;
   }
 
   if (draft.typeId === "number") {
@@ -320,10 +469,26 @@ export function buildContentModelFieldPayload(
     config.targetModelKey = draft.referenceTargetModelKey;
   }
 
+  if (draft.typeId === "component") {
+    config.targetComponentKey = draft.componentTargetModelKey;
+  }
+
+  if (draft.typeId === "dynamic_zone") {
+    const components = draft.dynamicZoneComponentKeys
+      .split("\n")
+      .map((componentKey) => componentKey.trim())
+      .filter(Boolean);
+    if (components.length > 0) config.components = components;
+    const min = readIntegerString(draft.dynamicZoneMin);
+    const max = readIntegerString(draft.dynamicZoneMax);
+    if (min !== null) config.min = min;
+    if (max !== null) config.max = max;
+  }
+
   return {
     key: draft.key.value.trim(),
     label: draft.name.trim(),
-    scalar: buildFieldScalar(draft.typeId),
+    scalar: buildFieldScalar(draft.typeId, draft),
     required: draft.required,
     config,
   };

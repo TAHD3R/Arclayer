@@ -173,7 +173,7 @@ function AdminSidebarTopTabs(props: {
   const showUnreadInboxBadge = unreadInboxCount > 0;
   const unreadInboxCountLabel = unreadInboxCount > 99 ? "99+" : String(unreadInboxCount);
   const inboxTabClassName = cn(
-    "relative h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
+    "relative h-9 min-w-9 rounded-md border border-transparent bg-transparent text-callout font-semibold",
     "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
     GHOST_HOVER_CLASSNAME,
     "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
@@ -201,7 +201,7 @@ function AdminSidebarTopTabs(props: {
   const isInboxActive = props.value === "inbox";
   const isChatActive = props.value === "chat";
   const browseTabClassName = cn(
-    "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
+    "h-9 min-w-9 rounded-md border border-transparent bg-transparent text-callout font-semibold",
     "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
     GHOST_HOVER_CLASSNAME,
     "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
@@ -274,7 +274,7 @@ function AdminSidebarTopTabs(props: {
           <TabsList
             aria-label={t("common:SIDEBAR_TOP_TABS_LABEL")}
             className={cn(
-              "h-9 w-full justify-start gap-1 rounded-full bg-transparent p-0 text-label-secondary",
+              "h-9 w-full justify-start gap-1 rounded-md bg-transparent p-0 text-label-secondary",
             )}
           >
             {isBrowseActive ? (
@@ -383,7 +383,7 @@ function AdminSidebarTopTabs(props: {
                   <TabsTrigger
                     value="chat"
                     className={cn(
-                      "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
+                      "h-9 min-w-9 rounded-md border border-transparent bg-transparent text-callout font-semibold",
                       "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
                       GHOST_HOVER_CLASSNAME,
                       "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",
@@ -405,7 +405,7 @@ function AdminSidebarTopTabs(props: {
                 <TabsTrigger
                   value="chat"
                   className={cn(
-                    "h-9 min-w-9 rounded-full border border-transparent bg-transparent text-callout font-semibold",
+                    "h-9 min-w-9 rounded-md border border-transparent bg-transparent text-callout font-semibold",
                     "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
                     GHOST_HOVER_CLASSNAME,
                     "data-[state=active]:justify-start data-[state=active]:gap-2 data-[state=active]:px-3",

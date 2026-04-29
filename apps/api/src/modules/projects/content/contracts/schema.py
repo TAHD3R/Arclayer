@@ -44,6 +44,10 @@ ContentWorkbenchRuntime = Literal["text", "visual", "data", "unknown"]
 ContentWorkbenchContext = Literal["site_builder", "content_library", "system", "custom", "standalone"]
 ContentWorkbenchLibraryGroup = Literal["site-content", "general-content", "structured-content"]
 ContentModelKind = Literal["collection_type", "single_type", "component"]
+ContentModelFieldTypeSource = Literal["built_in", "plugin"]
+ContentModelFieldTypeLifecycle = Literal["active", "deprecated", "disabled"]
+ContentModelFieldTypeGroup = Literal["text", "value_logic", "time_media", "structure", "custom"]
+ContentModelFieldConfigSection = Literal["basic", "advanced"]
 ContentShapeReasonCode = Literal[
     "UNSHAPED_ITEM",
     "MODEL_DEFAULT_INVALID",
@@ -129,6 +133,61 @@ class ContentModelCapabilityRegistryOut(BaseSchema):
     graphql: list[ContentModelCapability] = Field(
         default_factory=list,
         description="Capabilities that affect GraphQL and query-facing behavior.",
+    )
+
+
+class ContentModelKindDefinitionOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: ContentModelKind = Field(..., description="Model kind identifier.")
+    label_key: str = Field(..., min_length=1, description="Admin i18n label key.")
+    description_key: str = Field(..., min_length=1, description="Admin i18n description key.")
+    default_editor: ContentDefaultEditor = Field(..., description="Default editor for this model kind.")
+    default_capabilities: list[ContentModelCapability] = Field(
+        default_factory=list,
+        description="Capabilities applied when a model of this kind is created.",
+    )
+
+
+class ContentModelFieldTypeDefinitionOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    uid: str = Field(..., min_length=1, max_length=128, description="Field type registry UID.")
+    config_kind: str = Field(..., min_length=1, max_length=64, description="Value stored in field config.kind.")
+    source: ContentModelFieldTypeSource = Field(..., description="Definition source.")
+    lifecycle: ContentModelFieldTypeLifecycle = Field(default="active", description="Registration lifecycle state.")
+    scalar: FieldScalarType = Field(..., description="Persisted storage scalar.")
+    group: ContentModelFieldTypeGroup = Field(..., description="Admin picker group.")
+    label_key: str | None = Field(default=None, min_length=1, description="Admin i18n label key.")
+    description_key: str | None = Field(default=None, min_length=1, description="Admin i18n description key.")
+    label: str | None = Field(default=None, min_length=1, description="Plugin provided label.")
+    description: str | None = Field(default=None, min_length=1, description="Plugin provided description.")
+    icon: str | None = Field(default=None, min_length=1, max_length=64, description="Admin icon token.")
+    plugin_id: str | None = Field(default=None, min_length=1, max_length=128, description="Owning plugin id.")
+    config_schema: dict[str, Any] = Field(
+        default_factory=dict,
+        description="JSON-schema-like config contract owned by the registry definition.",
+    )
+    settings_sections: list[ContentModelFieldConfigSection] = Field(
+        default_factory=list,
+        description="Admin settings sections supplied by this field type.",
+    )
+    allowed_model_kinds: list[ContentModelKind] = Field(
+        default_factory=list,
+        description="Model kinds that may use this field type.",
+    )
+
+
+class ContentModelFieldTypeRegistryOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    model_kinds: list[ContentModelKindDefinitionOut] = Field(
+        default_factory=list,
+        description="Supported content model kinds.",
+    )
+    field_types: list[ContentModelFieldTypeDefinitionOut] = Field(
+        default_factory=list,
+        description="Registered built-in and plugin field types.",
     )
 
 

@@ -170,6 +170,26 @@ class ProjectContentCanonicalItemsService:
             )
             if model is None:
                 raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+            model_kind = str(getattr(model, "model_kind", "collection_type") or "collection_type")
+            if model_kind == "component":
+                raise Conflict(
+                    "Component models are embedded schemas and cannot create standalone content items",
+                    error="CONTENT_ITEM_COMPONENT_MODEL_UNSUPPORTED",
+                    meta={"modelKey": model_key},
+                )
+            if model_kind == "single_type":
+                existing_count = await self.repo.count_items_for_model(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    model_definition_id=model.id,
+                    locale=payload.locale,
+                )
+                if existing_count > 0:
+                    raise Conflict(
+                        "Single type content models can only have one content item per locale",
+                        error="CONTENT_ITEM_SINGLE_TYPE_ALREADY_EXISTS",
+                        meta={"modelKey": model_key, "locale": payload.locale},
+                    )
 
             continuation = resolve_item_continuation_truth(
                 model=model,

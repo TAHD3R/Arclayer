@@ -61,6 +61,10 @@ from src.modules.projects.content.models.domain_helpers import (
     normalize_model_kind,
     to_content_model_out,
 )
+from src.modules.projects.content.models.field_type_registry import (
+    validate_content_model_field_contracts,
+    validate_model_kind_contract,
+)
 from src.modules.projects.content.models.protocol_registry import (
     OfficialModelFieldDefinition,
     OfficialModelProtocol,
@@ -131,6 +135,19 @@ def _normalize_model_identifier(value: str, *, field_name: str) -> str:
     return normalized
 
 
+_GRAPHQL_RESERVED_MODEL_KEYS = frozenset({"sys", "contentfulMetadata", "linkedFrom", "__typename"})
+
+
+def _assert_graphql_safe_model_identifiers(*, singular_key: str, plural_key: str) -> None:
+    collisions = sorted({singular_key, plural_key} & _GRAPHQL_RESERVED_MODEL_KEYS)
+    if collisions:
+        raise Conflict(
+            "Content model API identifiers are reserved by GraphQL delivery",
+            error="CONTENT_MODEL_IDENTIFIER_RESERVED",
+            meta={"values": collisions},
+        )
+
+
 def _capabilities(values: list[ContentModelCapability]) -> list[str]:
     return [str(value) for value in values]
 
@@ -171,6 +188,7 @@ class _PreviewFieldRow:
     key: str
     field_type: str
     is_required: bool
+    config: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -659,6 +677,72 @@ def _compare_field_changes(
                     message=f"Field '{key}' became required.",
                 )
             )
+        changes.extend(_compare_field_config_changes(key=key, before=previous.config, after=current.config))
+    return changes
+
+
+def _read_config_bool(config: dict[str, Any] | None, key: str) -> bool:
+    return bool(config.get(key) is True) if isinstance(config, dict) else False
+
+
+def _read_config_value(config: dict[str, Any] | None, key: str) -> Any:
+    return config.get(key) if isinstance(config, dict) else None
+
+
+def _read_config_list(config: dict[str, Any] | None, key: str) -> tuple[str, ...]:
+    value = _read_config_value(config, key)
+    if not isinstance(value, list):
+        return ()
+    return tuple(str(item) for item in value)
+
+
+def _compare_field_config_changes(
+    *,
+    key: str,
+    before: dict[str, Any] | None,
+    after: dict[str, Any] | None,
+) -> list[ContentModelImpactChangeOut]:
+    changes: list[ContentModelImpactChangeOut] = []
+    if not _read_config_bool(before, "omitFromApiResponse") and _read_config_bool(after, "omitFromApiResponse"):
+        changes.append(
+            _breaking_change(
+                code="field_delivery_omitted",
+                target=f"fields.{key}.config.omitFromApiResponse",
+                message=f"Field '{key}' will be omitted from delivery and GraphQL responses.",
+            )
+        )
+    if not _read_config_bool(before, "unique") and _read_config_bool(after, "unique"):
+        changes.append(
+            _breaking_change(
+                code="field_unique_enabled",
+                target=f"fields.{key}.config.unique",
+                message=f"Field '{key}' now requires unique values.",
+            )
+        )
+    if _read_config_value(before, "targetComponentKey") != _read_config_value(after, "targetComponentKey"):
+        changes.append(
+            _breaking_change(
+                code="field_component_target_changed",
+                target=f"fields.{key}.config.targetComponentKey",
+                message=f"Field '{key}' changed component target.",
+            )
+        )
+    if _read_config_list(before, "components") != _read_config_list(after, "components"):
+        changes.append(
+            _breaking_change(
+                code="field_dynamic_zone_components_changed",
+                target=f"fields.{key}.config.components",
+                message=f"Field '{key}' changed allowed dynamic-zone components.",
+            )
+        )
+    if _read_config_value(before, "customFieldUid") != _read_config_value(after, "customFieldUid"):
+        changes.append(
+            _breaking_change(
+                code="field_custom_type_changed",
+                target=f"fields.{key}.config.customFieldUid",
+                message=f"Field '{key}' changed custom field type.",
+            )
+        )
     return changes
 
 
@@ -737,6 +821,7 @@ def _preview_field_rows(
             key=item.key,
             field_type=item.scalar,
             is_required=item.required,
+            config=item.config,
         )
         for item in (payload.fields or [])
     )
@@ -748,6 +833,7 @@ def _preview_field_rows_from_contracts(fields: list[ContentModelFieldContract]) 
             key=item.key,
             field_type=item.scalar,
             is_required=item.required,
+            config=item.config,
         )
         for item in fields
     )
@@ -1394,6 +1480,10 @@ class ProjectContentCanonicalModelsService:
         fields = _field_contracts(record)
         if any(field.key == payload.key for field in fields):
             raise Conflict("Content model field already exists", error="CONTENT_MODEL_FIELD_EXISTS")
+        validate_content_model_field_contracts(
+            [*fields, payload],
+            model_kind=cast(ContentModelKind, str(record.model_kind or "collection_type")),
+        )
         return await self._save_model_fields(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -1438,6 +1528,10 @@ class ProjectContentCanonicalModelsService:
             )
         if not found:
             raise Conflict("Content model field not found", error="CONTENT_MODEL_FIELD_NOT_FOUND")
+        validate_content_model_field_contracts(
+            fields,
+            model_kind=cast(ContentModelKind, str(record.model_kind or "collection_type")),
+        )
         return await self._save_model_fields(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -1468,6 +1562,10 @@ class ProjectContentCanonicalModelsService:
             raise Conflict(
                 "Field reorder must include every field exactly once", error="CONTENT_MODEL_FIELD_ORDER_INVALID"
             )
+        validate_content_model_field_contracts(
+            list(fields_by_key.values()),
+            model_kind=cast(ContentModelKind, str(record.model_kind or "collection_type")),
+        )
         return await self._save_model_fields(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -1496,6 +1594,10 @@ class ProjectContentCanonicalModelsService:
         fields = [field for field in _field_contracts(record) if field.key != field_key]
         if len(fields) == len(_field_contracts(record)):
             raise Conflict("Content model field not found", error="CONTENT_MODEL_FIELD_NOT_FOUND")
+        validate_content_model_field_contracts(
+            fields,
+            model_kind=cast(ContentModelKind, str(record.model_kind or "collection_type")),
+        )
         return await self._save_model_fields(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -1539,6 +1641,14 @@ class ProjectContentCanonicalModelsService:
     ) -> ContentModelMutationResult:
         singular_key = _normalize_model_identifier(payload.singular_key, field_name="singularKey")
         plural_key = _normalize_model_identifier(payload.plural_key, field_name="pluralKey")
+        model_kind = cast(ContentModelKind, normalize_model_kind(payload.model_kind))
+        _assert_graphql_safe_model_identifiers(singular_key=singular_key, plural_key=plural_key)
+        validate_model_kind_contract(
+            model_kind=model_kind,
+            capabilities=payload.capabilities,
+            routing_mode=payload.routing.mode,
+        )
+        validate_content_model_field_contracts(payload.fields, model_kind=model_kind)
         await self._validate_model_identifiers(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -1570,7 +1680,7 @@ class ProjectContentCanonicalModelsService:
                 name=_normalize_required_text(payload.name, error="Invalid model name"),
                 description=payload.description,
                 category=normalize_model_category(payload.category),
-                model_kind=normalize_model_kind(payload.model_kind),
+                model_kind=model_kind,
                 default_editor=normalize_default_editor(payload.default_editor),
                 default_role=defaults.default_role,
                 default_posture=defaults.default_posture,
@@ -1606,7 +1716,7 @@ class ProjectContentCanonicalModelsService:
         merged_fields = _merge_system_and_custom_fields(protocol=protocol, custom_fields=payload.fields)
         published_contract_snapshot = _contract_snapshot_payload(
             protocol=protocol,
-            model_kind=normalize_model_kind(payload.model_kind),
+            model_kind=model_kind,
             description=payload.description,
             fields=merged_fields,
             relations=payload.relations,
@@ -1634,7 +1744,7 @@ class ProjectContentCanonicalModelsService:
             name=_normalize_required_text(protocol.name, error="Invalid model name"),
             description=payload.description,
             category=normalize_model_category(cast(ContentModelCategory, protocol.category)),
-            model_kind=normalize_model_kind(payload.model_kind),
+            model_kind=model_kind,
             default_editor=normalize_default_editor(cast(ContentDefaultEditor, protocol.default_editor)),
             default_role=defaults.default_role,
             default_posture=defaults.default_posture,
@@ -1684,6 +1794,7 @@ class ProjectContentCanonicalModelsService:
         next_singular_key = cast(str, fields_to_update.get("singular_key", record.singular_key))
         next_plural_key = cast(str, fields_to_update.get("plural_key", record.plural_key))
         if "singular_key" in fields_set or "plural_key" in fields_set:
+            _assert_graphql_safe_model_identifiers(singular_key=next_singular_key, plural_key=next_plural_key)
             await self._validate_model_identifiers(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -1708,6 +1819,30 @@ class ProjectContentCanonicalModelsService:
                     for field in record.fields
                 ]
             )
+        next_model_kind = cast(
+            ContentModelKind,
+            str(fields_to_update.get("model_kind", record.model_kind or "collection_type")),
+        )
+        next_capabilities = cast(
+            Iterable[ContentModelCapability],
+            fields_to_update.get("capabilities", record.capabilities or []),
+        )
+        next_routing_policy = fields_to_update.get("routing_policy", record.routing_policy)
+        next_routing_mode = (
+            str(next_routing_policy.get("mode"))
+            if isinstance(next_routing_policy, dict) and next_routing_policy.get("mode") is not None
+            else None
+        )
+        validate_model_kind_contract(
+            model_kind=next_model_kind,
+            capabilities=next_capabilities,
+            routing_mode=next_routing_mode,
+        )
+        validate_content_model_field_contracts(
+            payload_fields,
+            model_kind=next_model_kind,
+            system_field_keys=list(record.system_field_keys or []),
+        )
         next_relations = (
             list(payload.relations or [])
             if "relations" in fields_set

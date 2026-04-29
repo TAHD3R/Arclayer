@@ -51,7 +51,7 @@ class RuntimeRepositoryMixin:
         return (
             await self
             ._using_db(ContentItemRecord.filter(id=entry_id, site_id=site_id), self._conn)
-            .prefetch_related("model_definition")
+            .prefetch_related("model_definition", "model_definition__fields")
             .first()
         )
 
@@ -105,10 +105,10 @@ class RuntimeRepositoryMixin:
         return list(
             await self
             ._using_db(
-                ContentItemRecord.filter(site_id=site_id, model_definition__key=model_key),
+                ContentItemRecord.filter(site_id=site_id, model_definition__singular_key=model_key),
                 self._conn,
             )
-            .prefetch_related("model_definition")
+            .prefetch_related("model_definition", "model_definition__fields")
             .all()
         )
 
@@ -138,7 +138,7 @@ class RuntimeRepositoryMixin:
                 ),
                 self._conn,
             )
-            .prefetch_related("item__model_definition", "version")
+            .prefetch_related("item__model_definition", "item__model_definition__fields", "version")
             .all()
         )
 
@@ -198,11 +198,11 @@ class RuntimeRepositoryMixin:
                 PublishedGraphRecord.filter(
                     release_id=active_release.id,
                     site_id=site_id,
-                    item__model_definition__key=model_key,
+                    item__model_definition__singular_key=model_key,
                 ),
                 self._conn,
             )
-            .prefetch_related("item__model_definition", "version")
+            .prefetch_related("item__model_definition", "item__model_definition__fields", "version")
             .all()
         )
 

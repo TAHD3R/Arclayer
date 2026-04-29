@@ -29,12 +29,27 @@ def _blank_first_create_payload() -> dict:
     }
 
 
+def _custom_collection_create_payload() -> dict:
+    return {
+        "singularKey": "product",
+        "pluralKey": "products",
+        "name": "Product",
+        "modelKind": "collection_type",
+        "fields": [],
+        "relations": [],
+        "capabilities": ["queryable"],
+        "routing": {"mode": "none"},
+        "workflow": {"states": ["draft"], "initialState": "draft"},
+        "views": [],
+    }
+
+
 def _explicit_update_payload() -> dict:
     return {
         "description": "Updated contract",
         "fields": [
             {
-                "key": "reading_time_minutes",
+                "key": "readingTimeMinutes",
                 "label": "Reading Time",
                 "scalar": "number",
                 "required": False,
@@ -55,7 +70,7 @@ def _explicit_update_payload() -> dict:
                 "key": "table_main",
                 "label": "Main Table",
                 "type": "table",
-                "config": {"columns": ["title", "reading_time_minutes"]},
+                "config": {"columns": ["title", "readingTimeMinutes"]},
             }
         ],
     }
@@ -199,7 +214,7 @@ async def test_content_models_patch_updates_explicit_contract_sections(
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         create_response = await client.post(
             f"/api/v1/projects/{project_id}/content/models",
-            json=_blank_first_create_payload(),
+            json=_custom_collection_create_payload(),
         )
         assert create_response.status_code == 201, create_response.text
         model_id = create_response.json()["data"]["id"]
@@ -228,7 +243,7 @@ async def test_content_models_patch_updates_explicit_contract_sections(
         assert saved_payload["defaultEditor"] == "rich_text"
         assert saved_payload["draftContractRevision"] == 2
         assert saved_payload["publishedContractRevision"] == 1
-        assert saved_payload["fieldSchema"]["reading_time_minutes"]["label"] == "Reading Time"
+        assert saved_payload["fieldSchema"]["readingTimeMinutes"]["label"] == "Reading Time"
         assert saved_payload["relationSchema"]["primary_category"]["targetModelKey"] == "category"
         assert saved_payload["viewSchema"]["views"][0]["key"] == "table_main"
 
@@ -319,6 +334,98 @@ async def test_content_models_patch_returns_breaking_impact_for_destructive_sche
         codes = {entry["code"] for entry in impact["breakingChanges"]}
         assert "field_removed" in codes
         assert "relation_removed" in codes
+
+
+@pytest.mark.asyncio
+async def test_content_models_impact_preview_returns_field_lifecycle_codes(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, _workspace_id, project_id):
+        create_response = await client.post(
+            f"/api/v1/projects/{project_id}/content/models",
+            json=_custom_collection_create_payload(),
+        )
+        assert create_response.status_code == 201, create_response.text
+        model_id = create_response.json()["data"]["id"]
+
+        seed_response = await _patch_model_with_preview(
+            client,
+            project_id=project_id,
+            model_id=model_id,
+            payload={
+                "fields": [
+                    {
+                        "key": "rating",
+                        "label": "Rating",
+                        "scalar": "number",
+                        "required": False,
+                        "config": {"kind": "number"},
+                    },
+                    {
+                        "key": "seo",
+                        "label": "SEO",
+                        "scalar": "json",
+                        "required": False,
+                        "config": {"kind": "component", "targetComponentKey": "seoCard"},
+                    },
+                    {
+                        "key": "sections",
+                        "label": "Sections",
+                        "scalar": "json",
+                        "required": False,
+                        "config": {"kind": "dynamic_zone", "components": ["heroBlock"]},
+                    },
+                ],
+                "relations": [],
+            },
+        )
+        assert seed_response.status_code == 200, seed_response.text
+
+        preview = await _preview_model_update(
+            client,
+            project_id=project_id,
+            model_id=model_id,
+            payload={
+                "fields": [
+                    {
+                        "key": "rating",
+                        "label": "Rating",
+                        "scalar": "number",
+                        "required": False,
+                        "config": {"kind": "number", "unique": True, "omitFromApiResponse": True},
+                    },
+                    {
+                        "key": "seo",
+                        "label": "SEO",
+                        "scalar": "json",
+                        "required": False,
+                        "config": {"kind": "component", "targetComponentKey": "openGraphCard"},
+                    },
+                    {
+                        "key": "sections",
+                        "label": "Sections",
+                        "scalar": "json",
+                        "required": False,
+                        "config": {"kind": "dynamic_zone", "components": ["heroBlock", "quoteBlock"]},
+                    },
+                ],
+                "relations": [],
+            },
+        )
+
+        impact = preview["impact"]
+        codes = {entry["code"] for entry in impact["breakingChanges"]}
+        assert impact["hasBreakingChanges"] is True
+        assert {
+            "field_delivery_omitted",
+            "field_unique_enabled",
+            "field_component_target_changed",
+            "field_dynamic_zone_components_changed",
+        } <= codes
+        targets = {entry["target"] for entry in impact["breakingChanges"]}
+        assert "fields.rating.config.omitFromApiResponse" in targets
+        assert "fields.rating.config.unique" in targets
 
 
 @pytest.mark.asyncio

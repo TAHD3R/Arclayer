@@ -52,8 +52,43 @@ export type AdminContentVersionCompare = {
   changes: AdminContentVersionCompareChange[];
 };
 
+export type AdminContentModelFieldTypeDefinition = {
+  uid: string;
+  configKind: string;
+  source: "built_in" | "plugin";
+  lifecycle: "active" | "deprecated" | "disabled";
+  scalar: CreateAdminContentModelFieldPayload["scalar"];
+  group: "text" | "value_logic" | "time_media" | "structure" | "custom";
+  labelKey?: string | null;
+  descriptionKey?: string | null;
+  label?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  pluginId?: string | null;
+  configSchema: Record<string, unknown>;
+  settingsSections: Array<"basic" | "advanced">;
+  allowedModelKinds: Array<AdminContentModel["modelKind"]>;
+};
+
+export type AdminContentModelKindDefinition = {
+  id: AdminContentModel["modelKind"];
+  labelKey: string;
+  descriptionKey: string;
+  defaultEditor: CreateAdminContentModelPayload["defaultEditor"];
+  defaultCapabilities: NonNullable<CreateAdminContentModelPayload["capabilities"]>;
+};
+
+export type AdminContentModelFieldTypeRegistry = {
+  modelKinds: AdminContentModelKindDefinition[];
+  fieldTypes: AdminContentModelFieldTypeDefinition[];
+};
+
 export function buildContentModelsQueryKey(projectId: string | null) {
   return ["content", "models", projectId] as const;
+}
+
+export function buildContentModelFieldTypesQueryKey(projectId: string | null) {
+  return ["content", "models", "field-types", projectId] as const;
 }
 
 export function buildContentModelPreviewQueryKey(
@@ -95,6 +130,14 @@ export async function listContentModels(
 export async function listAllContentModels(projectId: string): Promise<AdminContentModel[]> {
   return collectAllPages((page) =>
     listContentModels(projectId, { page, size: CONTENT_LIST_PAGE_SIZE }),
+  );
+}
+
+export async function getContentModelFieldTypeRegistry(
+  projectId: string,
+): Promise<AdminContentModelFieldTypeRegistry> {
+  return api.get<AdminContentModelFieldTypeRegistry>(
+    projectPath(projectId, "/content/models/field-types"),
   );
 }
 

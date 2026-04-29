@@ -94,6 +94,20 @@ def _normalize_json_value(value: Any) -> Any:
     return str(value)
 
 
+def _delivery_omitted_field_keys(item: Any) -> set[str]:
+    model_definition = getattr(item, "model_definition", None)
+    fields = getattr(model_definition, "fields", None)
+    if fields is None:
+        return set()
+    omitted: set[str] = set()
+    for field in fields:
+        config = getattr(field, "config", None)
+        if isinstance(config, dict) and config.get("omitFromApiResponse") is True:
+            omitted.add(str(getattr(field, "key", "")))
+    omitted.discard("")
+    return omitted
+
+
 def _field_aliases(model_key: str, field_key: str) -> tuple[str, ...]:
     if model_key == "article":
         return _ARTICLE_FIELD_ALIASES.get(field_key, (field_key,))
@@ -114,6 +128,13 @@ def _build_custom_fields(*, model_key: str, fields: dict[str, Any]) -> dict[str,
 
     system_keys = {alias for field in protocol.system_fields for alias in _field_aliases(model_key, field.key)}
     return {str(key): _normalize_json_value(value) for key, value in fields.items() if str(key) not in system_keys}
+
+
+def _filter_delivery_fields(*, item: Any, fields: dict[str, Any]) -> dict[str, Any]:
+    omitted_field_keys = _delivery_omitted_field_keys(item)
+    return {
+        str(key): _normalize_json_value(value) for key, value in fields.items() if str(key) not in omitted_field_keys
+    }
 
 
 def _normalized_string(value: Any) -> str | None:
@@ -553,7 +574,7 @@ class SiteGraphQLService:
             item=item,
             revision=revision,
             revision_state=revision_state,
-            fields={str(key): _normalize_json_value(value) for key, value in fields.items()},
+            fields=_filter_delivery_fields(item=item, fields=fields),
             metadata=metadata,
         )
 

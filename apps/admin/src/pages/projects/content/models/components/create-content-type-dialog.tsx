@@ -1,11 +1,13 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { CircleHelp } from "lucide-react";
 
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Textarea } from "@arclayer/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 import type { CreateContentTypeFormValues, CreateContentTypeSubmitValues } from "../types";
 import {
@@ -21,6 +23,7 @@ const DEFAULT_VALUES: CreateContentTypeFormValues = {
   singularKey: createGeneratedIdentifier(""),
   pluralKey: createGeneratedIdentifier(""),
   description: "",
+  modelKind: "collection_type",
 };
 
 type CreateContentTypeDialogProps = {
@@ -31,6 +34,51 @@ type CreateContentTypeDialogProps = {
 };
 
 type FormErrors = Partial<Record<"name" | "singularKey" | "pluralKey", string>>;
+
+function FieldTitleWithHelp({ title, help }: { title: React.ReactNode; help: string }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <span>{title}</span>
+      <Tooltip>
+        <TooltipTrigger asChild focusTrigger={false}>
+          <button
+            type="button"
+            className="inline-flex size-5 items-center justify-center rounded-full text-label-secondary transition-colors hover:text-label-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+            aria-label={help}
+          >
+            <CircleHelp className="size-4" aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-64 text-left">{help}</TooltipContent>
+      </Tooltip>
+    </span>
+  );
+}
+
+function ModelKindOption(props: {
+  active: boolean;
+  disabled?: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={props.disabled}
+      className={[
+        "grid min-w-0 gap-1 rounded-md border px-3 py-2 text-left transition-colors",
+        props.active
+          ? "border-primary/45 bg-primary/10 text-label-primary"
+          : "border-border/70 bg-surface text-label-secondary hover:border-border hover:text-label-primary",
+      ].join(" ")}
+      onClick={props.onClick}
+    >
+      <span className="text-headline">{props.title}</span>
+      <span className="text-caption leading-snug">{props.description}</span>
+    </button>
+  );
+}
 
 export function CreateContentTypeDialog({
   open,
@@ -87,7 +135,13 @@ export function CreateContentTypeDialog({
       singularKey,
       pluralKey,
       description,
-      payload: buildCreateContentTypePayload({ name, singularKey, pluralKey, description }),
+      payload: buildCreateContentTypePayload({
+        name,
+        singularKey,
+        pluralKey,
+        description,
+        modelKind: values.modelKind,
+      }),
     });
   }, [onSubmit, validate, values]);
 
@@ -96,7 +150,6 @@ export function CreateContentTypeDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_TITLE")}
-      description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESC")}
       footer={
         <>
           <Button variant="ghost" disabled={pending} onClick={() => onOpenChange(false)}>
@@ -117,6 +170,26 @@ export function CreateContentTypeDialog({
       >
         <SettingDialogFields>
           <SettingDialogField
+            title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_KIND_LABEL")}
+            description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_KIND_HELP")}
+          >
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(["collection_type", "single_type", "component"] as const).map((modelKind) => (
+                <ModelKindOption
+                  key={modelKind}
+                  active={values.modelKind === modelKind}
+                  disabled={pending}
+                  title={t(`CONTENT_MODELS_KIND_${modelKind.toUpperCase()}`)}
+                  description={t(`CONTENT_MODELS_KIND_${modelKind.toUpperCase()}_DESC`)}
+                  onClick={() => {
+                    setValues((current) => ({ ...current, modelKind }));
+                  }}
+                />
+              ))}
+            </div>
+          </SettingDialogField>
+
+          <SettingDialogField
             title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
             description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_HELP")}
             error={
@@ -128,7 +201,6 @@ export function CreateContentTypeDialog({
             <Input
               value={values.name}
               disabled={pending}
-              placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_PLACEHOLDER")}
               aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
               aria-invalid={errors.name ? true : undefined}
               onChange={(event) => {
@@ -154,14 +226,16 @@ export function CreateContentTypeDialog({
               <div className="grid space-y-1.5 gap-1">
                 <label htmlFor={singularInputId} className="grid space-y-1.5 gap-1">
                   <span className="font-semibold text-label-secondary">
-                    {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")}
+                    <FieldTitleWithHelp
+                      title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")}
+                      help={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_HELP")}
+                    />
                   </span>
                 </label>
                 <Input
                   id={singularInputId}
                   value={values.singularKey.value}
                   disabled={pending}
-                  placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_PLACEHOLDER")}
                   aria-invalid={errors.singularKey ? true : undefined}
                   onChange={(event) => {
                     setValues((current) => ({
@@ -174,14 +248,16 @@ export function CreateContentTypeDialog({
               <div className="grid space-y-1.5 gap-1">
                 <label htmlFor={pluralInputId} className="grid space-y-1.5 gap-1">
                   <span className="font-semibold text-label-secondary">
-                    {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")}
+                    <FieldTitleWithHelp
+                      title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")}
+                      help={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_HELP")}
+                    />
                   </span>
                 </label>
                 <Input
                   id={pluralInputId}
                   value={values.pluralKey.value}
                   disabled={pending}
-                  placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_PLACEHOLDER")}
                   aria-invalid={errors.pluralKey ? true : undefined}
                   onChange={(event) => {
                     setValues((current) => ({
@@ -198,7 +274,6 @@ export function CreateContentTypeDialog({
             <Textarea
               value={values.description}
               disabled={pending}
-              placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER")}
               rows={4}
               onChange={(event) =>
                 setValues((current) => ({ ...current, description: event.target.value }))
