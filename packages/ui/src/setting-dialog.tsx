@@ -71,7 +71,7 @@ export function SettingDialog({
             : undefined
         }
       >
-        <DialogHeader className="min-w-0 border-b px-6 py-5 text-left">
+        <DialogHeader className="min-w-0 px-6 py-5 text-left border-b">
           <DialogTitle className="text-title3 font-semibold text-label-primary">
             {displayTitle}
           </DialogTitle>
@@ -91,9 +91,7 @@ export function SettingDialog({
           {children}
         </div>
 
-        {footer ? (
-          <DialogFooter className="mt-0 min-w-0 border-t bg-card px-6 py-5">{footer}</DialogFooter>
-        ) : null}
+        {footer ? <DialogFooter className="mt-0 min-w-0 px-6 py-5">{footer}</DialogFooter> : null}
       </DialogContent>
     </Dialog>
   );

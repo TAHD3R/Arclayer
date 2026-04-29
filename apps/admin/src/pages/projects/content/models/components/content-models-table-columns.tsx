@@ -6,6 +6,7 @@ import {
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
 import { UserAvatar } from "@/components/common/entity-avatar";
+import { UsesCountTag } from "@/components/ui/tags";
 import { Checkbox } from "@arclayer/ui/checkbox";
 
 import { ContentModelsRowActions } from "./content-models-row-actions";
@@ -18,14 +19,14 @@ function EmptyValue(props: { children: React.ReactNode }) {
   return <span className="text-label-secondary">{props.children}</span>;
 }
 
-function ContentModelNameCell(props: { model: ContentModelsTableRow; emptyValue: string }) {
+function ContentModelNameCell(props: { model: ContentModelsTableRow; emptyDescription: string }) {
   const description = props.model.description?.trim();
 
   return (
     <div className="min-w-0">
       <div className="truncate text-headline text-label-primary">{props.model.name}</div>
       <div className="mt-1 truncate text-footnote text-label-secondary">
-        {description || props.emptyValue}
+        {description || props.emptyDescription}
       </div>
     </div>
   );
@@ -63,6 +64,7 @@ export function buildContentModelsTableColumns(params: {
   onDelete: (row: ContentModelsTableRow) => void;
 }): ColumnDef<ContentModelsTableRow, unknown>[] {
   const emptyValue = params.t("content:CONTENT_MODELS_TABLE_EMPTY_VALUE");
+  const emptyDescription = params.t("content:CONTENT_MODELS_TABLE_DESCRIPTION_EMPTY");
 
   return [
     {
@@ -106,7 +108,9 @@ export function buildContentModelsTableColumns(params: {
         pin: "left",
       },
       header: params.t("content:CONTENT_MODELS_TABLE_COL_NAME"),
-      cell: ({ row }) => <ContentModelNameCell model={row.original} emptyValue={emptyValue} />,
+      cell: ({ row }) => (
+        <ContentModelNameCell model={row.original} emptyDescription={emptyDescription} />
+      ),
       size: 360,
       minSize: 280,
     },
@@ -121,7 +125,12 @@ export function buildContentModelsTableColumns(params: {
       header: params.t("content:CONTENT_MODELS_TABLE_COL_FIELDS"),
       cell: ({ row }) => {
         const count = getContentModelFieldCount(row.original);
-        return params.t("content:CONTENT_MODELS_TABLE_FIELD_COUNT", { count });
+        return (
+          <UsesCountTag
+            label={params.t("content:CONTENT_MODELS_TABLE_FIELD_COUNT", { count })}
+            textStyle="caption"
+          />
+        );
       },
       size: 140,
       minSize: 120,

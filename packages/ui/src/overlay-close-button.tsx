@@ -5,8 +5,7 @@ import { XIcon } from "lucide-react";
 import { cn } from "@arclayer/lib/utils";
 import { Button, type ButtonProps } from "./button";
 
-export const OVERLAY_CLOSE_BUTTON_BASE_CLASSNAME =
-  "absolute right-4 top-4 shrink-0 bg-background/80 backdrop-blur-xs";
+export const OVERLAY_CLOSE_BUTTON_BASE_CLASSNAME = "absolute right-4 top-4 shrink-0";
 
 type OverlayCloseButtonProps = Omit<ButtonProps, "children" | "size" | "variant"> & {
   srLabel?: string;

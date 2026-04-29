@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { RowSelectionState } from "@tanstack/react-table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,12 @@ import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
+import {
+  rangeSelect,
+  selectOrClearOnPlainClick,
+  toggleSelect,
+  type AssetSelectionState,
+} from "@/lib/assets/asset-selection";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   useDataTable,
@@ -41,6 +48,24 @@ type ContentModelsControlCenterPageProps = {
   projectId: string;
 };
 
+function readModelTableSelection(
+  rowSelection: RowSelectionState,
+  lastActiveId: string | null,
+): AssetSelectionState {
+  const selectedIds = new Set<string>();
+  for (const [id, selected] of Object.entries(rowSelection)) {
+    if (selected) selectedIds.add(id);
+  }
+  return {
+    selectedIds,
+    lastActiveId,
+  };
+}
+
+function writeModelTableSelection(selection: AssetSelectionState): RowSelectionState {
+  return Object.fromEntries(Array.from(selection.selectedIds, (id) => [id, true]));
+}
+
 export function ContentModelsControlCenterPage({ projectId }: ContentModelsControlCenterPageProps) {
   const { t } = useTranslation(["content", "common"]);
   const queryClient = useQueryClient();
@@ -55,6 +80,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
   );
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<ContentModelsFilters>({});
+  const [lastSelectedModelId, setLastSelectedModelId] = React.useState<string | null>(null);
   const tableId = React.useMemo(() => `project-content-models:${projectId}`, [projectId]);
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId });
   const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId });
@@ -119,6 +145,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
       await refreshModels();
       setBulkDuplicateOpen(false);
       tableHook.table.resetRowSelection();
+      setLastSelectedModelId(null);
       if (models[0]) setEditModel(models[0]);
       notifySuccessText(
         t("content:CONTENT_MODELS_BULK_DUPLICATE_SUCCESS", { count: models.length }),
@@ -179,6 +206,36 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
   const selectedModels = tableHook.table.getSelectedRowModel().rows.map((row) => row.original);
   const selectedCount = selectedModels.length;
   const hasActiveQuery = Boolean(tableHook.searchInput.trim()) || Object.keys(filters).length > 0;
+  const orderedModelIds = tableHook.table.getRowModel().rows.map((row) => row.original.id);
+  const handleRowClick = React.useCallback(
+    (
+      model: ContentModelsTableRow,
+      event: Pick<
+        React.MouseEvent<HTMLTableRowElement>,
+        "detail" | "metaKey" | "ctrlKey" | "shiftKey" | "preventDefault"
+      >,
+    ) => {
+      if (event.detail >= 2) {
+        event.preventDefault();
+        setEditModel(model);
+        return;
+      }
+
+      const currentSelection = readModelTableSelection(
+        tableHook.table.getState().rowSelection,
+        lastSelectedModelId,
+      );
+      const nextSelection = event.shiftKey
+        ? rangeSelect(currentSelection, model.id, orderedModelIds)
+        : event.metaKey || event.ctrlKey
+          ? toggleSelect(currentSelection, model.id)
+          : selectOrClearOnPlainClick(currentSelection, model.id, event.detail);
+
+      tableHook.table.setRowSelection(writeModelTableSelection(nextSelection));
+      setLastSelectedModelId(nextSelection.lastActiveId);
+    },
+    [lastSelectedModelId, orderedModelIds, tableHook.table],
+  );
   const toolbar = (
     <ContentModelsToolbar
       t={t}
@@ -253,6 +310,12 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
           wrapHeaders={wrapHeaders}
           refreshing={tableHook.isFetching && !tableHook.isLoading}
           toolbar={toolbar}
+          rowClassName={(row) =>
+            row.getIsSelected()
+              ? "select-none cursor-pointer bg-accent/35 hover:bg-accent/45"
+              : "select-none cursor-pointer"
+          }
+          onRowClick={(row, _rowIndex, event) => handleRowClick(row.original, event)}
         />
       </DefaultPage>
       <ContentModelsSelectionToolbar
@@ -261,7 +324,10 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
         canManageModels={canManageModels}
         duplicatePending={bulkDuplicateMutation.isPending}
         deletePending={deleteMutation.isPending}
-        onClearSelection={() => tableHook.table.resetRowSelection()}
+        onClearSelection={() => {
+          tableHook.table.resetRowSelection();
+          setLastSelectedModelId(null);
+        }}
         onOpenDuplicate={() => setBulkDuplicateOpen(true)}
         onOpenDelete={() => setBulkDeleteOpen(true)}
       />
@@ -299,6 +365,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
             if (editModel?.id === targetModel.id) setEditModel(null);
             setDeleteModelState(null);
             tableHook.table.resetRowSelection();
+            setLastSelectedModelId(null);
             notifySuccessText(t("content:CONTENT_MODELS_DELETE_SUCCESS"));
           },
         }}
@@ -328,6 +395,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
             if (editModel && targets.some((model) => model.id === editModel.id)) setEditModel(null);
             setBulkDeleteOpen(false);
             tableHook.table.resetRowSelection();
+            setLastSelectedModelId(null);
             notifySuccessText(
               t("content:CONTENT_MODELS_BULK_DELETE_SUCCESS", { count: targets.length }),
             );
@@ -335,6 +403,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
         }}
       />
       <ContentModelEditScreen
+        projectId={projectId}
         model={editModel}
         canManageModels={canManageModels}
         pending={
@@ -342,6 +411,8 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
         }
         onDuplicate={setDuplicateModel}
         onDelete={setDeleteModelState}
+        onModelChange={setEditModel}
+        onRefreshModels={refreshModels}
         onClose={() => setEditModel(null)}
       />
     </>

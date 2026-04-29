@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from "react";
+import type { MouseEvent as ReactMouseEvent, PropsWithChildren } from "react";
 import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -12,6 +12,7 @@ import {
 } from "@/pages/projects/content/models/utils";
 import type { AdminContentModel } from "@/types/api";
 
+const contentModelEditScreenMock = vi.fn();
 const createContentModelMock = vi.fn();
 const deleteContentModelMock = vi.fn();
 const listAllContentModelsMock = vi.fn();
@@ -68,9 +69,79 @@ vi.mock("@/layouts/page-shell/default-page", () => ({
 }));
 
 vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
-  AdminDataTableSection: ({ toolbar }: PropsWithChildren<{ toolbar?: React.ReactNode }>) => (
-    <div>{toolbar}</div>
+  AdminDataTableSection: ({
+    table,
+    toolbar,
+    onRowClick,
+    rowClassName,
+  }: PropsWithChildren<{
+    table: {
+      getRowModel: () => {
+        rows: Array<{
+          id: string;
+          getIsSelected: () => boolean;
+          original: unknown;
+        }>;
+      };
+    };
+    toolbar?: React.ReactNode;
+    onRowClick?: (
+      row: unknown,
+      rowIndex: number,
+      event: ReactMouseEvent<HTMLTableRowElement>,
+    ) => void;
+    rowClassName?: (row: unknown, rowIndex: number) => string | undefined;
+  }>) => (
+    <div>
+      {toolbar}
+      {table.getRowModel().rows.map((row, index) => (
+        <div
+          key={row.id}
+          data-testid={`content-model-row-${row.id}`}
+          data-row-class={rowClassName?.(row, index) ?? ""}
+        >
+          <span data-testid={`content-model-row-selected-${row.id}`}>
+            {row.getIsSelected() ? "true" : "false"}
+          </span>
+          <button
+            type="button"
+            onClick={() =>
+              onRowClick?.(row, index, {
+                detail: 1,
+                metaKey: false,
+                ctrlKey: false,
+                shiftKey: false,
+                preventDefault: vi.fn(),
+              } as unknown as ReactMouseEvent<HTMLTableRowElement>)
+            }
+          >
+            {`row-click-${row.id}`}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onRowClick?.(row, index, {
+                detail: 2,
+                metaKey: false,
+                ctrlKey: false,
+                shiftKey: false,
+                preventDefault: vi.fn(),
+              } as unknown as ReactMouseEvent<HTMLTableRowElement>)
+            }
+          >
+            {`row-double-click-${row.id}`}
+          </button>
+        </div>
+      ))}
+    </div>
   ),
+}));
+
+vi.mock("@/pages/projects/content/models/components/content-model-edit-screen", () => ({
+  ContentModelEditScreen: (props: Record<string, unknown>) => {
+    contentModelEditScreenMock(props);
+    return null;
+  },
 }));
 
 function createWrapper() {
@@ -109,6 +180,7 @@ function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentMod
 
 describe("content model builder", () => {
   beforeEach(() => {
+    contentModelEditScreenMock.mockReset();
     createContentModelMock.mockReset();
     deleteContentModelMock.mockReset();
     listAllContentModelsMock.mockReset();
@@ -223,6 +295,65 @@ describe("content model builder", () => {
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
     ).toBeDisabled();
     expect(screen.getByTestId("content-models-no-access")).toBeInTheDocument();
+  });
+
+  test("passes project context into the content model edit screen surface", () => {
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    const lastCall = contentModelEditScreenMock.mock.calls.at(-1);
+    expect(lastCall?.[0]).toEqual(
+      expect.objectContaining({
+        projectId: "project-1",
+        onModelChange: expect.any(Function),
+        onRefreshModels: expect.any(Function),
+      }),
+    );
+  });
+
+  test("single click selects a row and double click opens the model editor", async () => {
+    listContentModelsMock.mockResolvedValue({
+      items: [
+        buildModel(),
+        buildModel({
+          id: "model-2",
+          singularKey: "author",
+          pluralKey: "authors",
+          name: "Author",
+        }),
+      ],
+      total: 2,
+      page: 1,
+      size: 50,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+
+    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(await screen.findByRole("button", { name: "row-click-model-1" })).toBeInTheDocument();
+    expect(screen.getByTestId("content-model-row-selected-model-1")).toHaveTextContent("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "row-click-model-1" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("content-model-row-selected-model-1")).toHaveTextContent("true");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "row-double-click-model-1" }));
+
+    await waitFor(() => {
+      const lastCall = contentModelEditScreenMock.mock.calls.at(-1);
+      expect(lastCall?.[0]).toEqual(
+        expect.objectContaining({
+          model: expect.objectContaining({ id: "model-1", name: "Article" }),
+        }),
+      );
+    });
   });
 
   test("maps model table filters and field counts for read-only table queries", () => {
