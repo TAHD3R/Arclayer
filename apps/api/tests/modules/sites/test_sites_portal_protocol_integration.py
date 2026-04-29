@@ -280,18 +280,18 @@ async def test_sites_public_preview_draft_publish_flow(
         await _publish_version(client, project_id, item_id=world_item_id, version_number=1)
         await _bind_route(client, project_id, item_id=world_item_id, path="/blog/world")
 
-        resp = await client.get("/api/v1/sites/resolve", params={"host": "example.test"})
+        resp = await client.get("/content-api/v1/sites/resolve", params={"host": "example.test"})
         assert resp.status_code == 200
         assert resp.json()["data"]["siteId"] == site_id
 
-        resp = await client.get(f"/api/v1/runtimes/{runtime_id}/runtime", params={"mode": "public"})
+        resp = await client.get(f"/content-api/v1/runtimes/{runtime_id}/runtime", params={"mode": "public"})
         assert resp.status_code == 200
         runtime_data = resp.json()["data"]
         assert runtime_data["siteId"] == site_id
         assert runtime_data["fonts"] == []
         assert runtime_data["site"]["url"] == "https://example.test"
 
-        resp = await client.get(f"/api/v1/runtimes/{runtime_id}/runtime", params={"mode": "preview"})
+        resp = await client.get(f"/content-api/v1/runtimes/{runtime_id}/runtime", params={"mode": "preview"})
         assert resp.status_code == 403
 
         resp = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
@@ -310,7 +310,7 @@ async def test_sites_public_preview_draft_publish_flow(
         )
 
         resp = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/world", "mode": "public"},
         )
         assert resp.status_code == 200
@@ -318,7 +318,7 @@ async def test_sites_public_preview_draft_publish_flow(
         assert _get_primary_data_title(resp.json()) == "Entry world v1"
 
         resp = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/world", "mode": "preview", "token": token},
         )
         assert resp.status_code == 200
@@ -337,14 +337,14 @@ async def test_sites_public_preview_draft_publish_flow(
         await _bind_route(client, project_id, item_id=new_item_id, path="/blog/new")
 
         resp = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/new", "mode": "public"},
         )
         assert resp.status_code == 200
         assert resp.json()["data"]["match"]["kind"] == "not_found"
 
         resp = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/new", "mode": "preview", "token": token},
         )
         assert resp.status_code == 200
@@ -354,13 +354,13 @@ async def test_sites_public_preview_draft_publish_flow(
         await _publish_version(client, project_id, item_id=world_item_id, version_number=2)
 
         resp = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/world", "mode": "public"},
         )
         assert resp.status_code == 200
         assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft) | Arclayer"
 
-        resp = await client.get(f"/api/v1/sites/{site_id}/sitemap.xml")
+        resp = await client.get(f"/content-api/v1/sites/{site_id}/sitemap.xml")
         assert resp.status_code == 200
         xml = resp.text
         assert "https://example.test/about" in xml

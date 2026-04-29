@@ -166,7 +166,7 @@ async def _graphql(
     headers: dict | None = None,
 ):
     return await client.post(
-        f"/api/v1/runtimes/{runtime_id}/graphql",
+        f"/content-api/v1/runtimes/{runtime_id}/graphql",
         json={"query": query, "variables": variables or {}},
         headers=headers or {},
     )

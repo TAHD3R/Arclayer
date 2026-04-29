@@ -170,7 +170,9 @@ async def test_project_publish_creates_environment_deployments_and_public_runtim
         assert preview_contract_res.status_code == 200, preview_contract_res.text
         assert len(preview_contract_res.json()["data"]["routePointers"]) == 2
 
-        public_route_res = await client.get(f"/api/v1/runtimes/{runtime_id}/routes/resolve", params={"path": "/"})
+        public_route_res = await client.get(
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve", params={"path": "/"}
+        )
         assert public_route_res.status_code == 200, public_route_res.text
         assert public_route_res.json()["data"]["document"]["path"] == "/"
 
@@ -242,7 +244,9 @@ async def test_project_deployment_rollback_cancel_and_permission_gating(
         assert rollback_res.json()["data"]["deployment"]["environmentKey"] == "production"
         assert rollback_res.json()["data"]["deployment"]["sourceRef"] == first_release["id"]
 
-        public_route_res = await client.get(f"/api/v1/runtimes/{runtime_id}/routes/resolve", params={"path": "/"})
+        public_route_res = await client.get(
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve", params={"path": "/"}
+        )
         assert public_route_res.status_code == 200, public_route_res.text
 
         environments_res = await client.get(f"/api/v1/projects/{project_id}/environments")

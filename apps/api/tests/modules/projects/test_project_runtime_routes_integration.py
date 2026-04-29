@@ -110,20 +110,20 @@ async def test_runtime_routes_resolve_same_delivery_and_runtime_contract_as_proj
         preview_runtime_id, preview_token = await _runtime_id_and_preview_token(client, project_id)
         project_site_id = await _project_site_id(client, project_id)
 
-        runtime_res = await client.get(f"/api/v1/runtimes/{runtime_id}/runtime")
+        runtime_res = await client.get(f"/content-api/v1/runtimes/{runtime_id}/runtime")
         assert runtime_res.status_code == 200, runtime_res.text
         assert runtime_res.json()["data"]["siteId"] == project_site_id
         assert preview_runtime_id == runtime_id
 
         route_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/", "mode": "preview", "token": preview_token},
         )
         assert route_res.status_code == 200, route_res.text
         assert route_res.json()["data"]["document"]["path"] == "/"
 
         delivery_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/about"},
         )
         assert delivery_res.status_code == 200, delivery_res.text

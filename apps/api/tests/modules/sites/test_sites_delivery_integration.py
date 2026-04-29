@@ -275,7 +275,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
         )
 
         published_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/blog/world", "perspective": "published"},
         )
         assert published_res.status_code == 200, published_res.text
@@ -284,7 +284,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
         assert published_payload["document"]["sections"][0]["props"]["headline"] == "Entry world v1"
 
         preview_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/blog/world", "perspective": "preview", "token": preview_token},
         )
         assert preview_res.status_code == 200, preview_res.text
@@ -293,7 +293,7 @@ async def test_delivery_pages_resolve_and_by_id_honor_release_world_and_preview_
         assert preview_payload["document"]["sections"][0]["props"]["headline"] == "Entry world v2 (draft)"
 
         by_id_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/pages/{static_item_id}",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/pages/{static_item_id}",
             params={"perspective": "published"},
         )
         assert by_id_res.status_code == 200, by_id_res.text
@@ -354,7 +354,7 @@ async def test_delivery_pages_resolve_surfaces_binding_resolution_failures(
 
         runtime_id, _ = await _runtime_id_and_preview_token(client, project_id)
         published_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
             params={"path": "/broken/world", "perspective": "published"},
         )
         assert published_res.status_code == 409, published_res.text
@@ -393,7 +393,7 @@ async def test_delivery_sections_and_global_sets_resolve_reusable_section_contra
         runtime_id, preview_token = await _runtime_id_and_preview_token(client, project_id)
 
         section_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/sections/site-header",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/sections/site-header",
             params={"perspective": "preview", "token": preview_token},
         )
         assert section_res.status_code == 200, section_res.text
@@ -403,21 +403,21 @@ async def test_delivery_sections_and_global_sets_resolve_reusable_section_contra
         assert section_payload["document"]["sections"][0]["props"]["tone"] == "primary"
 
         global_set_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/global-sets/header",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/global-sets/header",
             params={"perspective": "preview", "token": preview_token},
         )
         assert global_set_res.status_code == 404, global_set_res.text
         assert global_set_res.json()["error"] == "GLOBAL_SET_NOT_FOUND"
 
         published_page_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/pages/{section_item_id}",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/pages/{section_item_id}",
             params={"perspective": "published"},
         )
         assert published_page_res.status_code == 404, published_page_res.text
         assert published_page_res.json()["error"] == "PAGE_NOT_FOUND"
 
         preview_page_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/delivery/pages/{section_item_id}",
+            f"/content-api/v1/runtimes/{runtime_id}/delivery/pages/{section_item_id}",
             params={"perspective": "preview", "token": preview_token},
         )
         assert preview_page_res.status_code == 404, preview_page_res.text

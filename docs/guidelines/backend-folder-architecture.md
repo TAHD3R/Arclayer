@@ -37,8 +37,11 @@ It is normative: new backend code should follow these placement and dependency r
 ### 3.2 Prefix ownership
 
 - `core/routes.py` owns the shared `/api/v1` prefix decision.
+- `core/routes.py` owns the `/content-api/v1` and reserved `/management-api/v1` prefix decisions.
 - Domain routers should express only their local path semantics.
 - Public delivery routes that intentionally live outside `/api/v1` must be mounted explicitly from `core/routes.py`.
+- Runtime content reads, preview reads, GraphQL delivery, site resolution, and sitemap routes belong under `/content-api/v1`.
+- Authenticated Admin UI operations remain under `/api/v1`.
 
 ## 4. Domain Module Shape
 

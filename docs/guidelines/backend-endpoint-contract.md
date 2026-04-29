@@ -21,6 +21,18 @@ This guideline applies to:
 
 ## 3. Endpoint Contract Rules
 
+### 3.0 API surface taxonomy
+
+Top-level route surfaces have distinct ownership:
+
+- Admin API: `/api/v1/*` for authenticated Admin UI and control-plane operations.
+- Content API: `/content-api/v1/*` for runtime content reads, preview reads, GraphQL delivery, site resolution, and sitemap delivery.
+- Management API: `/management-api/v1/*` reserved for future authenticated programmatic mutations that are distinct from Admin UI workflows.
+
+Admin API authentication uses the user session/access-token stack from `src.modules.auth.http.service`.
+Content API authentication is owned by `src.modules.auth.content_api` and accepts delivery API keys through `x-api-key` or `Authorization: Bearer <delivery-key>`.
+Published Content API reads may remain public when the route contract allows it, but any supplied Content API credential must be validated by the Content API auth dependency.
+
 ### 3.1 Schema-first request and response
 
 - Every public endpoint must use explicit Pydantic request/response schemas.

@@ -76,6 +76,14 @@ class ApplicationSettings(BaseSettings):
 
     api_prefix: str = Field(default="/api")
     api_version_prefix: str = Field(default="/v1")
+    content_api_prefix: str = Field(
+        default="/content-api",
+        description="Root prefix for content consumer and preview delivery APIs.",
+    )
+    management_api_prefix: str = Field(
+        default="/management-api",
+        description="Reserved root prefix for future programmatic management APIs.",
+    )
     app_host: str = Field(default="127.0.0.1")
     app_port: int = Field(default=8000)
     app_name: str = Field(default="Arclayer API")

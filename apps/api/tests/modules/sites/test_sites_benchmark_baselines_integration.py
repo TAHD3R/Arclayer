@@ -190,7 +190,7 @@ async def test_headless_cms_benchmark_baselines(
 
         page_samples = await _measure_latency_ms(
             lambda: client.get(
-                f"/api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
+                f"/content-api/v1/runtimes/{runtime_id}/delivery/pages/resolve",
                 params={"path": "/benchmark/world", "perspective": "published"},
             )
         )

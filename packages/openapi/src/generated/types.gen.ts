@@ -28859,482 +28859,6 @@ export type DomainProjectsPresignUploadPartResponses = {
 
 export type DomainProjectsPresignUploadPartResponse = DomainProjectsPresignUploadPartResponses[keyof DomainProjectsPresignUploadPartResponses];
 
-export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetData = {
-    body?: never;
-    path: {
-        /**
-         * Key
-         */
-        key: string;
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: {
-        /**
-         * Perspective
-         *
-         * Delivery perspective.
-         */
-        perspective?: 'published' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when perspective=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/runtimes/{runtime_id}/delivery/global-sets/{key}';
-};
-
-export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetError = ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors[keyof ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors];
-
-export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeliveryGlobalSetOut;
-};
-
-export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponse = ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses[keyof ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses];
-
-export type ExternalRuntimesGetRuntimeDeliveryMenuData = {
-    body?: never;
-    path: {
-        /**
-         * Menu Key
-         */
-        menu_key: string;
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: never;
-    url: '/api/v1/runtimes/{runtime_id}/delivery/menus/{menu_key}';
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryMenuErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryMenuError = ExternalRuntimesGetRuntimeDeliveryMenuErrors[keyof ExternalRuntimesGetRuntimeDeliveryMenuErrors];
-
-export type ExternalRuntimesGetRuntimeDeliveryMenuResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeliveryMenuOut;
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryMenuResponse = ExternalRuntimesGetRuntimeDeliveryMenuResponses[keyof ExternalRuntimesGetRuntimeDeliveryMenuResponses];
-
-export type ExternalRuntimesResolveRuntimeDeliveryPageData = {
-    body?: never;
-    path: {
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query: {
-        /**
-         * Path
-         *
-         * Request pathname (e.g. /blog/hello).
-         */
-        path: string;
-        /**
-         * Perspective
-         *
-         * Delivery perspective.
-         */
-        perspective?: 'published' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when perspective=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/runtimes/{runtime_id}/delivery/pages/resolve';
-};
-
-export type ExternalRuntimesResolveRuntimeDeliveryPageErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesResolveRuntimeDeliveryPageError = ExternalRuntimesResolveRuntimeDeliveryPageErrors[keyof ExternalRuntimesResolveRuntimeDeliveryPageErrors];
-
-export type ExternalRuntimesResolveRuntimeDeliveryPageResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRouteResolveOut;
-};
-
-export type ExternalRuntimesResolveRuntimeDeliveryPageResponse = ExternalRuntimesResolveRuntimeDeliveryPageResponses[keyof ExternalRuntimesResolveRuntimeDeliveryPageResponses];
-
-export type ExternalRuntimesGetRuntimeDeliveryPageByIdData = {
-    body?: never;
-    path: {
-        /**
-         * Page Id
-         */
-        page_id: string;
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: {
-        /**
-         * Perspective
-         *
-         * Delivery perspective.
-         */
-        perspective?: 'published' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when perspective=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/runtimes/{runtime_id}/delivery/pages/{page_id}';
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryPageByIdErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryPageByIdError = ExternalRuntimesGetRuntimeDeliveryPageByIdErrors[keyof ExternalRuntimesGetRuntimeDeliveryPageByIdErrors];
-
-export type ExternalRuntimesGetRuntimeDeliveryPageByIdResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRouteResolveOut;
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryPageByIdResponse = ExternalRuntimesGetRuntimeDeliveryPageByIdResponses[keyof ExternalRuntimesGetRuntimeDeliveryPageByIdResponses];
-
-export type ExternalRuntimesGetRuntimeDeliverySectionByAliasData = {
-    body?: never;
-    path: {
-        /**
-         * Alias
-         */
-        alias: string;
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: {
-        /**
-         * Perspective
-         *
-         * Delivery perspective.
-         */
-        perspective?: 'published' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when perspective=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/runtimes/{runtime_id}/delivery/sections/{alias}';
-};
-
-export type ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesGetRuntimeDeliverySectionByAliasError = ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors[keyof ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors];
-
-export type ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeliverySectionOut;
-};
-
-export type ExternalRuntimesGetRuntimeDeliverySectionByAliasResponse = ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses[keyof ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses];
-
-export type ExternalRuntimesGetRuntimeDeliveryStyleData = {
-    body?: never;
-    path: {
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: never;
-    url: '/api/v1/runtimes/{runtime_id}/delivery/style';
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryStyleErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryStyleError = ExternalRuntimesGetRuntimeDeliveryStyleErrors[keyof ExternalRuntimesGetRuntimeDeliveryStyleErrors];
-
-export type ExternalRuntimesGetRuntimeDeliveryStyleResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeliveryStyleOut;
-};
-
-export type ExternalRuntimesGetRuntimeDeliveryStyleResponse = ExternalRuntimesGetRuntimeDeliveryStyleResponses[keyof ExternalRuntimesGetRuntimeDeliveryStyleResponses];
-
-export type ExternalRuntimesHandleRuntimeGraphqlGetData = {
-    body?: never;
-    path: {
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: never;
-    url: '/api/v1/runtimes/{runtime_id}/graphql';
-};
-
-export type ExternalRuntimesHandleRuntimeGraphqlGetErrors = {
-    /**
-     * Not found if GraphiQL or query via GET are not enabled.
-     */
-    404: unknown;
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesHandleRuntimeGraphqlGetError = ExternalRuntimesHandleRuntimeGraphqlGetErrors[keyof ExternalRuntimesHandleRuntimeGraphqlGetErrors];
-
-export type ExternalRuntimesHandleRuntimeGraphqlGetResponses = {
-    /**
-     * The GraphiQL integrated development environment.
-     */
-    200: unknown;
-};
-
-export type ExternalRuntimesHandleRuntimeGraphqlPostData = {
-    body?: never;
-    path: {
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: never;
-    url: '/api/v1/runtimes/{runtime_id}/graphql';
-};
-
-export type ExternalRuntimesHandleRuntimeGraphqlPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesHandleRuntimeGraphqlPostError = ExternalRuntimesHandleRuntimeGraphqlPostErrors[keyof ExternalRuntimesHandleRuntimeGraphqlPostErrors];
-
-export type ExternalRuntimesHandleRuntimeGraphqlPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type ExternalRuntimesResolveRuntimeRouteData = {
-    body?: never;
-    path: {
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query: {
-        /**
-         * Path
-         *
-         * Request pathname (e.g. /blog/hello).
-         */
-        path: string;
-        /**
-         * Mode
-         *
-         * Runtime mode.
-         */
-        mode?: 'public' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when mode=preview).
-         */
-        token?: string | null;
-    };
-    url: '/api/v1/runtimes/{runtime_id}/routes/resolve';
-};
-
-export type ExternalRuntimesResolveRuntimeRouteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesResolveRuntimeRouteError = ExternalRuntimesResolveRuntimeRouteErrors[keyof ExternalRuntimesResolveRuntimeRouteErrors];
-
-export type ExternalRuntimesResolveRuntimeRouteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRouteResolveOut;
-};
-
-export type ExternalRuntimesResolveRuntimeRouteResponse = ExternalRuntimesResolveRuntimeRouteResponses[keyof ExternalRuntimesResolveRuntimeRouteResponses];
-
-export type ExternalRuntimesGetRuntimeConfigData = {
-    body?: never;
-    path: {
-        /**
-         * Runtime Id
-         */
-        runtime_id: string;
-    };
-    query?: {
-        /**
-         * Mode
-         *
-         * Runtime mode.
-         */
-        mode?: 'public' | 'preview';
-        /**
-         * Token
-         *
-         * Preview token (required when mode=preview).
-         */
-        token?: string | null;
-        /**
-         * Locale
-         *
-         * Resolved locale for localized settings (e.g. en-US).
-         */
-        locale?: string | null;
-    };
-    url: '/api/v1/runtimes/{runtime_id}/runtime';
-};
-
-export type ExternalRuntimesGetRuntimeConfigErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExternalRuntimesGetRuntimeConfigError = ExternalRuntimesGetRuntimeConfigErrors[keyof ExternalRuntimesGetRuntimeConfigErrors];
-
-export type ExternalRuntimesGetRuntimeConfigResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteRuntimeOut;
-};
-
-export type ExternalRuntimesGetRuntimeConfigResponse = ExternalRuntimesGetRuntimeConfigResponses[keyof ExternalRuntimesGetRuntimeConfigResponses];
-
-export type DomainSitesResolveSiteByHostData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Host
-         *
-         * Request host (e.g. philipcole.arclayer.app, localhost:3100).
-         */
-        host?: string | null;
-    };
-    url: '/api/v1/sites/resolve';
-};
-
-export type DomainSitesResolveSiteByHostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesResolveSiteByHostError = DomainSitesResolveSiteByHostErrors[keyof DomainSitesResolveSiteByHostErrors];
-
-export type DomainSitesResolveSiteByHostResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteResolveOut;
-};
-
-export type DomainSitesResolveSiteByHostResponse = DomainSitesResolveSiteByHostResponses[keyof DomainSitesResolveSiteByHostResponses];
-
-export type DomainSitesGetSiteContextData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         *
-         * Site ID.
-         */
-        site_id: string;
-    };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/context';
-};
-
-export type DomainSitesGetSiteContextErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetSiteContextError = DomainSitesGetSiteContextErrors[keyof DomainSitesGetSiteContextErrors];
-
-export type DomainSitesGetSiteContextResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSiteResolveOut;
-};
-
-export type DomainSitesGetSiteContextResponse = DomainSitesGetSiteContextResponses[keyof DomainSitesGetSiteContextResponses];
-
 export type DomainSitesListPresenceData = {
     body?: never;
     path: {
@@ -29539,34 +29063,6 @@ export type DomainSitesUpsertSiteSettingResponses = {
 };
 
 export type DomainSitesUpsertSiteSettingResponse = DomainSitesUpsertSiteSettingResponses[keyof DomainSitesUpsertSiteSettingResponses];
-
-export type DomainSitesGetSitemapXmlData = {
-    body?: never;
-    path: {
-        /**
-         * Site Id
-         */
-        site_id: string;
-    };
-    query?: never;
-    url: '/api/v1/sites/{site_id}/sitemap.xml';
-};
-
-export type DomainSitesGetSitemapXmlErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainSitesGetSitemapXmlError = DomainSitesGetSitemapXmlErrors[keyof DomainSitesGetSitemapXmlErrors];
-
-export type DomainSitesGetSitemapXmlResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
 
 export type InternalSystemListActivityData = {
     body?: never;
@@ -32939,3 +32435,507 @@ export type DomainWorkspacesListUserOptionsResponses = {
 };
 
 export type DomainWorkspacesListUserOptionsResponse = DomainWorkspacesListUserOptionsResponses[keyof DomainWorkspacesListUserOptionsResponses];
+
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/delivery/global-sets/{key}';
+};
+
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetError = ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors[keyof ExternalRuntimesResolveRuntimeDeliveryGlobalSetErrors];
+
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliveryGlobalSetOut;
+};
+
+export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponse = ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses[keyof ExternalRuntimesResolveRuntimeDeliveryGlobalSetResponses];
+
+export type ExternalRuntimesGetRuntimeDeliveryMenuData = {
+    body?: never;
+    path: {
+        /**
+         * Menu Key
+         */
+        menu_key: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: never;
+    url: '/content-api/v1/runtimes/{runtime_id}/delivery/menus/{menu_key}';
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryMenuErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryMenuError = ExternalRuntimesGetRuntimeDeliveryMenuErrors[keyof ExternalRuntimesGetRuntimeDeliveryMenuErrors];
+
+export type ExternalRuntimesGetRuntimeDeliveryMenuResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliveryMenuOut;
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryMenuResponse = ExternalRuntimesGetRuntimeDeliveryMenuResponses[keyof ExternalRuntimesGetRuntimeDeliveryMenuResponses];
+
+export type ExternalRuntimesResolveRuntimeDeliveryPageData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query: {
+        /**
+         * Path
+         *
+         * Request pathname (e.g. /blog/hello).
+         */
+        path: string;
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/delivery/pages/resolve';
+};
+
+export type ExternalRuntimesResolveRuntimeDeliveryPageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesResolveRuntimeDeliveryPageError = ExternalRuntimesResolveRuntimeDeliveryPageErrors[keyof ExternalRuntimesResolveRuntimeDeliveryPageErrors];
+
+export type ExternalRuntimesResolveRuntimeDeliveryPageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type ExternalRuntimesResolveRuntimeDeliveryPageResponse = ExternalRuntimesResolveRuntimeDeliveryPageResponses[keyof ExternalRuntimesResolveRuntimeDeliveryPageResponses];
+
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdData = {
+    body?: never;
+    path: {
+        /**
+         * Page Id
+         */
+        page_id: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/delivery/pages/{page_id}';
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdError = ExternalRuntimesGetRuntimeDeliveryPageByIdErrors[keyof ExternalRuntimesGetRuntimeDeliveryPageByIdErrors];
+
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryPageByIdResponse = ExternalRuntimesGetRuntimeDeliveryPageByIdResponses[keyof ExternalRuntimesGetRuntimeDeliveryPageByIdResponses];
+
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasData = {
+    body?: never;
+    path: {
+        /**
+         * Alias
+         */
+        alias: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when perspective=preview).
+         */
+        token?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/delivery/sections/{alias}';
+};
+
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasError = ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors[keyof ExternalRuntimesGetRuntimeDeliverySectionByAliasErrors];
+
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliverySectionOut;
+};
+
+export type ExternalRuntimesGetRuntimeDeliverySectionByAliasResponse = ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses[keyof ExternalRuntimesGetRuntimeDeliverySectionByAliasResponses];
+
+export type ExternalRuntimesGetRuntimeDeliveryStyleData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: never;
+    url: '/content-api/v1/runtimes/{runtime_id}/delivery/style';
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryStyleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryStyleError = ExternalRuntimesGetRuntimeDeliveryStyleErrors[keyof ExternalRuntimesGetRuntimeDeliveryStyleErrors];
+
+export type ExternalRuntimesGetRuntimeDeliveryStyleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelDeliveryStyleOut;
+};
+
+export type ExternalRuntimesGetRuntimeDeliveryStyleResponse = ExternalRuntimesGetRuntimeDeliveryStyleResponses[keyof ExternalRuntimesGetRuntimeDeliveryStyleResponses];
+
+export type ExternalRuntimesHandleRuntimeGraphqlGetData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: never;
+    url: '/content-api/v1/runtimes/{runtime_id}/graphql';
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlGetErrors = {
+    /**
+     * Not found if GraphiQL or query via GET are not enabled.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlGetError = ExternalRuntimesHandleRuntimeGraphqlGetErrors[keyof ExternalRuntimesHandleRuntimeGraphqlGetErrors];
+
+export type ExternalRuntimesHandleRuntimeGraphqlGetResponses = {
+    /**
+     * The GraphiQL integrated development environment.
+     */
+    200: unknown;
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlPostData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: never;
+    url: '/content-api/v1/runtimes/{runtime_id}/graphql';
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesHandleRuntimeGraphqlPostError = ExternalRuntimesHandleRuntimeGraphqlPostErrors[keyof ExternalRuntimesHandleRuntimeGraphqlPostErrors];
+
+export type ExternalRuntimesHandleRuntimeGraphqlPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ExternalRuntimesResolveRuntimeRouteData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query: {
+        /**
+         * Path
+         *
+         * Request pathname (e.g. /blog/hello).
+         */
+        path: string;
+        /**
+         * Mode
+         *
+         * Runtime mode.
+         */
+        mode?: 'public' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when mode=preview).
+         */
+        token?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/routes/resolve';
+};
+
+export type ExternalRuntimesResolveRuntimeRouteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesResolveRuntimeRouteError = ExternalRuntimesResolveRuntimeRouteErrors[keyof ExternalRuntimesResolveRuntimeRouteErrors];
+
+export type ExternalRuntimesResolveRuntimeRouteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRouteResolveOut;
+};
+
+export type ExternalRuntimesResolveRuntimeRouteResponse = ExternalRuntimesResolveRuntimeRouteResponses[keyof ExternalRuntimesResolveRuntimeRouteResponses];
+
+export type ExternalRuntimesGetRuntimeConfigData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Mode
+         *
+         * Runtime mode.
+         */
+        mode?: 'public' | 'preview';
+        /**
+         * Token
+         *
+         * Preview token (required when mode=preview).
+         */
+        token?: string | null;
+        /**
+         * Locale
+         *
+         * Resolved locale for localized settings (e.g. en-US).
+         */
+        locale?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/runtime';
+};
+
+export type ExternalRuntimesGetRuntimeConfigErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalRuntimesGetRuntimeConfigError = ExternalRuntimesGetRuntimeConfigErrors[keyof ExternalRuntimesGetRuntimeConfigErrors];
+
+export type ExternalRuntimesGetRuntimeConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteRuntimeOut;
+};
+
+export type ExternalRuntimesGetRuntimeConfigResponse = ExternalRuntimesGetRuntimeConfigResponses[keyof ExternalRuntimesGetRuntimeConfigResponses];
+
+export type ExternalContentApiSitesResolveSiteByHostData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Host
+         *
+         * Request host (e.g. philipcole.arclayer.app, localhost:3100).
+         */
+        host?: string | null;
+    };
+    url: '/content-api/v1/sites/resolve';
+};
+
+export type ExternalContentApiSitesResolveSiteByHostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesResolveSiteByHostError = ExternalContentApiSitesResolveSiteByHostErrors[keyof ExternalContentApiSitesResolveSiteByHostErrors];
+
+export type ExternalContentApiSitesResolveSiteByHostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteResolveOut;
+};
+
+export type ExternalContentApiSitesResolveSiteByHostResponse = ExternalContentApiSitesResolveSiteByHostResponses[keyof ExternalContentApiSitesResolveSiteByHostResponses];
+
+export type ExternalContentApiSitesGetSiteContextData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         *
+         * Site ID.
+         */
+        site_id: string;
+    };
+    query?: never;
+    url: '/content-api/v1/sites/{site_id}/context';
+};
+
+export type ExternalContentApiSitesGetSiteContextErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesGetSiteContextError = ExternalContentApiSitesGetSiteContextErrors[keyof ExternalContentApiSitesGetSiteContextErrors];
+
+export type ExternalContentApiSitesGetSiteContextResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelSiteResolveOut;
+};
+
+export type ExternalContentApiSitesGetSiteContextResponse = ExternalContentApiSitesGetSiteContextResponses[keyof ExternalContentApiSitesGetSiteContextResponses];
+
+export type ExternalContentApiSitesGetSitemapXmlData = {
+    body?: never;
+    path: {
+        /**
+         * Site Id
+         */
+        site_id: string;
+    };
+    query?: never;
+    url: '/content-api/v1/sites/{site_id}/sitemap.xml';
+};
+
+export type ExternalContentApiSitesGetSitemapXmlErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesGetSitemapXmlError = ExternalContentApiSitesGetSitemapXmlErrors[keyof ExternalContentApiSitesGetSitemapXmlErrors];
+
+export type ExternalContentApiSitesGetSitemapXmlResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};

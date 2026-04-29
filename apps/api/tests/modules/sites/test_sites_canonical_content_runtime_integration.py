@@ -368,7 +368,7 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         )
 
         public_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/world", "mode": "public"},
         )
         assert public_res.status_code == 200, public_res.text
@@ -393,7 +393,7 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         ]
 
         preview_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/world", "mode": "preview", "token": preview_token},
         )
         assert preview_res.status_code == 200, preview_res.text
@@ -402,7 +402,7 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         assert preview_payload["document"]["sections"][0]["props"]["headline"] == "Entry world v2 (draft)"
 
         static_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/blog/new", "mode": "public"},
         )
         assert static_res.status_code == 200, static_res.text
@@ -461,14 +461,14 @@ async def test_sites_route_resolve_returns_primary_record_unavailable_for_public
         preview_token = token_res.json()["data"]["token"]
 
         public_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/draft-only/world", "mode": "public"},
         )
         assert public_res.status_code == 409, public_res.text
         assert public_res.json()["error"] == "PAGE_PRIMARY_RECORD_UNAVAILABLE"
 
         preview_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/draft-only/world", "mode": "preview", "token": preview_token},
         )
         assert preview_res.status_code == 200, preview_res.text
@@ -567,14 +567,14 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
         preview_token = token_res.json()["data"]["token"]
 
         public_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/dependency-public", "mode": "public"},
         )
         assert public_res.status_code == 409, public_res.text
         assert public_res.json()["error"] == "PAGE_DEPENDENCY_UNAVAILABLE"
 
         fallback_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/dependency-fallback", "mode": "preview", "token": preview_token},
         )
         assert fallback_res.status_code == 200, fallback_res.text
@@ -589,7 +589,7 @@ async def test_sites_route_resolve_enforces_dependency_availability_and_preview_
         ]
 
         missing_res = await client.get(
-            f"/api/v1/runtimes/{runtime_id}/routes/resolve",
+            f"/content-api/v1/runtimes/{runtime_id}/routes/resolve",
             params={"path": "/dependency-missing", "mode": "preview", "token": preview_token},
         )
         assert missing_res.status_code == 500, missing_res.text

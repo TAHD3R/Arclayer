@@ -90,7 +90,7 @@ describe("delivery-sdk", () => {
       expect(input).toBeInstanceOf(Request);
       const request = input as Request;
       expect(request.url).toBe(
-        "https://api.arclayer.test/api/v1/runtimes/runtime_123/delivery/pages/resolve?path=%2Fblog%2Fhello-world&perspective=preview&token=preview_token",
+        "https://api.arclayer.test/content-api/v1/runtimes/runtime_123/delivery/pages/resolve?path=%2Fblog%2Fhello-world&perspective=preview&token=preview_token",
       );
       expect(request.headers.get("x-api-key")).toBe("delivery_key");
 
@@ -142,7 +142,7 @@ describe("delivery-sdk", () => {
       expect(input).toBeInstanceOf(Request);
       const request = input as Request;
       const url = new URL(request.url);
-      if (url.pathname.endsWith("/api/v1/runtimes/runtime_123/runtime")) {
+      if (url.pathname.endsWith("/content-api/v1/runtimes/runtime_123/runtime")) {
         expect(url.searchParams.get("mode")).toBe("preview");
         expect(url.searchParams.get("token")).toBe("preview_token");
         expect(url.searchParams.get("locale")).toBe("en-US");
@@ -164,7 +164,9 @@ describe("delivery-sdk", () => {
         );
       }
 
-      expect(url.pathname.endsWith("/api/v1/runtimes/runtime_123/routes/resolve")).toBe(true);
+      expect(url.pathname.endsWith("/content-api/v1/runtimes/runtime_123/routes/resolve")).toBe(
+        true,
+      );
       expect(url.searchParams.get("path")).toBe("/blog/hello-world");
       expect(url.searchParams.get("mode")).toBe("preview");
       expect(url.searchParams.get("token")).toBe("preview_token");
@@ -225,7 +227,7 @@ describe("delivery-sdk", () => {
       const request = input as Request;
       const url = new URL(request.url);
 
-      if (url.pathname.endsWith("/api/v1/runtimes/runtime_123/delivery/sections/header")) {
+      if (url.pathname.endsWith("/content-api/v1/runtimes/runtime_123/delivery/sections/header")) {
         expect(url.searchParams.get("perspective")).toBe("published");
         expect(url.searchParams.get("token")).toBeNull();
         return new Response(
@@ -255,7 +257,9 @@ describe("delivery-sdk", () => {
       }
 
       expect(
-        url.pathname.endsWith("/api/v1/runtimes/runtime_123/delivery/global-sets/navigation"),
+        url.pathname.endsWith(
+          "/content-api/v1/runtimes/runtime_123/delivery/global-sets/navigation",
+        ),
       ).toBe(true);
       expect(url.searchParams.get("perspective")).toBe("preview");
       expect(url.searchParams.get("token")).toBe("preview_token");
@@ -310,7 +314,9 @@ describe("delivery-sdk", () => {
 
   it("executes typed graphql documents", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(input)).toBe("https://api.arclayer.test/api/v1/runtimes/runtime_123/graphql");
+      expect(String(input)).toBe(
+        "https://api.arclayer.test/content-api/v1/runtimes/runtime_123/graphql",
+      );
       const body = JSON.parse(String(init?.body));
       expect(body.variables.slug).toBe("hello-world");
 
@@ -362,7 +368,9 @@ describe("delivery-sdk", () => {
 
   it("executes typed graphql list documents with filter sort and pagination", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(input)).toBe("https://api.arclayer.test/api/v1/runtimes/runtime_123/graphql");
+      expect(String(input)).toBe(
+        "https://api.arclayer.test/content-api/v1/runtimes/runtime_123/graphql",
+      );
       const body = JSON.parse(String(init?.body));
       expect(body.variables.filter.slug).toBe("hello-world");
       expect(body.variables.sort.field).toBe("REVISION");

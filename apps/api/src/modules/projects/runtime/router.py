@@ -5,13 +5,15 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
-from fastapi import APIRouter, Body, Depends, Query, status
+from fastapi import APIRouter, Body, Depends, Query, Request, status
 from fastapi import Response as FastAPIResponse
 
 from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
 from src.core.events import Event, events
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.logging import get_logger
+from src.modules.auth.content_api.service import ContentApiAuthService, ContentApiCredential
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.router_helpers import (
     get_project_runtime_context,
@@ -38,7 +40,6 @@ from src.modules.sites.runtime.delivery_kernel import (
 )
 from src.modules.sites.schema import SitePreviewTokenOut, SiteRouteResolveOut, SiteRuntimeOut
 
-router = APIRouter(prefix="/runtimes/{runtime_id}", tags=["external.runtimes"])
 project_router = APIRouter(prefix="/projects/{project_id}", tags=["domain.projects.runtime"])
 logger = get_logger(__name__)
 _FATAL_PROJECT_EVENT_ERRORS = (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit)
@@ -65,6 +66,29 @@ def _runtime_delivery_target(runtime_context: ProjectRuntimeContext) -> RuntimeD
         site_id=runtime_context.site_id,
         tenant_context=runtime_context.tenant_context,
     )
+
+
+def get_content_api_auth_service(settings: Settings = Depends(get_settings)) -> ContentApiAuthService:
+    return ContentApiAuthService(settings)
+
+
+async def get_optional_runtime_delivery_credential(
+    request: Request,
+    runtime_context: Annotated[ProjectRuntimeContext, Depends(get_runtime_context)],
+    auth_service: Annotated[ContentApiAuthService, Depends(get_content_api_auth_service)],
+) -> ContentApiCredential | None:
+    return await auth_service.authenticate_optional_delivery_key(
+        request=request,
+        site_id=runtime_context.site_id,
+        required_action="project:delivery:read",
+    )
+
+
+router = APIRouter(
+    prefix="/runtimes/{runtime_id}",
+    tags=["external.runtimes"],
+    dependencies=[Depends(get_optional_runtime_delivery_credential)],
+)
 
 
 @project_router.get(

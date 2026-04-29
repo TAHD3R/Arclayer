@@ -42,15 +42,15 @@ def test_assign_stable_operation_ids_uses_runtime_graphql_metadata_rule() -> Non
         tags=["external.runtimes.graphql"],
         name="handle_http_post",
     )
-    app.include_router(router, prefix="/api/v1")
+    app.include_router(router, prefix="/content-api/v1")
 
     _assign_stable_operation_ids(app)
     operation_ids = _route_operation_ids(app)
 
-    assert operation_ids[("/api/v1/runtimes/{runtime_id}/graphql", "GET")] == (
+    assert operation_ids[("/content-api/v1/runtimes/{runtime_id}/graphql", "GET")] == (
         "external_runtimes_handle_runtime_graphql_get"
     )
-    assert operation_ids[("/api/v1/runtimes/{runtime_id}/graphql", "POST")] == (
+    assert operation_ids[("/content-api/v1/runtimes/{runtime_id}/graphql", "POST")] == (
         "external_runtimes_handle_runtime_graphql_post"
     )
 
@@ -80,10 +80,15 @@ def test_assign_stable_operation_ids_keeps_default_prefix_when_metadata_does_not
         tags=["external.runtimes.graphql"],
         name="graphql_status",
     )
-    app.include_router(router, prefix="/api/v1")
+    app.include_router(router, prefix="/content-api/v1")
 
     _assign_stable_operation_ids(app)
     operation_ids = _route_operation_ids(app)
 
-    assert operation_ids[("/api/v1/runtimes/{runtime_id}/graphql/untagged", "GET")] == "domain_sites_handle_http_get"
-    assert operation_ids[("/api/v1/runtimes/{runtime_id}/graphql/status", "GET")] == "domain_sites_graphql_status"
+    assert (
+        operation_ids[("/content-api/v1/runtimes/{runtime_id}/graphql/untagged", "GET")]
+        == "domain_sites_handle_http_get"
+    )
+    assert (
+        operation_ids[("/content-api/v1/runtimes/{runtime_id}/graphql/status", "GET")] == "domain_sites_graphql_status"
+    )

@@ -56,7 +56,7 @@ export class DeliveryGraphQLClient {
       "Content-Type": "application/json",
     });
     const response = await (this.options.fetch ?? globalThis.fetch)(
-      `${normalizeDeliveryBaseUrl(this.options.baseUrl)}/api/v1/runtimes/${input.runtimeId}/graphql`,
+      `${normalizeDeliveryBaseUrl(this.options.baseUrl)}/content-api/v1/runtimes/${input.runtimeId}/graphql`,
       {
         body: JSON.stringify({
           operationName: input.operationName,
