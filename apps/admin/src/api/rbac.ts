@@ -2,7 +2,11 @@ import { api } from "@/lib/http";
 import { projectPath, toQueryString, workspacePath } from "@/lib/api";
 
 import type { PageData, Permission, ProjectPermissionAction, Role } from "@/types/api";
-import type { OrganizationPermissionAction, WorkspacePermissionAction } from "@/types/api/rbac";
+import type {
+  OrganizationPermissionAction,
+  RolePermissionGrant,
+  WorkspacePermissionAction,
+} from "@/types/api/rbac";
 
 const RBAC_PAGE_SIZE = 200;
 
@@ -115,10 +119,11 @@ export async function setWorkspaceRolePermissions(input: {
   workspaceId: string;
   roleCode: string;
   permissionCodes: string[];
+  permissionGrants?: RolePermissionGrant[];
 }): Promise<void> {
-  const { workspaceId, roleCode, permissionCodes } = input;
+  const { workspaceId, roleCode, permissionCodes, permissionGrants } = input;
   await api.put<null>(
     workspacePath(workspaceId, `/rbac/roles/${encodeURIComponent(roleCode)}/permissions`),
-    { permissionCodes },
+    { permissionCodes, permissionGrants: permissionGrants ?? [] },
   );
 }

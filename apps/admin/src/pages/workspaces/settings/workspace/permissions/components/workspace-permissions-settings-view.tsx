@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { listWorkspacePermissionActions } from "@/api/rbac";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { TeamRolesPage } from "@/pages/workspaces/team/roles/page";
+import { BaseTag } from "@/components/ui/tags";
 import type { WorkspacePermissionAction } from "@/types/api/rbac";
 
 type ActionGroup = {
@@ -153,6 +154,11 @@ export function WorkspacePermissionsSettingsView(props: {
                               >
                                 {kind}
                               </span>
+                            ))}
+                            {(action.conditionTemplates ?? []).map((template) => (
+                              <BaseTag key={`${action.code}:${template}`} color="blue">
+                                {template}
+                              </BaseTag>
                             ))}
                           </div>
                         </li>

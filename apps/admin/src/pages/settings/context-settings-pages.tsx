@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SETTINGS_WORKSPACE_NAV_ITEMS } from "@/constants/menu/settings";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { ProjectSettingsPage as ProjectSettingsSurface } from "@/pages/projects/settings/project/page";
 import { GeneralLocalizationSettingsPage } from "@/pages/projects/settings/site/localization/page";
@@ -112,6 +113,8 @@ export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
   const { t } = useTranslation("settings");
   const { t: tTeam } = useTranslation("team");
   const [createOpen, setCreateOpen] = useState(false);
+  const permissionAccess = useWorkspacePermissionAccess(props.workspaceId);
+  const canManageRoles = permissionAccess.hasPermission("rbac:roles:write");
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
     structuralSharing: true,
@@ -123,7 +126,10 @@ export function WorkspaceRolesSettingsPage(props: { workspaceId: string }) {
       pathname={pathname}
       items={SETTINGS_WORKSPACE_NAV_ITEMS}
       action={
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button
+          disabled={permissionAccess.authzQuery.isLoading || !canManageRoles}
+          onClick={() => setCreateOpen(true)}
+        >
           <Plus size={16} />
           {tTeam("TEAM_ROLES_ADD_ROLE")}
         </Button>

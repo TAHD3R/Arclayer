@@ -28,6 +28,19 @@ vi.mock("@/api/rbac", () => ({
   ]),
 }));
 
+vi.mock("@/hooks/use-workspace-permission-access", () => ({
+  useWorkspacePermissionAccess: () => ({
+    authzQuery: { isLoading: false, data: { permissionCodes: [] }, error: null },
+    actionsQuery: { isLoading: false, data: [], error: null },
+    permissionCodes: ["rbac:roles:read", "rbac:permissions:read", "rbac:roles:write"],
+    actionCatalog: [],
+    isSuperuser: false,
+    hasPermission: (code: string) =>
+      ["rbac:roles:read", "rbac:permissions:read", "rbac:roles:write"].includes(code),
+    hasAction: () => false,
+  }),
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   useRouterState: ({
     select,

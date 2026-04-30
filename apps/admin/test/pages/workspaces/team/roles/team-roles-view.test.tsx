@@ -16,6 +16,7 @@ const {
   updateWorkspaceRoleMock,
   deleteWorkspaceRoleMock,
   setWorkspaceRolePermissionsMock,
+  workspacePermissionAccessMock,
   notifySuccessTextMock,
   notifyErrorMock,
 } = vi.hoisted(() => ({
@@ -25,6 +26,7 @@ const {
   updateWorkspaceRoleMock: vi.fn(),
   deleteWorkspaceRoleMock: vi.fn(),
   setWorkspaceRolePermissionsMock: vi.fn(),
+  workspacePermissionAccessMock: vi.fn(),
   notifySuccessTextMock: vi.fn(),
   notifyErrorMock: vi.fn(),
 }));
@@ -44,10 +46,18 @@ vi.mock("@/lib/notifications", () => ({
   notifyError: (...args: unknown[]) => notifyErrorMock(...args),
 }));
 
+vi.mock("@/hooks/use-workspace-permission-access", () => ({
+  useWorkspacePermissionAccess: (...args: unknown[]) => workspacePermissionAccessMock(...args),
+}));
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, options?: { count?: number }) =>
-      key === "team:TEAM_ROLES_PERMISSION_COUNT" ? `${options?.count ?? 0} permissions` : key,
+      key === "team:TEAM_ROLES_PERMISSION_COUNT"
+        ? `${options?.count ?? 0} permissions`
+        : key === "team:TEAM_ROLES_CONDITION_SET_COUNT"
+          ? `${options?.count ?? 0} conditions`
+          : key,
   }),
 }));
 
@@ -138,6 +148,16 @@ describe("TeamRolesView", () => {
       refreshExpiresIn: 86400,
     });
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
+    workspacePermissionAccessMock.mockReturnValue({
+      authzQuery: { isLoading: false, data: { permissionCodes: [] }, error: null },
+      actionsQuery: { isLoading: false, data: [], error: null },
+      permissionCodes: ["rbac:roles:read", "rbac:permissions:read", "rbac:roles:write"],
+      actionCatalog: [],
+      isSuperuser: false,
+      hasPermission: (code: string) =>
+        ["rbac:roles:read", "rbac:permissions:read", "rbac:roles:write"].includes(code),
+      hasAction: () => false,
+    });
 
     listAllWorkspaceRolesMock.mockResolvedValue([
       {
@@ -158,7 +178,23 @@ describe("TeamRolesView", () => {
         isDefault: false,
         isSuperuser: false,
         isSystem: false,
-        permissionCodes: ["content.write"],
+        permissionCodes: ["content.write", "content.read"],
+        permissionGrants: [
+          {
+            permissionCode: "content.read",
+            conditionSets: [
+              {
+                conditions: [
+                  {
+                    field: "owner_user_id",
+                    operator: "equals_current_user",
+                    value: null,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       },
     ]);
     listAllWorkspacePermissionsMock.mockResolvedValue([
@@ -166,6 +202,13 @@ describe("TeamRolesView", () => {
         code: "content.write",
         name: "Edit content",
         description: "Allows editing content",
+        ownerKey: "core",
+        ownerName: "Core",
+      },
+      {
+        code: "content.read",
+        name: "Read content",
+        description: "Allows reading content",
         ownerKey: "core",
         ownerName: "Core",
       },
@@ -217,7 +260,7 @@ describe("TeamRolesView", () => {
 
     await screen.findByTitle("Content editor");
 
-    expect(screen.getByText("1 permissions")).toHaveClass("text-headline");
+    expect(screen.getByText("2 permissions")).toHaveClass("text-headline");
 
     const matrix = screen.getByRole("table");
     const matrixShell = matrix.parentElement;
@@ -246,24 +289,84 @@ describe("TeamRolesView", () => {
     expect(pageBody).not.toBeNull();
   });
 
-  it("updates the custom role permission set from the direct roles contract", async () => {
+  it("stages permission edits and saves the custom role permission set explicitly", async () => {
     const user = userEvent.setup();
 
     renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
 
     await screen.findByTitle("Content editor");
-    const checkboxes = screen.getAllByRole("checkbox");
-    const customRoleCheckbox = checkboxes[1];
+    expect(screen.getByText("1 conditions")).toBeInTheDocument();
+
+    const editContentRow = screen.getByText("Edit content").closest("tr");
+    expect(editContentRow).not.toBeNull();
+    const customRoleCheckbox = within(editContentRow as HTMLElement).getAllByRole("checkbox")[1];
     expect(customRoleCheckbox).toBeChecked();
 
     await user.click(customRoleCheckbox);
+
+    expect(setWorkspaceRolePermissionsMock).not.toHaveBeenCalled();
+    expect(screen.getByText("team:TEAM_ROLES_UNSAVED_TITLE")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "team:TEAM_ROLES_SAVE_PERMISSIONS" }));
 
     await waitFor(() => {
       expect(setWorkspaceRolePermissionsMock).toHaveBeenCalledWith({
         workspaceId: "ws-1",
         roleCode: "custom_editor",
-        permissionCodes: [],
+        permissionCodes: ["content.read"],
+        permissionGrants: [
+          {
+            permissionCode: "content.read",
+            conditionSets: [
+              {
+                conditions: [
+                  {
+                    field: "owner_user_id",
+                    operator: "equals_current_user",
+                    value: null,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       });
     });
+  });
+
+  it("reverts staged permission changes before save", async () => {
+    const user = userEvent.setup();
+
+    renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
+
+    await screen.findByTitle("Content editor");
+    const editContentRow = screen.getByText("Edit content").closest("tr");
+    expect(editContentRow).not.toBeNull();
+    const customRoleCheckbox = within(editContentRow as HTMLElement).getAllByRole("checkbox")[1];
+
+    await user.click(customRoleCheckbox);
+    expect(customRoleCheckbox).not.toBeChecked();
+
+    await user.click(screen.getByRole("button", { name: "team:TEAM_ROLES_REVERT_PERMISSIONS" }));
+
+    expect(customRoleCheckbox).toBeChecked();
+    expect(setWorkspaceRolePermissionsMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks the roles matrix when the current user cannot read RBAC", async () => {
+    workspacePermissionAccessMock.mockReturnValue({
+      authzQuery: { isLoading: false, data: { permissionCodes: [] }, error: null },
+      actionsQuery: { isLoading: false, data: [], error: null },
+      permissionCodes: [],
+      actionCatalog: [],
+      isSuperuser: false,
+      hasPermission: () => false,
+      hasAction: () => false,
+    });
+
+    renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
+
+    expect(screen.getByText(/common:PAGE_FORBIDDEN_TITLE/)).toBeInTheDocument();
+    expect(listAllWorkspaceRolesMock).not.toHaveBeenCalled();
   });
 });

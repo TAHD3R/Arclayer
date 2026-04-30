@@ -10,7 +10,7 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import {
   createWorkspaceRoleFromTemplate,
   deleteWorkspaceRole,
@@ -26,15 +26,23 @@ import { DataTableSearchInput } from "@/components/common/data-table-search-inpu
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
-import { Spinner } from "@arclayer/ui/spinner";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAuthStore } from "@/stores/use-auth-store";
+import { BaseTag } from "@/components/ui/tags";
+import { useWorkspacePermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { TeamRolesDialogs } from "./roles-dialogs";
 import { includesText, normalizeNeedle, sortByName } from "../utils";
 import type { CreateRoleFormValues, EditRoleFormValues } from "../utils";
 import type { Role } from "@/types/api";
+import type { RolePermissionGrant } from "@/types/api/rbac";
+
+type RoleWithPermissionGrants = Role & {
+  permissionGrants?: RolePermissionGrant[];
+};
+
+type PermissionMapByRole = Record<string, string[]>;
 
 function resolveMatrixColumnWidths(roleCount: number) {
   const permissionWidth = 42;
@@ -57,6 +65,61 @@ function resolveRoleHeaderLines(roleName: string) {
   return [normalized];
 }
 
+function normalizePermissionCodes(codes: string[] | null | undefined): string[] {
+  return Array.from(
+    new Set((codes ?? []).map((code) => String(code || "").trim()).filter(Boolean)),
+  ).sort();
+}
+
+function buildPermissionMapByRole(roles: RoleWithPermissionGrants[]): PermissionMapByRole {
+  return Object.fromEntries(
+    roles.map((role) => [role.code, normalizePermissionCodes(role.permissionCodes)]),
+  );
+}
+
+function serializePermissionMap(map: PermissionMapByRole): string {
+  return JSON.stringify(
+    Object.fromEntries(
+      Object.entries(map)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([roleCode, permissionCodes]) => [
+          roleCode,
+          normalizePermissionCodes(permissionCodes),
+        ]),
+    ),
+  );
+}
+
+function permissionCodesEqual(left: string[] | undefined, right: string[] | undefined): boolean {
+  const normalizedLeft = normalizePermissionCodes(left);
+  const normalizedRight = normalizePermissionCodes(right);
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((code, index) => code === normalizedRight[index])
+  );
+}
+
+function buildPermissionGrantsForRole(
+  role: RoleWithPermissionGrants,
+  permissionCodes: string[],
+): RolePermissionGrant[] {
+  const permissionCodeSet = new Set(permissionCodes);
+  return (role.permissionGrants ?? [])
+    .filter((grant) => permissionCodeSet.has(grant.permissionCode))
+    .map((grant) => ({
+      permissionCode: grant.permissionCode,
+      conditionSets: grant.conditionSets ?? [],
+    }))
+    .filter((grant) => grant.conditionSets.length > 0);
+}
+
+function countConditionSets(role: RoleWithPermissionGrants, permissionCode: string): number {
+  return (
+    role.permissionGrants?.find((grant) => grant.permissionCode === permissionCode)?.conditionSets
+      ?.length ?? 0
+  );
+}
+
 export function TeamRolesView(
   props: {
     workspaceIdOverride?: string | null;
@@ -70,6 +133,10 @@ export function TeamRolesView(
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const workspaceId = props.workspaceIdOverride ?? workspaceIdFromStore;
+  const permissionAccess = useWorkspacePermissionAccess(workspaceId);
+  const canReadRoles = permissionAccess.hasPermission("rbac:roles:read");
+  const canReadPermissions = permissionAccess.hasPermission("rbac:permissions:read");
+  const canManageRoles = permissionAccess.hasPermission("rbac:roles:write");
   const [search, setSearch] = React.useState("");
   const needle = React.useMemo(() => normalizeNeedle(search), [search]);
   const [uncontrolledCreateOpen, setUncontrolledCreateOpen] = React.useState(false);
@@ -80,7 +147,8 @@ export function TeamRolesView(
     null,
   );
   const [editingRole, setEditingRole] = React.useState<Role | null>(null);
-  const [togglingKey, setTogglingKey] = React.useState<string | null>(null);
+  const [draftPermissionCodesByRole, setDraftPermissionCodesByRole] =
+    React.useState<PermissionMapByRole>({});
 
   const syncRoleQueryCaches = React.useCallback(
     async (nextPermissionCodesByRole?: Record<string, string[]>) => {
@@ -116,7 +184,7 @@ export function TeamRolesView(
 
   const rolesQuery = useQuery({
     queryKey: ["rbac", "roles", workspaceId],
-    enabled: Boolean(accessToken && workspaceId),
+    enabled: Boolean(accessToken && workspaceId && canReadRoles),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
       return listAllWorkspaceRoles(workspaceId);
@@ -127,7 +195,7 @@ export function TeamRolesView(
 
   const permissionsQuery = useQuery({
     queryKey: ["rbac", "permissions", workspaceId],
-    enabled: Boolean(accessToken && workspaceId),
+    enabled: Boolean(accessToken && workspaceId && canReadPermissions),
     queryFn: async () => {
       if (!workspaceId) throw new Error("workspaceId is required");
       return listAllWorkspacePermissions(workspaceId);
@@ -138,6 +206,19 @@ export function TeamRolesView(
 
   const roles = React.useMemo(() => sortByName(rolesQuery.data ?? []), [rolesQuery.data]);
   const permissions = React.useMemo(() => permissionsQuery.data ?? [], [permissionsQuery.data]);
+  const rolesWithGrants = roles as RoleWithPermissionGrants[];
+  const baselinePermissionCodesByRole = React.useMemo(
+    () => buildPermissionMapByRole(rolesWithGrants),
+    [rolesWithGrants],
+  );
+  const baselinePermissionSignature = React.useMemo(
+    () => serializePermissionMap(baselinePermissionCodesByRole),
+    [baselinePermissionCodesByRole],
+  );
+
+  React.useEffect(() => {
+    setDraftPermissionCodesByRole(baselinePermissionCodesByRole);
+  }, [baselinePermissionCodesByRole, baselinePermissionSignature, workspaceId]);
 
   const matchedRoles = React.useMemo(() => {
     if (!needle) return roles;
@@ -172,56 +253,47 @@ export function TeamRolesView(
     () => resolveMatrixColumnWidths(filteredRoles.length),
     [filteredRoles.length],
   );
-
-  const togglePermissionMutation = useMutation({
-    mutationFn: async ({
-      roleCode,
-      permissionCodes,
-    }: {
-      roleCode: string;
-      permissionCodes: string[];
-    }) => {
-      if (!workspaceId) throw new Error("workspaceId is required");
-      await setWorkspaceRolePermissions({
-        workspaceId,
-        roleCode,
-        permissionCodes,
-      });
-    },
-    onMutate: async ({ roleCode, permissionCodes }) => {
-      const nextPermissionCodes = [...permissionCodes].sort();
-      queryClient.setQueryData<Role[]>(["rbac", "roles", workspaceId], (current) =>
-        (current ?? []).map((role) =>
-          role.code === roleCode
-            ? Object.assign({}, role, { permissionCodes: nextPermissionCodes })
-            : role,
+  const changedRoleCodes = React.useMemo(
+    () =>
+      roles
+        .filter((role) => !role.isSystem)
+        .map((role) => role.code)
+        .filter(
+          (roleCode) =>
+            !permissionCodesEqual(
+              draftPermissionCodesByRole[roleCode],
+              baselinePermissionCodesByRole[roleCode],
+            ),
         ),
+    [baselinePermissionCodesByRole, draftPermissionCodesByRole, roles],
+  );
+  const changedRoleCount = changedRoleCodes.length;
+  const hasPermissionDraftChanges = changedRoleCount > 0;
+
+  const savePermissionsMutation = useMutation({
+    mutationFn: async (roleCodes: string[]) => {
+      if (!workspaceId) throw new Error("workspaceId is required");
+      await Promise.all(
+        roleCodes.map((roleCode) => {
+          const role = rolesWithGrants.find((item) => item.code === roleCode);
+          if (!role) return Promise.resolve();
+          const permissionCodes = normalizePermissionCodes(draftPermissionCodesByRole[roleCode]);
+          return setWorkspaceRolePermissions({
+            workspaceId,
+            roleCode,
+            permissionCodes,
+            permissionGrants: buildPermissionGrantsForRole(role, permissionCodes),
+          });
+        }),
       );
-      queryClient.setQueryData<Role[]>(
-        ["workspace-member-context", "roles", workspaceId],
-        (current) =>
-          (current ?? []).map((role) =>
-            role.code === roleCode
-              ? Object.assign({}, role, { permissionCodes: nextPermissionCodes })
-              : role,
-          ),
-      );
-      return { roleCode, permissionCodes: nextPermissionCodes };
     },
     onSuccess: async () => {
-      await syncRoleQueryCaches();
+      notifySuccessText(t("team:TEAM_ROLES_PERMISSIONS_SAVE_SUCCESS", { count: changedRoleCount }));
+      await syncRoleQueryCaches(draftPermissionCodesByRole);
     },
-    onError: async (err, _variables, context) => {
+    onError: async (err) => {
       notifyError(err);
-      if (!context?.roleCode) {
-        return;
-      }
-      await syncRoleQueryCaches({
-        [context.roleCode]:
-          roles.find((role) => role.code === context.roleCode)?.permissionCodes ?? [],
-      });
     },
-    onSettled: () => setTogglingKey(null),
   });
 
   const deleteRoleMutation = useMutation({
@@ -344,6 +416,54 @@ export function TeamRolesView(
     );
   }
 
+  if (permissionAccess.authzQuery.isLoading && !permissionAccess.authzQuery.data) {
+    const loadingState = <ContentGuard loading loadingVariant="form" />;
+    return props.embedded ? (
+      loadingState
+    ) : (
+      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
+        {loadingState}
+      </DefaultPage>
+    );
+  }
+
+  if (permissionAccess.authzQuery.error) {
+    const errorState = (
+      <ContentGuard
+        loading={false}
+        error={permissionAccess.authzQuery.error}
+        onRetry={() => {
+          void permissionAccess.authzQuery.refetch();
+        }}
+      />
+    );
+    return props.embedded ? (
+      errorState
+    ) : (
+      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
+        {errorState}
+      </DefaultPage>
+    );
+  }
+
+  if (!canReadRoles || !canReadPermissions) {
+    const forbiddenState = (
+      <ContentGuard
+        loading={false}
+        empty
+        emptyTitle={t("common:PAGE_FORBIDDEN_TITLE")}
+        emptyDescription={t("common:PAGE_FORBIDDEN_DESC")}
+      />
+    );
+    return props.embedded ? (
+      forbiddenState
+    ) : (
+      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
+        {forbiddenState}
+      </DefaultPage>
+    );
+  }
+
   if (
     (rolesQuery.isLoading || permissionsQuery.isLoading) &&
     (!rolesQuery.data || !permissionsQuery.data)
@@ -398,16 +518,60 @@ export function TeamRolesView(
 
   const actionButton = (
     <SettingsSectionAnchor section="create-role">
-      <Button onClick={() => setCreateOpen(true)}>
+      <Button disabled={!canManageRoles} onClick={() => setCreateOpen(true)}>
         <Plus className="h-4 w-4" />
         {t("team:TEAM_ROLES_ADD_ROLE")}
       </Button>
     </SettingsSectionAnchor>
   );
 
+  const permissionDraftNotice = hasPermissionDraftChanges ? (
+    <div
+      className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
+      data-testid="team-roles-unsaved-permissions"
+    >
+      <div>
+        <div className="text-callout font-semibold text-label-primary">
+          {t("team:TEAM_ROLES_UNSAVED_TITLE")}
+        </div>
+        <div className="mt-0.5 text-footnote text-label-secondary">
+          {t("team:TEAM_ROLES_UNSAVED_DESC", { count: changedRoleCount })}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          variant="ghost"
+          disabled={savePermissionsMutation.isPending}
+          onClick={() => setDraftPermissionCodesByRole(baselinePermissionCodesByRole)}
+        >
+          <RotateCcw className="h-4 w-4" />
+          {t("team:TEAM_ROLES_REVERT_PERMISSIONS")}
+        </Button>
+        <Button
+          loading={savePermissionsMutation.isPending}
+          disabled={!canManageRoles}
+          onClick={() => savePermissionsMutation.mutate(changedRoleCodes)}
+        >
+          <Save className="h-4 w-4" />
+          {t("team:TEAM_ROLES_SAVE_PERMISSIONS")}
+        </Button>
+      </div>
+    </div>
+  ) : !canManageRoles ? (
+    <div className="rounded-xl border border-border/70 bg-muted/25 px-4 py-3">
+      <div className="text-callout font-semibold text-label-primary">
+        {t("team:TEAM_ROLES_READONLY_TITLE")}
+      </div>
+      <div className="mt-0.5 text-footnote text-label-secondary">
+        {t("team:TEAM_ROLES_READONLY_DESC")}
+      </div>
+    </div>
+  ) : null;
+
   const content = (
     <>
       <div className="flex flex-col gap-4 pb-8">
+        {permissionDraftNotice}
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
@@ -472,7 +636,9 @@ export function TeamRolesView(
                                     <DropdownMenuIconItem
                                       icon={<Pencil className="h-4 w-4" />}
                                       disabled={
-                                        editRoleMutation.isPending || deleteRoleMutation.isPending
+                                        !canManageRoles ||
+                                        editRoleMutation.isPending ||
+                                        deleteRoleMutation.isPending
                                       }
                                       onSelect={() => setEditingRole(role)}
                                     >
@@ -482,7 +648,9 @@ export function TeamRolesView(
                                       icon={<Trash2 className="h-4 w-4" />}
                                       variant="destructive"
                                       disabled={
-                                        editRoleMutation.isPending || deleteRoleMutation.isPending
+                                        !canManageRoles ||
+                                        editRoleMutation.isPending ||
+                                        deleteRoleMutation.isPending
                                       }
                                       onSelect={() => {
                                         setDeleteTarget({ code: role.code, name: role.name });
@@ -527,32 +695,52 @@ export function TeamRolesView(
                         </div>
                       </TableCell>
                       {filteredRoles.map((role) => {
-                        const granted = role.permissionCodes.includes(perm.code);
+                        const granted = (
+                          draftPermissionCodesByRole[role.code] ??
+                          baselinePermissionCodesByRole[role.code] ??
+                          []
+                        ).includes(perm.code);
                         const key = `${perm.code}:${role.code}`;
+                        const conditionSetCount = countConditionSets(
+                          role as RoleWithPermissionGrants,
+                          perm.code,
+                        );
                         return (
                           <TableCell key={key} className="px-2 py-2 text-center">
-                            <div className="flex justify-center">
-                              {togglingKey === key ? (
-                                <Spinner className="size-4" />
-                              ) : (
-                                <Checkbox
-                                  checked={granted}
-                                  disabled={role.isSystem}
-                                  onCheckedChange={(checked) => {
-                                    setTogglingKey(key);
-                                    const nextPermissionCodes = new Set(role.permissionCodes);
+                            <div className="flex flex-col items-center justify-center gap-1.5">
+                              <Checkbox
+                                checked={granted}
+                                disabled={
+                                  role.isSystem ||
+                                  !canManageRoles ||
+                                  savePermissionsMutation.isPending
+                                }
+                                onCheckedChange={(checked) => {
+                                  setDraftPermissionCodesByRole((current) => {
+                                    const nextPermissionCodes = new Set(
+                                      current[role.code] ??
+                                        baselinePermissionCodesByRole[role.code] ??
+                                        [],
+                                    );
                                     if (checked) {
                                       nextPermissionCodes.add(perm.code);
                                     } else {
                                       nextPermissionCodes.delete(perm.code);
                                     }
-                                    togglePermissionMutation.mutate({
-                                      roleCode: role.code,
-                                      permissionCodes: Array.from(nextPermissionCodes).sort(),
-                                    });
-                                  }}
-                                />
-                              )}
+                                    return {
+                                      ...current,
+                                      [role.code]: Array.from(nextPermissionCodes).sort(),
+                                    };
+                                  });
+                                }}
+                              />
+                              {conditionSetCount > 0 ? (
+                                <BaseTag color="blue" textStyle="caption">
+                                  {t("team:TEAM_ROLES_CONDITION_SET_COUNT", {
+                                    count: conditionSetCount,
+                                  })}
+                                </BaseTag>
+                              ) : null}
                             </div>
                           </TableCell>
                         );
