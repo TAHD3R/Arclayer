@@ -420,6 +420,7 @@ async def patch_project_content_item_workflow(
     ],
 ) -> ResponseModel[ContentItemOut]:
     data = await service.patch_workflow(
+        project_id=ctx.project_id,
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
         item_id=item_id,

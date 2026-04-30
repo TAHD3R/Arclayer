@@ -143,11 +143,26 @@ type ContentModelRelationType = NonNullable<
   CreateAdminContentModelPayload["relations"]
 >[number]["relation"];
 type ContentModelViewType = NonNullable<CreateAdminContentModelPayload["views"]>[number]["type"];
+type ContentWorkflowDefinition = NonNullable<CreateAdminContentModelPayload["workflow"]>;
+type ContentWorkflowStage = NonNullable<ContentWorkflowDefinition["stages"]>[number];
+type ContentWorkflowRoleCode = "owner" | "editor" | "viewer";
+type ContentWorkflowTransition = NonNullable<ContentWorkflowDefinition["transitions"]>[number];
+type ContentWorkflowActorRule = NonNullable<ContentWorkflowDefinition["stageAssignments"]>[number];
 
 type WorkflowPolicyRecord = {
   states?: unknown;
   initialState?: unknown;
   initial_state?: unknown;
+  stages?: unknown;
+  initialStage?: unknown;
+  initial_stage?: unknown;
+  publishStage?: unknown;
+  publish_stage?: unknown;
+  transitions?: unknown;
+  stageAssignments?: unknown;
+  stage_assignments?: unknown;
+  stagePermissions?: unknown;
+  stage_permissions?: unknown;
 };
 
 type RoutingPolicyRecord = {
@@ -194,6 +209,54 @@ function asArray<T>(value: unknown): T[] {
 
 function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+const WORKFLOW_STAGE_SET: ReadonlySet<ContentWorkflowStage> = new Set([
+  "drafting",
+  "in_review",
+  "changes_requested",
+  "approved",
+]);
+const WORKFLOW_ROLE_CODE_SET: ReadonlySet<ContentWorkflowRoleCode> = new Set([
+  "owner",
+  "editor",
+  "viewer",
+]);
+
+function isWorkflowStage(value: unknown): value is ContentWorkflowStage {
+  return WORKFLOW_STAGE_SET.has(value as ContentWorkflowStage);
+}
+
+function asWorkflowStage(value: unknown): ContentWorkflowStage | undefined {
+  return isWorkflowStage(value) ? value : undefined;
+}
+
+function asWorkflowRoleCode(value: unknown): value is ContentWorkflowRoleCode {
+  return WORKFLOW_ROLE_CODE_SET.has(value as ContentWorkflowRoleCode);
+}
+
+function asWorkflowTransitions(value: unknown): ContentWorkflowTransition[] {
+  return asArray<unknown>(value).flatMap((item) => {
+    const record = asRecord(item);
+    const fromStage = asWorkflowStage(record?.fromStage ?? record?.from_stage);
+    const toStage = asWorkflowStage(record?.toStage ?? record?.to_stage);
+    return fromStage && toStage ? [{ fromStage, toStage }] : [];
+  });
+}
+
+function asWorkflowActorRules(value: unknown): ContentWorkflowActorRule[] {
+  return asArray<unknown>(value).flatMap((item) => {
+    const record = asRecord(item);
+    const stage = asWorkflowStage(record?.stage);
+    if (!stage) return [];
+    const roleCodes = asArray<unknown>(record?.roleCodes ?? record?.role_codes).filter(
+      asWorkflowRoleCode,
+    );
+    const userIds = asArray<unknown>(record?.userIds ?? record?.user_ids).filter(
+      (userId): userId is string => typeof userId === "string" && userId.trim().length > 0,
+    );
+    return roleCodes.length || userIds.length ? [{ stage, roleCodes, userIds }] : [];
+  });
 }
 
 function trimToLength(value: string, maxLength: number): string {
@@ -335,10 +398,26 @@ function toWorkflowContract(model: AdminContentModel): CreateAdminContentModelPa
     (value): value is string => typeof value === "string" && value.trim().length > 0,
   );
   const initialState = asString(workflowPolicy.initialState ?? workflowPolicy.initial_state);
+  const stages = asArray<unknown>(workflowPolicy.stages).filter(isWorkflowStage);
+  const initialStage = asWorkflowStage(workflowPolicy.initialStage ?? workflowPolicy.initial_stage);
+  const publishStage = asWorkflowStage(workflowPolicy.publishStage ?? workflowPolicy.publish_stage);
+  const transitions = asWorkflowTransitions(workflowPolicy.transitions);
+  const stageAssignments = asWorkflowActorRules(
+    workflowPolicy.stageAssignments ?? workflowPolicy.stage_assignments,
+  );
+  const stagePermissions = asWorkflowActorRules(
+    workflowPolicy.stagePermissions ?? workflowPolicy.stage_permissions,
+  );
 
   return {
     states,
     ...(initialState ? { initialState } : {}),
+    ...(stages.length ? { stages } : {}),
+    ...(initialStage ? { initialStage } : {}),
+    ...(publishStage ? { publishStage } : {}),
+    ...(transitions.length ? { transitions } : {}),
+    ...(stageAssignments.length ? { stageAssignments } : {}),
+    ...(stagePermissions.length ? { stagePermissions } : {}),
   };
 }
 

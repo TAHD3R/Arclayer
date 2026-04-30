@@ -65,6 +65,11 @@ from src.modules.projects.content.items.read_service import (
     ProjectContentCanonicalItemReadService,
 )
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
+from src.modules.projects.content.items.workflow_policy import (
+    resolve_workflow_actor,
+    resolve_workflow_policy,
+    validate_workflow_transition,
+)
 
 
 def _compare_mapping(
@@ -281,6 +286,7 @@ class ProjectContentCanonicalItemsService:
     async def patch_workflow(
         self,
         *,
+        project_id: UUID | None = None,
         workspace_id: UUID,
         site_id: UUID,
         item_id: UUID,
@@ -294,6 +300,14 @@ class ProjectContentCanonicalItemsService:
                 item_id=item_id,
                 conn=conn,
             )
+            if payload.stage is not None:
+                actor = await resolve_workflow_actor(project_id=project_id, actor_user_id=actor_user_id)
+                validate_workflow_transition(
+                    current_stage=item.workflow_stage,
+                    target_stage=payload.stage,
+                    policy=resolve_workflow_policy(item.model_definition),
+                    actor=actor,
+                )
             fields = build_workflow_patch_fields(
                 current_item=item,
                 stage=payload.stage,
@@ -560,6 +574,7 @@ class ProjectContentCanonicalItemsService:
             if target_state == ContentVersionState.PUBLISHED:
                 if item.model_definition is None:
                     raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+                workflow_policy = resolve_workflow_policy(item.model_definition)
                 published_model_key = str(item.model_definition.singular_key)
                 published_item_id = item.id
                 await self.entity_manager.dispatch_before_publish(
@@ -569,13 +584,14 @@ class ProjectContentCanonicalItemsService:
                     item_id=published_item_id,
                     actor_id=actor_user_id,
                 )
-                blocker_codes = derive_item_publish_blocker_codes(item)
+                blocker_codes = derive_item_publish_blocker_codes(item, publish_stage=workflow_policy.publish_stage)
                 if blocker_codes:
                     raise Conflict(
                         "Content workflow gate blocked publish",
                         error="CONTENT_WORKFLOW_GATE_FAILED",
                         meta={
                             "workflowStage": str(item.workflow_stage or ContentWorkflowStage.DRAFTING),
+                            "publishStage": workflow_policy.publish_stage,
                             "blockerCodes": blocker_codes,
                         },
                     )

@@ -4415,17 +4415,95 @@ export type ContentVersionPatchIn = {
  */
 export type ContentWorkflowContract = {
     /**
+     * Initialstage
+     *
+     * Initial editorial workflow stage.
+     */
+    initialStage?: 'drafting' | 'in_review' | 'changes_requested' | 'approved';
+    /**
      * Initialstate
      *
      * Initial workflow state.
      */
     initialState?: string | null;
     /**
+     * Publishstage
+     *
+     * Stage required before publishing.
+     */
+    publishStage?: 'drafting' | 'in_review' | 'changes_requested' | 'approved';
+    /**
+     * Stageassignments
+     *
+     * Stage assignee rules keyed by editorial workflow stage.
+     */
+    stageAssignments?: Array<ContentWorkflowStageActorContract>;
+    /**
+     * Stagepermissions
+     *
+     * Stage transition permission rules keyed by the current editorial workflow stage.
+     */
+    stagePermissions?: Array<ContentWorkflowStageActorContract>;
+    /**
+     * Stages
+     *
+     * Allowed editorial workflow stages.
+     */
+    stages?: Array<'drafting' | 'in_review' | 'changes_requested' | 'approved'>;
+    /**
      * States
      *
      * Allowed workflow states.
      */
     states?: Array<string>;
+    /**
+     * Transitions
+     *
+     * Allowed editorial workflow stage transitions.
+     */
+    transitions?: Array<ContentWorkflowTransitionContract>;
+};
+
+/**
+ * ContentWorkflowStageActorContract
+ */
+export type ContentWorkflowStageActorContract = {
+    /**
+     * Rolecodes
+     *
+     * Project roles allowed by this rule.
+     */
+    roleCodes?: Array<'owner' | 'editor' | 'viewer'>;
+    /**
+     * Stage
+     *
+     * Editorial workflow stage governed by this rule.
+     */
+    stage: 'drafting' | 'in_review' | 'changes_requested' | 'approved';
+    /**
+     * Userids
+     *
+     * User ids allowed by this rule.
+     */
+    userIds?: Array<string>;
+};
+
+/**
+ * ContentWorkflowTransitionContract
+ */
+export type ContentWorkflowTransitionContract = {
+    /**
+     * Fromstage
+     *
+     * Source editorial workflow stage.
+     */
+    fromStage: 'drafting' | 'in_review' | 'changes_requested' | 'approved';
+    /**
+     * Tostage
+     *
+     * Target editorial workflow stage.
+     */
+    toStage: 'drafting' | 'in_review' | 'changes_requested' | 'approved';
 };
 
 /**

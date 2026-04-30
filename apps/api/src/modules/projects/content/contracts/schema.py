@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
@@ -39,6 +39,7 @@ ContentContinuationPosture = Literal["page", "entry", "composition", "structured
 ContentContinuationSurface = Literal["writing", "canvas", "structured"]
 ContentShapeState = Literal["ready", "blocked", "unshaped"]
 ContentWorkflowStage = Literal["drafting", "in_review", "changes_requested", "approved"]
+ProjectWorkflowRoleCode = Literal["owner", "editor", "viewer"]
 ContentWorkbenchDerivedStatus = Literal["published", "changed", "draft", "archived"]
 ContentWorkbenchRuntime = Literal["text", "visual", "data", "unknown"]
 ContentWorkbenchContext = Literal["site_builder", "content_library", "system", "custom", "standalone"]
@@ -782,11 +783,78 @@ class ContentRoutingContract(BaseSchema):
     slug_field: str | None = Field(default=None, min_length=1, max_length=64, description="Slug source field.")
 
 
+def _default_workflow_stages() -> list[ContentWorkflowStage]:
+    return ["drafting", "in_review", "changes_requested", "approved"]
+
+
+class ContentWorkflowTransitionContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    from_stage: ContentWorkflowStage = Field(..., description="Source editorial workflow stage.")
+    to_stage: ContentWorkflowStage = Field(..., description="Target editorial workflow stage.")
+
+
+class ContentWorkflowStageActorContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    stage: ContentWorkflowStage = Field(..., description="Editorial workflow stage governed by this rule.")
+    role_codes: list[ProjectWorkflowRoleCode] = Field(
+        default_factory=list,
+        description="Project roles allowed by this rule.",
+    )
+    user_ids: list[PublicUUID] = Field(
+        default_factory=list,
+        description="User ids allowed by this rule.",
+    )
+
+    @model_validator(mode="after")
+    def _validate_actor_selector(self) -> ContentWorkflowStageActorContract:
+        if not self.role_codes and not self.user_ids:
+            raise ValueError("workflow stage actor rule requires at least one role or user")
+        return self
+
+
 class ContentWorkflowContract(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     states: list[str] = Field(default_factory=list, description="Allowed workflow states.")
     initial_state: str | None = Field(default=None, description="Initial workflow state.")
+    stages: list[ContentWorkflowStage] = Field(
+        default_factory=_default_workflow_stages,
+        min_length=1,
+        description="Allowed editorial workflow stages.",
+    )
+    initial_stage: ContentWorkflowStage = Field(default="drafting", description="Initial editorial workflow stage.")
+    publish_stage: ContentWorkflowStage = Field(default="approved", description="Stage required before publishing.")
+    transitions: list[ContentWorkflowTransitionContract] = Field(
+        default_factory=list,
+        description="Allowed editorial workflow stage transitions.",
+    )
+    stage_assignments: list[ContentWorkflowStageActorContract] = Field(
+        default_factory=list,
+        description="Stage assignee rules keyed by editorial workflow stage.",
+    )
+    stage_permissions: list[ContentWorkflowStageActorContract] = Field(
+        default_factory=list,
+        description="Stage transition permission rules keyed by the current editorial workflow stage.",
+    )
+
+    @model_validator(mode="after")
+    def _validate_editorial_workflow(self) -> ContentWorkflowContract:
+        stage_set = set(self.stages)
+        if len(stage_set) != len(self.stages):
+            raise ValueError("workflow stages must be unique")
+        if self.initial_stage not in stage_set:
+            raise ValueError("initialStage must be included in stages")
+        if self.publish_stage not in stage_set:
+            raise ValueError("publishStage must be included in stages")
+        for transition in self.transitions:
+            if transition.from_stage not in stage_set or transition.to_stage not in stage_set:
+                raise ValueError("workflow transitions must reference configured stages")
+        for rule in [*self.stage_assignments, *self.stage_permissions]:
+            if rule.stage not in stage_set:
+                raise ValueError("workflow stage rules must reference configured stages")
+        return self
 
 
 class ContentModelViewContract(BaseSchema):

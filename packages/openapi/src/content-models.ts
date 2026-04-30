@@ -71,6 +71,23 @@ export type ContentModelRoutingDefinition = {
 export type ContentModelWorkflowDefinition = {
   states: string[];
   initialState?: string | null;
+  stages?: Array<"drafting" | "in_review" | "changes_requested" | "approved">;
+  initialStage?: "drafting" | "in_review" | "changes_requested" | "approved";
+  publishStage?: "drafting" | "in_review" | "changes_requested" | "approved";
+  transitions?: Array<{
+    fromStage: "drafting" | "in_review" | "changes_requested" | "approved";
+    toStage: "drafting" | "in_review" | "changes_requested" | "approved";
+  }>;
+  stageAssignments?: Array<{
+    stage: "drafting" | "in_review" | "changes_requested" | "approved";
+    roleCodes?: Array<"owner" | "editor" | "viewer">;
+    userIds?: string[];
+  }>;
+  stagePermissions?: Array<{
+    stage: "drafting" | "in_review" | "changes_requested" | "approved";
+    roleCodes?: Array<"owner" | "editor" | "viewer">;
+    userIds?: string[];
+  }>;
 };
 
 export type ContentModelViewDefinition = {

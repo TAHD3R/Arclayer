@@ -556,6 +556,7 @@ class ProjectAutomationService:
             entity_manager=EntityManager(items_repo=repo, lifecycle=self.lifecycle_dispatcher),
         )
         item = await service.patch_workflow(
+            project_id=self._project_id_from_event_payload(event.payload),
             workspace_id=workspace_id,
             site_id=site_id,
             item_id=item_id,

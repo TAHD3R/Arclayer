@@ -52,6 +52,7 @@ from src.modules.projects.content.items.password_fields import (
     sanitize_password_field_values,
     sanitize_password_presentations,
 )
+from src.modules.projects.content.items.workflow_policy import resolve_workflow_policy
 from src.modules.projects.content.models.protocol_registry import get_official_model_protocol
 
 PresentationPayload = list[tuple[ContentPresentationKind, dict[str, Any] | None]]
@@ -600,13 +601,16 @@ def status_by_published_version(*, published_version: int | None, fallback: Cont
     return str(fallback)
 
 
-def derive_item_publish_blocker_codes(item: ContentItemRecord) -> list[str]:
+def derive_item_publish_blocker_codes(item: ContentItemRecord, *, publish_stage: str | None = None) -> list[str]:
     blockers: list[str] = []
     shape_state = getattr(item, "shape_state", None)
     if str(shape_state or "unshaped") != "ready":
         blockers.append(str(getattr(item, "shape_reason_code", None) or CONTINUATION_TRUTH_MISSING_REASON_CODE))
     workflow_stage = getattr(item, "workflow_stage", None)
-    if str(workflow_stage or ContentWorkflowStage.DRAFTING) != str(ContentWorkflowStage.APPROVED):
+    resolved_publish_stage = (
+        publish_stage or resolve_workflow_policy(getattr(item, "model_definition", None)).publish_stage
+    )
+    if str(workflow_stage or ContentWorkflowStage.DRAFTING) != resolved_publish_stage:
         blockers.append(WORKFLOW_PUBLISH_BLOCKER_CODE)
     return blockers
 
