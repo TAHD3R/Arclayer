@@ -96,6 +96,16 @@ ContentModelSchemaSnapshotStage = Literal["published", "current_draft", "next_dr
 ContentModelSchemaDiffKind = Literal["field", "relation", "view", "policy", "default", "meta", "capability"]
 ContentModelSchemaDiffOperation = Literal["added", "removed", "changed"]
 ContentModelSchemaApplyGateStatus = Literal["ready", "review", "blocked"]
+ContentModelStorageSyncStrategy = Literal["jsonb_snapshot"]
+ContentModelStorageSyncState = Literal["planned", "applied"]
+ContentModelStorageMigrationOperation = Literal[
+    "field_add",
+    "field_remove",
+    "field_rename",
+    "field_type_change",
+    "field_index_change",
+    "field_config_change",
+]
 
 
 class ContentModelFieldDefinitionOut(BaseSchema):
@@ -313,6 +323,59 @@ class ContentModelSchemaApplyGateOut(BaseSchema):
     detail: str = Field(..., min_length=1, description="User-facing apply gate detail.")
 
 
+class ContentModelStorageFieldOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    key: str = Field(..., min_length=1, description="Field key inside the JSONB snapshot.")
+    scalar: FieldScalarType = Field(..., description="Content model field scalar.")
+    db_column_type: str = Field(
+        ..., min_length=1, description="Database-native type hint resolved from the field type registry."
+    )
+    json_path: str = Field(..., min_length=1, description="JSONB path used by query builders and generated routes.")
+    required: bool = Field(default=False, description="Whether the field is required by the content model.")
+    unique: bool = Field(default=False, description="Whether the field declares uniqueness in its config.")
+    indexed: bool = Field(default=False, description="Whether the field declares generated index intent.")
+    localizable: bool = Field(default=False, description="Whether the field declares localization in its config.")
+    omit_from_api_response: bool = Field(
+        default=False, description="Whether the field is hidden from delivery/API responses."
+    )
+
+
+class ContentModelStorageMigrationOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    operation: ContentModelStorageMigrationOperation = Field(..., description="Storage sync migration operation.")
+    target: str = Field(..., min_length=1, description="Changed storage path or field pair.")
+    state: ContentModelStorageSyncState = Field(..., description="Migration state in the current plan.")
+    reversible: bool = Field(default=True, description="Whether a rollback plan is available.")
+    summary: str = Field(..., min_length=1, description="Human-readable storage migration summary.")
+    before: Any = Field(default=None, description="Source storage metadata.")
+    after: Any = Field(default=None, description="Target storage metadata.")
+    forward_steps: list[str] = Field(default_factory=list, description="Idempotent forward migration steps.")
+    rollback_steps: list[str] = Field(default_factory=list, description="Idempotent rollback steps.")
+
+
+class ContentModelStorageSyncPlanOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    strategy: ContentModelStorageSyncStrategy = Field(..., description="Canonical storage strategy.")
+    state: ContentModelStorageSyncState = Field(..., description="Plan state for this snapshot.")
+    schema_revision: int = Field(..., ge=1, description="Schema revision this storage plan describes.")
+    storage_target: str = Field(..., min_length=1, description="Physical storage target for content field values.")
+    fields: list[ContentModelStorageFieldOut] = Field(
+        default_factory=list,
+        description="Resolved field storage metadata for the current schema snapshot.",
+    )
+    migrations: list[ContentModelStorageMigrationOut] = Field(
+        default_factory=list,
+        description="Forward migration records required to reach this plan.",
+    )
+    diagnostics: list[str] = Field(
+        default_factory=list,
+        description="Operator diagnostics explaining storage behavior and repair context.",
+    )
+
+
 class ContentModelSchemaChangePlanOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -341,6 +404,10 @@ class ContentModelSchemaChangePlanOut(BaseSchema):
         description="Read-only apply gates that explain save readiness and review obligations.",
     )
     apply_ready: bool = Field(default=False, description="Whether the current preview can be applied without blockers.")
+    storage_sync: ContentModelStorageSyncPlanOut | None = Field(
+        default=None,
+        description="Versioned storage sync plan generated from the canonical schema diff.",
+    )
 
 
 class ContentModelImpactPreviewOut(BaseSchema):

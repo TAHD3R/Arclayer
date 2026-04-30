@@ -52,6 +52,7 @@ from src.modules.projects.content.models.field_type_registry import (
     validate_model_kind_contract,
 )
 from src.modules.projects.content.models.protocol_registry import list_official_model_protocols
+from src.modules.projects.content.models.storage_sync import build_storage_sync_plan
 
 REPO_ROOT = Path(__file__).resolve().parents[6]
 MIGRATION_BASELINE = REPO_ROOT / "apps/api/src/migrations/0001_initial.py"
@@ -480,6 +481,9 @@ def test_content_model_impact_preview_contract_surfaces_change_plan_artifacts() 
     diff_fields = contracts_schema.ContentModelSchemaDiffOut.model_fields
     diff_entry_fields = contracts_schema.ContentModelSchemaDiffEntryOut.model_fields
     gate_fields = contracts_schema.ContentModelSchemaApplyGateOut.model_fields
+    storage_plan_fields = contracts_schema.ContentModelStorageSyncPlanOut.model_fields
+    storage_field_fields = contracts_schema.ContentModelStorageFieldOut.model_fields
+    storage_migration_fields = contracts_schema.ContentModelStorageMigrationOut.model_fields
 
     assert "change_plan" in preview_fields
     assert "revisions" in change_plan_fields
@@ -489,6 +493,7 @@ def test_content_model_impact_preview_contract_surfaces_change_plan_artifacts() 
     assert "diff" in change_plan_fields
     assert "apply_gates" in change_plan_fields
     assert "apply_ready" in change_plan_fields
+    assert "storage_sync" in change_plan_fields
     assert "current_draft_revision" in revision_fields
     assert "published_revision" in revision_fields
     assert "next_draft_revision" in revision_fields
@@ -506,6 +511,64 @@ def test_content_model_impact_preview_contract_surfaces_change_plan_artifacts() 
     assert "status" in gate_fields
     assert "title" in gate_fields
     assert "detail" in gate_fields
+    assert "strategy" in storage_plan_fields
+    assert "schema_revision" in storage_plan_fields
+    assert "storage_target" in storage_plan_fields
+    assert "migrations" in storage_plan_fields
+    assert "db_column_type" in storage_field_fields
+    assert "json_path" in storage_field_fields
+    assert "operation" in storage_migration_fields
+    assert "forward_steps" in storage_migration_fields
+    assert "rollback_steps" in storage_migration_fields
+
+
+def test_content_model_storage_sync_plan_tracks_migrations_and_rollbacks() -> None:
+    current_snapshot = {
+        "fields": [
+            {"key": "title", "label": "Title", "scalar": "text", "config": {"indexed": False}},
+            {"key": "legacyTitle", "label": "Legacy Title", "scalar": "text"},
+            {"key": "count", "label": "Count", "scalar": "number"},
+            {"key": "retired", "label": "Retired", "scalar": "boolean"},
+        ],
+    }
+    next_snapshot = {
+        "fields": [
+            {"key": "title", "label": "Title", "scalar": "text", "config": {"indexed": True}},
+            {"key": "headline", "label": "Legacy Title", "scalar": "text"},
+            {"key": "count", "label": "Count", "scalar": "long_text"},
+            {"key": "summary", "label": "Summary", "scalar": "text"},
+        ],
+    }
+
+    plan = build_storage_sync_plan(
+        current_snapshot=current_snapshot,
+        next_snapshot=next_snapshot,
+        schema_revision=3,
+    )
+
+    operations = {migration.operation for migration in plan.migrations}
+    assert plan.strategy == "jsonb_snapshot"
+    assert plan.schema_revision == 3
+    assert plan.storage_target == "domain_content_versions.fields_snapshot"
+    assert {field.key: field.db_column_type for field in plan.fields} == {
+        "title": "VARCHAR(255)",
+        "headline": "VARCHAR(255)",
+        "count": "TEXT",
+        "summary": "VARCHAR(255)",
+    }
+    assert operations == {
+        "field_add",
+        "field_remove",
+        "field_rename",
+        "field_type_change",
+        "field_index_change",
+    }
+    assert all(migration.forward_steps for migration in plan.migrations)
+    assert all(migration.rollback_steps for migration in plan.migrations)
+    assert any(
+        migration.target == "fields_snapshot.legacyTitle->fields_snapshot.headline" for migration in plan.migrations
+    )
+    assert any(migration.target == "fields_snapshot.title" for migration in plan.migrations)
 
 
 def test_item_has_capability_merges_item_and_model_capabilities() -> None:

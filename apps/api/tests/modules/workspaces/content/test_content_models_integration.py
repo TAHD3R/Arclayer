@@ -466,6 +466,16 @@ async def test_content_models_impact_preview_returns_field_lifecycle_codes(
         targets = {entry["target"] for entry in impact["breakingChanges"]}
         assert "fields.rating.config.omitFromApiResponse" in targets
         assert "fields.rating.config.unique" in targets
+        storage_sync = preview["changePlan"]["storageSync"]
+        storage_migrations = storage_sync["migrations"]
+        storage_fields = {field["key"]: field for field in storage_sync["fields"]}
+        assert storage_sync["strategy"] == "jsonb_snapshot"
+        assert storage_sync["schemaRevision"] == preview["changePlan"]["revisions"]["nextDraftRevision"]
+        assert storage_sync["storageTarget"] == "domain_content_versions.fields_snapshot"
+        assert storage_fields["rating"]["dbColumnType"] == "INTEGER"
+        assert storage_fields["rating"]["unique"] is True
+        assert {migration["operation"] for migration in storage_migrations} == {"field_index_change"}
+        assert all(migration["rollbackSteps"] for migration in storage_migrations)
 
 
 @pytest.mark.asyncio

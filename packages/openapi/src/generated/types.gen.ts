@@ -1849,6 +1849,144 @@ export type ConfirmRemoveMyPasswordRequest = {
 };
 
 /**
+ * ContentApiEntryListOut
+ */
+export type ContentApiEntryListOut = {
+    /**
+     * Items
+     *
+     * Content entries.
+     */
+    items?: Array<ContentApiEntryOut>;
+    /**
+     * Limit
+     *
+     * Page size.
+     */
+    limit: number;
+    /**
+     * Locale
+     *
+     * Locale filter applied to the result.
+     */
+    locale?: string | null;
+    /**
+     * Modelkey
+     *
+     * Content model key.
+     */
+    modelKey: string;
+    /**
+     * Offset
+     *
+     * Page offset.
+     */
+    offset: number;
+    /**
+     * Perspective
+     *
+     * Delivery perspective.
+     */
+    perspective: 'published' | 'preview';
+    /**
+     * Total
+     *
+     * Total matched entries before pagination.
+     */
+    total: number;
+};
+
+/**
+ * ContentApiEntryOut
+ */
+export type ContentApiEntryOut = {
+    /**
+     * Customfields
+     *
+     * Delivery-safe custom field payload.
+     */
+    customFields?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Draftrevision
+     *
+     * Current draft revision pointer.
+     */
+    draftRevision: number;
+    /**
+     * Fields
+     *
+     * Delivery-safe field payload.
+     */
+    fields?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Id
+     *
+     * Content item id.
+     */
+    id: string;
+    /**
+     * Locale
+     *
+     * Entry locale.
+     */
+    locale: string;
+    /**
+     * Modelkey
+     *
+     * Content model key.
+     */
+    modelKey: string;
+    /**
+     * Publishedrevision
+     *
+     * Current published revision pointer.
+     */
+    publishedRevision?: number | null;
+    /**
+     * Revision
+     *
+     * Resolved revision number.
+     */
+    revision: number;
+    /**
+     * Revisionstate
+     *
+     * Resolved revision state.
+     */
+    revisionState: 'draft' | 'published';
+    /**
+     * Routecontract
+     *
+     * Bound route contract, when available.
+     */
+    routeContract?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Routepath
+     *
+     * Bound route path, when the entry owns one.
+     */
+    routePath?: string | null;
+    /**
+     * Slug
+     *
+     * Entry slug.
+     */
+    slug?: string | null;
+    /**
+     * Title
+     *
+     * Entry title.
+     */
+    title?: string | null;
+};
+
+/**
  * ContentComponentBindingListOut
  */
 export type ContentComponentBindingListOut = {
@@ -3576,6 +3714,10 @@ export type ContentModelSchemaChangePlanOut = {
      * Revision lifecycle summary for the current preview.
      */
     revisions?: ContentModelRevisionSummaryOut;
+    /**
+     * Versioned storage sync plan generated from the canonical schema diff.
+     */
+    storageSync?: ContentModelStorageSyncPlanOut | null;
 };
 
 /**
@@ -3698,6 +3840,174 @@ export type ContentModelSchemaSnapshotOut = {
      * Number of views stored in the snapshot payload.
      */
     viewCount?: number;
+};
+
+/**
+ * ContentModelStorageFieldOut
+ */
+export type ContentModelStorageFieldOut = {
+    /**
+     * Dbcolumntype
+     *
+     * Database-native type hint resolved from the field type registry.
+     */
+    dbColumnType: string;
+    /**
+     * Indexed
+     *
+     * Whether the field declares generated index intent.
+     */
+    indexed?: boolean;
+    /**
+     * Jsonpath
+     *
+     * JSONB path used by query builders and generated routes.
+     */
+    jsonPath: string;
+    /**
+     * Key
+     *
+     * Field key inside the JSONB snapshot.
+     */
+    key: string;
+    /**
+     * Localizable
+     *
+     * Whether the field declares localization in its config.
+     */
+    localizable?: boolean;
+    /**
+     * Omitfromapiresponse
+     *
+     * Whether the field is hidden from delivery/API responses.
+     */
+    omitFromApiResponse?: boolean;
+    /**
+     * Required
+     *
+     * Whether the field is required by the content model.
+     */
+    required?: boolean;
+    /**
+     * Scalar
+     *
+     * Content model field scalar.
+     */
+    scalar: 'text' | 'long_text' | 'number' | 'boolean' | 'date_time' | 'json';
+    /**
+     * Unique
+     *
+     * Whether the field declares uniqueness in its config.
+     */
+    unique?: boolean;
+};
+
+/**
+ * ContentModelStorageMigrationOut
+ */
+export type ContentModelStorageMigrationOut = {
+    /**
+     * After
+     *
+     * Target storage metadata.
+     */
+    after?: unknown;
+    /**
+     * Before
+     *
+     * Source storage metadata.
+     */
+    before?: unknown;
+    /**
+     * Forwardsteps
+     *
+     * Idempotent forward migration steps.
+     */
+    forwardSteps?: Array<string>;
+    /**
+     * Operation
+     *
+     * Storage sync migration operation.
+     */
+    operation: 'field_add' | 'field_remove' | 'field_rename' | 'field_type_change' | 'field_index_change' | 'field_config_change';
+    /**
+     * Reversible
+     *
+     * Whether a rollback plan is available.
+     */
+    reversible?: boolean;
+    /**
+     * Rollbacksteps
+     *
+     * Idempotent rollback steps.
+     */
+    rollbackSteps?: Array<string>;
+    /**
+     * State
+     *
+     * Migration state in the current plan.
+     */
+    state: 'planned' | 'applied';
+    /**
+     * Summary
+     *
+     * Human-readable storage migration summary.
+     */
+    summary: string;
+    /**
+     * Target
+     *
+     * Changed storage path or field pair.
+     */
+    target: string;
+};
+
+/**
+ * ContentModelStorageSyncPlanOut
+ */
+export type ContentModelStorageSyncPlanOut = {
+    /**
+     * Diagnostics
+     *
+     * Operator diagnostics explaining storage behavior and repair context.
+     */
+    diagnostics?: Array<string>;
+    /**
+     * Fields
+     *
+     * Resolved field storage metadata for the current schema snapshot.
+     */
+    fields?: Array<ContentModelStorageFieldOut>;
+    /**
+     * Migrations
+     *
+     * Forward migration records required to reach this plan.
+     */
+    migrations?: Array<ContentModelStorageMigrationOut>;
+    /**
+     * Schemarevision
+     *
+     * Schema revision this storage plan describes.
+     */
+    schemaRevision: number;
+    /**
+     * State
+     *
+     * Plan state for this snapshot.
+     */
+    state: 'planned' | 'applied';
+    /**
+     * Storagetarget
+     *
+     * Physical storage target for content field values.
+     */
+    storageTarget: string;
+    /**
+     * Strategy
+     *
+     * Canonical storage strategy.
+     */
+    strategy: 'jsonb_snapshot';
 };
 
 /**
@@ -12553,6 +12863,56 @@ export type ResponseModelAutomationRunListOut = {
  */
 export type ResponseModelAutomationRunOut = {
     data?: AutomationRunOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentApiEntryListOut]
+ */
+export type ResponseModelContentApiEntryListOut = {
+    data?: ContentApiEntryListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentApiEntryOut]
+ */
+export type ResponseModelContentApiEntryOut = {
+    data?: ContentApiEntryOut | null;
     /**
      * Error
      */
@@ -29185,7 +29545,7 @@ export type InternalSystemListOrganizationsData = {
          *
          * Filter by organization kind.
          */
-        kind?: string | null;
+        kind?: OrganizationKind | null;
         /**
          * Is Active
          *
@@ -29652,7 +30012,7 @@ export type InternalSystemListUsersData = {
          *
          * Filter by account status.
          */
-        status?: string | null;
+        status?: UserStatus | null;
         /**
          * Is Super Admin
          *
@@ -32435,6 +32795,170 @@ export type DomainWorkspacesListUserOptionsResponses = {
 };
 
 export type DomainWorkspacesListUserOptionsResponse = DomainWorkspacesListUserOptionsResponses[keyof DomainWorkspacesListUserOptionsResponses];
+
+export type ExternalContentApiSitesListContentEntriesData = {
+    body?: never;
+    path: {
+        /**
+         * Model Key
+         *
+         * Content model key.
+         */
+        model_key: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Previewtoken
+         *
+         * Preview token.
+         */
+        previewToken?: string | null;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+        /**
+         * Filterfield
+         *
+         * Exact filter field.
+         */
+        filterField?: string | null;
+        /**
+         * Filtervalue
+         *
+         * Exact filter value.
+         */
+        filterValue?: string | null;
+        /**
+         * Containsfield
+         *
+         * Contains filter field.
+         */
+        containsField?: string | null;
+        /**
+         * Containsvalue
+         *
+         * Contains filter value.
+         */
+        containsValue?: string | null;
+        /**
+         * Sortfield
+         *
+         * Sort field.
+         */
+        sortField?: string | null;
+        /**
+         * Sortdirection
+         *
+         * Sort direction.
+         */
+        sortDirection?: 'asc' | 'desc';
+        /**
+         * Limit
+         *
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * Offset
+         *
+         * Page offset.
+         */
+        offset?: number;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/content/{model_key}';
+};
+
+export type ExternalContentApiSitesListContentEntriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesListContentEntriesError = ExternalContentApiSitesListContentEntriesErrors[keyof ExternalContentApiSitesListContentEntriesErrors];
+
+export type ExternalContentApiSitesListContentEntriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentApiEntryListOut;
+};
+
+export type ExternalContentApiSitesListContentEntriesResponse = ExternalContentApiSitesListContentEntriesResponses[keyof ExternalContentApiSitesListContentEntriesResponses];
+
+export type ExternalContentApiSitesGetContentEntryData = {
+    body?: never;
+    path: {
+        /**
+         * Model Key
+         *
+         * Content model key.
+         */
+        model_key: string;
+        /**
+         * Entry Id
+         *
+         * Content entry id.
+         */
+        entry_id: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Previewtoken
+         *
+         * Preview token.
+         */
+        previewToken?: string | null;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/content/{model_key}/{entry_id}';
+};
+
+export type ExternalContentApiSitesGetContentEntryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesGetContentEntryError = ExternalContentApiSitesGetContentEntryErrors[keyof ExternalContentApiSitesGetContentEntryErrors];
+
+export type ExternalContentApiSitesGetContentEntryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentApiEntryOut;
+};
+
+export type ExternalContentApiSitesGetContentEntryResponse = ExternalContentApiSitesGetContentEntryResponses[keyof ExternalContentApiSitesGetContentEntryResponses];
 
 export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetData = {
     body?: never;

@@ -74,6 +74,11 @@ from src.modules.projects.content.models.protocol_registry import (
     list_official_model_protocols,
 )
 from src.modules.projects.content.models.repository import ProjectContentModelsRepository
+from src.modules.projects.content.models.storage_sync import (
+    build_storage_sync_plan,
+    build_storage_sync_snapshot,
+    storage_sync_payload,
+)
 
 
 class ContentModelDefinitionPatchContract(BaseSchema):
@@ -1146,7 +1151,7 @@ def _contract_snapshot_payload(
     relations: list[ContentModelRelationContract],
     views: list[ContentModelViewContract],
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "protocol_key": protocol.key,
         "protocol_version": protocol.protocol_version,
         "system_managed": protocol.system_managed,
@@ -1172,6 +1177,10 @@ def _contract_snapshot_payload(
         "relations": [relation.model_dump(mode="json", by_alias=False, exclude_none=True) for relation in relations],
         "views": [view.model_dump(mode="json", by_alias=False, exclude_none=True) for view in views],
     }
+    payload["storage_sync"] = storage_sync_payload(
+        build_storage_sync_snapshot(snapshot=payload, schema_revision=1, state="applied")
+    )
+    return payload
 
 
 def _bump_draft_contract_revision(record: ContentModelDefinitionRecord, *, fields_set: set[str]) -> int:
@@ -1229,7 +1238,7 @@ def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[s
 
 
 def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, Any]:
-    return {
+    payload = {
         "protocol_key": record.protocol_key,
         "protocol_version": int(record.protocol_version or 1),
         "system_managed": bool(record.is_system_managed),
@@ -1281,6 +1290,14 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, 
             for view in record.views
         ],
     }
+    payload["storage_sync"] = storage_sync_payload(
+        build_storage_sync_snapshot(
+            snapshot=payload,
+            schema_revision=int(record.draft_contract_revision or 1),
+            state="applied",
+        )
+    )
+    return payload
 
 
 def _field_contracts(record: ContentModelDefinitionRecord) -> list[ContentModelFieldContract]:
@@ -1935,6 +1952,12 @@ class ProjectContentCanonicalModelsService:
             relations=next_relations,
             views=next_views,
         )
+        storage_sync = build_storage_sync_plan(
+            current_snapshot=current_snapshot_payload,
+            next_snapshot=next_snapshot_payload,
+            schema_revision=next_draft_revision,
+        )
+        next_snapshot_payload["storage_sync"] = storage_sync_payload(storage_sync)
         diff = _build_schema_diff(
             current_snapshot=current_snapshot_payload,
             next_snapshot=next_snapshot_payload,
@@ -1984,6 +2007,7 @@ class ProjectContentCanonicalModelsService:
             diff=diff,
             apply_gates=apply_gates,
             apply_ready=not any(gate.status == "blocked" for gate in apply_gates),
+            storage_sync=storage_sync,
         )
         preview = ContentModelImpactPreviewResult(
             affected_items_count=affected_items_count,

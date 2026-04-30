@@ -117,6 +117,14 @@ Hard prohibitions:
   - `"""Internal model for system configuration revisions."""`
 - Additional lines may explain scope or behavior, but the first line must stay clean.
 
+### 7.3 Content model storage sync
+
+- Runtime content field values are stored in `ContentVersionRecord.fields_snapshot` on `domain_content_versions`.
+- Content model schema revisions are tracked through `draft_contract_revision`, `published_contract_revision`, and canonical snapshot payloads.
+- The storage sync strategy is `jsonb_snapshot`: content model changes generate a storage plan that describes JSONB field paths, registry-resolved database type hints, forward migration steps, and rollback steps.
+- `AbstractFieldType.get_db_column_type()` is the extension point for generated indexes, projections, API generation, and future storage strategies; it does not imply one physical content table per model.
+- Dynamic physical tables require a separate tenant migration engine, online backfill plan, and rollback design before they become a runtime storage strategy.
+
 ## 8. Router Metadata Rules
 
 - Router tags must use the dotted domain vocabulary:

@@ -109,7 +109,7 @@ Status values:
 | P06 | `p06-csrf-protection.md` | 1 | medium | blocked | CSRF implementation and focused tests completed; final gates blocked by existing Admin suite failures and API 60s gate timeout. |
 | P05 | `p05-password-field.md` | 2 | medium | verified | Password field enum/type, bcrypt write hashing, response/GraphQL hiding, and Admin picker support completed; implementation-round `pnpm api:check` passed, and this follow-up unblocked the Admin baseline so `pnpm admin:check` now passes. |
 | P01 | `p01-polymorphic-relations.md` | 2 | high | verified | Target-side polymorphic and one-way relation contract support implemented; focused API/Admin checks, `pnpm api:check`, and rerun `pnpm admin:check` passed. |
-| F06 | `f06-dynamic-schema-sync.md` | 2 | high | planned | Implement or formalize content-type-to-storage sync. |
+| F06 | `f06-dynamic-schema-sync.md` | 2 | high | verified | Chose `jsonb_snapshot` as canonical storage strategy; schema previews now expose versioned storage sync plans with field add/remove/rename/type/index migration records, rollback steps, and registry-resolved database type hints; OpenAPI SDK sync and `pnpm api:check` passed. |
 | F07 | `f07-api-auto-generation.md` | 2 | high | planned | Generate REST routes from content types. |
 | P04 | `p04-graphql-schema-hardening.md` | 2 | high | planned | Replace unsafe schema generation and enforce field filtering. |
 | P07 | `p07-conditional-permissions.md` | 3 | high | planned | Add dynamic permission conditions. |
