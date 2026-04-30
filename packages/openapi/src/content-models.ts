@@ -16,7 +16,17 @@ export type ContentModelCapability =
 
 export type ContentDefaultEditor = "form" | "visual" | "rich_text" | "table";
 export type ContentFieldScalar = "text" | "long_text" | "number" | "boolean" | "date_time" | "json";
-export type ContentRelationKind = "one_to_one" | "one_to_many" | "many_to_one" | "many_to_many";
+export type ContentRelationKind =
+  | "one_to_one"
+  | "one_to_many"
+  | "many_to_one"
+  | "many_to_many"
+  | "one_way"
+  | "many_way"
+  | "morph_to_one"
+  | "morph_to_many"
+  | "morph_one"
+  | "morph_many";
 export type ContentViewType = "detail" | "list" | "table" | "grid" | "tree";
 
 export type ContentModelSummary = {

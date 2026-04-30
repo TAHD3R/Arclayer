@@ -25,6 +25,10 @@ from src.modules.projects.content.contracts.schema import (
 from src.modules.projects.content.models.protocol_registry import get_official_model_protocol
 
 _KNOWN_PROTOCOL_KEYS = {"article", "page", "reusable-section", "category"}
+_SINGLE_TARGET_RELATION_TYPES = {"one_to_one", "many_to_one", "one_way", "morph_to_one", "morph_one"}
+_OWNER_SIDE_POLYMORPHIC_RELATION_TYPES = {"morph_to_one", "morph_to_many"}
+_TARGET_SIDE_POLYMORPHIC_RELATION_TYPES = {"morph_one", "morph_many"}
+_ONE_WAY_RELATION_TYPES = {"one_way", "many_way"}
 
 
 def normalize_model_category(value: ContentModelCategory | None) -> str:
@@ -61,16 +65,29 @@ def _field_schema(fields: Iterable[ContentModelFieldRecord]) -> dict[str, Any] |
 
 
 def _relation_schema(relations: Iterable[ContentModelRelationRecord]) -> dict[str, Any] | None:
-    rows = {
-        relation.key: {
-            "relation": str(relation.relation_type),
-            "targetModelKey": relation.target_model_key,
-            "required": relation.is_required,
-            "config": relation.config,
-        }
-        for relation in relations
-    }
+    rows = {relation.key: _relation_schema_entry(relation) for relation in relations}
     return rows or None
+
+
+def _relation_schema_entry(relation: ContentModelRelationRecord) -> dict[str, Any]:
+    relation_type = str(relation.relation_type)
+    polymorphic_side: str | None = None
+    if relation_type in _OWNER_SIDE_POLYMORPHIC_RELATION_TYPES:
+        polymorphic_side = "owner"
+    if relation_type in _TARGET_SIDE_POLYMORPHIC_RELATION_TYPES:
+        polymorphic_side = "target"
+    entry: dict[str, Any] = {
+        "relation": relation_type,
+        "targetModelKey": relation.target_model_key,
+        "required": relation.is_required,
+        "config": relation.config,
+        "cardinality": "one" if relation_type in _SINGLE_TARGET_RELATION_TYPES else "many",
+        "direction": "one_way" if relation_type in _ONE_WAY_RELATION_TYPES else "bidirectional",
+        "polymorphic": polymorphic_side is not None,
+    }
+    if polymorphic_side is not None:
+        entry["polymorphicSide"] = polymorphic_side
+    return entry
 
 
 def _view_schema(views: Iterable[ContentModelViewRecord]) -> dict[str, Any] | None:

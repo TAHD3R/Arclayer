@@ -108,7 +108,7 @@ Status values:
 | F01 | `f01-content-delivery-api.md` | 1 | high | verified | Content API entries routes, tenant-bound GraphQL/REST reads, token auth separation, and shared REST/GraphQL limiter added; focused tests passed, `pnpm api:check` reached the 60s timeout after lint/typecheck/test startup. |
 | P06 | `p06-csrf-protection.md` | 1 | medium | blocked | CSRF implementation and focused tests completed; final gates blocked by existing Admin suite failures and API 60s gate timeout. |
 | P05 | `p05-password-field.md` | 2 | medium | verified | Password field enum/type, bcrypt write hashing, response/GraphQL hiding, and Admin picker support completed; implementation-round `pnpm api:check` passed, and this follow-up unblocked the Admin baseline so `pnpm admin:check` now passes. |
-| P01 | `p01-polymorphic-relations.md` | 2 | high | planned | Complete target-side and one-way relation support. |
+| P01 | `p01-polymorphic-relations.md` | 2 | high | blocked | Target-side polymorphic and one-way relation contract support implemented; focused API/Admin checks and rerun `pnpm admin:check` passed, while `pnpm api:check` hit the required 60s timeout after lint/format/typecheck passed and tests were still running. |
 | F06 | `f06-dynamic-schema-sync.md` | 2 | high | planned | Implement or formalize content-type-to-storage sync. |
 | F07 | `f07-api-auto-generation.md` | 2 | high | planned | Generate REST routes from content types. |
 | P04 | `p04-graphql-schema-hardening.md` | 2 | high | planned | Replace unsafe schema generation and enforce field filtering. |

@@ -3471,7 +3471,7 @@ export type ContentModelRelationContract = {
      *
      * Relation cardinality.
      */
-    relation: 'one_to_one' | 'one_to_many' | 'many_to_one' | 'many_to_many' | 'morph_to_one' | 'morph_to_many';
+    relation: 'one_to_one' | 'one_to_many' | 'many_to_one' | 'many_to_many' | 'one_way' | 'many_way' | 'morph_to_one' | 'morph_to_many' | 'morph_one' | 'morph_many';
     /**
      * Required
      *

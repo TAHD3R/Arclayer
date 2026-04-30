@@ -64,6 +64,7 @@ from src.modules.projects.content.models.domain_helpers import (
 )
 from src.modules.projects.content.models.field_type_registry import (
     validate_content_model_field_contracts,
+    validate_content_model_relation_contracts,
     validate_model_kind_contract,
 )
 from src.modules.projects.content.models.protocol_registry import (
@@ -1650,6 +1651,7 @@ class ProjectContentCanonicalModelsService:
             routing_mode=payload.routing.mode,
         )
         validate_content_model_field_contracts(payload.fields, model_kind=model_kind)
+        validate_content_model_relation_contracts(payload.relations)
         await self._validate_model_identifiers(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -1858,6 +1860,7 @@ class ProjectContentCanonicalModelsService:
                 for relation in record.relations
             ]
         )
+        validate_content_model_relation_contracts(next_relations)
         next_views = (
             list(payload.views or [])
             if "views" in fields_set

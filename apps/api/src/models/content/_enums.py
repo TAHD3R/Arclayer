@@ -33,8 +33,12 @@ class ContentModelRelationType(StrEnum):
     ONE_TO_MANY = "one_to_many"
     MANY_TO_ONE = "many_to_one"
     MANY_TO_MANY = "many_to_many"
+    ONE_WAY = "one_way"
+    MANY_WAY = "many_way"
     MORPH_TO_ONE = "morph_to_one"
     MORPH_TO_MANY = "morph_to_many"
+    MORPH_ONE = "morph_one"
+    MORPH_MANY = "morph_many"
 
 
 class ContentModelViewType(StrEnum):

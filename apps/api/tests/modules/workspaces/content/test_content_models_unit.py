@@ -48,6 +48,7 @@ from src.modules.projects.content.models.field_type_registry import (
     content_model_field_type_registry,
     register_custom_content_model_field_type,
     validate_content_model_field_contract,
+    validate_content_model_relation_contracts,
     validate_model_kind_contract,
 )
 from src.modules.projects.content.models.protocol_registry import list_official_model_protocols
@@ -585,6 +586,103 @@ def test_kernel_enum_types_are_str_enum() -> None:
     assert issubclass(ContentItemVisibility, StrEnum)
     assert issubclass(ContentVersionState, StrEnum)
     assert issubclass(ContentPresentationKind, StrEnum)
+
+
+def test_content_model_relation_types_include_polymorphic_target_and_one_way_values() -> None:
+    assert {item.value for item in ContentModelRelationType} >= {
+        "one_way",
+        "many_way",
+        "morph_one",
+        "morph_many",
+    }
+    assert contracts_schema.RelationType.__args__ == (
+        "one_to_one",
+        "one_to_many",
+        "many_to_one",
+        "many_to_many",
+        "one_way",
+        "many_way",
+        "morph_to_one",
+        "morph_to_many",
+        "morph_one",
+        "morph_many",
+    )
+
+
+def test_content_model_relation_validator_accepts_new_relation_semantics() -> None:
+    validate_content_model_relation_contracts([
+        contracts_schema.ContentModelRelationContract(
+            key="featuredAsset",
+            relation="one_way",
+            target_model_key="asset",
+            config={"inverseEditable": False},
+        ),
+        contracts_schema.ContentModelRelationContract(
+            key="relatedAssets",
+            relation="many_way",
+            target_model_key="asset",
+            config={"cardinality": "many"},
+        ),
+        contracts_schema.ContentModelRelationContract(
+            key="linkedFrom",
+            relation="morph_one",
+            target_model_key="article",
+            config={"polymorphic": True, "sourceDiscriminatorField": "sourceType"},
+        ),
+        contracts_schema.ContentModelRelationContract(
+            key="linkedEntries",
+            relation="morph_many",
+            target_model_key="article",
+            config={"sourceDiscriminatorField": "sourceType"},
+        ),
+    ])
+
+
+def test_content_model_relation_validator_rejects_invalid_new_relation_configs() -> None:
+    with pytest.raises(Conflict) as one_way_error:
+        validate_content_model_relation_contracts([
+            contracts_schema.ContentModelRelationContract(
+                key="featuredAsset",
+                relation="one_way",
+                target_model_key="asset",
+                config={"inverseEditable": True},
+            )
+        ])
+    assert one_way_error.value.error == "CONTENT_MODEL_RELATION_ONE_WAY_INVERSE_INVALID"
+
+    with pytest.raises(Conflict) as polymorphic_error:
+        validate_content_model_relation_contracts([
+            contracts_schema.ContentModelRelationContract(
+                key="linkedFrom",
+                relation="morph_one",
+                target_model_key="article",
+                config={"polymorphic": True},
+            )
+        ])
+    assert polymorphic_error.value.error == "CONTENT_MODEL_RELATION_CONFIG_REQUIRED"
+
+    with pytest.raises(Conflict) as cardinality_error:
+        validate_content_model_relation_contracts([
+            contracts_schema.ContentModelRelationContract(
+                key="relatedAssets",
+                relation="many_way",
+                target_model_key="asset",
+                config={"cardinality": "one"},
+            )
+        ])
+    assert cardinality_error.value.error == "CONTENT_MODEL_RELATION_CARDINALITY_MISMATCH"
+
+    with pytest.raises(Conflict) as config_error:
+        validate_content_model_relation_contracts([
+            contracts_schema.ContentModelRelationContract.model_construct(
+                key="featuredAsset",
+                relation="one_way",
+                target_model_key="asset",
+                required=False,
+                config=[],
+            )
+        ])
+    assert config_error.value.error == "CONTENT_MODEL_RELATION_CONFIG_INVALID"
 
 
 def test_route_binding_and_hierarchy_are_different_persistence_records() -> None:

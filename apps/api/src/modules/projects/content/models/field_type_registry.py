@@ -13,11 +13,37 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelFieldTypeRegistryOut,
     ContentModelKind,
     ContentModelKindDefinitionOut,
+    ContentModelRelationContract,
     FieldScalarType,
+    RelationType,
 )
 
 _CAMEL_CASE_FIELD_IDENTIFIER_PATTERN = re.compile(r"^[a-z][A-Za-z0-9]*$")
 _GRAPHQL_RESERVED_FIELD_NAMES = frozenset({"sys", "contentfulMetadata", "linkedFrom", "__typename"})
+_RELATION_TYPES: frozenset[RelationType] = frozenset({
+    "one_to_one",
+    "one_to_many",
+    "many_to_one",
+    "many_to_many",
+    "one_way",
+    "many_way",
+    "morph_to_one",
+    "morph_to_many",
+    "morph_one",
+    "morph_many",
+})
+_SINGLE_TARGET_RELATION_TYPES: frozenset[RelationType] = frozenset({
+    "one_to_one",
+    "many_to_one",
+    "one_way",
+    "morph_to_one",
+    "morph_one",
+})
+_MULTI_TARGET_RELATION_TYPES: frozenset[RelationType] = _RELATION_TYPES - _SINGLE_TARGET_RELATION_TYPES
+_OWNER_SIDE_POLYMORPHIC_RELATION_TYPES: frozenset[RelationType] = frozenset({"morph_to_one", "morph_to_many"})
+_TARGET_SIDE_POLYMORPHIC_RELATION_TYPES: frozenset[RelationType] = frozenset({"morph_one", "morph_many"})
+_POLYMORPHIC_RELATION_TYPES = _OWNER_SIDE_POLYMORPHIC_RELATION_TYPES | _TARGET_SIDE_POLYMORPHIC_RELATION_TYPES
+_ONE_WAY_RELATION_TYPES: frozenset[RelationType] = frozenset({"one_way", "many_way"})
 _PLUGIN_FIELD_TYPES: dict[str, ContentModelFieldTypeDefinitionOut] = {}
 
 
@@ -512,6 +538,147 @@ def validate_content_model_field_contracts(
                 meta={"fieldKey": field.key},
             )
         seen.add(field.key)
+
+
+def _assert_relation_key(relation: ContentModelRelationContract) -> None:
+    if _CAMEL_CASE_FIELD_IDENTIFIER_PATTERN.fullmatch(relation.key) is not None:
+        return
+    raise Conflict(
+        "Content model relation key must be a camelCase API identifier",
+        error="CONTENT_MODEL_RELATION_KEY_INVALID",
+        meta={"relationKey": relation.key},
+    )
+
+
+def _assert_relation_config_object(relation: ContentModelRelationContract) -> dict[str, Any]:
+    if relation.config is None:
+        return {}
+    config = relation.config
+    if isinstance(config, dict):
+        return config
+    raise Conflict(
+        "Content model relation config must be an object",
+        error="CONTENT_MODEL_RELATION_CONFIG_INVALID",
+        meta={"relationKey": relation.key},
+    )
+
+
+def _assert_boolean_config_value(
+    config: dict[str, Any],
+    *,
+    key: str,
+    relation: ContentModelRelationContract,
+) -> None:
+    value = config.get(key)
+    if value is None or isinstance(value, bool):
+        return
+    raise Conflict(
+        f"Content model relation config.{key} must be a boolean",
+        error="CONTENT_MODEL_RELATION_CONFIG_INVALID",
+        meta={"relationKey": relation.key, "configKey": key},
+    )
+
+
+def _assert_string_config_value(
+    config: dict[str, Any],
+    *,
+    key: str,
+    relation: ContentModelRelationContract,
+) -> None:
+    value = config.get(key)
+    if isinstance(value, str) and value.strip():
+        return
+    raise Conflict(
+        f"Content model relation config.{key} is required",
+        error="CONTENT_MODEL_RELATION_CONFIG_REQUIRED",
+        meta={"relationKey": relation.key, "relation": relation.relation, "configKey": key},
+    )
+
+
+def _assert_relation_cardinality(
+    relation: ContentModelRelationContract,
+    config: dict[str, Any],
+) -> None:
+    expected_cardinality = "many" if relation.relation in _MULTI_TARGET_RELATION_TYPES else "one"
+    cardinality = config.get("cardinality")
+    if cardinality is None or cardinality == expected_cardinality:
+        return
+    raise Conflict(
+        "Content model relation cardinality does not match relation type",
+        error="CONTENT_MODEL_RELATION_CARDINALITY_MISMATCH",
+        meta={
+            "relationKey": relation.key,
+            "relation": relation.relation,
+            "expectedCardinality": expected_cardinality,
+            "actualCardinality": cardinality,
+        },
+    )
+
+
+def _assert_one_way_relation_config(
+    relation: ContentModelRelationContract,
+    config: dict[str, Any],
+) -> None:
+    if relation.relation not in _ONE_WAY_RELATION_TYPES:
+        return
+    _assert_boolean_config_value(config, key="inverseEditable", relation=relation)
+    if config.get("inverseEditable") is not True:
+        return
+    raise Conflict(
+        "One-way relations cannot declare an editable inverse side",
+        error="CONTENT_MODEL_RELATION_ONE_WAY_INVERSE_INVALID",
+        meta={"relationKey": relation.key, "relation": relation.relation},
+    )
+
+
+def _assert_polymorphic_relation_config(
+    relation: ContentModelRelationContract,
+    config: dict[str, Any],
+) -> None:
+    relation_type = relation.relation
+    if relation_type not in _POLYMORPHIC_RELATION_TYPES:
+        return
+    if relation_type in _OWNER_SIDE_POLYMORPHIC_RELATION_TYPES:
+        _assert_string_config_value(config, key="targetDiscriminatorField", relation=relation)
+    if relation_type in _TARGET_SIDE_POLYMORPHIC_RELATION_TYPES:
+        _assert_string_config_value(config, key="sourceDiscriminatorField", relation=relation)
+    _assert_boolean_config_value(config, key="polymorphic", relation=relation)
+    if config.get("polymorphic") in (None, True):
+        return
+    raise Conflict(
+        "Polymorphic relations must set config.polymorphic to true when provided",
+        error="CONTENT_MODEL_RELATION_POLYMORPHIC_FLAG_INVALID",
+        meta={"relationKey": relation.key, "relation": relation_type},
+    )
+
+
+def validate_content_model_relation_contract(relation: ContentModelRelationContract) -> None:
+    _assert_relation_key(relation)
+    config = _assert_relation_config_object(relation)
+    relation_type = relation.relation
+    if relation_type not in _RELATION_TYPES:
+        raise Conflict(
+            "Content model relation type is not supported",
+            error="CONTENT_MODEL_RELATION_TYPE_UNSUPPORTED",
+            meta={"relationKey": relation.key, "relation": relation_type},
+        )
+
+    _assert_relation_cardinality(relation, config)
+    _assert_one_way_relation_config(relation, config)
+    _assert_polymorphic_relation_config(relation, config)
+
+
+def validate_content_model_relation_contracts(relations: Iterable[ContentModelRelationContract]) -> None:
+    seen: set[str] = set()
+    for relation in relations:
+        validate_content_model_relation_contract(relation)
+        if relation.key in seen:
+            raise Conflict(
+                "Content model relation keys must be unique",
+                error="CONTENT_MODEL_RELATION_DUPLICATE",
+                meta={"relationKey": relation.key},
+            )
+        seen.add(relation.key)
 
 
 def validate_model_kind_contract(

@@ -411,10 +411,17 @@ describe("content model builder", () => {
         },
       },
       relationSchema: {
-        category: {
-          relation: "many_to_one",
+        featuredAsset: {
+          relation: "one_way",
+          targetModelKey: "asset",
+          required: false,
+          config: { inverseEditable: false },
+        },
+        linkedFrom: {
+          relation: "morph_one",
           targetModelKey: "category",
           required: false,
+          config: { polymorphic: true, sourceDiscriminatorField: "sourceType" },
         },
       },
       viewSchema: {
@@ -490,10 +497,18 @@ describe("content model builder", () => {
       ],
       relations: [
         {
-          key: "category",
-          relation: "many_to_one",
+          key: "featuredAsset",
+          relation: "one_way",
+          targetModelKey: "asset",
+          required: false,
+          config: { inverseEditable: false },
+        },
+        {
+          key: "linkedFrom",
+          relation: "morph_one",
           targetModelKey: "category",
           required: false,
+          config: { polymorphic: true, sourceDiscriminatorField: "sourceType" },
         },
       ],
       capabilities: ["queryable"],

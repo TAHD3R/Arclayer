@@ -283,7 +283,29 @@ export type AdminContentWorkflowStage = NonNullable<Generated.ContentItemOut["wo
 export type AdminContentItemWorkflowNote = Generated.ContentItemWorkflowNoteOut;
 export type AdminContentItemPublishReadiness = Generated.ContentItemPublishReadinessOut;
 export type PatchAdminContentItemWorkflowPayload = Generated.ContentItemWorkflowPatchIn;
-export type CreateAdminContentModelPayload = Generated.ContentModelDefinitionContract;
+export type AdminContentModelRelationKind =
+  | "one_to_one"
+  | "one_to_many"
+  | "many_to_one"
+  | "many_to_many"
+  | "one_way"
+  | "many_way"
+  | "morph_to_one"
+  | "morph_to_many"
+  | "morph_one"
+  | "morph_many";
+export type AdminContentModelRelationContract = Omit<
+  Generated.ContentModelRelationContract,
+  "relation"
+> & {
+  relation: AdminContentModelRelationKind;
+};
+export type CreateAdminContentModelPayload = Omit<
+  Generated.ContentModelDefinitionContract,
+  "relations"
+> & {
+  relations?: AdminContentModelRelationContract[];
+};
 export type CreateAdminContentModelFieldPayload = Generated.ContentModelFieldContract;
 export type PatchAdminContentModelFieldPayload = Generated.ContentModelFieldPatchContract;
 export type ReorderAdminContentModelFieldsPayload = Generated.ContentModelFieldReorderContract;

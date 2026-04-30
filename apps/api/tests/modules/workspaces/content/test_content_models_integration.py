@@ -58,12 +58,33 @@ def _explicit_update_payload() -> dict:
         ],
         "relations": [
             {
-                "key": "primary_category",
-                "relation": "many_to_one",
+                "key": "featuredAsset",
+                "relation": "one_way",
+                "targetModelKey": "asset",
+                "required": False,
+                "config": {"inverseEditable": False},
+            },
+            {
+                "key": "relatedAssets",
+                "relation": "many_way",
+                "targetModelKey": "asset",
+                "required": False,
+                "config": {"cardinality": "many"},
+            },
+            {
+                "key": "linkedFrom",
+                "relation": "morph_one",
                 "targetModelKey": "category",
                 "required": False,
-                "config": {"display": "inline"},
-            }
+                "config": {"polymorphic": True, "sourceDiscriminatorField": "sourceType"},
+            },
+            {
+                "key": "linkedEntries",
+                "relation": "morph_many",
+                "targetModelKey": "category",
+                "required": False,
+                "config": {"sourceDiscriminatorField": "sourceType"},
+            },
         ],
         "views": [
             {
@@ -227,24 +248,43 @@ async def test_content_models_patch_updates_explicit_contract_sections(
         )
         assert patch_response.status_code == 200, patch_response.text
         patched_payload = patch_response.json()["data"]
-        assert patched_payload["name"] == "Article"
-        assert patched_payload["protocolKey"] == "article"
-        assert patched_payload["systemManaged"] is True
+        assert patched_payload["name"] == "Product"
+        assert patched_payload.get("protocolKey") is None
+        assert patched_payload["systemManaged"] is False
         assert patched_payload["draftContractRevision"] == 2
-        assert patched_payload["publishedContractRevision"] == 1
+        assert patched_payload.get("publishedContractRevision") is None
         assert patched_payload["impact"]["hasBreakingChanges"] is False
         assert patched_payload["impact"]["breakingChanges"] == []
         assert patched_payload["impact"]["warnings"] == []
 
-        saved_payload = await _list_model_payload(client, project_id=project_id, singular_key="article")
-        assert saved_payload["name"] == "Article"
+        saved_payload = await _list_model_payload(client, project_id=project_id, singular_key="product")
+        assert saved_payload["name"] == "Product"
         assert saved_payload["description"] == "Updated contract"
-        assert saved_payload["category"] == "content_library"
-        assert saved_payload["defaultEditor"] == "rich_text"
+        assert saved_payload["category"] == "custom"
+        assert saved_payload["defaultEditor"] == "form"
         assert saved_payload["draftContractRevision"] == 2
-        assert saved_payload["publishedContractRevision"] == 1
+        assert saved_payload.get("publishedContractRevision") is None
         assert saved_payload["fieldSchema"]["readingTimeMinutes"]["label"] == "Reading Time"
-        assert saved_payload["relationSchema"]["primary_category"]["targetModelKey"] == "category"
+        assert saved_payload["relationSchema"]["featuredAsset"] == {
+            "relation": "one_way",
+            "targetModelKey": "asset",
+            "required": False,
+            "config": {"inverseEditable": False},
+            "cardinality": "one",
+            "direction": "one_way",
+            "polymorphic": False,
+        }
+        assert saved_payload["relationSchema"]["relatedAssets"]["cardinality"] == "many"
+        assert saved_payload["relationSchema"]["relatedAssets"]["direction"] == "one_way"
+        assert saved_payload["relationSchema"]["linkedFrom"]["relation"] == "morph_one"
+        assert saved_payload["relationSchema"]["linkedFrom"]["polymorphic"] is True
+        assert saved_payload["relationSchema"]["linkedFrom"]["polymorphicSide"] == "target"
+        assert saved_payload["relationSchema"]["linkedEntries"]["relation"] == "morph_many"
+        assert saved_payload["relationSchema"]["linkedEntries"]["cardinality"] == "many"
+        assert (
+            saved_payload["contractRegistry"]["graphqlPolicy"]["relationSchema"]["linkedFrom"]["polymorphicSide"]
+            == "target"
+        )
         assert saved_payload["viewSchema"]["views"][0]["key"] == "table_main"
 
 
