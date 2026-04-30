@@ -84,6 +84,7 @@ class RolePermission(BaseModel):
 
     role = fields.ForeignKeyField("models.Role", related_name="role_permissions", on_delete=fields.CASCADE)
     permission = fields.ForeignKeyField("models.Permission", related_name="permission_roles", on_delete=fields.CASCADE)
+    conditions = fields.JSONField(default=list)
 
     class Meta(BaseModel.Meta):
         table = "internal_role_permissions"

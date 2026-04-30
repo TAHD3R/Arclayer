@@ -7,9 +7,10 @@ from fastapi import Depends
 from src.config import get_settings
 from src.core.exceptions import Forbidden
 from src.core.i18n import t
-from src.models.system.rbac import Permission, PermissionScope, Role
+from src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
 from src.models.workspaces.workspace import WorkspaceMembershipRole
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.permissions import PermissionConditionSet, deserialize_condition_sets
 from src.modules.workspaces.authz.schema import AuthzSnapshot
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
@@ -53,10 +54,26 @@ async def _build_workspace_authz_snapshot(*, user_id: UUID, workspace_id: UUID) 
             .all()
         )
     permission_codes = [p.code for p in perms if p and p.code]
+    permission_conditions: dict[str, list[PermissionConditionSet]] = {}
+    if not is_superuser and permission_codes:
+        rows = await RolePermission.filter(
+            role__workspace_id=workspace_id,
+            role__code__in=role_codes,
+            permission__scope=PermissionScope.WORKSPACE,
+        ).values("permission__code", "conditions")
+        for row in rows:
+            permission_code = str(row.get("permission__code") or "").strip()
+            if not permission_code:
+                continue
+            condition_sets = deserialize_condition_sets(row.get("conditions"))
+            if not condition_sets:
+                continue
+            permission_conditions.setdefault(permission_code, []).extend(condition_sets)
     return AuthzSnapshot(
         user_id=user_id,
         role_codes=role_codes,
         permission_codes=permission_codes,
+        permission_conditions=permission_conditions,
         is_superuser=is_superuser,
     )
 
@@ -84,6 +101,9 @@ async def ensure_workspace_permission_granted(
     user_id: UUID,
     ctx: WorkspaceContext,
     error_code: str = "PERMISSION_DENIED",
+    resource_attributes: dict[str, str | int | bool | None] | None = None,
+    permission_conditions: dict[str, list[PermissionConditionSet]] | None = None,
+    action_conditions: dict[str, list[PermissionConditionSet]] | None = None,
 ) -> None:
     await WorkspaceRBACService(get_settings()).ensure_workspace_rbac_ready(workspace_id=ctx.workspace_id)
 
@@ -104,6 +124,9 @@ async def ensure_workspace_permission_granted(
             user_id=user_id,
             role_codes=snapshot.role_codes,
             permission_codes=snapshot.permission_codes,
+            permission_conditions=permission_conditions or snapshot.permission_conditions,
+            action_conditions=action_conditions or {},
+            resource_attributes=resource_attributes or {},
             is_superuser=snapshot.is_superuser,
         )
     )

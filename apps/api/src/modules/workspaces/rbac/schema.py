@@ -3,6 +3,23 @@ from __future__ import annotations
 from pydantic import Field, model_validator
 
 from src.common.schemas import BaseOut, BaseSchema
+from src.modules.permissions import PermissionConditionSet, PermissionConditionTemplate
+
+
+class RolePermissionGrantIn(BaseSchema):
+    permission_code: str = Field(..., min_length=1, description="Workspace permission code.")
+    condition_sets: list[PermissionConditionSet] = Field(
+        default_factory=list,
+        description="Conditional grant sets. Empty means unconditional.",
+    )
+
+
+class RolePermissionGrantOut(BaseSchema):
+    permission_code: str = Field(..., description="Workspace permission code.")
+    condition_sets: list[PermissionConditionSet] = Field(
+        default_factory=list,
+        description="Conditional grant sets. Empty means unconditional.",
+    )
 
 
 class WorkspaceRoleOut(BaseOut):
@@ -10,6 +27,10 @@ class WorkspaceRoleOut(BaseOut):
     name: str = Field(..., description="Localized role name.")
     description: str | None = Field(default=None, description="Localized role description.")
     permission_codes: list[str] = Field(default_factory=list, description="Granted workspace permission codes.")
+    permission_grants: list[RolePermissionGrantOut] = Field(
+        default_factory=list,
+        description="Granted workspace permissions with optional condition sets.",
+    )
     is_default: bool = Field(default=False, description="Whether this role is default for onboarding/invites.")
     is_superuser: bool = Field(default=False, description="Whether this role has all workspace permissions.")
     is_system: bool = Field(default=False, description="Whether this role is a built-in system role (immutable).")
@@ -31,6 +52,14 @@ class WorkspacePermissionActionOut(BaseSchema):
         default_factory=list,
         description="Workspace permission codes that back this action.",
     )
+    condition_templates: list[str] = Field(
+        default_factory=list,
+        description="Supported conditional permission template keys for this action.",
+    )
+
+
+class WorkspacePermissionConditionTemplateOut(PermissionConditionTemplate):
+    pass
 
 
 class RoleCreateFromTemplateRequest(BaseSchema):
@@ -75,3 +104,19 @@ class RolePermissionSetRequest(BaseSchema):
         default_factory=list,
         description="Workspace permission codes to grant to the custom role (system roles are immutable).",
     )
+    permission_grants: list[RolePermissionGrantIn] = Field(
+        default_factory=list,
+        description="Workspace permission grants with optional condition sets.",
+    )
+
+    @model_validator(mode="after")
+    def _validate_grant_codes(self) -> RolePermissionSetRequest:
+        seen: set[str] = set()
+        for grant in self.permission_grants:
+            code = str(grant.permission_code or "").strip()
+            if not code:
+                raise ValueError("permission_code is required")
+            if code in seen:
+                raise ValueError("permission_grants contains duplicate permission_code")
+            seen.add(code)
+        return self

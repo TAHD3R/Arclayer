@@ -38,6 +38,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:read",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("own_content", "current_project", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="project:content:manage",
@@ -45,6 +46,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("own_content", "current_project", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="project:content:publish",
@@ -52,6 +54,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:publish",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("own_content", "current_project", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="project:assets:read",
@@ -73,6 +76,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("own_content", "current_project", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="project:content:site-builder:write",
@@ -80,6 +84,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("own_content", "current_project", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="project:content:routing:read",
@@ -87,6 +92,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:read",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("current_project", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="project:content:routing:write",
@@ -94,6 +100,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("own_content", "current_project", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="project:content:models:read",
@@ -101,6 +108,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:read",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("current_project", "content_type", "locale"),
     ),
     PermissionActionDefinition(
         code="project:content:models:write",
@@ -108,6 +116,7 @@ PROJECT_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("project_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.PROJECT.value,
+        condition_templates=("current_project", "content_type", "locale"),
     ),
     PermissionActionDefinition(
         code="project:site:read",

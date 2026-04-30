@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
+from src.modules.permissions import (
+    PermissionCondition,
+    PermissionConditionField,
+    PermissionConditionOperator,
+    PermissionConditionSet,
+)
 from src.modules.workspaces.permissions import (
     PermissionContext,
     PermissionSubjectKind,
@@ -72,3 +80,109 @@ def test_policy_evaluation_service_rejects_subject_kind_mismatch() -> None:
 
     assert decision.allowed is False
     assert decision.reason == "SUBJECT_KIND_FORBIDDEN"
+
+
+def test_policy_evaluation_service_allows_owner_condition_match() -> None:
+    workspace_id = uuid4()
+    user_id = uuid4()
+    decision = PolicyEvaluationService().evaluate(
+        context=PermissionContext(
+            action="content:items:write",
+            subject_kind=PermissionSubjectKind.WORKSPACE_MEMBER,
+            workspace_id=workspace_id,
+            user_id=user_id,
+            permission_codes=["system:content:manage"],
+            permission_conditions={
+                "system:content:manage": [
+                    PermissionConditionSet(
+                        conditions=[
+                            PermissionCondition(
+                                field=PermissionConditionField.OWNER_USER_ID,
+                                operator=PermissionConditionOperator.EQUALS_CURRENT_USER,
+                            )
+                        ]
+                    )
+                ]
+            },
+            resource_attributes={
+                "owner_user_id": str(user_id),
+                "workspace_id": str(workspace_id),
+                "content_type": "article",
+            },
+        )
+    )
+
+    assert decision.allowed is True
+    assert decision.reason == "PERMISSION_GRANTED"
+    assert decision.matched_permission_codes == ["system:content:manage"]
+    assert decision.matched_condition_count == 1
+
+
+def test_policy_evaluation_service_rejects_owner_condition_mismatch() -> None:
+    user_id = uuid4()
+    decision = PolicyEvaluationService().evaluate(
+        context=PermissionContext(
+            action="content:items:write",
+            subject_kind=PermissionSubjectKind.WORKSPACE_MEMBER,
+            user_id=user_id,
+            permission_codes=["system:content:manage"],
+            permission_conditions={
+                "system:content:manage": [
+                    PermissionConditionSet(
+                        conditions=[
+                            PermissionCondition(
+                                field=PermissionConditionField.OWNER_USER_ID,
+                                operator=PermissionConditionOperator.EQUALS_CURRENT_USER,
+                            )
+                        ]
+                    )
+                ]
+            },
+            resource_attributes={"owner_user_id": str(uuid4())},
+            payload_constraints={"owner_user_id": str(user_id)},
+        )
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "CONDITIONS_UNMET"
+
+
+def test_policy_evaluation_service_allows_workflow_stage_condition_match() -> None:
+    decision = PolicyEvaluationService().evaluate(
+        context=PermissionContext(
+            action="content:items:write",
+            subject_kind=PermissionSubjectKind.WORKSPACE_MEMBER,
+            permission_codes=["system:content:manage"],
+            permission_conditions={
+                "system:content:manage": [
+                    PermissionConditionSet(
+                        conditions=[
+                            PermissionCondition(
+                                field=PermissionConditionField.WORKFLOW_STAGE,
+                                operator=PermissionConditionOperator.IN,
+                                value=["drafting", "changes_requested"],
+                            )
+                        ]
+                    )
+                ]
+            },
+            resource_attributes={"workflow_stage": "drafting"},
+        )
+    )
+
+    assert decision.allowed is True
+    assert decision.reason == "PERMISSION_GRANTED"
+
+
+def test_permission_condition_rejects_unsupported_operator_value_shape() -> None:
+    try:
+        PermissionCondition(
+            field=PermissionConditionField.LOCALE,
+            operator=PermissionConditionOperator.IN,
+            value="en-US",
+        )
+    except ValueError as exc:
+        assert "in requires a non-empty static value list" in str(exc)
+        return
+
+    raise AssertionError("unsupported condition value shape was accepted")

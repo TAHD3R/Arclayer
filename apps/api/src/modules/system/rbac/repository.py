@@ -8,6 +8,7 @@ from tortoise.queryset import QuerySet
 from src.common.protocols.tortoise import PermissionMutableFields
 from src.common.repositories import BaseRepository
 from src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
+from src.modules.permissions import PermissionConditionSet, deserialize_condition_sets, serialize_condition_sets
 
 
 class RBACRepository(BaseRepository):
@@ -135,15 +136,53 @@ class RBACRepository(BaseRepository):
     async def list_role_permissions(self, *, role_id: UUID) -> list[Permission]:
         return await Permission.filter(permission_roles__role_id=role_id).all().order_by("code")
 
-    async def replace_role_permissions(self, *, role: Role, permission_ids: list[UUID]) -> None:
+    async def replace_role_permissions(
+        self,
+        *,
+        role: Role,
+        permission_ids: list[UUID],
+        condition_sets_by_permission_id: dict[UUID, list[PermissionConditionSet]] | None = None,
+    ) -> None:
         # Delete+recreate keeps reconciliation logic explicit and deterministic.
         await RolePermission.filter(role_id=role.id).delete()
         for pid in permission_ids:
-            await RolePermission.get_or_create(role_id=role.id, permission_id=pid)
+            await RolePermission.get_or_create(
+                role_id=role.id,
+                permission_id=pid,
+                defaults={"conditions": serialize_condition_sets((condition_sets_by_permission_id or {}).get(pid, []))},
+            )
 
-    async def ensure_role_permission(self, *, role: Role, permission: Permission) -> bool:
-        _, created = await RolePermission.get_or_create(role=role, permission=permission)
+    async def ensure_role_permission(
+        self,
+        *,
+        role: Role,
+        permission: Permission,
+        condition_sets: list[PermissionConditionSet] | None = None,
+    ) -> bool:
+        payload = serialize_condition_sets(condition_sets or [])
+        grant, created = await RolePermission.get_or_create(
+            role=role,
+            permission=permission,
+            defaults={"conditions": payload},
+        )
+        if not created and deserialize_condition_sets(grant.conditions) != (condition_sets or []):
+            grant.conditions = payload
+            await grant.save()
         return created
+
+    async def list_role_permission_condition_sets(
+        self,
+        *,
+        role_id: UUID,
+    ) -> dict[str, list[PermissionConditionSet]]:
+        rows = await RolePermission.filter(role_id=role_id).values("permission__code", "conditions")
+        out: dict[str, list[PermissionConditionSet]] = {}
+        for row in rows:
+            permission_code = str(row.get("permission__code") or "").strip()
+            if not permission_code:
+                continue
+            out[permission_code] = deserialize_condition_sets(row.get("conditions"))
+        return out
 
     async def delete_role_permission(self, *, role_id: UUID, permission_id: UUID) -> int:
         return await RolePermission.filter(role_id=role_id, permission_id=permission_id).delete()

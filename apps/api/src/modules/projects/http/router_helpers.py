@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import Depends
 
 from src.config import Settings, get_settings
+from src.modules.permissions import PermissionConditionSet
 from src.modules.projects.authz.router_helpers import (
     ensure_project_permission_granted as ensure_project_authz_permission_granted,
 )
@@ -42,12 +43,18 @@ async def ensure_project_permission_granted(
     user_id: UUID,
     ctx: ProjectRequestContext,
     error_code: str = "PERMISSION_DENIED",
+    resource_attributes: dict[str, str | int | bool | None] | None = None,
+    permission_conditions: dict[str, list[PermissionConditionSet]] | None = None,
+    action_conditions: dict[str, list[PermissionConditionSet]] | None = None,
 ) -> None:
     await ensure_project_authz_permission_granted(
         permission,
         user_id=user_id,
         ctx=ctx,
         error_code=error_code,
+        resource_attributes=resource_attributes,
+        permission_conditions=permission_conditions,
+        action_conditions=action_conditions,
     )
 
 

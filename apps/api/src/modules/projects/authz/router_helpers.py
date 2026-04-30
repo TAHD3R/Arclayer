@@ -9,6 +9,7 @@ from fastapi import Depends
 from src.core.exceptions import Forbidden
 from src.core.i18n import t
 from src.modules.auth.http.service import get_current_user_id
+from src.modules.permissions import PermissionConditionSet
 from src.modules.projects.authz.service import get_project_authz_snapshot
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
@@ -27,6 +28,9 @@ async def ensure_project_permission_granted(
     user_id: UUID,
     ctx: ProjectRequestContext,
     error_code: str = "PERMISSION_DENIED",
+    resource_attributes: dict[str, str | int | bool | None] | None = None,
+    permission_conditions: dict[str, list[PermissionConditionSet]] | None = None,
+    action_conditions: dict[str, list[PermissionConditionSet]] | None = None,
 ) -> None:
     snapshot = await get_project_authz_snapshot(ctx=ctx, user_id=user_id)
     if not snapshot.role_codes:
@@ -44,6 +48,9 @@ async def ensure_project_permission_granted(
             role_codes=snapshot.role_codes,
             permission_codes=snapshot.permission_codes,
             is_superuser=snapshot.is_superuser,
+            resource_attributes=resource_attributes or {},
+            permission_conditions=permission_conditions or {},
+            action_conditions=action_conditions or {},
         )
     )
     if not decision.allowed:

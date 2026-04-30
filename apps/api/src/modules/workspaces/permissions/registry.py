@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from src.models.system.rbac import PermissionScope
+from src.modules.permissions import PermissionConditionTemplate
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.system.rbac.schema import PermissionTemplate
 
@@ -21,6 +22,7 @@ class PermissionActionDefinition:
     name_i18n: str | None = None
     description_i18n: str | None = None
     default_role_codes: tuple[str, ...] = ()
+    condition_templates: tuple[str, ...] = ()
 
 
 def _permission_action_from_template(
@@ -50,6 +52,7 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.WORKSPACE.value,
+        condition_templates=("own_content", "current_workspace", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="content:site-builder:write",
@@ -57,6 +60,7 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.WORKSPACE.value,
+        condition_templates=("own_content", "current_workspace", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="content:routing:read",
@@ -64,6 +68,7 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:read",),
         subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.WORKSPACE.value,
+        condition_templates=("current_workspace", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="content:routing:write",
@@ -71,6 +76,7 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.WORKSPACE.value,
+        condition_templates=("own_content", "current_workspace", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="site:read",
@@ -99,6 +105,7 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:publish",),
         subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.WORKSPACE.value,
+        condition_templates=("own_content", "current_workspace", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="release:rollback",
@@ -106,6 +113,7 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:publish",),
         subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.WORKSPACE.value,
+        condition_templates=("own_content", "current_workspace", "content_type", "locale", "workflow_stage"),
     ),
     PermissionActionDefinition(
         code="automation:read",
@@ -145,6 +153,7 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:read",),
         subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.WORKSPACE.value,
+        condition_templates=("current_workspace", "content_type", "locale"),
     ),
     PermissionActionDefinition(
         code="content:models:write",
@@ -152,8 +161,15 @@ _WORKSPACE_ACTION_DEFINITIONS: tuple[PermissionActionDefinition, ...] = (
         permission_codes=("system:content:manage",),
         subject_kinds=("workspace_member", "personal_api_key", "workspace_api_key"),
         scope=PermissionScope.WORKSPACE.value,
+        condition_templates=("current_workspace", "content_type", "locale"),
     ),
 )
+
+
+def list_permission_condition_templates() -> tuple[PermissionConditionTemplate, ...]:
+    from src.modules.permissions import build_permission_condition_templates
+
+    return build_permission_condition_templates()
 
 
 def _register_actions(

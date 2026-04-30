@@ -13,6 +13,7 @@ from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.models.system.rbac import Permission, PermissionScope, Role
 from src.models.workspaces.workspace import Workspace
+from src.modules.permissions import PermissionConditionSet
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.system.rbac.repository import RBACRepository
 from src.modules.system.rbac.schema import PermissionTemplate
@@ -275,6 +276,15 @@ class WorkspaceRBACService(BaseService):
             if permission.code
         )
 
+    async def list_permission_condition_sets_for_role(
+        self,
+        *,
+        role: Role,
+    ) -> dict[str, list[PermissionConditionSet]]:
+        if role.is_superuser:
+            return {}
+        return await self.repo.list_role_permission_condition_sets(role_id=UUID(str(role.id)))
+
     async def list_roles_with_permission_codes(self, *, workspace_id: UUID) -> list[tuple[Role, list[str]]]:
         await self.ensure_workspace_rbac_ready(workspace_id=workspace_id)
         roles = await self.repo.list_roles(workspace_id=workspace_id)
@@ -443,6 +453,7 @@ class WorkspaceRBACService(BaseService):
         workspace_id: UUID,
         role_code: str,
         permission_codes: list[str],
+        permission_condition_sets_by_code: dict[str, list[PermissionConditionSet]] | None = None,
     ) -> None:
         cleaned_role_code = str(role_code or "").strip()
         role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=cleaned_role_code)
@@ -455,7 +466,12 @@ class WorkspaceRBACService(BaseService):
             )
 
         desired_permission_codes = sorted({
-            str(item).strip() for item in (permission_codes or []) if item and str(item).strip()
+            str(item).strip()
+            for item in [
+                *(permission_codes or []),
+                *((permission_condition_sets_by_code or {}).keys()),
+            ]
+            if item and str(item).strip()
         })
         if not desired_permission_codes:
             await self.repo.replace_role_permissions(role=role, permission_ids=[])
@@ -486,7 +502,16 @@ class WorkspaceRBACService(BaseService):
         permission_ids = [
             UUID(str(permissions_by_code[code].id)) for code in desired_permission_codes if code in permissions_by_code
         ]
-        await self.repo.replace_role_permissions(role=role, permission_ids=permission_ids)
+        conditions_by_permission_id = {
+            UUID(str(permissions_by_code[code].id)): (permission_condition_sets_by_code or {}).get(code, [])
+            for code in desired_permission_codes
+            if code in permissions_by_code
+        }
+        await self.repo.replace_role_permissions(
+            role=role,
+            permission_ids=permission_ids,
+            condition_sets_by_permission_id=conditions_by_permission_id,
+        )
 
     async def ensure_all_workspaces_ready(self) -> int:
         workspace_ids = await Workspace.all().values_list("id", flat=True)

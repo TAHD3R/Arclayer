@@ -8,6 +8,7 @@ from pydantic import Field
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.system.rbac import PermissionScope
+from src.modules.permissions import PermissionConditionSet
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +23,7 @@ class PermissionActionDefinition:
     name_i18n: str | None = None
     description_i18n: str | None = None
     default_role_codes: tuple[str, ...] = ()
+    condition_templates: tuple[str, ...] = ()
 
 
 class PermissionSubjectKind(StrEnum):
@@ -49,6 +51,18 @@ class PermissionContext(BaseSchema):
     )
     field_grants: dict[str, list[str]] = Field(default_factory=dict, description="Reserved field-level grants.")
     payload_constraints: dict[str, str] = Field(default_factory=dict, description="Reserved payload-level constraints.")
+    resource_attributes: dict[str, str | int | bool | None] = Field(
+        default_factory=dict,
+        description="Authoritative resource attributes used for conditional permission checks.",
+    )
+    permission_conditions: dict[str, list[PermissionConditionSet]] = Field(
+        default_factory=dict,
+        description="Condition sets attached to permission grants by permission code.",
+    )
+    action_conditions: dict[str, list[PermissionConditionSet]] = Field(
+        default_factory=dict,
+        description="Condition sets attached to direct action grants by action code.",
+    )
 
 
 class PermissionDecision(BaseSchema):
@@ -60,3 +74,4 @@ class PermissionDecision(BaseSchema):
         description="Permission grants used by the decision.",
     )
     matched_actions: list[str] = Field(default_factory=list, description="Direct action grants used by the decision.")
+    matched_condition_count: int = Field(default=0, ge=0, description="Matched condition count for the grant.")

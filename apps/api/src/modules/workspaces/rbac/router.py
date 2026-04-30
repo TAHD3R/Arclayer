@@ -16,12 +16,15 @@ from src.modules.workspaces.authz.http.service import require_workspace_permissi
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_team_workspace_manage_access
 from src.modules.workspaces.permissions import get_permission_action_registry
+from src.modules.workspaces.permissions.registry import list_permission_condition_templates
 from src.modules.workspaces.rbac.schema import (
     PermissionRoleSetRequest,
     RoleCreateFromTemplateRequest,
+    RolePermissionGrantOut,
     RolePermissionSetRequest,
     RoleUpdateRequest,
     WorkspacePermissionActionOut,
+    WorkspacePermissionConditionTemplateOut,
     WorkspacePermissionOut,
     WorkspaceRoleOut,
 )
@@ -76,9 +79,15 @@ def get_rbac_service(settings: Settings = Depends(get_settings)) -> WorkspaceRBA
 
 
 async def _to_workspace_role_out(*, service: WorkspaceRBACService, role, locale: str) -> WorkspaceRoleOut:
+    permission_codes = await service.list_permission_codes_for_role(role=role)
+    condition_sets = await service.list_permission_condition_sets_for_role(role=role)
     return WorkspaceRoleOut.model_validate({
         **service.localize_role(role, locale=locale),
-        "permission_codes": await service.list_permission_codes_for_role(role=role),
+        "permission_codes": permission_codes,
+        "permission_grants": [
+            RolePermissionGrantOut(permission_code=code, condition_sets=condition_sets.get(code, []))
+            for code in permission_codes
+        ],
     })
 
 
@@ -97,13 +106,22 @@ async def list_roles(
     # Role counts are typically small; do in-memory pagination so we can localize deterministically.
     roles = await service.list_roles_with_permission_codes(workspace_id=ctx.workspace_id)
     locale = get_current_locale()
-    items = [
-        WorkspaceRoleOut.model_validate({
-            **service.localize_role(role, locale=locale),
-            "permission_codes": permission_codes,
-        })
-        for role, permission_codes in roles
-    ]
+    items: list[WorkspaceRoleOut] = []
+    for role, permission_codes in roles:
+        condition_sets = await service.list_permission_condition_sets_for_role(role=role)
+        items.append(
+            WorkspaceRoleOut.model_validate({
+                **service.localize_role(role, locale=locale),
+                "permission_codes": permission_codes,
+                "permission_grants": [
+                    RolePermissionGrantOut(
+                        permission_code=code,
+                        condition_sets=condition_sets.get(code, []),
+                    )
+                    for code in permission_codes
+                ],
+            })
+        )
     page = paginate_items(items, params=params)
     return ApiResponse.success(data=page)
 
@@ -159,8 +177,26 @@ async def list_actions(
             description=definition.description,
             subject_kinds=list(definition.subject_kinds),
             permission_codes=list(definition.permission_codes),
+            condition_templates=list(definition.condition_templates),
         )
         for action, definition in sorted(get_permission_action_registry().items(), key=lambda entry: entry[0])
+    ]
+    return ApiResponse.success(data=items)
+
+
+@router.get(
+    "/condition-templates",
+    response_model=ResponseModel[list[WorkspacePermissionConditionTemplateOut]],
+    summary="List supported conditional permission templates",
+    dependencies=[require_workspace_permission("rbac:permissions:read")],
+)
+async def list_condition_templates(
+    _ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+) -> ResponseModel[list[WorkspacePermissionConditionTemplateOut]]:
+    """List supported conditional permission templates."""
+    items = [
+        WorkspacePermissionConditionTemplateOut.model_validate(template)
+        for template in list_permission_condition_templates()
     ]
     return ApiResponse.success(data=items)
 
@@ -294,6 +330,9 @@ async def set_role_permissions(
         workspace_id=ctx.workspace_id,
         role_code=role_code,
         permission_codes=body.permission_codes,
+        permission_condition_sets_by_code={
+            str(grant.permission_code): grant.condition_sets for grant in body.permission_grants
+        },
     )
     await _publish_rbac_event(
         event_name="rbac.role.permissions_set",
