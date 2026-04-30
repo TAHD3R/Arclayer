@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import enum
+import inspect
+import re
 from dataclasses import dataclass
 from typing import Any, cast
 from uuid import UUID
@@ -36,6 +38,7 @@ _GRAPHQL_SCALAR_TYPES: dict[str, Any] = {
     "String": str,
 }
 _QUERY_MODEL_ORDER: tuple[str, ...] = ("article", "page", "reusable-section", "category")
+_GRAPHQL_PYTHON_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class Perspective(enum.Enum):
@@ -172,11 +175,26 @@ def _optional_annotation(annotation: Any) -> object:
     return annotation | None
 
 
+def _assert_graphql_identifier(value: str, *, label: str) -> str:
+    if not _GRAPHQL_PYTHON_IDENTIFIER_RE.fullmatch(value):
+        raise ValueError(f"Invalid GraphQL {label}: {value!r}")
+    return value
+
+
+def _assert_graphql_type_name(value: str, *, label: str) -> str:
+    return _assert_graphql_identifier(value, label=label)
+
+
+def _assert_graphql_field_name(value: str, *, label: str) -> str:
+    return _assert_graphql_identifier(value, label=label)
+
+
 def _sort_enum_name(schema: GraphQLModelSchemaDefinition) -> str:
     return schema.sort_input.input_name.removesuffix("Input") + "Field"
 
 
 def _build_entry_type(schema: GraphQLModelSchemaDefinition) -> type[Any]:
+    entry_type_name = _assert_graphql_type_name(schema.entry_type, label="entry type name")
     annotations: dict[str, object] = {
         "id": str,
         "locale": str,
@@ -187,35 +205,42 @@ def _build_entry_type(schema: GraphQLModelSchemaDefinition) -> type[Any]:
     }
     for field in schema.system_fields:
         field_annotation = _GRAPHQL_SCALAR_TYPES[field.scalar]
-        annotations[_snake_case(field.field_name)] = _optional_annotation(field_annotation)
+        field_name = _assert_graphql_field_name(_snake_case(field.field_name), label="entry field name")
+        annotations[field_name] = _optional_annotation(field_annotation)
     annotations["custom_fields"] = JSON
-    entry_type = strawberry.type(type(schema.entry_type, (), {"__annotations__": annotations, "__module__": __name__}))
-    globals()[schema.entry_type] = entry_type
+    entry_type = strawberry.type(type(entry_type_name, (), {"__annotations__": annotations, "__module__": __name__}))
+    globals()[entry_type_name] = entry_type
     return entry_type
 
 
 def _build_filter_input_type(schema: GraphQLModelSchemaDefinition) -> type[Any]:
-    field_names = tuple(_snake_case(item.public_name) for item in schema.filters)
+    input_name = _assert_graphql_type_name(schema.filter_input.input_name, label="filter input type name")
+    field_names = tuple(
+        _assert_graphql_field_name(_snake_case(item.public_name), label="filter field name") for item in schema.filters
+    )
     annotations = dict.fromkeys(field_names, str | None)
     attrs: dict[str, object] = {"__annotations__": annotations, "__module__": __name__}
     attrs.update(dict.fromkeys(field_names))
-    input_type = strawberry.input(type(schema.filter_input.input_name, (), attrs))
-    globals()[schema.filter_input.input_name] = input_type
+    input_type = strawberry.input(type(input_name, (), attrs))
+    globals()[input_name] = input_type
     return input_type
 
 
 def _build_sort_enum(schema: GraphQLModelSchemaDefinition) -> type[enum.Enum]:
-    sort_enum = strawberry.enum(
-        enum.Enum(_sort_enum_name(schema), {item.public_name: item.field_key for item in schema.sorts})
-    )
+    enum_name = _assert_graphql_type_name(_sort_enum_name(schema), label="sort enum type name")
+    enum_values = {
+        _assert_graphql_field_name(item.public_name, label="sort enum value"): item.field_key for item in schema.sorts
+    }
+    sort_enum = strawberry.enum(enum.Enum(enum_name, enum_values))
     globals()[sort_enum.__name__] = sort_enum
     return sort_enum
 
 
 def _build_sort_input_type(schema: GraphQLModelSchemaDefinition, sort_enum: type[enum.Enum]) -> type[Any]:
+    input_name = _assert_graphql_type_name(schema.sort_input.input_name, label="sort input type name")
     input_type = strawberry.input(
         type(
-            schema.sort_input.input_name,
+            input_name,
             (),
             {
                 "__annotations__": {
@@ -227,7 +252,7 @@ def _build_sort_input_type(schema: GraphQLModelSchemaDefinition, sort_enum: type
             },
         )
     )
-    globals()[schema.sort_input.input_name] = input_type
+    globals()[input_name] = input_type
     return input_type
 
 
@@ -527,34 +552,81 @@ async def _get_single_model_entry(
     return _to_model_entry(model_key, record) if record is not None else None
 
 
+def _configure_resolver_signature(
+    resolver: Any,
+    *,
+    function_name: str,
+    annotations: dict[str, object],
+    signature: inspect.Signature,
+) -> Any:
+    resolver.__name__ = function_name
+    resolver.__qualname__ = function_name
+    resolver.__module__ = __name__
+    resolver.__annotations__ = annotations
+    resolver.__signature__ = signature
+    return resolver
+
+
 def _build_single_query_field(
     schema: GraphQLModelSchemaDefinition,
 ) -> Any:
     function_name = f"_resolve_{schema.model_key.replace('-', '_')}_single"
-    argument_name = schema.single_query_argument
-    namespace: dict[str, Any] = {
-        "__name__": __name__,
-        "DeliveryPerspectiveEnum": DeliveryPerspectiveEnum,
-        "Perspective": Perspective,
-        "SiteGraphQLContext": SiteGraphQLContext,
-        "_get_single_model_entry": _get_single_model_entry,
-        "strawberry": strawberry,
-    }
-    exec(
-        f"""
-async def {function_name}(self, info: strawberry.Info[SiteGraphQLContext, None], {argument_name}: str, perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED, preview_token: str | None = None) -> {schema.entry_type} | None:
-    return await _get_single_model_entry(
-        info=info,
-        model_key={schema.model_key!r},
-        lookup_value={argument_name},
-        perspective=perspective,
-        preview_token=preview_token,
+    argument_name = _assert_graphql_field_name(schema.single_query_argument, label="single query argument")
+    entry_type = _MODEL_RUNTIME_TYPES[schema.model_key].entry_type
+
+    async def resolver(
+        self: object,
+        info: strawberry.Info[SiteGraphQLContext, None],
+        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
+        preview_token: str | None = None,
+        **kwargs: object,
+    ) -> Any | None:
+        lookup_value = kwargs.get(argument_name)
+        if not isinstance(lookup_value, str):
+            raise RuntimeError(f"GraphQL single query argument is missing: {argument_name}")
+        return await _get_single_model_entry(
+            info=info,
+            model_key=schema.model_key,
+            lookup_value=lookup_value,
+            perspective=perspective,
+            preview_token=preview_token,
+        )
+
+    resolver = _configure_resolver_signature(
+        resolver,
+        function_name=function_name,
+        annotations={
+            "info": strawberry.Info[SiteGraphQLContext, None],
+            argument_name: str,
+            "perspective": DeliveryPerspectiveEnum,
+            "preview_token": str | None,
+            "return": entry_type | None,
+        },
+        signature=inspect.Signature(
+            parameters=[
+                inspect.Parameter("self", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=object),
+                inspect.Parameter(
+                    "info",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=strawberry.Info[SiteGraphQLContext, None],
+                ),
+                inspect.Parameter(argument_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=str),
+                inspect.Parameter(
+                    "perspective",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=Perspective.PUBLISHED,
+                    annotation=DeliveryPerspectiveEnum,
+                ),
+                inspect.Parameter(
+                    "preview_token",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=None,
+                    annotation=str | None,
+                ),
+            ],
+            return_annotation=entry_type | None,
+        ),
     )
-""",
-        namespace,
-    )
-    resolver = namespace[function_name]
-    resolver.__module__ = __name__
     return strawberry.field(name=schema.single_query_name, resolver=resolver)
 
 
@@ -565,32 +637,80 @@ def _build_list_query_field(
     sort_input_type: type[Any],
 ) -> Any:
     function_name = f"_resolve_{schema.model_key.replace('-', '_')}_list"
-    namespace: dict[str, Any] = {
-        "__name__": __name__,
-        "DeliveryPerspectiveEnum": DeliveryPerspectiveEnum,
-        "Perspective": Perspective,
-        "SiteGraphQLContext": SiteGraphQLContext,
-        "_list_model_entries": _list_model_entries,
-        "strawberry": strawberry,
-    }
-    exec(
-        f"""
-async def {function_name}(self, info: strawberry.Info[SiteGraphQLContext, None], perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED, preview_token: str | None = None, filter: {filter_input_type.__name__} | None = None, sort: {sort_input_type.__name__} | None = None, limit: int = 20, offset: int = 0) -> list[{schema.entry_type}]:
-    return await _list_model_entries(
-        info=info,
-        model_key={schema.model_key!r},
-        perspective=perspective,
-        preview_token=preview_token,
-        filter_input=filter,
-        sort_input=sort,
-        limit=limit,
-        offset=offset,
+    entry_type = _MODEL_RUNTIME_TYPES[schema.model_key].entry_type
+
+    async def resolver(
+        self: object,
+        info: strawberry.Info[SiteGraphQLContext, None],
+        perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
+        preview_token: str | None = None,
+        filter: object | None = None,
+        sort: object | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[Any]:
+        return await _list_model_entries(
+            info=info,
+            model_key=schema.model_key,
+            perspective=perspective,
+            preview_token=preview_token,
+            filter_input=filter,
+            sort_input=sort,
+            limit=limit,
+            offset=offset,
+        )
+
+    resolver = _configure_resolver_signature(
+        resolver,
+        function_name=function_name,
+        annotations={
+            "info": strawberry.Info[SiteGraphQLContext, None],
+            "perspective": DeliveryPerspectiveEnum,
+            "preview_token": str | None,
+            "filter": filter_input_type | None,
+            "sort": sort_input_type | None,
+            "limit": int,
+            "offset": int,
+            "return": list[entry_type],
+        },
+        signature=inspect.Signature(
+            parameters=[
+                inspect.Parameter("self", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=object),
+                inspect.Parameter(
+                    "info",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=strawberry.Info[SiteGraphQLContext, None],
+                ),
+                inspect.Parameter(
+                    "perspective",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=Perspective.PUBLISHED,
+                    annotation=DeliveryPerspectiveEnum,
+                ),
+                inspect.Parameter(
+                    "preview_token",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=None,
+                    annotation=str | None,
+                ),
+                inspect.Parameter(
+                    "filter",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=None,
+                    annotation=filter_input_type | None,
+                ),
+                inspect.Parameter(
+                    "sort",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=None,
+                    annotation=sort_input_type | None,
+                ),
+                inspect.Parameter("limit", inspect.Parameter.POSITIONAL_OR_KEYWORD, default=20, annotation=int),
+                inspect.Parameter("offset", inspect.Parameter.POSITIONAL_OR_KEYWORD, default=0, annotation=int),
+            ],
+            return_annotation=list[entry_type],
+        ),
     )
-""",
-        namespace,
-    )
-    resolver = namespace[function_name]
-    resolver.__module__ = __name__
     return strawberry.field(name=schema.list_query_name, resolver=resolver)
 
 
