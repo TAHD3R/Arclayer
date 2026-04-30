@@ -279,3 +279,43 @@ Completed P05 password field closeout by unblocking the Admin full-suite baselin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: P01 polymorphic relations
+
+**Date**: 2026-04-30
+**Task**: P01 polymorphic relations
+**Branch**: `develop`
+
+### Summary
+
+Implemented target-side polymorphic and one-way relation contracts, verified full API/Admin gates, and archived the P01 audit task.
+
+### Main Changes
+
+- Added `one_way`, `many_way`, `morph_one`, and `morph_many` relation contract support across backend enums, schema literals, OpenAPI/Admin-facing types, and shared content-model relation types.
+- Added explicit relation validation for config shape, cardinality, one-way inverse editing, polymorphic discriminator fields, and duplicate relation keys.
+- Expanded content model relation response shaping with `cardinality`, `direction`, `polymorphic`, and `polymorphicSide`, including GraphQL policy relation schema output.
+- Updated P01 audit README/task-card status from blocked to verified after the full API gate completed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c882b37e` | feat(content): support polymorphic relation contracts |
+| `6465bb5d` | chore(task): verify p01 polymorphic relations |
+
+### Testing
+
+- [OK] `rtk pnpm api:check` passed: 597 passed, 187 skipped, 26 warnings in 159.04s.
+- [OK] `rtk pnpm admin:check` passed on rerun: 232 test files and 951 tests.
+- [OK] Focused API relation unit tests, focused API integration relation test, and focused Admin content model builder test passed.
+- [OK] GitNexus staged/compare change detection stayed within P01 relation contract scope: 15 changed files, 43 changed symbols, 1 affected process, medium risk.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

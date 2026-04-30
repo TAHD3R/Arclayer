@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
+- **Total Sessions**: 8
 - **Last Active**: 2026-04-30
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~271 | Active |
+| `journal-1.md` | ~315 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-04-30 | P01 polymorphic relations | `c882b37e`, `6465bb5d` | `develop` |
 | 7 | 2026-04-30 | P05 password field admin check unblock | `91a9e760`, `b37dfbc1` | `develop` |
 | 6 | 2026-04-30 | P06 CSRF protection policy | `544f669e` | `develop` |
 | 5 | 2026-04-30 | Clear API ty warnings | `34a630d3` | `develop` |
