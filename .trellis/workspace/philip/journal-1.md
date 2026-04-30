@@ -18,17 +18,22 @@ Built the content model field editor flow, refined picker and form UI, committed
 
 ### Main Changes
 
-(Add details)
+- Added the content model field editor flow in `ContentModelEditScreen`.
+- Added the field type catalog and picker support in `fields.ts`.
+- Refined content model table/editor interactions, picker grouping, fallback copy, and locale strings.
+- Added focused Admin tests for content model builder and edit screen behavior.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `43eba8b471ab6eed9a99b92bcd4f141fa06a55c3` | (see git log) |
+| `43eba8b471ab6eed9a99b92bcd4f141fa06a55c3` | feat(content): build content model field editor |
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] Focused content model vitest coverage.
+- [OK] Admin typecheck.
+- [OK] Admin oxlint.
 
 ### Status
 
@@ -60,7 +65,7 @@ Split Admin API and Content API route/auth boundaries, moved delivery routes to 
 
 | Hash | Message |
 |------|---------|
-| `e4264793` | (see git log) |
+| `e4264793` | feat(api): split content delivery API surface |
 
 ### Testing
 
@@ -89,17 +94,99 @@ Initialized the API plugin runtime during app startup, added local plugin discov
 
 ### Main Changes
 
-(Add details)
+- Added app-owned plugin runtime startup in `apps/api/src/core/plugin/runtime.py`.
+- Moved plugin initialization into the FastAPI lifespan path and exposed runtime handles on `app.state`.
+- Added plugin discovery and lifecycle coverage for local plugin startup behavior.
+- Documented local plugin discovery in `plugins/README.md`.
 
 ### Git Commits
 
 | Hash | Message |
 |------|---------|
-| `127e4ef6` | (see git log) |
+| `127e4ef6` | feat(api): initialize plugin runtime on startup |
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `rtk pnpm api:check`
+- [OK] Focused plugin lifecycle tests.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 4: F01 content delivery API
+
+**Date**: 2026-04-30
+**Task**: F01 content delivery API
+**Branch**: `develop`
+
+### Summary
+
+Implemented the F01 Content Delivery API task: REST delivery entries under /content-api/v1, tenant-bound GraphQL delivery reads, shared REST/GraphQL limiter, focused integration coverage, plan Execution Log updates, GitNexus verification, and Trellis task archive.
+
+### Main Changes
+
+- Added `/content-api/v1/entries` delivery endpoints with REST entry listing and detail reads.
+- Added shared Content API rate limiting for REST and GraphQL delivery surfaces.
+- Documented the Content Delivery API backend contract and updated the F01 audit task card execution log.
+- Archived the F01 task after the implementation commit.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `33829cb7` | feat(api): add content delivery entries API |
+| `12f7cd82` | chore(task): archive 04-29-04-29-f01-content-delivery-api |
+
+### Testing
+
+- [OK] `rtk pnpm api:check`
+- [OK] `rtk pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_content_api_integration.py tests/modules/sites/test_sites_graphql_integration.py tests/modules/sites/test_sites_delivery_integration.py tests/modules/sites/test_sites_graphql_service_unit.py tests/modules/sites/test_sites_benchmark_baselines_integration.py tests/modules/sites/test_sites_canonical_content_runtime_integration.py`
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 5: Clear API ty warnings
+
+**Date**: 2026-04-30
+**Task**: Clear API ty warnings
+**Package**: api
+**Branch**: `develop`
+
+### Summary
+
+Cleared API ty diagnostics, preserved typed service and test contracts, and verified the API typecheck with focused pytest coverage.
+
+### Main Changes
+
+- Cleared the API ty diagnostic backlog across service, repository, storage, routing, and runtime modules.
+- Replaced broad test suppressions with explicit typed test contracts, real Pydantic construction, and targeted `cast(...)` boundaries for fake repositories and invalid-input assertions.
+- Kept the cleanup scoped to `apps/api/src` and `apps/api/tests`; existing Codex and Trellis workspace dirty files stayed outside the API commit.
+- Ran Trellis finish/archive flow and refreshed the GitNexus index after the code commit.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `34a630d3` | fix(api): clear ty warnings |
+
+### Testing
+
+- [OK] `rtk timeout 60s pnpm -C apps/api typecheck`
+- [OK] Focused API pytest suite for touched modules and tests; remaining output was existing JWT short test-key warnings.
+- [OK] `rtk git diff --check`
+- [OK] GitNexus staged change detection ran before commit and reported critical risk from the broad API typing cleanup scope.
 
 ### Status
 

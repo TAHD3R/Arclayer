@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 3
-- **Last Active**: 2026-04-29
+- **Total Sessions**: 5
+- **Last Active**: 2026-04-30
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~110 | Active |
+| `journal-1.md` | ~197 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-04-30 | Clear API ty warnings | `34a630d3` | `develop` |
+| 4 | 2026-04-30 | F01 content delivery API | `33829cb7`, `12f7cd82` | `develop` |
 | 3 | 2026-04-29 | F02 plugin startup integration | `127e4ef6` | `develop` |
 | 2 | 2026-04-29 | D01 API architecture separation | `e4264793` | `develop` |
 | 1 | 2026-04-29 | Content model field editor closeout | `43eba8b471ab6eed9a99b92bcd4f141fa06a55c3` | `develop` |
