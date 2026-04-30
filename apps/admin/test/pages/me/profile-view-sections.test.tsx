@@ -5,6 +5,7 @@ import type { ReactElement } from "react";
 
 import { me } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UserProfileView } from "@/pages/usercenter/profile/components/user-profile-view";
 
 vi.mock("@/api/auth", () => ({
@@ -55,7 +56,11 @@ function renderWithQuery(node: ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <SettingsScreenProvider>{node}</SettingsScreenProvider>
+    </QueryClientProvider>,
+  );
 }
 
 beforeAll(async () => {

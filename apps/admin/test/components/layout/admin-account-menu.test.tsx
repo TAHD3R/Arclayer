@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -269,7 +269,18 @@ describe("AdminAccountMenu", () => {
     await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_TERMS_PRIVACY" }));
     await user.click(await screen.findByRole("button", { name: "ACCOUNT_MENU_TERMS" }));
 
-    expect(await screen.findByText("auth:TERMS_OF_SERVICE_MODAL_TITLE")).toBeVisible();
+    await waitFor(() => {
+      const dialogs = screen.getAllByRole("dialog");
+      const openDialog = dialogs.find(
+        (candidate) => candidate.getAttribute("data-state") === "open",
+      );
+      expect(openDialog).toBeDefined();
+      expect(
+        within(openDialog as HTMLElement).getByRole("heading", {
+          name: "auth:TERMS_OF_SERVICE_MODAL_TITLE",
+        }),
+      ).toBeVisible();
+    });
   });
 
   it("点击语言子浮层项会更新语言偏好", async () => {

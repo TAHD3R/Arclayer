@@ -272,6 +272,7 @@ export function CreateContentTypeDialog({
 
           <SettingDialogField title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}>
             <Textarea
+              aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}
               value={values.description}
               disabled={pending}
               rows={4}

@@ -904,9 +904,11 @@ describe("AdminSiderNav collapsed groups", () => {
       screen.getByRole("menuitem", { name: "en-US:NAV_FAVORITES_ACTION_HIDE_FROM_SIDEBAR" }),
     );
 
-    expect(
-      screen.getByRole("heading", { name: "en-US:NAV_FAVORITES_HIDE_CONFIRM_TITLE" }),
-    ).toBeVisible();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "en-US:NAV_FAVORITES_HIDE_CONFIRM_TITLE" }),
+      ).toBeVisible();
+    });
 
     await user.click(
       screen.getByRole("button", { name: "en-US:NAV_FAVORITES_HIDE_CONFIRM_ACTION" }),

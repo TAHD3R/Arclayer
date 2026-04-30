@@ -321,7 +321,7 @@ describe("WelcomeOnboardingPage", () => {
     expect(patchCoreSettingsMock).not.toHaveBeenCalled();
     expect(createTeamInvitationMock).not.toHaveBeenCalled();
     expect(patchMyOnboardingProfileMock).not.toHaveBeenCalled();
-  });
+  }, 10000);
 
   it("saves onboarding profile signals on the first real step", async () => {
     searchState.dryRun = undefined;

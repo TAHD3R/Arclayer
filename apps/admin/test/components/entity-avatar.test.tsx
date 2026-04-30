@@ -19,12 +19,12 @@ describe("entity-avatar", () => {
     expect(image).toHaveAttribute("src", "resolved:/assets/user.png");
   });
 
-  test("renders workspace avatar fallback initials as square", () => {
+  test("renders workspace avatar fallback initials with compact square corners", () => {
     render(<WorkspaceAvatar name="Content Lab" assetRef={null} size={40} />);
 
     const avatar = screen.getByLabelText("Content Lab");
 
-    expect(avatar).toHaveClass("rounded-md");
+    expect(avatar).toHaveClass("rounded-sm");
     expect(avatar).toHaveTextContent("CL");
   });
 

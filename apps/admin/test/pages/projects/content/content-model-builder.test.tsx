@@ -11,6 +11,7 @@ import {
   toContentModelsTableQuery,
 } from "@/pages/projects/content/models/utils";
 import type { AdminContentModel } from "@/types/api";
+import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const createContentModelMock = vi.fn();
 const deleteContentModelMock = vi.fn();
@@ -150,7 +151,11 @@ function createWrapper() {
   });
 
   return function Wrapper({ children }: PropsWithChildren) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>{children}</TooltipProvider>
+      </QueryClientProvider>
+    );
   };
 }
 
@@ -173,6 +178,16 @@ function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentMod
     updatedBy: null,
     ...overrides,
   };
+}
+
+function getCreateInput(label: string) {
+  const input = screen
+    .getAllByLabelText(label)
+    .find((element): element is HTMLInputElement | HTMLTextAreaElement =>
+      element.matches("input, textarea"),
+    );
+  if (!input) throw new Error(`Missing create content type input: ${label}`);
+  return input;
 }
 
 describe("content model builder", () => {
@@ -214,23 +229,20 @@ describe("content model builder", () => {
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
     );
 
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "Blog Post" },
     });
 
-    expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
+    expect(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
       "blogPost",
     );
-    expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
+    expect(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
       "blogPosts",
     );
 
-    fireEvent.change(
-      screen.getByPlaceholderText("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER"),
-      {
-        target: { value: "Editorial entries." },
-      },
-    );
+    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL"), {
+      target: { value: "Editorial entries." },
+    });
 
     fireEvent.click(
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_SUBMIT" }),
@@ -263,20 +275,20 @@ describe("content model builder", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
     );
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "News item" },
     });
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL"), {
+    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL"), {
       target: { value: "storyBlock" },
     });
-    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "Press release" },
     });
 
-    expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
+    expect(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
       "storyBlock",
     );
-    expect(screen.getByLabelText("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
+    expect(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
       "pressReleases",
     );
   });

@@ -22,6 +22,19 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@arclayer/lib/utils";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@arclayer/ui/alert-dialog";
+import {
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@arclayer/ui/button";
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
@@ -30,7 +43,6 @@ import {
 } from "@arclayer/ui/breadcrumb";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { Collapsible, CollapsibleContent } from "@arclayer/ui/collapsible";
-import { ConfirmDialog } from "@arclayer/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1501,15 +1513,26 @@ export function FavoritesNode(props: FavoritesNodeProps) {
           ) : null}
         </ExpandableScreenContent>
       </ExpandableScreen>
-      <ConfirmDialog
-        open={hideConfirmOpen}
-        onOpenChange={setHideConfirmOpen}
-        title={t("NAV_FAVORITES_HIDE_CONFIRM_TITLE")}
-        description={t("NAV_FAVORITES_HIDE_CONFIRM_DESCRIPTION")}
-        confirmText={t("NAV_FAVORITES_HIDE_CONFIRM_ACTION")}
-        cancelText={t("NAV_FAVORITES_HIDE_CONFIRM_CANCEL")}
-        onConfirm={handleConfirmHideFromSidebar}
-      />
+      <AlertDialog open={hideConfirmOpen} onOpenChange={setHideConfirmOpen}>
+        <AlertDialogContent className="sm:max-w-130">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("NAV_FAVORITES_HIDE_CONFIRM_TITLE")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-body">
+              {t("NAV_FAVORITES_HIDE_CONFIRM_DESCRIPTION")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <Button variant="outline">{t("NAV_FAVORITES_HIDE_CONFIRM_CANCEL")}</Button>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <Button variant="destructive" onClick={handleConfirmHideFromSidebar}>
+                {t("NAV_FAVORITES_HIDE_CONFIRM_ACTION")}
+              </Button>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

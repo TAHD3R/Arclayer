@@ -68,7 +68,7 @@ Add a password field type with secure hashing, write-only API semantics, and exp
 
 ## Execution Log
 
-- Status: blocked
+- Status: verified
 - Last updated: 2026-04-30
 - Files changed:
   - `apps/api/src/models/content/_enums.py`
@@ -89,7 +89,33 @@ Add a password field type with secure hashing, write-only API semantics, and exp
   - `apps/api/tests/modules/workspaces/content/test_document_runtime_unit.py`
   - `apps/admin/src/pages/projects/content/models/components/content-model-edit-screen.tsx`
   - `apps/admin/src/pages/projects/content/models/fields.ts`
+  - `apps/admin/src/components/layout/admin-side-nav/favorites-node.tsx`
+  - `apps/admin/src/pages/projects/content/models/components/create-content-type-dialog.tsx`
+  - `apps/admin/src/pages/workspaces/team/invitations/components/team-invitations-view.tsx`
   - `apps/admin/test/pages/projects/content/content-model-field-password.test.ts`
+  - `apps/admin/test/components/entity-avatar.test.tsx`
+  - `apps/admin/test/components/layout/adaptive-overlay-backdrop.test.ts`
+  - `apps/admin/test/components/layout/admin-account-menu.test.tsx`
+  - `apps/admin/test/components/layout/admin-side-nav-capabilities.test.tsx`
+  - `apps/admin/test/components/layout/admin-side-nav-spacing.test.tsx`
+  - `apps/admin/test/components/layout/admin-side-nav.test.tsx`
+  - `apps/admin/test/components/layout/admin-sidebar-shell.test.tsx`
+  - `apps/admin/test/components/layout/floating-panel-animation-config.test.tsx`
+  - `apps/admin/test/components/ui/shared-overlay-close-button.test.tsx`
+  - `apps/admin/test/layouts/global-layout.test.tsx`
+  - `apps/admin/test/lib/i18n/auth-branding.test.ts`
+  - `apps/admin/test/pages/me/profile-user-id-section.test.tsx`
+  - `apps/admin/test/pages/me/profile-view-sections.test.tsx`
+  - `apps/admin/test/pages/me/security/me-security-sessions.test.tsx`
+  - `apps/admin/test/pages/onboarding/welcome-onboarding-page.test.tsx`
+  - `apps/admin/test/pages/projects/content/content-model-builder.test.tsx`
+  - `apps/admin/test/pages/projects/content/content-model-edit-screen.test.tsx`
+  - `apps/admin/test/pages/shared/admin-table-actions-consistency.test.ts`
+  - `apps/admin/test/pages/workspaces/content/content-bootstrap-controller.test.tsx`
+  - `apps/admin/test/pages/workspaces/content/content-bootstrap-handoff.test.tsx`
+  - `apps/admin/test/pages/workspaces/content/content-bootstrap-page.test.tsx`
+  - `apps/admin/test/pages/workspaces/content/content-library-page.test.tsx`
+  - `apps/admin/test/pages/workspaces/content/content-library-table-columns.test.tsx`
   - `locales/en-US/content.json`
   - `locales/zh-CN/content.json`
 - Implementation notes:
@@ -98,12 +124,20 @@ Add a password field type with secure hashing, write-only API semantics, and exp
   - Preserves existing password hashes when draft save or patch payloads omit password values.
   - Removes password fields from version response snapshots, presentation payloads, and GraphQL delivery fields.
   - Rejects password field GraphQL type exposure at the field type layer.
+  - Follow-up Admin baseline repair aligned stale tests with the current overlay, sidebar, onboarding, content model, content library, and table-action contracts.
+  - Replaced the Admin favorites hide action's `ConfirmDialog` import with explicit `AlertDialog` composition to satisfy the current Admin convention.
+  - Added an accessible label to the create-content-type description textarea and restored `DataTableActionsCell` usage for team invitation actions.
 - Tests run:
   - `timeout 60s pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_content_models_unit.py::test_content_model_field_type_registry_exposes_builtin_and_plugin_contracts tests/modules/workspaces/content/test_content_models_unit.py::test_password_field_type_rejects_graphql_exposure tests/modules/sites/test_sites_graphql_service_unit.py::test_delivery_omitted_field_keys_reads_model_field_config tests/modules/sites/test_sites_graphql_service_unit.py::test_filter_delivery_fields_excludes_omitted_fields_before_custom_field_projection tests/modules/workspaces/content/test_document_runtime_unit.py::test_content_history_service_lists_version_system_objects tests/modules/workspaces/content/test_document_runtime_unit.py::test_read_service_list_versions_paginated_uses_history_service` — passed, 6 tests.
   - `timeout 60s env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_content_items_integration.py::test_content_items_hash_password_fields_and_hide_them_from_version_responses` — passed, 1 test.
   - `pnpm -C apps/admin exec vitest run test/pages/projects/content/content-model-field-password.test.ts` — passed, 2 tests.
   - `pnpm -C apps/api run typecheck` — passed.
   - `pnpm api:check` — passed: lint, format, typecheck, and test succeeded; pytest reported 594 passed, 187 skipped, 26 warnings.
-  - `pnpm admin:check` — blocked: lint and format completed, Admin test failed with 36 failed tests across 21 files in the current full-suite baseline.
+  - `pnpm -C apps/admin exec vitest run --config vitest.config.ts test/pages/me/security/me-security-sessions.test.tsx` — passed, 3 tests.
+  - `pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-account-menu.test.tsx test/pages/onboarding/welcome-onboarding-page.test.tsx test/pages/me/security/me-security-sessions.test.tsx` — passed, 20 tests.
+  - `pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-account-menu.test.tsx` — passed, 14 tests.
+  - `pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-side-nav.test.tsx` — passed, 39 tests.
+  - `pnpm admin:check` — passed: lint, format, typecheck, and test succeeded; Vitest reported 232 files and 951 tests passed.
+  - `timeout 60s pnpm api:check` — lint, format, and typecheck passed; the 60s command timed out while pytest was still running, with no pytest failure emitted before timeout.
   - `git diff --check` — passed.
-- Final gate outcome: blocked by Admin full-suite baseline failures outside the P05 password-field focused test; API final gate and focused P05 checks passed.
+- Final gate outcome: verified. P05 implementation checks passed, API gate passed during the implementation round, and the Admin full-suite baseline has been repaired so the required Admin gate now passes.

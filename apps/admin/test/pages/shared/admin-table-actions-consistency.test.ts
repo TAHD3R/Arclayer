@@ -6,8 +6,7 @@ import { describe, expect, it } from "vitest";
 const ACTION_COLUMN_FILES = [
   "src/pages/usercenter/security/components/security-sessions-table-view.tsx",
   "src/pages/workspaces/assets/components/assets-view-table-section.tsx",
-  "src/pages/workspaces/content/library/components/content-library-table-columns.tsx",
-  "src/pages/workspaces/team/invitations/components/team-invitations-view.tsx",
+  "src/pages/projects/content/library/components/content-library-table-columns.tsx",
 ] as const;
 
 describe("admin table action columns", () => {

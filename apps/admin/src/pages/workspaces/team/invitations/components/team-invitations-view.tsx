@@ -16,6 +16,7 @@ import {
 } from "@/api/team";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { SettingsSectionAnchor } from "@/components/layout/settings-screen-provider";
+import { DataTableActionsCell } from "@/components/common/data-table-actions-cell";
 import { DataTableInfiniteScrollFooter } from "@/components/common/data-table-infinite-scroll-footer";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { InvitationStatusTag } from "@/components/ui/tags";
@@ -401,7 +402,7 @@ export function TeamInvitationsView(
             </span>
           </td>
           <td className={`py-4 pl-4 ${INVITATIONS_ACTION_COLUMN_CLASSNAME}`}>
-            <div className="flex items-center justify-end gap-2">
+            <DataTableActionsCell>
               <Button
                 variant="ghost"
                 size="sm"
@@ -422,7 +423,7 @@ export function TeamInvitationsView(
                 <Link2Off className="size-4" />
                 {t("team:TEAM_ACTION_DELETE")}
               </Button>
-            </div>
+            </DataTableActionsCell>
           </td>
         </SettingsSectionAnchor>
       );
@@ -557,7 +558,7 @@ export function TeamInvitationsView(
             </span>
           </td>
           <td className={`py-4 pl-4 ${INVITATIONS_ACTION_COLUMN_CLASSNAME}`}>
-            <div className="flex items-center justify-end gap-2">
+            <DataTableActionsCell>
               <Button
                 variant="ghost"
                 size="sm"
@@ -579,7 +580,7 @@ export function TeamInvitationsView(
                 <Link2Off className="size-4" />
                 {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
               </Button>
-            </div>
+            </DataTableActionsCell>
           </td>
         </SettingsSectionAnchor>
       );

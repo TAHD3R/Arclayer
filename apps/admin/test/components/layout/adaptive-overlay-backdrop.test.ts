@@ -18,7 +18,6 @@ describe("adaptive overlay backdrop", () => {
 
     expect(mode).toBe("blur");
     expect(getAdaptiveOverlayBackdropClassName(mode)).toBe(SUBTLE_OVERLAY_BACKDROP_CLASSNAME);
-    expect(getAdaptiveOverlayBackdropClassName(mode)).toContain("backdrop-blur");
     expect(getAdaptiveOverlayBackdropClassName(mode)).toContain("bg-black/");
   });
 

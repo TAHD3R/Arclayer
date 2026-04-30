@@ -31,7 +31,8 @@ describe("UserProfileUserIdSection", () => {
 
     const copyButton = screen.getByRole("button", { name: "account:ME_PROFILE_USER_ID_COPY" });
 
-    expect(copyButton).toHaveAttribute("data-variant", "outline");
+    expect(copyButton).toHaveAttribute("data-variant", "ghost");
+    expect(copyButton).toHaveAttribute("data-size", "icon-sm");
 
     await user.click(copyButton);
 

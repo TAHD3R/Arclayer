@@ -118,6 +118,7 @@ vi.mock("@/api/organization-workspaces", () => ({
 }));
 
 vi.mock("@/api/workspaces", () => ({
+  listMyWorkspaces: vi.fn(),
   getWorkspaceDetail: vi.fn(),
 }));
 
@@ -135,9 +136,10 @@ import { SidebarProvider } from "@arclayer/ui/sidebar";
 import * as authApi from "@/api/auth";
 import { listMyOrganizations } from "@/api/me";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
-import { getWorkspaceDetail } from "@/api/workspaces";
+import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
+import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -155,7 +157,7 @@ function renderWithProviders(node: React.ReactElement) {
         labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
       >
         <SidebarProvider defaultOpen className="h-screen">
-          {node}
+          <SettingsScreenProvider>{node}</SettingsScreenProvider>
         </SidebarProvider>
       </ChromeTabsProvider>
     </QueryClientProvider>,
@@ -290,6 +292,17 @@ beforeEach(() => {
     iconEmoji: null,
     iconUrl: null,
   });
+  vi.mocked(listMyWorkspaces).mockResolvedValue({
+    switcher: {
+      teams: [
+        {
+          workspaceId: "ws-alpha",
+          name: "Workspace Alpha",
+          projectId: "project-alpha",
+        },
+      ],
+    },
+  } as never);
 });
 
 describe("floating panel animation config", () => {

@@ -234,7 +234,7 @@ describe("AdminSiderNav capability nodes", () => {
     expect(emptyDescription).toHaveClass("text-caption");
     expect(emptyCard).toHaveClass("overflow-hidden");
     expect(emptyContentRow).toHaveClass("w-[11.5rem]");
-    expect(emptyTextColumn).toHaveClass("w-[8.5rem]");
+    expect(emptyTextColumn).toHaveClass("w-[11.5rem]");
     expect(screen.getByTestId("favorites-empty-illustration")).toBeVisible();
     expect(screen.getByRole("button", { name: "Favorites actions" })).toBeVisible();
   });

@@ -248,7 +248,7 @@ describe("content-library-table-columns", () => {
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_WORKFLOW")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_DIAGNOSTICS")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_UPDATED")).toBeInTheDocument();
-    expect(screen.queryByText("CONTENT_LIBRARY_TABLE_COL_LOCALE")).not.toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_LOCALE")).toBeInTheDocument();
   });
 
   test("shows the type as a leading icon and demotes the address into muted secondary text", () => {

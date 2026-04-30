@@ -25,7 +25,8 @@ describe("ContentBootstrapPage", () => {
           id: "model-page",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "page",
+          singularKey: "page",
+          pluralKey: "pages",
           name: "Page",
           description: "Legacy fallback name",
           category: "site_builder",
@@ -38,7 +39,8 @@ describe("ContentBootstrapPage", () => {
           id: "model-article",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "article",
+          singularKey: "article",
+          pluralKey: "articles",
           name: "Article",
           description: "Long-form posts",
           category: "content_library",
@@ -51,7 +53,8 @@ describe("ContentBootstrapPage", () => {
           id: "model-section",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "reusable-section",
+          singularKey: "reusable-section",
+          pluralKey: "reusable-sections",
           name: "Reusable Section",
           description: "Reusable layout building block",
           category: "site_builder",
@@ -64,7 +67,8 @@ describe("ContentBootstrapPage", () => {
           id: "model-category",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "category",
+          singularKey: "category",
+          pluralKey: "categories",
           name: "Category",
           description: "Relation-first taxonomy",
           category: "content_library",
@@ -129,7 +133,8 @@ describe("ContentBootstrapPage", () => {
           id: "model-page",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "page",
+          singularKey: "page",
+          pluralKey: "pages",
           name: "Page",
           description: "Legacy fallback name",
           category: "site_builder",
@@ -146,7 +151,8 @@ describe("ContentBootstrapPage", () => {
         id: "model-page",
         workspaceId: "ws-1",
         siteId: "site-1",
-        key: "page",
+        singularKey: "page",
+        pluralKey: "pages",
         name: "Page",
         description: "Legacy fallback name",
         category: "site_builder",
@@ -183,10 +189,8 @@ describe("ContentBootstrapPage", () => {
     expect(screen.getByDisplayValue("homepage")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Homepage | Arclayer")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Welcome page")).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /CONTENT_TYPE_PAGE_NAME/i })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const selectedTypeLabel = screen.getByText("CONTENT_TYPE_PAGE_NAME");
+    expect(selectedTypeLabel.closest("button")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_PAGE_SETTINGS_LABEL")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CREATE_DRAFT" }),

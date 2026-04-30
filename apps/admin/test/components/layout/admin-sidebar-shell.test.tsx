@@ -242,13 +242,13 @@ describe("AdminSidebarShell", () => {
     expect(tablist.className).toContain("h-9");
     expect(tablist.className).toContain("w-full");
     expect(tablist.className).toContain("justify-start");
-    expect(tablist.className).toContain("rounded-full");
+    expect(tablist.className).toContain("rounded-md");
     expect(browseTab).toHaveAttribute("data-state", "active");
     expect(inboxTab).toHaveAttribute("data-state", "inactive");
     expect(chatTab).toHaveAttribute("data-state", "inactive");
     expect(browseTab.className).toContain("h-9");
     expect(browseTab.className).toContain("min-w-9");
-    expect(browseTab.className).toContain("rounded-full");
+    expect(browseTab.className).toContain("rounded-md");
     expect(browseTab.className).toContain("hover:bg-accent");
     expect(browseTab.className).toContain("hover:text-accent-foreground");
     expect(browseTab.className).toContain("dark:hover:bg-accent/50");

@@ -8,13 +8,23 @@ import type { AdminContentModel } from "@/types/api";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const addContentModelFieldMock = vi.fn();
+const buildContentModelFieldTypesQueryKeyMock = vi.fn((projectId: string) => [
+  "content",
+  "field-types",
+  projectId,
+]);
 const deleteContentModelFieldMock = vi.fn();
+const getContentModelFieldTypeRegistryMock = vi.fn();
 const listAllContentModelsMock = vi.fn();
 const reorderContentModelFieldsMock = vi.fn();
 
 vi.mock("@/api/content", () => ({
   addContentModelField: (...args: unknown[]) => addContentModelFieldMock(...args),
+  buildContentModelFieldTypesQueryKey: (...args: [string]) =>
+    buildContentModelFieldTypesQueryKeyMock(...args),
   deleteContentModelField: (...args: unknown[]) => deleteContentModelFieldMock(...args),
+  getContentModelFieldTypeRegistry: (...args: unknown[]) =>
+    getContentModelFieldTypeRegistryMock(...args),
   listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
   reorderContentModelFields: (...args: unknown[]) => reorderContentModelFieldsMock(...args),
 }));
@@ -108,9 +118,12 @@ function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentMod
 describe("content model edit screen", () => {
   beforeEach(() => {
     addContentModelFieldMock.mockReset();
+    buildContentModelFieldTypesQueryKeyMock.mockClear();
     deleteContentModelFieldMock.mockReset();
+    getContentModelFieldTypeRegistryMock.mockReset();
     listAllContentModelsMock.mockReset();
     reorderContentModelFieldsMock.mockReset();
+    getContentModelFieldTypeRegistryMock.mockResolvedValue({ groups: [], types: [] });
     listAllContentModelsMock.mockResolvedValue([]);
   });
 
@@ -187,8 +200,8 @@ describe("content model edit screen", () => {
       screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_RICH_TEXT_LABEL" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_MARKDOWN_LABEL" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_MARKDOWN_LABEL" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_SLUG_LABEL" }),
     ).toBeInTheDocument();
@@ -259,7 +272,7 @@ describe("content model edit screen", () => {
     expect(
       screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("CONTENT_MODELS_FIELD_CONFIG_KEY_DESC")).not.toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_FIELD_CONFIG_KEY_DESC")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "CONTENT_MODELS_CANCEL_ACTION" }),
     ).not.toBeInTheDocument();
@@ -287,7 +300,7 @@ describe("content model edit screen", () => {
         required: false,
         config: {
           kind: "reference",
-          localizable: false,
+          localizable: true,
           referenceMode: "single",
           targetModelKey: "authorProfile",
         },
@@ -329,7 +342,9 @@ describe("content model edit screen", () => {
     expect(
       screen.getByRole("button", { name: "CONTENT_MODELS_COPY_ID_ACTION" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "CONTENT_MODELS_EDIT_SAVE_ACTION" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "CONTENT_MODELS_EDIT_SAVE_ACTION" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "CONTENT_MODELS_EDIT_TAB_FIELDS" })).toBeInTheDocument();
     expect(
       screen.getByRole("tab", { name: "CONTENT_MODELS_EDIT_TAB_SETTINGS" }),

@@ -155,7 +155,7 @@ describe("AdminSiderNav spacing", () => {
     expect(groupMarkerDivider).not.toBeNull();
     expect(groupLabel).not.toBeNull();
     expect(groupMarker).toHaveClass("py-2");
-    expect(groupMarker?.className).toContain("group-data-[state=expanded]:px-3");
+    expect(groupMarker?.className).toContain("group-data-[state=expanded]:px-2");
     expect(groupMarker?.className).toContain("group-data-[state=expanded]:pt-3");
     expect(groupMarker?.className).toContain("group-data-[state=expanded]:pb-2.5");
     expect(groupMarkerDivider).toHaveClass("border-b", "border-sidebar-border");

@@ -46,7 +46,7 @@ describe("shared overlay close button", () => {
     const closeButton = screen.getByRole("button", { name: "Close" });
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");
-    expect(closeButton).toHaveClass("shrink-0", "bg-background/80", "backdrop-blur-xs");
+    expect(closeButton).toHaveClass("absolute", "right-4", "top-4", "shrink-0");
   });
 
   it("uses the shared ghost button surface inside AlertDialogContent", () => {
@@ -75,7 +75,7 @@ describe("shared overlay close button", () => {
     expect(content).not.toHaveClass("translate-x-[-50%]", "translate-y-[-50%]");
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");
-    expect(closeButton).toHaveClass("shrink-0", "bg-background/80", "backdrop-blur-xs");
+    expect(closeButton).toHaveClass("absolute", "right-4", "top-4", "shrink-0");
   });
 
   it("uses the shared ghost button surface inside DrawerContent", () => {
@@ -93,6 +93,6 @@ describe("shared overlay close button", () => {
     const closeButton = screen.getByRole("button", { name: "Close" });
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
     expect(closeButton).toHaveAttribute("data-size", "icon-sm");
-    expect(closeButton).toHaveClass("shrink-0", "bg-background/80", "backdrop-blur-xs");
+    expect(closeButton).toHaveClass("absolute", "right-4", "top-4", "shrink-0");
   });
 });

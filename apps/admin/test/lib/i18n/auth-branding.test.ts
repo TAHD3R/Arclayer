@@ -17,11 +17,11 @@ describe("auth branding i18n", () => {
     await i18n.changeLanguage(DEFAULT_LOCALE);
   });
 
-  it("uses continue-with semantics for the auth oauth divider", async () => {
-    expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("继续使用");
+  it("uses localized separator copy for the auth oauth divider", async () => {
+    expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("或使用");
 
     await i18n.changeLanguage("en-US");
-    expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("Continue with");
+    expect(i18n.t("auth:OAUTH_ACCOUNT_DIVIDER")).toBe("OR");
     await i18n.changeLanguage(DEFAULT_LOCALE);
   });
 });

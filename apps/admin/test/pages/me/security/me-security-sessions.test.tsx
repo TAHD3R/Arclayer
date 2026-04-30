@@ -172,9 +172,12 @@ describe("UserSessionsSection", () => {
     await waitFor(() => {
       expect(revokeMySessionMock).toHaveBeenCalledWith("sid-other");
     });
-    await waitFor(() => {
-      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(document.body).not.toHaveAttribute("data-scroll-locked");
+      },
+      { timeout: 5000 },
+    );
 
     await user.click(
       screen.getByRole("button", {

@@ -40,8 +40,8 @@ vi.mock("@tanstack/react-router", () => ({
   useRouterState: ({
     select,
   }: {
-    select: (state: { location: { searchStr: string } }) => unknown;
-  }) => select({ location: { searchStr: mockSearchStr } }),
+    select: (state: { location: { pathname: string; searchStr: string } }) => unknown;
+  }) => select({ location: { pathname: "/projects", searchStr: mockSearchStr } }),
 }));
 
 vi.mock("react-i18next", () => ({
