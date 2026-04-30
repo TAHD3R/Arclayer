@@ -195,3 +195,43 @@ Cleared API ty diagnostics, preserved typed service and test contracts, and veri
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: P06 CSRF protection policy
+
+**Date**: 2026-04-30
+**Task**: P06 CSRF protection policy
+**Branch**: `develop`
+
+### Summary
+
+Implemented path-scoped CSRF protection for Admin API mutations, exempted Content API token routes, added Admin client token submission, updated audit-card status to blocked because final api/admin gates remain blocked by timeout and existing Admin baseline failures.
+
+### Main Changes
+
+- Added path-scoped CSRF validation for browser-authenticated Admin API mutations under `/api/*`.
+- Kept token-authenticated Content API routes exempt under `/content-api/*`.
+- Added Admin/shared HTTP client CSRF header submission for unsafe requests and refresh helpers.
+- Updated the audit execution README and P06 task card Execution Log with blocked final-gate status.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `544f669e` | (see git log) |
+
+### Testing
+
+- [OK] `rtk timeout 60s pnpm -C apps/api uv -- pytest -q tests/core/test_middlewares.py::test_csrf_middleware tests/core/test_middlewares.py::test_csrf_rejects_invalid_token_and_cross_origin tests/core/test_middlewares.py::test_csrf_exempts_content_api_token_routes tests/core/test_middlewares.py::test_csrf_rotates_token_after_valid_mutation --no-cov` passed: 4 passed.
+- [OK] `rtk timeout 60s pnpm --filter @arclayer/admin test test/lib/http/client-csrf.test.ts` passed: 1 file, 3 tests.
+- [OK] `rtk git diff --check` passed.
+- [BLOCKED] `rtk timeout 60s pnpm api:check`: lint, format, and typecheck passed; API test phase exceeded the 60s wrapper without a test failure summary.
+- [BLOCKED] `rtk timeout 60s pnpm admin:check`: lint passed; Admin test phase failed existing baseline suites with 23 failed files and 38 failed tests; the new CSRF transport test passed in the full run.
+
+### Status
+
+[BLOCKED] **Implementation committed; final gates remain blocked**
+
+### Next Steps
+
+- Resolve the existing Admin suite baseline failures and rerun the full API/Admin gates before marking P06 verified.
