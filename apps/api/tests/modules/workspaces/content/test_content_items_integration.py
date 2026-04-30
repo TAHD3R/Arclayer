@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.transactions import in_transaction
 
 from src.common.utils.public_ids import decode_public_id, encode_uuid
 from src.config import get_settings
@@ -18,8 +21,11 @@ from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
 from src.modules.auth.http.service import get_current_user, get_current_user_id
+from src.modules.auth.password.service import verify_password
 from src.modules.auth.repository import UserRepository
 from src.modules.organization.repository import OrganizationRepository
+from src.modules.tenancy.database import set_tenant_search_path
+from src.modules.tenancy.registry import WorkspaceTenantRegistryService
 from tests.utils.project_context import project_id_for_workspace
 
 pytestmark = pytest.mark.integration
@@ -73,6 +79,16 @@ async def _wait_latest_workspace_audit_event(
                 f"recent_release_events={release_snapshot}"
             )
         await asyncio.sleep(0.1)
+
+
+@asynccontextmanager
+async def _tenant_conn(workspace_id: str) -> AsyncIterator[BaseDBAsyncClient]:
+    workspace_uuid = decode_public_id(workspace_id)
+    record = await WorkspaceTenantRegistryService().get_by_workspace_id(workspace_uuid)
+    assert record is not None
+    async with in_transaction() as conn:
+        await set_tenant_search_path(conn, record.schema_name)
+        yield conn
 
 
 @asynccontextmanager
@@ -669,6 +685,136 @@ async def test_content_items_return_version_detail_with_fields_snapshot_and_pres
             "rich_text_document",
             "seo",
         }
+
+
+@pytest.mark.asyncio
+async def test_content_items_hash_password_fields_and_hide_them_from_version_responses(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        await _create_content_model(
+            client,
+            project_id,
+            singularKey="credential",
+            pluralKey="credentials",
+            name="Credential",
+            category="content_library",
+            fields=[
+                {
+                    "key": "title",
+                    "label": "Title",
+                    "scalar": "text",
+                    "required": True,
+                    "config": {"kind": "short_text"},
+                },
+                {
+                    "key": "accessCode",
+                    "label": "Access code",
+                    "scalar": "text",
+                    "required": False,
+                    "config": {"kind": "password"},
+                },
+            ],
+            capabilities=["queryable"],
+            defaultRole="data",
+            defaultPosture="structured",
+            defaultSurface="structured",
+        )
+        item_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items",
+            json={"modelKey": "credential", "title": "Credential", "locale": "en-US"},
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_payload = item_res.json()["data"]
+        item_id = item_payload["id"]
+
+        draft_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
+            json={
+                "expectedVersion": item_payload["draftVersion"],
+                "changeSummary": "set access code",
+                "fieldsSnapshot": {"title": "Credential", "accessCode": "plain-secret-123"},
+                "presentations": [
+                    {
+                        "kind": "form_data",
+                        "payload": {"title": "Credential", "accessCode": "plain-secret-123"},
+                    }
+                ],
+            },
+        )
+        assert draft_res.status_code == 201, draft_res.text
+        response_payload = draft_res.json()["data"]
+        assert response_payload["fieldsSnapshot"] == {"title": "Credential"}
+        assert response_payload["presentations"][0]["payload"] == {"title": "Credential"}
+
+        async with _tenant_conn(workspace_id) as conn:
+            version_record = await ContentVersionRecord.get(
+                item_id=decode_public_id(response_payload["itemId"]),
+                version=response_payload["versionNumber"],
+                using_db=conn,
+            )
+        stored_hash = version_record.fields_snapshot["accessCode"]
+        assert stored_hash != "plain-secret-123"
+        assert verify_password("plain-secret-123", stored_hash) is True
+
+        version_res = await client.get(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/{response_payload['versionNumber']}"
+        )
+        assert version_res.status_code == 200, version_res.text
+        assert version_res.json()["data"]["fieldsSnapshot"] == {"title": "Credential"}
+
+        patch_res = await client.patch(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/{response_payload['versionNumber']}",
+            json={
+                "fieldsSnapshot": {"title": "Patched credential"},
+                "presentations": [
+                    {
+                        "kind": "form_data",
+                        "payload": {"title": "Patched credential", "accessCode": "leaked-on-patch"},
+                    }
+                ],
+            },
+        )
+        assert patch_res.status_code == 200, patch_res.text
+        patch_payload = patch_res.json()["data"]
+        assert patch_payload["fieldsSnapshot"] == {"title": "Patched credential"}
+        assert patch_payload["presentations"][0]["payload"] == {"title": "Patched credential"}
+
+        async with _tenant_conn(workspace_id) as conn:
+            patched_record = await ContentVersionRecord.get(
+                item_id=decode_public_id(patch_payload["itemId"]),
+                version=patch_payload["versionNumber"],
+                using_db=conn,
+            )
+        assert patched_record.fields_snapshot["accessCode"] == stored_hash
+
+        update_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
+            json={
+                "expectedVersion": response_payload["versionNumber"],
+                "changeSummary": "rename credential",
+                "fieldsSnapshot": {"title": "Renamed credential"},
+                "presentations": [
+                    {
+                        "kind": "form_data",
+                        "payload": {"title": "Renamed credential", "accessCode": "leaked-on-update"},
+                    }
+                ],
+            },
+        )
+        assert update_res.status_code == 201, update_res.text
+        update_payload = update_res.json()["data"]
+        assert update_payload["fieldsSnapshot"] == {"title": "Renamed credential"}
+        assert update_payload["presentations"][0]["payload"] == {"title": "Renamed credential"}
+
+        async with _tenant_conn(workspace_id) as conn:
+            updated_record = await ContentVersionRecord.get(
+                item_id=decode_public_id(update_payload["itemId"]),
+                version=update_payload["versionNumber"],
+                using_db=conn,
+            )
+        assert updated_record.fields_snapshot["accessCode"] == stored_hash
 
 
 @pytest.mark.asyncio

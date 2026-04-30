@@ -18,6 +18,7 @@ from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyP
 from src.modules.projects.api_keys.repository import ProjectApiKeysRepository
 from src.modules.projects.api_keys.scopes import build_api_key_access_profile
 from src.modules.projects.api_keys.security import split_api_key_token, verify_api_key_token
+from src.modules.projects.content.items.password_fields import is_password_field_config
 from src.modules.projects.content.models.protocol_registry import get_official_model_protocol
 from src.modules.projects.content.runtime import (
     DocumentQuery,
@@ -106,7 +107,7 @@ def _delivery_omitted_field_keys(item: Any) -> set[str]:
     omitted: set[str] = set()
     for field in fields:
         config = getattr(field, "config", None)
-        if isinstance(config, dict) and config.get("omitFromApiResponse") is True:
+        if is_password_field_config(config) or (isinstance(config, dict) and config.get("omitFromApiResponse") is True):
             omitted.add(str(getattr(field, "key", "")))
     omitted.discard("")
     return omitted

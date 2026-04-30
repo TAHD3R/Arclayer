@@ -55,6 +55,12 @@ from src.modules.projects.content.items.input_schema import (
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
+from src.modules.projects.content.items.password_fields import (
+    carry_forward_missing_password_field_values,
+    hash_password_field_values,
+    password_field_keys,
+    sanitize_password_presentations,
+)
 from src.modules.projects.content.items.read_service import (
     ProjectContentCanonicalItemReadService,
 )
@@ -479,17 +485,36 @@ class ProjectContentCanonicalItemsService:
             ensure_expected_version(expected_version=payload.expected_version, current_version=current_version)
             next_version = current_version + 1
 
+            password_keys = password_field_keys(item.model_definition)
+            previous_version = None
+            if current_version > 0:
+                previous_version = await self._get_locked_version(
+                    item_id=item.id,
+                    version_number=current_version,
+                    conn=conn,
+                )
+            fields_snapshot = hash_password_field_values(
+                payload.fields_snapshot, model_definition=item.model_definition
+            )
+            fields_snapshot = carry_forward_missing_password_field_values(
+                fields_snapshot,
+                previous_payload=previous_version.fields_snapshot if previous_version is not None else None,
+                model_definition=item.model_definition,
+            )
             version = await self.repo.create_version(
                 item_id=item.id,
                 version=next_version,
                 state=str(ContentVersionState.DRAFT),
-                fields_snapshot=payload.fields_snapshot,
+                fields_snapshot=fields_snapshot,
                 change_summary=payload.change_summary,
                 actor_user_id=actor_user_id,
                 last_transition_by_user_id=actor_user_id,
                 conn=conn,
             )
-            normalized = normalize_presentations(payload.presentations)
+            normalized = sanitize_password_presentations(
+                normalize_presentations(payload.presentations),
+                password_keys=password_keys,
+            )
             await self._replace_presentations(version_id=version.id, presentations=normalized, conn=conn)
             await self.repo.update_item_fields(
                 item,
@@ -834,6 +859,16 @@ class ProjectContentCanonicalItemsService:
                 raise Conflict("Non-draft version is immutable", error="CONTENT_VERSION_IMMUTABLE")
 
             version_fields = build_patch_version_fields(payload=payload, actor_user_id=actor_user_id)
+            if "fields_snapshot" in version_fields:
+                version_fields["fields_snapshot"] = hash_password_field_values(
+                    version_fields["fields_snapshot"] or {},
+                    model_definition=item.model_definition,
+                )
+                version_fields["fields_snapshot"] = carry_forward_missing_password_field_values(
+                    version_fields["fields_snapshot"],
+                    previous_payload=version.fields_snapshot,
+                    model_definition=item.model_definition,
+                )
             has_version_changes = bool(version_fields)
             if has_version_changes:
                 version = await self.repo.update_version_fields(version, fields=version_fields, conn=conn)
@@ -848,7 +883,10 @@ class ProjectContentCanonicalItemsService:
                         fields={"last_transition_by_user_id": actor_user_id},
                         conn=conn,
                     )
-                presentations = normalize_presentations(payload.presentations)
+                presentations = sanitize_password_presentations(
+                    normalize_presentations(payload.presentations),
+                    password_keys=password_field_keys(item.model_definition),
+                )
                 await self._replace_presentations(version_id=version.id, presentations=presentations, conn=conn)
 
             item_fields = build_patch_item_fields(

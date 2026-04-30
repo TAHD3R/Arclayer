@@ -108,6 +108,9 @@ class ContentHistoryService:
         version: ContentVersionRecord,
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentVersionSystemObject:
+        hydrated_version = await self.repo.get_version_by_id_with_model(version_id=version.id, conn=conn)
+        if hydrated_version is not None:
+            version = hydrated_version
         presentations = await self.repo.list_presentations(version_id=version.id, conn=conn)
         normalized = cast(
             list[tuple[ContentPresentationKind, dict[str, Any] | None]],

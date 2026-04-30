@@ -107,7 +107,7 @@ Status values:
 | F02 | `f02-plugin-startup-integration.md` | 1 | high | verified | App-owned plugin runtime implemented; focused tests and full `pnpm api:check` pass. |
 | F01 | `f01-content-delivery-api.md` | 1 | high | verified | Content API entries routes, tenant-bound GraphQL/REST reads, token auth separation, and shared REST/GraphQL limiter added; focused tests passed, `pnpm api:check` reached the 60s timeout after lint/typecheck/test startup. |
 | P06 | `p06-csrf-protection.md` | 1 | medium | blocked | CSRF implementation and focused tests completed; final gates blocked by existing Admin suite failures and API 60s gate timeout. |
-| P05 | `p05-password-field.md` | 2 | medium | planned | Add secure password field semantics. |
+| P05 | `p05-password-field.md` | 2 | medium | blocked | Password field enum/type, bcrypt write hashing, response/GraphQL hiding, Admin picker copy, and focused tests completed; `pnpm api:check` passed, but final `pnpm admin:check` is blocked by the current Admin full-suite baseline with 36 failed tests across 21 files. |
 | P01 | `p01-polymorphic-relations.md` | 2 | high | planned | Complete target-side and one-way relation support. |
 | F06 | `f06-dynamic-schema-sync.md` | 2 | high | planned | Implement or formalize content-type-to-storage sync. |
 | F07 | `f07-api-auto-generation.md` | 2 | high | planned | Generate REST routes from content types. |

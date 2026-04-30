@@ -33,6 +33,8 @@ from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.modules.projects.content.contracts import schema as contracts_schema
+from src.modules.projects.content.fields.base import FieldConfig
+from src.modules.projects.content.fields.types import PasswordFieldType
 from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
 from src.modules.projects.content.items.domain_helpers import (
     item_has_capability,
@@ -240,12 +242,21 @@ def test_content_model_field_type_registry_exposes_builtin_and_plugin_contracts(
         "dynamic_zone",
         "blocks",
     } <= set(field_types)
-    assert "password" not in field_types
+    assert field_types["password"].scalar == "text"
+    assert field_types["password"].config_schema["properties"] == {
+        "minLength": "integer",
+        "maxLength": "integer",
+    }
     assert "uid" not in field_types
     assert field_types["short_text"].scalar == "text"
     assert field_types["reference"].allowed_model_kinds == ["collection_type", "single_type"]
     assert field_types["dynamic_zone"].config_schema["properties"]["components"] == "string[]"
     assert field_types["plugin.color.swatch"].source == "plugin"
+
+
+def test_password_field_type_rejects_graphql_exposure() -> None:
+    with pytest.raises(ValueError, match="write-only"):
+        PasswordFieldType().get_graphql_type(FieldConfig(key="accessCode"))
 
 
 def test_content_model_field_contract_validation_rejects_unsafe_graphql_names() -> None:

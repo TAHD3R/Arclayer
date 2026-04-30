@@ -87,6 +87,13 @@ _BUILT_IN_FIELD_TYPES: tuple[ContentModelFieldTypeDefinitionOut, ...] = (
         config_schema={"properties": {"minLength": "integer", "maxLength": "integer", "pattern": "string"}},
     ),
     _field_type(
+        "password",
+        scalar="text",
+        group="text",
+        icon="key-round",
+        config_schema={"properties": {"minLength": "integer", "maxLength": "integer"}},
+    ),
+    _field_type(
         "number",
         scalar="number",
         group="value_logic",
@@ -436,7 +443,7 @@ def validate_content_model_field_contract(
         raise Conflict("Content model field config must be an object", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
     _assert_common_config(field, config)
 
-    if definition.config_kind in {"short_text", "rich_text", "markdown", "slug", "email"}:
+    if definition.config_kind in {"short_text", "rich_text", "markdown", "slug", "email", "password"}:
         _assert_text_validation(field, config)
     if definition.config_kind == "email":
         _assert_email_config(field, config)

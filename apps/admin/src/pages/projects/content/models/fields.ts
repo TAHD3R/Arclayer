@@ -13,6 +13,7 @@ export type ContentModelBuiltInFieldTypeId =
   | "markdown"
   | "slug"
   | "email"
+  | "password"
   | "number"
   | "decimal"
   | "biginteger"
@@ -36,7 +37,7 @@ export type ContentModelFieldTypeGroupId = "text" | "value_logic" | "time_media"
 export const CONTENT_MODEL_FIELD_TYPE_GROUPS = [
   {
     id: "text",
-    typeIds: ["short_text", "rich_text", "markdown", "slug", "email"],
+    typeIds: ["short_text", "rich_text", "markdown", "slug", "email", "password"],
   },
   {
     id: "value_logic",
@@ -123,6 +124,10 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
   },
   email: {
     localizable: false,
+  },
+  password: {
+    localizable: false,
+    omitFromApiResponse: true,
   },
   number: {
     localizable: false,
@@ -219,6 +224,7 @@ function readFieldTypeId(
   if (kind === "markdown") return "markdown";
   if (kind === "slug") return "slug";
   if (kind === "email") return "email";
+  if (kind === "password") return "password";
   if (kind === "number") return "number";
   if (kind === "decimal") return "decimal";
   if (kind === "biginteger") return "biginteger";
@@ -410,6 +416,7 @@ function buildFieldScalar(
     typeId === "short_text" ||
     typeId === "slug" ||
     typeId === "email" ||
+    typeId === "password" ||
     typeId === "enumeration"
   )
     return "text";
@@ -442,7 +449,7 @@ export function buildContentModelFieldPayload(
   if (draft.hiddenInEditor) {
     config.hiddenInEditor = true;
   }
-  if (draft.omitFromApiResponse) {
+  if (draft.omitFromApiResponse || draft.typeId === "password") {
     config.omitFromApiResponse = true;
   }
   const defaultValue = draft.defaultValue.trim();
@@ -467,7 +474,8 @@ export function buildContentModelFieldPayload(
     draft.typeId === "rich_text" ||
     draft.typeId === "markdown" ||
     draft.typeId === "slug" ||
-    draft.typeId === "email"
+    draft.typeId === "email" ||
+    draft.typeId === "password"
   ) {
     const minLength = readIntegerString(draft.minLength);
     const maxLength = readIntegerString(draft.maxLength);

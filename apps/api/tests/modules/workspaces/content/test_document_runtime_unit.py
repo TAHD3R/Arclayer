@@ -178,6 +178,7 @@ async def test_content_history_service_lists_version_system_objects() -> None:
     repo = SimpleNamespace(
         get_item_with_model=AsyncMock(return_value=item),
         list_versions_for_item=AsyncMock(return_value=[version]),
+        get_version_by_id_with_model=AsyncMock(return_value=version),
         list_presentations=AsyncMock(return_value=[SimpleNamespace(kind="seo", payload={"metaTitle": "SEO title"})]),
     )
     history = ContentHistoryService(repo=cast(ProjectContentItemsRepository, repo))
@@ -194,6 +195,7 @@ async def test_content_history_service_lists_version_system_objects() -> None:
     assert page.items[0].presentations[0].kind == "seo"
     repo.get_item_with_model.assert_awaited_once()
     repo.list_versions_for_item.assert_awaited_once_with(item_id=item.id)
+    repo.get_version_by_id_with_model.assert_awaited_once_with(version_id=version.id, conn=None)
     repo.list_presentations.assert_awaited_once_with(version_id=version.id, conn=None)
 
 
@@ -257,6 +259,7 @@ async def test_read_service_list_versions_paginated_uses_history_service() -> No
     repo = SimpleNamespace(
         get_item_with_model=AsyncMock(return_value=item),
         list_versions_for_item=AsyncMock(return_value=[version]),
+        get_version_by_id_with_model=AsyncMock(return_value=version),
         list_presentations=AsyncMock(return_value=[]),
     )
     service = ProjectContentCanonicalItemReadService(repo=cast(ProjectContentItemsRepository, repo))
@@ -273,4 +276,5 @@ async def test_read_service_list_versions_paginated_uses_history_service() -> No
     assert page.items[0].change_summary == "Draft update"
     repo.get_item_with_model.assert_awaited_once()
     repo.list_versions_for_item.assert_awaited_once_with(item_id=item.id)
+    repo.get_version_by_id_with_model.assert_awaited_once_with(version_id=version.id, conn=None)
     repo.list_presentations.assert_awaited_once_with(version_id=version.id, conn=None)

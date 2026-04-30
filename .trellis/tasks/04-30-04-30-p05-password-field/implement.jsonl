@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/api/backend/index.md", "reason": "Backend field type, content item write pipeline, and API serialization guidance for P05."}
+{"file": ".trellis/spec/admin/frontend/index.md", "reason": "Admin field picker and content model UI implementation guidance for P05."}
+{"file": "docs/guidelines/i18n.md", "reason": "Localized Admin copy requirements for password field support."}
+{"file": "docs/plans/full-repo-audit-gap-execution-2026-04-29/p05-password-field.md", "reason": "P05 task contract and acceptance criteria."}
+{"file": "docs/plans/full-repo-audit-gap-execution-2026-04-29/README.md", "reason": "Audit-gap execution coordination and status backfill contract."}

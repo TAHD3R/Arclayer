@@ -110,6 +110,26 @@ class EmailFieldType(AbstractFieldType):
         return "email-input"
 
 
+class PasswordFieldType(AbstractFieldType):
+    field_type = ContentModelFieldType.PASSWORD
+    display_name = "Password"
+
+    def get_pydantic_type(self, config: FieldConfig) -> type:
+        return str
+
+    def get_db_column_type(self, config: FieldConfig) -> str:
+        return "VARCHAR(255)"
+
+    def get_graphql_type(self, config: FieldConfig) -> type:
+        raise ValueError("Password fields are write-only and cannot be exposed through GraphQL")
+
+    def get_admin_component(self, config: FieldConfig) -> str:
+        return "password-input"
+
+    def validate_config(self, config: FieldConfig) -> None:
+        _assert_min_max(config, default_max=128)
+
+
 def _assert_min_max(config: FieldConfig, *, default_min: int = 0, default_max: int = 65535) -> None:
     mn = config.get("minLength", default_min)
     mx = config.get("maxLength", default_max)

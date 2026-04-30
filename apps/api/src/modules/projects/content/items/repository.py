@@ -122,7 +122,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
             )
             if for_update:
                 query = query.select_for_update()
-            query = query.prefetch_related("model_definition").first()
+            query = query.prefetch_related("model_definition", "model_definition__fields").first()
             return await self.using_db(query, tenant_conn)
 
     async def list_items(
@@ -137,7 +137,9 @@ class ProjectContentItemsRepository(TenantScopedRepository):
             query = ContentItemRecord.filter(workspace_id=workspace_id, site_id=site_id)
             if model_definition_id is not None:
                 query = query.filter(model_definition_id=model_definition_id)
-            query = query.prefetch_related("model_definition").order_by("-updated_at", "-id")
+            query = query.prefetch_related("model_definition", "model_definition__fields").order_by(
+                "-updated_at", "-id"
+            )
             return list(await self.using_db(query, tenant_conn))
 
     async def list_versions_for_items(
@@ -164,7 +166,15 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         conn: BaseDBAsyncClient | None = None,
     ) -> list[ContentVersionRecord]:
         async with self.connection(conn) as tenant_conn:
-            query = ContentVersionRecord.filter(item_id=item_id).order_by("-version")
+            query = (
+                ContentVersionRecord
+                .filter(item_id=item_id)
+                .prefetch_related(
+                    "item__model_definition",
+                    "item__model_definition__fields",
+                )
+                .order_by("-version")
+            )
             return list(await self.using_db(query, tenant_conn))
 
     async def create_version(
@@ -204,7 +214,30 @@ class ProjectContentItemsRepository(TenantScopedRepository):
             query = ContentVersionRecord.filter(item_id=item_id, version=version_number)
             if for_update:
                 query = query.select_for_update()
-            query = query.prefetch_related("presentation_documents").first()
+            query = query.prefetch_related(
+                "item__model_definition",
+                "item__model_definition__fields",
+                "presentation_documents",
+            ).first()
+            return await self.using_db(query, tenant_conn)
+
+    async def get_version_by_id_with_model(
+        self,
+        *,
+        version_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> ContentVersionRecord | None:
+        async with self.connection(conn) as tenant_conn:
+            query = (
+                ContentVersionRecord
+                .filter(id=version_id)
+                .prefetch_related(
+                    "item__model_definition",
+                    "item__model_definition__fields",
+                    "presentation_documents",
+                )
+                .first()
+            )
             return await self.using_db(query, tenant_conn)
 
     async def update_item_fields(

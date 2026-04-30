@@ -47,6 +47,11 @@ from src.modules.projects.content.items.input_schema import (
     ContentPresentationIn,
     ContentVersionPatchIn,
 )
+from src.modules.projects.content.items.password_fields import (
+    password_field_keys,
+    sanitize_password_field_values,
+    sanitize_password_presentations,
+)
 from src.modules.projects.content.models.protocol_registry import get_official_model_protocol
 
 PresentationPayload = list[tuple[ContentPresentationKind, dict[str, Any] | None]]
@@ -574,6 +579,8 @@ def validate_version_publish_contract(
 
 
 def to_version_out(version: ContentVersionRecord, payloads: PresentationPayload) -> ContentVersionOut:
+    password_keys = password_field_keys(getattr(getattr(version, "item", None), "model_definition", None))
+    sanitized_presentations = sanitize_password_presentations(payloads, password_keys=password_keys)
     return ContentVersionOut(
         item_id=version.item_id,
         version_number=version.version,
@@ -581,8 +588,8 @@ def to_version_out(version: ContentVersionRecord, payloads: PresentationPayload)
         created_at=version.created_at,
         created_by_user_id=version.created_by_user_id,
         last_transition_by_user_id=version.last_transition_by_user_id,
-        fields_snapshot=version.fields_snapshot or {},
-        presentations=[ContentPresentationOut(kind=kind, payload=payload) for kind, payload in payloads],
+        fields_snapshot=sanitize_password_field_values(version.fields_snapshot, password_keys=password_keys),
+        presentations=[ContentPresentationOut(kind=kind, payload=payload) for kind, payload in sanitized_presentations],
         change_summary=version.change_summary,
     )
 

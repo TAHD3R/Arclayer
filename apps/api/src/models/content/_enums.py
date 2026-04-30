@@ -15,6 +15,7 @@ class ContentModelFieldType(StrEnum):
     SLUG = "slug"
     ENUMERATION = "enumeration"
     EMAIL = "email"
+    PASSWORD = "password"
     MEDIA = "media"
     LOCATION = "location"
     REFERENCE = "reference"

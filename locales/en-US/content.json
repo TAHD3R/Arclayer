@@ -898,6 +898,8 @@
   "CONTENT_MODELS_FIELD_TYPE_SLUG_DESC": "Generate URL-friendly identifiers for routes, permalinks, and canonical paths.",
   "CONTENT_MODELS_FIELD_TYPE_EMAIL_LABEL": "Email",
   "CONTENT_MODELS_FIELD_TYPE_EMAIL_DESC": "Store email-shaped contact values with text validation rules.",
+  "CONTENT_MODELS_FIELD_TYPE_PASSWORD_LABEL": "Password",
+  "CONTENT_MODELS_FIELD_TYPE_PASSWORD_DESC": "Capture write-only secret values. Stored values are hashed and hidden from delivery responses.",
   "CONTENT_MODELS_FIELD_TYPE_NUMBER_LABEL": "Number",
   "CONTENT_MODELS_FIELD_TYPE_NUMBER_DESC": "Store quantities, scores, prices, and other measurable values.",
   "CONTENT_MODELS_FIELD_TYPE_DECIMAL_LABEL": "Decimal",

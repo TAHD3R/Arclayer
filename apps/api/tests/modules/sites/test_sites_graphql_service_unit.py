@@ -113,12 +113,13 @@ def test_delivery_omitted_field_keys_reads_model_field_config() -> None:
             fields=[
                 SimpleNamespace(key="publicTitle", config={}),
                 SimpleNamespace(key="internalNotes", config={"omitFromApiResponse": True}),
+                SimpleNamespace(key="accessCode", config={"kind": "password"}),
                 SimpleNamespace(key="editorOnly", config={"hiddenInEditor": True}),
             ]
         )
     )
 
-    assert _delivery_omitted_field_keys(item) == {"internalNotes"}
+    assert _delivery_omitted_field_keys(item) == {"accessCode", "internalNotes"}
 
 
 def test_build_query_record_omits_delivery_hidden_fields() -> None:
@@ -151,6 +152,7 @@ def test_filter_delivery_fields_excludes_omitted_fields_before_custom_field_proj
             fields=[
                 SimpleNamespace(key="title", config={}),
                 SimpleNamespace(key="rating", config={}),
+                SimpleNamespace(key="accessCode", config={"kind": "password"}),
                 SimpleNamespace(key="internalScore", config={"omitFromApiResponse": True}),
             ]
         )
@@ -161,6 +163,7 @@ def test_filter_delivery_fields_excludes_omitted_fields_before_custom_field_proj
         fields={
             "title": "Public title",
             "rating": 9,
+            "accessCode": "$2b$12$hash",
             "internalScore": 100,
         },
     )
