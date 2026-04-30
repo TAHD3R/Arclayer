@@ -110,7 +110,7 @@ Status values:
 | P05 | `p05-password-field.md` | 2 | medium | verified | Password field enum/type, bcrypt write hashing, response/GraphQL hiding, and Admin picker support completed; implementation-round `pnpm api:check` passed, and this follow-up unblocked the Admin baseline so `pnpm admin:check` now passes. |
 | P01 | `p01-polymorphic-relations.md` | 2 | high | verified | Target-side polymorphic and one-way relation contract support implemented; focused API/Admin checks, `pnpm api:check`, and rerun `pnpm admin:check` passed. |
 | F06 | `f06-dynamic-schema-sync.md` | 2 | high | verified | Chose `jsonb_snapshot` as canonical storage strategy; schema previews now expose versioned storage sync plans with field add/remove/rename/type/index migration records, rollback steps, and registry-resolved database type hints; OpenAPI SDK sync and `pnpm api:check` passed. |
-| F07 | `f07-api-auto-generation.md` | 2 | high | planned | Generate REST routes from content types. |
+| F07 | `f07-api-auto-generation.md` | 2 | high | verified | Added `core/api_generator` Content API primitives and generated per-model REST read routes from GraphQL/query metadata; focused unit and integration tests passed, and `pnpm api:check` passed. |
 | P04 | `p04-graphql-schema-hardening.md` | 2 | high | planned | Replace unsafe schema generation and enforce field filtering. |
 | P07 | `p07-conditional-permissions.md` | 3 | high | planned | Add dynamic permission conditions. |
 | F08 | `f08-rbac-management-ui.md` | 3 | high | planned | Add visual role and permission editor. |
