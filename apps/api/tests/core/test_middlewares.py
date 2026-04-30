@@ -130,31 +130,134 @@ async def test_csrf_middleware(monkeypatch, tmp_path: Path) -> None:
 
     app = create_app()
 
-    @app.get("/csrf")
+    @app.get("/api/v1/csrf")
     async def csrf_get() -> dict[str, str]:
         return {"ok": "1"}
 
-    @app.post("/csrf")
+    @app.post("/api/v1/csrf")
     async def csrf_post() -> dict[str, str]:
         return {"ok": "1"}
 
     async with asgi_client(app) as client:
-        response = await client.get("/csrf")
+        response = await client.get("/api/v1/csrf")
 
         assert response.status_code == 200
         assert "csrf_token=" in response.headers.get("set-cookie", "")
 
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
-            bad_post = await client.post("/csrf")
+            bad_post = await client.post("/api/v1/csrf")
         assert bad_post.status_code == 403
         assert bad_post.json().get("message") == "CSRF 校验失败"
         assert not any("ORJSONResponse is deprecated" in str(item.message) for item in caught)
 
         token = client.cookies.get("csrf_token")
         assert token is not None
-        ok_post = await client.post("/csrf", headers={"X-CSRF-Token": token})
+        ok_post = await client.post(
+            "/api/v1/csrf",
+            headers={
+                "Origin": "http://testserver",
+                "X-CSRF-Token": token,
+            },
+        )
         assert ok_post.status_code == 200
+
+
+async def test_csrf_rejects_invalid_token_and_cross_origin(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__CSRF__ENABLED", "1")
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @app.get("/api/v1/csrf")
+    async def csrf_get() -> dict[str, str]:
+        return {"ok": "1"}
+
+    @app.post("/api/v1/csrf")
+    async def csrf_post() -> dict[str, str]:
+        return {"ok": "1"}
+
+    async with asgi_client(app) as client:
+        await client.get("/api/v1/csrf")
+        token = client.cookies.get("csrf_token")
+        assert token is not None
+
+        invalid = await client.post(
+            "/api/v1/csrf",
+            headers={
+                "Origin": "http://testserver",
+                "X-CSRF-Token": "invalid",
+            },
+        )
+        assert invalid.status_code == 403
+        assert invalid.json().get("meta", {}).get("reason") == "token_mismatch"
+
+        cross_origin = await client.post(
+            "/api/v1/csrf",
+            headers={
+                "Origin": "https://evil.example",
+                "X-CSRF-Token": token,
+            },
+        )
+        assert cross_origin.status_code == 403
+        assert cross_origin.json().get("meta", {}).get("reason") == "origin_mismatch"
+
+
+async def test_csrf_exempts_content_api_token_routes(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__CSRF__ENABLED", "1")
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @app.post("/content-api/v1/csrf-exempt")
+    async def content_api_post() -> dict[str, str]:
+        return {"ok": "1"}
+
+    async with asgi_client(app) as client:
+        response = await client.post(
+            "/content-api/v1/csrf-exempt",
+            headers={"Origin": "https://external.example", "x-api-key": "ark_deliv_test.secret"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": "1"}
+
+
+async def test_csrf_rotates_token_after_valid_mutation(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__CSRF__ENABLED", "1")
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @app.get("/api/v1/csrf")
+    async def csrf_get() -> dict[str, str]:
+        return {"ok": "1"}
+
+    @app.post("/api/v1/csrf")
+    async def csrf_post() -> dict[str, str]:
+        return {"ok": "1"}
+
+    async with asgi_client(app) as client:
+        await client.get("/api/v1/csrf")
+        original = client.cookies.get("csrf_token")
+        assert original is not None
+
+        response = await client.post(
+            "/api/v1/csrf",
+            headers={
+                "Origin": "http://testserver",
+                "X-CSRF-Token": original,
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.cookies.get("csrf_token") not in {None, original}
 
 
 async def test_guard_security_headers(monkeypatch, tmp_path: Path) -> None:

@@ -4,6 +4,7 @@ import secrets
 import time
 from contextvars import ContextVar
 from http.cookies import SimpleCookie
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request
 from guard import (
@@ -69,6 +70,17 @@ def _get_cookie_value(guard_request: GuardRequest, cookie_name: str) -> str | No
     return morsel.value or None
 
 
+def _get_request_path(guard_request: GuardRequest) -> str:
+    request = _get_starlette_request(guard_request)
+    if request is not None:
+        return request.url.path
+
+    path = getattr(guard_request, "path", None)
+    if isinstance(path, str) and path:
+        return path
+    return "/"
+
+
 def _csrf_failure_response(guard_request: GuardRequest) -> StarletteGuardResponse:
     request = _get_starlette_request(guard_request)
     locale = get_request_locale(request)
@@ -76,6 +88,17 @@ def _csrf_failure_response(guard_request: GuardRequest) -> StarletteGuardRespons
         message=t("errors", "CSRF_FAILED", locale=locale),
         error="CSRF_FAILED",
         meta={"reason": "token_mismatch"},
+    )
+    return StarletteGuardResponse(JSONResponse(payload.model_dump(), status_code=403))
+
+
+def _csrf_origin_failure_response(guard_request: GuardRequest, *, reason: str) -> StarletteGuardResponse:
+    request = _get_starlette_request(guard_request)
+    locale = get_request_locale(request)
+    payload = ResponseBuilder.fail(
+        message=t("errors", "CSRF_FAILED", locale=locale),
+        error="CSRF_FAILED",
+        meta={"reason": reason},
     )
     return StarletteGuardResponse(JSONResponse(payload.model_dump(), status_code=403))
 
@@ -92,6 +115,65 @@ def _build_set_cookie_header(token: str, csrf_settings: SecuritySettings.CSRFSet
     return cookie.output(header="").strip()
 
 
+def _path_matches_prefix(path: str, prefixes: list[str]) -> bool:
+    normalized_path = path if path.startswith("/") else f"/{path}"
+    for prefix in prefixes:
+        normalized_prefix = prefix.rstrip("/") or "/"
+        if normalized_path == normalized_prefix or normalized_path.startswith(f"{normalized_prefix}/"):
+            return True
+    return False
+
+
+def _is_csrf_protected_path(path: str, csrf_settings: SecuritySettings.CSRFSettings) -> bool:
+    if _path_matches_prefix(path, csrf_settings.exempt_path_prefixes):
+        return False
+    return _path_matches_prefix(path, csrf_settings.protected_path_prefixes)
+
+
+def _origin_from_url(value: str) -> str | None:
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return None
+    port = f":{parsed.port}" if parsed.port is not None else ""
+    return f"{parsed.scheme}://{parsed.hostname.lower()}{port}"
+
+
+def _request_origin(guard_request: GuardRequest) -> str | None:
+    origin = guard_request.headers.get("origin")
+    if origin:
+        return _origin_from_url(origin)
+
+    referer = guard_request.headers.get("referer")
+    if referer:
+        return _origin_from_url(referer)
+
+    return None
+
+
+def _expected_origin(guard_request: GuardRequest) -> str | None:
+    host = guard_request.headers.get("host")
+    if not host:
+        return None
+
+    proto = guard_request.headers.get("x-forwarded-proto") or "http"
+    first_proto = proto.split(",", maxsplit=1)[0].strip().lower()
+    scheme = first_proto if first_proto in {"http", "https"} else "http"
+    return _origin_from_url(f"{scheme}://{host}")
+
+
+def _is_allowed_origin(guard_request: GuardRequest, csrf_settings: SecuritySettings.CSRFSettings) -> bool:
+    actual = _request_origin(guard_request)
+    if actual is None:
+        return False
+
+    trusted = {_origin for raw in csrf_settings.trusted_origins if (_origin := _origin_from_url(raw))}
+    if actual in trusted:
+        return True
+
+    expected = _expected_origin(guard_request)
+    return actual == expected
+
+
 def _build_guard_request_check(csrf_settings: SecuritySettings.CSRFSettings):
     safe_methods = {method.upper() for method in csrf_settings.safe_methods}
 
@@ -100,16 +182,23 @@ def _build_guard_request_check(csrf_settings: SecuritySettings.CSRFSettings):
         if not csrf_settings.enabled:
             return None
 
+        if not _is_csrf_protected_path(_get_request_path(request), csrf_settings):
+            return None
+
         if request.method.upper() in safe_methods:
             if _get_cookie_value(request, csrf_settings.cookie_name) is None:
                 _pending_csrf_cookie.set(secrets.token_urlsafe(csrf_settings.token_bytes))
             return None
+
+        if not _is_allowed_origin(request, csrf_settings):
+            return _csrf_origin_failure_response(request, reason="origin_mismatch")
 
         header_token = request.headers.get(csrf_settings.header_name)
         cookie_token = _get_cookie_value(request, csrf_settings.cookie_name)
         if not header_token or not cookie_token or header_token != cookie_token:
             return _csrf_failure_response(request)
 
+        _pending_csrf_cookie.set(secrets.token_urlsafe(csrf_settings.token_bytes))
         return None
 
     return _request_check

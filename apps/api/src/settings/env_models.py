@@ -28,6 +28,14 @@ def _normalize_runtime_fs_path(value: Path, *, default_base: Path) -> Path:
     return (default_base / value).resolve()
 
 
+def _normalize_runtime_path_prefix(value: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        return ""
+    normalized = normalized if normalized.startswith("/") else f"/{normalized}"
+    return normalized.rstrip("/") or "/"
+
+
 class TaskiqSettings(BaseSettings):
     """
     Taskiq worker/scheduler settings.
@@ -265,6 +273,18 @@ class SecuritySettings(BaseSettings):
             default_factory=lambda: ["GET", "HEAD", "OPTIONS", "TRACE"],
             description="HTTP methods that should mint/read a CSRF cookie without validation.",
         )
+        protected_path_prefixes: list[str] = Field(
+            default_factory=lambda: ["/api"],
+            description="Path prefixes whose unsafe browser requests require CSRF validation.",
+        )
+        exempt_path_prefixes: list[str] = Field(
+            default_factory=lambda: ["/content-api"],
+            description="Path prefixes for token-authenticated machine APIs that bypass CSRF validation.",
+        )
+        trusted_origins: list[str] = Field(
+            default_factory=list,
+            description="Allowed Origin values for unsafe browser requests. Empty uses same-origin.",
+        )
         token_bytes: int = Field(
             default=32,
             ge=8,
@@ -409,3 +429,19 @@ class SecuritySettings(BaseSettings):
     @classmethod
     def _normalize_cors_lists(cls, value: list[str]) -> list[str]:
         return [item.strip() for item in value if item and item.strip()]
+
+    @field_validator(
+        "csrf",
+        mode="after",
+    )
+    @classmethod
+    def _normalize_csrf_policy(cls, value: CSRFSettings) -> CSRFSettings:
+        value.safe_methods = [item.strip().upper() for item in value.safe_methods if item and item.strip()]
+        value.protected_path_prefixes = [
+            _normalize_runtime_path_prefix(item) for item in value.protected_path_prefixes if item and item.strip()
+        ]
+        value.exempt_path_prefixes = [
+            _normalize_runtime_path_prefix(item) for item in value.exempt_path_prefixes if item and item.strip()
+        ]
+        value.trusted_origins = [item.strip().rstrip("/") for item in value.trusted_origins if item and item.strip()]
+        return value

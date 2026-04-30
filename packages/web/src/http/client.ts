@@ -28,6 +28,8 @@ export interface ApiClientOptions {
    * Keep it flexible: different apps may have different preference semantics.
    */
   getLocaleHeaders?: () => { "accept-language"?: string; "x-locale"?: string };
+  getCsrfToken?: () => string | null;
+  csrfHeaderName?: string;
   onUnauthorized?: UnauthorizedHandler | null;
 }
 
@@ -75,6 +77,8 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     if (localeHeaders?.["accept-language"])
       headers.set("accept-language", localeHeaders["accept-language"]);
     if (localeHeaders?.["x-locale"]) headers.set("x-locale", localeHeaders["x-locale"]);
+
+    setCsrfHeader(headers, requestInit.method, opts);
 
     const token = opts.getAccessToken();
     const hadAccessToken = !!token;
@@ -213,6 +217,41 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
   } as const;
 }
 
+function getCsrfTokenForRequest(method: string | undefined, opts: ApiClientOptions): string | null {
+  if (isSafeMethod(method)) return null;
+  return opts.getCsrfToken?.() ?? readCookie("csrf_token");
+}
+
+function setCsrfHeader(headers: Headers, method: string | undefined, opts: ApiClientOptions): void {
+  const csrfToken = getCsrfTokenForRequest(method, opts);
+  if (csrfToken) headers.set(opts.csrfHeaderName ?? "X-CSRF-Token", csrfToken);
+}
+
+function isSafeMethod(method: string | undefined): boolean {
+  const normalized = (method || "GET").toUpperCase();
+  return (
+    normalized === "GET" ||
+    normalized === "HEAD" ||
+    normalized === "OPTIONS" ||
+    normalized === "TRACE"
+  );
+}
+
+function readCookie(name: string): string | null {
+  const cookieSource = (globalThis as unknown as { document?: { cookie?: string } }).document
+    ?.cookie;
+  if (!cookieSource) return null;
+
+  const prefix = `${encodeURIComponent(name)}=`;
+  const match = cookieSource
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  if (!match) return null;
+
+  return decodeURIComponent(match.slice(prefix.length));
+}
+
 function joinPath(a: string, b: string): string {
   const left = a.endsWith("/") ? a.slice(0, -1) : a;
   const right = b.startsWith("/") ? b : `/${b}`;
@@ -269,6 +308,7 @@ async function refreshAccessToken(
   if (localeHeaders?.["accept-language"])
     headers.set("accept-language", localeHeaders["accept-language"]);
   if (localeHeaders?.["x-locale"]) headers.set("x-locale", localeHeaders["x-locale"]);
+  setCsrfHeader(headers, "POST", opts);
 
   const res = await fetch(url, {
     method: "POST",
@@ -335,6 +375,7 @@ async function refreshAccessTokenWithCookie(
   if (localeHeaders?.["accept-language"])
     headers.set("accept-language", localeHeaders["accept-language"]);
   if (localeHeaders?.["x-locale"]) headers.set("x-locale", localeHeaders["x-locale"]);
+  setCsrfHeader(headers, "POST", opts);
 
   const res = await fetch(url, {
     method: "POST",

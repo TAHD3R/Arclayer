@@ -20,6 +20,7 @@ const client = createApiClient({
   getAccessToken: () => useAuthStore.getState().accessToken,
   getRefreshToken: () => useAuthStore.getState().refreshToken,
   getCredentials: getRequestCredentials,
+  getCsrfToken: () => readAdminCookie("csrf_token"),
   setTokens: (tokens) => useAuthStore.getState().setTokens(tokens),
   getLocaleHeaders,
   onUnauthorized: (ctx) => unauthorizedHandler?.(ctx),
@@ -43,3 +44,16 @@ export const api = {
   delete: <T>(path: string, options?: Omit<ApiRequestOptions, "method" | "body">) =>
     client.delete<T>(path, options),
 } as const;
+
+function readAdminCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+
+  const prefix = `${encodeURIComponent(name)}=`;
+  const match = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  if (!match) return null;
+
+  return decodeURIComponent(match.slice(prefix.length));
+}

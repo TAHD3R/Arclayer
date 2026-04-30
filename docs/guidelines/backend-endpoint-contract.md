@@ -33,6 +33,19 @@ Admin API authentication uses the user session/access-token stack from `src.modu
 Content API authentication is owned by `src.modules.auth.content_api` and accepts delivery API keys through `x-api-key` or `Authorization: Bearer <delivery-key>`.
 Published Content API reads may remain public when the route contract allows it, but any supplied Content API credential must be validated by the Content API auth dependency.
 
+### 3.0.1 CSRF policy
+
+Browser-authenticated unsafe requests on the Admin API surface require double-submit CSRF validation:
+
+- Protected surface: paths under `/api/*` by default.
+- Exempt surface: paths under `/content-api/*` by default, because Content API routes use explicit delivery credentials (`x-api-key` or `Authorization: Bearer <delivery-key>`) and serve machine/runtime clients.
+- Safe methods (`GET`, `HEAD`, `OPTIONS`, `TRACE`) may mint the readable `csrf_token` cookie and do not require validation.
+- Unsafe methods require a matching `X-CSRF-Token` header and `csrf_token` cookie.
+- Unsafe methods also require same-origin `Origin` or `Referer`, unless the origin is listed in `SECURITY__CSRF__TRUSTED_ORIGINS`.
+- A valid unsafe mutation rotates the CSRF cookie for the next request.
+
+Admin clients must read the `csrf_token` cookie and submit it as `X-CSRF-Token` on unsafe API calls. New machine-facing route surfaces must add an explicit CSRF exemption prefix only when their authentication boundary is token based and independent from browser cookies.
+
 ### 3.1 Schema-first request and response
 
 - Every public endpoint must use explicit Pydantic request/response schemas.
