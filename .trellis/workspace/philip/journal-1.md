@@ -319,3 +319,36 @@ Implemented target-side polymorphic and one-way relation contracts, verified ful
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: F06 dynamic schema sync
+
+**Date**: 2026-04-30
+**Task**: F06 dynamic schema sync
+**Branch**: `develop`
+
+### Summary
+
+Implemented jsonb_snapshot content model storage sync plans, exposed storageSync in schema previews, synchronized OpenAPI SDK, verified F06 checks, and backfilled the audit execution plan.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c84de506` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
