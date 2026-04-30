@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from typing import cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -21,6 +22,7 @@ class _FakeUser:
 async def test_update_my_profile_sets_avatar_asset_aligned_flag(monkeypatch) -> None:
     from src.config import get_settings
     from src.models.assets.asset import AssetRecord
+    from src.models.organization.user import User
     from src.modules.assets.admin.assets import binding_align
     from src.modules.auth.schema import UpdateMyProfileRequest
     from src.modules.auth.service import AuthService
@@ -66,7 +68,7 @@ async def test_update_my_profile_sets_avatar_asset_aligned_flag(monkeypatch) -> 
     monkeypatch.setattr(binding_align, "align_asset_for_binding", fake_align_asset_for_binding, raising=True)
 
     payload = UpdateMyProfileRequest(avatar_asset_id=expected_asset_id)
-    out = await service.update_my_profile(user=user, payload=payload)  # type: ignore[arg-type]
+    out = await service.update_my_profile(user=cast(User, user), payload=payload)
 
     assert out.avatar_asset_id == expected_asset_id
     assert out.avatar_asset_aligned is True

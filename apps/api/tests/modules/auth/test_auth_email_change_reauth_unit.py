@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from src.config import get_settings
 from src.core.exceptions import BadRequest
 from src.models.organization.user import UserStatus
+from src.modules.auth.contracts.schema import UserRepositoryLike
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import hash_password
 
@@ -125,8 +126,9 @@ class _FakeUserRepo:
         email: str | None,
         display_name: str | None,
         password_hash: str,
+        is_super_admin: bool = False,
     ) -> _FakeUser:
-        _ = username, email, display_name, password_hash
+        _ = username, email, display_name, password_hash, is_super_admin
         raise RuntimeError("not used")
 
 
@@ -151,7 +153,7 @@ def _build_service(*, user: _FakeUser, two_factor_enabled: bool) -> AuthService:
     service = AuthService(
         settings,
         valkey=None,
-        user_repo=_FakeUserRepo(user),
+        user_repo=cast(UserRepositoryLike, _FakeUserRepo(user)),
         two_factor=_FakeTwoFactor(enabled=two_factor_enabled),
     )
     service.email_change_store = cast(

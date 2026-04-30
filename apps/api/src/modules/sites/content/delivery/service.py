@@ -102,20 +102,17 @@ class ContentDeliveryService(BaseService):
             strict_bindings=True,
         )
         fields = snapshot.fields if isinstance(snapshot.fields, dict) else {}
-        return DeliverySectionOut(
-            id=item.id,
-            alias=target_alias,
-            title=str(fields.get("title") or item.title or target_alias),
-            revision=use_rev,
-            revisionState=state,
-            draftRevision=int(item.draft_version or 0),
-            publishedRevision=int(item.published_version or 0) or None,
-            document=DeliverySectionDocumentOut(
-                layout=layout,
-                sections=sections,
-            ),
-            warnings=warnings or None,
-        )
+        return DeliverySectionOut.model_validate({
+            "id": item.id,
+            "alias": target_alias,
+            "title": str(fields.get("title") or item.title or target_alias),
+            "revision": use_rev,
+            "revisionState": state,
+            "draftRevision": int(item.draft_version or 0),
+            "publishedRevision": int(item.published_version or 0) or None,
+            "document": DeliverySectionDocumentOut(layout=layout, sections=sections),
+            "warnings": warnings or None,
+        })
 
     async def delivery_get_global_set(
         self,
@@ -160,7 +157,7 @@ class ContentDeliveryService(BaseService):
                     name=item.name,
                     key=item.kind,
                     payload=item.payload,
-                    sectionAlias=section_alias,
+                    section_alias=section_alias,
                     section=section,
                 )
             )

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from src.common.services import BaseService
 from src.core.exceptions import Conflict, NotFound
 from src.core.exceptions.types import InternalServerError
+from src.models.content.route_binding import RouteBindingRecord
 from src.modules.projects.content.routing.service import match_route_binding, route_sort_key
 from src.modules.sites.design.schema import PageBlueprint
 from src.modules.sites.publishing.content_snapshot import CanonicalContentSnapshot, build_canonical_content_snapshot
@@ -436,7 +437,7 @@ class ContentPageRouteResolver(BaseService):
             page_fields = _summarize_depth_one(page_snapshot.fields) or {}
             return SitePrimaryContextOut(
                 id=UUID(str(page_item.id)),
-                modelKey=(page_item.model_definition.singular_key if page_item.model_definition is not None else None),
+                model_key=(page_item.model_definition.singular_key if page_item.model_definition is not None else None),
                 slug=page_item.slug,
                 title=page_item.title,
                 data=page_fields,
@@ -471,7 +472,7 @@ class ContentPageRouteResolver(BaseService):
                 snapshot_fields = published_fields or {}
                 return SitePrimaryContextOut(
                     id=UUID(str(candidate.id)),
-                    modelKey=(
+                    model_key=(
                         candidate.model_definition.singular_key if candidate.model_definition is not None else None
                     ),
                     slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
@@ -497,7 +498,7 @@ class ContentPageRouteResolver(BaseService):
                     snapshot_fields = draft_fields or {}
                     return SitePrimaryContextOut(
                         id=UUID(str(candidate.id)),
-                        modelKey=(
+                        model_key=(
                             candidate.model_definition.singular_key if candidate.model_definition is not None else None
                         ),
                         slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
@@ -513,7 +514,7 @@ class ContentPageRouteResolver(BaseService):
                     snapshot_fields = published_fields or {}
                     return SitePrimaryContextOut(
                         id=UUID(str(candidate.id)),
-                        modelKey=(
+                        model_key=(
                             candidate.model_definition.singular_key if candidate.model_definition is not None else None
                         ),
                         slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
@@ -538,7 +539,7 @@ class ContentPageRouteResolver(BaseService):
                 snapshot_fields = published_fields or {}
                 return SitePrimaryContextOut(
                     id=UUID(str(candidate.id)),
-                    modelKey=(
+                    model_key=(
                         candidate.model_definition.singular_key if candidate.model_definition is not None else None
                     ),
                     slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
@@ -596,9 +597,9 @@ class ContentPageRouteResolver(BaseService):
                     draft_revision=draft_rev,
                     published_revision=published_rev,
                 ),
-                pageMeta=None,
+                page_meta=None,
                 document=SiteFlattenedPageOut(path=pathname, layout=None, sections=[]),
-                context=SiteRouteContextOut(primary=None, routeParams=route_params),
+                context=SiteRouteContextOut.model_validate({"primary": None, "routeParams": route_params}),
             )
 
         page_meta = (
@@ -644,9 +645,9 @@ class ContentPageRouteResolver(BaseService):
                 draft_revision=draft_rev,
                 published_revision=published_rev,
             ),
-            pageMeta=page_meta,
+            page_meta=page_meta,
             document=SiteFlattenedPageOut(path=pathname, layout=layout, sections=sections),
-            context=SiteRouteContextOut(primary=primary, routeParams=route_params),
+            context=SiteRouteContextOut.model_validate({"primary": primary, "routeParams": route_params}),
             warnings=warnings or None,
         )
 
@@ -738,7 +739,7 @@ class ContentPageRouteResolver(BaseService):
                 route_contract=graph_node.route_contract if isinstance(graph_node.route_contract, dict) else None,
                 item=graph_node.item,
             )
-            params = match_route_binding(candidate, pathname)
+            params = match_route_binding(cast(RouteBindingRecord, candidate), pathname)
             if params is None:
                 continue
             matches.append((candidate, graph_node, params))

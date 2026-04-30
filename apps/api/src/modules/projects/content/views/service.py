@@ -227,7 +227,7 @@ class ContentLibraryViewsService(BaseService):
                 error=CONTENT_LIBRARY_MANAGE_ERROR,
             )
 
-        next_location = cast(ViewLocation, payload.visibility or location)
+        next_location = payload.visibility or location
         if next_location == "workspace" and not can_manage_workspace_views:
             raise Forbidden(
                 message=t("errors", "PERMISSION_DENIED"),
@@ -346,12 +346,12 @@ class ContentLibraryViewsService(BaseService):
                 item for item in cast(list[StoredView], user_payload["items"]) if item["id"] != view_id
             ]
 
-        user_payload["pinnedViewIds"] = _remove_from_list(cast(list[str], user_payload["pinnedViewIds"]), view_id)
+        user_payload["pinnedViewIds"] = _remove_from_list(user_payload["pinnedViewIds"], view_id)
         if user_payload.get("defaultViewId") == view_id:
             user_payload["defaultViewId"] = _resolve_fallback_default_view_id(
                 workspace_items=workspace_items,
                 user_items=cast(list[StoredView], user_payload["items"]),
-                pinned_view_ids=cast(list[str], user_payload["pinnedViewIds"]),
+                pinned_view_ids=user_payload["pinnedViewIds"],
             )
 
         return await self._save_state(

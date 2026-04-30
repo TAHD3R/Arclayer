@@ -108,8 +108,10 @@ class AdminAssetUsagesRepository:
 
         # Only set created_by_user_id on creation to preserve "who configured first" audit intent.
         if changed:
-            kwargs = {"using_db": conn} if conn is not None else {}
-            await existing.save(update_fields=["asset_id", "purpose", "updated_at"], **kwargs)
+            if conn is None:
+                await existing.save(update_fields=["asset_id", "purpose", "updated_at"])
+            else:
+                await existing.save(update_fields=["asset_id", "purpose", "updated_at"], using_db=conn)
         return existing
 
     async def delete_usage_by_ref(

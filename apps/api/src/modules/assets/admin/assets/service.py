@@ -3,6 +3,7 @@ from __future__ import annotations
 import mimetypes
 from datetime import UTC, datetime
 from math import ceil
+from typing import Any, cast
 from uuid import UUID
 
 from src.common.services import BaseService
@@ -148,13 +149,14 @@ class AdminAssetsService(BaseService):
         out: list[str] = []
         if not isinstance(variants, dict):
             return out
-        thumbs = variants.get("thumbnails")
+        thumbs = cast(dict[str, object], variants).get("thumbnails")
         if not isinstance(thumbs, list):
             return out
         for item in thumbs:
             if not isinstance(item, dict):
                 continue
-            k = str(item.get("object_key") or "").strip()
+            item_dict = cast(dict[str, Any], item)
+            k = str(item_dict.get("object_key") or "").strip()
             if not k:
                 continue
             out.append(k)

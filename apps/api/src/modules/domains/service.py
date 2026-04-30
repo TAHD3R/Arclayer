@@ -53,8 +53,8 @@ class DomainBindingService(BaseService):
     @staticmethod
     def build_dns_instruction(*, hostname: str, token: str) -> DomainBindingDnsInstructionOut:
         return DomainBindingDnsInstructionOut(
-            txt_record_name=f"{_TXT_LABEL}.{hostname}".rstrip("."),
-            txt_record_value=f"{_TXT_PREFIX}{token}",
+            txtRecordName=f"{_TXT_LABEL}.{hostname}".rstrip("."),
+            txtRecordValue=f"{_TXT_PREFIX}{token}",
         )
 
     @staticmethod

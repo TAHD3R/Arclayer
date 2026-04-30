@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import builtins
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -12,6 +12,7 @@ from src.config import get_settings
 from src.core.exceptions import BadRequest, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
 from src.models.organization.user import UserStatus
+from src.modules.auth.contracts.schema import UserRepositoryLike
 from src.modules.auth.login.service import AuthLoginService
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import decode_token, hash_password
@@ -169,6 +170,9 @@ class FakeUserRepository:
         else:
             user.credential.password_hash = password_hash
 
+    async def remove_password(self, user) -> None:
+        user.credential = None
+
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
 
@@ -185,8 +189,15 @@ class FakeUserRepository:
         return user
 
     async def create_user(
-        self, *, username: str, email: str | None, display_name: str | None, password_hash: str
+        self,
+        *,
+        username: str,
+        email: str | None,
+        display_name: str | None,
+        password_hash: str,
+        is_super_admin: bool = False,
     ) -> FakeUser:
+        _ = username, email, display_name, password_hash, is_super_admin
         raise RuntimeError("not used")
 
 
@@ -215,7 +226,7 @@ def _build_login_service(
 
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
-    auth = AuthService(settings, valkey=valkey, user_repo=repo)
+    auth = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
 
     two_factor = FakeTwoFactor(enabled=two_factor_enabled)
     login = AuthLoginService(settings, valkey=valkey, auth_service=auth, two_factor=two_factor)

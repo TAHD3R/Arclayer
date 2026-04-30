@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 from tortoise.queryset import QuerySet
@@ -23,7 +23,7 @@ class SitePatternRepository(BaseRepository):
         return await SitePattern.create(site_id=site_id, **data)
 
     async def update_pattern(self, pattern: SitePattern, fields: dict[str, Any]) -> SitePattern:
-        return cast(SitePattern, await self.update_fields(pattern, fields=fields))
+        return await self.update_fields(pattern, fields=fields)
 
     async def delete_pattern(self, pattern_id: UUID) -> int:
         return await self.delete_by_id(SitePattern, pattern_id)

@@ -11,12 +11,14 @@ from src.core.events import Event
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.models.automation.flow import (
+    AutomationFlowRecord,
     AutomationFlowStatus,
     AutomationOperationKind,
     AutomationRunLogLevel,
     AutomationRunStatus,
     AutomationTriggerKind,
 )
+from src.modules.projects.automation.repository import AutomationRepository
 from src.modules.projects.automation.schema import AutomationFlowCreateIn, AutomationOperationIn
 from src.modules.projects.automation.service import ProjectAutomationService
 from src.modules.tenancy.router_helpers import tenant_payload_from_context
@@ -137,7 +139,7 @@ class _FakeRepo:
 @pytest.mark.asyncio
 async def test_create_project_flow_out_sets_trigger_event_and_normalizes_operations() -> None:
     repo = _FakeRepo()
-    service = ProjectAutomationService(repo=repo)
+    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
     workspace_id = uuid4()
     project_id = uuid4()
     actor_user_id = uuid4()
@@ -185,7 +187,7 @@ async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monke
             updated_at=repo._now(),
         )
     ]
-    service = ProjectAutomationService(repo=repo)
+    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
 
     async def _fake_http_operation(*, config, event):  # type: ignore[no-untyped-def]
         assert config["url"] == "https://example.com/hooks/publish"
@@ -203,7 +205,7 @@ async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monke
         trigger_event="project.release.published",
     )
     result = await service.execute_flow(
-        flow=flow,
+        flow=cast(AutomationFlowRecord, flow),
         event=Event(
             name="project.release.published",
             payload={"workspace_id": str(workspace_id), "project_id": str(uuid4()), "site_id": str(uuid4())},
@@ -241,7 +243,7 @@ async def test_execute_flow_marks_run_dead_letter_on_operation_failure(monkeypat
             updated_at=repo._now(),
         )
     ]
-    service = ProjectAutomationService(repo=repo)
+    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
 
     async def _boom(**_kwargs):  # type: ignore[no-untyped-def]
         raise RuntimeError("notification down")
@@ -257,7 +259,7 @@ async def test_execute_flow_marks_run_dead_letter_on_operation_failure(monkeypat
         trigger_event="project.content.item.workflow.updated",
     )
     result = await service.execute_flow(
-        flow=flow,
+        flow=cast(AutomationFlowRecord, flow),
         event=Event(name="project.content.item.workflow.updated", payload={"workspace_id": str(workspace_id)}),
     )
 
@@ -282,7 +284,7 @@ async def test_handle_event_executes_matching_project_flows(monkeypatch: pytest.
             trigger_event="project.api_key.rotated",
         )
     ]
-    service = ProjectAutomationService(repo=repo)
+    service = ProjectAutomationService(repo=cast(AutomationRepository, repo))
 
     executed: list[UUID] = []
 
@@ -386,7 +388,7 @@ async def test_execute_content_update_passes_lifecycle_dispatcher_to_entity_mana
 
 
 def test_validate_operation_config_rejects_missing_webhook_url() -> None:
-    service = ProjectAutomationService(repo=_FakeRepo())
+    service = ProjectAutomationService(repo=cast(AutomationRepository, _FakeRepo()))
     with pytest.raises(BadRequest) as excinfo:
         service._normalize_operations([
             AutomationOperationIn(

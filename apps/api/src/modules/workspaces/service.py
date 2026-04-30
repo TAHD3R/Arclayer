@@ -27,7 +27,7 @@ from src.modules.assets.scope import AssetScope
 from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.organization.repository import OrganizationRepository
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
-from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
+from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest, OrganizationWorkspaceTemplate
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.schema import WorkspacePrimaryProjectOut
@@ -384,7 +384,7 @@ class WorkspaceService(BaseService):
             org_role=OrgRole.OWNER,
             payload=OrganizationWorkspaceCreateRequest(
                 name=workspace_name,
-                template="blank",
+                template=OrganizationWorkspaceTemplate.BLANK,
             ),
         )
         await self.onboarding_service.mark_workspace_created(

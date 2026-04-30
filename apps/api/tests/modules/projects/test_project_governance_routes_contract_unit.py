@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
 
 import pytest
@@ -19,6 +20,7 @@ from src.modules.projects.governance.router import (
 from src.modules.projects.governance.router import router as project_governance_router
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.settings.schema import ProjectSettingsDetail, ProjectSettingsPatch
+from src.modules.projects.settings.service import ProjectSettingsService
 from src.modules.workspaces.http.schema import WorkspaceAccessType
 
 
@@ -122,7 +124,7 @@ async def test_get_project_core_settings_uses_project_authz_helper(monkeypatch: 
     response = await get_project_core_settings(
         ctx=ctx,
         user_id=user_id,
-        service=FakeProjectSettingsService(),
+        service=cast(ProjectSettingsService, FakeProjectSettingsService()),
     )
 
     assert response.data is not None
@@ -176,7 +178,7 @@ async def test_patch_project_core_settings_uses_project_authz_helper(monkeypatch
         payload=ProjectSettingsPatch(patch={"name": "Project B"}),
         ctx=ctx,
         user_id=user_id,
-        service=FakeProjectSettingsService(),
+        service=cast(ProjectSettingsService, FakeProjectSettingsService()),
     )
 
     assert response.data is not None

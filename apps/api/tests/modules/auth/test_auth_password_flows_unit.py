@@ -12,7 +12,7 @@ from src.config import get_settings
 from src.core.exceptions import Conflict, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
 from src.models.organization.user import UserStatus
-from src.modules.auth.contracts.schema import UserLike
+from src.modules.auth.contracts.schema import UserLike, UserRepositoryLike
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import hash_password, verify_password
 
@@ -181,7 +181,9 @@ class FakeUserRepository:
         email: str | None,
         display_name: str | None,
         password_hash: str,
+        is_super_admin: bool = False,
     ) -> FakeUser:
+        _ = username, email, display_name, password_hash, is_super_admin
         raise RuntimeError("not used")
 
 
@@ -194,7 +196,7 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeUser]:
 
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
-    service = AuthService(settings, valkey=valkey, user_repo=repo)
+    service = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
     return service, user
 
 

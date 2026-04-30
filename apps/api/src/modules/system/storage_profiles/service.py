@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from src.common.services import BaseService
@@ -284,8 +284,9 @@ class StorageProfilesService(BaseService):
             scope_id=SYSTEM_SCOPE_ID,
             namespace=CORE_SETTINGS_NAMESPACE,
         )
-        current = record.value if record and isinstance(record.value, dict) else {}
-        patch = {"storage": {"default_profile_key": profile_key}}
+        current_raw = record.value if record and isinstance(record.value, dict) else {}
+        current = cast(dict[str, object], current_raw)
+        patch: dict[str, object] = {"storage": {"default_profile_key": profile_key}}
         merged = merge_deep(current, patch)
         if record is None:
             await SettingRecord.create(

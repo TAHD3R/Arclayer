@@ -79,8 +79,7 @@ class ProjectRuntimeService:
             raise NotFound("Project runtime site bridge not found", error="PROJECT_RUNTIME_SITE_NOT_FOUND")
         workspace = await Workspace.get(id=workspace_id)
         await bind_workspace_tenant_context(
-            workspace_id=workspace_id,
-            organization_id=UUID(str(workspace.organization_id)),
+            workspace_id=workspace_id, organization_id=UUID(str(workspace.organization_id))
         )
         tenant_context = bind_project_tenant_context(
             project_id=UUID(str(cast(HasProjectId, runtime).project_id)),
@@ -104,27 +103,27 @@ class ProjectRuntimeService:
 
     @staticmethod
     def to_bridge_out(context: ProjectRuntimeContext) -> ProjectRuntimeBridgeOut:
-        return ProjectRuntimeBridgeOut(
-            runtimeId=context.runtime_id,
-            projectId=context.project_id,
-            workspaceId=context.workspace_id,
-            siteId=context.site_id,
-            kind=context.kind,
-            name=context.name,
-            slug=context.slug,
-            defaultLocale=context.default_locale,
-            fallbackLocale=context.fallback_locale,
-            isActive=context.is_active,
-        )
+        return ProjectRuntimeBridgeOut.model_validate({
+            "runtime_id": context.runtime_id,
+            "project_id": context.project_id,
+            "workspace_id": context.workspace_id,
+            "site_id": context.site_id,
+            "kind": context.kind,
+            "name": context.name,
+            "slug": context.slug,
+            "default_locale": context.default_locale,
+            "fallback_locale": context.fallback_locale,
+            "is_active": context.is_active,
+        })
 
     @staticmethod
     def to_project_site_out(context: ProjectRuntimeContext) -> ProjectRuntimeSiteOut:
-        return ProjectRuntimeSiteOut(
-            siteId=context.site_id,
-            workspaceId=context.workspace_id,
-            slug=context.slug,
-            name=context.name,
-            defaultLocale=context.default_locale,
-            fallbackLocale=context.fallback_locale,
-            isActive=context.is_active,
-        )
+        return ProjectRuntimeSiteOut.model_validate({
+            "site_id": context.site_id,
+            "workspace_id": context.workspace_id,
+            "slug": context.slug,
+            "name": context.name,
+            "default_locale": context.default_locale,
+            "fallback_locale": context.fallback_locale,
+            "is_active": context.is_active,
+        })

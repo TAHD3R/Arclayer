@@ -104,11 +104,12 @@ class SettingsService(
             if not isinstance(section, dict):
                 secrets[path] = False
                 continue
-            value = section.get(field_key)
+            section_dict = cast(dict[str, object | None], section)
+            value = section_dict.get(field_key)
             if value is None:
                 secrets[path] = False
                 continue
             secrets[path] = True
-            cast(dict[str, object], section)[field_key] = None
+            section_dict[field_key] = None
 
         return masked, secrets

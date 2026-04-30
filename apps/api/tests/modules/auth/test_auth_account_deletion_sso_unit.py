@@ -11,6 +11,7 @@ from src.config import get_settings
 from src.core.exceptions import BadRequest, Unauthorized
 from src.models.organization.user import User, UserStatus
 from src.modules.auth.account_deletion.capability_service import AccountDeletionCapabilityService
+from src.modules.auth.contracts.schema import UserRepositoryLike
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.service import AuthService
 
@@ -59,6 +60,9 @@ class FakeUserRepo:
     async def set_password(self, user, password_hash: str) -> None:
         raise RuntimeError("not used")
 
+    async def remove_password(self, user) -> None:
+        raise RuntimeError("not used")
+
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
 
@@ -81,7 +85,9 @@ class FakeUserRepo:
         email: str | None,
         display_name: str | None,
         password_hash: str,
+        is_super_admin: bool = False,
     ) -> FakeUser:
+        _ = is_super_admin
         raise RuntimeError("not used")
 
 
@@ -113,7 +119,7 @@ def _build_service(monkeypatch, *, user: FakeUser, two_factor_enabled: bool) -> 
     return AuthService(
         settings,
         valkey=None,
-        user_repo=FakeUserRepo(user),
+        user_repo=cast(UserRepositoryLike, FakeUserRepo(user)),
         two_factor=FakeTwoFactor(enabled=two_factor_enabled),
     )
 

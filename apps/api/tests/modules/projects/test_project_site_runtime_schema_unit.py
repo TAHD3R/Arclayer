@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
 
 from src.core.exceptions import NotFound
+from src.models.projects.runtime import ProjectRuntimeRecord
 from src.modules.projects.runtime import service as runtime_service
 from src.modules.projects.runtime.service import ProjectRuntimeService
 
@@ -43,7 +45,11 @@ async def test_project_runtime_service_requires_existing_runtime_scoped_site(mon
     monkeypatch.setattr(service.project_repo, "get_runtime_site", fake_get_runtime_site)
 
     with pytest.raises(NotFound) as exc_info:
-        await service._build_context(runtime=runtime, workspace_id=workspace_id, actor_user_id=None)
+        await service._build_context(
+            runtime=cast(ProjectRuntimeRecord, runtime),
+            workspace_id=workspace_id,
+            actor_user_id=None,
+        )
 
     assert exc_info.value.error == "PROJECT_RUNTIME_SITE_NOT_FOUND"
 
@@ -97,7 +103,11 @@ async def test_project_runtime_service_reuses_attached_runtime_site(monkeypatch)
     monkeypatch.setattr(runtime_service, "bind_workspace_tenant_context", fake_bind_workspace_tenant_context)
     monkeypatch.setattr(runtime_service, "bind_project_tenant_context", fake_bind_project_tenant_context)
 
-    context = await service._build_context(runtime=runtime, workspace_id=workspace_id, actor_user_id=None)
+    context = await service._build_context(
+        runtime=cast(ProjectRuntimeRecord, runtime),
+        workspace_id=workspace_id,
+        actor_user_id=None,
+    )
 
     assert context.site_id == site_id
     assert context.runtime_id == runtime_id
@@ -119,6 +129,10 @@ async def test_project_runtime_service_does_not_adopt_workspace_level_site(monke
     monkeypatch.setattr(service.project_repo, "get_runtime_site", fake_get_runtime_site)
 
     with pytest.raises(NotFound) as exc_info:
-        await service._build_context(runtime=runtime, workspace_id=workspace_id, actor_user_id=None)
+        await service._build_context(
+            runtime=cast(ProjectRuntimeRecord, runtime),
+            workspace_id=workspace_id,
+            actor_user_id=None,
+        )
 
     assert exc_info.value.error == "PROJECT_RUNTIME_SITE_NOT_FOUND"

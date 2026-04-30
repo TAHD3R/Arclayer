@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any, cast
 
 from tortoise.exceptions import OperationalError
 
@@ -116,11 +117,12 @@ async def get_effective_settings(settings: Settings) -> Settings:
     storage_section = core.get("storage") if isinstance(core, dict) else None
     if not isinstance(storage_section, dict):
         return settings
+    storage = cast(dict[str, Any], storage_section)
 
     updates: dict[str, object] = {}
 
-    if "default_profile_key" in storage_section:
-        default_profile_key = _safe_str(storage_section.get("default_profile_key"))
+    if "default_profile_key" in storage:
+        default_profile_key = _safe_str(storage.get("default_profile_key"))
         if default_profile_key:
             updates["default_profile_key"] = default_profile_key
 
@@ -134,8 +136,8 @@ async def get_effective_settings(settings: Settings) -> Settings:
         "upload_session_ttl_seconds",
         "recycle_bin_retention_days",
     ]:
-        if key in storage_section:
-            v = _safe_int(storage_section.get(key))
+        if key in storage:
+            v = _safe_int(storage.get(key))
             if v is not None:
                 updates[key] = v
 

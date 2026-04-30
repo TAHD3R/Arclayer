@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -125,4 +125,4 @@ def test_onboarding_profile_patch_rejects_invalid_enum_values() -> None:
     from src.modules.auth.schema import OnboardingProfilePatchRequest
 
     with pytest.raises(ValidationError):
-        OnboardingProfilePatchRequest(job_role="writer")
+        OnboardingProfilePatchRequest(job_role=cast(Any, "writer"))

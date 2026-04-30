@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import cast
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -94,4 +93,4 @@ class OAuthSocialRepository(BaseRepository):
             display_name=(display_name or "").strip() or None,
             avatar_url=(avatar_url or "").strip() or None,
         )
-        return cast(User, user)
+        return user

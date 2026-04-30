@@ -40,6 +40,7 @@ from src.modules.projects.content.items.domain_helpers import (
     read_title_field,
 )
 from src.modules.projects.content.items.input_schema import ContentItemCreateIn
+from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 from src.modules.projects.content.models.field_type_registry import (
     clear_custom_content_model_field_types,
     content_model_field_type_registry,
@@ -408,7 +409,8 @@ async def test_content_item_creation_rejects_component_models() -> None:
         create_item=AsyncMock(),
     )
     service = ProjectContentCanonicalItemsService(
-        repo=cast(Any, repo), entity_manager=cast(Any, EntityManager(items_repo=repo))
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, EntityManager(items_repo=cast(ProjectContentItemsRepository, repo))),
     )
 
     with pytest.raises(Conflict) as exc:
@@ -436,7 +438,8 @@ async def test_content_item_creation_rejects_second_single_type_for_locale() -> 
         create_item=AsyncMock(),
     )
     service = ProjectContentCanonicalItemsService(
-        repo=cast(Any, repo), entity_manager=cast(Any, EntityManager(items_repo=repo))
+        repo=cast(Any, repo),
+        entity_manager=cast(Any, EntityManager(items_repo=cast(ProjectContentItemsRepository, repo))),
     )
 
     with pytest.raises(Conflict) as exc:
@@ -503,10 +506,10 @@ def test_item_has_capability_merges_item_and_model_capabilities() -> None:
         model_definition=SimpleNamespace(capabilities=["routable"]),
     )
 
-    assert item_has_capability(item_only, "publishable") is True
-    assert item_has_capability(item_only, "rich_text_editable") is True
-    assert item_has_capability(model_only, "routable") is True
-    assert item_has_capability(model_only, "treeable") is False
+    assert item_has_capability(cast(ContentItemRecord, item_only), "publishable") is True
+    assert item_has_capability(cast(ContentItemRecord, item_only), "rich_text_editable") is True
+    assert item_has_capability(cast(ContentItemRecord, model_only), "routable") is True
+    assert item_has_capability(cast(ContentItemRecord, model_only), "treeable") is False
 
 
 def test_read_summary_field_reads_only_summary() -> None:

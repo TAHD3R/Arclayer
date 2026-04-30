@@ -17,7 +17,7 @@ from src.models.projects.database import (
 )
 
 
-def _te(key: str, **kwargs: object) -> str:
+def _te(key: str, **kwargs: str | None) -> str:
     return t("errors", key, **kwargs)
 
 

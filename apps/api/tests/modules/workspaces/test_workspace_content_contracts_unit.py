@@ -10,8 +10,12 @@ from pydantic import ValidationError
 from src.modules.projects.content.contracts.schema import (
     ContentItemOut,
     ContentModelCapability,
+    ContentModelContractRegistryOut,
+    ContentModelImpactOut,
     ContentModelImpactPreviewOut,
     ContentModelOut,
+    ContentModelSchemaChangePlanOut,
+    ContentModelUserRefOut,
     ContentPresentationOut,
     ContentVersionOut,
 )
@@ -40,50 +44,53 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
         default_surface="canvas",
         starter_pack_policy={"preset": "page"},
         surface_policy={"allowedSurfaces": ["canvas"]},
-        contract_registry={
-            "protocol_key": "page",
-            "protocol_version": 1,
-            "category": "site_builder",
-            "system_managed": True,
-            "boundaries": {
-                "system_fields": [
-                    {
-                        "key": "title",
-                        "label": "Title",
-                        "scalar": "text",
-                        "required": True,
-                    },
-                    {
-                        "key": "path",
-                        "label": "Path",
-                        "scalar": "text",
-                        "required": True,
-                    },
-                    {
-                        "key": "route_pattern",
-                        "label": "Route Pattern",
-                        "scalar": "text",
-                        "required": False,
-                    },
-                ],
-                "custom_fields": [],
-                "locked_field_keys": ["title", "path", "route_pattern"],
-                "custom_field_count": 0,
+        contract_registry=cast(
+            ContentModelContractRegistryOut,
+            {
+                "protocol_key": "page",
+                "protocol_version": 1,
+                "category": "site_builder",
+                "system_managed": True,
+                "boundaries": {
+                    "system_fields": [
+                        {
+                            "key": "title",
+                            "label": "Title",
+                            "scalar": "text",
+                            "required": True,
+                        },
+                        {
+                            "key": "path",
+                            "label": "Path",
+                            "scalar": "text",
+                            "required": True,
+                        },
+                        {
+                            "key": "route_pattern",
+                            "label": "Route Pattern",
+                            "scalar": "text",
+                            "required": False,
+                        },
+                    ],
+                    "custom_fields": [],
+                    "locked_field_keys": ["title", "path", "route_pattern"],
+                    "custom_field_count": 0,
+                },
+                "capabilities": {
+                    "workflow": ["versioned", "publishable"],
+                    "delivery": ["routable", "treeable", "publishable"],
+                    "graphql": [],
+                },
+                "workflow_policy": {"supportsSchedule": True},
+                "delivery_policy": {
+                    "routing": {"mode": "static_or_dynamic"},
+                    "presentation": {"allowed": ["visual_blueprint", "seo"]},
+                    "seo": None,
+                    "surface": {"allowedSurfaces": ["canvas"]},
+                },
+                "graphql_policy": {"enabled": False},
             },
-            "capabilities": {
-                "workflow": ["versioned", "publishable"],
-                "delivery": ["routable", "treeable", "publishable"],
-                "graphql": [],
-            },
-            "workflow_policy": {"supportsSchedule": True},
-            "delivery_policy": {
-                "routing": {"mode": "static_or_dynamic"},
-                "presentation": {"allowed": ["visual_blueprint", "seo"]},
-                "seo": None,
-                "surface": {"allowedSurfaces": ["canvas"]},
-            },
-            "graphql_policy": {"enabled": False},
-        },
+        ),
         field_schema={"title": {"type": "text"}},
         relation_schema={"layout": {"target": "layout", "kind": "one"}},
         routing_schema={"mode": "static_or_dynamic"},
@@ -92,10 +99,13 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
         view_schema={"defaultView": "tree"},
         updated_at=datetime.now(UTC),
         updated_by_user_id=uuid4(),
-        updated_by={
-            "user_id": str(uuid4()),
-            "username": "admin",
-        },
+        updated_by=cast(
+            ContentModelUserRefOut,
+            {
+                "user_id": str(uuid4()),
+                "username": "admin",
+            },
+        ),
     )
 
     payload = model.model_dump(mode="json")
@@ -138,71 +148,77 @@ def test_content_model_impact_preview_out_exposes_change_plan() -> None:
         reshape_items_count=1,
         has_blocking_changes=False,
         preview_token="preview-token",
-        impact={
-            "has_breaking_changes": False,
-            "breaking_changes": [],
-            "warnings": [],
-        },
-        change_plan={
-            "revisions": {
-                "current_draft_revision": 2,
-                "published_revision": 1,
-                "next_draft_revision": 3,
-            },
-            "current_snapshot": {
-                "stage": "current_draft",
-                "revision": 2,
-                "field_count": 3,
-                "relation_count": 1,
-                "view_count": 1,
-                "payload": {"singular_key": "page", "plural_key": "pages", "fields": [{"key": "title"}]},
-            },
-            "next_snapshot": {
-                "stage": "next_draft",
-                "revision": 3,
-                "field_count": 4,
-                "relation_count": 1,
-                "view_count": 1,
-                "payload": {
-                    "singular_key": "page",
-                    "plural_key": "pages",
-                    "fields": [{"key": "title"}, {"key": "summary"}],
-                },
-            },
-            "published_snapshot": {
-                "stage": "published",
-                "revision": 1,
-                "field_count": 3,
-                "relation_count": 1,
-                "view_count": 1,
-                "payload": {"singular_key": "page", "plural_key": "pages", "fields": [{"key": "title"}]},
-            },
-            "diff": {
-                "has_changes": True,
+        impact=cast(
+            ContentModelImpactOut,
+            {
                 "has_breaking_changes": False,
-                "breaking_change_count": 0,
-                "entries": [
+                "breaking_changes": [],
+                "warnings": [],
+            },
+        ),
+        change_plan=cast(
+            ContentModelSchemaChangePlanOut,
+            {
+                "revisions": {
+                    "current_draft_revision": 2,
+                    "published_revision": 1,
+                    "next_draft_revision": 3,
+                },
+                "current_snapshot": {
+                    "stage": "current_draft",
+                    "revision": 2,
+                    "field_count": 3,
+                    "relation_count": 1,
+                    "view_count": 1,
+                    "payload": {"singular_key": "page", "plural_key": "pages", "fields": [{"key": "title"}]},
+                },
+                "next_snapshot": {
+                    "stage": "next_draft",
+                    "revision": 3,
+                    "field_count": 4,
+                    "relation_count": 1,
+                    "view_count": 1,
+                    "payload": {
+                        "singular_key": "page",
+                        "plural_key": "pages",
+                        "fields": [{"key": "title"}, {"key": "summary"}],
+                    },
+                },
+                "published_snapshot": {
+                    "stage": "published",
+                    "revision": 1,
+                    "field_count": 3,
+                    "relation_count": 1,
+                    "view_count": 1,
+                    "payload": {"singular_key": "page", "plural_key": "pages", "fields": [{"key": "title"}]},
+                },
+                "diff": {
+                    "has_changes": True,
+                    "has_breaking_changes": False,
+                    "breaking_change_count": 0,
+                    "entries": [
+                        {
+                            "kind": "field",
+                            "operation": "added",
+                            "target": "fields.summary",
+                            "summary": "Field 'summary' will be added to the next draft.",
+                            "breaking": False,
+                            "before": None,
+                            "after": {"key": "summary"},
+                        }
+                    ],
+                },
+                "apply_gates": [
                     {
-                        "kind": "field",
-                        "operation": "added",
-                        "target": "fields.summary",
-                        "summary": "Field 'summary' will be added to the next draft.",
-                        "breaking": False,
-                        "before": None,
-                        "after": {"key": "summary"},
+                        "code": "impact_scope",
+                        "status": "review",
+                        "title": "Impact scope",
+                        "detail": "1 items will need lifecycle review.",
                     }
                 ],
+                "apply_ready": True,
             },
-            "apply_gates": [
-                {
-                    "code": "impact_scope",
-                    "status": "review",
-                    "title": "Impact scope",
-                    "detail": "1 items will need lifecycle review.",
-                }
-            ],
-            "apply_ready": True,
-        },
+        ),
     )
 
     payload = preview.model_dump(mode="json")
@@ -221,12 +237,14 @@ def test_content_model_out_rejects_unknown_capability() -> None:
             id=uuid4(),
             workspace_id=uuid4(),
             site_id=uuid4(),
-            key="page",
+            singular_key="page",
+            plural_key="pages",
             name="Page",
             protocol_key="page",
             category="site_builder",
             capabilities=cast(list[ContentModelCapability], ["page_magic"]),
             default_editor="visual",
+            updated_at=datetime.now(UTC),
         )
 
 

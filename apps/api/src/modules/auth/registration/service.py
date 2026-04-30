@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from pydantic import BaseModel, ConfigDict
 
 from src.config import Settings
@@ -39,7 +41,7 @@ async def get_public_register_policy(settings: Settings) -> PublicRegisterPolicy
     """
 
     core = await get_core_settings_value_cached(settings, ttl_seconds=2.0)
-    auth = core.get("auth") if isinstance(core, dict) else None
+    auth = cast(dict[str, object], core.get("auth")) if isinstance(core.get("auth"), dict) else None
 
     enabled = auth.get("public_register_enabled") if isinstance(auth, dict) else None
     enabled_bool = enabled if isinstance(enabled, bool) else bool(settings.auth.allow_public_register)

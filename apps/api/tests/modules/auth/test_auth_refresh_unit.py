@@ -11,7 +11,7 @@ from src.common.constants.auth import REFRESH_STATUS_REVOKED, REFRESH_STATUS_ROT
 from src.config import get_settings
 from src.core.exceptions import Unauthorized
 from src.models.organization.user import UserStatus
-from src.modules.auth.contracts.schema import UserLike
+from src.modules.auth.contracts.schema import UserLike, UserRepositoryLike
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import decode_token, hash_password
 
@@ -135,6 +135,9 @@ class FakeUserRepository:
             return self._user
         return None
 
+    async def get_by_email(self, email: str) -> FakeUser | None:
+        return self._user if email == self._user.email else None
+
     async def get_by_id(self, user_id: UUID) -> FakeUser | None:
         return self._user if self._user.id == user_id else None
 
@@ -160,6 +163,10 @@ class FakeUserRepository:
             record.credential = FakeCredential(password_hash=password_hash)
         else:
             record.credential.password_hash = password_hash
+
+    async def remove_password(self, user: UserLike) -> None:
+        record = cast(FakeUser, user)
+        record.credential = None
 
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
@@ -190,7 +197,9 @@ class FakeUserRepository:
         email: str | None,
         display_name: str | None,
         password_hash: str,
+        is_super_admin: bool = False,
     ) -> FakeUser:
+        _ = username, email, display_name, password_hash, is_super_admin
         raise RuntimeError("not used")
 
 
@@ -203,7 +212,7 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeValkeyClient, FakeUser
 
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
-    service = AuthService(settings, valkey=valkey, user_repo=repo)
+    service = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
 
     return service, valkey, user
 

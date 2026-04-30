@@ -53,6 +53,7 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelViewContract,
     ContentRoutingContract,
     ContentWorkflowContract,
+    FieldScalarType,
 )
 from src.modules.projects.content.models.domain_helpers import (
     dump_contract,
@@ -1053,7 +1054,7 @@ def _to_field_contract(field: OfficialModelFieldDefinition) -> ContentModelField
     return ContentModelFieldContract(
         key=field.key,
         label=field.label,
-        scalar=field.scalar,
+        scalar=cast(FieldScalarType, field.scalar),
         required=field.required,
         config=field.config,
     )

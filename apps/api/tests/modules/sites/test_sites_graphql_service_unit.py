@@ -3,13 +3,13 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
 
 from src.core.exceptions import APIError, BadRequest, Forbidden, ServiceUnavailable
-from src.models.projects.api_key import ApiKeyFamily, DeliveryKeyPerspective
+from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
 from src.modules.projects.content.runtime import (
     DocumentQuery,
     DocumentQueryBoundary,
@@ -588,7 +588,7 @@ async def test_resolve_query_access_rejects_wrong_scope_for_published_key() -> N
     runtime_id = uuid4()
     site_id = uuid4()
     api_key = AuthenticatedDeliveryKey(
-        record=_api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED),
+        record=cast(ApiKeyRecord, _api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED)),
         granted_actions=frozenset(),
         graphql_read=False,
     )
@@ -620,7 +620,7 @@ async def test_resolve_query_access_rejects_wrong_perspective_for_preview_key() 
     runtime_id = uuid4()
     site_id = uuid4()
     api_key = AuthenticatedDeliveryKey(
-        record=_api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED),
+        record=cast(ApiKeyRecord, _api_key_record(delivery_perspective=DeliveryKeyPerspective.PUBLISHED)),
         granted_actions=frozenset({"project:delivery:graphql:read"}),
         graphql_read=True,
     )

@@ -83,7 +83,7 @@ def build_sys_access_token(*, user_id: UUID, token_version: int, settings: AuthS
 
     ttl = max(settings.sys_access_token_ttl_seconds, 1)
     now = _now()
-    payload = {
+    payload: dict[str, object] = {
         "sub": str(user_id),
         "typ": TOKEN_TYPE_ACCESS,
         "ver": token_version,

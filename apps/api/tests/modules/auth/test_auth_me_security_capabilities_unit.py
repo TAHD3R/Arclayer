@@ -11,6 +11,7 @@ from src.config import get_settings
 from src.core.exceptions import Conflict, Unauthorized
 from src.models.organization.user import UserStatus
 from src.modules.auth import schema as auth_schema
+from src.modules.auth.contracts.schema import UserRepositoryLike
 from src.modules.auth.router import router
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import hash_password, verify_password
@@ -96,8 +97,9 @@ class _FakeUserRepo:
         email: str | None,
         display_name: str | None,
         password_hash: str,
+        is_super_admin: bool = False,
     ) -> _FakeUser:
-        _ = username, email, display_name, password_hash
+        _ = username, email, display_name, password_hash, is_super_admin
         raise RuntimeError("not used")
 
 
@@ -127,7 +129,12 @@ def _build_service(*, has_password: bool, two_factor_enabled: bool) -> tuple[Aut
         last_login_at=datetime.now(tz=UTC),
     )
     repo = _FakeUserRepo(user)
-    service = AuthService(settings, valkey=None, user_repo=repo, two_factor=_FakeTwoFactor(enabled=two_factor_enabled))
+    service = AuthService(
+        settings,
+        valkey=None,
+        user_repo=cast(UserRepositoryLike, repo),
+        two_factor=_FakeTwoFactor(enabled=two_factor_enabled),
+    )
     return service, user
 
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import pytest
 from pydantic import ValidationError
+from tortoise.queryset import QuerySet
 
 from src.common.schemas import BaseSchema
 from src.core.http.pagination import PageParams, paginate_items, paginate_queryset
@@ -82,7 +83,7 @@ def test_page_params_validation() -> None:
 @pytest.mark.asyncio
 async def test_paginate_queryset_empty() -> None:
     qs: Any = FakeQuerySet[_Obj]([])
-    page = await paginate_queryset(qs, params=PageParams(page=1, size=10), out_schema=_ObjOut)
+    page = await paginate_queryset(cast(QuerySet[Any], qs), params=PageParams(page=1, size=10), out_schema=_ObjOut)
     assert page.total == 0
     assert page.pages == 0
     assert page.items == []
@@ -94,7 +95,7 @@ async def test_paginate_queryset_empty() -> None:
 async def test_paginate_queryset_first_page_next() -> None:
     items = [_Obj(value=i) for i in range(1, 6)]  # 5 items
     qs: Any = FakeQuerySet[_Obj](items)
-    page = await paginate_queryset(qs, params=PageParams(page=1, size=2), out_schema=_ObjOut)
+    page = await paginate_queryset(cast(QuerySet[Any], qs), params=PageParams(page=1, size=2), out_schema=_ObjOut)
     assert page.total == 5
     assert page.pages == 3
     assert [x.value for x in page.items] == [1, 2]
@@ -106,7 +107,7 @@ async def test_paginate_queryset_first_page_next() -> None:
 async def test_paginate_queryset_last_page_prev() -> None:
     items = [_Obj(value=i) for i in range(1, 6)]  # 5 items
     qs: Any = FakeQuerySet[_Obj](items)
-    page = await paginate_queryset(qs, params=PageParams(page=3, size=2), out_schema=_ObjOut)
+    page = await paginate_queryset(cast(QuerySet[Any], qs), params=PageParams(page=3, size=2), out_schema=_ObjOut)
     assert page.total == 5
     assert page.pages == 3
     assert [x.value for x in page.items] == [5]
@@ -118,7 +119,7 @@ async def test_paginate_queryset_last_page_prev() -> None:
 async def test_paginate_queryset_out_of_range_page() -> None:
     items = [_Obj(value=i) for i in range(1, 6)]  # 5 items => pages=3 with size=2
     qs: Any = FakeQuerySet[_Obj](items)
-    page = await paginate_queryset(qs, params=PageParams(page=10, size=2), out_schema=_ObjOut)
+    page = await paginate_queryset(cast(QuerySet[Any], qs), params=PageParams(page=10, size=2), out_schema=_ObjOut)
     assert page.total == 5
     assert page.pages == 3
     assert page.items == []

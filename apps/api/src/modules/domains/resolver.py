@@ -61,8 +61,8 @@ class DomainResolver(BaseService, SiteRuntimeLocalizationMixin):
         )
         out = sites_schema.SiteResolveOut(
             site_id=UUID(str(binding_view.site_id)),
-            workspace_id=UUID(str(binding_view.workspace_id)),
-            project_id=UUID(str(binding_view.project_id)),
+            workspaceId=UUID(str(binding_view.workspace_id)),
+            projectId=UUID(str(binding_view.project_id)),
             runtime_id=UUID(str(binding_view.runtime_id)),
             environment_id=UUID(str(binding_view.environment_id)) if binding_view.environment_id is not None else None,
             hostname=str(binding_view.hostname),

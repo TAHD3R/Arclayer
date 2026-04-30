@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
@@ -124,8 +125,9 @@ class OrganizationSettingsService(BaseService):
             raw_localization = next_value.get("organization_localization")
             localization: dict[str, object] = {}
             if isinstance(raw_localization, dict):
+                raw_localization_dict = cast(dict[str, object], raw_localization)
                 for key in ("locale", "timezone", "date_format", "use_browser_timezone", "use_relative_datetime"):
-                    value = raw_localization.get(key)
+                    value = raw_localization_dict.get(key)
                     if isinstance(value, str):
                         localization[key] = value
                     if isinstance(value, bool):
@@ -271,7 +273,7 @@ class OrganizationSettingsService(BaseService):
         for part in path:
             if not isinstance(current, dict):
                 return None
-            current = current.get(part)
+            current = cast(dict[str, object], current).get(part)
         if not isinstance(current, str):
             return None
         normalized = current.strip()
@@ -283,7 +285,7 @@ class OrganizationSettingsService(BaseService):
         for part in path:
             if not isinstance(current, dict):
                 return None
-            current = current.get(part)
+            current = cast(dict[str, object], current).get(part)
         if not isinstance(current, bool):
             return None
         return current

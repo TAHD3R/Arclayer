@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import builtins
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from src.config import get_settings
 from src.core.exceptions import BadRequest, Unauthorized
 from src.models.organization.user import UserStatus
+from src.modules.auth.contracts.schema import UserRepositoryLike
 from src.modules.auth.login.service import AuthLoginService
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import hash_password
@@ -173,6 +174,9 @@ class FakeUserRepository:
     async def set_password(self, user: Any, password_hash: str) -> None:
         raise RuntimeError("not used")
 
+    async def remove_password(self, user: Any) -> None:
+        raise RuntimeError("not used")
+
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
 
@@ -192,7 +196,9 @@ class FakeUserRepository:
         email: str | None,
         display_name: str | None,
         password_hash: str,
+        is_super_admin: bool = False,
     ) -> FakeUser:
+        _ = is_super_admin
         raise RuntimeError("not used")
 
 
@@ -215,7 +221,7 @@ def _build(monkeypatch) -> tuple[AuthLoginService, FakeValkeyClient]:
 
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
-    auth = AuthService(settings, valkey=valkey, user_repo=repo)
+    auth = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
     return (
         AuthLoginService(settings, valkey=valkey, auth_service=auth, two_factor=FakeTwoFactor()),
         valkey,

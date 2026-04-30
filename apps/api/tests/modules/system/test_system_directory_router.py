@@ -89,7 +89,7 @@ class DummyValkey:
         return current
 
     async def sadd(self, key: str, *members: str) -> int:
-        current = set((self._store.get(key, "") or "").split("\n")) if key in self._store else set()
+        current: set[str] = set((self._store.get(key, "") or "").split("\n")) if key in self._store else set()
         before = len({member for member in current if member})
         current.update(members)
         normalized = {member for member in current if member}

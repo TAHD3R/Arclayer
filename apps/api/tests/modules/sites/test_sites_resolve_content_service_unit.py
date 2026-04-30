@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -9,6 +9,7 @@ import pytest
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.exceptions.types import InternalServerError
+from src.modules.sites.publishing.includes.service import PublishingIncludesService
 from src.modules.sites.publishing.routes.resolve.content.service import (
     ContentPageRouteResolver,
     _extract_section_defaults,
@@ -21,6 +22,7 @@ from src.modules.sites.publishing.routes.resolve.content.service import (
     _resolve_mapping_value,
     _summarize_depth_one,
 )
+from src.modules.sites.repository import SitesRepository
 
 
 class _FakeRepo:
@@ -34,8 +36,8 @@ class _FakeRepo:
 def _resolver() -> Any:
     return ContentPageRouteResolver(
         Settings(),
-        repo=_FakeRepo(),  # type: ignore[arg-type]
-        includes=SimpleNamespace(resolve_content_refs=None),
+        repo=cast(SitesRepository, _FakeRepo()),
+        includes=cast(PublishingIncludesService, SimpleNamespace(resolve_content_refs=None)),
     )
 
 

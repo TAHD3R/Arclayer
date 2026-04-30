@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypeVar, cast
+from typing import Any, TypedDict, TypeVar, cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -16,7 +16,10 @@ class BaseRepository:
     def __init__(self) -> None:
         self.logger = get_logger(self.__class__.__module__)
 
-    def _using_db_kwargs(self, conn: BaseDBAsyncClient | None) -> dict[str, BaseDBAsyncClient]:
+    class _UsingDbKwargs(TypedDict, total=False):
+        using_db: BaseDBAsyncClient
+
+    def _using_db_kwargs(self, conn: BaseDBAsyncClient | None) -> _UsingDbKwargs:
         if conn is None:
             return {}
         return {"using_db": conn}

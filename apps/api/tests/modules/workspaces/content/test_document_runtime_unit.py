@@ -12,6 +12,7 @@ from src.modules.projects.content.history import ContentHistoryService
 from src.modules.projects.content.items.read_service import (
     ProjectContentCanonicalItemReadService,
 )
+from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 from src.modules.projects.content.runtime import (
     DocumentMutationContext,
     DocumentPreviewDiagnosticsReadModel,
@@ -84,7 +85,7 @@ async def test_document_read_context_resolves_active_item_fields() -> None:
         )
     )
 
-    context = DocumentReadContext(repo=repo)
+    context = DocumentReadContext(repo=cast(ProjectContentItemsRepository, repo))
     fields = await context.resolve_active_item_fields([item])
 
     assert fields[item.id] == DocumentRuntimeItemFields(
@@ -99,7 +100,7 @@ async def test_document_read_context_resolves_active_item_fields() -> None:
 @pytest.mark.asyncio
 async def test_document_read_context_resolves_published_and_preview_models() -> None:
     item = _build_item()
-    context = DocumentReadContext(repo=SimpleNamespace())
+    context = DocumentReadContext(repo=cast(ProjectContentItemsRepository, SimpleNamespace()))
 
     published = context.resolve_published_read_model(item)
     diagnostics = context.resolve_preview_diagnostics(item)
@@ -137,9 +138,12 @@ async def test_read_service_list_items_paginated_uses_document_runtime_boundary_
     )
     runtime_boundary = DocumentRuntimeBoundary(
         reads=cast(Any, SimpleNamespace(resolve_active_item_fields=resolve_active_item_fields)),
-        mutations=DocumentMutationContext(repo=repo),
+        mutations=DocumentMutationContext(repo=cast(ProjectContentItemsRepository, repo)),
     )
-    service = ProjectContentCanonicalItemReadService(repo=repo, runtime_boundary=runtime_boundary)
+    service = ProjectContentCanonicalItemReadService(
+        repo=cast(ProjectContentItemsRepository, repo),
+        runtime_boundary=runtime_boundary,
+    )
 
     page = await service.list_items_paginated(
         workspace_id=item.workspace_id,
@@ -176,7 +180,7 @@ async def test_content_history_service_lists_version_system_objects() -> None:
         list_versions_for_item=AsyncMock(return_value=[version]),
         list_presentations=AsyncMock(return_value=[SimpleNamespace(kind="seo", payload={"metaTitle": "SEO title"})]),
     )
-    history = ContentHistoryService(repo=repo)
+    history = ContentHistoryService(repo=cast(ProjectContentItemsRepository, repo))
 
     system_objects = await history.list_versions(
         workspace_id=item.workspace_id,
@@ -212,12 +216,15 @@ async def test_read_service_get_item_uses_document_runtime_boundary_fields() -> 
     repo = SimpleNamespace(
         get_item_with_model=AsyncMock(return_value=item),
     )
-    runtime_boundary = DocumentRuntimeBoundary.for_items_repo(repo)
+    runtime_boundary = DocumentRuntimeBoundary.for_items_repo(cast(ProjectContentItemsRepository, repo))
     runtime_boundary = DocumentRuntimeBoundary(
         reads=cast(Any, SimpleNamespace(resolve_active_item_fields=resolve_active_item_fields)),
         mutations=runtime_boundary.mutations,
     )
-    service = ProjectContentCanonicalItemReadService(repo=repo, runtime_boundary=runtime_boundary)
+    service = ProjectContentCanonicalItemReadService(
+        repo=cast(ProjectContentItemsRepository, repo),
+        runtime_boundary=runtime_boundary,
+    )
 
     out = await service.get_item(
         workspace_id=item.workspace_id,
@@ -252,7 +259,7 @@ async def test_read_service_list_versions_paginated_uses_history_service() -> No
         list_versions_for_item=AsyncMock(return_value=[version]),
         list_presentations=AsyncMock(return_value=[]),
     )
-    service = ProjectContentCanonicalItemReadService(repo=repo)
+    service = ProjectContentCanonicalItemReadService(repo=cast(ProjectContentItemsRepository, repo))
 
     page = await service.list_versions_paginated(
         workspace_id=item.workspace_id,

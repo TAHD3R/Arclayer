@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
 
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
+from src.modules.sites.publishing.includes.service import PublishingIncludesService
 from src.modules.sites.publishing.routes.resolve.service import PublishingRoutesResolveService
+from src.modules.sites.repository import SitesRepository
 from src.modules.sites.schema import SiteRouteMatchOut, SiteRouteResolveOut
 
 
@@ -45,8 +48,8 @@ def _service(*, database_enabled: bool = True) -> tuple[PublishingRoutesResolveS
     resolver = _FakeResolver()
     service = PublishingRoutesResolveService(
         Settings(),
-        repo=repo,  # type: ignore[arg-type]
-        includes=SimpleNamespace(),
+        repo=cast(SitesRepository, repo),
+        includes=cast(PublishingIncludesService, SimpleNamespace()),
     )
     service.settings.database = service.settings.database.model_copy(update={"enabled": database_enabled})
     service._content_resolver = resolver  # type: ignore[attr-defined]
@@ -91,7 +94,7 @@ async def test_resolve_delivery_page_raises_not_found_when_missing() -> None:
 async def test_get_delivery_page_by_id_returns_resolved_page() -> None:
     service, repo, resolver = _service()
     page_id = uuid4()
-    expected = SiteRouteResolveOut(match=SiteRouteMatchOut(kind="page"), document={"path": "/page"})  # type: ignore[arg-type]
+    expected = SiteRouteResolveOut(match=SiteRouteMatchOut(kind="page"), document=cast(Any, {"path": "/page"}))
     resolver.delivery_page_result = expected
 
     result = await service.get_delivery_page_by_id(site_id=uuid4(), page_id=page_id, perspective="preview")

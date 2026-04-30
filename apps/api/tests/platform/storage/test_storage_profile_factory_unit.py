@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import SecretStr
 
 from src.config import Settings
 from src.platform.storage import profiles
@@ -49,7 +50,7 @@ def test_build_storage_provider_cloud_variants(
             region="us-east-1",
             bucket="assets",
             access_key_id="key",
-            secret_access_key="secret",
+            secret_access_key=SecretStr("secret"),
             local_tmp_dir=tmp_path / ".tmp",
         )
     )

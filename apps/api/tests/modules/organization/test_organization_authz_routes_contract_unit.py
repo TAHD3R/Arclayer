@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
 from fastapi import APIRouter
 from fastapi.routing import APIRoute
 
+from src.models.organization.org_membership import OrgMembership
 from src.modules.organization.authz.router import (
     get_my_organization_authz,
     list_my_organization_actions,
@@ -16,6 +18,7 @@ from src.modules.organization.authz.router import (
 )
 from src.modules.organization.authz.schema import OrganizationAuthzSnapshot, OrganizationPermissionActionOut
 from src.modules.organization.rbac.router import router as organization_rbac_router
+from src.modules.organization.rbac.service import OrganizationRBACService
 
 
 def _find_api_route(router: APIRouter, *, path: str, method: str) -> APIRoute:
@@ -69,8 +72,8 @@ async def test_organization_authz_route_returns_org_snapshot(monkeypatch: pytest
     )
 
     response = await get_my_organization_authz(
-        orgm=SimpleNamespace(),
-        service=SimpleNamespace(),
+        orgm=cast(OrgMembership, SimpleNamespace()),
+        service=cast(OrganizationRBACService, SimpleNamespace()),
     )
 
     assert response.data == expected
@@ -92,6 +95,6 @@ async def test_organization_actions_route_returns_org_action_catalog(monkeypatch
         lambda: expected,
     )
 
-    response = await list_my_organization_actions(_orgm=SimpleNamespace())
+    response = await list_my_organization_actions(_orgm=cast(OrgMembership, SimpleNamespace()))
 
     assert response.data == expected

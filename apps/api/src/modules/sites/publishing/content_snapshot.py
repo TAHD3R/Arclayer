@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from src.models.content._enums import ContentPresentationKind
 from src.models.content.content_item import ContentItemRecord
@@ -23,7 +23,7 @@ class CanonicalContentSnapshot:
 def _copy_dict(value: object) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
-    return dict(value)
+    return dict(cast(dict[str, Any], value))
 
 
 def _presentation_map(

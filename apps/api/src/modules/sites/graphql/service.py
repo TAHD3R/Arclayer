@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import Request
@@ -45,6 +45,9 @@ from src.modules.sites.repository import SitesRepository
 from src.modules.sites.service import SiteService
 from src.platform.cache.valkey import ValkeyClientLike
 from src.settings.crypto import ensure_master_key, master_key_exists
+
+if TYPE_CHECKING:
+    from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 
 GraphQLPerspective = Literal["published", "preview"]
 logger = get_logger(__name__)
@@ -210,7 +213,8 @@ class SiteGraphQLService:
         self._content_service = SiteContentService(settings, repo=self._repo)
         self._site_service = SiteService(settings, valkey=valkey, repo=self._repo)
         self._api_keys_repo = ProjectApiKeysRepository()
-        self._document_runtime_boundary = DocumentRuntimeBoundary.for_items_repo(self._repo)
+        items_repo = cast("ProjectContentItemsRepository", self._repo)
+        self._document_runtime_boundary = DocumentRuntimeBoundary.for_items_repo(items_repo)
         self._runtime_site_cache: dict[UUID, UUID] = {}
 
     def with_database_connection(self, conn: BaseDBAsyncClient) -> SiteGraphQLService:

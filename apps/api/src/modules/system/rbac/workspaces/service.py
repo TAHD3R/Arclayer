@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TypedDict
 from uuid import UUID
 
 from src.config import Settings
@@ -23,7 +24,16 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
     repo: RBACRepository
 
     async def ensure_workspace_system_roles(self, *, workspace_id: UUID) -> None:
-        system_defs = [
+        class _SystemRoleDefinition(TypedDict):
+            code: str
+            name: str
+            description: str
+            name_i18n: str
+            description_i18n: str
+            is_default: bool
+            is_superuser: bool
+
+        system_defs: list[_SystemRoleDefinition] = [
             {
                 "code": ROLE_OWNER,
                 "name": "Owner",

@@ -163,6 +163,10 @@ def match_route_binding(record: RouteBindingRecord, pathname: str) -> dict[str, 
 def _to_route_binding_out(record: RouteBindingRecord) -> RouteBindingOut:
     contract = record.route_contract if isinstance(record.route_contract, dict) else {}
     primary_source = contract.get("primarySource")
+    raw_mode = contract.get("mode")
+    route_mode: Literal["static", "dynamic"] = (
+        raw_mode if raw_mode in {"static", "dynamic"} else ("dynamic" if ":" in record.path else "static")
+    )
     return RouteBindingOut(
         id=record.id,
         workspace_id=record.workspace_id,
@@ -170,12 +174,12 @@ def _to_route_binding_out(record: RouteBindingRecord) -> RouteBindingOut:
         item_id=record.item_id,
         locale=record.locale,
         path=record.path,
-        routeMode=str(contract.get("mode") or ("dynamic" if ":" in record.path else "static")),
-        routePriority=int(contract.get("priority") or 0),
-        structureSignature=str(
+        route_mode=route_mode,
+        route_priority=int(contract.get("priority") or 0),
+        structure_signature=str(
             contract.get("structureSignature") or parse_route_pattern(record.path).structure_signature
         ),
-        primarySource=(
+        primary_source=(
             RoutePrimarySourceOut.model_validate(primary_source) if isinstance(primary_source, dict) else None
         ),
         is_active=record.is_active,

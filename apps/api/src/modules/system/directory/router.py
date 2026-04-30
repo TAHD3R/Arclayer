@@ -9,7 +9,8 @@ from src.core.exceptions import BadRequest
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
-from src.models.organization.user import User
+from src.models.organization.organization import OrganizationKind
+from src.models.organization.user import User, UserStatus
 from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
     UploadCompleteOut,
@@ -90,7 +91,7 @@ async def list_users(
     params: PageParams = Depends(get_page_params),
     q: str | None = Query(default=None, description="Search users by username, email, or display name."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or username."),
-    status: str | None = Query(default=None, description="Filter by account status."),
+    status: UserStatus | None = Query(default=None, description="Filter by account status."),
     is_super_admin: bool | None = Query(default=None, description="Filter by super admin permission."),
     has_password: bool | None = Query(default=None, description="Filter by local password configuration."),
     two_factor_enabled: bool | None = Query(default=None, description="Filter by two-factor authentication."),
@@ -388,10 +389,13 @@ async def list_organizations(
     params: PageParams = Depends(get_page_params),
     q: str | None = Query(default=None, description="Search organizations by name or slug."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
-    kind: str | None = Query(default=None, description="Filter by organization kind."),
+    kind: OrganizationKind | None = Query(default=None, description="Filter by organization kind."),
     is_active: bool | None = Query(default=None, description="Filter by active state."),
 ) -> ResponseModel[PageData[DirectoryOrganizationListItemOut]]:
-    filters = DirectoryOrganizationListFilters(kind=kind, is_active=is_active)
+    filters = DirectoryOrganizationListFilters(
+        kind=kind,
+        is_active=is_active,
+    )
     page = await service.list_organizations(params=params, q=q, ordering=ordering, filters=filters)
     return ApiResponse.success(data=page)
 

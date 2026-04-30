@@ -2,16 +2,23 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
+from typing import Protocol
 
 from starlette.responses import Response, StreamingResponse
 
 from src.core.http.range import parse_range_header
-from src.platform.storage.s3 import S3StorageProvider
+from src.platform.storage.s3 import S3GetObject, S3HeadObject
+
+
+class S3ObjectStreamProvider(Protocol):
+    async def head_object(self, *, object_key: str) -> S3HeadObject: ...
+
+    async def get_object(self, *, object_key: str, byte_range: tuple[int, int] | None) -> S3GetObject: ...
 
 
 async def stream_s3_object(
     *,
-    provider: S3StorageProvider,
+    provider: S3ObjectStreamProvider,
     object_key: str,
     content_type: str,
     range_header: str | None,

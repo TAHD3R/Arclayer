@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime
 from math import ceil
+from typing import Protocol, TypeVar
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -50,6 +51,15 @@ from src.modules.system.directory.schema import (
 from src.modules.workspaces.schema import WorkspaceUpdateRequest
 from src.modules.workspaces.service import WorkspaceService
 from src.platform.cache.valkey import ValkeyClientLike
+
+_SortKeyT = TypeVar("_SortKeyT", bound="_SupportsRichCompare")
+
+
+class _SupportsRichCompare(Protocol):
+    def __lt__(self, other: object) -> bool: ...
+    def __le__(self, other: object) -> bool: ...
+    def __gt__(self, other: object) -> bool: ...
+    def __ge__(self, other: object) -> bool: ...
 
 
 def _build_page[T](items: list[T], *, total: int, params: PageParams) -> PageData[T]:
@@ -937,7 +947,7 @@ class SystemDirectoryService(BaseService):
         *,
         items: list[T],
         ordering: str | None,
-        accessors: dict[str, Callable[[T], object]],
+        accessors: dict[str, Callable[[T], _SortKeyT]],
     ) -> list[T]:
         ordered = list(items)
         parts = [part.strip() for part in str(ordering or "").split(",") if part.strip()]

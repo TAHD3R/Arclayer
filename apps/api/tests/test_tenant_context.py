@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import cast
 from uuid import UUID, uuid4
 
 import pytest
 
 from src.core.exceptions import Forbidden, NotFound
 from src.models.organization.org_membership import OrgRole
+from src.models.workspaces.workspace import Workspace
 from src.modules.workspaces import service as ws_service
 from src.modules.workspaces.http import service as ws_http_service
 from src.modules.workspaces.http.schema import WorkspaceAccessType
@@ -200,6 +202,6 @@ def test_build_guest_workspace_list_uses_workspace_org_id() -> None:
         created_at=datetime.now(UTC),
     )
 
-    out = ws_service._build_guest_workspace_list(workspaces=[ws])  # type: ignore[arg-type]
+    out = ws_service._build_guest_workspace_list(workspaces=[cast(Workspace, ws)])
     assert len(out) == 1
     assert UUID(str(out[0].organization_id)) == organization_id

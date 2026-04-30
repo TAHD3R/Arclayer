@@ -4,9 +4,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
+from pydantic import SecretStr
 
 from src.common.constants.assets import ASSET_SCOPE_PROJECT
 from src.config import Settings
@@ -19,6 +21,7 @@ from src.modules.assets.scope import AssetScope
 from src.platform.jobs.assets_thumbnails import _is_previewable_asset, _merge_meta_payload
 from src.platform.storage.capabilities import ObjectStorageCapabilities, ObjectStorageProviderKind
 from src.platform.storage.profile_schema import StorageProfileConfig
+from src.platform.storage.s3 import S3StorageProvider
 
 
 class FakeRemoteProvider:
@@ -218,7 +221,7 @@ async def test_remote_multipart_path_uses_capabilities(monkeypatch: pytest.Monke
         bucket="assets-private",
         public_bucket="assets-public",
         access_key_id="key",
-        secret_access_key="secret",
+        secret_access_key=SecretStr("secret"),
         endpoint_url="https://s3.example.com",
         local_root_dir=service.settings.storage.local_root_dir,
         local_tmp_dir=service.settings.storage.local_tmp_dir,
@@ -292,7 +295,7 @@ async def test_remote_provider_without_bucket_create_skips_ensure(monkeypatch: p
                 provider=ObjectStorageProviderKind.CLOUDFLARE_R2,
                 bucket="assets",
                 access_key_id="key",
-                secret_access_key="secret",
+                secret_access_key=SecretStr("secret"),
                 endpoint_url="https://r2.example.com",
                 public_base_url="https://cdn.example.com",
                 local_root_dir=service.settings.storage.local_root_dir,
@@ -337,7 +340,7 @@ def test_r2_direct_delivery_uses_custom_public_base_url() -> None:
         public_base_url="https://cdn.example.com",
         public_delivery_mode="direct",
         access_key_id="key",
-        secret_access_key="secret",
+        secret_access_key=SecretStr("secret"),
         endpoint_url="https://r2.example.com",
     )
 
@@ -392,7 +395,7 @@ async def test_missing_copy_capability_raises_stable_error() -> None:
     with pytest.raises(BadRequest) as exc:
         await service._sync_remote_bucket_for_visibility(
             profile=profile,
-            provider=provider,
+            provider=cast(S3StorageProvider, provider),
             asset=asset,
             target_visibility="public",
         )

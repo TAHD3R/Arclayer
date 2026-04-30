@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 from pydantic import SecretStr
 
@@ -15,7 +16,8 @@ ENV_DEFAULT_PROFILE_KEY = "env-default"
 def _read_secret_ref(secret_ref: object, key: str) -> str | None:
     if not isinstance(secret_ref, dict):
         return None
-    value = secret_ref.get(key)
+    secret_ref_dict = cast(dict[str, Any], secret_ref)
+    value = secret_ref_dict.get(key)
     return str(value).strip() or None if isinstance(value, str) else None
 
 
@@ -24,7 +26,7 @@ def build_storage_profile_config_from_record(
     *,
     settings: Settings,
 ) -> StorageProfileConfig:
-    raw = record.config if isinstance(record.config, dict) else {}
+    raw = cast(dict[str, Any], record.config) if isinstance(record.config, dict) else {}
     secret_access_key = _read_secret_ref(record.secret_ref, "secret_access_key")
 
     return StorageProfileConfig(

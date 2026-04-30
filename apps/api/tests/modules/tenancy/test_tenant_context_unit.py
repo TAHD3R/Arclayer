@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
 
-from src.models.workspaces.workspace import WorkspaceKind
+from src.models.projects.runtime import ProjectRuntimeRecord
+from src.models.workspaces.workspace import Workspace, WorkspaceKind
 from src.modules.projects.http.service import get_project_context
 from src.modules.projects.runtime.service import ProjectRuntimeService
 from src.modules.tenancy.context import (
@@ -142,7 +144,7 @@ async def test_workspace_request_entrypoint_binds_tenant_context(monkeypatch: py
     )
 
     context = await _resolve_guest_workspace_context(
-        workspace=workspace,
+        workspace=cast(Workspace, workspace),
         organization_id=organization_id,
         user_id=user_id,
     )
@@ -261,7 +263,7 @@ async def test_project_runtime_context_enriches_runtime_tenant_identity(monkeypa
 
     runtime = SimpleNamespace(id=runtime_id, project_id=project_id, kind="preview", name="Preview", is_active=True)
     context = await service._build_context(
-        runtime=runtime,
+        runtime=cast(ProjectRuntimeRecord, runtime),
         workspace_id=workspace_id,
         actor_user_id=actor_user_id,
     )

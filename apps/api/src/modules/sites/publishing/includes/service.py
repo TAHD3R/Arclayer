@@ -142,7 +142,7 @@ class PublishingIncludesService(BaseService):
         except Exception as exc:
             self.logger.warning(
                 "Invalid design_document in content ref snapshot",
-                entry_id=entry_id_public,
+                entryId=entry_id_public,
                 state=state,
                 error=str(exc),
             )
@@ -192,8 +192,8 @@ class PublishingIncludesService(BaseService):
                         ResolveWarningV1(
                             code="INVALID_SCHEMA",
                             message=f"invalid refEntryId {entry_id_str}",
-                            refEntryId=entry_id_str,
-                            refNodeId=getattr(node, "id", None),
+                            ref_entry_id=entry_id_str,
+                            ref_node_id=getattr(node, "id", None),
                         )
                     )
                     continue
@@ -207,7 +207,7 @@ class PublishingIncludesService(BaseService):
                     collector[include_key] = ContentRefIncludeV1(
                         entryId=entry_id,
                         resolvedState=resolved,
-                        pageBlueprint=None,
+                        page_blueprint=None,
                         error=ContentRefIncludeErrorV1(code="DEPTH_LIMIT"),
                     )
 
@@ -215,8 +215,8 @@ class PublishingIncludesService(BaseService):
                     ResolveWarningV1(
                         code="DEPTH_LIMIT",
                         message=f"max depth {max_depth} reached, skipping {entry_id_str}",
-                        refEntryId=entry_id_str,
-                        refNodeId=getattr(node, "id", None),
+                        ref_entry_id=entry_id_str,
+                        ref_node_id=getattr(node, "id", None),
                     )
                 )
 
@@ -234,8 +234,8 @@ class PublishingIncludesService(BaseService):
                     ResolveWarningV1(
                         code="INVALID_SCHEMA",
                         message=f"invalid refEntryId {entry_id_str}",
-                        refEntryId=entry_id_str,
-                        refNodeId=getattr(node, "id", None),
+                        ref_entry_id=entry_id_str,
+                        ref_node_id=getattr(node, "id", None),
                     )
                 )
                 continue
@@ -247,15 +247,15 @@ class PublishingIncludesService(BaseService):
                 collector[include_key] = ContentRefIncludeV1(
                     entryId=entry_id,
                     resolvedState="published",
-                    pageBlueprint=None,
+                    page_blueprint=None,
                     error=ContentRefIncludeErrorV1(code="STATE_FORBIDDEN"),
                 )
                 warnings.append(
                     ResolveWarningV1(
                         code="STATE_FORBIDDEN",
                         message=f"draft not allowed in public mode for {entry_id_str}",
-                        refEntryId=entry_id_str,
-                        refNodeId=getattr(node, "id", None),
+                        ref_entry_id=entry_id_str,
+                        ref_node_id=getattr(node, "id", None),
                     )
                 )
                 continue
@@ -267,15 +267,15 @@ class PublishingIncludesService(BaseService):
                 collector[include_key] = ContentRefIncludeV1(
                     entryId=entry_id,
                     resolvedState=preferred_state,
-                    pageBlueprint=None,
+                    page_blueprint=None,
                     error=ContentRefIncludeErrorV1(code="CYCLE_DETECTED"),
                 )
                 warnings.append(
                     ResolveWarningV1(
                         code="CYCLE_DETECTED",
                         message=f"circular ref detected for {entry_id_str}",
-                        refEntryId=entry_id_str,
-                        refNodeId=getattr(node, "id", None),
+                        ref_entry_id=entry_id_str,
+                        ref_node_id=getattr(node, "id", None),
                     )
                 )
                 continue
@@ -309,8 +309,8 @@ class PublishingIncludesService(BaseService):
                         ResolveWarningV1(
                             code="DEPENDENCY_FALLBACK_PUBLISHED",
                             message=f"preview fallback to published dependency {entry_id_str}",
-                            refEntryId=entry_id_str,
-                            refNodeId=getattr(node, "id", None),
+                            ref_entry_id=entry_id_str,
+                            ref_node_id=getattr(node, "id", None),
                         )
                     )
 
@@ -318,7 +318,7 @@ class PublishingIncludesService(BaseService):
                 collector[include_key] = ContentRefIncludeV1(
                     entryId=entry_id,
                     resolvedState=resolved_state,
-                    pageBlueprint=None,
+                    page_blueprint=None,
                     data=entry_data,
                     meta=entry_meta,
                     error=load_error,
@@ -327,8 +327,8 @@ class PublishingIncludesService(BaseService):
                     ResolveWarningV1(
                         code=load_error.code,
                         message=load_error.message or f"load failed for {entry_id_str}",
-                        refEntryId=entry_id_str,
-                        refNodeId=getattr(node, "id", None),
+                        ref_entry_id=entry_id_str,
+                        ref_node_id=getattr(node, "id", None),
                     )
                 )
                 continue
@@ -336,7 +336,7 @@ class PublishingIncludesService(BaseService):
             collector[include_key] = ContentRefIncludeV1(
                 entryId=entry_id,
                 resolvedState=resolved_state,
-                pageBlueprint=entry_doc,
+                page_blueprint=entry_doc,
                 data=entry_data,
                 meta=entry_meta,
             )

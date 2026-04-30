@@ -28,8 +28,8 @@ class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):
         )
         return sites_schema.SiteResolveOut(
             site_id=UUID(str(site.id)),
-            workspace_id=workspace_id,
-            project_id=project_id,
+            workspaceId=workspace_id,
+            projectId=project_id,
             runtime_id=UUID(str(runtime_id_raw)) if runtime_id_raw is not None else None,
             default_locale=default_locale,
             fallback_locale=fallback_locale,

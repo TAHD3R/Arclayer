@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any, cast
 
 from src.common.constants.events import SETTINGS_UPDATED
 from src.common.protocols.logging import LoggerLike
@@ -29,7 +30,7 @@ def _flatten_patch_paths(patch: dict[str, object], *, _prefix: str = "") -> list
             continue
         path = f"{_prefix}.{key}" if _prefix else str(key)
         if isinstance(value, dict):
-            out.extend(_flatten_patch_paths(value, _prefix=path))
+            out.extend(_flatten_patch_paths(cast(dict[str, Any], value), _prefix=path))
         else:
             out.append(path)
     return out

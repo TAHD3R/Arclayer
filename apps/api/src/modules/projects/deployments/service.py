@@ -107,23 +107,27 @@ class ProjectDeploymentsService:
         actor_user_id: UUID | None,
     ) -> None:
         site = await self._require_project_site(site_id=site_id)
-        preview_environment = await self.environments.get_default_preview_environment(project_id=site.project_id)
+        project_id = site.project_id
+        runtime_id = site.runtime_id
+        if project_id is None or runtime_id is None:
+            raise NotFound(_te("PROJECT_SITE_NOT_FOUND"), error="PROJECT_SITE_NOT_FOUND")
+        preview_environment = await self.environments.get_default_preview_environment(project_id=project_id)
         production_environment = await self.environments.get_environment_by_key(
-            project_id=site.project_id,
+            project_id=project_id,
             key=ProjectEnvironmentKey.PRODUCTION,
         )
         base_deployment = await self._create_deployment_for_release(
-            project_id=site.project_id,
-            runtime_id=site.runtime_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
             environment_id=preview_environment.id,
             release_id=release_id,
             actor_user_id=actor_user_id,
             status=ProjectDeploymentStatus.READY,
         )
         await self._promote_existing_deployment(
-            project_id=site.project_id,
+            project_id=project_id,
             source=base_deployment,
-            target_environment_id=production_environment.id,
+            target_environment_id=UUID(str(production_environment.id)),
             actor_user_id=actor_user_id,
             status=ProjectDeploymentStatus.PROMOTED,
         )
@@ -193,7 +197,7 @@ class ProjectDeploymentsService:
         return ProjectDeploymentActionOut(
             deployment=self._to_out(row),
             previous_active_deployment_id=None,
-            changed_at=datetime.now(tz=UTC),
+            changedAt=datetime.now(tz=UTC),
         )
 
     async def get_environment_release_id(
@@ -203,13 +207,16 @@ class ProjectDeploymentsService:
         environment_key: ProjectEnvironmentKey,
     ) -> UUID | None:
         site = await self._require_project_site(site_id=site_id)
-        environment = await self.environments.get_environment_by_key(project_id=site.project_id, key=environment_key)
+        project_id = site.project_id
+        if project_id is None:
+            raise NotFound(_te("PROJECT_SITE_NOT_FOUND"), error="PROJECT_SITE_NOT_FOUND")
+        environment = await self.environments.get_environment_by_key(project_id=project_id, key=environment_key)
         async with self._operation_connection() as conn:
             deployment = (
                 await self
                 ._using_db(
                     ProjectDeploymentRecord.filter(
-                        project_id=site.project_id,
+                        project_id=project_id,
                         environment_id=environment.id,
                         is_active=True,
                     ),
@@ -350,7 +357,7 @@ class ProjectDeploymentsService:
         return ProjectDeploymentActionOut(
             deployment=self._to_out(await self._require_deployment(project_id=project_id, deployment_id=promoted.id)),
             previous_active_deployment_id=previous_active_id,
-            changed_at=changed_at,
+            changedAt=changed_at,
         )
 
     @staticmethod
@@ -363,21 +370,21 @@ class ProjectDeploymentsService:
             pass
         return ProjectDeploymentOut(
             id=row.id,
-            created_at=row.created_at,
-            updated_at=row.updated_at,
+            createdAt=row.created_at,
+            updatedAt=row.updated_at,
             project_id=row.project_id,
             runtime_id=row.runtime_id,
             environment_id=row.environment_id,
-            environment_key=str(environment.key),
-            environment_name=str(environment.name),
-            source_type=str(row.source_type),
-            source_ref=source_ref,
+            environmentKey=str(environment.key),
+            environmentName=str(environment.name),
+            sourceType=str(row.source_type),
+            sourceRef=source_ref,
             status=str(row.status),
-            runtime_kind=str(row.runtime_kind),
+            runtimeKind=str(row.runtime_kind),
             artifact_storage_profile_id=row.artifact_storage_profile_id,
-            artifact_key=str(row.artifact_key),
+            artifactKey=str(row.artifact_key),
             build_log_key=row.build_log_key,
-            is_active=bool(row.is_active),
+            isActive=bool(row.is_active),
             promoted_from_deployment_id=row.promoted_from_deployment_id,
             created_by_user_id=row.created_by_user_id,
         )

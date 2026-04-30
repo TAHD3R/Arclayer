@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -117,10 +117,13 @@ class AuthSSOService(BaseService):
 
         def _enabled(section_id: str) -> bool:
             section = core.get(section_id)
-            if not isinstance(section, dict) or section.get("enabled") is not True:
+            if not isinstance(section, dict):
                 return False
-            client_id = section.get("client_id")
-            client_secret_raw = section.get("client_secret")
+            section_dict = cast(dict[str, object], section)
+            if section_dict.get("enabled") is not True:
+                return False
+            client_id = section_dict.get("client_id")
+            client_secret_raw = section_dict.get("client_secret")
             if not isinstance(client_id, str) or not client_id.strip():
                 return False
             if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():

@@ -19,6 +19,19 @@ from src.platform.cache.valkey import ValkeyClientLike
 EMAIL_CODE_RESEND_COOLDOWN_SECONDS = 60
 
 
+def _coerce_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
+
+
 class UserRepository(BaseRepository):
     _UNSET = object()
 
@@ -234,19 +247,15 @@ class EmailChangeStore:
 
     def remaining_retry_after(self, record: dict[str, Any]) -> int:
         now_ts = int(datetime.now(UTC).timestamp())
-        raw = record.get("resend_available_at")
-        try:
-            resend_available_at = int(raw)
-        except (TypeError, ValueError):
+        resend_available_at = _coerce_int(record.get("resend_available_at"))
+        if resend_available_at is None:
             return 0
         return max(resend_available_at - now_ts, 0)
 
     def _remaining_ttl(self, record: dict[str, Any]) -> int:
         now_ts = int(datetime.now(UTC).timestamp())
-        raw = record.get("expires_at")
-        try:
-            expires_at = int(raw)
-        except (TypeError, ValueError):
+        expires_at = _coerce_int(record.get("expires_at"))
+        if expires_at is None:
             return 0
         return max(expires_at - now_ts, 0)
 
@@ -318,19 +327,15 @@ class EmailLoginCodeStore:
 
     def remaining_retry_after(self, record: dict[str, Any]) -> int:
         now_ts = int(datetime.now(UTC).timestamp())
-        raw = record.get("resend_available_at")
-        try:
-            resend_available_at = int(raw)
-        except (TypeError, ValueError):
+        resend_available_at = _coerce_int(record.get("resend_available_at"))
+        if resend_available_at is None:
             return 0
         return max(resend_available_at - now_ts, 0)
 
     def _remaining_ttl(self, record: dict[str, Any]) -> int:
         now_ts = int(datetime.now(UTC).timestamp())
-        raw = record.get("expires_at")
-        try:
-            expires_at = int(raw)
-        except (TypeError, ValueError):
+        expires_at = _coerce_int(record.get("expires_at"))
+        if expires_at is None:
             return 0
         return max(expires_at - now_ts, 0)
 
@@ -402,19 +407,15 @@ class PasswordRemovalCodeStore:
 
     def remaining_retry_after(self, record: dict[str, Any]) -> int:
         now_ts = int(datetime.now(UTC).timestamp())
-        raw = record.get("resend_available_at")
-        try:
-            resend_available_at = int(raw)
-        except (TypeError, ValueError):
+        resend_available_at = _coerce_int(record.get("resend_available_at"))
+        if resend_available_at is None:
             return 0
         return max(resend_available_at - now_ts, 0)
 
     def _remaining_ttl(self, record: dict[str, Any]) -> int:
         now_ts = int(datetime.now(UTC).timestamp())
-        raw = record.get("expires_at")
-        try:
-            expires_at = int(raw)
-        except (TypeError, ValueError):
+        expires_at = _coerce_int(record.get("expires_at"))
+        if expires_at is None:
             return 0
         return max(expires_at - now_ts, 0)
 

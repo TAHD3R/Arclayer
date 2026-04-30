@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TypedDict
 from uuid import UUID
 
 from tortoise.transactions import in_transaction
@@ -117,7 +118,16 @@ class WorkspaceRBACService(BaseService):
         return desired_by_role
 
     async def ensure_workspace_system_roles(self, *, workspace_id: UUID) -> None:
-        system_role_definitions = [
+        class _SystemRoleDefinition(TypedDict):
+            code: str
+            name: str
+            description: str
+            name_i18n: str
+            description_i18n: str
+            is_default: bool
+            is_superuser: bool
+
+        system_role_definitions: list[_SystemRoleDefinition] = [
             {
                 "code": ROLE_OWNER,
                 "name": "Owner",

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 from uuid import UUID
 
 from src.models.system.notification import NotificationCategory
@@ -111,13 +111,11 @@ def _normalize_topic_state(
 
 def _normalize_topics(raw: object) -> dict[str, dict[str, bool]]:
     raw_topics = raw if isinstance(raw, dict) else {}
+    raw_topics_dict = cast(dict[str, dict[str, object]], raw_topics)
     out: dict[str, dict[str, bool]] = {}
     for topic in TOPIC_DEFINITIONS:
-        topic_raw = raw_topics.get(topic.key)
-        out[topic.key] = _normalize_topic_state(
-            topic,
-            topic_raw if isinstance(topic_raw, dict) else None,
-        )
+        topic_raw = raw_topics_dict.get(topic.key)
+        out[topic.key] = _normalize_topic_state(topic, topic_raw)
     return out
 
 

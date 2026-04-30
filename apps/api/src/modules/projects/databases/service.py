@@ -20,11 +20,13 @@ from src.modules.projects.databases.provisioning import (
     ProvisionedDatabaseInstance,
 )
 from src.modules.projects.databases.schema import (
+    ProjectDatabaseBackupOut,
     ProjectDatabaseCreateIn,
     ProjectDatabaseCredentialOut,
     ProjectDatabaseDetailOut,
     ProjectDatabaseInstanceOut,
     ProjectDatabaseListOut,
+    ProjectDatabaseMigrationOut,
     ProjectDatabaseRotateCredentialIn,
 )
 
@@ -51,26 +53,26 @@ class ProjectDatabasesService:
         return ProjectDatabaseDetailOut(
             database=await self._to_instance_out(row),
             migrations=[
-                {
-                    "id": migration.id,
-                    "createdAt": migration.created_at,
-                    "updatedAt": migration.updated_at,
-                    "version": migration.version,
-                    "checksum": migration.checksum,
-                    "status": migration.status,
-                    "appliedAt": migration.applied_at,
-                }
+                ProjectDatabaseMigrationOut(
+                    id=migration.id,
+                    createdAt=migration.created_at,
+                    updatedAt=migration.updated_at,
+                    version=migration.version,
+                    checksum=migration.checksum,
+                    status=migration.status,
+                    applied_at=migration.applied_at,
+                )
                 for migration in migrations
             ],
             backups=[
-                {
-                    "id": backup.id,
-                    "createdAt": backup.created_at,
-                    "updatedAt": backup.updated_at,
-                    "backupKey": backup.backup_key,
-                    "status": backup.status,
-                    "retentionUntil": backup.retention_until,
-                }
+                ProjectDatabaseBackupOut(
+                    id=backup.id,
+                    createdAt=backup.created_at,
+                    updatedAt=backup.updated_at,
+                    backupKey=backup.backup_key,
+                    status=backup.status,
+                    retention_until=backup.retention_until,
+                )
                 for backup in backups
             ],
         )
@@ -159,27 +161,27 @@ class ProjectDatabasesService:
         environment = row.environment
         return ProjectDatabaseInstanceOut(
             id=row.id,
-            created_at=row.created_at,
-            updated_at=row.updated_at,
+            createdAt=row.created_at,
+            updatedAt=row.updated_at,
             project_id=row.project_id,
-            environment_id=row.environment_id,
-            environment_key=str(environment.key),
-            environment_name=str(environment.name),
+            environmentId=row.environment_id,
+            environmentKey=str(environment.key),
+            environmentName=str(environment.name),
             engine=str(row.engine),
-            isolation_mode=str(row.isolation_mode),
+            isolationMode=str(row.isolation_mode),
             host=str(row.host),
             port=int(row.port),
-            database_name=str(row.database_name),
-            schema_name=str(row.schema_name),
+            databaseName=str(row.database_name),
+            schemaName=str(row.schema_name),
             status=str(row.status),
             credentials=[
                 ProjectDatabaseCredentialOut(
                     id=credential.id,
-                    created_at=credential.created_at,
-                    updated_at=credential.updated_at,
+                    createdAt=credential.created_at,
+                    updatedAt=credential.updated_at,
                     role=str(credential.role),
                     username=str(credential.username),
-                    secret_set=bool(credential.secret_ref),
+                    secretSet=bool(credential.secret_ref),
                     secret_ref="********" if credential.secret_ref else "",
                     expires_at=credential.expires_at,
                     rotated_at=credential.rotated_at,

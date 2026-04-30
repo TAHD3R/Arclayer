@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.modules.tenancy.database import (
     TenantDatabaseRouter,
@@ -45,9 +46,10 @@ def test_quote_schema_name_uses_validated_identifier() -> None:
 @pytest.mark.asyncio
 async def test_create_drop_and_search_path_sql_use_validated_names() -> None:
     conn = _FakeConnection()
-    await create_tenant_schema("cms_ws_1234567890abcdefghij", conn=conn)
-    await set_tenant_search_path(conn, "cms_ws_1234567890abcdefghij")
-    await drop_tenant_schema("cms_ws_1234567890abcdefghij", conn=conn)
+    db = cast(BaseDBAsyncClient, conn)
+    await create_tenant_schema("cms_ws_1234567890abcdefghij", conn=db)
+    await set_tenant_search_path(db, "cms_ws_1234567890abcdefghij")
+    await drop_tenant_schema("cms_ws_1234567890abcdefghij", conn=db)
     assert conn.queries == [
         'CREATE SCHEMA IF NOT EXISTS "cms_ws_1234567890abcdefghij"',
         'SET LOCAL search_path TO "cms_ws_1234567890abcdefghij", public',
@@ -59,7 +61,7 @@ async def test_create_drop_and_search_path_sql_use_validated_names() -> None:
 async def test_invalid_schema_name_never_reaches_connection() -> None:
     conn = _FakeConnection()
     with pytest.raises(ValueError):
-        await set_tenant_search_path(conn, "cms_ws_bad;DROP SCHEMA public")
+        await set_tenant_search_path(cast(BaseDBAsyncClient, conn), "cms_ws_bad;DROP SCHEMA public")
     assert conn.queries == []
 
 
@@ -67,8 +69,9 @@ async def test_invalid_schema_name_never_reaches_connection() -> None:
 async def test_tenant_database_router_sets_search_path_on_each_bind() -> None:
     conn = _FakeConnection()
     router = TenantDatabaseRouter(_tenant_context())
-    await router.bind(conn)  # type: ignore[arg-type]
-    await router.bind(conn)  # type: ignore[arg-type]
+    db = cast(BaseDBAsyncClient, conn)
+    await router.bind(db)
+    await router.bind(db)
     assert conn.queries == [
         'SET LOCAL search_path TO "cms_ws_1234567890abcdefghij", public',
         'SET LOCAL search_path TO "cms_ws_1234567890abcdefghij", public',

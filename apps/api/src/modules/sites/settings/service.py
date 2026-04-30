@@ -68,7 +68,7 @@ class SiteSettingsMixin:
     def _parse_global_sections_value(self, value: object) -> list[sites_schema.SiteGlobalSectionOut]:
         if not isinstance(value, dict):
             return []
-        return self._parse_global_sections_items(value.get("items"))
+        return self._parse_global_sections_items(cast(dict[str, object], value).get("items"))
 
     @staticmethod
     def _dump_global_sections_value(items: list[sites_schema.SiteGlobalSectionOut]) -> dict[str, object]:

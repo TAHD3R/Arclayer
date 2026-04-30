@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
@@ -10,6 +11,7 @@ from src.config import get_settings
 from src.core.exceptions import Forbidden
 from src.models.projects.api_key import ApiKeyFamily, DeliveryKeyPerspective
 from src.modules.auth.content_api.service import ContentApiAuthService, extract_content_api_token
+from src.modules.projects.api_keys.repository import ProjectApiKeysRepository
 from src.modules.projects.api_keys.security import mint_api_key
 from src.settings.crypto import ensure_master_key
 
@@ -65,7 +67,7 @@ async def test_content_api_auth_accepts_delivery_key_for_site(monkeypatch, tmp_p
         )
     )
 
-    service = ContentApiAuthService(get_settings(), repo=repo)
+    service = ContentApiAuthService(get_settings(), repo=cast(ProjectApiKeysRepository, repo))
     credential = await service.authenticate_optional_delivery_key(
         request=_request({"x-api-key": generated.token}),
         site_id=site_id,

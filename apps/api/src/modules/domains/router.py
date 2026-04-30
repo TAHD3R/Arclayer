@@ -126,7 +126,7 @@ async def verify_project_domain(
     return ApiResponse.success(
         data=DomainBindingVerifyOut(
             binding=DomainBindingOut.model_validate(service.to_out(binding)),
-            observed_txt_values=observed,
+            observedTxtValues=observed,
         )
     )
 
@@ -165,4 +165,4 @@ async def delete_project_domain(
     service: DomainBindingService = Depends(get_domain_binding_service),
 ) -> ResponseModel[DomainBindingDeleteOut]:
     await service.delete_custom_binding(project_id=ctx.project_id, binding_id=UUID(str(binding_id)))
-    return ApiResponse.success(data=DomainBindingDeleteOut(binding_id=binding_id))
+    return ApiResponse.success(data=DomainBindingDeleteOut(bindingId=binding_id))

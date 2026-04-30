@@ -8,7 +8,9 @@ from uuid import UUID, uuid4
 import pytest
 from starlette.requests import Request
 
+from src.models.organization.user import User
 from src.modules.auth.oauth.schema import OAuthLinkedIdentityListOut
+from src.modules.auth.oauth.social.service import OAuthSocialService
 from src.modules.auth.sso import router as sso_router
 
 
@@ -92,7 +94,10 @@ async def test_list_my_oauth_identities_uses_service_output_without_placeholder_
     user = _FakeUser(id=uuid4())
     service = _FakeOAuthService(out=OAuthLinkedIdentityListOut(identities=[]))
 
-    out = await sso_router.list_my_oauth_identities(user=user, service=service)  # type: ignore[arg-type]
+    out = await sso_router.list_my_oauth_identities(
+        user=cast(User, user),
+        service=cast(OAuthSocialService, service),
+    )
 
     assert out.error is None
     assert out.data is not None

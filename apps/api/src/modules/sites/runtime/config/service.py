@@ -37,7 +37,7 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
     def _pick_str(section: object, key: str) -> str | None:
         if not isinstance(section, dict):
             return None
-        raw = section.get(key)
+        raw = cast(dict[str, object], section).get(key)
         if not isinstance(raw, str):
             return None
         s = raw.strip()
@@ -81,9 +81,10 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
         }
         if not isinstance(site_section, dict):
             return identity_raw
+        site_section_dict = cast(dict[str, object], site_section)
         for key, field in (("name", "name_i18n"), ("subtitle", "subtitle_i18n"), ("description", "description_i18n")):
             resolved = self._resolve_localized_str(
-                site_section.get(field),
+                site_section_dict.get(field),
                 locale=resolved_locale,
                 fallback_locale=fallback_locale,
             )
@@ -103,13 +104,14 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
         default_description = site_description or self._pick_str(seo_section, "default_description")
         title_policy_v1: dict[str, sites_schema.JsonValue] | None = None
         if isinstance(seo_section, dict):
+            seo_section_dict = cast(dict[str, object], seo_section)
             title_i18n = self._resolve_localized_str(
-                seo_section.get("default_title_i18n"),
+                seo_section_dict.get("default_title_i18n"),
                 locale=resolved_locale,
                 fallback_locale=fallback_locale,
             )
             desc_i18n = self._resolve_localized_str(
-                seo_section.get("default_description_i18n"),
+                seo_section_dict.get("default_description_i18n"),
                 locale=resolved_locale,
                 fallback_locale=fallback_locale,
             )
@@ -117,7 +119,7 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
                 default_title = title_i18n
             if desc_i18n is not None:
                 default_description = desc_i18n
-            raw_policy = seo_section.get("title_policy_v1")
+            raw_policy = seo_section_dict.get("title_policy_v1")
             if isinstance(raw_policy, dict):
                 title_policy_v1 = cast(dict[str, sites_schema.JsonValue], raw_policy)
         if default_title is None and default_description is None and title_policy_v1 is None:

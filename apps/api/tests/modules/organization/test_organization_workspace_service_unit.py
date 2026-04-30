@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
 
 from src.config import get_settings
+from src.models.workspaces.workspace import Workspace
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 
 
@@ -33,7 +35,7 @@ def test_build_workspace_out_allows_missing_project(monkeypatch) -> None:
 
     out = service._build_workspace_out(
         organization_id=organization_id,
-        workspace=workspace,
+        workspace=cast(Workspace, workspace),
         member_count=1,
         members_preview=[],
         enterable=True,

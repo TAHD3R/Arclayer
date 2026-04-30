@@ -588,7 +588,7 @@ class OAuthSocialService(BaseService):
         try:
             core = await get_core_settings_value_cached(self.settings, ttl_seconds=2.0)
             site = core.get("site") if isinstance(core, dict) else None
-            url = site.get("url") if isinstance(site, dict) else None
+            url = cast(dict[str, object], site).get("url") if isinstance(site, dict) else None
             if isinstance(url, str) and url.strip():
                 return url.strip().rstrip("/")
         except BaseException as exc:

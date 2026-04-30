@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
 from src.models.organization.user import UserStatus
-from src.modules.auth.contracts.schema import UserLike
+from src.modules.auth.contracts.schema import UserLike, UserRepositoryLike
 from src.modules.auth.service import AuthService
 from src.modules.auth.sessions.service import AuthSessionService
 from src.modules.auth.tokens.service import decode_token, hash_password
@@ -117,6 +117,9 @@ class FakeUserRepository:
             return self._user
         return None
 
+    async def get_by_email(self, email: str) -> FakeUser | None:
+        return self._user if email == self._user.email else None
+
     async def get_by_id(self, user_id: UUID) -> FakeUser | None:
         return self._user if self._user.id == user_id else None
 
@@ -149,6 +152,10 @@ class FakeUserRepository:
         else:
             record.credential.password_hash = password_hash
 
+    async def remove_password(self, user: UserLike) -> None:
+        record = cast(FakeUser, user)
+        record.credential = None
+
     async def set_email(self, user: UserLike, email: str | None) -> FakeUser:
         record = cast(FakeUser, user)
         record.email = email
@@ -166,8 +173,15 @@ class FakeUserRepository:
         return record
 
     async def create_user(
-        self, *, username: str, email: str | None, display_name: str | None, password_hash: str
-    ) -> FakeUser:  # type: ignore[no-untyped-def]
+        self,
+        *,
+        username: str,
+        email: str | None,
+        display_name: str | None,
+        password_hash: str,
+        is_super_admin: bool = False,
+    ) -> FakeUser:
+        _ = username, email, display_name, password_hash, is_super_admin
         raise RuntimeError("not used")
 
 
@@ -186,7 +200,7 @@ def _build(monkeypatch) -> tuple[AuthService, AuthSessionService, FakeValkeyClie
 
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
-    auth = AuthService(settings, valkey=valkey, user_repo=repo)
+    auth = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
     sessions = AuthSessionService(settings, valkey=valkey)
 
     return auth, sessions, valkey, user
