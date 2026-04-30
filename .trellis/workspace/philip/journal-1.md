@@ -235,3 +235,47 @@ Implemented path-scoped CSRF protection for Admin API mutations, exempted Conten
 ### Next Steps
 
 - Resolve the existing Admin suite baseline failures and rerun the full API/Admin gates before marking P06 verified.
+
+
+## Session 7: P05 password field admin check unblock
+
+**Date**: 2026-04-30
+**Task**: P05 password field admin check unblock
+**Branch**: `develop`
+
+### Summary
+
+Completed P05 password field closeout by unblocking the Admin full-suite baseline, backfilling the audit execution package, verifying admin:check, and archiving the Trellis task.
+
+### Main Changes
+
+- Unblocked the P05 password-field closeout by refreshing stale Admin tests against current overlay, sidebar, onboarding, content-model, content-library, and table-action contracts.
+- Replaced the Admin favorites hide action's shared `ConfirmDialog` usage with explicit `AlertDialog` composition.
+- Added an accessible label to the create-content-type description textarea and restored `DataTableActionsCell` usage for team invitation action cells.
+- Backfilled the P05 audit execution package status and Execution Log, then archived the Trellis task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `91a9e760` | (see git log) |
+| `b37dfbc1` | (see git log) |
+
+### Testing
+
+- [OK] `rtk pnpm -C apps/admin exec vitest run --config vitest.config.ts test/pages/me/security/me-security-sessions.test.tsx` passed: 3 tests.
+- [OK] `rtk pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-account-menu.test.tsx test/pages/onboarding/welcome-onboarding-page.test.tsx test/pages/me/security/me-security-sessions.test.tsx` passed: 20 tests.
+- [OK] `rtk pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-account-menu.test.tsx` passed: 14 tests.
+- [OK] `rtk pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/layout/admin-side-nav.test.tsx` passed: 39 tests.
+- [OK] `rtk pnpm admin:check` passed: lint, format, typecheck, and test succeeded; Vitest reported 232 files and 951 tests passed.
+- [OK] `rtk git diff --check` and `rtk git diff --cached --check` passed.
+- [OK] GitNexus `detect_changes(scope=all)` returned medium risk with affected flows concentrated in `TeamInvitationsView`.
+- [BLOCKED] `rtk timeout 60s pnpm api:check`: lint, format, and typecheck passed; API test phase exceeded the 60s wrapper without a pytest failure summary. The P05 implementation-round Execution Log retains the earlier full `pnpm api:check` pass.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
