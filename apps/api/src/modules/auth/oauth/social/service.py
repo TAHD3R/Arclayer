@@ -7,7 +7,7 @@ import inspect
 import secrets
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -21,11 +21,18 @@ from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden
 from src.core.i18n import t
+from src.modules.auth.oauth.social.providers import (
+    OAUTH_PROVIDER_DEFINITIONS,
+    OAuthProviderDefinition,
+    get_oauth_provider_definition,
+)
 from src.modules.auth.oauth.social.repository import OAuthSocialRepository
 from src.modules.auth.oauth.social.schema import (
+    DiscordUser,
     GitHubEmailItem,
     GitHubUser,
     GoogleUserInfo,
+    MicrosoftUserInfo,
     OAuthLinkedIdentityListOut,
     OAuthLinkedIdentityOut,
     OAuthStatePayload,
@@ -41,6 +48,14 @@ _FATAL_OAUTH_ERRORS: tuple[type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
 )
+
+
+class OAuthProviderProfile(TypedDict):
+    subject: str
+    email: str | None
+    email_verified: bool
+    display_name: str | None
+    avatar_url: str | None
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -114,7 +129,7 @@ async def _valkey_getdel_best_effort(client: ValkeyClientLike, key: str) -> str 
 
 class OAuthSocialService(BaseService):
     """
-    Core OAuth social login (Google/GitHub).
+    Core OAuth social login.
 
     Notes:
     - Configuration is managed by sys config namespaces: oauth/auth (stored in core settings record).
@@ -142,7 +157,8 @@ class OAuthSocialService(BaseService):
         provider_key = (provider or "").strip().lower()
         safe_redirect = redirect if _is_safe_redirect(redirect) else None
 
-        if provider_key not in {"google", "github"}:
+        provider_definition = get_oauth_provider_definition(provider_key)
+        if provider_definition is None:
             raise BadRequest(
                 message=t("auth", "SSO_PROVIDER_INVALID"),
                 error="SSO_PROVIDER_INVALID",
@@ -179,48 +195,34 @@ class OAuthSocialService(BaseService):
         )
         await self.valkey.set(f"oauth:social:state:{state}", payload.model_dump_json(), ex=600)
 
-        if provider_key == "google":
-            section = config.get("oauth_google") if isinstance(config, dict) else None
-            if not isinstance(section, dict) or not bool(section.get("enabled")):
-                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
-            client_id = (section.get("client_id") or "").strip() if isinstance(section.get("client_id"), str) else ""
-            if not client_id:
-                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
-
-            callback_url = str(request.url_for("auth_sso_oauth_callback", provider="google"))
-            auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
-            params = {
-                "client_id": client_id,
-                "redirect_uri": callback_url,
-                "response_type": "code",
-                "scope": "openid email profile",
-                "state": state,
-                "code_challenge": code_challenge,
-                "code_challenge_method": "S256",
-                "access_type": "online",
-                "prompt": "select_account",
-            }
-            return RedirectResponse(url=f"{auth_url}?{urlencode(params)}", status_code=302)
-
-        section = config.get("oauth_github") if isinstance(config, dict) else None
+        section = config.get(provider_definition.section_id) if isinstance(config, dict) else None
         if not isinstance(section, dict) or not bool(section.get("enabled")):
             raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
         client_id = (section.get("client_id") or "").strip() if isinstance(section.get("client_id"), str) else ""
         if not client_id:
             raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
+        client_secret = (
+            (section.get("client_secret") or "").strip() if isinstance(section.get("client_secret"), str) else ""
+        )
+        if not client_secret:
+            raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
 
-        callback_url = str(request.url_for("auth_sso_oauth_callback", provider="github"))
-        auth_url = "https://github.com/login/oauth/authorize"
-        params = {
+        callback_url = str(request.url_for("auth_sso_oauth_callback", provider=provider_definition.key))
+        params: dict[str, str] = {
             "client_id": client_id,
             "redirect_uri": callback_url,
             "response_type": "code",
-            "scope": "read:user user:email",
+            "scope": provider_definition.scope,
             "state": state,
-            "code_challenge": code_challenge,
-            "code_challenge_method": "S256",
         }
-        return RedirectResponse(url=f"{auth_url}?{urlencode(params)}", status_code=302)
+        if provider_definition.uses_pkce:
+            params["code_challenge"] = code_challenge
+            params["code_challenge_method"] = "S256"
+        if provider_definition.key == "google":
+            params["access_type"] = "online"
+        if provider_definition.prompt:
+            params["prompt"] = provider_definition.prompt
+        return RedirectResponse(url=f"{provider_definition.authorize_url}?{urlencode(params)}", status_code=302)
 
     async def callback(
         self,
@@ -236,7 +238,8 @@ class OAuthSocialService(BaseService):
 
         frontend_base = await self._resolve_frontend_base_url()
 
-        if provider_key not in {"google", "github"}:
+        provider_definition = get_oauth_provider_definition(provider_key)
+        if provider_definition is None:
             return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
         if not raw_code or not raw_state:
             return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
@@ -271,125 +274,44 @@ class OAuthSocialService(BaseService):
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                if provider_key == "google":
-                    stage = "load_google_config"
-                    section = config.get("oauth_google") if isinstance(config, dict) else None
-                    client_id = section.get("client_id") if isinstance(section, dict) else None
-                    client_secret_raw = section.get("client_secret") if isinstance(section, dict) else None
-                    if not isinstance(client_id, str) or not client_id.strip():
-                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-                    if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
-                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
+                stage = f"load_{provider_definition.key}_config"
+                section = config.get(provider_definition.section_id) if isinstance(config, dict) else None
+                client_id = section.get("client_id") if isinstance(section, dict) else None
+                client_secret_raw = section.get("client_secret") if isinstance(section, dict) else None
+                if not isinstance(client_id, str) or not client_id.strip():
+                    return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
+                if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
+                    return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
-                    stage = "exchange_google_code"
-                    callback_url = str(request.url_for("auth_sso_oauth_callback", provider="google"))
-                    token_res = await client.post(
-                        "https://oauth2.googleapis.com/token",
-                        data={
-                            "client_id": client_id.strip(),
-                            "client_secret": client_secret_raw.strip(),
-                            "code": raw_code,
-                            "code_verifier": payload.code_verifier,
-                            "grant_type": "authorization_code",
-                            "redirect_uri": callback_url,
-                        },
-                        headers={"accept": "application/json"},
-                    )
-                    token_res.raise_for_status()
-                    token = token_res.json()
-                    access_token = token.get("access_token")
-                    if not isinstance(access_token, str) or not access_token:
-                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
+                stage = f"exchange_{provider_definition.key}_code"
+                callback_url = str(request.url_for("auth_sso_oauth_callback", provider=provider_definition.key))
+                token_res = await self._exchange_provider_token(
+                    client=client,
+                    provider=provider_definition,
+                    client_id=client_id.strip(),
+                    client_secret=client_secret_raw.strip(),
+                    code=raw_code,
+                    code_verifier=payload.code_verifier,
+                    redirect_uri=callback_url,
+                )
+                token_res.raise_for_status()
+                token = token_res.json()
+                access_token = token.get("access_token")
+                if not isinstance(access_token, str) or not access_token:
+                    return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
-                    stage = "fetch_google_userinfo"
-                    userinfo_res = await client.get(
-                        "https://openidconnect.googleapis.com/v1/userinfo",
-                        headers={"authorization": f"Bearer {access_token}"},
-                    )
-                    userinfo_res.raise_for_status()
-                    stage = "parse_google_userinfo"
-                    info = GoogleUserInfo.model_validate(userinfo_res.json())
-                    subject = info.sub
-                    email = (info.email or "").strip().lower() or None
-                    email_verified = bool(info.email_verified)
-                    display_name = info.name
-                    avatar_url = info.picture
-
-                elif provider_key == "github":
-                    stage = "load_github_config"
-                    section = config.get("oauth_github") if isinstance(config, dict) else None
-                    client_id = section.get("client_id") if isinstance(section, dict) else None
-                    client_secret_raw = section.get("client_secret") if isinstance(section, dict) else None
-                    if not isinstance(client_id, str) or not client_id.strip():
-                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-                    if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
-                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-
-                    stage = "exchange_github_code"
-                    callback_url = str(request.url_for("auth_sso_oauth_callback", provider="github"))
-                    token_res = await client.post(
-                        "https://github.com/login/oauth/access_token",
-                        data={
-                            "client_id": client_id.strip(),
-                            "client_secret": client_secret_raw.strip(),
-                            "code": raw_code,
-                            "redirect_uri": callback_url,
-                            "code_verifier": payload.code_verifier,
-                        },
-                        headers={"accept": "application/json"},
-                    )
-                    token_res.raise_for_status()
-                    token = token_res.json()
-                    access_token = token.get("access_token")
-                    if not isinstance(access_token, str) or not access_token:
-                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-
-                    stage = "fetch_github_user"
-                    user_res = await client.get(
-                        "https://api.github.com/user",
-                        headers={
-                            "authorization": f"Bearer {access_token}",
-                            "accept": "application/vnd.github+json",
-                        },
-                    )
-                    user_res.raise_for_status()
-                    stage = "parse_github_user"
-                    user = GitHubUser.model_validate(user_res.json())
-                    subject = str(user.id)
-                    display_name = user.name or user.login
-                    avatar_url = user.avatar_url
-
-                    stage = "fetch_github_emails"
-                    emails_res = await client.get(
-                        "https://api.github.com/user/emails",
-                        headers={
-                            "authorization": f"Bearer {access_token}",
-                            "accept": "application/vnd.github+json",
-                        },
-                    )
-                    emails_res.raise_for_status()
-                    emails_payload = emails_res.json()
-                    emails: list[GitHubEmailItem] = []
-                    if isinstance(emails_payload, list):
-                        stage = "parse_github_emails"
-                        for row in emails_payload:
-                            try:
-                                emails.append(GitHubEmailItem.model_validate(row))
-                            except ValidationError:
-                                continue
-                    chosen = None
-                    for item in emails:
-                        if bool(item.primary) and bool(item.verified):
-                            chosen = item
-                            break
-                    if chosen is None:
-                        for item in emails:
-                            if bool(item.verified):
-                                chosen = item
-                                break
-                    if chosen is not None:
-                        email = (chosen.email or "").strip().lower() or None
-                        email_verified = bool(chosen.verified)
+                stage = f"fetch_{provider_definition.key}_userinfo"
+                profile = await self._fetch_provider_profile(
+                    client=client,
+                    provider=provider_definition,
+                    access_token=access_token,
+                )
+                stage = f"parse_{provider_definition.key}_userinfo"
+                subject = profile["subject"]
+                email = profile["email"]
+                email_verified = profile["email_verified"]
+                display_name = profile["display_name"]
+                avatar_url = profile["avatar_url"]
 
             stage = "validate_subject"
             if not subject:
@@ -606,11 +528,116 @@ class OAuthSocialService(BaseService):
             return {}
         # Keep only the sections owned by sys oauth namespace.
         out: dict[str, Any] = {}
-        for key in ["oauth_google", "oauth_github", "oauth_provisioning", "auth"]:
+        section_ids = [item.section_id for item in OAUTH_PROVIDER_DEFINITIONS]
+        for key in [*section_ids, "oauth_provisioning", "auth"]:
             val = core.get(key)
             if isinstance(val, dict):
                 out[key] = val
         return out
+
+    async def _exchange_provider_token(
+        self,
+        *,
+        client: httpx.AsyncClient,
+        provider: OAuthProviderDefinition,
+        client_id: str,
+        client_secret: str,
+        code: str,
+        code_verifier: str,
+        redirect_uri: str,
+    ) -> httpx.Response:
+        data = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": redirect_uri,
+        }
+        if provider.uses_pkce:
+            data["code_verifier"] = code_verifier
+        return await client.post(provider.token_url, data=data, headers={"accept": "application/json"})
+
+    async def _fetch_provider_profile(
+        self,
+        *,
+        client: httpx.AsyncClient,
+        provider: OAuthProviderDefinition,
+        access_token: str,
+    ) -> OAuthProviderProfile:
+        headers = {"authorization": f"Bearer {access_token}"}
+        if provider.userinfo_accept:
+            headers["accept"] = provider.userinfo_accept
+
+        userinfo_res = await client.get(provider.userinfo_url, headers=headers)
+        userinfo_res.raise_for_status()
+        payload = userinfo_res.json()
+
+        if provider.key == "google":
+            info = GoogleUserInfo.model_validate(payload)
+            return {
+                "subject": info.sub,
+                "email": (info.email or "").strip().lower() or None,
+                "email_verified": bool(info.email_verified),
+                "display_name": info.name,
+                "avatar_url": info.picture,
+            }
+
+        if provider.key == "microsoft":
+            info = MicrosoftUserInfo.model_validate(payload)
+            email = (info.email or info.preferred_username or "").strip().lower() or None
+            return {
+                "subject": info.sub,
+                "email": email,
+                "email_verified": bool(email),
+                "display_name": info.name,
+                "avatar_url": None,
+            }
+
+        if provider.key == "discord":
+            info = DiscordUser.model_validate(payload)
+            avatar_url = None
+            if info.avatar:
+                avatar_url = f"https://cdn.discordapp.com/avatars/{info.id}/{info.avatar}.png"
+            return {
+                "subject": info.id,
+                "email": (info.email or "").strip().lower() or None,
+                "email_verified": bool(info.verified),
+                "display_name": info.global_name or info.username,
+                "avatar_url": avatar_url,
+            }
+
+        user = GitHubUser.model_validate(payload)
+        subject = str(user.id)
+        display_name = user.name or user.login
+        avatar_url = user.avatar_url
+
+        emails_res = await client.get(
+            "https://api.github.com/user/emails",
+            headers={
+                "authorization": f"Bearer {access_token}",
+                "accept": "application/vnd.github+json",
+            },
+        )
+        emails_res.raise_for_status()
+        emails_payload = emails_res.json()
+        emails: list[GitHubEmailItem] = []
+        if isinstance(emails_payload, list):
+            for row in emails_payload:
+                try:
+                    emails.append(GitHubEmailItem.model_validate(row))
+                except ValidationError:
+                    continue
+
+        chosen = next((item for item in emails if bool(item.primary) and bool(item.verified)), None)
+        if chosen is None:
+            chosen = next((item for item in emails if bool(item.verified)), None)
+        return {
+            "subject": subject,
+            "email": (chosen.email or "").strip().lower() if chosen is not None else None,
+            "email_verified": bool(chosen.verified) if chosen is not None else False,
+            "display_name": display_name,
+            "avatar_url": avatar_url,
+        }
 
     async def _is_public_register_allowed(self, *, email: str | None) -> bool:
         from src.modules.auth.registration.service import get_public_register_policy

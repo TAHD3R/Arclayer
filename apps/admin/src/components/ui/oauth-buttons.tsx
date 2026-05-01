@@ -1,19 +1,16 @@
 import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { CircleEllipsisIcon } from "lucide-react";
 
 import { listSSOProviders } from "@/api/auth-sso";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { normalizeOAuthProvider, resolveOAuthProviderMeta } from "@/lib/auth/oauth-provider-meta";
 import { notifyErrorText } from "@/lib/notifications";
 import { readStorageItem, writeStorageItem } from "@/lib/storage";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AuthSSOProvider } from "@/types/api";
 import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
-import GitHubDarkIcon from "@arclayer/ui/icons/github-dark-icon";
-import GitHubLightIcon from "@arclayer/ui/icons/github-light-icon";
-import GoogleIcon from "@arclayer/ui/icons/google-icon";
 import { Separator } from "@arclayer/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
@@ -37,58 +34,6 @@ export interface AuthOauthButtonsProps {
 
 const FULL_WIDTH_LEADING_ACTION_KEYS = new Set(["email-code", "password-login"]);
 
-function normalizeProvider(value: unknown): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
-
-function titleizeProvider(value: string): string {
-  return value
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function resolveProviderMeta(
-  provider: AuthSSOProvider,
-  t: (key: string) => string,
-  isDark: boolean,
-) {
-  const normalized = normalizeProvider(provider.provider);
-  const fallbackLabel = provider.label?.trim() || titleizeProvider(normalized);
-
-  if (normalized === "google") {
-    return {
-      provider: normalized,
-      fullLabel: t("auth:OAUTH_GOOGLE"),
-      shortLabel: "Google",
-      startUrl: String(provider.startUrl || provider.start_url || ""),
-      icon: <GoogleIcon size={14} />,
-    };
-  }
-
-  if (normalized === "github") {
-    const GitHubIcon = isDark ? GitHubDarkIcon : GitHubLightIcon;
-    return {
-      provider: normalized,
-      fullLabel: t("auth:OAUTH_GITHUB"),
-      shortLabel: "GitHub",
-      startUrl: String(provider.startUrl || provider.start_url || ""),
-      icon: <GitHubIcon size={14} />,
-    };
-  }
-
-  return {
-    provider: normalized,
-    fullLabel: fallbackLabel,
-    shortLabel: fallbackLabel,
-    startUrl: String(provider.startUrl || provider.start_url || ""),
-    icon: <CircleEllipsisIcon size={14} />,
-  };
-}
-
 export function AuthOauthButtons({
   disabled = false,
   redirect,
@@ -103,7 +48,7 @@ export function AuthOauthButtons({
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
   const [lastUsedProvider, setLastUsedProvider] = useState(() =>
-    normalizeProvider(readStorageItem(STORAGE_KEYS.authLastSsoProvider)),
+    normalizeOAuthProvider(readStorageItem(STORAGE_KEYS.authLastSsoProvider)),
   );
 
   const providersQuery = useQuery({
@@ -116,7 +61,7 @@ export function AuthOauthButtons({
 
   const providers = showProviders
     ? (providersQuery.data?.providers ?? []).map((provider) =>
-        resolveProviderMeta(provider, t, isDark),
+        resolveOAuthProviderMeta({ provider: provider as AuthSSOProvider, t, isDark }),
       )
     : [];
   const fullWidthLeadingActions = leadingActions

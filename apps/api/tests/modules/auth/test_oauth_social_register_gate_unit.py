@@ -103,6 +103,31 @@ def _build_callback_request(provider: str) -> Request:
     return Request(scope)
 
 
+def _build_start_request() -> Request:
+    app = FastAPI()
+
+    @app.get("/auth/sso/callback/{provider}", name="auth_sso_oauth_callback")
+    async def _noop_callback(provider: str):
+        _ = provider
+        return {"ok": True}
+
+    scope = {
+        "type": "http",
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": "/auth/sso/start/microsoft",
+        "raw_path": b"/auth/sso/start/microsoft",
+        "query_string": b"",
+        "headers": [],
+        "client": ("testclient", 123),
+        "server": ("testserver", 80),
+        "app": app,
+        "router": app.router,
+    }
+    return Request(scope)
+
+
 class _FakeResponse:
     def __init__(self, payload: dict[str, object]) -> None:
         self._payload = payload
@@ -133,6 +158,81 @@ class _FakeGoogleClient:
             "name": "New User",
             "picture": "https://example.com/avatar.png",
         })
+
+
+class _FakeMicrosoftClient:
+    async def __aenter__(self) -> _FakeMicrosoftClient:
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        _ = exc_type, exc, tb
+        return None
+
+    async def post(self, *_args, **_kwargs) -> _FakeResponse:
+        return _FakeResponse({"access_token": "microsoft-token"})
+
+    async def get(self, *_args, **_kwargs) -> _FakeResponse:
+        return _FakeResponse({
+            "sub": "microsoft-sub",
+            "email": "ms-user@example.com",
+            "preferred_username": "ms-user@example.com",
+            "name": "Microsoft User",
+        })
+
+
+class _FakeDiscordClient:
+    async def __aenter__(self) -> _FakeDiscordClient:
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        _ = exc_type, exc, tb
+        return None
+
+    async def post(self, *_args, **_kwargs) -> _FakeResponse:
+        return _FakeResponse({"access_token": "discord-token"})
+
+    async def get(self, *_args, **_kwargs) -> _FakeResponse:
+        return _FakeResponse({
+            "id": "discord-sub",
+            "username": "discord_user",
+            "global_name": "Discord User",
+            "avatar": "avatarhash",
+            "email": "discord-user@example.com",
+            "verified": True,
+        })
+
+
+@pytest.mark.asyncio
+async def test_oauth_social_start_supports_microsoft_and_discord(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = get_settings()
+    service = OAuthSocialService(settings, valkey=_FakeValkey())
+    request = _build_start_request()
+
+    async def _fake_load_config() -> dict[str, object]:
+        return {
+            "oauth_microsoft": {"enabled": True, "client_id": "mid", "client_secret": "msecret"},
+            "oauth_discord": {"enabled": True, "client_id": "did", "client_secret": "dsecret"},
+        }
+
+    monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
+
+    microsoft_response = await service.start(request, provider="microsoft", redirect="/w/team", link_state=None)
+    microsoft_url = urlparse(microsoft_response.headers["location"])
+    microsoft_query = parse_qs(microsoft_url.query)
+    assert microsoft_url.netloc == "login.microsoftonline.com"
+    assert microsoft_query["client_id"] == ["mid"]
+    assert microsoft_query["scope"] == ["openid email profile offline_access User.Read"]
+    assert microsoft_query["redirect_uri"] == ["http://testserver/auth/sso/callback/microsoft"]
+
+    discord_response = await service.start(request, provider="discord", redirect="/w/team", link_state=None)
+    discord_url = urlparse(discord_response.headers["location"])
+    discord_query = parse_qs(discord_url.query)
+    assert discord_url.netloc == "discord.com"
+    assert discord_query["client_id"] == ["did"]
+    assert discord_query["scope"] == ["identify email"]
+    assert discord_query["redirect_uri"] == ["http://testserver/auth/sso/callback/discord"]
 
 
 @pytest.mark.asyncio
@@ -419,3 +519,99 @@ async def test_oauth_social_auto_provisions_new_user_when_all_gates_enabled(
     parsed = urlparse(location)
     query = parse_qs(parsed.query)
     assert query.get("oauth_code") == ["exchange-allow"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider", "section_key", "client_factory", "expected_email", "expected_avatar"),
+    [
+        ("microsoft", "oauth_microsoft", _FakeMicrosoftClient, "ms-user@example.com", None),
+        (
+            "discord",
+            "oauth_discord",
+            _FakeDiscordClient,
+            "discord-user@example.com",
+            "https://cdn.discordapp.com/avatars/discord-sub/avatarhash.png",
+        ),
+    ],
+)
+async def test_oauth_social_callback_supports_additional_builtin_providers(
+    monkeypatch: pytest.MonkeyPatch,
+    provider: str,
+    section_key: str,
+    client_factory,
+    expected_email: str,
+    expected_avatar: str | None,
+) -> None:
+    settings = get_settings()
+    old_allow = settings.auth.allow_public_register
+    settings.auth.allow_public_register = True
+
+    service = OAuthSocialService(settings, valkey=_FakeValkey())
+    request = _build_callback_request(provider)
+
+    payload_json = OAuthStatePayload(
+        provider=provider,
+        redirect="/w/new",
+        code_verifier="verifier",
+    ).model_dump_json()
+
+    created_user: dict[str, str | None] = {"email": None, "avatar_url": None}
+
+    async def _fake_load_config() -> dict[str, object]:
+        return {
+            section_key: {"enabled": True, "client_id": "cid", "client_secret": "secret"},
+            "oauth_provisioning": {"auto_provision_enabled": True, "auto_accept_email_invites": False},
+        }
+
+    async def _fake_get_identity(*, provider: str, subject: str):
+        _ = provider, subject
+        return None
+
+    async def _fake_get_user_by_email(*, email: str):
+        _ = email
+        return None
+
+    async def _fake_create_user(*, email: str, display_name: str | None, avatar_url: str | None):
+        _ = display_name
+        created_user["email"] = email
+        created_user["avatar_url"] = avatar_url
+        return SimpleNamespace(id=uuid4())
+
+    async def _fake_create_identity(*, provider: str, subject: str, user_id: UUID, email: str | None):
+        _ = provider, subject, user_id, email
+        return SimpleNamespace()
+
+    async def _fake_issue_exchange_code(*_args, **_kwargs) -> str:
+        return f"{provider}-exchange"
+
+    async def _fake_frontend_base_url() -> str:
+        return ""
+
+    async def _fake_getdel(*_args, **_kwargs) -> str:
+        return payload_json
+
+    monkeypatch.setattr(service, "_load_core_oauth_config", _fake_load_config)
+    monkeypatch.setattr(service, "_resolve_frontend_base_url", _fake_frontend_base_url)
+    monkeypatch.setattr("src.modules.auth.oauth.social.service._valkey_getdel_best_effort", _fake_getdel)
+    monkeypatch.setattr(
+        "src.modules.auth.oauth.social.service.httpx.AsyncClient",
+        lambda *args, **kwargs: client_factory(),
+    )
+    monkeypatch.setattr("src.modules.auth.oauth.social.service.issue_exchange_code", _fake_issue_exchange_code)
+    monkeypatch.setattr(service.repo, "get_identity", _fake_get_identity)
+    monkeypatch.setattr(service.repo, "get_user_by_email", _fake_get_user_by_email)
+    monkeypatch.setattr(service.repo, "create_user", _fake_create_user)
+    monkeypatch.setattr(service.repo, "create_identity", _fake_create_identity)
+
+    try:
+        response = await service.callback(request, provider=provider, code="oauth-code", state="oauth-state")
+    finally:
+        settings.auth.allow_public_register = old_allow
+
+    assert created_user["email"] == expected_email
+    assert created_user["avatar_url"] == expected_avatar
+    location = response.headers.get("location") or ""
+    parsed = urlparse(location)
+    query = parse_qs(parsed.query)
+    assert query.get("oauth_code") == [f"{provider}-exchange"]

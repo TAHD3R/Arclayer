@@ -9,67 +9,13 @@ import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { issueSSOLinkState, listSSOProviders } from "@/api/auth-sso";
 import { listMyOAuthIdentities, unlinkMyOAuthIdentity } from "@/api/oauth-social";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
-import GitHubDarkIcon from "@arclayer/ui/icons/github-dark-icon";
-import GitHubLightIcon from "@arclayer/ui/icons/github-light-icon";
-import GoogleIcon from "@arclayer/ui/icons/google-icon";
+import { normalizeOAuthProvider, resolveOAuthProviderMeta } from "@/lib/auth/oauth-provider-meta";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { cn } from "@arclayer/lib/utils";
 import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-
-function normalizeProvider(value: unknown): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
-
-function titleizeProvider(value: string): string {
-  return value
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function resolveProviderMeta(
-  provider: { provider: string; label?: string; startUrl?: string; start_url?: string },
-  t: (key: string, options?: Record<string, unknown>) => string,
-  isDark: boolean,
-) {
-  const normalized = normalizeProvider(provider.provider);
-  const fallbackLabel = provider.label?.trim() || titleizeProvider(normalized);
-
-  if (normalized === "google") {
-    return {
-      provider: normalized,
-      title: t("auth:OAUTH_GOOGLE"),
-      shortLabel: "Google",
-      startUrl: String(provider.startUrl || provider.start_url || ""),
-      icon: <GoogleIcon size={14} />,
-    };
-  }
-
-  if (normalized === "github") {
-    const GitHubIcon = isDark ? GitHubDarkIcon : GitHubLightIcon;
-    return {
-      provider: normalized,
-      title: t("auth:OAUTH_GITHUB"),
-      shortLabel: "GitHub",
-      startUrl: String(provider.startUrl || provider.start_url || ""),
-      icon: <GitHubIcon size={14} />,
-    };
-  }
-
-  return {
-    provider: normalized,
-    title: fallbackLabel,
-    shortLabel: fallbackLabel,
-    startUrl: String(provider.startUrl || provider.start_url || ""),
-    icon: <span className="text-caption">{fallbackLabel.slice(0, 1).toUpperCase()}</span>,
-  };
-}
 
 function appendQueryParam(url: string, key: string, value: string): string {
   const raw = String(url || "");
@@ -129,12 +75,14 @@ export function UserLinkedAccountsSection(props: UserLinkedAccountsSectionProps)
 
     const identityByProvider = new Map<string, { email: string | null }>();
     for (const id of identities) {
-      identityByProvider.set(normalizeProvider(id.provider), {
+      identityByProvider.set(normalizeOAuthProvider(id.provider), {
         email: id.email ?? null,
       });
     }
 
-    const normalizedProviders = providers.map((p) => resolveProviderMeta(p, t, isDark));
+    const normalizedProviders = providers.map((provider) =>
+      resolveOAuthProviderMeta({ provider, t, isDark }),
+    );
 
     const seen = new Set<string>();
     const rows: Array<{
@@ -165,7 +113,7 @@ export function UserLinkedAccountsSection(props: UserLinkedAccountsSectionProps)
 
     for (const [provider, linked] of identityByProvider.entries()) {
       if (seen.has(provider)) continue;
-      const meta = resolveProviderMeta({ provider }, t, isDark);
+      const meta = resolveOAuthProviderMeta({ provider: { provider }, t, isDark });
       rows.push({
         provider: meta.provider,
         title: meta.title,

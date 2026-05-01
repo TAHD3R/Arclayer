@@ -1,8 +1,41 @@
 from __future__ import annotations
 
+from src.modules.auth.oauth.social.providers import OAUTH_PROVIDER_DEFINITIONS
 from src.settings.schema import ConfigField, ConfigSchema, ConfigSection
 
 CORE_SETTINGS_NAMESPACE = "core"
+
+
+def _build_oauth_provider_sections() -> list[ConfigSection]:
+    return [
+        ConfigSection(
+            id=provider.section_id,
+            title=provider.title,
+            fields=[
+                ConfigField(
+                    key="enabled",
+                    type="bool",
+                    default=False,
+                    label=f"Enable {provider.title}",
+                ),
+                ConfigField(
+                    key="client_id",
+                    type="str",
+                    default=None,
+                    label=f"{provider.title} client ID",
+                ),
+                ConfigField(
+                    key="client_secret",
+                    type="str",
+                    default=None,
+                    secret=True,
+                    ui={"input": "password"},
+                    label=f"{provider.title} client secret",
+                ),
+            ],
+        )
+        for provider in OAUTH_PROVIDER_DEFINITIONS
+    ]
 
 
 def build_core_settings_schema() -> ConfigSchema:
@@ -360,58 +393,7 @@ def build_core_settings_schema() -> ConfigSchema:
                     ),
                 ],
             ),
-            ConfigSection(
-                id="oauth_google",
-                title="Google OAuth",
-                fields=[
-                    ConfigField(
-                        key="enabled",
-                        type="bool",
-                        default=False,
-                        label="Enable Google OAuth",
-                    ),
-                    ConfigField(
-                        key="client_id",
-                        type="str",
-                        default=None,
-                        label="Google client ID",
-                    ),
-                    ConfigField(
-                        key="client_secret",
-                        type="str",
-                        default=None,
-                        secret=True,
-                        ui={"input": "password"},
-                        label="Google client secret",
-                    ),
-                ],
-            ),
-            ConfigSection(
-                id="oauth_github",
-                title="GitHub OAuth",
-                fields=[
-                    ConfigField(
-                        key="enabled",
-                        type="bool",
-                        default=False,
-                        label="Enable GitHub OAuth",
-                    ),
-                    ConfigField(
-                        key="client_id",
-                        type="str",
-                        default=None,
-                        label="GitHub client ID",
-                    ),
-                    ConfigField(
-                        key="client_secret",
-                        type="str",
-                        default=None,
-                        secret=True,
-                        ui={"input": "password"},
-                        label="GitHub client secret",
-                    ),
-                ],
-            ),
+            *_build_oauth_provider_sections(),
             ConfigSection(
                 id="oauth_provisioning",
                 title="OAuth provisioning",

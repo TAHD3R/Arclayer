@@ -409,6 +409,8 @@
   "SETTINGS_SYSTEM_OAUTH_PAGE_DESC": "Manage external sign-in providers and the client credentials used by the login surface.",
   "SETTINGS_SYSTEM_OAUTH_GOOGLE_TITLE": "Google",
   "SETTINGS_SYSTEM_OAUTH_GITHUB_TITLE": "GitHub",
+  "SETTINGS_SYSTEM_OAUTH_MICROSOFT_TITLE": "Microsoft",
+  "SETTINGS_SYSTEM_OAUTH_DISCORD_TITLE": "Discord",
   "SETTINGS_SYSTEM_OAUTH_PROVIDER_DIALOG_DESC": "Enable the provider and update the client credentials used by the built-in SSO flow.",
   "SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_TITLE": "Provider enabled",
   "SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_DESC": "Disabled providers are hidden from the login surface and the SSO providers API.",

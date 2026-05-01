@@ -143,12 +143,27 @@ describe("UserLinkedAccountsSection", () => {
 
     renderSection();
 
-    expect(await screen.findByText(i18n.t("auth:OAUTH_GOOGLE"))).toBeInTheDocument();
+    expect(await screen.findByText(i18n.t("auth:OAUTH_GOOGLE_TITLE"))).toBeInTheDocument();
     expect(
       screen.getByText(
         i18n.t("account:ME_LINKED_ACCOUNTS_CURRENT_ACCOUNT", { email: "user@example.com" }),
       ),
     ).toBeInTheDocument();
+  });
+
+  it("新增 provider 使用 i18n 标题", async () => {
+    listSSOProvidersMock.mockResolvedValue({
+      providers: [
+        { provider: "microsoft", label: "Microsoft", startUrl: "/oauth/microsoft/start" },
+        { provider: "discord", label: "Discord", startUrl: "/oauth/discord/start" },
+      ],
+    });
+    listMyOAuthIdentitiesMock.mockResolvedValue({ identities: [] });
+
+    renderSection();
+
+    expect(await screen.findByText(i18n.t("auth:OAUTH_MICROSOFT_TITLE"))).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("auth:OAUTH_DISCORD_TITLE"))).toBeInTheDocument();
   });
 
   it("取消关联前弹出确认 dialog", async () => {
@@ -205,11 +220,11 @@ describe("UserLinkedAccountsSection", () => {
 
     renderSection();
 
-    const googleRow = (await screen.findByText(i18n.t("auth:OAUTH_GOOGLE"))).closest(
+    const googleRow = (await screen.findByText(i18n.t("auth:OAUTH_GOOGLE_TITLE"))).closest(
       "div.py-3",
     ) as HTMLElement | null;
     const githubRow = screen
-      .getByText(i18n.t("auth:OAUTH_GITHUB"))
+      .getByText(i18n.t("auth:OAUTH_GITHUB_TITLE"))
       .closest("div.py-3") as HTMLElement | null;
     if (!googleRow || !githubRow) throw new Error("provider rows not found");
 

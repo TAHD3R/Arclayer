@@ -44,3 +44,19 @@ class GitHubEmailItem(BaseSchema):
     primary: bool | None = None
     verified: bool | None = None
     visibility: str | None = None
+
+
+class MicrosoftUserInfo(BaseSchema):
+    sub: str
+    email: str | None = None
+    preferred_username: str | None = None
+    name: str | None = None
+
+
+class DiscordUser(BaseSchema):
+    id: str
+    username: str | None = None
+    global_name: str | None = None
+    avatar: str | None = None
+    email: str | None = None
+    verified: bool | None = None

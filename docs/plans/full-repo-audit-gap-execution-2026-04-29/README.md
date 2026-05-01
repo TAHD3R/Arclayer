@@ -119,7 +119,7 @@ Status values:
 | F05 | `f05-cli-tools.md` | 4 | high | verified | Added `@arclayer/cli` with config dump/restore over stable settings HTTP endpoints, explicit non-zero content transfer/generator command placeholders, package docs, tests, build output, and `pnpm cli:check`; transfer commands remain blocked on future OpenAPI-exposed backend routes. |
 | F09 | `f09-images-api.md` | 5 | medium | verified | Added URL-driven transforms for public and project-local assets with strict params, deterministic local cache keys, format/quality/fit support, permission-aligned project delivery, docs, focused tests, and passing `pnpm api:check`. |
 | F04 | `f04-search-integration.md` | 5 | medium | verified | Added Meilisearch-backed Content API search with explicit adapter boundary, delivery-shaped indexing, publish/unpublish/delete lifecycle updates, operational docs, focused search tests, and passing `pnpm api:check`. |
-| P03 | `p03-sso-providers.md` | 5 | low | planned | Add more OAuth providers. |
+| P03 | `p03-sso-providers.md` | 5 | low | blocked | Added provider definitions and OAuth flows for Microsoft and Discord, data-driven Admin OAuth settings, localized provider labels, and focused API/Admin coverage; `pnpm api:check` passed, while `pnpm admin:check` is blocked by the existing `team-roles-view.tsx` permission condition type mismatch. |
 | F10 | `f10-environment-system.md` | 5 | high | planned | Add environments and aliases. |
 
 ## Per-Task Completion Contract

@@ -203,7 +203,7 @@ describe("AuthOauthButtons", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "auth:OAUTH_GITHUB" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Microsoft" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "auth:OAUTH_MICROSOFT" })).toBeInTheDocument();
     });
 
     const grid = screen.getByRole("button", {
@@ -214,6 +214,31 @@ describe("AuthOauthButtons", () => {
     expect(screen.queryByText("Google")).not.toBeInTheDocument();
     expect(screen.queryByText("GitHub")).not.toBeInTheDocument();
     expect(screen.queryByText("Microsoft")).not.toBeInTheDocument();
+  });
+
+  it("renders four configured oauth providers with localized labels", async () => {
+    listSSOProvidersMock.mockResolvedValueOnce({
+      providers: [
+        { provider: "google", label: "Google", start_url: "/oauth/google" },
+        { provider: "github", label: "GitHub", start_url: "/oauth/github" },
+        { provider: "microsoft", label: "Microsoft", start_url: "/oauth/microsoft" },
+        { provider: "discord", label: "Discord", start_url: "/oauth/discord" },
+      ],
+    });
+
+    renderButtons();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "auth:OAUTH_GITHUB" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "auth:OAUTH_MICROSOFT" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "auth:OAUTH_DISCORD" })).toBeInTheDocument();
+    });
+
+    const grid = screen.getByRole("button", {
+      name: "auth:OAUTH_DISCORD",
+    }).parentElement;
+    expect(grid).toHaveClass("grid-cols-4");
   });
 
   it("renders the password-login action on its own full-width row", async () => {

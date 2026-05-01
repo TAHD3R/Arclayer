@@ -11,6 +11,7 @@ from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
+from src.modules.auth.oauth.social.providers import OAUTH_PROVIDER_DEFINITIONS
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.sessions.request_context import AuthRequestContext
 from src.modules.auth.sso.repository import consume_exchange_payload
@@ -131,19 +132,14 @@ class AuthSSOService(BaseService):
             return True
 
         out: list[dict[str, Any]] = []
-        if _enabled("oauth_google"):
+        for provider in OAUTH_PROVIDER_DEFINITIONS:
+            if not _enabled(provider.section_id):
+                continue
             out.append({
-                "provider": "google",
-                "label": "Continue with Google",
-                "icon_key": "google",
-                "start_path": "/auth/sso/start/google",
-            })
-        if _enabled("oauth_github"):
-            out.append({
-                "provider": "github",
-                "label": "Continue with GitHub",
-                "icon_key": "github",
-                "start_path": "/auth/sso/start/github",
+                "provider": provider.key,
+                "label": provider.label,
+                "icon_key": provider.icon_key,
+                "start_path": f"/auth/sso/start/{provider.key}",
             })
         return out
 

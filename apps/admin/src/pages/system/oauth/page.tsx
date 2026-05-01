@@ -28,30 +28,61 @@ import {
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
 
+const OAUTH_PROVIDERS = [
+  {
+    key: "google",
+    sectionKey: "oauth_google",
+    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_GOOGLE_TITLE",
+  },
+  {
+    key: "github",
+    sectionKey: "oauth_github",
+    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_GITHUB_TITLE",
+  },
+  {
+    key: "microsoft",
+    sectionKey: "oauth_microsoft",
+    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_MICROSOFT_TITLE",
+  },
+  {
+    key: "discord",
+    sectionKey: "oauth_discord",
+    titleKey: "settings:SETTINGS_SYSTEM_OAUTH_DISCORD_TITLE",
+  },
+] as const;
+
+type OAuthProviderKey = (typeof OAUTH_PROVIDERS)[number]["key"];
+
 type OAuthFormValues = {
-  googleEnabled: boolean;
-  googleClientId: string;
-  googleClientSecret: string;
-  githubEnabled: boolean;
-  githubClientId: string;
-  githubClientSecret: string;
+  providers: Record<
+    OAuthProviderKey,
+    {
+      enabled: boolean;
+      clientId: string;
+      clientSecret: string;
+    }
+  >;
 };
 
-type OAuthOverlayKey = "google" | "github";
+type OAuthOverlayKey = OAuthProviderKey;
 
 function buildInitialValues(
   input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
 ): OAuthFormValues {
-  const google = getSystemSettingsSection(input, "oauth_google");
-  const github = getSystemSettingsSection(input, "oauth_github");
-
   return {
-    googleEnabled: Boolean(readBooleanValue(google, "enabled")),
-    googleClientId: readStringValue(google, "client_id") ?? "",
-    googleClientSecret: "",
-    githubEnabled: Boolean(readBooleanValue(github, "enabled")),
-    githubClientId: readStringValue(github, "client_id") ?? "",
-    githubClientSecret: "",
+    providers: Object.fromEntries(
+      OAUTH_PROVIDERS.map((provider) => {
+        const section = getSystemSettingsSection(input, provider.sectionKey);
+        return [
+          provider.key,
+          {
+            enabled: Boolean(readBooleanValue(section, "enabled")),
+            clientId: readStringValue(section, "client_id") ?? "",
+            clientSecret: "",
+          },
+        ];
+      }),
+    ) as OAuthFormValues["providers"],
   };
 }
 
@@ -68,8 +99,16 @@ export function SystemSettingsOAuthPage() {
   const coreSettingsQuery = useSystemCoreSettings();
   const patchMutation = usePatchSystemCoreSettings();
   const secrets = getSystemSettingsSecrets(coreSettingsQuery.coreSettings);
-  const hasGoogleSecret = Boolean(secrets["oauth_google.client_secret"]);
-  const hasGithubSecret = Boolean(secrets["oauth_github.client_secret"]);
+  const secretStates = useMemo(
+    () =>
+      Object.fromEntries(
+        OAUTH_PROVIDERS.map((provider) => [
+          provider.key,
+          Boolean(secrets[`${provider.sectionKey}.client_secret`]),
+        ]),
+      ) as Record<OAuthProviderKey, boolean>,
+    [secrets],
+  );
 
   const initialValues = useMemo(
     () => buildInitialValues(coreSettingsQuery.coreSettings),
@@ -93,17 +132,19 @@ export function SystemSettingsOAuthPage() {
     notifySuccessText(t("settings:SETTINGS_SAVED"));
   };
 
-  const saveProvider = (provider: "google" | "github") =>
-    withSavingKey(`oauth.${provider}`, async () => {
-      const enabledName = provider === "google" ? "googleEnabled" : "githubEnabled";
-      const clientIdName = provider === "google" ? "googleClientId" : "githubClientId";
-      const clientSecretName = provider === "google" ? "googleClientSecret" : "githubClientSecret";
-      const hasSecret = provider === "google" ? hasGoogleSecret : hasGithubSecret;
-      const sectionKey = provider === "google" ? "oauth_google" : "oauth_github";
+  const saveProvider = (providerKey: OAuthProviderKey) =>
+    withSavingKey(`oauth.${providerKey}`, async () => {
+      const provider = OAUTH_PROVIDERS.find((item) => item.key === providerKey);
+      if (!provider) return;
+      const enabledName = `providers.${providerKey}.enabled` as const;
+      const clientIdName = `providers.${providerKey}.clientId` as const;
+      const clientSecretName = `providers.${providerKey}.clientSecret` as const;
+      const hasSecret = secretStates[providerKey];
       const values = await validateFormFields(form, [enabledName, clientIdName, clientSecretName]);
-      const enabled = Boolean(values[enabledName]);
-      const clientId = String(values[clientIdName] || "").trim();
-      const clientSecret = String(values[clientSecretName] || "").trim();
+      const providerValues = values.providers[providerKey];
+      const enabled = Boolean(providerValues.enabled);
+      const clientId = String(providerValues.clientId || "").trim();
+      const clientSecret = String(providerValues.clientSecret || "").trim();
 
       if (enabled && !clientId) {
         form.setError(clientIdName, {
@@ -129,43 +170,50 @@ export function SystemSettingsOAuthPage() {
       }
 
       await persistPatch(
-        { [sectionKey]: patchValue },
+        { [provider.sectionKey]: patchValue },
         {
           ...form.getValues(),
-          [enabledName]: enabled,
-          [clientIdName]: clientId,
-          [clientSecretName]: "",
+          providers: {
+            ...form.getValues().providers,
+            [providerKey]: {
+              enabled,
+              clientId,
+              clientSecret: "",
+            },
+          },
         },
       );
     });
 
   const overlayConfigs = useMemo<readonly SettingOverlayConfig<OAuthOverlayKey>[]>(() => {
-    const googleClientIdError = getFieldErrorMessage(form, "googleClientId");
-    const googleClientSecretError = getFieldErrorMessage(form, "googleClientSecret");
-    const githubClientIdError = getFieldErrorMessage(form, "githubClientId");
-    const githubClientSecretError = getFieldErrorMessage(form, "githubClientSecret");
+    return OAUTH_PROVIDERS.map((provider) => {
+      const enabledName = `providers.${provider.key}.enabled` as const;
+      const clientIdName = `providers.${provider.key}.clientId` as const;
+      const clientSecretName = `providers.${provider.key}.clientSecret` as const;
+      const clientIdError = getFieldErrorMessage(form, clientIdName);
+      const clientSecretError = getFieldErrorMessage(form, clientSecretName);
+      const hasSecret = secretStates[provider.key];
 
-    return [
-      {
-        key: "google",
+      return {
+        key: provider.key,
         type: "dialog",
-        title: t("settings:SETTINGS_SYSTEM_OAUTH_GOOGLE_TITLE"),
+        title: t(provider.titleKey),
         description: t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_DIALOG_DESC"),
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
             backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "oauth.google"}
+            saveLoading={savingKey === `oauth.${provider.key}`}
             disabled={patchMutation.isPending}
-            onSave={() => saveProvider("google")}
+            onSave={() => saveProvider(provider.key)}
           />
         ),
         content: () => (
           <SettingDialogFields>
             <Controller
               control={form.control}
-              name="googleEnabled"
+              name={enabledName}
               render={({ field }) => (
                 <OverlayBooleanField
                   label={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_TITLE")}
@@ -180,11 +228,11 @@ export function SystemSettingsOAuthPage() {
             />
             <Controller
               control={form.control}
-              name="googleClientId"
+              name={clientIdName}
               render={({ field }) => (
                 <OverlayField
                   label={t("settings:SETTINGS_SYSTEM_OAUTH_CLIENT_ID_LABEL")}
-                  message={googleClientIdError}
+                  message={clientIdError}
                 >
                   <Input {...field} autoComplete="off" />
                 </OverlayField>
@@ -192,16 +240,16 @@ export function SystemSettingsOAuthPage() {
             />
             <Controller
               control={form.control}
-              name="googleClientSecret"
+              name={clientSecretName}
               render={({ field }) => (
                 <OverlayField
                   label={t("settings:SETTINGS_SYSTEM_OAUTH_CLIENT_SECRET_LABEL")}
                   description={
-                    hasGoogleSecret
+                    hasSecret
                       ? t("settings:SETTINGS_SYSTEM_OAUTH_SECRET_SET_HINT")
                       : t("settings:SETTINGS_SYSTEM_OAUTH_SECRET_EMPTY_HINT")
                   }
-                  message={googleClientSecretError}
+                  message={clientSecretError}
                 >
                   <Input
                     {...field}
@@ -214,90 +262,23 @@ export function SystemSettingsOAuthPage() {
             />
           </SettingDialogFields>
         ),
-      },
-      {
-        key: "github",
-        type: "dialog",
-        title: t("settings:SETTINGS_SYSTEM_OAUTH_GITHUB_TITLE"),
-        description: t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_DIALOG_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "oauth.github"}
-            disabled={patchMutation.isPending}
-            onSave={() => saveProvider("github")}
-          />
-        ),
-        content: () => (
-          <SettingDialogFields>
-            <Controller
-              control={form.control}
-              name="githubEnabled"
-              render={({ field }) => (
-                <OverlayBooleanField
-                  label={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_TITLE")}
-                  description={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_DESC")}
-                  checked={Boolean(field.value)}
-                  onCheckedChange={field.onChange}
-                  stateLabel={
-                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
-                  }
-                />
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="githubClientId"
-              render={({ field }) => (
-                <OverlayField
-                  label={t("settings:SETTINGS_SYSTEM_OAUTH_CLIENT_ID_LABEL")}
-                  message={githubClientIdError}
-                >
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="githubClientSecret"
-              render={({ field }) => (
-                <OverlayField
-                  label={t("settings:SETTINGS_SYSTEM_OAUTH_CLIENT_SECRET_LABEL")}
-                  description={
-                    hasGithubSecret
-                      ? t("settings:SETTINGS_SYSTEM_OAUTH_SECRET_SET_HINT")
-                      : t("settings:SETTINGS_SYSTEM_OAUTH_SECRET_EMPTY_HINT")
-                  }
-                  message={githubClientSecretError}
-                >
-                  <Input
-                    {...field}
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_PLACEHOLDER")}
-                  />
-                </OverlayField>
-              )}
-            />
-          </SettingDialogFields>
-        ),
-      },
-    ] as const;
-  }, [form, hasGithubSecret, hasGoogleSecret, patchMutation.isPending, saveProvider, savingKey, t]);
+      };
+    });
+  }, [form, patchMutation.isPending, saveProvider, savingKey, secretStates, t]);
 
   const overlays = useSettingOverlays(overlayConfigs);
   const openOverlay = (key: OAuthOverlayKey) => {
     form.reset(initialValues);
     overlays.open(key);
   };
-  const googleEnabled = initialValues.googleEnabled;
-  const googleClientId = initialValues.googleClientId;
-  const githubEnabled = initialValues.githubEnabled;
-  const githubClientId = initialValues.githubClientId;
-  const googleConfigured = Boolean(googleClientId.trim() && hasGoogleSecret);
-  const githubConfigured = Boolean(githubClientId.trim() && hasGithubSecret);
+  const providerState = (provider: (typeof OAUTH_PROVIDERS)[number]) => {
+    const values = initialValues.providers[provider.key];
+    return {
+      enabled: values.enabled,
+      clientId: values.clientId,
+      configured: Boolean(values.clientId.trim() && secretStates[provider.key]),
+    };
+  };
 
   return (
     <ContentGuard
@@ -311,24 +292,21 @@ export function SystemSettingsOAuthPage() {
         bordered={false}
       >
         <SettingActionGroup>
-          <SettingActionItem
-            title={t("settings:SETTINGS_SYSTEM_OAUTH_GOOGLE_TITLE")}
-            summary={formatProviderSummary(googleEnabled, googleConfigured, t)}
-            description={formatSummaryText(
-              googleClientId,
-              t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED"),
-            )}
-            onTrigger={() => openOverlay("google")}
-          />
-          <SettingActionItem
-            title={t("settings:SETTINGS_SYSTEM_OAUTH_GITHUB_TITLE")}
-            summary={formatProviderSummary(githubEnabled, githubConfigured, t)}
-            description={formatSummaryText(
-              githubClientId,
-              t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED"),
-            )}
-            onTrigger={() => openOverlay("github")}
-          />
+          {OAUTH_PROVIDERS.map((provider) => {
+            const state = providerState(provider);
+            return (
+              <SettingActionItem
+                key={provider.key}
+                title={t(provider.titleKey)}
+                summary={formatProviderSummary(state.enabled, state.configured, t)}
+                description={formatSummaryText(
+                  state.clientId,
+                  t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED"),
+                )}
+                onTrigger={() => openOverlay(provider.key)}
+              />
+            );
+          })}
         </SettingActionGroup>
       </SettingPanel>
 

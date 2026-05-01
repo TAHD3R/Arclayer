@@ -1,5 +1,5 @@
 export type AuthSSOProvider = {
-  provider: "google" | "github" | (string & {});
+  provider: "google" | "github" | "microsoft" | "discord" | (string & {});
   label: string;
   startUrl?: string;
   start_url?: string;
