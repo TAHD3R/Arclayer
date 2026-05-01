@@ -8,12 +8,20 @@ from starlette.responses import RedirectResponse, Response
 
 from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
-from src.core.exceptions import NotFound
+from src.core.exceptions import BadRequest, NotFound
 from src.core.http.content_disposition import build_attachment_content_disposition
 from src.core.http.file_stream import stream_file_response
+from src.core.i18n import t
 from src.core.logging import get_logger
 from src.modules.assets.repository import AssetsRepository
 from src.modules.assets.schema import AssetPublicView
+from src.platform.assets.images import (
+    IMAGE_TRANSFORM_CACHE_CONTROL,
+    ImageTransformParams,
+    derive_image_transform_object_key,
+    has_image_transform_request,
+    transform_image_to_path,
+)
 from src.platform.storage.factory import build_storage_provider
 from src.platform.storage.local import safe_object_key_to_path
 from src.platform.storage.profiles import (
@@ -30,6 +38,10 @@ _FATAL_ASSETS_SERVICE_ERRORS: tuple[type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
 )
+
+
+def _ts(key: str, default: str | None = None) -> str:
+    return t("errors", key, default=default)
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -158,11 +170,15 @@ class AssetsService:
         asset_id: UUID,
         filename: str,
         range_header: str | None,
+        transform: ImageTransformParams | None = None,
     ) -> Response:
         view = await self._get_public_view(asset_id=asset_id)
         canonical = canonical_asset_filename(slug=view.slug, ext=view.ext)
         if filename != canonical:
             return RedirectResponse(url=f"/assets/{encode_uuid(view.id)}/{canonical}", status_code=301)
+
+        if has_image_transform_request(transform):
+            return await self._serve_local_image_transform(view=view, transform=transform)
 
         if not is_local_storage_provider(view.storage_provider):
             profile = await self._get_profile_for_key(getattr(view, "storage_profile_key", None))
@@ -204,6 +220,58 @@ class AssetsService:
             content_type=media_type,
             range_header=range_header,
             extra_headers=build_asset_headers(view),
+        )
+
+    async def _serve_local_image_transform(
+        self,
+        *,
+        view: AssetPublicView,
+        transform: ImageTransformParams | None,
+    ) -> Response:
+        if transform is None:
+            raise BadRequest(
+                message=_ts("ASSET_IMAGE_TRANSFORM_INVALID"),
+                error="ASSET_IMAGE_TRANSFORM_INVALID",
+            )
+        if not str(view.mime or "").lower().startswith("image/"):
+            raise BadRequest(
+                message=_ts("ASSET_IMAGE_TRANSFORM_UNSUPPORTED"),
+                error="ASSET_IMAGE_TRANSFORM_UNSUPPORTED",
+            )
+        if not is_local_storage_provider(view.storage_provider):
+            raise BadRequest(
+                message=_ts("ASSET_IMAGE_TRANSFORM_LOCAL_ONLY"),
+                error="ASSET_IMAGE_TRANSFORM_UNSUPPORTED",
+            )
+
+        root_dir = self.settings.storage.local_root_dir
+        source_path = safe_object_key_to_path(root_dir, view.object_key)
+        if not source_path.is_file():
+            raise NotFound(error="NOT_FOUND")
+
+        source_version = view.checksum_sha256 or str(source_path.stat().st_mtime_ns)
+        object_key = derive_image_transform_object_key(
+            source_object_key=view.object_key,
+            source_version=source_version,
+            params=transform,
+        )
+        output_path = safe_object_key_to_path(root_dir, object_key)
+        result = await transform_image_to_path(
+            source_path=source_path,
+            output_path=output_path,
+            output_object_key=object_key,
+            params=transform,
+            source_ext=view.ext,
+        )
+        headers = build_asset_headers(view)
+        headers["Cache-Control"] = IMAGE_TRANSFORM_CACHE_CONTROL
+        headers["ETag"] = f'"{source_version}:{transform.canonical_token()}"'
+        headers["X-Image-Transform-Cache"] = "hit" if result.cache_hit else "miss"
+        return await stream_file_response(
+            path=result.path,
+            content_type=result.content_type,
+            range_header=None,
+            extra_headers=headers,
         )
 
     async def download(

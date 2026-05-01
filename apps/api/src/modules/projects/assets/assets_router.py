@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 from starlette.responses import Response
 
 from src.common.constants.assets import ASSET_SCOPE_PROJECT
@@ -36,6 +36,7 @@ from src.modules.projects.http.router_helpers import require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
 from src.modules.tenancy.router_helpers import resolve_project_tenant_context
+from src.platform.assets.images import ImageTransformFit, ImageTransformParams
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["domain.projects.assets"])
 
@@ -295,6 +296,18 @@ async def stream_asset_content(
     asset_id: PublicUUID,
     ctx: ProjectRequestContext = Depends(get_project_context),
     service: AdminAssetsService = Depends(get_admin_assets_service),
+    w: int | None = Query(default=None, ge=1, le=4096, description="Target image width in pixels."),
+    h: int | None = Query(default=None, ge=1, le=4096, description="Target image height in pixels."),
+    fit: str = Query(default=ImageTransformFit.SCALE.value, description="Image resize fit mode."),
+    fm: str | None = Query(default=None, description="Output image format."),
+    q: int | None = Query(default=None, ge=1, le=100, description="Output image quality."),
     range_header: str | None = Header(default=None, alias="Range"),
 ) -> Response:
-    return await service.stream_asset_content(scope=_project_scope(ctx), asset_id=asset_id, range_header=range_header)
+    """Stream project asset content."""
+    transform = ImageTransformParams(width=w, height=h, fit=fit, format=fm, quality=q).ensure_requested()
+    return await service.stream_asset_content(
+        scope=_project_scope(ctx),
+        asset_id=asset_id,
+        range_header=range_header,
+        transform=transform,
+    )

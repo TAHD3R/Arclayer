@@ -14,6 +14,7 @@ Current guidelines:
 - `backend-folder-architecture.md`
 - `frontend-design.md`
 - `frontend-folder-architecture.md`
+- `images-api.md`
 - `i18n.md`
 - `testing-and-quality-gates.md`
 

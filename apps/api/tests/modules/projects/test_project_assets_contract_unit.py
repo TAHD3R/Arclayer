@@ -47,6 +47,7 @@ def test_project_assets_router_exposes_project_native_asset_surface() -> None:
     assert "/projects/{project_id}/assets/bulk/move" in paths
     assert "/projects/{project_id}/assets/bulk/delete" in paths
     assert "/projects/{project_id}/assets/bulk/update" in paths
+    assert "/projects/{project_id}/assets/{asset_id}/content" in paths
     assert "/projects/{project_id}/uploads/init" in paths
     assert "/projects/{project_id}/asset-usages" in paths
 
@@ -55,6 +56,9 @@ def test_project_assets_router_uses_project_permissions() -> None:
     from src.modules.projects.assets.router import router
 
     assert _route_permissions(router, path="/projects/{project_id}/assets", method="GET") == {"project:assets:read"}
+    assert _route_permissions(router, path="/projects/{project_id}/assets/{asset_id}/content", method="GET") == {
+        "project:assets:read"
+    }
     assert _route_permissions(router, path="/projects/{project_id}/asset-tags", method="POST") == {
         "project:assets:manage"
     }

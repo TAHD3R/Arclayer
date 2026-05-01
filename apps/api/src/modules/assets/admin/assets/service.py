@@ -40,6 +40,13 @@ from src.modules.assets.admin.assets.schema import (
 from src.modules.assets.admin.uploads.policy.service import normalize_original_filename
 from src.modules.assets.scope import AssetScope
 from src.modules.tenancy.schema import TenantContext
+from src.platform.assets.images import (
+    IMAGE_TRANSFORM_CACHE_CONTROL,
+    ImageTransformParams,
+    derive_image_transform_object_key,
+    has_image_transform_request,
+    transform_image_to_path,
+)
 from src.platform.storage.factory import build_storage_provider
 from src.platform.storage.local import safe_object_key_to_path
 from src.platform.storage.profiles import (
@@ -1006,11 +1013,21 @@ class AdminAssetsService(BaseService):
                 deleted_asset_ids=asset_ids,
             )
 
-    async def stream_asset_content(self, *, scope: AssetScope, asset_id: UUID, range_header: str | None):
+    async def stream_asset_content(
+        self,
+        *,
+        scope: AssetScope,
+        asset_id: UUID,
+        range_header: str | None,
+        transform: ImageTransformParams | None = None,
+    ):
         async with self.repo.connection(scope=scope) as conn:
             asset = await self.repo.get_asset(scope=scope, asset_id=asset_id, conn=conn)
             if asset is None:
                 raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
+
+            if has_image_transform_request(transform):
+                return await self._stream_local_image_transform(asset=asset, transform=transform)
 
             media_type = asset.mime
             if not media_type:
@@ -1051,3 +1068,56 @@ class AdminAssetsService(BaseService):
                 range_header=range_header,
                 extra_headers=headers,
             )
+
+    async def _stream_local_image_transform(
+        self,
+        *,
+        asset: AssetRecord,
+        transform: ImageTransformParams | None,
+    ):
+        if transform is None:
+            raise BadRequest(
+                message=_ts("ASSET_IMAGE_TRANSFORM_INVALID", "图像转换参数不合法"),
+                error="ASSET_IMAGE_TRANSFORM_INVALID",
+            )
+        if not str(getattr(asset, "mime", "") or "").lower().startswith("image/"):
+            raise BadRequest(
+                message=_ts("ASSET_IMAGE_TRANSFORM_UNSUPPORTED", "当前资源不支持图像转换"),
+                error="ASSET_IMAGE_TRANSFORM_UNSUPPORTED",
+            )
+        if not is_local_storage_provider(str(getattr(asset, "storage_provider", "") or "")):
+            raise BadRequest(
+                message=_ts("ASSET_IMAGE_TRANSFORM_LOCAL_ONLY", "当前存储暂不支持服务端图像转换"),
+                error="ASSET_IMAGE_TRANSFORM_UNSUPPORTED",
+            )
+
+        root_dir = self.settings.storage.local_root_dir
+        source_path = safe_object_key_to_path(root_dir, asset.object_key)
+        if not source_path.is_file():
+            raise NotFound(message=_ts("ASSET_FILE_NOT_FOUND", "文件不存在"), error="ASSET_FILE_NOT_FOUND")
+
+        source_version = str(getattr(asset, "checksum_sha256", "") or "") or str(source_path.stat().st_mtime_ns)
+        object_key = derive_image_transform_object_key(
+            source_object_key=asset.object_key,
+            source_version=source_version,
+            params=transform,
+        )
+        output_path = safe_object_key_to_path(root_dir, object_key)
+        result = await transform_image_to_path(
+            source_path=source_path,
+            output_path=output_path,
+            output_object_key=object_key,
+            params=transform,
+            source_ext=str(getattr(asset, "ext", "") or ""),
+        )
+        headers: dict[str, str] = {
+            "Cache-Control": IMAGE_TRANSFORM_CACHE_CONTROL,
+            "ETag": f'"{source_version}:{transform.canonical_token()}"',
+            "X-Image-Transform-Cache": "hit" if result.cache_hit else "miss",
+        }
+        return await stream_file_response(
+            path=result.path,
+            content_type=result.content_type,
+            range_header=None,
+            extra_headers=headers,
+        )

@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from uuid import UUID
 
 import pytest
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
-from src.common.utils.public_ids import decode_public_id
+from src.common.utils.public_ids import decode_public_id, encode_uuid
+from src.config import get_settings
 from src.models.assets.asset_folder import AssetFolderRecord
 from src.models.assets.asset_tag import AssetTagRecord
 from src.models.assets.upload import UploadSessionRecord
@@ -96,3 +98,70 @@ async def test_project_upload_init_uses_project_scope_and_object_key(
         assert session.workspace_id is None
         assert str(session.object_key).startswith(f"projects/{project_uuid}/assets/")
         assert data["objectKey"] == session.object_key
+
+
+async def test_project_image_transform_content_endpoint_uses_cached_output(
+    prepared_db,
+    integration_valkey_settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from PIL import Image
+
+    monkeypatch.setenv("STORAGE__LOCAL_ROOT_DIR", str(tmp_path / "uploads"))
+    monkeypatch.setenv("STORAGE__LOCAL_TMP_DIR", str(tmp_path / "tmp"))
+    get_settings.cache_clear()
+
+    try:
+        async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+            project_uuid = UUID(str(decode_public_id(project_id)))
+
+            from src.common.constants.assets import ASSET_SCOPE_PROJECT
+            from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+            from src.modules.assets.naming.service import build_scoped_asset_object_key
+            from src.platform.storage.local import safe_object_key_to_path
+
+            async with _tenant_conn(workspace_id) as conn:
+                asset = await AssetRecord.create(
+                    project_id=project_uuid,
+                    purpose=AssetPurpose.LIBRARY,
+                    visibility=AssetVisibility.PRIVATE,
+                    indexable=False,
+                    original_filename="source.png",
+                    mime="image/png",
+                    ext="png",
+                    size_bytes=0,
+                    checksum_sha256="source-sha",
+                    storage_provider="local",
+                    object_key="pending",
+                    using_db=conn,
+                )
+            object_key = build_scoped_asset_object_key(
+                scope=ASSET_SCOPE_PROJECT,
+                scope_id=project_uuid,
+                asset_id=UUID(str(asset.id)),
+                ext="png",
+            )
+            async with _tenant_conn(workspace_id) as conn:
+                await AssetRecord.filter(id=asset.id).using_db(conn).update(object_key=object_key)
+
+            source_path = safe_object_key_to_path(get_settings().storage.local_root_dir, object_key)
+            source_path.parent.mkdir(parents=True, exist_ok=True)
+            Image.new("RGB", (640, 320), color=(30, 120, 220)).save(source_path, format="PNG")
+
+            public_asset_id = encode_uuid(UUID(str(asset.id)))
+            first = await client.get(
+                f"/api/v1/projects/{project_id}/assets/{public_asset_id}/content?w=160&fm=webp&q=70"
+            )
+            second = await client.get(
+                f"/api/v1/projects/{project_id}/assets/{public_asset_id}/content?w=160&fm=webp&q=70"
+            )
+
+            assert first.status_code == 200, first.text
+            assert second.status_code == 200, second.text
+            assert first.headers["content-type"].startswith("image/webp")
+            assert first.headers["x-image-transform-cache"] == "miss"
+            assert second.headers["x-image-transform-cache"] == "hit"
+            assert first.content == second.content
+    finally:
+        get_settings.cache_clear()

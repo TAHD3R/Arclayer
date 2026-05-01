@@ -6,6 +6,7 @@ from starlette.responses import Response
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.modules.assets.service import AssetsService
+from src.platform.assets.images import ImageTransformFit, ImageTransformParams
 
 router = APIRouter(tags=["external.assets"])
 
@@ -48,8 +49,14 @@ async def asset_thumbnail(
 async def asset_serve(
     asset_id: PublicUUID,
     filename: str,
+    w: int | None = Query(default=None, ge=1, le=4096, description="Target image width in pixels."),
+    h: int | None = Query(default=None, ge=1, le=4096, description="Target image height in pixels."),
+    fit: str = Query(default=ImageTransformFit.SCALE.value, description="Image resize fit mode."),
+    fm: str | None = Query(default=None, description="Output image format."),
+    q: int | None = Query(default=None, ge=1, le=100, description="Output image quality."),
     range: str | None = Header(default=None, alias="Range"),
     service: AssetsService = Depends(get_assets_service),
 ) -> Response:
     """Serve asset content."""
-    return await service.serve(asset_id=asset_id, filename=filename, range_header=range)
+    transform = ImageTransformParams(width=w, height=h, fit=fit, format=fm, quality=q).ensure_requested()
+    return await service.serve(asset_id=asset_id, filename=filename, range_header=range, transform=transform)

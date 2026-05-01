@@ -86,6 +86,51 @@ def test_build_asset_redirect_headers_disables_redirect_caching() -> None:
 
 
 @pytest.mark.asyncio
+async def test_public_asset_serve_applies_local_image_transform(tmp_path) -> None:
+    from PIL import Image
+
+    from src.modules.assets.service import AssetsService
+    from src.platform.assets.images import ImageTransformParams
+
+    root = tmp_path / "uploads"
+    source = root / "assets" / "demo.png"
+    source.parent.mkdir(parents=True)
+    Image.new("RGB", (400, 200), color=(120, 20, 220)).save(source, format="PNG")
+
+    service = AssetsService(_settings())
+    service.settings.storage.local_root_dir = root
+    asset_id = uuid4()
+
+    async def fake_get_public_asset(**_kwargs):
+        return SimpleNamespace(
+            id=asset_id,
+            slug="demo",
+            ext="png",
+            mime="image/png",
+            checksum_sha256="sha",
+            original_filename="demo.png",
+            object_key="assets/demo.png",
+            storage_bucket=None,
+            storage_profile_key=None,
+            indexable=False,
+            variants=None,
+            storage_provider="local",
+        )
+
+    service.repo = SimpleNamespace(get_public_asset=fake_get_public_asset)
+    transform = ImageTransformParams(width=100, format="jpg", quality=80).ensure_requested()
+
+    first = await service.serve(asset_id=asset_id, filename="demo.png", range_header=None, transform=transform)
+    second = await service.serve(asset_id=asset_id, filename="demo.png", range_header=None, transform=transform)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.headers["content-type"].startswith("image/jpeg")
+    assert first.headers["x-image-transform-cache"] == "miss"
+    assert second.headers["x-image-transform-cache"] == "hit"
+
+
+@pytest.mark.asyncio
 async def test_public_asset_lookup_searches_ready_tenant_schemas(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.modules.assets import repository as repository_module
     from src.modules.assets.repository import AssetsRepository
