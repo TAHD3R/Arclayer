@@ -118,7 +118,7 @@ Status values:
 | F03 | `f03-data-transfer-engine.md` | 4 | high | verified | Added project content transfer service/repository/schemas with deterministic manifests, validation diagnostics, transactional import guardrails, and focused integration coverage; `pnpm api:check` passed. |
 | F05 | `f05-cli-tools.md` | 4 | high | verified | Added `@arclayer/cli` with config dump/restore over stable settings HTTP endpoints, explicit non-zero content transfer/generator command placeholders, package docs, tests, build output, and `pnpm cli:check`; transfer commands remain blocked on future OpenAPI-exposed backend routes. |
 | F09 | `f09-images-api.md` | 5 | medium | verified | Added URL-driven transforms for public and project-local assets with strict params, deterministic local cache keys, format/quality/fit support, permission-aligned project delivery, docs, focused tests, and passing `pnpm api:check`. |
-| F04 | `f04-search-integration.md` | 5 | medium | planned | Add search infrastructure and query integration. |
+| F04 | `f04-search-integration.md` | 5 | medium | verified | Added Meilisearch-backed Content API search with explicit adapter boundary, delivery-shaped indexing, publish/unpublish/delete lifecycle updates, operational docs, focused search tests, and passing `pnpm api:check`. |
 | P03 | `p03-sso-providers.md` | 5 | low | planned | Add more OAuth providers. |
 | F10 | `f10-environment-system.md` | 5 | high | planned | Add environments and aliases. |
 

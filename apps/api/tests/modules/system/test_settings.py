@@ -16,6 +16,9 @@ def test_settings_defaults(monkeypatch) -> None:
 def test_settings_env_overrides(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("APPLICATION__APP_NAME", "Arclayer API (Prod)")
+    monkeypatch.setenv("SEARCH__ENABLED", "1")
+    monkeypatch.setenv("SEARCH__BACKEND", "meilisearch")
+    monkeypatch.setenv("SEARCH__MEILISEARCH_URL", "http://search.local:7700")
     monkeypatch.setenv("PUBLIC_ID__SECRET", "test-public-id-secret")
 
     settings = get_settings()
@@ -24,6 +27,9 @@ def test_settings_env_overrides(monkeypatch) -> None:
     assert settings.debug is False
     assert settings.enable_docs is False
     assert settings.application.app_name == "Arclayer API (Prod)"
+    assert settings.search.enabled is True
+    assert settings.search.backend == "meilisearch"
+    assert settings.search.meilisearch_url == "http://search.local:7700"
 
 
 def test_settings_env_overrides_init(monkeypatch) -> None:

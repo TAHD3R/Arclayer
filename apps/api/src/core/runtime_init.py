@@ -17,6 +17,7 @@ from src.core.logging import get_logger
 from src.modules.analytics.ingest.service import ActivityIngestor
 from src.modules.projects.automation.runtime import AutomationRuntime
 from src.modules.projects.webhooks.service import WebhookService
+from src.modules.sites.search.runtime import register_content_search_runtime
 from src.modules.system.rbac.service import RBACService
 from src.modules.workspaces.rbac.service import WorkspaceRBACService
 from src.platform.jobs.assets_thumbnails import generate_asset_thumbnails
@@ -110,6 +111,12 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
         handler=auto_timestamps,
     )
     app.state.lifecycle_dispatcher = lifecycle_dispatcher
+    await register_content_search_runtime(
+        app,
+        settings,
+        event_bus=event_bus,
+        lifecycle_dispatcher=lifecycle_dispatcher,
+    )
 
     automation_runtime = AutomationRuntime(settings, lifecycle_dispatcher=lifecycle_dispatcher)
     app.state.automation_runtime = automation_runtime

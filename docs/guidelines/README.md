@@ -16,6 +16,7 @@ Current guidelines:
 - `frontend-folder-architecture.md`
 - `images-api.md`
 - `i18n.md`
+- `search-integration.md`
 - `testing-and-quality-gates.md`
 
 ## Maintenance

@@ -39,6 +39,8 @@ from src.modules.projects.content.shared.router import (
     require_project_content_publish_context,
     require_project_content_read_context,
 )
+from src.modules.sites.search.deps import get_content_search_service
+from src.modules.sites.search.service import ContentSearchService
 
 router = APIRouter(
     prefix="/projects/{project_id}/content",
@@ -111,6 +113,7 @@ async def bulk_publish_project_content_items(
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
     ],
+    search_service: Annotated[ContentSearchService, Depends(get_content_search_service)],
 ) -> ResponseModel[ContentItemBulkTransitionOut]:
     data = await service.bulk_publish_items(
         workspace_id=ctx.workspace_id,
@@ -118,6 +121,8 @@ async def bulk_publish_project_content_items(
         item_ids=payload.item_ids,
         actor_user_id=actor_user_id,
     )
+    if search_service.enabled:
+        await search_service.reindex_runtime(runtime_context=ctx.runtime_ctx)
     await _publish_project_content_activity_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
@@ -145,6 +150,7 @@ async def bulk_unpublish_project_content_items(
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
     ],
+    search_service: Annotated[ContentSearchService, Depends(get_content_search_service)],
 ) -> ResponseModel[ContentItemBulkTransitionOut]:
     data = await service.bulk_unpublish_items(
         workspace_id=ctx.workspace_id,
@@ -152,6 +158,11 @@ async def bulk_unpublish_project_content_items(
         item_ids=payload.item_ids,
         actor_user_id=actor_user_id,
     )
+    if search_service.enabled:
+        await search_service.remove_items(
+            runtime_context=ctx.runtime_ctx,
+            item_ids=(item.item_id for item in data.items),
+        )
     await _publish_project_content_activity_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
@@ -277,6 +288,7 @@ async def delete_project_content_item(
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
     ],
+    search_service: Annotated[ContentSearchService, Depends(get_content_search_service)],
 ) -> ResponseModel[None]:
     await service.delete_item(
         workspace_id=ctx.workspace_id,
@@ -284,6 +296,8 @@ async def delete_project_content_item(
         item_id=item_id,
         actor_user_id=actor_user_id,
     )
+    if search_service.enabled:
+        await search_service.remove_items(runtime_context=ctx.runtime_ctx, item_ids=[item_id])
     await _publish_project_content_activity_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
@@ -617,6 +631,7 @@ async def publish_project_content_item_version(
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
     ],
+    search_service: Annotated[ContentSearchService, Depends(get_content_search_service)],
 ) -> ResponseModel[ContentVersionOut]:
     data = await service.transition_version(
         workspace_id=ctx.workspace_id,
@@ -626,6 +641,8 @@ async def publish_project_content_item_version(
         target_state=ContentVersionState.PUBLISHED,
         actor_user_id=actor_user_id,
     )
+    if search_service.enabled:
+        await search_service.reindex_runtime(runtime_context=ctx.runtime_ctx)
     await _publish_project_content_activity_event(
         actor_user_id=actor_user_id,
         ctx=ctx,

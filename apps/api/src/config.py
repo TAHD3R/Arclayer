@@ -220,6 +220,29 @@ class StorageSettings(BaseSettings):
         return _normalize_fs_path(value, default_base=_REPO_ROOT)
 
 
+class SearchSettings(BaseSettings):
+    """
+    Search backend settings for published Content API search.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="SEARCH__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    enabled: bool = Field(default=False)
+    backend: Literal["meilisearch", "memory"] = Field(default="meilisearch")
+    index_prefix: str = Field(default="arclayer_content", min_length=1, max_length=64)
+    meilisearch_url: str = Field(default="http://127.0.0.1:7700")
+    meilisearch_api_key: SecretStr = Field(default=SecretStr(""))
+    request_timeout_seconds: float = Field(default=5.0, gt=0, le=60)
+
+
 class LoggingSettings(BaseSettings):
     """
     Logging settings for the API application.
@@ -507,6 +530,7 @@ class Settings(BaseSettings):
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    search: SearchSettings = Field(default_factory=SearchSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     project_databases: ProjectDatabaseProvisioningSettings = Field(default_factory=ProjectDatabaseProvisioningSettings)
