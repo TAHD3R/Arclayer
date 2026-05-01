@@ -116,7 +116,7 @@ Status values:
 | F08 | `f08-rbac-management-ui.md` | 3 | high | verified | Admin workspace permissions now expose action catalog, role matrix, staged save/revert grants, read/write permission gates, and condition grant indicators; focused RBAC/Admin tests plus `pnpm admin:check` passed. |
 | P02 | `p02-review-workflow.md` | 3 | high | verified | Added governed workflow policy contracts, role/user stage assignment, transition and permission enforcement, configured publish-stage gates, Admin workflow settings, OpenAPI sync, and API/Admin checks; default Admin Turbo gate still exposes an unrelated sidebar test flake, while the same gate passes with Turbo task concurrency pinned to 1. |
 | F03 | `f03-data-transfer-engine.md` | 4 | high | verified | Added project content transfer service/repository/schemas with deterministic manifests, validation diagnostics, transactional import guardrails, and focused integration coverage; `pnpm api:check` passed. |
-| F05 | `f05-cli-tools.md` | 4 | high | planned | Add `@arclayer/cli` and operational commands. |
+| F05 | `f05-cli-tools.md` | 4 | high | verified | Added `@arclayer/cli` with config dump/restore over stable settings HTTP endpoints, explicit non-zero content transfer/generator command placeholders, package docs, tests, build output, and `pnpm cli:check`; transfer commands remain blocked on future OpenAPI-exposed backend routes. |
 | F09 | `f09-images-api.md` | 5 | medium | planned | Add URL-driven image transforms. |
 | F04 | `f04-search-integration.md` | 5 | medium | planned | Add search infrastructure and query integration. |
 | P03 | `p03-sso-providers.md` | 5 | low | planned | Add more OAuth providers. |

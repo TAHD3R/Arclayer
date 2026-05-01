@@ -13,6 +13,7 @@
     "api": "turbo run dev --filter=@arclayer/api",
     "api:test": "pnpm -C apps/api test",
     "api:check": "turbo run lint format typecheck test --filter=@arclayer/api",
+    "cli:check": "turbo run lint format typecheck test build --filter=@arclayer/cli",
     "docker": "docker compose up -d",
     "docker:devtools": "docker compose --profile devtools up -d"
   },
