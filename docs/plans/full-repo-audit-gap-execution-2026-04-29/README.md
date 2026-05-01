@@ -115,7 +115,7 @@ Status values:
 | P07 | `p07-conditional-permissions.md` | 3 | high | verified | Added explicit condition model/templates, role-permission condition storage, workspace/project policy enforcement, Admin-facing metadata, and focused owner/project/workflow bypass coverage; `pnpm api:check` passed. |
 | F08 | `f08-rbac-management-ui.md` | 3 | high | verified | Admin workspace permissions now expose action catalog, role matrix, staged save/revert grants, read/write permission gates, and condition grant indicators; focused RBAC/Admin tests plus `pnpm admin:check` passed. |
 | P02 | `p02-review-workflow.md` | 3 | high | verified | Added governed workflow policy contracts, role/user stage assignment, transition and permission enforcement, configured publish-stage gates, Admin workflow settings, OpenAPI sync, and API/Admin checks; default Admin Turbo gate still exposes an unrelated sidebar test flake, while the same gate passes with Turbo task concurrency pinned to 1. |
-| F03 | `f03-data-transfer-engine.md` | 4 | high | planned | Implement import/export/schema transfer and diagnostics. |
+| F03 | `f03-data-transfer-engine.md` | 4 | high | verified | Added project content transfer service/repository/schemas with deterministic manifests, validation diagnostics, transactional import guardrails, and focused integration coverage; `pnpm api:check` passed. |
 | F05 | `f05-cli-tools.md` | 4 | high | planned | Add `@arclayer/cli` and operational commands. |
 | F09 | `f09-images-api.md` | 5 | medium | planned | Add URL-driven image transforms. |
 | F04 | `f04-search-integration.md` | 5 | medium | planned | Add search infrastructure and query integration. |
