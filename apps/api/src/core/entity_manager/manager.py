@@ -47,6 +47,7 @@ class EntityManager:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None = None,
         model_key: str,
         data: dict[str, Any],
         slug: str,
@@ -66,6 +67,7 @@ class EntityManager:
         model = await self._items.get_model_definition_by_key(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_key=model_key,
         )
         if model is None:
@@ -85,6 +87,7 @@ class EntityManager:
             item = await self._items.create_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_definition_id=model.id,
                 slug=slug,
                 title=title,
@@ -133,6 +136,7 @@ class EntityManager:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None = None,
         model_key: str,
         item_id: UUID,
         data: dict[str, Any],
@@ -153,6 +157,7 @@ class EntityManager:
             item = await self._items.get_item_with_model(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
                 for_update=True,
@@ -193,6 +198,7 @@ class EntityManager:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None = None,
         model_key: str,
         item_id: UUID,
         actor_id: UUID | None = None,
@@ -201,6 +207,7 @@ class EntityManager:
             item = await self._items.get_item_with_model(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
                 for_update=True,
@@ -288,12 +295,14 @@ class EntityManager:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None = None,
         model_key: str,
         query_plan: Any = None,
     ) -> list[Any]:
         model = await self._items.get_model_definition_by_key(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_key=model_key,
         )
         if model is None:
@@ -301,6 +310,7 @@ class EntityManager:
         items = await self._items.list_items(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_definition_id=model.id,
         )
         if query_plan is not None and hasattr(query_plan, "filters") and query_plan.filters:

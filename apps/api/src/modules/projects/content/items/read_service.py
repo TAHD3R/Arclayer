@@ -41,12 +41,14 @@ class ProjectContentCanonicalItemReadService:
         site_id: UUID,
         params: PageParams,
         model_key: str | None,
+        environment_id: UUID | None = None,
     ) -> PageData[ContentItemOut]:
         model_definition_id: UUID | None = None
         if model_key is not None:
             model = await self.repo.get_model_definition_by_key(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_key=model_key,
             )
             if model is None:
@@ -56,6 +58,7 @@ class ProjectContentCanonicalItemReadService:
         items = await self.repo.list_items(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_definition_id=model_definition_id,
         )
         active_fields = await self.runtime_boundary.resolve_active_item_fields(items)
@@ -75,10 +78,12 @@ class ProjectContentCanonicalItemReadService:
         workspace_id: UUID,
         site_id: UUID,
         item_id: UUID,
+        environment_id: UUID | None = None,
     ) -> ContentItemOut:
         item = await self.repo.get_item_with_model(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
         )
         if item is None:
@@ -142,12 +147,14 @@ class ProjectContentCanonicalItemReadService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         version_number: int,
     ) -> ContentVersionRecord:
         system_object = await self.history.get_version_or_raise(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
             version_number=version_number,
         )
@@ -160,10 +167,12 @@ class ProjectContentCanonicalItemReadService:
         site_id: UUID,
         item_id: UUID,
         version_number: int,
+        environment_id: UUID | None = None,
     ) -> ContentVersionOut:
         version = await self._get_item_version(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
             version_number=version_number,
         )
@@ -176,10 +185,12 @@ class ProjectContentCanonicalItemReadService:
         site_id: UUID,
         item_id: UUID,
         params: PageParams,
+        environment_id: UUID | None = None,
     ) -> PageData[ContentVersionOut]:
         system_objects = await self.history.list_versions(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
         )
         return system_objects.to_contract_page(params=params)
@@ -191,10 +202,12 @@ class ProjectContentCanonicalItemReadService:
         site_id: UUID,
         item_id: UUID,
         version_number: int,
+        environment_id: UUID | None = None,
     ) -> list[ContentPresentationOut]:
         version = await self._get_item_version(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
             version_number=version_number,
         )
@@ -218,10 +231,12 @@ class ProjectContentCanonicalItemReadService:
         site_id: UUID,
         item_id: UUID,
         version_number: int,
+        environment_id: UUID | None = None,
     ) -> ContentSeoProfileOut:
         version = await self._get_item_version(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
             version_number=version_number,
         )
@@ -237,10 +252,12 @@ class ProjectContentCanonicalItemReadService:
         site_id: UUID,
         item_id: UUID,
         version_number: int,
+        environment_id: UUID | None = None,
     ) -> list[ContentComponentBindingOut]:
         version = await self._get_item_version(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
             version_number=version_number,
         )

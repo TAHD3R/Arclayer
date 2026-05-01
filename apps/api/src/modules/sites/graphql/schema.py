@@ -503,6 +503,7 @@ async def _list_model_entries(
             runtime_id=info.context.runtime_id,
             model_key=model_key,
             perspective=resolved,
+            environment_id=info.context.environment_id,
             exact_filters=_query_filter_payload(model_key, filter_input, "exact"),
             contains_filters=_query_filter_payload(model_key, filter_input, "contains"),
             sort_field=sort_field,
@@ -532,18 +533,21 @@ async def _get_single_model_entry(
                 model_key=model_key,
                 slug=lookup_value,
                 perspective=resolved,
+                environment_id=info.context.environment_id,
             )
         elif schema.single_query.resolver == "get_page_record_by_path":
             record = await info.context.graphql.get_page_record_by_path(
                 runtime_id=info.context.runtime_id,
                 path=lookup_value,
                 perspective=resolved,
+                environment_id=info.context.environment_id,
             )
         elif schema.single_query.resolver == "get_reusable_section_record_by_alias":
             record = await info.context.graphql.get_reusable_section_record_by_alias(
                 runtime_id=info.context.runtime_id,
                 alias=lookup_value,
                 perspective=resolved,
+                environment_id=info.context.environment_id,
             )
         else:
             raise RuntimeError(f"GraphQL single query resolver is not registered: {schema.single_query.resolver}")

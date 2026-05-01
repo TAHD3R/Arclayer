@@ -16,6 +16,8 @@ from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.release import ContentReleaseRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.models.content.seo_profile import SEOProfileRecord
+from src.models.projects.environment import ProjectEnvironmentKey, ProjectEnvironmentRecord
+from src.models.sites.site import SiteRecord
 from src.modules.projects.content.continuation import CONTINUATION_TRUTH_MISSING_REASON_CODE
 from src.modules.projects.content.items.domain_helpers import WORKFLOW_PUBLISH_BLOCKER_CODE, item_has_capability
 from src.modules.projects.publish.schema import (
@@ -79,6 +81,7 @@ async def _load_publishable_items(
     *,
     workspace_id: UUID,
     site_id: UUID,
+    environment_id: UUID | None,
     conn: BaseDBAsyncClient,
 ) -> list[ContentItemRecord]:
     rows = (
@@ -86,6 +89,7 @@ async def _load_publishable_items(
         .filter(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             published_version__not_isnull=True,
         )
         .using_db(conn)
@@ -102,9 +106,15 @@ def _requires_route(item: ContentItemRecord) -> bool:
 async def _load_active_route_map(
     *,
     site_id: UUID,
+    environment_id: UUID | None,
     conn: BaseDBAsyncClient,
 ) -> dict[tuple[UUID, str], RouteBindingRecord]:
-    rows = await RouteBindingRecord.filter(site_id=site_id, is_active=True).using_db(conn).all()
+    rows = (
+        await RouteBindingRecord
+        .filter(site_id=site_id, environment_id=environment_id, is_active=True)
+        .using_db(conn)
+        .all()
+    )
     return {(row.item_id, row.locale): row for row in rows}
 
 
@@ -179,6 +189,31 @@ async def _next_release_number(*, site_id: UUID, conn) -> int:
     return (int(latest.release_number) if latest is not None else 0) + 1
 
 
+async def _production_environment_id(*, site_id: UUID, conn: BaseDBAsyncClient) -> UUID | None:
+    site = await SiteRecord.filter(id=site_id, project_id__not_isnull=True).using_db(conn).first()
+    if site is not None and site.project_id is not None:
+        environment = (
+            await ProjectEnvironmentRecord
+            .filter(project_id=site.project_id, key=ProjectEnvironmentKey.PRODUCTION)
+            .using_db(conn)
+            .first()
+        )
+        if environment is not None:
+            return UUID(str(environment.id))
+    environment = (
+        await ProjectEnvironmentRecord
+        .filter(content_model_definitions__site_id=site_id, key=ProjectEnvironmentKey.PRODUCTION)
+        .using_db(conn)
+        .first()
+    )
+    if environment is not None:
+        return UUID(str(environment.id))
+    item = await ContentItemRecord.filter(site_id=site_id, environment_id__not_isnull=True).using_db(conn).first()
+    if item is None or item.environment_id is None:
+        return None
+    return UUID(str(item.environment_id))
+
+
 class ProjectPublishService:
     def __init__(self, tenant_context: TenantContext) -> None:
         self.tenant_context = tenant_context
@@ -186,11 +221,17 @@ class ProjectPublishService:
 
     async def preview_impact(self, *, workspace_id: UUID, site_id: UUID) -> PublishImpactOut:
         async with self.tenant_db.connection() as conn:
-            items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id, conn=conn)
+            environment_id = await _production_environment_id(site_id=site_id, conn=conn)
+            items = await _load_publishable_items(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                conn=conn,
+            )
             if not items:
                 return _empty_impact()
 
-            route_map = await _load_active_route_map(site_id=site_id, conn=conn)
+            route_map = await _load_active_route_map(site_id=site_id, environment_id=environment_id, conn=conn)
             published_item_ids = {item.id for item in items}
             hierarchy_map = await _load_hierarchy_map(site_id=site_id, conn=conn)
             impact = _empty_impact()
@@ -254,8 +295,14 @@ class ProjectPublishService:
             )
 
         async with self.tenant_db.connection() as conn:
-            items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id, conn=conn)
-            route_map = await _load_active_route_map(site_id=site_id, conn=conn)
+            environment_id = await _production_environment_id(site_id=site_id, conn=conn)
+            items = await _load_publishable_items(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                conn=conn,
+            )
+            route_map = await _load_active_route_map(site_id=site_id, environment_id=environment_id, conn=conn)
             item_ids = [item.id for item in items]
             version_map = await _load_published_versions(item_ids=item_ids, conn=conn)
             hierarchy_map = await _load_hierarchy_map(site_id=site_id, conn=conn)

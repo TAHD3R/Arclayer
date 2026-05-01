@@ -92,6 +92,7 @@ async def list_project_content_items(
     data = await service.list_items_paginated(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         params=params,
         model_key=model_key,
     )
@@ -118,6 +119,7 @@ async def bulk_publish_project_content_items(
     data = await service.bulk_publish_items(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_ids=payload.item_ids,
         actor_user_id=actor_user_id,
     )
@@ -155,6 +157,7 @@ async def bulk_unpublish_project_content_items(
     data = await service.bulk_unpublish_items(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_ids=payload.item_ids,
         actor_user_id=actor_user_id,
     )
@@ -192,6 +195,7 @@ async def get_project_content_item(
     data = await service.get_item(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
     )
     return ApiResponse.success(data=data)
@@ -217,6 +221,7 @@ async def create_project_content_item(
     data = await service.create_item(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         actor_user_id=actor_user_id,
         payload=payload,
     )
@@ -255,6 +260,7 @@ async def duplicate_project_content_item(
     data = await service.duplicate_item(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
     )
@@ -293,6 +299,7 @@ async def delete_project_content_item(
     await service.delete_item(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
     )
@@ -328,6 +335,7 @@ async def archive_project_content_item(
     data = await service.archive_item(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
     )
@@ -362,6 +370,7 @@ async def unarchive_project_content_item(
     data = await service.unarchive_item(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
     )
@@ -397,6 +406,7 @@ async def apply_project_content_item_bootstrap_shape(
     data = await service.apply_bootstrap_shape(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
         payload=payload,
@@ -437,6 +447,7 @@ async def patch_project_content_item_workflow(
         project_id=ctx.project_id,
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
         payload=payload,
@@ -479,6 +490,7 @@ async def save_project_content_item_draft_version(
     data = await service.save_draft_version(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
         payload=payload,
@@ -517,6 +529,7 @@ async def list_project_content_item_versions(
     data = await service.list_versions_paginated(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         params=params,
     )
@@ -541,6 +554,7 @@ async def get_project_content_item_version(
     data = await service.get_version(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         version_number=version_number,
     )
@@ -566,6 +580,7 @@ async def compare_project_content_item_versions(
     data = await service.compare_versions(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         source_version_number=version_number,
         target_version_number=target_version_number,
@@ -594,6 +609,7 @@ async def restore_project_content_item_version(
     data = await service.restore_version_to_draft(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         version_number=version_number,
         actor_user_id=actor_user_id,
@@ -636,6 +652,7 @@ async def publish_project_content_item_version(
     data = await service.transition_version(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         version_number=version_number,
         target_state=ContentVersionState.PUBLISHED,
@@ -679,6 +696,7 @@ async def schedule_project_content_item_version(
     data = await service.transition_version(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         version_number=version_number,
         target_state=ContentVersionState.SCHEDULED,
@@ -720,6 +738,7 @@ async def archive_project_content_item_version(
     data = await service.transition_version(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         version_number=version_number,
         target_state=ContentVersionState.ARCHIVED,
@@ -762,6 +781,7 @@ async def patch_project_content_item_version(
     data = await service.patch_version(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         version_number=version_number,
         actor_user_id=actor_user_id,

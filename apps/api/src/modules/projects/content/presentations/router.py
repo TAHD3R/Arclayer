@@ -40,6 +40,7 @@ async def list_project_content_presentations(
     items = await service.list_presentations(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         version_number=version_number,
     )

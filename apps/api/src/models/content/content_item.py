@@ -31,6 +31,12 @@ class ContentItemRecord(BaseModel):
         related_name="content_items",
         on_delete=fields.CASCADE,
     )
+    environment = fields.ForeignKeyField(
+        "models.ProjectEnvironmentRecord",
+        related_name="content_items",
+        on_delete=fields.CASCADE,
+        null=True,
+    )
     model_definition = fields.ForeignKeyField(
         "models.ContentModelDefinitionRecord",
         related_name="items",
@@ -106,9 +112,10 @@ class ContentItemRecord(BaseModel):
     if TYPE_CHECKING:
         workspace_id: UUID
         site_id: UUID
+        environment_id: UUID | None
         model_definition_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "domain_content_items"
         abstract = False
-        unique_together = (("model_definition_id", "locale", "slug"),)
+        unique_together = (("model_definition_id", "environment_id", "locale", "slug"),)

@@ -112,6 +112,7 @@ class ProjectContentTransferService:
         project_id: UUID,
         site_id: UUID,
         runtime_id: UUID | None = None,
+        environment_id: UUID | None = None,
     ) -> ContentTransferExportResult:
         workspace = await self.repo.load_workspace(workspace_id=workspace_id)
         if workspace is None:
@@ -134,6 +135,7 @@ class ProjectContentTransferService:
             project=project,
             site=site,
             runtime=runtime,
+            environment_id=environment_id,
         )
         counts = self._resource_counts(resources)
         diagnostics = [
@@ -166,6 +168,7 @@ class ProjectContentTransferService:
                 site_name=site.name,
                 default_locale=site.default_locale,
                 fallback_locale=site.fallback_locale,
+                environment_id=str(environment_id) if environment_id is not None else None,
             ),
             resource_counts=counts,
             integrity_checks=self._integrity_checks(resources),
@@ -182,6 +185,7 @@ class ProjectContentTransferService:
         project_id: UUID,
         site_id: UUID,
         bundle: ContentTransferBundle,
+        environment_id: UUID | None = None,
     ) -> list[ContentTransferDiagnostic]:
         diagnostics = self._validate_manifest(bundle)
         identity = bundle.manifest.project_identity
@@ -212,7 +216,11 @@ class ProjectContentTransferService:
                     meta={"source": identity.site_id, "target": str(site_id)},
                 )
             )
-        if await self.repo.target_has_content(workspace_id=workspace_id, site_id=site_id):
+        if await self.repo.target_has_content(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+        ):
             diagnostics.append(
                 _blocking(
                     "CONTENT_TRANSFER_TARGET_NOT_EMPTY",
@@ -229,12 +237,14 @@ class ProjectContentTransferService:
         project_id: UUID,
         site_id: UUID,
         bundle: ContentTransferBundle,
+        environment_id: UUID | None = None,
     ) -> ContentTransferImportResult:
         diagnostics = await self.validate_import(
             workspace_id=workspace_id,
             project_id=project_id,
             site_id=site_id,
             bundle=bundle,
+            environment_id=environment_id,
         )
         if any(diagnostic.severity == "blocking" for diagnostic in diagnostics):
             raise Conflict(
@@ -275,10 +285,19 @@ class ProjectContentTransferService:
         project,
         site,
         runtime,
+        environment_id: UUID | None,
     ) -> ContentTransferResourceBundle:
-        models = await self.repo.load_content_models(workspace_id=workspace_id, site_id=site_id)
+        models = await self.repo.load_content_models(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+        )
         model_ids = [row.id for row in models]
-        items = await self.repo.load_content_items(workspace_id=workspace_id, site_id=site_id)
+        items = await self.repo.load_content_items(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+        )
         item_ids = [row.id for row in items]
         versions = await self.repo.load_versions(item_ids=item_ids)
         version_ids = [row.id for row in versions]
@@ -311,7 +330,11 @@ class ProjectContentTransferService:
             ],
             route_bindings=[
                 self._route_binding_payload(row)
-                for row in await self.repo.load_route_bindings(workspace_id=workspace_id, site_id=site_id)
+                for row in await self.repo.load_route_bindings(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                )
             ],
             hierarchy_nodes=[
                 self._hierarchy_payload(row)
@@ -501,6 +524,7 @@ class ProjectContentTransferService:
                 "id",
                 "workspace_id",
                 "site_id",
+                "environment_id",
                 "singular_key",
                 "plural_key",
                 "name",
@@ -592,6 +616,7 @@ class ProjectContentTransferService:
                 "workspace_id",
                 "site_id",
                 "model_definition_id",
+                "environment_id",
                 "slug",
                 "title",
                 "status",
@@ -678,6 +703,7 @@ class ProjectContentTransferService:
                 "workspace_id",
                 "site_id",
                 "item_id",
+                "environment_id",
                 "locale",
                 "path",
                 "route_contract",

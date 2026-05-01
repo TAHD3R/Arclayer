@@ -360,6 +360,7 @@ class SiteGraphQLService:
         runtime_id: UUID,
         model_key: str,
         perspective: GraphQLPerspective,
+        environment_id: UUID | None = None,
         exact_filters: dict[str, str] | None = None,
         contains_filters: dict[str, str] | None = None,
         sort_field: str | None = None,
@@ -379,7 +380,7 @@ class SiteGraphQLService:
             limit=limit,
             offset=offset,
         )
-        query_records = await self._list_plan_records(plan)
+        query_records = await self._list_plan_records(plan, environment_id=environment_id)
 
         boundary = self._document_runtime_boundary.build_query_boundary(query_records)
         result = boundary.execute(
@@ -419,10 +420,23 @@ class SiteGraphQLService:
             return filtered[plan.bounded_offset :]
         return filtered[plan.bounded_offset : plan.bounded_offset + plan.bounded_limit]
 
-    async def _list_plan_records(self, plan: GraphQLQueryPlan) -> list[DocumentQueryRecord]:
+    async def _list_plan_records(
+        self,
+        plan: GraphQLQueryPlan,
+        *,
+        environment_id: UUID | None,
+    ) -> list[DocumentQueryRecord]:
         if plan.perspective == "published":
-            return await self._list_published_records(site_id=plan.site_id, model_key=plan.model_key)
-        return await self._list_preview_records(site_id=plan.site_id, model_key=plan.model_key)
+            return await self._list_published_records(
+                site_id=plan.site_id,
+                model_key=plan.model_key,
+                environment_id=environment_id,
+            )
+        return await self._list_preview_records(
+            site_id=plan.site_id,
+            model_key=plan.model_key,
+            environment_id=environment_id,
+        )
 
     async def get_record_by_slug(
         self,
@@ -431,11 +445,17 @@ class SiteGraphQLService:
         model_key: str,
         slug: str,
         perspective: GraphQLPerspective,
+        environment_id: UUID | None = None,
     ) -> StructuredContentRecord | None:
         normalized = slug.strip()
         if not normalized:
             return None
-        records = await self.list_records(runtime_id=runtime_id, model_key=model_key, perspective=perspective)
+        records = await self.list_records(
+            runtime_id=runtime_id,
+            model_key=model_key,
+            perspective=perspective,
+            environment_id=environment_id,
+        )
         for record in records:
             if record.slug == normalized:
                 return record
@@ -447,11 +467,17 @@ class SiteGraphQLService:
         runtime_id: UUID,
         path: str,
         perspective: GraphQLPerspective,
+        environment_id: UUID | None = None,
     ) -> StructuredContentRecord | None:
         normalized = path.strip()
         if not normalized:
             return None
-        records = await self.list_records(runtime_id=runtime_id, model_key="page", perspective=perspective)
+        records = await self.list_records(
+            runtime_id=runtime_id,
+            model_key="page",
+            perspective=perspective,
+            environment_id=environment_id,
+        )
         for record in records:
             record_path = record.route_path or str(record.fields.get("path") or "")
             if record_path == normalized:
@@ -464,11 +490,17 @@ class SiteGraphQLService:
         runtime_id: UUID,
         alias: str,
         perspective: GraphQLPerspective,
+        environment_id: UUID | None = None,
     ) -> StructuredContentRecord | None:
         normalized = alias.strip()
         if not normalized:
             return None
-        records = await self.list_records(runtime_id=runtime_id, model_key="reusable-section", perspective=perspective)
+        records = await self.list_records(
+            runtime_id=runtime_id,
+            model_key="reusable-section",
+            perspective=perspective,
+            environment_id=environment_id,
+        )
         for record in records:
             if (
                 _extract_system_field(
@@ -481,10 +513,26 @@ class SiteGraphQLService:
                 return record
         return None
 
-    async def _list_preview_records(self, *, site_id: UUID, model_key: str) -> list[DocumentQueryRecord]:
-        items = await self._repo.list_content_entries_by_model_key(site_id=site_id, model_key=model_key)
+    async def _list_preview_records(
+        self,
+        *,
+        site_id: UUID,
+        model_key: str,
+        environment_id: UUID | None,
+    ) -> list[DocumentQueryRecord]:
+        items = await self._repo.list_content_entries_by_model_key(
+            site_id=site_id,
+            model_key=model_key,
+            environment_id=environment_id,
+        )
         route_bindings: dict[UUID, RouteBindingRecord] = (
-            {binding.item_id: binding for binding in await self._repo.list_content_route_bindings(site_id=site_id)}
+            {
+                binding.item_id: binding
+                for binding in await self._repo.list_content_route_bindings(
+                    site_id=site_id,
+                    environment_id=environment_id,
+                )
+            }
             if model_key == "page"
             else {}
         )
@@ -524,8 +572,18 @@ class SiteGraphQLService:
             ),
         )
 
-    async def _list_published_records(self, *, site_id: UUID, model_key: str) -> list[DocumentQueryRecord]:
-        graph_nodes = await self._repo.list_active_release_nodes_by_model_key(site_id=site_id, model_key=model_key)
+    async def _list_published_records(
+        self,
+        *,
+        site_id: UUID,
+        model_key: str,
+        environment_id: UUID | None,
+    ) -> list[DocumentQueryRecord]:
+        graph_nodes = await self._repo.list_active_release_nodes_by_model_key(
+            site_id=site_id,
+            model_key=model_key,
+            environment_id=environment_id,
+        )
         records: list[DocumentQueryRecord] = []
         for graph_node in graph_nodes:
             snapshot = await self._build_snapshot(item=graph_node.item, version=graph_node.version)
@@ -691,6 +749,7 @@ class SiteGraphQLService:
 
 class SiteGraphQLContext(BaseContext):
     runtime_id: UUID
+    environment_id: UUID | None
     request: Request
     graphql: SiteGraphQLService
 
@@ -700,10 +759,12 @@ class SiteGraphQLContext(BaseContext):
         runtime_id: UUID,
         request: Request,
         settings: Settings,
+        environment_id: UUID | None = None,
         valkey: ValkeyClientLike | None = None,
         graphql: SiteGraphQLService | None = None,
     ) -> None:
         self.runtime_id = runtime_id
+        self.environment_id = environment_id
         self.request = request
         self.graphql = graphql or SiteGraphQLService(settings, valkey=valkey)
 

@@ -40,6 +40,7 @@ async def get_project_content_seo_profile(
     data = await service.get_seo_profile(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         version_number=version_number,
     )

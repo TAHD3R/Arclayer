@@ -120,7 +120,7 @@ Status values:
 | F09 | `f09-images-api.md` | 5 | medium | verified | Added URL-driven transforms for public and project-local assets with strict params, deterministic local cache keys, format/quality/fit support, permission-aligned project delivery, docs, focused tests, and passing `pnpm api:check`. |
 | F04 | `f04-search-integration.md` | 5 | medium | verified | Added Meilisearch-backed Content API search with explicit adapter boundary, delivery-shaped indexing, publish/unpublish/delete lifecycle updates, operational docs, focused search tests, and passing `pnpm api:check`. |
 | P03 | `p03-sso-providers.md` | 5 | low | blocked | Added provider definitions and OAuth flows for Microsoft and Discord, data-driven Admin OAuth settings, localized provider labels, and focused API/Admin coverage; `pnpm api:check` passed, while `pnpm admin:check` is blocked by the existing `team-roles-view.tsx` permission condition type mismatch. |
-| F10 | `f10-environment-system.md` | 5 | high | planned | Add environments and aliases. |
+| F10 | `f10-environment-system.md` | 5 | high | verified | Added project content environments, master alias switching, environment-aware content model/item/runtime delivery reads, clone/promote copy flows, transfer environment metadata, migration backfills, focused integration coverage, and passing `pnpm api:check`. |
 
 ## Per-Task Completion Contract
 

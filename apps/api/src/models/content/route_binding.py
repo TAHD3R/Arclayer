@@ -26,6 +26,12 @@ class RouteBindingRecord(BaseModel):
         related_name="route_bindings",
         on_delete=fields.CASCADE,
     )
+    environment = fields.ForeignKeyField(
+        "models.ProjectEnvironmentRecord",
+        related_name="content_route_bindings",
+        on_delete=fields.CASCADE,
+        null=True,
+    )
 
     locale = fields.CharField(max_length=16, default="zh-CN", db_index=True)
     path = fields.CharField(max_length=512, db_index=True)
@@ -36,8 +42,9 @@ class RouteBindingRecord(BaseModel):
         workspace_id: UUID
         site_id: UUID
         item_id: UUID
+        environment_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "domain_content_route_bindings"
         abstract = False
-        unique_together = (("site_id", "locale", "path"), ("item_id", "locale"))
+        unique_together = (("site_id", "environment_id", "locale", "path"), ("item_id", "environment_id", "locale"))

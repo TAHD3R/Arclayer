@@ -35,6 +35,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         workspace_id: UUID,
         site_id: UUID,
         q: str | None = None,
+        environment_id: UUID | None = None,
         category: str | None = None,
         model_kind: str | None = None,
         system_managed: bool | None = None,
@@ -43,7 +44,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         async with self.connection(conn) as tenant_conn:
             qs = (
                 ContentModelDefinitionRecord
-                .filter(workspace_id=workspace_id, site_id=site_id)
+                .filter(workspace_id=workspace_id, site_id=site_id, environment_id=environment_id)
                 .prefetch_related("fields", "relations", "views")
                 .order_by("name", "singular_key")
             )
@@ -69,6 +70,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         workspace_id: UUID,
         site_id: UUID,
         model_id: UUID,
+        environment_id: UUID | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentModelDefinitionRecord | None:
         async with self.connection(conn) as tenant_conn:
@@ -77,6 +79,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
                 .filter(
                     workspace_id=workspace_id,
                     site_id=site_id,
+                    environment_id=environment_id,
                     id=model_id,
                 )
                 .prefetch_related("fields", "relations", "views")
@@ -117,11 +120,13 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         fields: list[ContentModelFieldContract],
         relations: list[ContentModelRelationContract],
         views: list[ContentModelViewContract],
+        environment_id: UUID | None = None,
     ) -> ContentModelDefinitionRecord:
         async with self.connection() as conn:
             record = await ContentModelDefinitionRecord.create(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 singular_key=singular_key,
                 plural_key=plural_key,
                 name=name,
@@ -154,6 +159,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
                 conn=conn,
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_id=record.id,
                 relations=relations,
             )
@@ -161,6 +167,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
             hydrated = await self.get_model_definition(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_id=record.id,
                 conn=conn,
             )
@@ -175,12 +182,14 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         site_id: UUID,
         value: str,
         exclude_model_id: UUID | None = None,
+        environment_id: UUID | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> bool:
         async with self.connection(conn) as tenant_conn:
             qs = ContentModelDefinitionRecord.filter(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
             ).filter(Q(singular_key=value) | Q(plural_key=value))
             if exclude_model_id is not None:
                 qs = qs.exclude(id=exclude_model_id)
@@ -196,6 +205,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         fields: list[ContentModelFieldContract] | None,
         relations: list[ContentModelRelationContract] | None,
         views: list[ContentModelViewContract] | None,
+        environment_id: UUID | None = None,
     ) -> ContentModelDefinitionRecord | None:
         async with self.connection() as conn:
             record = await (
@@ -203,6 +213,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
                 .filter(
                     workspace_id=workspace_id,
                     site_id=site_id,
+                    environment_id=environment_id,
                     id=model_id,
                 )
                 .using_db(conn)
@@ -224,6 +235,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
                     conn=conn,
                     workspace_id=workspace_id,
                     site_id=site_id,
+                    environment_id=environment_id,
                     model_id=model_id,
                     relations=relations,
                 )
@@ -233,6 +245,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
             return await self.get_model_definition(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_id=model_id,
                 conn=conn,
             )
@@ -244,11 +257,13 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         site_id: UUID,
         model_id: UUID,
         conn: BaseDBAsyncClient | None = None,
+        environment_id: UUID | None = None,
     ) -> list[ContentItemRecord]:
         async with self.connection(conn) as tenant_conn:
             qs = ContentItemRecord.filter(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_definition_id=model_id,
             ).order_by("id")
             return list(await self.using_db(qs, tenant_conn))
@@ -259,6 +274,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         workspace_id: UUID,
         site_id: UUID,
         model_id: UUID,
+        environment_id: UUID | None = None,
     ) -> bool:
         async with self.connection() as conn:
             record = await (
@@ -266,6 +282,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
                 .filter(
                     workspace_id=workspace_id,
                     site_id=site_id,
+                    environment_id=environment_id,
                     id=model_id,
                 )
                 .using_db(conn)
@@ -313,6 +330,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         conn: BaseDBAsyncClient,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         relations: list[ContentModelRelationContract],
     ) -> None:
@@ -324,6 +342,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
             conn=conn,
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             target_keys=[item.target_model_key for item in relations],
         )
         rows = [
@@ -372,6 +391,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         conn: BaseDBAsyncClient,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         target_keys: list[str],
     ) -> dict[str, UUID]:
         unique_keys = sorted({key for key in target_keys if key})
@@ -384,6 +404,7 @@ class ProjectContentModelsRepository(TenantScopedRepository):
             .filter(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 singular_key__in=unique_keys,
             )
             .using_db(conn)

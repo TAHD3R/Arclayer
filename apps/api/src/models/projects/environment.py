@@ -45,6 +45,35 @@ class ProjectEnvironmentRecord(BaseModel):
         unique_together = (("project_id", "key"),)
 
 
+class ProjectEnvironmentAliasRecord(BaseModel):
+    """Domain model for project environment alias records."""
+
+    project = fields.ForeignKeyField(
+        "models.ProjectRecord",
+        related_name="environment_aliases",
+        on_delete=fields.CASCADE,
+    )
+    target_environment = fields.ForeignKeyField(
+        "models.ProjectEnvironmentRecord",
+        related_name="aliases",
+        on_delete=fields.CASCADE,
+    )
+    key = fields.CharField(max_length=64, db_index=True)
+    name = fields.CharField(max_length=64)
+    created_by_user_id = fields.UUIDField(null=True, db_index=True)
+    switched_by_user_id = fields.UUIDField(null=True, db_index=True)
+    switched_at = fields.DatetimeField(null=True, db_index=True)
+
+    if TYPE_CHECKING:
+        project_id: UUID
+        target_environment_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "domain_project_environment_aliases"
+        abstract = False
+        unique_together = (("project_id", "key"),)
+
+
 async def bootstrap_project_environments(
     *,
     project_id: UUID,
@@ -73,3 +102,34 @@ async def bootstrap_project_environments(
     ]
     if rows:
         await ProjectEnvironmentRecord.bulk_create(rows, using_db=using_db)
+
+    production = (
+        await ProjectEnvironmentRecord
+        .filter(project_id=project_id, key=ProjectEnvironmentKey.PRODUCTION)
+        .using_db(using_db)
+        .first()
+    )
+    if production is None:
+        return
+
+    existing_aliases = {
+        str(value)
+        for value in await ProjectEnvironmentAliasRecord
+        .filter(project_id=project_id)
+        .using_db(using_db)
+        .values_list("key", flat=True)
+        if value is not None
+    }
+    alias_rows = [
+        ProjectEnvironmentAliasRecord(
+            project_id=project_id,
+            target_environment_id=production.id,
+            key="master",
+            name="Master",
+            created_by_user_id=actor_user_id,
+        )
+        for key in ("master",)
+        if key not in existing_aliases
+    ]
+    if alias_rows:
+        await ProjectEnvironmentAliasRecord.bulk_create(alias_rows, using_db=using_db)

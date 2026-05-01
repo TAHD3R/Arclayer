@@ -236,6 +236,41 @@ class ProjectDeploymentsService:
                 meta={"deploymentId": str(deployment.id)},
             ) from exc
 
+    async def get_release_id_for_environment(
+        self,
+        *,
+        site_id: UUID,
+        environment_id: UUID,
+    ) -> UUID | None:
+        site = await self._require_project_site(site_id=site_id)
+        project_id = site.project_id
+        if project_id is None:
+            raise NotFound(_te("PROJECT_SITE_NOT_FOUND"), error="PROJECT_SITE_NOT_FOUND")
+        async with self._operation_connection() as conn:
+            deployment = (
+                await self
+                ._using_db(
+                    ProjectDeploymentRecord.filter(
+                        project_id=project_id,
+                        environment_id=environment_id,
+                        is_active=True,
+                    ),
+                    conn,
+                )
+                .order_by("-created_at", "-id")
+                .first()
+            )
+        if deployment is None or deployment.source_type != ProjectDeploymentSourceType.CMS_RUNTIME:
+            return None
+        try:
+            return UUID(str(deployment.source_ref))
+        except ValueError as exc:
+            raise BadRequest(
+                _te("PROJECT_DEPLOYMENT_SOURCE_REF_INVALID"),
+                error="PROJECT_DEPLOYMENT_SOURCE_REF_INVALID",
+                meta={"deploymentId": str(deployment.id)},
+            ) from exc
+
     async def _require_project_site(self, *, site_id: UUID) -> SiteRecord:
         async with self._operation_connection() as conn:
             site = await self._using_db(

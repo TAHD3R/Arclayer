@@ -93,30 +93,47 @@ class RuntimeRepositoryMixin:
             .first()
         )
 
-    async def list_content_route_bindings(self, *, site_id: UUID) -> list[RouteBindingRecord]:
+    async def list_content_route_bindings(
+        self,
+        *,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+    ) -> list[RouteBindingRecord]:
+        qs = RouteBindingRecord.filter(site_id=site_id, is_active=True)
+        if environment_id is not None:
+            qs = qs.filter(item__environment_id=environment_id)
+        return list(await self._using_db(qs, self._conn).prefetch_related("item__model_definition").all())
+
+    async def list_content_entries_by_model_key(
+        self,
+        *,
+        site_id: UUID,
+        model_key: str,
+        environment_id: UUID | None = None,
+    ) -> list[ContentItemRecord]:
+        qs = ContentItemRecord.filter(site_id=site_id, model_definition__singular_key=model_key)
+        if environment_id is not None:
+            qs = qs.filter(environment_id=environment_id, model_definition__environment_id=environment_id)
         return list(
-            await self
-            ._using_db(RouteBindingRecord.filter(site_id=site_id, is_active=True), self._conn)
-            .prefetch_related("item__model_definition")
-            .all()
+            await self._using_db(qs, self._conn).prefetch_related("model_definition", "model_definition__fields").all()
         )
 
-    async def list_content_entries_by_model_key(self, *, site_id: UUID, model_key: str) -> list[ContentItemRecord]:
-        return list(
-            await self
-            ._using_db(
-                ContentItemRecord.filter(site_id=site_id, model_definition__singular_key=model_key),
-                self._conn,
+    async def get_active_release(
+        self,
+        *,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+    ) -> ContentReleaseRecord | None:
+        if environment_id is not None:
+            deployment_release_id = await self._deployments.get_release_id_for_environment(
+                site_id=site_id,
+                environment_id=environment_id,
             )
-            .prefetch_related("model_definition", "model_definition__fields")
-            .all()
-        )
-
-    async def get_active_release(self, *, site_id: UUID) -> ContentReleaseRecord | None:
-        deployment_release_id = await self._deployments.get_environment_release_id(
-            site_id=site_id,
-            environment_key=ProjectEnvironmentKey.PRODUCTION,
-        )
+        else:
+            deployment_release_id = await self._deployments.get_environment_release_id(
+                site_id=site_id,
+                environment_key=ProjectEnvironmentKey.PRODUCTION,
+            )
         if deployment_release_id is not None:
             return await self._using_db(
                 ContentReleaseRecord.filter(id=deployment_release_id, site_id=site_id),
@@ -124,8 +141,13 @@ class RuntimeRepositoryMixin:
             ).first()
         return None
 
-    async def list_active_release_route_nodes(self, *, site_id: UUID) -> list[PublishedGraphRecord]:
-        active_release = await self.get_active_release(site_id=site_id)
+    async def list_active_release_route_nodes(
+        self,
+        *,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+    ) -> list[PublishedGraphRecord]:
+        active_release = await self.get_active_release(site_id=site_id, environment_id=environment_id)
         if active_release is None:
             return []
         return list(
@@ -147,8 +169,9 @@ class RuntimeRepositoryMixin:
         *,
         site_id: UUID,
         item_id: UUID,
+        environment_id: UUID | None = None,
     ) -> PublishedGraphRecord | None:
-        active_release = await self.get_active_release(site_id=site_id)
+        active_release = await self.get_active_release(site_id=site_id, environment_id=environment_id)
         if active_release is None:
             return None
         return (
@@ -188,20 +211,21 @@ class RuntimeRepositoryMixin:
         *,
         site_id: UUID,
         model_key: str,
+        environment_id: UUID | None = None,
     ) -> list[PublishedGraphRecord]:
-        active_release = await self.get_active_release(site_id=site_id)
+        active_release = await self.get_active_release(site_id=site_id, environment_id=environment_id)
         if active_release is None:
             return []
+        qs = PublishedGraphRecord.filter(
+            release_id=active_release.id,
+            site_id=site_id,
+            item__model_definition__singular_key=model_key,
+        )
+        if environment_id is not None:
+            qs = qs.filter(item__environment_id=environment_id, item__model_definition__environment_id=environment_id)
         return list(
             await self
-            ._using_db(
-                PublishedGraphRecord.filter(
-                    release_id=active_release.id,
-                    site_id=site_id,
-                    item__model_definition__singular_key=model_key,
-                ),
-                self._conn,
-            )
+            ._using_db(qs, self._conn)
             .prefetch_related("item__model_definition", "item__model_definition__fields", "version")
             .all()
         )

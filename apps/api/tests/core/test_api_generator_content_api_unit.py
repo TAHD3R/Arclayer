@@ -133,6 +133,8 @@ async def test_generated_controller_paginates_locale_filters_and_shapes_visible_
         query=ContentApiListQuery(
             perspective="published",
             preview_token=None,
+            environment=None,
+            environment_id=None,
             locale="en-US",
             exact_filters={"slug": "visible"},
             contains_filters={"title": "vis"},
@@ -176,6 +178,8 @@ async def test_generated_controller_detail_raises_not_found_for_missing_entry() 
             entry_id=UUID("00000000-0000-0000-0000-000000000001"),
             perspective="preview",
             preview_token="preview",
+            environment=None,
+            environment_id=None,
             locale=None,
         )
 

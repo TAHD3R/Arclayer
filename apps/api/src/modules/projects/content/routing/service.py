@@ -201,20 +201,18 @@ async def _get_item_with_model(
     *,
     workspace_id: UUID,
     site_id: UUID,
+    environment_id: UUID | None,
     item_id: UUID,
     conn: BaseDBAsyncClient,
 ) -> ContentItemRecord:
-    item = (
-        await ContentItemRecord
-        .filter(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            id=item_id,
-        )
-        .using_db(conn)
-        .prefetch_related("model_definition")
-        .first()
+    query = ContentItemRecord.filter(
+        workspace_id=workspace_id,
+        site_id=site_id,
+        id=item_id,
     )
+    if environment_id is not None:
+        query = query.filter(environment_id=environment_id)
+    item = await query.using_db(conn).prefetch_related("model_definition").first()
     if item is None:
         raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
     return item
@@ -243,6 +241,7 @@ async def _ensure_no_hierarchy_cycle(
 async def _ensure_no_pattern_conflict(
     *,
     site_id: UUID,
+    environment_id: UUID | None,
     locale: str,
     item_id: UUID,
     pattern: ParsedRoutePattern,
@@ -250,7 +249,13 @@ async def _ensure_no_pattern_conflict(
 ) -> None:
     if pattern.mode != "dynamic":
         return
-    rows = await RouteBindingRecord.filter(site_id=site_id, locale=locale).using_db(conn).exclude(item_id=item_id).all()
+    rows = (
+        await RouteBindingRecord
+        .filter(site_id=site_id, environment_id=environment_id, locale=locale)
+        .using_db(conn)
+        .exclude(item_id=item_id)
+        .all()
+    )
     for row in rows:
         contract = row.route_contract if isinstance(row.route_contract, dict) else {}
         row_signature = str(contract.get("structureSignature") or parse_route_pattern(row.path).structure_signature)
@@ -263,11 +268,17 @@ class ProjectContentRoutingService:
     def __init__(self, tenant_context: TenantContext) -> None:
         self.tenant_db = TenantDatabaseRouter(tenant_context)
 
-    async def list_route_bindings(self, *, workspace_id: UUID, site_id: UUID) -> list[RouteBindingOut]:
+    async def list_route_bindings(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None,
+    ) -> list[RouteBindingOut]:
         async with self.tenant_db.connection() as conn:
             rows = (
                 await RouteBindingRecord
-                .filter(workspace_id=workspace_id, site_id=site_id)
+                .filter(workspace_id=workspace_id, site_id=site_id, environment_id=environment_id)
                 .using_db(conn)
                 .order_by("locale", "path")
             )
@@ -278,6 +289,7 @@ class ProjectContentRoutingService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         payload: RouteBindingUpsertIn,
     ) -> RouteBindingOut:
@@ -285,11 +297,18 @@ class ProjectContentRoutingService:
         contract = build_route_contract(payload)
         pattern = parse_route_pattern(payload.path, route_mode=payload.route_mode)
         async with self.tenant_db.connection() as conn:
-            item = await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=item_id, conn=conn)
+            item = await _get_item_with_model(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                item_id=item_id,
+                conn=conn,
+            )
             if not item_has_capability(item, "routable"):
                 raise Conflict("Content item is not routable", error="CONTENT_ITEM_NOT_ROUTABLE")
             await _ensure_no_pattern_conflict(
                 site_id=site_id,
+                environment_id=environment_id,
                 locale=locale,
                 item_id=item_id,
                 pattern=pattern,
@@ -297,7 +316,7 @@ class ProjectContentRoutingService:
             )
             record = (
                 await RouteBindingRecord
-                .filter(site_id=site_id, item_id=item_id, locale=locale)
+                .filter(site_id=site_id, environment_id=environment_id, item_id=item_id, locale=locale)
                 .using_db(conn)
                 .select_for_update()
                 .first()
@@ -307,6 +326,7 @@ class ProjectContentRoutingService:
                     record = await RouteBindingRecord.create(
                         workspace_id=workspace_id,
                         site_id=site_id,
+                        environment_id=environment_id,
                         item_id=item_id,
                         locale=locale,
                         path=pattern.path,
@@ -346,7 +366,13 @@ class ProjectContentRoutingService:
     ) -> HierarchyNodeOut:
         parent_item_id = payload.parent_item_id
         async with self.tenant_db.connection() as conn:
-            item = await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=item_id, conn=conn)
+            item = await _get_item_with_model(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=None,
+                item_id=item_id,
+                conn=conn,
+            )
             if not item_has_capability(item, "treeable"):
                 raise Conflict("Content item is not treeable", error="CONTENT_ITEM_NOT_TREEABLE")
 
@@ -354,6 +380,7 @@ class ProjectContentRoutingService:
                 await _get_item_with_model(
                     workspace_id=workspace_id,
                     site_id=site_id,
+                    environment_id=None,
                     item_id=parent_item_id,
                     conn=conn,
                 )

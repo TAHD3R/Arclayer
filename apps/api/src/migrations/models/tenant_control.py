@@ -83,6 +83,8 @@ ALTER TABLE {schema}.domain_content_model_definitions
 """.strip(),
             """
 DO $$
+DECLARE
+    constraint_record record;
 BEGIN
     IF EXISTS (
         SELECT 1
@@ -161,6 +163,176 @@ ALTER TABLE {schema}.domain_content_model_definitions
             """
 CREATE INDEX IF NOT EXISTS idx_domain_content_model_definitions_updated_by_user_id
     ON {schema}.domain_content_model_definitions (updated_by_user_id)
+""".strip(),
+        ),
+    ),
+    TenantMigration.create(
+        version=5,
+        name="content_environment_scope",
+        sql=(
+            """
+ALTER TABLE {schema}.domain_content_model_definitions
+    ADD COLUMN IF NOT EXISTS environment_id UUID NULL
+""".strip(),
+            """
+ALTER TABLE {schema}.domain_content_items
+    ADD COLUMN IF NOT EXISTS environment_id UUID NULL
+""".strip(),
+            """
+ALTER TABLE {schema}.domain_content_route_bindings
+    ADD COLUMN IF NOT EXISTS environment_id UUID NULL
+""".strip(),
+            """
+UPDATE {schema}.domain_content_model_definitions models
+SET environment_id = env.id
+FROM public.domain_sites sites
+JOIN public.domain_project_environments env
+  ON env.project_id = sites.project_id
+ AND env.key = 'production'
+WHERE models.site_id = sites.id
+  AND models.environment_id IS NULL
+""".strip(),
+            """
+UPDATE {schema}.domain_content_items items
+SET environment_id = env.id
+FROM public.domain_sites sites
+JOIN public.domain_project_environments env
+  ON env.project_id = sites.project_id
+ AND env.key = 'production'
+WHERE items.site_id = sites.id
+  AND items.environment_id IS NULL
+""".strip(),
+            """
+UPDATE {schema}.domain_content_route_bindings bindings
+SET environment_id = items.environment_id
+FROM {schema}.domain_content_items items
+WHERE bindings.item_id = items.id
+  AND bindings.environment_id IS NULL
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_domain_content_model_definitions_environment_id
+    ON {schema}.domain_content_model_definitions (environment_id)
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_domain_content_items_environment_id
+    ON {schema}.domain_content_items (environment_id)
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_domain_content_route_bindings_environment_id
+    ON {schema}.domain_content_route_bindings (environment_id)
+""".strip(),
+            """
+DO $$
+DECLARE
+    constraint_record record;
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = '{schema}.domain_content_items'::regclass
+          AND conname = 'uid_domain_con_model__b995f5'
+    ) THEN
+        ALTER TABLE {schema}.domain_content_items
+            DROP CONSTRAINT uid_domain_con_model__b995f5;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
+          AND conname = 'uq_domain_content_model_definitions_singular_key'
+    ) THEN
+        ALTER TABLE {schema}.domain_content_model_definitions
+            DROP CONSTRAINT uq_domain_content_model_definitions_singular_key;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
+          AND conname = 'uq_domain_content_model_definitions_plural_key'
+    ) THEN
+        ALTER TABLE {schema}.domain_content_model_definitions
+            DROP CONSTRAINT uq_domain_content_model_definitions_plural_key;
+    END IF;
+
+    FOR constraint_record IN
+        SELECT con.conname
+        FROM pg_constraint con
+        WHERE con.conrelid = '{schema}.domain_content_route_bindings'::regclass
+          AND con.contype = 'u'
+        GROUP BY con.conname, con.conkey, con.conrelid
+        HAVING ARRAY(
+            SELECT attr.attname::text
+            FROM unnest(con.conkey) AS column_id
+            JOIN pg_attribute attr ON attr.attrelid = con.conrelid AND attr.attnum = column_id
+            ORDER BY attr.attname
+        ) IN (
+            ARRAY['locale', 'path', 'site_id'],
+            ARRAY['item_id', 'locale']
+        )
+    LOOP
+        EXECUTE format(
+            'ALTER TABLE {schema}.domain_content_route_bindings DROP CONSTRAINT %I',
+            constraint_record.conname
+        );
+    END LOOP;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
+          AND conname = 'uq_domain_content_model_definitions_env_singular_key'
+    ) THEN
+        ALTER TABLE {schema}.domain_content_model_definitions
+            ADD CONSTRAINT uq_domain_content_model_definitions_env_singular_key
+            UNIQUE (workspace_id, site_id, environment_id, singular_key);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = '{schema}.domain_content_model_definitions'::regclass
+          AND conname = 'uq_domain_content_model_definitions_env_plural_key'
+    ) THEN
+        ALTER TABLE {schema}.domain_content_model_definitions
+            ADD CONSTRAINT uq_domain_content_model_definitions_env_plural_key
+            UNIQUE (workspace_id, site_id, environment_id, plural_key);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = '{schema}.domain_content_items'::regclass
+          AND conname = 'uq_domain_content_items_env_slug'
+    ) THEN
+        ALTER TABLE {schema}.domain_content_items
+            ADD CONSTRAINT uq_domain_content_items_env_slug
+            UNIQUE (model_definition_id, environment_id, locale, slug);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = '{schema}.domain_content_route_bindings'::regclass
+          AND conname = 'uq_domain_content_route_bindings_env_path'
+    ) THEN
+        ALTER TABLE {schema}.domain_content_route_bindings
+            ADD CONSTRAINT uq_domain_content_route_bindings_env_path
+            UNIQUE (site_id, environment_id, locale, path);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = '{schema}.domain_content_route_bindings'::regclass
+          AND conname = 'uq_domain_content_route_bindings_env_item'
+    ) THEN
+        ALTER TABLE {schema}.domain_content_route_bindings
+            ADD CONSTRAINT uq_domain_content_route_bindings_env_item
+            UNIQUE (item_id, environment_id, locale);
+    END IF;
+END $$;
 """.strip(),
         ),
     ),

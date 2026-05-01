@@ -36,7 +36,11 @@ async def list_project_content_route_bindings(
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
     service: Annotated[ProjectContentRoutingService, Depends(get_project_content_routing_service)],
 ) -> ResponseModel[list[RouteBindingOut]]:
-    data = await service.list_route_bindings(workspace_id=ctx.workspace_id, site_id=ctx.site_id)
+    data = await service.list_route_bindings(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
+    )
     return ApiResponse.success(data=data)
 
 
@@ -55,6 +59,7 @@ async def upsert_project_content_route_binding(
     data = await service.upsert_route_binding(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         item_id=item_id,
         payload=payload,
     )

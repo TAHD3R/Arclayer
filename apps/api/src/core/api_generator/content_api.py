@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal, Protocol
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi import Response as FastAPIResponse
@@ -45,6 +46,8 @@ class ContentApiRouteDefinition:
 class ContentApiListQuery:
     perspective: DeliveryPerspective
     preview_token: str | None
+    environment: str | None
+    environment_id: UUID | None
     locale: str | None
     exact_filters: dict[str, str]
     contains_filters: dict[str, str]
@@ -84,6 +87,8 @@ class ContentApiServiceBinding(Protocol):
         query_service: Any,
         model_key: str,
         perspective: DeliveryPerspective,
+        environment: str | None,
+        environment_id: UUID | None,
         exact_filters: dict[str, str],
         contains_filters: dict[str, str],
         sort_field: str | None,
@@ -131,6 +136,8 @@ class ContentApiGeneratedController:
             query_service=query_service,
             model_key=route.model_key,
             perspective=query.perspective,
+            environment=query.environment,
+            environment_id=query.environment_id,
             exact_filters=query.exact_filters,
             contains_filters=query.contains_filters,
             sort_field=query.sort_field,
@@ -163,6 +170,8 @@ class ContentApiGeneratedController:
         entry_id: PublicUUID,
         perspective: DeliveryPerspective,
         preview_token: str | None,
+        environment: str | None,
+        environment_id: UUID | None,
         locale: str | None,
     ) -> ResponseModel[Any]:
         await self._service_binding.authorize_read(
@@ -179,6 +188,8 @@ class ContentApiGeneratedController:
                 query_service=query_service,
                 model_key=route.model_key,
                 perspective=perspective,
+                environment=environment,
+                environment_id=environment_id,
                 exact_filters={},
                 contains_filters={},
                 sort_field=None,
@@ -258,6 +269,10 @@ def _register_generated_route(
         site_service: Any = Depends(dependencies.site_service),
         perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
         preview_token: Annotated[str | None, Query(alias="previewToken", description="Preview token.")] = None,
+        environment: Annotated[str | None, Query(description="Environment key, id, or alias.")] = None,
+        environment_id: Annotated[
+            PublicUUID | None, Query(alias="environmentId", description="Environment id.")
+        ] = None,
         locale: Annotated[str | None, Query(description="Locale filter, e.g. en-US.")] = None,
         exact_field: Annotated[str | None, Query(alias="filterField", description="Exact filter field.")] = None,
         exact_value: Annotated[str | None, Query(alias="filterValue", description="Exact filter value.")] = None,
@@ -291,6 +306,8 @@ def _register_generated_route(
             query=ContentApiListQuery(
                 perspective=perspective,
                 preview_token=preview_token,
+                environment=normalize_optional_text(environment),
+                environment_id=environment_id,
                 locale=normalize_optional_text(locale),
                 exact_filters=build_filter_pair(
                     field=exact_field,
@@ -320,6 +337,10 @@ def _register_generated_route(
         site_service: Any = Depends(dependencies.site_service),
         perspective: Annotated[DeliveryPerspective, Query(description="Delivery perspective.")] = "published",
         preview_token: Annotated[str | None, Query(alias="previewToken", description="Preview token.")] = None,
+        environment: Annotated[str | None, Query(description="Environment key, id, or alias.")] = None,
+        environment_id: Annotated[
+            PublicUUID | None, Query(alias="environmentId", description="Environment id.")
+        ] = None,
         locale: Annotated[str | None, Query(description="Locale filter, e.g. en-US.")] = None,
     ) -> ResponseModel[Any]:
         """Get a generated content entry by id."""
@@ -334,6 +355,8 @@ def _register_generated_route(
             entry_id=entry_id,
             perspective=perspective,
             preview_token=preview_token,
+            environment=normalize_optional_text(environment),
+            environment_id=environment_id,
             locale=normalize_optional_text(locale),
         )
 

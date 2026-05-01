@@ -71,6 +71,7 @@ class ContentTransferProjectIdentity(BaseSchema):
     site_name: str = Field(..., min_length=1, description="Site name.")
     default_locale: str = Field(..., min_length=1, description="Site default locale.")
     fallback_locale: str = Field(..., min_length=1, description="Site fallback locale.")
+    environment_id: str | None = Field(default=None, description="Exported environment id.")
 
 
 class ContentTransferManifest(BaseSchema):

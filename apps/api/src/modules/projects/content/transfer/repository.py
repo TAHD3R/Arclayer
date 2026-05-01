@@ -56,16 +56,18 @@ class ProjectContentTransferRepository(TenantScopedRepository):
             return await self.using_db(SiteRecord.filter(id=site_id), tenant_conn).first()
 
     async def load_content_models(
-        self, *, workspace_id: UUID, site_id: UUID, conn: BaseDBAsyncClient | None = None
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> list[ContentModelDefinitionRecord]:
         async with self.connection(conn) as tenant_conn:
-            rows = (
-                await ContentModelDefinitionRecord
-                .filter(workspace_id=workspace_id, site_id=site_id)
-                .using_db(tenant_conn)
-                .order_by("singular_key", "id")
-                .all()
-            )
+            query = ContentModelDefinitionRecord.filter(workspace_id=workspace_id, site_id=site_id)
+            if environment_id is not None:
+                query = query.filter(environment_id=environment_id)
+            rows = await query.using_db(tenant_conn).order_by("singular_key", "id").all()
             return list(rows)
 
     async def load_model_fields(
@@ -114,16 +116,18 @@ class ProjectContentTransferRepository(TenantScopedRepository):
             return list(rows)
 
     async def load_content_items(
-        self, *, workspace_id: UUID, site_id: UUID, conn: BaseDBAsyncClient | None = None
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> list[ContentItemRecord]:
         async with self.connection(conn) as tenant_conn:
-            rows = (
-                await ContentItemRecord
-                .filter(workspace_id=workspace_id, site_id=site_id)
-                .using_db(tenant_conn)
-                .order_by("model_definition_id", "locale", "slug", "id")
-                .all()
-            )
+            query = ContentItemRecord.filter(workspace_id=workspace_id, site_id=site_id)
+            if environment_id is not None:
+                query = query.filter(environment_id=environment_id)
+            rows = await query.using_db(tenant_conn).order_by("model_definition_id", "locale", "slug", "id").all()
             return list(rows)
 
     async def load_versions(
@@ -187,16 +191,18 @@ class ProjectContentTransferRepository(TenantScopedRepository):
             return list(rows)
 
     async def load_route_bindings(
-        self, *, workspace_id: UUID, site_id: UUID, conn: BaseDBAsyncClient | None = None
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> list[RouteBindingRecord]:
         async with self.connection(conn) as tenant_conn:
-            rows = (
-                await RouteBindingRecord
-                .filter(workspace_id=workspace_id, site_id=site_id)
-                .using_db(tenant_conn)
-                .order_by("locale", "path", "item_id", "id")
-                .all()
-            )
+            query = RouteBindingRecord.filter(workspace_id=workspace_id, site_id=site_id)
+            if environment_id is not None:
+                query = query.filter(environment_id=environment_id)
+            rows = await query.using_db(tenant_conn).order_by("locale", "path", "item_id", "id").all()
             return list(rows)
 
     async def load_hierarchy_nodes(
@@ -265,26 +271,26 @@ class ProjectContentTransferRepository(TenantScopedRepository):
             return list(rows)
 
     async def target_has_content(
-        self, *, workspace_id: UUID, site_id: UUID, conn: BaseDBAsyncClient | None = None
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> bool:
         async with self.connection(conn) as tenant_conn:
-            has_models = (
-                await ContentModelDefinitionRecord
-                .filter(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                )
-                .using_db(tenant_conn)
-                .exists()
+            models_query = ContentModelDefinitionRecord.filter(
+                workspace_id=workspace_id,
+                site_id=site_id,
             )
+            items_query = ContentItemRecord.filter(workspace_id=workspace_id, site_id=site_id)
+            if environment_id is not None:
+                models_query = models_query.filter(environment_id=environment_id)
+                items_query = items_query.filter(environment_id=environment_id)
+            has_models = await models_query.using_db(tenant_conn).exists()
             if has_models:
                 return True
-            return (
-                await ContentItemRecord
-                .filter(workspace_id=workspace_id, site_id=site_id)
-                .using_db(tenant_conn)
-                .exists()
-            )
+            return await items_query.using_db(tenant_conn).exists()
 
     async def create_many(
         self,

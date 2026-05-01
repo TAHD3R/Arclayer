@@ -27,6 +27,12 @@ class ContentModelDefinitionRecord(BaseModel):
         related_name="content_model_definitions",
         on_delete=fields.CASCADE,
     )
+    environment = fields.ForeignKeyField(
+        "models.ProjectEnvironmentRecord",
+        related_name="content_model_definitions",
+        on_delete=fields.CASCADE,
+        null=True,
+    )
 
     singular_key = fields.CharField(max_length=64, db_index=True)
     plural_key = fields.CharField(max_length=64, db_index=True)
@@ -76,6 +82,7 @@ class ContentModelDefinitionRecord(BaseModel):
 
         workspace_id: UUID
         site_id: UUID
+        environment_id: UUID | None
         fields: ReverseRelation[ContentModelFieldRecord]
         relations: ReverseRelation[ContentModelRelationRecord]
         views: ReverseRelation[ContentModelViewRecord]
@@ -84,6 +91,6 @@ class ContentModelDefinitionRecord(BaseModel):
         table = "domain_content_model_definitions"
         abstract = False
         unique_together = (
-            ("workspace_id", "site_id", "singular_key"),
-            ("workspace_id", "site_id", "plural_key"),
+            ("workspace_id", "site_id", "environment_id", "singular_key"),
+            ("workspace_id", "site_id", "environment_id", "plural_key"),
         )

@@ -136,12 +136,14 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         conn: BaseDBAsyncClient,
     ) -> ContentItemRecord:
         item = await self.repo.get_item_with_model(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
             conn=conn,
             for_update=True,
@@ -174,6 +176,7 @@ class ProjectContentCanonicalItemsService:
         site_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentItemCreateIn,
+        environment_id: UUID | None = None,
     ) -> ContentItemOut:
         try:
             model_key = payload.model_key.strip()
@@ -183,6 +186,7 @@ class ProjectContentCanonicalItemsService:
             model = await self.repo.get_model_definition_by_key(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_key=model_key,
             )
             if model is None:
@@ -198,6 +202,7 @@ class ProjectContentCanonicalItemsService:
                 existing_count = await self.repo.count_items_for_model(
                     workspace_id=workspace_id,
                     site_id=site_id,
+                    environment_id=environment_id,
                     model_definition_id=model.id,
                     locale=payload.locale,
                 )
@@ -216,6 +221,7 @@ class ProjectContentCanonicalItemsService:
             em_result = await self.entity_manager.create(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_key=model_key,
                 data={"title": payload.title.strip()} if payload.title else {},
                 slug=build_formless_draft_slug(payload.title),
@@ -244,6 +250,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentItemBootstrapShapeIn,
@@ -252,6 +259,7 @@ class ProjectContentCanonicalItemsService:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -292,11 +300,13 @@ class ProjectContentCanonicalItemsService:
         item_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentItemWorkflowPatchIn,
+        environment_id: UUID | None = None,
     ) -> ContentItemOut:
         async with in_transaction() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -326,6 +336,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
     ) -> ContentItemOut:
@@ -333,6 +344,7 @@ class ProjectContentCanonicalItemsService:
             source_item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -345,6 +357,7 @@ class ProjectContentCanonicalItemsService:
             duplicated_item = await self.repo.create_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_definition_id=source_item.model_definition_id,
                 slug=build_formless_draft_slug(duplicate_title),
                 title=duplicate_title,
@@ -401,12 +414,14 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
     ) -> None:
         item = await self.repo.get_item_with_model(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             item_id=item_id,
         )
         if item is None:
@@ -417,6 +432,7 @@ class ProjectContentCanonicalItemsService:
         deleted = await self.entity_manager.delete(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_key=model_key,
             item_id=item_id,
             actor_id=actor_user_id,
@@ -429,6 +445,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
     ) -> ContentItemOut:
@@ -436,6 +453,7 @@ class ProjectContentCanonicalItemsService:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -484,6 +502,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentVersionDraftSaveIn,
@@ -492,6 +511,7 @@ class ProjectContentCanonicalItemsService:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -549,6 +569,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         version_number: int,
         target_state: ContentVersionState,
@@ -564,6 +585,7 @@ class ProjectContentCanonicalItemsService:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -653,6 +675,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_ids: list[UUID],
         actor_user_id: UUID | None,
     ) -> ContentItemBulkTransitionOut:
@@ -662,6 +685,7 @@ class ProjectContentCanonicalItemsService:
                 item = await self._get_locked_item(
                     workspace_id=workspace_id,
                     site_id=site_id,
+                    environment_id=environment_id,
                     item_id=item_id,
                     conn=conn,
                 )
@@ -669,6 +693,7 @@ class ProjectContentCanonicalItemsService:
             data = await self.transition_version(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 version_number=version_number,
                 target_state=ContentVersionState.PUBLISHED,
@@ -682,6 +707,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_ids: list[UUID],
         actor_user_id: UUID | None,
     ) -> ContentItemBulkTransitionOut:
@@ -691,6 +717,7 @@ class ProjectContentCanonicalItemsService:
                 item = await self._get_locked_item(
                     workspace_id=workspace_id,
                     site_id=site_id,
+                    environment_id=environment_id,
                     item_id=item_id,
                     conn=conn,
                 )
@@ -725,6 +752,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         source_version_number: int,
         target_version_number: int,
@@ -733,6 +761,7 @@ class ProjectContentCanonicalItemsService:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -760,6 +789,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         version_number: int,
         actor_user_id: UUID | None,
@@ -768,6 +798,7 @@ class ProjectContentCanonicalItemsService:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -811,6 +842,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
     ) -> ContentItemOut:
@@ -818,6 +850,7 @@ class ProjectContentCanonicalItemsService:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )
@@ -858,6 +891,7 @@ class ProjectContentCanonicalItemsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         item_id: UUID,
         version_number: int,
         actor_user_id: UUID | None,
@@ -867,6 +901,7 @@ class ProjectContentCanonicalItemsService:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 item_id=item_id,
                 conn=conn,
             )

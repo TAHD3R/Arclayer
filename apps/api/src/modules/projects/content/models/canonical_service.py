@@ -890,6 +890,7 @@ def _build_preview_claims(
     *,
     workspace_id: UUID,
     site_id: UUID,
+    environment_id: UUID | None,
     model_id: UUID,
     updated_at: Any,
     payload: ContentModelDefinitionPatchContract,
@@ -897,6 +898,7 @@ def _build_preview_claims(
     return {
         "workspace_id": str(workspace_id),
         "site_id": str(site_id),
+        "environment_id": str(environment_id) if environment_id is not None else None,
         "model_id": str(model_id),
         "updated_at": updated_at.isoformat(),
         "payload": _preview_payload_fingerprint(payload),
@@ -1367,6 +1369,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         singular_key: str,
         plural_key: str,
         exclude_model_id: UUID | None = None,
@@ -1381,6 +1384,7 @@ class ProjectContentCanonicalModelsService:
             if await self.repo.identifier_exists(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 value=value,
                 exclude_model_id=exclude_model_id,
             ):
@@ -1395,6 +1399,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         params: PageParams,
         q: str | None = None,
         ordering: str | None = None,
@@ -1405,6 +1410,7 @@ class ProjectContentCanonicalModelsService:
         records = await self.repo.list_model_definitions(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             q=q,
             category=category,
             model_kind=model_kind,
@@ -1427,11 +1433,13 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
     ) -> ContentModelSchemaSnapshotOut | None:
         record = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if record is None:
@@ -1447,11 +1455,13 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
     ) -> bool:
         record = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if record is None:
@@ -1465,6 +1475,7 @@ class ProjectContentCanonicalModelsService:
         items = await self.repo.list_items_for_model(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if items:
@@ -1477,6 +1488,7 @@ class ProjectContentCanonicalModelsService:
         return await self.repo.delete_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
 
@@ -1485,6 +1497,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentModelFieldContract,
@@ -1492,6 +1505,7 @@ class ProjectContentCanonicalModelsService:
         record = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if record is None:
@@ -1506,6 +1520,7 @@ class ProjectContentCanonicalModelsService:
         return await self._save_model_fields(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             record=record,
             actor_user_id=actor_user_id,
@@ -1517,6 +1532,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         field_key: str,
         actor_user_id: UUID | None,
@@ -1525,6 +1541,7 @@ class ProjectContentCanonicalModelsService:
         record = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if record is None:
@@ -1554,6 +1571,7 @@ class ProjectContentCanonicalModelsService:
         return await self._save_model_fields(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             record=record,
             actor_user_id=actor_user_id,
@@ -1565,6 +1583,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         actor_user_id: UUID | None,
         field_keys: list[str],
@@ -1572,6 +1591,7 @@ class ProjectContentCanonicalModelsService:
         record = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if record is None:
@@ -1588,6 +1608,7 @@ class ProjectContentCanonicalModelsService:
         return await self._save_model_fields(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             record=record,
             actor_user_id=actor_user_id,
@@ -1599,6 +1620,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         actor_user_id: UUID | None,
         field_key: str,
@@ -1606,6 +1628,7 @@ class ProjectContentCanonicalModelsService:
         record = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if record is None:
@@ -1620,6 +1643,7 @@ class ProjectContentCanonicalModelsService:
         return await self._save_model_fields(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             record=record,
             actor_user_id=actor_user_id,
@@ -1631,6 +1655,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         record: ContentModelDefinitionRecord,
         actor_user_id: UUID | None,
@@ -1639,6 +1664,7 @@ class ProjectContentCanonicalModelsService:
         updated = await self.repo.update_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             fields_to_update={
                 "draft_contract_revision": int(record.draft_contract_revision or 1) + 1,
@@ -1655,6 +1681,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         actor_user_id: UUID | None,
         payload: ContentModelDefinitionContract,
     ) -> ContentModelMutationResult:
@@ -1672,6 +1699,7 @@ class ProjectContentCanonicalModelsService:
         await self._validate_model_identifiers(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             singular_key=singular_key,
             plural_key=plural_key,
         )
@@ -1695,6 +1723,7 @@ class ProjectContentCanonicalModelsService:
             record = await self.repo.create_model_definition(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 singular_key=singular_key,
                 plural_key=plural_key,
                 name=_normalize_required_text(payload.name, error="Invalid model name"),
@@ -1759,6 +1788,7 @@ class ProjectContentCanonicalModelsService:
         record = await self.repo.create_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             singular_key=protocol.singular_key,
             plural_key=protocol.plural_key,
             name=_normalize_required_text(protocol.name, error="Invalid model name"),
@@ -1795,6 +1825,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         record: ContentModelDefinitionRecord,
         payload: ContentModelDefinitionPatchContract,
@@ -1818,6 +1849,7 @@ class ProjectContentCanonicalModelsService:
             await self._validate_model_identifiers(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 singular_key=next_singular_key,
                 plural_key=next_plural_key,
                 exclude_model_id=record.id,
@@ -1907,6 +1939,7 @@ class ProjectContentCanonicalModelsService:
         items = await self.repo.list_items_for_model(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         next_signature = _truth_signature_from_preview(next_truth)
@@ -1924,6 +1957,7 @@ class ProjectContentCanonicalModelsService:
         claims = _build_preview_claims(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             updated_at=record.updated_at,
             payload=payload,
@@ -2033,12 +2067,14 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         payload: ContentModelDefinitionPatchContract,
     ) -> ContentModelImpactPreviewResult | None:
         existing = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if existing is None:
@@ -2046,6 +2082,7 @@ class ProjectContentCanonicalModelsService:
         context = await self._build_update_context(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             record=existing,
             payload=payload,
@@ -2057,6 +2094,7 @@ class ProjectContentCanonicalModelsService:
         *,
         workspace_id: UUID,
         site_id: UUID,
+        environment_id: UUID | None,
         model_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentModelDefinitionPatchContract,
@@ -2064,6 +2102,7 @@ class ProjectContentCanonicalModelsService:
         existing = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
         )
         if existing is None:
@@ -2080,6 +2119,7 @@ class ProjectContentCanonicalModelsService:
         context = await self._build_update_context(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             record=existing,
             payload=payload,
@@ -2087,6 +2127,7 @@ class ProjectContentCanonicalModelsService:
         claims = _build_preview_claims(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             updated_at=existing.updated_at,
             payload=payload,
@@ -2112,6 +2153,7 @@ class ProjectContentCanonicalModelsService:
         updated = await self.repo.update_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
+            environment_id=environment_id,
             model_id=model_id,
             fields_to_update={**context.fields_to_update, "updated_by_user_id": actor_user_id},
             fields=(merged_fields if "fields" in fields_set else None),

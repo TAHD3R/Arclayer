@@ -96,6 +96,7 @@ class ContentSearchService:
                 runtime_id=runtime_context.runtime_id,
                 model_key=normalized_model_key,
                 perspective="published",
+                environment_id=None,
             )
         await self.replace_records(runtime_context=runtime_context, model_key=normalized_model_key, records=records)
 

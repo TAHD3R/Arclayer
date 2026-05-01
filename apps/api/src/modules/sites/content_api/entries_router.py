@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal
+from uuid import UUID
 
 from fastapi import Depends, Request
 
@@ -16,6 +17,7 @@ from src.core.api_generator import (
 from src.core.http.response import ResponseModel
 from src.models.projects.api_key import DeliveryKeyPerspective
 from src.modules.auth.content_api.service import ContentApiAuthService
+from src.modules.projects.environments.service import ProjectEnvironmentsService
 from src.modules.projects.runtime.router import get_runtime_context
 from src.modules.projects.runtime.service import ProjectRuntimeContext
 from src.modules.sites.content_api.rate_limit import enforce_content_api_rate_limit
@@ -102,6 +104,7 @@ async def _list_records_in_tenant(
     query_service: SiteGraphQLService,
     model_key: str,
     perspective: DeliveryPerspective,
+    environment_id: UUID | None,
     exact_filters: dict[str, str] | None = None,
     contains_filters: dict[str, str] | None = None,
     sort_field: str | None = None,
@@ -112,6 +115,7 @@ async def _list_records_in_tenant(
             runtime_id=runtime_context.runtime_id,
             model_key=model_key,
             perspective=perspective,
+            environment_id=environment_id,
             exact_filters=exact_filters,
             contains_filters=contains_filters,
             sort_field=sort_field,
@@ -120,6 +124,19 @@ async def _list_records_in_tenant(
 
 
 class ContentDeliveryServiceBinding:
+    async def _resolve_environment_id(
+        self,
+        *,
+        runtime_context: ProjectRuntimeContext,
+        environment: str | None,
+        environment_id: UUID | None,
+    ) -> UUID:
+        target = environment_id if environment_id is not None else environment
+        resolved = await ProjectEnvironmentsService(
+            runtime_context.tenant_context,
+        ).resolve_environment_target(project_id=runtime_context.project_id, target=target)
+        return resolved.id
+
     async def authorize_read(
         self,
         *,
@@ -146,16 +163,24 @@ class ContentDeliveryServiceBinding:
         query_service: SiteGraphQLService,
         model_key: str,
         perspective: DeliveryPerspective,
+        environment: str | None,
+        environment_id: UUID | None,
         exact_filters: dict[str, str],
         contains_filters: dict[str, str],
         sort_field: str | None,
         sort_direction: Literal["asc", "desc"],
     ) -> list[StructuredContentRecord]:
+        resolved_environment_id = await self._resolve_environment_id(
+            runtime_context=runtime_context,
+            environment=environment,
+            environment_id=environment_id,
+        )
         return await _list_records_in_tenant(
             runtime_context=runtime_context,
             query_service=query_service,
             model_key=model_key,
             perspective=perspective,
+            environment_id=resolved_environment_id,
             exact_filters=exact_filters,
             contains_filters=contains_filters,
             sort_field=sort_field,

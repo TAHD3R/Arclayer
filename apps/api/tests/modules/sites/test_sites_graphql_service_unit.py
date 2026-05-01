@@ -280,7 +280,8 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
         assert runtime_id == UUID("00000000-0000-0000-0000-000000000222")
         return site_id
 
-    async def _list_plan_records(plan):  # type: ignore[no-untyped-def]
+    async def _list_plan_records(plan, *, environment_id):  # type: ignore[no-untyped-def]
+        assert environment_id is None
         assert plan == GraphQLQueryPlan(
             site_id=site_id,
             model_key="article",
@@ -350,7 +351,8 @@ async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pyte
         ),
     ]
 
-    async def _list_plan_records(plan):  # type: ignore[no-untyped-def]
+    async def _list_plan_records(plan, *, environment_id):  # type: ignore[no-untyped-def]
+        assert environment_id is None
         return records
 
     async def _resolve_site_id(*, runtime_id):  # type: ignore[no-untyped-def]

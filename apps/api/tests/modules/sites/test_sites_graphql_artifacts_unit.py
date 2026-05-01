@@ -135,12 +135,14 @@ async def test_graphql_single_query_runtime_uses_generated_argument_name_without
         context_value=SimpleNamespace(
             graphql=FakeGraphQLService(),
             runtime_id=UUID("00000000-0000-0000-0000-000000000002"),
+            environment_id=None,
             request=SimpleNamespace(),
         ),
     )
 
     assert result.errors is None
     assert captured["slug"] == "runtime-article"
+    assert captured["environment_id"] is None
     assert result.data == {
         "articleBySlug": {
             "id": "00000000-0000-0000-0000-000000000001",

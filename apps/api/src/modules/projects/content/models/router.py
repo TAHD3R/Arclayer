@@ -65,6 +65,7 @@ async def create_project_content_model(
     record = await service.create_model(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         actor_user_id=actor_user_id,
         payload=payload,
     )
@@ -93,6 +94,7 @@ async def list_project_content_models(
     data = await service.list_models_paginated(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         params=params,
         q=q,
         ordering=ordering,
@@ -132,6 +134,7 @@ async def get_project_content_model_json_preview(
     result = await service.get_model_json_preview(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         model_id=model_id,
     )
     if result is None:
@@ -158,6 +161,7 @@ async def create_project_content_model_field(
     result = await service.add_model_field(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         model_id=model_id,
         actor_user_id=actor_user_id,
         payload=payload,
@@ -187,6 +191,7 @@ async def update_project_content_model_field(
     result = await service.update_model_field(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         model_id=model_id,
         field_key=field_key,
         actor_user_id=actor_user_id,
@@ -216,6 +221,7 @@ async def reorder_project_content_model_fields(
     result = await service.reorder_model_fields(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         model_id=model_id,
         actor_user_id=actor_user_id,
         field_keys=payload.field_keys,
@@ -244,6 +250,7 @@ async def delete_project_content_model_field(
     result = await service.delete_model_field(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         model_id=model_id,
         actor_user_id=actor_user_id,
         field_key=field_key,
@@ -271,6 +278,7 @@ async def preview_project_content_model_update(
     result = await service.preview_model_update(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         model_id=model_id,
         payload=payload,
     )
@@ -299,6 +307,7 @@ async def update_project_content_model(
     record = await service.update_model(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         model_id=model_id,
         actor_user_id=actor_user_id,
         payload=payload,
@@ -331,6 +340,7 @@ async def delete_project_content_model(
     deleted = await service.delete_model(
         workspace_id=ctx.workspace_id,
         site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
         model_id=model_id,
     )
     if not deleted:

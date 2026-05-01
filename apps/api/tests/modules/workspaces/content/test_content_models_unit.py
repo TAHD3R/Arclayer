@@ -467,6 +467,7 @@ async def test_content_item_creation_rejects_second_single_type_for_locale() -> 
     repo.count_items_for_model.assert_awaited_once_with(
         workspace_id=workspace_id,
         site_id=site_id,
+        environment_id=None,
         model_definition_id=model_id,
         locale="en-US",
     )
@@ -616,8 +617,10 @@ def test_content_model_relation_persists_target_model_key_and_optional_target_mo
     assert target_model_key_field.index is True
 
 
-def test_content_item_record_unique_key_is_model_locale_slug() -> None:
-    assert getattr(ContentItemRecord.Meta, "unique_together", None) == (("model_definition_id", "locale", "slug"),)
+def test_content_item_record_unique_key_is_environment_model_locale_slug() -> None:
+    assert getattr(ContentItemRecord.Meta, "unique_together", None) == (
+        ("model_definition_id", "environment_id", "locale", "slug"),
+    )
 
 
 def test_content_item_record_supports_model_less_bootstrap_shape() -> None:
@@ -756,9 +759,14 @@ def test_route_binding_and_hierarchy_are_different_persistence_records() -> None
     assert getattr(HierarchyNodeRecord.Meta, "table", None) == "domain_content_hierarchy_nodes"
 
     assert "path" in route_fields
+    assert "environment" in route_fields
     assert "path" not in hierarchy_fields
     assert "parent_item" in hierarchy_fields
     assert "parent_item" not in route_fields
+    assert getattr(RouteBindingRecord.Meta, "unique_together", None) == (
+        ("site_id", "environment_id", "locale", "path"),
+        ("item_id", "environment_id", "locale"),
+    )
 
 
 def test_hierarchy_node_record_has_no_redundant_unique_together() -> None:

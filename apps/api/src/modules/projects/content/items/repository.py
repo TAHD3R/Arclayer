@@ -26,12 +26,14 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         workspace_id: UUID,
         site_id: UUID,
         model_key: str,
+        environment_id: UUID | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentModelDefinitionRecord | None:
         async with self.connection(conn) as tenant_conn:
             query = ContentModelDefinitionRecord.filter(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 singular_key=model_key,
             ).first()
             return await self.using_db(query, tenant_conn)
@@ -57,6 +59,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         shape_reason_code: str | None,
         shape_reason_meta: dict[str, Any] | None,
         actor_user_id: UUID | None,
+        environment_id: UUID | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentItemRecord:
         async with self.connection(conn) as tenant_conn:
@@ -65,6 +68,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
                 conn=tenant_conn,
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_definition_id=model_definition_id,
                 slug=slug,
                 title=title,
@@ -93,12 +97,14 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         site_id: UUID,
         model_definition_id: UUID,
         locale: str | None = None,
+        environment_id: UUID | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> int:
         async with self.connection(conn) as tenant_conn:
             query = ContentItemRecord.filter(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 model_definition_id=model_definition_id,
             )
             if locale is not None:
@@ -113,11 +119,13 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         item_id: UUID,
         conn: BaseDBAsyncClient | None = None,
         for_update: bool = False,
+        environment_id: UUID | None = None,
     ) -> ContentItemRecord | None:
         async with self.connection(conn) as tenant_conn:
             query = ContentItemRecord.filter(
                 workspace_id=workspace_id,
                 site_id=site_id,
+                environment_id=environment_id,
                 id=item_id,
             )
             if for_update:
@@ -132,9 +140,14 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         site_id: UUID,
         model_definition_id: UUID | None = None,
         conn: BaseDBAsyncClient | None = None,
+        environment_id: UUID | None = None,
     ) -> list[ContentItemRecord]:
         async with self.connection(conn) as tenant_conn:
-            query = ContentItemRecord.filter(workspace_id=workspace_id, site_id=site_id)
+            query = ContentItemRecord.filter(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+            )
             if model_definition_id is not None:
                 query = query.filter(model_definition_id=model_definition_id)
             query = query.prefetch_related("model_definition", "model_definition__fields").order_by(
