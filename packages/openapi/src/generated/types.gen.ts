@@ -1357,6 +1357,14 @@ export type AuthzSnapshot = {
      */
     permissionCodes?: Array<string>;
     /**
+     * Permissionconditions
+     *
+     * Condition sets attached to effective permission grants.
+     */
+    permissionConditions?: {
+        [key: string]: Array<PermissionConditionSetOutput>;
+    };
+    /**
      * Rolecodes
      *
      * Effective role codes.
@@ -4465,6 +4473,16 @@ export type ContentWorkflowContract = {
 };
 
 /**
+ * ContentWorkflowNoteIn
+ */
+export type ContentWorkflowNoteIn = {
+    /**
+     * Body
+     */
+    body: string;
+};
+
+/**
  * ContentWorkflowStageActorContract
  */
 export type ContentWorkflowStageActorContract = {
@@ -4504,16 +4522,6 @@ export type ContentWorkflowTransitionContract = {
      * Target editorial workflow stage.
      */
     toStage: 'drafting' | 'in_review' | 'changes_requested' | 'approved';
-};
-
-/**
- * ContentWorkflowNoteIn
- */
-export type ContentWorkflowNoteIn = {
-    /**
-     * Body
-     */
-    body: string;
 };
 
 /**
@@ -10343,6 +10351,60 @@ export type PageDataWorkspaceTeamUserOptionOut = {
      * Total item count.
      */
     total: number;
+};
+
+/**
+ * PermissionCondition
+ */
+export type PermissionCondition = {
+    /**
+     * Resource attribute checked by this condition.
+     */
+    field: PermissionConditionField;
+    /**
+     * Explicit supported condition operator.
+     */
+    operator: PermissionConditionOperator;
+    /**
+     * Value
+     *
+     * Static value for equals/in operators.
+     */
+    value?: string | number | boolean | Array<string | number | boolean> | null;
+};
+
+/**
+ * PermissionConditionField
+ */
+export type PermissionConditionField = 'owner_user_id' | 'workspace_id' | 'project_id' | 'content_type' | 'locale' | 'workflow_stage';
+
+/**
+ * PermissionConditionOperator
+ */
+export type PermissionConditionOperator = 'equals' | 'in' | 'equals_current_user' | 'equals_current_workspace' | 'equals_current_project';
+
+/**
+ * PermissionConditionSet
+ */
+export type PermissionConditionSetInput = {
+    /**
+     * Conditions
+     *
+     * Conditions joined with AND. Multiple condition sets for one grant are joined with OR.
+     */
+    conditions?: Array<PermissionCondition>;
+};
+
+/**
+ * PermissionConditionSet
+ */
+export type PermissionConditionSetOutput = {
+    /**
+     * Conditions
+     *
+     * Conditions joined with AND. Multiple condition sets for one grant are joined with OR.
+     */
+    conditions?: Array<PermissionCondition>;
 };
 
 /**
@@ -17333,6 +17395,34 @@ export type ResponseModelListWorkspacePermissionActionOut = {
 };
 
 /**
+ * ResponseModel[list[WorkspacePermissionConditionTemplateOut]]
+ */
+export type ResponseModelListWorkspacePermissionConditionTemplateOut = {
+    /**
+     * Data
+     */
+    data?: Array<WorkspacePermissionConditionTemplateOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * RoleCreateFromTemplateRequest
  */
 export type RoleCreateFromTemplateRequest = {
@@ -17363,6 +17453,42 @@ export type RoleCreateFromTemplateRequest = {
 };
 
 /**
+ * RolePermissionGrantIn
+ */
+export type RolePermissionGrantIn = {
+    /**
+     * Conditionsets
+     *
+     * Conditional grant sets. Empty means unconditional.
+     */
+    conditionSets?: Array<PermissionConditionSetInput>;
+    /**
+     * Permissioncode
+     *
+     * Workspace permission code.
+     */
+    permissionCode: string;
+};
+
+/**
+ * RolePermissionGrantOut
+ */
+export type RolePermissionGrantOut = {
+    /**
+     * Conditionsets
+     *
+     * Conditional grant sets. Empty means unconditional.
+     */
+    conditionSets?: Array<PermissionConditionSetOutput>;
+    /**
+     * Permissioncode
+     *
+     * Workspace permission code.
+     */
+    permissionCode: string;
+};
+
+/**
  * RolePermissionSetRequest
  */
 export type RolePermissionSetRequest = {
@@ -17372,6 +17498,12 @@ export type RolePermissionSetRequest = {
      * Workspace permission codes to grant to the custom role (system roles are immutable).
      */
     permissionCodes?: Array<string>;
+    /**
+     * Permissiongrants
+     *
+     * Workspace permission grants with optional condition sets.
+     */
+    permissionGrants?: Array<RolePermissionGrantIn>;
 };
 
 /**
@@ -20008,6 +20140,12 @@ export type WorkspacePermissionActionOut = {
      */
     code: string;
     /**
+     * Conditiontemplates
+     *
+     * Supported conditional permission template keys for this action.
+     */
+    conditionTemplates?: Array<string>;
+    /**
      * Description
      *
      * Action description.
@@ -20025,6 +20163,40 @@ export type WorkspacePermissionActionOut = {
      * Supported subject kinds.
      */
     subjectKinds?: Array<string>;
+};
+
+/**
+ * WorkspacePermissionConditionTemplateOut
+ */
+export type WorkspacePermissionConditionTemplateOut = {
+    /**
+     * Description
+     *
+     * Product-facing template description for Admin editors.
+     */
+    description: string;
+    /**
+     * Condition field preselected by this template.
+     */
+    field: PermissionConditionField;
+    /**
+     * Key
+     *
+     * Stable template key.
+     */
+    key: string;
+    /**
+     * Operators
+     *
+     * Supported operators for this template.
+     */
+    operators: Array<PermissionConditionOperator>;
+    /**
+     * Valuetype
+     *
+     * Expected value type for static operators.
+     */
+    valueType: string;
 };
 
 /**
@@ -20133,6 +20305,12 @@ export type WorkspaceRoleOut = {
      * Granted workspace permission codes.
      */
     permissionCodes?: Array<string>;
+    /**
+     * Permissiongrants
+     *
+     * Granted workspace permissions with optional condition sets.
+     */
+    permissionGrants?: Array<RolePermissionGrantOut>;
 };
 
 /**
@@ -31656,6 +31834,38 @@ export type DomainWorkspacesListActionsResponses = {
 
 export type DomainWorkspacesListActionsResponse = DomainWorkspacesListActionsResponses[keyof DomainWorkspacesListActionsResponses];
 
+export type DomainWorkspacesListConditionTemplatesData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/rbac/condition-templates';
+};
+
+export type DomainWorkspacesListConditionTemplatesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListConditionTemplatesError = DomainWorkspacesListConditionTemplatesErrors[keyof DomainWorkspacesListConditionTemplatesErrors];
+
+export type DomainWorkspacesListConditionTemplatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListWorkspacePermissionConditionTemplateOut;
+};
+
+export type DomainWorkspacesListConditionTemplatesResponse = DomainWorkspacesListConditionTemplatesResponses[keyof DomainWorkspacesListConditionTemplatesResponses];
+
 export type DomainWorkspacesListPermissionsData = {
     body?: never;
     path: {
@@ -32874,15 +33084,9 @@ export type DomainWorkspacesListUserOptionsResponses = {
 
 export type DomainWorkspacesListUserOptionsResponse = DomainWorkspacesListUserOptionsResponses[keyof DomainWorkspacesListUserOptionsResponses];
 
-export type ExternalContentApiSitesListContentEntriesData = {
+export type ExternalContentApiSitesListArticleContentEntriesData = {
     body?: never;
     path: {
-        /**
-         * Model Key
-         *
-         * Content model key.
-         */
-        model_key: string;
         /**
          * Runtime Id
          */
@@ -32956,36 +33160,30 @@ export type ExternalContentApiSitesListContentEntriesData = {
          */
         offset?: number;
     };
-    url: '/content-api/v1/runtimes/{runtime_id}/content/{model_key}';
+    url: '/content-api/v1/runtimes/{runtime_id}/content/article';
 };
 
-export type ExternalContentApiSitesListContentEntriesErrors = {
+export type ExternalContentApiSitesListArticleContentEntriesErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalContentApiSitesListContentEntriesError = ExternalContentApiSitesListContentEntriesErrors[keyof ExternalContentApiSitesListContentEntriesErrors];
+export type ExternalContentApiSitesListArticleContentEntriesError = ExternalContentApiSitesListArticleContentEntriesErrors[keyof ExternalContentApiSitesListArticleContentEntriesErrors];
 
-export type ExternalContentApiSitesListContentEntriesResponses = {
+export type ExternalContentApiSitesListArticleContentEntriesResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelContentApiEntryListOut;
 };
 
-export type ExternalContentApiSitesListContentEntriesResponse = ExternalContentApiSitesListContentEntriesResponses[keyof ExternalContentApiSitesListContentEntriesResponses];
+export type ExternalContentApiSitesListArticleContentEntriesResponse = ExternalContentApiSitesListArticleContentEntriesResponses[keyof ExternalContentApiSitesListArticleContentEntriesResponses];
 
-export type ExternalContentApiSitesGetContentEntryData = {
+export type ExternalContentApiSitesGetArticleContentEntryData = {
     body?: never;
     path: {
-        /**
-         * Model Key
-         *
-         * Content model key.
-         */
-        model_key: string;
         /**
          * Entry Id
          *
@@ -33017,26 +33215,482 @@ export type ExternalContentApiSitesGetContentEntryData = {
          */
         locale?: string | null;
     };
-    url: '/content-api/v1/runtimes/{runtime_id}/content/{model_key}/{entry_id}';
+    url: '/content-api/v1/runtimes/{runtime_id}/content/article/{entry_id}';
 };
 
-export type ExternalContentApiSitesGetContentEntryErrors = {
+export type ExternalContentApiSitesGetArticleContentEntryErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExternalContentApiSitesGetContentEntryError = ExternalContentApiSitesGetContentEntryErrors[keyof ExternalContentApiSitesGetContentEntryErrors];
+export type ExternalContentApiSitesGetArticleContentEntryError = ExternalContentApiSitesGetArticleContentEntryErrors[keyof ExternalContentApiSitesGetArticleContentEntryErrors];
 
-export type ExternalContentApiSitesGetContentEntryResponses = {
+export type ExternalContentApiSitesGetArticleContentEntryResponses = {
     /**
      * Successful Response
      */
     200: ResponseModelContentApiEntryOut;
 };
 
-export type ExternalContentApiSitesGetContentEntryResponse = ExternalContentApiSitesGetContentEntryResponses[keyof ExternalContentApiSitesGetContentEntryResponses];
+export type ExternalContentApiSitesGetArticleContentEntryResponse = ExternalContentApiSitesGetArticleContentEntryResponses[keyof ExternalContentApiSitesGetArticleContentEntryResponses];
+
+export type ExternalContentApiSitesListCategoryContentEntriesData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Previewtoken
+         *
+         * Preview token.
+         */
+        previewToken?: string | null;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+        /**
+         * Filterfield
+         *
+         * Exact filter field.
+         */
+        filterField?: string | null;
+        /**
+         * Filtervalue
+         *
+         * Exact filter value.
+         */
+        filterValue?: string | null;
+        /**
+         * Containsfield
+         *
+         * Contains filter field.
+         */
+        containsField?: string | null;
+        /**
+         * Containsvalue
+         *
+         * Contains filter value.
+         */
+        containsValue?: string | null;
+        /**
+         * Sortfield
+         *
+         * Sort field.
+         */
+        sortField?: string | null;
+        /**
+         * Sortdirection
+         *
+         * Sort direction.
+         */
+        sortDirection?: 'asc' | 'desc';
+        /**
+         * Limit
+         *
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * Offset
+         *
+         * Page offset.
+         */
+        offset?: number;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/content/category';
+};
+
+export type ExternalContentApiSitesListCategoryContentEntriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesListCategoryContentEntriesError = ExternalContentApiSitesListCategoryContentEntriesErrors[keyof ExternalContentApiSitesListCategoryContentEntriesErrors];
+
+export type ExternalContentApiSitesListCategoryContentEntriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentApiEntryListOut;
+};
+
+export type ExternalContentApiSitesListCategoryContentEntriesResponse = ExternalContentApiSitesListCategoryContentEntriesResponses[keyof ExternalContentApiSitesListCategoryContentEntriesResponses];
+
+export type ExternalContentApiSitesGetCategoryContentEntryData = {
+    body?: never;
+    path: {
+        /**
+         * Entry Id
+         *
+         * Content entry id.
+         */
+        entry_id: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Previewtoken
+         *
+         * Preview token.
+         */
+        previewToken?: string | null;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/content/category/{entry_id}';
+};
+
+export type ExternalContentApiSitesGetCategoryContentEntryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesGetCategoryContentEntryError = ExternalContentApiSitesGetCategoryContentEntryErrors[keyof ExternalContentApiSitesGetCategoryContentEntryErrors];
+
+export type ExternalContentApiSitesGetCategoryContentEntryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentApiEntryOut;
+};
+
+export type ExternalContentApiSitesGetCategoryContentEntryResponse = ExternalContentApiSitesGetCategoryContentEntryResponses[keyof ExternalContentApiSitesGetCategoryContentEntryResponses];
+
+export type ExternalContentApiSitesListPageContentEntriesData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Previewtoken
+         *
+         * Preview token.
+         */
+        previewToken?: string | null;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+        /**
+         * Filterfield
+         *
+         * Exact filter field.
+         */
+        filterField?: string | null;
+        /**
+         * Filtervalue
+         *
+         * Exact filter value.
+         */
+        filterValue?: string | null;
+        /**
+         * Containsfield
+         *
+         * Contains filter field.
+         */
+        containsField?: string | null;
+        /**
+         * Containsvalue
+         *
+         * Contains filter value.
+         */
+        containsValue?: string | null;
+        /**
+         * Sortfield
+         *
+         * Sort field.
+         */
+        sortField?: string | null;
+        /**
+         * Sortdirection
+         *
+         * Sort direction.
+         */
+        sortDirection?: 'asc' | 'desc';
+        /**
+         * Limit
+         *
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * Offset
+         *
+         * Page offset.
+         */
+        offset?: number;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/content/page';
+};
+
+export type ExternalContentApiSitesListPageContentEntriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesListPageContentEntriesError = ExternalContentApiSitesListPageContentEntriesErrors[keyof ExternalContentApiSitesListPageContentEntriesErrors];
+
+export type ExternalContentApiSitesListPageContentEntriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentApiEntryListOut;
+};
+
+export type ExternalContentApiSitesListPageContentEntriesResponse = ExternalContentApiSitesListPageContentEntriesResponses[keyof ExternalContentApiSitesListPageContentEntriesResponses];
+
+export type ExternalContentApiSitesGetPageContentEntryData = {
+    body?: never;
+    path: {
+        /**
+         * Entry Id
+         *
+         * Content entry id.
+         */
+        entry_id: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Previewtoken
+         *
+         * Preview token.
+         */
+        previewToken?: string | null;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/content/page/{entry_id}';
+};
+
+export type ExternalContentApiSitesGetPageContentEntryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesGetPageContentEntryError = ExternalContentApiSitesGetPageContentEntryErrors[keyof ExternalContentApiSitesGetPageContentEntryErrors];
+
+export type ExternalContentApiSitesGetPageContentEntryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentApiEntryOut;
+};
+
+export type ExternalContentApiSitesGetPageContentEntryResponse = ExternalContentApiSitesGetPageContentEntryResponses[keyof ExternalContentApiSitesGetPageContentEntryResponses];
+
+export type ExternalContentApiSitesListReusableSectionContentEntriesData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Previewtoken
+         *
+         * Preview token.
+         */
+        previewToken?: string | null;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+        /**
+         * Filterfield
+         *
+         * Exact filter field.
+         */
+        filterField?: string | null;
+        /**
+         * Filtervalue
+         *
+         * Exact filter value.
+         */
+        filterValue?: string | null;
+        /**
+         * Containsfield
+         *
+         * Contains filter field.
+         */
+        containsField?: string | null;
+        /**
+         * Containsvalue
+         *
+         * Contains filter value.
+         */
+        containsValue?: string | null;
+        /**
+         * Sortfield
+         *
+         * Sort field.
+         */
+        sortField?: string | null;
+        /**
+         * Sortdirection
+         *
+         * Sort direction.
+         */
+        sortDirection?: 'asc' | 'desc';
+        /**
+         * Limit
+         *
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * Offset
+         *
+         * Page offset.
+         */
+        offset?: number;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/content/reusable-section';
+};
+
+export type ExternalContentApiSitesListReusableSectionContentEntriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesListReusableSectionContentEntriesError = ExternalContentApiSitesListReusableSectionContentEntriesErrors[keyof ExternalContentApiSitesListReusableSectionContentEntriesErrors];
+
+export type ExternalContentApiSitesListReusableSectionContentEntriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentApiEntryListOut;
+};
+
+export type ExternalContentApiSitesListReusableSectionContentEntriesResponse = ExternalContentApiSitesListReusableSectionContentEntriesResponses[keyof ExternalContentApiSitesListReusableSectionContentEntriesResponses];
+
+export type ExternalContentApiSitesGetReusableSectionContentEntryData = {
+    body?: never;
+    path: {
+        /**
+         * Entry Id
+         *
+         * Content entry id.
+         */
+        entry_id: string;
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query?: {
+        /**
+         * Perspective
+         *
+         * Delivery perspective.
+         */
+        perspective?: 'published' | 'preview';
+        /**
+         * Previewtoken
+         *
+         * Preview token.
+         */
+        previewToken?: string | null;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/content/reusable-section/{entry_id}';
+};
+
+export type ExternalContentApiSitesGetReusableSectionContentEntryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesGetReusableSectionContentEntryError = ExternalContentApiSitesGetReusableSectionContentEntryErrors[keyof ExternalContentApiSitesGetReusableSectionContentEntryErrors];
+
+export type ExternalContentApiSitesGetReusableSectionContentEntryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentApiEntryOut;
+};
+
+export type ExternalContentApiSitesGetReusableSectionContentEntryResponse = ExternalContentApiSitesGetReusableSectionContentEntryResponses[keyof ExternalContentApiSitesGetReusableSectionContentEntryResponses];
 
 export type ExternalRuntimesResolveRuntimeDeliveryGlobalSetData = {
     body?: never;
