@@ -68,7 +68,7 @@ Expand SSO provider support beyond GitHub and Google using the existing authenti
 
 ## Execution Log
 
-- Status: blocked
+- Status: verified
 - Last updated: 2026-05-01
 - Files changed:
   - `apps/api/src/modules/auth/oauth/social/providers.py`
@@ -103,4 +103,6 @@ Expand SSO provider support beyond GitHub and Google using the existing authenti
   - `pnpm -C apps/admin exec oxlint -c ./node_modules/@arclayer/config/.oxlintrc.json src/components/ui/oauth-buttons.tsx src/pages/usercenter/profile/components/profile-linked-accounts-section.tsx src/pages/system/oauth/page.tsx src/lib/auth/oauth-provider-meta.tsx test/components/ui/oauth-buttons.test.tsx test/pages/me/profile-linked-accounts-section.test.tsx` passed.
   - `pnpm -C apps/admin exec vitest run --config vitest.config.ts test/components/ui/oauth-buttons.test.tsx test/pages/me/profile-linked-accounts-section.test.tsx` passed: 20 passed.
   - `pnpm api:check` passed: lint, format, typecheck, and test completed with 626 passed, 197 skipped.
-  - `pnpm admin:check` partially passed: lint, format, and test passed with 955 passed; typecheck failed in existing `apps/admin/src/pages/workspaces/team/roles/components/team-roles-view.tsx` because `PermissionConditionSetOutput.conditions` is optional while `RolePermissionGrant.conditionSets[].conditions` is required.
+  - `pnpm admin:check` passed: 4/4 tasks, lint, format, test (955 passed), typecheck all pass (unblocked 2026-05-01 by `rbac.ts` `PermissionConditionSet.conditions` optional fix).
+- Final gate fix:
+  - `apps/admin/src/types/api/rbac.ts`: changed `PermissionConditionSet.conditions` from required to optional (`conditions?:`) to match OpenAPI-generated `PermissionConditionSetOutput`.

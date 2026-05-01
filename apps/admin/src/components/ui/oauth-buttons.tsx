@@ -12,7 +12,6 @@ import type { AuthSSOProvider } from "@/types/api";
 import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { Separator } from "@arclayer/ui/separator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
 export interface AuthOauthButtonsProps {
@@ -84,7 +83,6 @@ export function AuthOauthButtons({
   const providerActions = providers.map((provider) => ({
     key: provider.provider,
     fullLabel: provider.fullLabel,
-    shortLabel: provider.shortLabel,
     icon: provider.icon,
     isLastUsed: provider.provider === lastUsedProvider,
     isLoading: provider.provider === loadingProvider,
@@ -113,12 +111,6 @@ export function AuthOauthButtons({
 
   const isBusy = disabled || (showProviders && providersQuery.isLoading);
   const isSingleInlineLeadingAction = inlineLeadingActions.length === 1;
-  const providerCount = providerActions.length;
-  const isSingleProvider = providerCount === 1;
-  const isPairProviderLayout = providerCount === 2;
-  const isIconProviderLayout = providerCount >= 3;
-  const providerGridClassName =
-    providerCount === 3 ? "grid-cols-3" : providerCount >= 4 ? "grid-cols-4" : "";
   const lastUsedLabel = t("auth:OAUTH_LAST_USED");
   const dividerSpacingClassName = dividerPlacement === "after" ? "pt-3" : "py-2";
   const divider = (
@@ -216,7 +208,7 @@ export function AuthOauthButtons({
           ))}
         </div>
       ) : null}
-      {isSingleProvider ? (
+      {providerActions.length > 0 ? (
         <div className="grid gap-2.5">
           {providerActions.map((action) => (
             <Button
@@ -233,58 +225,6 @@ export function AuthOauthButtons({
             </Button>
           ))}
         </div>
-      ) : null}
-      {isPairProviderLayout ? (
-        <div className="grid grid-cols-2 gap-2.5">
-          {providerActions.map((action) => (
-            <Button
-              key={action.key}
-              className="relative h-10 w-full justify-center rounded-md  px-3 text-footnote "
-              variant="outline"
-              disabled={isBusy || action.isLoading}
-              loading={action.isLoading}
-              aria-label={action.fullLabel}
-              onClick={action.onClick}
-            >
-              {renderProviderContent(action, action.shortLabel)}
-            </Button>
-          ))}
-        </div>
-      ) : null}
-      {isIconProviderLayout ? (
-        <TooltipProvider>
-          <div className={cn("grid gap-2.5", providerGridClassName)}>
-            {providerActions.map((action) => (
-              <Tooltip key={action.key}>
-                <TooltipTrigger asChild focusTrigger={false}>
-                  <Button
-                    className="relative h-11 w-full justify-center rounded-md  px-0 "
-                    variant="outline"
-                    disabled={isBusy || action.isLoading}
-                    loading={action.isLoading}
-                    aria-label={action.fullLabel}
-                    onClick={action.onClick}
-                  >
-                    {!action.isLoading && action.isLastUsed ? (
-                      <Badge
-                        variant="outline"
-                        className="pointer-events-none absolute -top-2 right-1.5 border-primary/20 bg-popover px-1.5 font-semibold text-primary"
-                      >
-                        {lastUsedLabel}
-                      </Badge>
-                    ) : null}
-                    {!action.isLoading ? (
-                      <span className="inline-flex shrink-0 items-center justify-center self-center">
-                        {action.icon}
-                      </span>
-                    ) : null}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{action.shortLabel}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </TooltipProvider>
       ) : null}
       {dividerPlacement === "after" ? divider : null}
     </div>

@@ -157,7 +157,7 @@ describe("AuthOauthButtons", () => {
     expect(screen.queryByText("Google")).not.toBeInTheDocument();
   });
 
-  it("renders two oauth providers in a compact two-column grid", async () => {
+  it("renders two oauth providers as full-width button rows", async () => {
     listSSOProvidersMock.mockResolvedValueOnce({
       providers: [
         { provider: "google", label: "Google", start_url: "/oauth/google" },
@@ -175,17 +175,18 @@ describe("AuthOauthButtons", () => {
     const googleButton = screen.getByRole("button", {
       name: "auth:OAUTH_GOOGLE",
     });
-    const grid = googleButton.parentElement;
-    expect(grid).toHaveClass("grid");
-    expect(grid).toHaveClass("grid-cols-2");
-    expect(grid).not.toHaveClass("overflow-x-auto");
-    expect(screen.getByText("Google")).toBeInTheDocument();
-    expect(screen.getByText("GitHub")).toBeInTheDocument();
-    expect(screen.queryByText("auth:OAUTH_GOOGLE")).not.toBeInTheDocument();
-    expect(screen.queryByText("auth:OAUTH_GITHUB")).not.toBeInTheDocument();
+    const githubButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GITHUB",
+    });
+    expect(googleButton).toHaveClass("w-full");
+    expect(githubButton).toHaveClass("w-full");
+    expect(googleButton.parentElement).toBe(githubButton.parentElement);
+    expect(googleButton.parentElement).not.toHaveClass("grid-cols-2");
+    expect(screen.getByText("auth:OAUTH_GOOGLE")).toBeInTheDocument();
+    expect(screen.getByText("auth:OAUTH_GITHUB")).toBeInTheDocument();
   });
 
-  it("renders three oauth providers as icon-only buttons with tooltip labels", async () => {
+  it("renders three oauth providers as full-width button rows with visible labels", async () => {
     listSSOProvidersMock.mockResolvedValueOnce({
       providers: [
         { provider: "google", label: "Google", start_url: "/oauth/google" },
@@ -206,14 +207,22 @@ describe("AuthOauthButtons", () => {
       expect(screen.getByRole("button", { name: "auth:OAUTH_MICROSOFT" })).toBeInTheDocument();
     });
 
-    const grid = screen.getByRole("button", {
+    const googleButton = screen.getByRole("button", {
       name: "auth:OAUTH_GOOGLE",
-    }).parentElement;
-    expect(grid).toHaveClass("grid");
-    expect(grid).toHaveClass("grid-cols-3");
-    expect(screen.queryByText("Google")).not.toBeInTheDocument();
-    expect(screen.queryByText("GitHub")).not.toBeInTheDocument();
-    expect(screen.queryByText("Microsoft")).not.toBeInTheDocument();
+    });
+    const githubButton = screen.getByRole("button", {
+      name: "auth:OAUTH_GITHUB",
+    });
+    const microsoftButton = screen.getByRole("button", {
+      name: "auth:OAUTH_MICROSOFT",
+    });
+    expect(googleButton).toHaveClass("w-full");
+    expect(githubButton).toHaveClass("w-full");
+    expect(microsoftButton).toHaveClass("w-full");
+    expect(googleButton.parentElement).not.toHaveClass("grid-cols-3");
+    expect(screen.getByText("auth:OAUTH_GOOGLE")).toBeInTheDocument();
+    expect(screen.getByText("auth:OAUTH_GITHUB")).toBeInTheDocument();
+    expect(screen.getByText("auth:OAUTH_MICROSOFT")).toBeInTheDocument();
   });
 
   it("renders four configured oauth providers with localized labels", async () => {
@@ -235,10 +244,12 @@ describe("AuthOauthButtons", () => {
       expect(screen.getByRole("button", { name: "auth:OAUTH_DISCORD" })).toBeInTheDocument();
     });
 
-    const grid = screen.getByRole("button", {
+    const discordButton = screen.getByRole("button", {
       name: "auth:OAUTH_DISCORD",
-    }).parentElement;
-    expect(grid).toHaveClass("grid-cols-4");
+    });
+    expect(discordButton).toHaveClass("w-full");
+    expect(discordButton.parentElement).not.toHaveClass("grid-cols-4");
+    expect(screen.getByText("auth:OAUTH_DISCORD")).toBeInTheDocument();
   });
 
   it("renders the password-login action on its own full-width row", async () => {

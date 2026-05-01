@@ -4221,6 +4221,150 @@ export type ContentRoutingContract = {
 };
 
 /**
+ * ContentSearchHitOut
+ */
+export type ContentSearchHitOut = {
+    /**
+     * Customfields
+     *
+     * Delivery-safe custom field payload.
+     */
+    customFields?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Draftrevision
+     *
+     * Current draft revision pointer.
+     */
+    draftRevision: number;
+    /**
+     * Fields
+     *
+     * Delivery-safe field payload.
+     */
+    fields?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Id
+     *
+     * Content item id.
+     */
+    id: string;
+    /**
+     * Locale
+     *
+     * Entry locale.
+     */
+    locale: string;
+    /**
+     * Modelkey
+     *
+     * Content model key.
+     */
+    modelKey: string;
+    /**
+     * Publishedrevision
+     *
+     * Current published revision pointer.
+     */
+    publishedRevision: number;
+    /**
+     * Revision
+     *
+     * Resolved revision number.
+     */
+    revision: number;
+    /**
+     * Revisionstate
+     *
+     * Resolved revision state.
+     */
+    revisionState?: 'published';
+    /**
+     * Routecontract
+     *
+     * Bound route contract, when available.
+     */
+    routeContract?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Routepath
+     *
+     * Bound route path, when the entry owns one.
+     */
+    routePath?: string | null;
+    /**
+     * Score
+     *
+     * Backend relevance score when available.
+     */
+    score?: number | null;
+    /**
+     * Slug
+     *
+     * Entry slug.
+     */
+    slug?: string | null;
+    /**
+     * Title
+     *
+     * Entry title.
+     */
+    title?: string | null;
+};
+
+/**
+ * ContentSearchResultOut
+ */
+export type ContentSearchResultOut = {
+    /**
+     * Items
+     *
+     * Search hits.
+     */
+    items?: Array<ContentSearchHitOut>;
+    /**
+     * Limit
+     *
+     * Page size.
+     */
+    limit: number;
+    /**
+     * Locale
+     *
+     * Locale filter applied to the result.
+     */
+    locale?: string | null;
+    /**
+     * Modelkey
+     *
+     * Content model key.
+     */
+    modelKey: string;
+    /**
+     * Offset
+     *
+     * Page offset.
+     */
+    offset: number;
+    /**
+     * Query
+     *
+     * Full-text query.
+     */
+    query: string;
+    /**
+     * Total
+     *
+     * Total matched entries before pagination.
+     */
+    total: number;
+};
+
+/**
  * ContentSeoProfileOut
  */
 export type ContentSeoProfileOut = {
@@ -11174,9 +11318,183 @@ export type ProjectDetailOut = {
 };
 
 /**
+ * ProjectEnvironmentAliasOut
+ */
+export type ProjectEnvironmentAliasOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     *
+     * Actor that created the alias.
+     */
+    createdByUserId?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Key
+     *
+     * Alias key.
+     */
+    key: string;
+    /**
+     * Name
+     *
+     * Alias display name.
+     */
+    name: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId: string;
+    /**
+     * Switchedat
+     *
+     * Alias switch timestamp.
+     */
+    switchedAt?: string | null;
+    /**
+     * Switchedbyuserid
+     *
+     * Actor that last switched the alias.
+     */
+    switchedByUserId?: string | null;
+    /**
+     * Targetenvironmentid
+     *
+     * Target environment id.
+     */
+    targetEnvironmentId: string;
+    /**
+     * Targetenvironmentkey
+     *
+     * Target environment key.
+     */
+    targetEnvironmentKey: string;
+    /**
+     * Targetenvironmentname
+     *
+     * Target environment name.
+     */
+    targetEnvironmentName: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+};
+
+/**
+ * ProjectEnvironmentAliasSwitchIn
+ */
+export type ProjectEnvironmentAliasSwitchIn = {
+    /**
+     * Targetenvironmentid
+     *
+     * Environment id to target.
+     */
+    targetEnvironmentId?: string | null;
+    /**
+     * Targetenvironmentkey
+     *
+     * Environment key to target.
+     */
+    targetEnvironmentKey?: string | null;
+};
+
+/**
+ * ProjectEnvironmentCloneIn
+ */
+export type ProjectEnvironmentCloneIn = {
+    /**
+     * Includecontent
+     *
+     * Whether to clone content items.
+     */
+    includeContent?: boolean;
+    /**
+     * Source
+     *
+     * Source environment key, id, or alias.
+     */
+    source: string;
+    /**
+     * Target
+     *
+     * Target environment key or id.
+     */
+    target: string;
+};
+
+/**
+ * ProjectEnvironmentCopyOut
+ */
+export type ProjectEnvironmentCopyOut = {
+    /**
+     * Contentitems
+     *
+     * Copied content item count.
+     */
+    contentItems: number;
+    /**
+     * Contentmodels
+     *
+     * Copied content model count.
+     */
+    contentModels: number;
+    /**
+     * Contentversions
+     *
+     * Copied content version count.
+     */
+    contentVersions: number;
+    /**
+     * Releases
+     *
+     * Copied release count.
+     */
+    releases?: number;
+    /**
+     * Routebindings
+     *
+     * Copied route binding count.
+     */
+    routeBindings?: number;
+    /**
+     * Sourceenvironmentid
+     *
+     * Source environment id.
+     */
+    sourceEnvironmentId: string;
+    /**
+     * Targetenvironmentid
+     *
+     * Target environment id.
+     */
+    targetEnvironmentId: string;
+};
+
+/**
  * ProjectEnvironmentListOut
  */
 export type ProjectEnvironmentListOut = {
+    /**
+     * Aliases
+     *
+     * Project environment aliases.
+     */
+    aliases?: Array<ProjectEnvironmentAliasOut>;
     /**
      * Items
      *
@@ -11189,6 +11507,12 @@ export type ProjectEnvironmentListOut = {
  * ProjectEnvironmentOut
  */
 export type ProjectEnvironmentOut = {
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
     /**
      * Createdbyuserid
      *
@@ -11231,6 +11555,12 @@ export type ProjectEnvironmentOut = {
      * Project id.
      */
     projectId: string;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
 };
 
 /**
@@ -11249,6 +11579,30 @@ export type ProjectEnvironmentPatchIn = {
      * Environment display name.
      */
     name?: string | null;
+};
+
+/**
+ * ProjectEnvironmentPromoteIn
+ */
+export type ProjectEnvironmentPromoteIn = {
+    /**
+     * Includecontent
+     *
+     * Whether to promote content items.
+     */
+    includeContent?: boolean;
+    /**
+     * Source
+     *
+     * Source environment key, id, or alias.
+     */
+    source: string;
+    /**
+     * Target
+     *
+     * Target environment key or id.
+     */
+    target: string;
 };
 
 /**
@@ -13303,6 +13657,31 @@ export type ResponseModelContentModelSchemaSnapshotOut = {
  */
 export type ResponseModelContentPresentationListOut = {
     data?: ContentPresentationListOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentSearchResultOut]
+ */
+export type ResponseModelContentSearchResultOut = {
+    data?: ContentSearchResultOut | null;
     /**
      * Error
      */
@@ -15731,6 +16110,56 @@ export type ResponseModelProjectDeploymentOut = {
  */
 export type ResponseModelProjectDetailOut = {
     data?: ProjectDetailOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectEnvironmentAliasOut]
+ */
+export type ResponseModelProjectEnvironmentAliasOut = {
+    data?: ProjectEnvironmentAliasOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ProjectEnvironmentCopyOut]
+ */
+export type ResponseModelProjectEnvironmentCopyOut = {
+    data?: ProjectEnvironmentCopyOut | null;
     /**
      * Error
      */
@@ -26410,6 +26839,18 @@ export type DomainProjectsListProjectContentItemsData = {
          */
         modelKey?: string | null;
         /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+        /**
          * Page
          *
          * Page number (1-based).
@@ -26456,7 +26897,20 @@ export type DomainProjectsCreateProjectContentItemData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items';
 };
 
@@ -26491,7 +26945,20 @@ export type DomainProjectsBulkPublishProjectContentItemsData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/bulk/publish';
 };
 
@@ -26526,7 +26993,20 @@ export type DomainProjectsBulkUnpublishProjectContentItemsData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/bulk/unpublish';
 };
 
@@ -26562,7 +27042,20 @@ export type DomainProjectsDeleteProjectContentItemData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}';
 };
 
@@ -26598,7 +27091,20 @@ export type DomainProjectsGetProjectContentItemData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}';
 };
 
@@ -26634,7 +27140,20 @@ export type DomainProjectsArchiveProjectContentItemData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/archive';
 };
 
@@ -26673,7 +27192,20 @@ export type DomainProjectsApplyProjectContentItemBootstrapShapeData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/bootstrap-shape';
 };
 
@@ -26709,7 +27241,20 @@ export type DomainProjectsDuplicateProjectContentItemData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/duplicate';
 };
 
@@ -26745,7 +27290,20 @@ export type DomainProjectsUnarchiveProjectContentItemData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/unarchive';
 };
 
@@ -26782,6 +27340,18 @@ export type DomainProjectsListProjectContentItemVersionsData = {
         project_id: string;
     };
     query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
         /**
          * Page
          *
@@ -26833,7 +27403,20 @@ export type DomainProjectsSaveProjectContentItemDraftVersionData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft';
 };
 
@@ -26873,7 +27456,20 @@ export type DomainProjectsGetProjectContentItemVersionData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}';
 };
 
@@ -26916,7 +27512,20 @@ export type DomainProjectsPatchProjectContentItemVersionData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}';
 };
 
@@ -26956,7 +27565,20 @@ export type DomainProjectsArchiveProjectContentItemVersionData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/archive';
 };
 
@@ -26996,7 +27618,20 @@ export type DomainProjectsListProjectContentBindingsData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/bindings';
 };
 
@@ -27040,7 +27675,20 @@ export type DomainProjectsCompareProjectContentItemVersionsData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/compare/{target_version_number}';
 };
 
@@ -27080,7 +27728,20 @@ export type DomainProjectsListProjectContentPresentationsData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/presentations';
 };
 
@@ -27120,7 +27781,20 @@ export type DomainProjectsPublishProjectContentItemVersionData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/publish';
 };
 
@@ -27160,7 +27834,20 @@ export type DomainProjectsRestoreProjectContentItemVersionData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/restore';
 };
 
@@ -27200,7 +27887,20 @@ export type DomainProjectsScheduleProjectContentItemVersionData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/schedule';
 };
 
@@ -27240,7 +27940,20 @@ export type DomainProjectsGetProjectContentSeoProfileData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/versions/{version_number}/seo';
 };
 
@@ -27279,7 +27992,20 @@ export type DomainProjectsPatchProjectContentItemWorkflowData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/items/{item_id}/workflow';
 };
 
@@ -27311,7 +28037,20 @@ export type DomainProjectsListProjectContentLibraryViewsData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/library/views';
 };
 
@@ -27346,7 +28085,20 @@ export type DomainProjectsCreateProjectContentLibraryViewData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/library/views';
 };
 
@@ -27382,7 +28134,20 @@ export type DomainProjectsDeleteProjectContentLibraryViewData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/library/views/{view_id}';
 };
 
@@ -27421,7 +28186,20 @@ export type DomainProjectsPatchProjectContentLibraryViewData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/library/views/{view_id}';
 };
 
@@ -27460,7 +28238,20 @@ export type DomainProjectsMoveProjectContentLibraryViewData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/library/views/{view_id}/move';
 };
 
@@ -27524,6 +28315,18 @@ export type DomainProjectsListProjectContentModelsData = {
          */
         system_managed?: boolean | null;
         /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+        /**
          * Page
          *
          * Page number (1-based).
@@ -27570,7 +28373,20 @@ export type DomainProjectsCreateProjectContentModelData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models';
 };
 
@@ -27602,7 +28418,20 @@ export type DomainProjectsListProjectContentModelFieldTypesData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/field-types';
 };
 
@@ -27638,7 +28467,20 @@ export type DomainProjectsDeleteProjectContentModelData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/{model_id}';
 };
 
@@ -27677,7 +28519,20 @@ export type DomainProjectsUpdateProjectContentModelData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/{model_id}';
 };
 
@@ -27716,7 +28571,20 @@ export type DomainProjectsCreateProjectContentModelFieldData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/{model_id}/fields';
 };
 
@@ -27755,7 +28623,20 @@ export type DomainProjectsReorderProjectContentModelFieldsData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/{model_id}/fields/reorder';
 };
 
@@ -27795,7 +28676,20 @@ export type DomainProjectsDeleteProjectContentModelFieldData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/{model_id}/fields/{field_key}';
 };
 
@@ -27838,7 +28732,20 @@ export type DomainProjectsUpdateProjectContentModelFieldData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/{model_id}/fields/{field_key}';
 };
 
@@ -27877,7 +28784,20 @@ export type DomainProjectsPreviewProjectContentModelUpdateData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/{model_id}/impact-preview';
 };
 
@@ -27913,7 +28833,20 @@ export type DomainProjectsGetProjectContentModelJsonPreviewData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/models/{model_id}/json-preview';
 };
 
@@ -27945,7 +28878,20 @@ export type DomainProjectsListProjectContentRouteBindingsData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/routing/bindings';
 };
 
@@ -27984,7 +28930,20 @@ export type DomainProjectsUpsertProjectContentRouteBindingData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/routing/bindings/{item_id}';
 };
 
@@ -28016,7 +28975,20 @@ export type DomainProjectsListProjectContentHierarchyNodesData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/routing/hierarchy';
 };
 
@@ -28055,7 +29027,20 @@ export type DomainProjectsUpsertProjectContentHierarchyNodeData = {
          */
         project_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/content/routing/hierarchy/{item_id}';
 };
 
@@ -28658,6 +29643,106 @@ export type DomainProjectsListProjectEnvironmentsResponses = {
 };
 
 export type DomainProjectsListProjectEnvironmentsResponse = DomainProjectsListProjectEnvironmentsResponses[keyof DomainProjectsListProjectEnvironmentsResponses];
+
+export type DomainProjectsSwitchProjectEnvironmentAliasData = {
+    body: ProjectEnvironmentAliasSwitchIn;
+    path: {
+        /**
+         * Alias Key
+         */
+        alias_key: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/environments/aliases/{alias_key}';
+};
+
+export type DomainProjectsSwitchProjectEnvironmentAliasErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsSwitchProjectEnvironmentAliasError = DomainProjectsSwitchProjectEnvironmentAliasErrors[keyof DomainProjectsSwitchProjectEnvironmentAliasErrors];
+
+export type DomainProjectsSwitchProjectEnvironmentAliasResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectEnvironmentAliasOut;
+};
+
+export type DomainProjectsSwitchProjectEnvironmentAliasResponse = DomainProjectsSwitchProjectEnvironmentAliasResponses[keyof DomainProjectsSwitchProjectEnvironmentAliasResponses];
+
+export type DomainProjectsCloneProjectEnvironmentData = {
+    body: ProjectEnvironmentCloneIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/environments/clone';
+};
+
+export type DomainProjectsCloneProjectEnvironmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCloneProjectEnvironmentError = DomainProjectsCloneProjectEnvironmentErrors[keyof DomainProjectsCloneProjectEnvironmentErrors];
+
+export type DomainProjectsCloneProjectEnvironmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectEnvironmentCopyOut;
+};
+
+export type DomainProjectsCloneProjectEnvironmentResponse = DomainProjectsCloneProjectEnvironmentResponses[keyof DomainProjectsCloneProjectEnvironmentResponses];
+
+export type DomainProjectsPromoteProjectEnvironmentData = {
+    body: ProjectEnvironmentPromoteIn;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/environments/promote';
+};
+
+export type DomainProjectsPromoteProjectEnvironmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsPromoteProjectEnvironmentError = DomainProjectsPromoteProjectEnvironmentErrors[keyof DomainProjectsPromoteProjectEnvironmentErrors];
+
+export type DomainProjectsPromoteProjectEnvironmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelProjectEnvironmentCopyOut;
+};
+
+export type DomainProjectsPromoteProjectEnvironmentResponse = DomainProjectsPromoteProjectEnvironmentResponses[keyof DomainProjectsPromoteProjectEnvironmentResponses];
 
 export type DomainProjectsPatchProjectEnvironmentData = {
     body: ProjectEnvironmentPatchIn;
@@ -33106,6 +34191,18 @@ export type ExternalContentApiSitesListArticleContentEntriesData = {
          */
         previewToken?: string | null;
         /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+        /**
          * Locale
          *
          * Locale filter, e.g. en-US.
@@ -33209,6 +34306,18 @@ export type ExternalContentApiSitesGetArticleContentEntryData = {
          */
         previewToken?: string | null;
         /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+        /**
          * Locale
          *
          * Locale filter, e.g. en-US.
@@ -33257,6 +34366,18 @@ export type ExternalContentApiSitesListCategoryContentEntriesData = {
          * Preview token.
          */
         previewToken?: string | null;
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
         /**
          * Locale
          *
@@ -33361,6 +34482,18 @@ export type ExternalContentApiSitesGetCategoryContentEntryData = {
          */
         previewToken?: string | null;
         /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+        /**
          * Locale
          *
          * Locale filter, e.g. en-US.
@@ -33409,6 +34542,18 @@ export type ExternalContentApiSitesListPageContentEntriesData = {
          * Preview token.
          */
         previewToken?: string | null;
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
         /**
          * Locale
          *
@@ -33513,6 +34658,18 @@ export type ExternalContentApiSitesGetPageContentEntryData = {
          */
         previewToken?: string | null;
         /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+        /**
          * Locale
          *
          * Locale filter, e.g. en-US.
@@ -33561,6 +34718,18 @@ export type ExternalContentApiSitesListReusableSectionContentEntriesData = {
          * Preview token.
          */
         previewToken?: string | null;
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
         /**
          * Locale
          *
@@ -33664,6 +34833,18 @@ export type ExternalContentApiSitesGetReusableSectionContentEntryData = {
          * Preview token.
          */
         previewToken?: string | null;
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
         /**
          * Locale
          *
@@ -33954,7 +35135,20 @@ export type ExternalRuntimesHandleRuntimeGraphqlGetData = {
          */
         runtime_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/content-api/v1/runtimes/{runtime_id}/graphql';
 };
 
@@ -33986,7 +35180,20 @@ export type ExternalRuntimesHandleRuntimeGraphqlPostData = {
          */
         runtime_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
     url: '/content-api/v1/runtimes/{runtime_id}/graphql';
 };
 
@@ -34103,6 +35310,67 @@ export type ExternalRuntimesGetRuntimeConfigResponses = {
 };
 
 export type ExternalRuntimesGetRuntimeConfigResponse = ExternalRuntimesGetRuntimeConfigResponses[keyof ExternalRuntimesGetRuntimeConfigResponses];
+
+export type ExternalContentApiSitesSearchPublishedContentEntriesData = {
+    body?: never;
+    path: {
+        /**
+         * Runtime Id
+         */
+        runtime_id: string;
+    };
+    query: {
+        /**
+         * Q
+         *
+         * Full-text query.
+         */
+        q: string;
+        /**
+         * Modelkey
+         *
+         * Content model key.
+         */
+        modelKey: string;
+        /**
+         * Locale
+         *
+         * Locale filter, e.g. en-US.
+         */
+        locale?: string | null;
+        /**
+         * Limit
+         *
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * Offset
+         *
+         * Page offset.
+         */
+        offset?: number;
+    };
+    url: '/content-api/v1/runtimes/{runtime_id}/search';
+};
+
+export type ExternalContentApiSitesSearchPublishedContentEntriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExternalContentApiSitesSearchPublishedContentEntriesError = ExternalContentApiSitesSearchPublishedContentEntriesErrors[keyof ExternalContentApiSitesSearchPublishedContentEntriesErrors];
+
+export type ExternalContentApiSitesSearchPublishedContentEntriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentSearchResultOut;
+};
+
+export type ExternalContentApiSitesSearchPublishedContentEntriesResponse = ExternalContentApiSitesSearchPublishedContentEntriesResponses[keyof ExternalContentApiSitesSearchPublishedContentEntriesResponses];
 
 export type ExternalContentApiSitesResolveSiteByHostData = {
     body?: never;

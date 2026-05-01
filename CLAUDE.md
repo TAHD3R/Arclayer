@@ -131,7 +131,14 @@ For API schema migrations, use:
 - `pnpm --filter @arclayer/api db:migrate`
 - `pnpm --filter @arclayer/api db:upgrade`
 
-Keep migration files command-generated and review the generated artifact before upgrade.
+Migration files are generated artifacts:
+
+- Schema changes start in Tortoise model definitions.
+- Generate migration files only with `pnpm --filter @arclayer/api db:migrate`.
+- Apply migration files only with `pnpm --filter @arclayer/api db:upgrade`.
+- Never hand-write, hand-repair, or hand-edit migration file contents.
+- If generated output is wrong, fix the model/source-state issue, remove the generated artifact, and rerun `db:migrate`.
+- Review the generated artifact before upgrade.
 
 Avoid running infra / interactive commands unless the user asks:
 

@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
-import { CircleEllipsisIcon, MessageCircleIcon, PanelsTopLeftIcon } from "lucide-react";
+import { CircleEllipsisIcon } from "lucide-react";
 
+import DiscordIcon from "@arclayer/ui/icons/discord-icon";
 import GitHubDarkIcon from "@arclayer/ui/icons/github-dark-icon";
 import GitHubLightIcon from "@arclayer/ui/icons/github-light-icon";
 import GoogleIcon from "@arclayer/ui/icons/google-icon";
+import MicrosoftIcon from "@arclayer/ui/icons/microsoft-icon";
 
 export type OAuthProviderMetaInput = {
   provider: string;
@@ -74,7 +76,7 @@ export function resolveOAuthProviderMeta(input: {
       fullLabel: input.t("auth:OAUTH_MICROSOFT"),
       shortLabel: "Microsoft",
       startUrl,
-      icon: <PanelsTopLeftIcon size={14} />,
+      icon: <MicrosoftIcon size={14} />,
     };
   }
 
@@ -85,7 +87,7 @@ export function resolveOAuthProviderMeta(input: {
       fullLabel: input.t("auth:OAUTH_DISCORD"),
       shortLabel: "Discord",
       startUrl,
-      icon: <MessageCircleIcon size={14} />,
+      icon: <DiscordIcon size={14} />,
     };
   }
 

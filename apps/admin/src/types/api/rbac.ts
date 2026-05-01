@@ -27,7 +27,7 @@ export type PermissionCondition = {
 };
 
 export type PermissionConditionSet = {
-  conditions: PermissionCondition[];
+  conditions?: PermissionCondition[];
 };
 
 export type RolePermissionGrant = {
