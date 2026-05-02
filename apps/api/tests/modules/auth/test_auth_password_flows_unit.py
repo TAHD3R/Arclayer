@@ -321,7 +321,11 @@ async def test_request_remove_password_maps_mail_delivery_failures_to_api_error(
     async def _get_fast_mail() -> _FailingMail:
         return _FailingMail()
 
+    async def _core_mail_config() -> dict:
+        return {}
+
     monkeypatch.setattr(service.email_service, "_enabled", _enabled)
+    monkeypatch.setattr(service.email_service, "_get_core_mail_config", _core_mail_config)
     monkeypatch.setattr(service.email_service, "_get_fast_mail", _get_fast_mail)
 
     with pytest.raises(ServiceUnavailable) as exc:

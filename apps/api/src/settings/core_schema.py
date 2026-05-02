@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.modules.auth.oauth.social.providers import OAUTH_PROVIDER_DEFINITIONS
-from src.settings.schema import ConfigField, ConfigSchema, ConfigSection
+from src.settings.schema import ConfigField, ConfigOption, ConfigSchema, ConfigSection
 
 CORE_SETTINGS_NAMESPACE = "core"
 
@@ -289,6 +289,40 @@ def build_core_settings_schema() -> ConfigSchema:
                         default=False,
                         label="Enable email",
                         label_i18n="settings:MAIL_ENABLED_LABEL",
+                    ),
+                    ConfigField(
+                        key="provider",
+                        type="str",
+                        default="smtp",
+                        label="Active email provider",
+                        label_i18n="settings:MAIL_PROVIDER_LABEL",
+                        options=[
+                            ConfigOption(value="smtp", label="SMTP"),
+                            ConfigOption(value="resend", label="Resend"),
+                            ConfigOption(value="cloudflare", label="Cloudflare"),
+                            ConfigOption(value="ses", label="Amazon SES"),
+                        ],
+                    ),
+                    ConfigField(
+                        key="providers",
+                        type="dict",
+                        default={},
+                        label="Provider settings",
+                        label_i18n="settings:MAIL_PROVIDERS_LABEL",
+                    ),
+                    ConfigField(
+                        key="fallback_chain",
+                        type="list",
+                        default=[],
+                        label="Fallback providers",
+                        label_i18n="settings:MAIL_FALLBACK_CHAIN_LABEL",
+                    ),
+                    ConfigField(
+                        key="retry",
+                        type="dict",
+                        default={"max_attempts": 3, "backoff_seconds": [1, 2, 4]},
+                        label="Retry policy",
+                        label_i18n="settings:MAIL_RETRY_LABEL",
                     ),
                     ConfigField(
                         key="server",

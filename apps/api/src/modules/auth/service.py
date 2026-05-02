@@ -1045,6 +1045,7 @@ class AuthService(BaseService):
         await self.user_repo.increment_token_version(user)
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(self._coerce_user_id(user))
+        await self.send_security_alert(user_id=user_id, event_key="password_changed")
 
     async def forgot_password(self, *, email: str) -> tuple[str, int, str, UUID] | None:
         store = self._require_reset_store()
@@ -1121,6 +1122,60 @@ class AuthService(BaseService):
             locale=locale,
         )
 
+    async def send_security_alert(
+        self,
+        *,
+        user_id: UUID,
+        event_key: str,
+        request_context: AuthRequestContext | None = None,
+        locale: str | None = None,
+    ) -> None:
+        user = await self.user_repo.get_by_id(user_id)
+        recipient = str(getattr(user, "email", "") or "").strip() if user is not None else ""
+        if not recipient:
+            return
+        try:
+            await self.email_service.send_security_alert(
+                recipient=recipient,
+                title=t(
+                    "auth",
+                    "SECURITY_ALERT_EMAIL_TITLE",
+                    default="Security activity on your account",
+                    locale=locale,
+                ),
+                intro=t(
+                    "auth",
+                    "SECURITY_ALERT_EMAIL_INTRO",
+                    default="We detected a security-sensitive action on your Arclayer account.",
+                    locale=locale,
+                ),
+                event_label=self._security_alert_event_label(event_key),
+                user_id=str(user_id),
+                ip_address=None if request_context is None else request_context.ip_address,
+                user_agent=None if request_context is None else request_context.user_agent,
+                occurred_at=datetime.now(UTC),
+                locale=locale,
+            )
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "Security alert email send failed",
+                user_id=str(user_id),
+                event_key=event_key,
+                error=str(exc),
+            )
+
+    @staticmethod
+    def _security_alert_event_label(event_key: str) -> str:
+        labels = {
+            "password_login": "Password login",
+            "email_code": "Email code login",
+            "sso": "Single sign-on login",
+            "password_changed": "Password changed",
+            "password_reset": "Password reset",
+        }
+        return labels.get(event_key, event_key.replace("_", " ").strip().title() or "Security event")
+
     async def reset_password(self, *, reset_token: str, new_password: str) -> None:
         store = self._require_reset_store()
         self._ensure_reset_token_format(reset_token)
@@ -1155,6 +1210,7 @@ class AuthService(BaseService):
         await self.user_repo.increment_token_version(user)
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(self._coerce_user_id(user))
+        await self.send_security_alert(user_id=user_id, event_key="password_reset")
 
         # Best-effort: record password reset completion.
         try:

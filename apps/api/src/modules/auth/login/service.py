@@ -99,11 +99,17 @@ class AuthLoginService(BaseService):
                 meta={"two_factor_token": token, "expires_in": ttl},
             )
 
-        return await self.auth_service.issue_token_pair_for_user(
+        tokens = await self.auth_service.issue_token_pair_for_user(
             user_id,
             request_context=request_context,
             auth_method="password",
         )
+        await self.auth_service.send_security_alert(
+            user_id=user_id,
+            event_key="password_login",
+            request_context=request_context,
+        )
+        return tokens
 
     async def issue_after_upstream_auth(
         self,
@@ -123,11 +129,17 @@ class AuthLoginService(BaseService):
                 error="TWO_FACTOR_REQUIRED",
                 meta={"two_factor_token": token, "expires_in": ttl},
             )
-        return await self.auth_service.issue_token_pair_for_user(
+        tokens = await self.auth_service.issue_token_pair_for_user(
             user_id,
             request_context=request_context,
             auth_method=auth_method,
         )
+        await self.auth_service.send_security_alert(
+            user_id=user_id,
+            event_key=auth_method,
+            request_context=request_context,
+        )
+        return tokens
 
     async def complete_two_factor_login(
         self,

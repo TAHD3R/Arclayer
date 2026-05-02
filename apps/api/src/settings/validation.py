@@ -105,6 +105,48 @@ def _validate_section_semantics(section_id: str, values: dict[str, object]) -> N
     if section_id != "mail":
         return
 
+    provider = values.get("provider")
+    provider_ids = {"smtp", "resend", "cloudflare", "ses"}
+    if provider is not None and provider not in provider_ids:
+        raise BadRequest(
+            message=_ts("MAIL_PROVIDER_INVALID", "邮件 Provider 不合法"),
+            error="MAIL_PROVIDER_INVALID",
+        )
+
+    fallback_chain = values.get("fallback_chain")
+    if fallback_chain is not None:
+        if not isinstance(fallback_chain, list) or any(item not in provider_ids for item in fallback_chain):
+            raise BadRequest(
+                message=_ts("MAIL_FALLBACK_CHAIN_INVALID", "邮件备用 Provider 配置不合法"),
+                error="MAIL_FALLBACK_CHAIN_INVALID",
+            )
+
+    retry = values.get("retry")
+    if retry is not None:
+        if not isinstance(retry, dict):
+            raise BadRequest(
+                message=_ts("MAIL_RETRY_INVALID", "邮件重试配置不合法"),
+                error="MAIL_RETRY_INVALID",
+            )
+        retry_config = cast(dict[str, object], retry)
+        max_attempts = retry_config.get("max_attempts")
+        backoff_seconds = retry_config.get("backoff_seconds")
+        if max_attempts is not None and (
+            not isinstance(max_attempts, int) or isinstance(max_attempts, bool) or max_attempts < 1 or max_attempts > 10
+        ):
+            raise BadRequest(
+                message=_ts("MAIL_RETRY_INVALID", "邮件重试配置不合法"),
+                error="MAIL_RETRY_INVALID",
+            )
+        if backoff_seconds is not None and (
+            not isinstance(backoff_seconds, list)
+            or any(not isinstance(item, int) or isinstance(item, bool) or item < 0 for item in backoff_seconds)
+        ):
+            raise BadRequest(
+                message=_ts("MAIL_RETRY_INVALID", "邮件重试配置不合法"),
+                error="MAIL_RETRY_INVALID",
+            )
+
     starttls = values.get("starttls")
     ssl_tls = values.get("ssl_tls")
     if starttls is True and ssl_tls is True:

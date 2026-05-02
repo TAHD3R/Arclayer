@@ -40,7 +40,7 @@ Do not include unrelated task cards in the default context. The current card may
 
 | ID | Card | Priority | Dependencies | Status | Last Result |
 |---|---|---|---|---|---|
-| EMAIL | `card-email-multi-provider-gateway.md` | P1 | none | planned | — |
+| EMAIL | `card-email-multi-provider-gateway.md` | P1 | none | verified | Multi-provider gateway shipped: EmailProvider ABC, SMTP/Resend/Cloudflare/SES providers, DynamicMailService fallback/retry/switching, Admin provider settings, security alert templates, i18n, and focused/provider tests. Final gates: `pnpm api:check` and `pnpm admin:check`. |
 | SCHEDULE | `card-scheduled-publish-task-center.md` | P1 | none | planned | — |
 
 ### P2 — 完善开发者体验
@@ -70,7 +70,7 @@ Status values:
 | ID | Card | Priority | Status | Last Result |
 |---|---|---|---|---|
 | I18N | `card-i18n-content-localization.md` | P0 | verified | Translation groups, create-translation flow, SQL locale filtering, delivery/GraphQL locale fallback, Admin translation UI, i18n keys, OpenAPI, migration, and tests shipped. Final gate: `pnpm check`. |
-| EMAIL | `card-email-multi-provider-gateway.md` | P1 | planned | Provider abstraction (ABC) + SMTP/Resend/Cloudflare/SES + DynamicMailService + security alert templates. |
+| EMAIL | `card-email-multi-provider-gateway.md` | P1 | verified | EmailProvider ABC, SMTP/Resend/Cloudflare/SES providers, DynamicMailService fallback/retry/switching, Admin provider settings, security alert templates, i18n, and focused/provider tests shipped. Final gates: `pnpm api:check` and `pnpm admin:check`. |
 | SENTRY | `card-sentry-sdk-integration.md` | P2 | planned | Backend (sentry-sdk[fastapi]) + Frontend (@sentry/react) + ErrorBoundary + env-based config. |
 | SCHEDULE | `card-scheduled-publish-task-center.md` | P1 | planned | PublishJobRecord model + Taskiq cron task + /system/jobs page + scheduled_at in ContentReleaseRecord. |
 | AUDIT | `card-platform-audit-log-page.md` | P3 | planned | System-wide audit log page reusing existing ActivityTimeline + ActivityFilterPopover components + event catalog completion. |

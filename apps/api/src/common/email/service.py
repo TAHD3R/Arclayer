@@ -1,22 +1,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
 
-from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
-from fastapi_mail.schemas import MultipartSubtypeEnum
-from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
+from fastapi_mail import ConnectionConfig, FastMail
 
+from src.common.email.dynamic_service import DynamicMailService
 from src.common.email.errors import raise_mail_delivery_error
-from src.common.email.helpers import (
-    default_template_dir,
-    pick_bool,
-    pick_int,
-    pick_str,
-    raise_if_fatal,
-    to_name_email,
-    valid_recipient,
-)
+from src.common.email.helpers import raise_if_fatal, valid_recipient
+from src.common.email.provider import EmailMessage
+from src.common.email.providers.smtp import SmtpEmailProvider
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.i18n import t
@@ -24,8 +16,6 @@ from src.core.logging import get_logger
 from src.models.system.setting import SettingRecord
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
-
-_EMAIL_ADAPTER = TypeAdapter(EmailStr)
 
 
 class EmailService:
@@ -86,51 +76,23 @@ class EmailService:
         return template_key in enabled_set
 
     async def _build_connection_config(self) -> ConnectionConfig:
-        base = self.settings.email
         mail = await self._get_core_mail_config()
-
-        # Prefer DB config (core.mail.*) when present; fall back to env settings.
-        server = pick_str(mail.get("server"), base.server)
-        port = pick_int(mail.get("port"), base.port)
-        username = pick_str(mail.get("username"), base.username or "")
-        mail_from_raw = pick_str(mail.get("mail_from"), base.mail_from)
-        mail_from_name = pick_str(mail.get("mail_from_name"), base.mail_from_name)
-        starttls = pick_bool(mail.get("starttls"), base.starttls)
-        ssl_tls = pick_bool(mail.get("ssl_tls"), base.ssl_tls)
-        use_credentials = pick_bool(mail.get("use_credentials"), base.use_credentials)
-
-        # fastapi-mail expects EmailStr for MAIL_FROM, validate here so failures are explicit.
-        try:
-            mail_from = _EMAIL_ADAPTER.validate_python(mail_from_raw)
-        except ValidationError as exc:
-            raise ValueError("invalid mail_from") from exc
-
-        password_raw = mail.get("password")
-        password_secret: SecretStr | None = base.password
-        if isinstance(password_raw, str) and password_raw.strip():
-            password_secret = SecretStr(password_raw)
-
-        template_dir: Path | None = base.template_dir
-        if template_dir is None:
-            template_dir = default_template_dir()
-
-        return ConnectionConfig(
-            MAIL_USERNAME=username if use_credentials else "",
-            MAIL_PASSWORD=(password_secret if use_credentials and password_secret is not None else SecretStr("")),
-            MAIL_FROM=mail_from,
-            MAIL_FROM_NAME=mail_from_name,
-            MAIL_PORT=port,
-            MAIL_SERVER=server,
-            MAIL_STARTTLS=starttls,
-            MAIL_SSL_TLS=ssl_tls,
-            USE_CREDENTIALS=use_credentials,
-            VALIDATE_CERTS=base.validate_certs,
-            SUPPRESS_SEND=base.suppress_send,
-            TEMPLATE_FOLDER=template_dir,
-        )
+        return SmtpEmailProvider(settings=self.settings, config=mail).build_connection_config()
 
     async def _get_fast_mail(self) -> FastMail:
         return FastMail(await self._build_connection_config())
+
+    async def _get_dynamic_mail_service(self) -> DynamicMailService:
+        mail = await self._get_core_mail_config()
+        return DynamicMailService(
+            settings=self.settings,
+            config=mail,
+            smtp_fast_mail_factory=self._get_fast_mail,
+        )
+
+    async def _send(self, message: EmailMessage) -> None:
+        service = await self._get_dynamic_mail_service()
+        await service.send(message)
 
     async def send_reset_password(
         self,
@@ -160,7 +122,6 @@ class EmailService:
         cid = uuid7().hex
         token_hint = f"{reset_token[:6]}...{reset_token[-4:]}" if len(reset_token) >= 10 else reset_token
         try:
-            fm = await self._get_fast_mail()
             subject = t("auth", "RESET_EMAIL_SUBJECT", locale=locale)
             base = (self.settings.application.frontend_base_url or "").strip()
             base = base.rstrip("/") if base else ""
@@ -213,10 +174,12 @@ class EmailService:
                 default="如非本人操作，请忽略本邮件。",
                 locale=locale,
             )
-            message = MessageSchema(
+            message = EmailMessage.single(
+                recipient=recipient,
                 subject=subject,
-                recipients=[to_name_email(recipient)],
-                template_body={
+                text_body=plain_body,
+                template_id="reset_password",
+                template_vars={
                     "title": title,
                     "intro": intro,
                     "cta": cta,
@@ -227,15 +190,10 @@ class EmailService:
                     "reset_token": reset_token,
                     "expires_in": expires_in,
                 },
-                subtype=MessageType.html,
-                alternative_body=plain_body,
-                multipart_subtype=MultipartSubtypeEnum.alternative,
-            )
-            await fm.send_message(
-                message,
                 html_template="reset_password.html",
                 plain_template="reset_password.txt",
             )
+            await self._send(message)
             self.logger.info(
                 "Successfully sent reset password email",
                 recipient=recipient,
@@ -289,7 +247,6 @@ class EmailService:
             return
         cid = uuid7().hex
         try:
-            fm = await self._get_fast_mail()
             subject = t(
                 "auth",
                 "WELCOME_EMAIL_SUBJECT",
@@ -316,19 +273,16 @@ class EmailService:
                 locale=locale,
                 username=username,
             )
-            message = MessageSchema(
+            message = EmailMessage.single(
+                recipient=recipient,
                 subject=subject,
-                recipients=[to_name_email(recipient)],
-                template_body={"username": username, "title": title, "intro": intro},
-                subtype=MessageType.html,
-                alternative_body=plain_body,
-                multipart_subtype=MultipartSubtypeEnum.alternative,
-            )
-            await fm.send_message(
-                message,
+                text_body=plain_body,
+                template_id="welcome",
+                template_vars={"username": username, "title": title, "intro": intro},
                 html_template="welcome.html",
                 plain_template="welcome.txt",
             )
+            await self._send(message)
             self.logger.info(
                 "Successfully sent welcome email",
                 recipient=recipient,
@@ -375,7 +329,6 @@ class EmailService:
 
         cid = uuid7().hex
         try:
-            fm = await self._get_fast_mail()
             subject = t(
                 "auth",
                 "EMAIL_CHANGE_CODE_SUBJECT",
@@ -390,13 +343,13 @@ class EmailService:
                 code=code,
                 expires_in=expires_in,
             )
-            message = MessageSchema(
+            message = EmailMessage.single(
+                recipient=recipient,
                 subject=subject,
-                recipients=[to_name_email(recipient)],
-                body=plain_body,
-                subtype=MessageType.plain,
+                text_body=plain_body,
+                template_id="email_change_code",
             )
-            await fm.send_message(message)
+            await self._send(message)
             self.logger.info(
                 "Successfully sent email change code",
                 recipient=recipient,
@@ -443,7 +396,6 @@ class EmailService:
 
         cid = uuid7().hex
         try:
-            fm = await self._get_fast_mail()
             subject = t(
                 "auth",
                 "LOGIN_CODE_SUBJECT",
@@ -462,13 +414,13 @@ class EmailService:
                 code=code,
                 expires_in=expires_in,
             )
-            message = MessageSchema(
+            message = EmailMessage.single(
+                recipient=recipient,
                 subject=subject,
-                recipients=[to_name_email(recipient)],
-                body=plain_body,
-                subtype=MessageType.plain,
+                text_body=plain_body,
+                template_id="login_code",
             )
-            await fm.send_message(message)
+            await self._send(message)
             self.logger.info(
                 "Successfully sent login code",
                 recipient=recipient,
@@ -492,6 +444,103 @@ class EmailService:
                 failure_key="MAIL_DELIVERY_FAILED",
                 failure_error="MAIL_DELIVERY_FAILED",
                 expose_configuration_details=False,
+            )
+
+    async def send_security_alert(
+        self,
+        *,
+        recipient: str,
+        title: str,
+        intro: str,
+        event_label: str,
+        user_id: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        occurred_at: datetime | None = None,
+        locale: str | None = None,
+    ) -> None:
+        if not await self._enabled():
+            self.logger.info(
+                "Attempt to send security alert email while email sending is disabled",
+                recipient=recipient,
+                type="security_alert",
+                user_id=user_id,
+            )
+            return
+        if not valid_recipient(recipient):
+            self.logger.warning(
+                "Recipient email is invalid, skip sending mail",
+                recipient=recipient,
+                type="security_alert",
+                user_id=user_id,
+            )
+            return
+
+        cid = uuid7().hex
+        timestamp = (occurred_at or datetime.now(UTC)).astimezone(UTC).isoformat()
+        try:
+            subject = t(
+                "auth",
+                "SECURITY_ALERT_EMAIL_SUBJECT",
+                default="Security alert for your Arclayer account",
+                locale=locale,
+            )
+            ignore_notice = t(
+                "auth",
+                "SECURITY_ALERT_EMAIL_IGNORE",
+                default="If this was you, no action is needed. If you do not recognize this activity, reset your password and review active sessions.",
+                locale=locale,
+            )
+            plain_body = t(
+                "auth",
+                "SECURITY_ALERT_EMAIL_PLAIN",
+                default=(
+                    "{title}\n\n{intro}\n\nEvent: {event_label}\nTime: {occurred_at}\nIP: {ip_address}\n"
+                    "Device: {user_agent}\n\n{ignore_notice}"
+                ),
+                locale=locale,
+                title=title,
+                intro=intro,
+                event_label=event_label,
+                occurred_at=timestamp,
+                ip_address=ip_address or "-",
+                user_agent=user_agent or "-",
+                ignore_notice=ignore_notice,
+            )
+            message = EmailMessage.single(
+                recipient=recipient,
+                subject=subject,
+                text_body=plain_body,
+                template_id="security_alert",
+                template_vars={
+                    "title": title,
+                    "intro": intro,
+                    "event_label": event_label,
+                    "occurred_at": timestamp,
+                    "ip_address": ip_address or "-",
+                    "user_agent": user_agent or "-",
+                    "ignore_notice": ignore_notice,
+                },
+                html_template="security_alert.html",
+                plain_template="security_alert.txt",
+            )
+            await self._send(message)
+            self.logger.info(
+                "Successfully sent security alert email",
+                recipient=recipient,
+                type="security_alert",
+                cid=cid,
+                user_id=user_id,
+            )
+        except BaseException as exc:
+            raise_if_fatal(exc)
+            self.logger.exception(
+                "Failed to send security alert email",
+                recipient=recipient,
+                type="security_alert",
+                cid=cid,
+                error=str(exc),
+                user_id=user_id,
             )
 
     async def send_invitation(
@@ -536,8 +585,6 @@ class EmailService:
         cid = uuid7().hex
         token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
         try:
-            fm = await self._get_fast_mail()
-
             org_display = (organization_name or "organization").strip() or "organization"
             subject = t(
                 "auth",
@@ -619,10 +666,12 @@ class EmailService:
                     ignore_notice=ignore_notice,
                 )
 
-            message = MessageSchema(
+            message = EmailMessage.single(
+                recipient=recipient,
                 subject=subject,
-                recipients=[to_name_email(recipient)],
-                template_body={
+                text_body=plain_body,
+                template_id="invitation",
+                template_vars={
                     "title": title,
                     "intro": intro,
                     "cta": cta,
@@ -633,15 +682,10 @@ class EmailService:
                     "invite_token": invite_token,
                     "organization_name": org_display,
                 },
-                subtype=MessageType.html,
-                alternative_body=plain_body,
-                multipart_subtype=MultipartSubtypeEnum.alternative,
-            )
-            await fm.send_message(
-                message,
                 html_template="invitation.html",
                 plain_template="invitation.txt",
             )
+            await self._send(message)
 
             self.logger.info(
                 "Successfully sent invitation email",
@@ -718,8 +762,6 @@ class EmailService:
         cid = uuid7().hex
         token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
         try:
-            fm = await self._get_fast_mail()
-
             workspace_display = (workspace_name or "workspace").strip() or "workspace"
             inviter_display = (inviter_name or "").strip() or None
 
@@ -808,10 +850,12 @@ class EmailService:
                     ignore_notice=ignore_notice,
                 )
 
-            message = MessageSchema(
+            message = EmailMessage.single(
+                recipient=recipient,
                 subject=subject,
-                recipients=[to_name_email(recipient)],
-                template_body={
+                text_body=plain_body,
+                template_id="workspace_invitation",
+                template_vars={
                     "title": title,
                     "intro": intro,
                     "cta": cta,
@@ -821,15 +865,10 @@ class EmailService:
                     "invite_url": invite_url,
                     "invite_token": invite_token,
                 },
-                subtype=MessageType.html,
-                alternative_body=plain_body,
-                multipart_subtype=MultipartSubtypeEnum.alternative,
-            )
-            await fm.send_message(
-                message,
                 html_template="invitation.html",
                 plain_template="invitation.txt",
             )
+            await self._send(message)
 
             self.logger.info(
                 "Successfully sent workspace invitation email",
@@ -864,7 +903,6 @@ class EmailService:
         if not valid_recipient(recipient):
             raise ValueError("INVALID_EMAIL")
 
-        fm = await self._get_fast_mail()
         subject = t("settings", "MAIL_TEST_SUBJECT", locale=locale)
         plain_body = t(
             "settings",
@@ -872,10 +910,10 @@ class EmailService:
             default="这是一封测试邮件。如果你收到了它，说明 SMTP 配置已生效。",
             locale=locale,
         )
-        message = MessageSchema(
+        message = EmailMessage.single(
+            recipient=recipient,
             subject=subject,
-            recipients=[to_name_email(recipient)],
-            subtype=MessageType.plain,
-            body=plain_body,
+            text_body=plain_body,
+            template_id="test",
         )
-        await fm.send_message(message)
+        await self._send(message)

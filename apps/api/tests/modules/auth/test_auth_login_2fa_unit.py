@@ -398,7 +398,11 @@ async def test_request_login_email_code_maps_mail_delivery_failures_to_api_error
     async def _fake_get_fast_mail() -> _FailingMail:
         return _FailingMail()
 
+    async def _core_mail_config() -> dict:
+        return {}
+
     monkeypatch.setattr(service.auth_service.email_service, "_enabled", _fake_is_enabled)
+    monkeypatch.setattr(service.auth_service.email_service, "_get_core_mail_config", _core_mail_config)
     monkeypatch.setattr(service.auth_service.email_service, "_get_fast_mail", _fake_get_fast_mail)
 
     with pytest.raises(ServiceUnavailable) as exc:

@@ -70,6 +70,29 @@ def test_validate_config_schema_rejects_conflicting_mail_transport_modes() -> No
     assert exc.value.error == "MAIL_TRANSPORT_CONFLICT"
 
 
+def test_validate_config_schema_rejects_invalid_mail_provider() -> None:
+    with pytest.raises(BadRequest) as exc:
+        validate_config_schema(
+            CORE_SETTINGS_SCHEMA,
+            {"mail": {"provider": "unknown"}},
+        )
+
+    assert exc.value.error == "MAIL_PROVIDER_INVALID"
+
+
+def test_validate_config_schema_accepts_mail_provider_retry_settings() -> None:
+    validate_config_schema(
+        CORE_SETTINGS_SCHEMA,
+        {
+            "mail": {
+                "provider": "resend",
+                "fallback_chain": ["smtp"],
+                "retry": {"max_attempts": 3, "backoff_seconds": [1, 2, 4]},
+            }
+        },
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("message", "expected_error"),

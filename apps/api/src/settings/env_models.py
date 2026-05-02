@@ -213,6 +213,12 @@ class EmailSettings(BaseSettings):
     validate_certs: bool = Field(default=True)
     suppress_send: bool = Field(default=False)
     template_dir: Path | None = Field(default=None)
+    default_provider: str = Field(default="smtp")
+    fallback_chain: list[str] = Field(default_factory=list)
+    retry_max_attempts: int = Field(default=3, ge=1, le=10)
+    resend_api_key: str = Field(default="")
+    cloudflare_api_token: str = Field(default="")
+    ses_region: str = Field(default="")
 
     @field_validator("template_dir", mode="after")
     @classmethod

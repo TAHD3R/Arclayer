@@ -1,0 +1,10 @@
+{{ title }}
+
+{{ intro }}
+
+Event: {{ event_label }}
+Time: {{ occurred_at }}
+IP: {{ ip_address }}
+Device: {{ user_agent }}
+
+{{ ignore_notice }}
