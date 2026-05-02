@@ -105,6 +105,7 @@ async def _list_records_in_tenant(
     model_key: str,
     perspective: DeliveryPerspective,
     environment_id: UUID | None,
+    locale: str | None = None,
     exact_filters: dict[str, str] | None = None,
     contains_filters: dict[str, str] | None = None,
     sort_field: str | None = None,
@@ -116,6 +117,7 @@ async def _list_records_in_tenant(
             model_key=model_key,
             perspective=perspective,
             environment_id=environment_id,
+            locale=locale,
             exact_filters=exact_filters,
             contains_filters=contains_filters,
             sort_field=sort_field,
@@ -165,6 +167,7 @@ class ContentDeliveryServiceBinding:
         perspective: DeliveryPerspective,
         environment: str | None,
         environment_id: UUID | None,
+        locale: str | None,
         exact_filters: dict[str, str],
         contains_filters: dict[str, str],
         sort_field: str | None,
@@ -175,17 +178,62 @@ class ContentDeliveryServiceBinding:
             environment=environment,
             environment_id=environment_id,
         )
-        return await _list_records_in_tenant(
-            runtime_context=runtime_context,
-            query_service=query_service,
-            model_key=model_key,
-            perspective=perspective,
-            environment_id=resolved_environment_id,
-            exact_filters=exact_filters,
-            contains_filters=contains_filters,
-            sort_field=sort_field,
-            sort_direction=sort_direction,
+        locale_chain = await query_service.get_locale_fallback_chain(
+            runtime_id=runtime_context.runtime_id,
+            requested_locale=locale,
         )
+        for candidate_locale in locale_chain:
+            records = await _list_records_in_tenant(
+                runtime_context=runtime_context,
+                query_service=query_service,
+                model_key=model_key,
+                perspective=perspective,
+                environment_id=resolved_environment_id,
+                locale=candidate_locale,
+                exact_filters=exact_filters,
+                contains_filters=contains_filters,
+                sort_field=sort_field,
+                sort_direction=sort_direction,
+            )
+            if records or candidate_locale is None:
+                return records
+        return []
+
+    async def get_record(
+        self,
+        *,
+        runtime_context: ProjectRuntimeContext,
+        query_service: SiteGraphQLService,
+        model_key: str,
+        entry_id: UUID,
+        perspective: DeliveryPerspective,
+        environment: str | None,
+        environment_id: UUID | None,
+        locale: str | None,
+    ) -> StructuredContentRecord | None:
+        resolved_environment_id = await self._resolve_environment_id(
+            runtime_context=runtime_context,
+            environment=environment,
+            environment_id=environment_id,
+        )
+        locale_chain = await query_service.get_locale_fallback_chain(
+            runtime_id=runtime_context.runtime_id,
+            requested_locale=locale,
+        )
+        async with TenantDatabaseRouter(runtime_context.tenant_context).connection() as conn:
+            service = query_service.with_database_connection(conn)
+            for candidate_locale in locale_chain:
+                record = await service.get_record(
+                    runtime_id=runtime_context.runtime_id,
+                    model_key=model_key,
+                    entry_id=entry_id,
+                    perspective=perspective,
+                    environment_id=resolved_environment_id,
+                    locale=candidate_locale,
+                )
+                if record is not None or candidate_locale is None:
+                    return record
+        return None
 
     def to_entry_response(self, record: StructuredContentRecord) -> ContentApiEntryOut:
         return _to_entry_out(record)

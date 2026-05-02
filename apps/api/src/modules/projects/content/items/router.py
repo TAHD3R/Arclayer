@@ -14,6 +14,7 @@ from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.content.contracts.schema import (
     ContentItemBulkTransitionOut,
     ContentItemOut,
+    ContentTranslationGroupOut,
     ContentVersionCompareOut,
     ContentVersionOut,
 )
@@ -23,6 +24,7 @@ from src.modules.projects.content.items.input_schema import (
     ContentItemBulkTransitionIn,
     ContentItemCreateIn,
     ContentItemWorkflowPatchIn,
+    ContentTranslationCreateIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
@@ -276,6 +278,96 @@ async def duplicate_project_content_item(
             "duplicated_item_title": data.title,
             "duplicated_item_slug": data.slug,
         },
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/items/{item_id}/translations",
+    response_model=ResponseModel[ContentTranslationGroupOut],
+    response_model_exclude_none=True,
+    summary="List content item translations (project RBAC protected)",
+)
+async def list_project_content_item_translations(
+    item_id: PublicUUID,
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
+    service: Annotated[
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentTranslationGroupOut]:
+    """List translations linked to one content item."""
+    data = await service.list_translations(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
+        item_id=item_id,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/items/{item_id}/translations",
+    response_model=ResponseModel[ContentItemOut],
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create content item translation (project RBAC protected)",
+)
+async def create_project_content_item_translation(
+    item_id: PublicUUID,
+    payload: Annotated[ContentTranslationCreateIn, Body(description="Create translation payload.")],
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
+    service: Annotated[
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentItemOut]:
+    """Create a translated item in another locale."""
+    data = await service.create_translation(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+        payload=payload,
+    )
+    await _publish_project_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="project.content.item.translation.created",
+        properties={
+            "translated_item_id": str(data.id),
+            "target_locale": data.locale,
+        },
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.get(
+    "/items/{item_id}/translation-group",
+    response_model=ResponseModel[ContentTranslationGroupOut],
+    response_model_exclude_none=True,
+    summary="Get content item translation group (project RBAC protected)",
+)
+async def get_project_content_item_translation_group(
+    item_id: PublicUUID,
+    ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_read_context)],
+    service: Annotated[
+        ProjectContentCanonicalItemsService,
+        Depends(get_project_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentTranslationGroupOut]:
+    """Get the translation group for one content item."""
+    data = await service.get_translation_group(
+        workspace_id=ctx.workspace_id,
+        site_id=ctx.site_id,
+        environment_id=ctx.environment_id,
+        item_id=item_id,
     )
     return ApiResponse.success(data=data)
 

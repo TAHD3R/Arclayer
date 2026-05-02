@@ -15,6 +15,7 @@ from tests.core.test_api_boundary_routes_unit import _runtime_context
 def _record(*, title: str, locale: str = "en-US", fields: dict | None = None) -> StructuredContentRecord:
     return StructuredContentRecord(
         item_id=uuid4(),
+        translation_group_id=None,
         model_key="article",
         locale=locale,
         title=title,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
@@ -13,12 +13,39 @@ from src.modules.projects.content.contracts.schema import (
 )
 
 
+def _normalize_locale_code(value: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError("Locale code is required")
+    return normalized
+
+
 class ContentItemCreateIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     title: str = Field(..., min_length=1, max_length=256)
     locale: str = Field(default="zh-CN", min_length=2, max_length=16)
     model_key: str = Field(..., min_length=1, max_length=64)
+    translation_group_id: PublicUUID | None = Field(
+        default=None,
+        description="Optional translation group id to link this item into.",
+    )
+
+    @field_validator("locale")
+    @classmethod
+    def normalize_locale(cls, value: str) -> str:
+        return _normalize_locale_code(value)
+
+
+class ContentTranslationCreateIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    target_locale: str = Field(..., min_length=2, max_length=16)
+
+    @field_validator("target_locale")
+    @classmethod
+    def normalize_target_locale(cls, value: str) -> str:
+        return _normalize_locale_code(value)
 
 
 class ContentItemBootstrapShapeIn(BaseSchema):

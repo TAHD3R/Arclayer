@@ -212,6 +212,7 @@ class _FakeContentQueryService:
         return [
             StructuredContentRecord(
                 item_id=uuid4(),
+                translation_group_id=None,
                 model_key=model_key,
                 locale="en-US",
                 title="Rate limited",

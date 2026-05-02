@@ -37,6 +37,7 @@ async def test_content_api_search_route_uses_indexed_delivery_safe_documents(mon
         records=[
             StructuredContentRecord(
                 item_id=uuid4(),
+                translation_group_id=None,
                 model_key="article",
                 locale="en-US",
                 title="Searchable delivery entry",

@@ -10,6 +10,7 @@ import {
   bulkPublishContentItems,
   bulkUnpublishContentItems,
   createContentLibraryView,
+  createContentItemTranslation,
   deleteContentLibraryView,
   deleteContentItem,
   duplicateContentItem,
@@ -60,6 +61,7 @@ import { ContentLibraryNewContentButton } from "./components/content-library-new
 import { ContentLibraryPreviewPanel } from "./components/content-library-preview-panel";
 import { ContentLibrarySelectionToolbar } from "./components/content-library-selection-toolbar";
 import { ContentLibraryToolbar } from "./components/content-library-toolbar";
+import { ContentTranslationCreateDialog } from "./components/content-translation-create-dialog";
 import { ContentLibraryViewFormDialog } from "./components/content-library-view-form-dialog";
 import {
   type ContentLibraryPrototypeViewDraft,
@@ -492,6 +494,8 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
   const [duplicateRow, setDuplicateRow] = React.useState<ContentLibraryTableRow | null>(null);
   const [deleteRow, setDeleteRow] = React.useState<ContentLibraryTableRow | null>(null);
   const [archiveDialog, setArchiveDialog] = React.useState<ArchiveDialogState | null>(null);
+  const [translationDialogRow, setTranslationDialogRow] =
+    React.useState<ContentLibraryTableRow | null>(null);
   const [itemSettingsDialog, setItemSettingsDialog] =
     React.useState<ContentLibraryItemSettingsDialogState>(null);
   const splitLayoutRef = React.useRef<HTMLDivElement | null>(null);
@@ -734,6 +738,26 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     onSuccess: async () => {
       notifySuccessText(t("content:CONTENT_LIBRARY_DUPLICATE_SUCCESS"));
       setDuplicateRow(null);
+      await queryClient.invalidateQueries({
+        queryKey: buildContentLibraryItemsQueryKey(projectId ? String(projectId) : null),
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const createTranslationMutation = useMutation({
+    mutationFn: async (input: { row: ContentLibraryTableRow; targetLocale: string }) => {
+      if (!projectId) throw new Error("PROJECT_NOT_SELECTED");
+      return createContentItemTranslation(String(projectId), input.row.id, {
+        targetLocale: input.targetLocale,
+      });
+    },
+    onSuccess: async (item) => {
+      notifySuccessText(
+        t("content:CONTENT_TRANSLATION_CREATE_SUCCESS", {
+          locale: item.locale,
+        }),
+      );
+      setTranslationDialogRow(null);
       await queryClient.invalidateQueries({
         queryKey: buildContentLibraryItemsQueryKey(projectId ? String(projectId) : null),
       });
@@ -1001,6 +1025,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     actionPending:
       archiveMutation.isPending ||
       duplicateMutation.isPending ||
+      createTranslationMutation.isPending ||
       deleteMutation.isPending ||
       archiveSelectionMutation.isPending ||
       deleteSelectionMutation.isPending,
@@ -1026,6 +1051,7 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
     onEditVisibility: openItemSettingsDialog("visibility"),
     onOpenPageSettings: openItemSettingsDialog("page-settings"),
     onOpenStructuredFields: openItemSettingsDialog("structured-fields"),
+    onCreateTranslation: setTranslationDialogRow,
     canManageContent,
     onDuplicate: setDuplicateRow,
     onDelete: setDeleteRow,
@@ -1744,6 +1770,15 @@ export function ContentLibraryPage(props: ContentLibraryPageProps) {
           state={itemSettingsDialog}
           readOnly={!canManageContent}
           onClose={() => setItemSettingsDialog(null)}
+        />
+        <ContentTranslationCreateDialog
+          row={translationDialogRow}
+          pending={createTranslationMutation.isPending}
+          onClose={() => setTranslationDialogRow(null)}
+          onConfirm={(targetLocale) => {
+            if (!translationDialogRow) return;
+            createTranslationMutation.mutate({ row: translationDialogRow, targetLocale });
+          }}
         />
       </>
     </AdminRouteContainer>

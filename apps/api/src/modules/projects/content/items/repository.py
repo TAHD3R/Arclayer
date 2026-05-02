@@ -11,6 +11,7 @@ from src.models.content.content_version import ContentVersionRecord
 from src.models.content.model_definition import ContentModelDefinitionRecord
 from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.seo_profile import SEOProfileRecord
+from src.models.content.translation_group import TranslationGroupRecord
 from src.modules.projects.content.contracts.schema import ContentPresentationKind
 from src.modules.tenancy.database import TenantScopedRepository
 from src.modules.tenancy.schema import TenantContext
@@ -59,6 +60,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         shape_reason_code: str | None,
         shape_reason_meta: dict[str, Any] | None,
         actor_user_id: UUID | None,
+        translation_group_id: UUID | None = None,
         environment_id: UUID | None = None,
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentItemRecord:
@@ -70,6 +72,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
                 site_id=site_id,
                 environment_id=environment_id,
                 model_definition_id=model_definition_id,
+                translation_group_id=translation_group_id,
                 slug=slug,
                 title=title,
                 locale=locale,
@@ -89,6 +92,134 @@ class ProjectContentItemsRepository(TenantScopedRepository):
                 created_by_user_id=actor_user_id,
                 updated_by_user_id=actor_user_id,
             )
+
+    async def create_translation_group(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        primary_item_id: UUID | None,
+        primary_locale: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> TranslationGroupRecord:
+        async with self.connection(conn) as tenant_conn:
+            return await self.create(
+                TranslationGroupRecord,
+                conn=tenant_conn,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                primary_item_id=primary_item_id,
+                primary_locale=primary_locale,
+            )
+
+    async def get_translation_group(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        translation_group_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+        for_update: bool = False,
+    ) -> TranslationGroupRecord | None:
+        async with self.connection(conn) as tenant_conn:
+            query = TranslationGroupRecord.filter(
+                id=translation_group_id,
+                workspace_id=workspace_id,
+                site_id=site_id,
+            )
+            if for_update:
+                query = query.select_for_update()
+            return await self.using_db(query.first(), tenant_conn)
+
+    async def ensure_translation_group_for_item(
+        self,
+        *,
+        item: ContentItemRecord,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> TranslationGroupRecord:
+        async with self.connection(conn) as tenant_conn:
+            translation_group_id = getattr(item, "translation_group_id", None)
+            if translation_group_id is not None:
+                group = await self.using_db(
+                    TranslationGroupRecord.filter(id=translation_group_id).first(),
+                    tenant_conn,
+                )
+                if group is not None:
+                    return group
+
+            group = await self.create_translation_group(
+                workspace_id=item.workspace_id,
+                site_id=item.site_id,
+                primary_item_id=item.id,
+                primary_locale=str(item.locale or "zh-CN"),
+                conn=tenant_conn,
+            )
+            await self.update_fields(item, fields={"translation_group_id": group.id}, conn=tenant_conn)
+            item.translation_group_id = group.id
+            return group
+
+    async def list_translation_items(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        translation_group_id: UUID,
+        environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[ContentItemRecord]:
+        async with self.connection(conn) as tenant_conn:
+            query = ContentItemRecord.filter(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                translation_group_id=translation_group_id,
+            ).prefetch_related("model_definition", "model_definition__fields")
+            return list(await self.using_db(query.order_by("locale", "id"), tenant_conn))
+
+    async def list_translation_items_for_groups(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        translation_group_ids: list[UUID],
+        environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[ContentItemRecord]:
+        if not translation_group_ids:
+            return []
+        async with self.connection(conn) as tenant_conn:
+            query = ContentItemRecord.filter(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                translation_group_id__in=translation_group_ids,
+            ).prefetch_related("model_definition", "model_definition__fields")
+            return list(await self.using_db(query.order_by("translation_group_id", "locale", "id"), tenant_conn))
+
+    async def get_translation_item_by_locale(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        translation_group_id: UUID,
+        locale: str,
+        environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> ContentItemRecord | None:
+        async with self.connection(conn) as tenant_conn:
+            query = (
+                ContentItemRecord
+                .filter(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    translation_group_id=translation_group_id,
+                    locale=locale,
+                )
+                .prefetch_related("model_definition", "model_definition__fields")
+                .first()
+            )
+            return await self.using_db(query, tenant_conn)
 
     async def count_items_for_model(
         self,
@@ -139,6 +270,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         workspace_id: UUID,
         site_id: UUID,
         model_definition_id: UUID | None = None,
+        locale: str | None = None,
         conn: BaseDBAsyncClient | None = None,
         environment_id: UUID | None = None,
     ) -> list[ContentItemRecord]:
@@ -150,6 +282,8 @@ class ProjectContentItemsRepository(TenantScopedRepository):
             )
             if model_definition_id is not None:
                 query = query.filter(model_definition_id=model_definition_id)
+            if locale is not None:
+                query = query.filter(locale=locale)
             query = query.prefetch_related("model_definition", "model_definition__fields").order_by(
                 "-updated_at", "-id"
             )

@@ -63,6 +63,7 @@ class EntityManager:
         bootstrap_preset_key: str | None = None,
         bootstrap_preset_state: str = "none",
         capability_pack_ids: list[str] | None = None,
+        translation_group_id: UUID | None = None,
     ) -> EntityCreateResult:
         model = await self._items.get_model_definition_by_key(
             workspace_id=workspace_id,
@@ -103,6 +104,7 @@ class EntityManager:
                 shape_state=shape_state,
                 shape_reason_code=shape_reason_code,
                 shape_reason_meta=shape_reason_meta,
+                translation_group_id=translation_group_id,
                 actor_user_id=actor_id,
                 conn=conn,
             )

@@ -16,6 +16,7 @@ from src.modules.projects.content.contracts.schema import (
     ContentPresentationKind,
     ContentPresentationOut,
     ContentSeoProfileOut,
+    ContentTranslationStatusOut,
     ContentVersionOut,
 )
 from src.modules.projects.content.history import ContentHistoryService
@@ -60,13 +61,21 @@ class ProjectContentCanonicalItemReadService:
             site_id=site_id,
             environment_id=environment_id,
             model_definition_id=model_definition_id,
+            locale=None,
         )
         active_fields = await self.runtime_boundary.resolve_active_item_fields(items)
+        translation_status = await self._translation_status_by_item(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            items=items,
+        )
         rows = [
             to_item_out(
                 item,
                 item.model_definition,
                 **self._active_field_kwargs(active_fields.get(item.id)),
+                translation_status=translation_status.get(item.id),
             )
             for item in items
         ]
@@ -89,11 +98,67 @@ class ProjectContentCanonicalItemReadService:
         if item is None:
             raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
         active_fields = await self.runtime_boundary.resolve_active_item_fields([item])
+        translation_status = await self._translation_status_by_item(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            items=[item],
+        )
         return to_item_out(
             item,
             item.model_definition,
             **self._active_field_kwargs(active_fields.get(item.id)),
+            translation_status=translation_status.get(item.id),
         )
+
+    async def _translation_status_by_item(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None,
+        items: list[Any],
+    ) -> dict[UUID, ContentTranslationStatusOut]:
+        group_ids = [
+            UUID(str(group_id))
+            for group_id in {getattr(item, "translation_group_id", None) for item in items}
+            if group_id is not None
+        ]
+        if not group_ids:
+            return {}
+
+        translations = await self.repo.list_translation_items_for_groups(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            translation_group_ids=group_ids,
+        )
+        translations_by_group: dict[UUID, list[Any]] = {}
+        for translation in translations:
+            group_id = getattr(translation, "translation_group_id", None)
+            if group_id is None:
+                continue
+            translations_by_group.setdefault(UUID(str(group_id)), []).append(translation)
+
+        status_by_item: dict[UUID, ContentTranslationStatusOut] = {}
+        for item in items:
+            group_id = getattr(item, "translation_group_id", None)
+            if group_id is None:
+                continue
+            group_uuid = UUID(str(group_id))
+            group_items = translations_by_group.get(group_uuid, [item])
+            locales = sorted({str(entry.locale) for entry in group_items if str(entry.locale or "").strip()})
+            primary = next((entry for entry in group_items if entry.id == item.id), group_items[0])
+            status = ContentTranslationStatusOut(
+                group_id=group_uuid,
+                primary_item_id=getattr(primary, "id", None),
+                primary_locale=str(getattr(primary, "locale", None) or item.locale),
+                locales=locales,
+                missing_locales=[],
+            )
+            for entry in group_items:
+                status_by_item[entry.id] = status
+        return status_by_item
 
     @staticmethod
     def _active_field_kwargs(fields: DocumentRuntimeItemFields | None) -> dict[str, str | None]:

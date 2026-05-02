@@ -327,6 +327,11 @@ export type AdminContentItem = Omit<
   draftVersion: number;
 };
 export type CreateAdminContentItemPayload = Generated.ContentItemCreateIn;
+export type AdminContentTranslationStatus = Generated.ContentTranslationStatusOut;
+export type AdminContentTranslationGroup = Omit<Generated.ContentTranslationGroupOut, "items"> & {
+  items: AdminContentItem[];
+};
+export type CreateAdminContentTranslationPayload = Generated.ContentTranslationCreateIn;
 export type ApplyAdminContentBootstrapShapePayload = Generated.ContentItemBootstrapShapeIn;
 export type AdminContentPresentation = Generated.ContentPresentationOut;
 export type AdminContentVersion = Omit<

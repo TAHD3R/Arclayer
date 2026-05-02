@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { ImagePlus, Maximize2, PanelRightClose, Search, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -12,7 +12,11 @@ import {
   projectContentLibraryPath,
 } from "@/lib/routing/project-content-routing";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { buildContentLibraryItemsQueryKey } from "@/pages/projects/content/library/runtime";
+import {
+  buildContentLibraryItemTranslationsQueryKey,
+  buildContentLibraryItemsQueryKey,
+  loadContentLibraryItemTranslations,
+} from "@/pages/projects/content/library/runtime";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-image";
@@ -31,7 +35,10 @@ import {
 } from "./content-library-article-editor-document";
 import { ContentLibraryCoverPickerPopover } from "./content-library-cover-picker-popover";
 import { ContentLibraryArticleEditorMenuBar } from "./content-library-article-editor-menu";
-import { ContentLibraryArticleEditorPageToolbar } from "./content-library-article-editor-page-toolbar";
+import {
+  ContentLibraryArticleEditorLocaleSelect,
+  ContentLibraryArticleEditorPageToolbar,
+} from "./content-library-article-editor-page-toolbar";
 import { ContentLibraryArticleEditorSaveIndicator } from "./content-library-article-editor-save-indicator";
 import { ContentLibraryArticleEditorSeoDialog } from "./content-library-article-editor-seo-dialog";
 import { ContentLibraryArticleEditorTocSidebar } from "./content-library-article-editor-toc-sidebar";
@@ -261,6 +268,24 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   const canPublish = permissionReady && permissionAccess.hasAction("project:release:publish");
   const publishAccessHint =
     permissionReady && !canPublish ? t("CONTENT_LIBRARY_PUBLISH_NO_ACCESS_DESC") : null;
+  const translationsQuery = useQuery({
+    queryKey: buildContentLibraryItemTranslationsQueryKey(props.projectId, props.itemId),
+    enabled: Boolean(props.projectId && props.itemId),
+    queryFn: () => loadContentLibraryItemTranslations(props.projectId, props.itemId),
+    staleTime: 30 * 1000,
+    meta: { silent: true },
+  });
+  const localeItems = React.useMemo(
+    () =>
+      (translationsQuery.data?.items ?? [])
+        .map((item) => ({
+          id: item.id,
+          locale: item.locale ?? "",
+          title: item.title ?? item.slug ?? item.id,
+        }))
+        .filter((item) => item.locale),
+    [translationsQuery.data?.items],
+  );
   const textLaneClass = getContentLibraryArticleEditorTextLaneClass(props.mode);
   const coverImageUrl = React.useMemo(
     () => resolveAssetRefToPublicUrlPath(props.coverAssetId),
@@ -340,6 +365,15 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
       to: projectContentLibraryItemPath(props.projectId, props.itemId),
     });
   }, [navigate, props.itemId, props.mode, props.projectId]);
+  const handleTranslationItemChange = React.useCallback(
+    async (itemId: string) => {
+      if (itemId === props.itemId) return;
+      await navigate({
+        to: projectContentLibraryItemPath(props.projectId, itemId),
+      });
+    },
+    [navigate, props.itemId, props.projectId],
+  );
 
   return (
     <>
@@ -372,6 +406,13 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
 
             <div className="flex items-center gap-2">
               <ContentLibraryArticleEditorSaveIndicator runtime={props.runtime} />
+              <ContentLibraryArticleEditorLocaleSelect
+                currentItemId={props.itemId}
+                disabled={props.runtime.saveState === "saving"}
+                isLoading={translationsQuery.isLoading}
+                items={localeItems}
+                onChange={handleTranslationItemChange}
+              />
               <Button
                 type="button"
                 variant="ghost"
@@ -414,7 +455,10 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         {props.mode === "page" ? (
           <ContentLibraryArticleEditorPageToolbar
             canPublish={canPublish}
+            currentItemId={props.itemId}
             itemTitle={props.title}
+            localeItems={localeItems}
+            localeItemsLoading={translationsQuery.isLoading}
             publishAccessHint={publishAccessHint}
             saveState={props.runtime.saveState}
             saveError={props.runtime.saveError}
@@ -433,6 +477,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
             onVisibilityChange={props.onVisibilityChange}
             slug={props.slug}
             onSlugChange={props.onSlugChange}
+            onTranslationItemChange={handleTranslationItemChange}
             onOpenSeo={() => setSeoDialogOpen(true)}
           />
         ) : null}

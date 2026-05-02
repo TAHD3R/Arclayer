@@ -12,6 +12,7 @@ import {
   FilmIcon,
   FolderOpen,
   ImageIcon,
+  Languages,
   Link2Icon,
   ListIcon,
   ListOrderedIcon,
@@ -31,6 +32,7 @@ import { useEditorRef, useEditorSelector, useSelectionFragmentProp } from "plate
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import {
   DropdownMenu as ActionDropdownMenu,
   DropdownMenuContent as ActionDropdownMenuContent,
@@ -64,8 +66,15 @@ import {
 } from "@arclayer/ui/editor";
 import { cn } from "@arclayer/lib/utils";
 
+import { buildSupportedLocaleOptions, SUPPORTED_LOCALES } from "@/lib/i18n";
 import { ContentLibraryArticleEditorMenuBar } from "./content-library-article-editor-menu";
 import { ContentLibraryArticleEditorSaveIndicator } from "./content-library-article-editor-save-indicator";
+
+export type ContentLibraryArticleEditorLocaleOption = {
+  id: string;
+  locale: string;
+  title?: string | null;
+};
 
 function UndoToolbarButton() {
   const { t } = useTranslation("content");
@@ -153,6 +162,65 @@ function ArticleEditorInsertToolbarButton() {
         className="ignore-click-outside/toolbar"
       />
     </ActionDropdownMenu>
+  );
+}
+
+export function ContentLibraryArticleEditorLocaleSelect(props: {
+  currentItemId: string;
+  disabled?: boolean;
+  isLoading?: boolean;
+  items: ContentLibraryArticleEditorLocaleOption[];
+  onChange: (itemId: string) => void | Promise<void>;
+}) {
+  const { t } = useTranslation("content");
+  const localeLabels = React.useMemo(
+    () =>
+      new Map(
+        buildSupportedLocaleOptions(SUPPORTED_LOCALES, (key) => t(key)).map((option) => [
+          option.value,
+          option.label,
+        ]),
+      ),
+    [t],
+  );
+  const items = React.useMemo(
+    () =>
+      props.items.length > 0 ? props.items : [{ id: props.currentItemId, locale: "", title: null }],
+    [props.currentItemId, props.items],
+  );
+
+  if (items.length < 2) return null;
+
+  return (
+    <div className="flex min-w-[8.5rem] items-center gap-1">
+      <Languages className="size-4 shrink-0 text-label-tertiary" aria-hidden="true" />
+      <Select
+        value={props.currentItemId}
+        onValueChange={(value) => {
+          if (value === props.currentItemId) return;
+          void props.onChange(value);
+        }}
+        disabled={props.disabled || props.isLoading}
+      >
+        <SelectTrigger
+          size="sm"
+          aria-label={t("CONTENT_LIBRARY_EDITOR_LOCALE_SWITCHER_LABEL")}
+          className="h-8 w-[8.25rem]"
+        >
+          <SelectValue placeholder={t("CONTENT_LIBRARY_EDITOR_LOCALE_SWITCHER_PLACEHOLDER")} />
+        </SelectTrigger>
+        <SelectContent align="end">
+          {items.map((item) => {
+            const localeLabel = localeLabels.get(item.locale) ?? item.locale;
+            return (
+              <SelectItem key={item.id} value={item.id}>
+                {localeLabel || t("CONTENT_LIBRARY_EDITOR_LOCALE_SWITCHER_CURRENT")}
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -394,9 +462,12 @@ function ToolbarScroller(props: { children: React.ReactNode }) {
 
 export function ContentLibraryArticleEditorPageToolbar(props: {
   canPublish?: boolean;
+  currentItemId: string;
   publishAccessHint?: string | null;
   hasPublishableVersion?: boolean;
   itemTitle: string;
+  localeItems?: ContentLibraryArticleEditorLocaleOption[];
+  localeItemsLoading?: boolean;
   isPublishing?: boolean;
   onDelete?: () => void | Promise<void>;
   onDuplicate?: () => void | Promise<void>;
@@ -412,6 +483,7 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
   status: "draft" | "published" | "archived";
   visibility: "public" | "private";
   onSlugChange: (value: string) => void;
+  onTranslationItemChange?: (itemId: string) => void | Promise<void>;
 }) {
   const { t } = useTranslation("content");
   const canPublish = props.canPublish !== false;
@@ -537,6 +609,13 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
             isPublishing: Boolean(props.isPublishing),
             saveError: props.saveError,
           }}
+        />
+        <ContentLibraryArticleEditorLocaleSelect
+          currentItemId={props.currentItemId}
+          disabled={!props.onTranslationItemChange || props.saveState === "saving"}
+          isLoading={props.localeItemsLoading}
+          items={props.localeItems ?? []}
+          onChange={(itemId) => props.onTranslationItemChange?.(itemId)}
         />
         <Button
           type="button"

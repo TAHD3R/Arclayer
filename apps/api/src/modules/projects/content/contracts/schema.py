@@ -553,6 +553,25 @@ class ContentItemPublishReadinessOut(BaseSchema):
     )
 
 
+class ContentTranslationStatusOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    group_id: PublicUUID = Field(..., description="Translation group id.")
+    primary_item_id: PublicUUID | None = Field(default=None, description="Primary item id for this translation group.")
+    primary_locale: str = Field(..., min_length=2, max_length=16, description="Primary locale for the group.")
+    locales: list[str] = Field(default_factory=list, description="Locales currently available in this group.")
+    missing_locales: list[str] = Field(default_factory=list, description="Supported locales missing from this group.")
+
+
+class ContentTranslationGroupOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    group_id: PublicUUID = Field(..., description="Translation group id.")
+    primary_item_id: PublicUUID | None = Field(default=None, description="Primary item id for this translation group.")
+    primary_locale: str = Field(..., min_length=2, max_length=16, description="Primary locale for the group.")
+    items: list[ContentItemOut] = Field(default_factory=list, description="Items linked to this translation group.")
+
+
 class ContentItemOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -567,6 +586,11 @@ class ContentItemOut(BaseSchema):
     status: ContentItemStatus = Field(..., description="Lifecycle status.")
     visibility: ContentItemVisibility = Field(..., description="Visibility status.")
     locale: str = Field(..., min_length=2, max_length=16, description="Locale code.")
+    translation_group_id: PublicUUID | None = Field(default=None, description="Translation group id.")
+    translation_status: ContentTranslationStatusOut | None = Field(
+        default=None,
+        description="Translation coverage for this item.",
+    )
     bootstrap_preset_key: str | None = Field(
         default=None,
         min_length=1,

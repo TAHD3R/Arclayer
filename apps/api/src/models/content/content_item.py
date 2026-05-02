@@ -43,6 +43,12 @@ class ContentItemRecord(BaseModel):
         on_delete=fields.CASCADE,
         null=True,
     )
+    translation_group = fields.ForeignKeyField(
+        "models.TranslationGroupRecord",
+        related_name="items",
+        on_delete=fields.SET_NULL,
+        null=True,
+    )
 
     slug = fields.CharField(max_length=256, db_index=True)
     title = fields.CharField(max_length=256, null=True)
@@ -114,8 +120,10 @@ class ContentItemRecord(BaseModel):
         site_id: UUID
         environment_id: UUID | None
         model_definition_id: UUID | None
+        translation_group_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "domain_content_items"
         abstract = False
         unique_together = (("model_definition_id", "environment_id", "locale", "slug"),)
+        indexes = (("translation_group_id", "locale"),)

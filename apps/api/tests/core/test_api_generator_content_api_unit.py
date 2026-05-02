@@ -46,13 +46,24 @@ class _FakeBinding:
         self.records = records
         self.authorized: list[str] = []
         self.queries: list[dict[str, object]] = []
+        self.detail_queries: list[dict[str, object]] = []
 
     async def authorize_read(self, **kwargs) -> None:  # type: ignore[no-untyped-def]
         self.authorized.append(kwargs["perspective"])
 
     async def list_records(self, **kwargs) -> list[SimpleNamespace]:  # type: ignore[no-untyped-def]
         self.queries.append(kwargs)
+        locale = kwargs.get("locale")
+        if isinstance(locale, str) and locale:
+            return [record for record in self.records if record.locale == locale]
         return self.records
+
+    async def get_record(self, **kwargs) -> SimpleNamespace | None:  # type: ignore[no-untyped-def]
+        self.detail_queries.append(kwargs)
+        for record in self.records:
+            if record.item_id == kwargs["entry_id"]:
+                return record
+        return None
 
     def to_entry_response(self, record: SimpleNamespace) -> dict[str, object]:
         fields = {key: value for key, value in record.fields.items() if key != "internalNotes"}
@@ -107,7 +118,7 @@ def test_build_filter_pair_validates_pairs_and_allowed_fields() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generated_controller_paginates_locale_filters_and_shapes_visible_fields() -> None:
+async def test_generated_controller_paginates_and_shapes_visible_fields() -> None:
     binding = _FakeBinding([
         SimpleNamespace(
             item_id=UUID("00000000-0000-0000-0000-000000000001"),
@@ -160,6 +171,43 @@ async def test_generated_controller_paginates_locale_filters_and_shapes_visible_
     }
     assert binding.authorized == ["published"]
     assert binding.queries[0]["model_key"] == "article"
+    assert binding.queries[0]["locale"] == "en-US"
+
+
+@pytest.mark.asyncio
+async def test_generated_controller_detail_passes_locale_to_service_binding() -> None:
+    entry_id = UUID("00000000-0000-0000-0000-000000000001")
+    binding = _FakeBinding([
+        SimpleNamespace(
+            item_id=entry_id,
+            locale="en-US",
+            fields={"title": "Visible"},
+        )
+    ])
+    response = FastAPIResponse()
+
+    result = await ContentApiGeneratedController(binding).get_entry(
+        request=_request(),
+        raw_response=response,
+        runtime_context=SimpleNamespace(),
+        query_service=SimpleNamespace(),
+        auth_service=SimpleNamespace(),
+        site_service=SimpleNamespace(),
+        route=_route_definition(),
+        entry_id=entry_id,
+        perspective="preview",
+        preview_token="preview",
+        environment=None,
+        environment_id=None,
+        locale="en-US",
+    )
+
+    assert result.data == {
+        "fields": {"title": "Visible"},
+        "id": entry_id,
+        "locale": "en-US",
+    }
+    assert binding.detail_queries[0]["locale"] == "en-US"
 
 
 @pytest.mark.asyncio

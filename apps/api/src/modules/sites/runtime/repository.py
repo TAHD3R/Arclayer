@@ -109,11 +109,14 @@ class RuntimeRepositoryMixin:
         *,
         site_id: UUID,
         model_key: str,
+        locale: str | None = None,
         environment_id: UUID | None = None,
     ) -> list[ContentItemRecord]:
         qs = ContentItemRecord.filter(site_id=site_id, model_definition__singular_key=model_key)
         if environment_id is not None:
             qs = qs.filter(environment_id=environment_id, model_definition__environment_id=environment_id)
+        if locale is not None:
+            qs = qs.filter(locale=locale)
         return list(
             await self._using_db(qs, self._conn).prefetch_related("model_definition", "model_definition__fields").all()
         )
@@ -211,6 +214,7 @@ class RuntimeRepositoryMixin:
         *,
         site_id: UUID,
         model_key: str,
+        locale: str | None = None,
         environment_id: UUID | None = None,
     ) -> list[PublishedGraphRecord]:
         active_release = await self.get_active_release(site_id=site_id, environment_id=environment_id)
@@ -223,6 +227,8 @@ class RuntimeRepositoryMixin:
         )
         if environment_id is not None:
             qs = qs.filter(item__environment_id=environment_id, item__model_definition__environment_id=environment_id)
+        if locale is not None:
+            qs = qs.filter(locale=locale)
         return list(
             await self
             ._using_db(qs, self._conn)

@@ -22,6 +22,8 @@ from src.modules.projects.content.contracts.schema import (
     ContentItemBulkTransitionOut,
     ContentItemOut,
     ContentPresentationKind,
+    ContentTranslationGroupOut,
+    ContentTranslationStatusOut,
     ContentVersionCompareChangeOut,
     ContentVersionCompareOut,
     ContentVersionOut,
@@ -52,6 +54,7 @@ from src.modules.projects.content.items.input_schema import (
     ContentItemBootstrapShapeIn,
     ContentItemCreateIn,
     ContentItemWorkflowPatchIn,
+    ContentTranslationCreateIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
@@ -169,6 +172,59 @@ class ProjectContentCanonicalItemsService:
             raise NotFound("Content version not found", error="CONTENT_ITEM_VERSION_NOT_FOUND")
         return version
 
+    @staticmethod
+    def _translation_status_from_items(
+        *,
+        group_id: UUID,
+        primary_item_id: UUID | None,
+        primary_locale: str,
+        items: list[ContentItemRecord],
+    ) -> ContentTranslationStatusOut:
+        return ContentTranslationStatusOut(
+            group_id=group_id,
+            primary_item_id=primary_item_id,
+            primary_locale=primary_locale,
+            locales=sorted({str(item.locale) for item in items if str(item.locale or "").strip()}),
+            missing_locales=[],
+        )
+
+    async def _build_translation_group_out(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None,
+        group_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> ContentTranslationGroupOut:
+        group = await self.repo.get_translation_group(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            translation_group_id=group_id,
+            conn=conn,
+        )
+        if group is None:
+            raise NotFound("Translation group not found", error="CONTENT_TRANSLATION_GROUP_NOT_FOUND")
+        items = await self.repo.list_translation_items(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            translation_group_id=group.id,
+            conn=conn,
+        )
+        status = self._translation_status_from_items(
+            group_id=group.id,
+            primary_item_id=group.primary_item_id,
+            primary_locale=group.primary_locale,
+            items=items,
+        )
+        return ContentTranslationGroupOut(
+            group_id=group.id,
+            primary_item_id=group.primary_item_id,
+            primary_locale=group.primary_locale,
+            items=[to_item_out(item, item.model_definition, translation_status=status) for item in items],
+        )
+
     async def create_item(
         self,
         *,
@@ -218,6 +274,29 @@ class ProjectContentCanonicalItemsService:
                 preset_key=None,
                 capability_pack_ids=[],
             )
+            translation_group_id = payload.translation_group_id
+            if translation_group_id is not None:
+                group = await self.repo.get_translation_group(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    translation_group_id=translation_group_id,
+                )
+                if group is None:
+                    raise NotFound("Translation group not found", error="CONTENT_TRANSLATION_GROUP_NOT_FOUND")
+                existing_locale = await self.repo.get_translation_item_by_locale(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    translation_group_id=translation_group_id,
+                    locale=payload.locale,
+                )
+                if existing_locale is not None:
+                    raise Conflict(
+                        "Translation locale already exists",
+                        error="CONTENT_TRANSLATION_LOCALE_ALREADY_EXISTS",
+                        meta={"locale": payload.locale},
+                    )
+
             em_result = await self.entity_manager.create(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -234,8 +313,11 @@ class ProjectContentCanonicalItemsService:
                 shape_state=continuation.shape_state,
                 shape_reason_code=continuation.shape_reason_code,
                 shape_reason_meta=continuation.shape_reason_meta,
+                translation_group_id=translation_group_id,
             )
             item = em_result.item
+            if translation_group_id is None:
+                await self.repo.ensure_translation_group_for_item(item=item)
         except IntegrityError as exc:
             raise Conflict(
                 "Content item conflict",
@@ -243,7 +325,27 @@ class ProjectContentCanonicalItemsService:
                 meta={"title": payload.title, "locale": payload.locale},
             ) from exc
 
-        return to_item_out(item, model)
+        translations = (
+            await self.repo.list_translation_items(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                translation_group_id=item.translation_group_id,
+            )
+            if getattr(item, "translation_group_id", None) is not None
+            else [item]
+        )
+        status = (
+            self._translation_status_from_items(
+                group_id=item.translation_group_id,
+                primary_item_id=item.id if translation_group_id is None else None,
+                primary_locale=item.locale,
+                items=translations,
+            )
+            if getattr(item, "translation_group_id", None) is not None
+            else None
+        )
+        return to_item_out(item, model, translation_status=status)
 
     async def apply_bootstrap_shape(
         self,
@@ -375,6 +477,7 @@ class ProjectContentCanonicalItemsService:
                 shape_reason_meta=continuation.shape_reason_meta,
                 actor_user_id=actor_user_id,
             )
+            await self.repo.ensure_translation_group_for_item(item=duplicated_item, conn=conn)
 
             if int(source_item.draft_version or 0) > 0:
                 source_version = await self._get_locked_version(
@@ -408,6 +511,150 @@ class ProjectContentCanonicalItemsService:
                 )
 
             return to_item_out(duplicated_item, source_item.model_definition)
+
+    async def list_translations(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None,
+        item_id: UUID,
+    ) -> ContentTranslationGroupOut:
+        item = await self.repo.get_item_with_model(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item_id,
+        )
+        if item is None:
+            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
+        group = await self.repo.ensure_translation_group_for_item(item=item)
+        return await self._build_translation_group_out(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            group_id=group.id,
+        )
+
+    async def create_translation(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None,
+        item_id: UUID,
+        actor_user_id: UUID | None,
+        payload: ContentTranslationCreateIn,
+    ) -> ContentItemOut:
+        target_locale = payload.target_locale.strip()
+        async with in_transaction() as conn:
+            source_item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            group = await self.repo.ensure_translation_group_for_item(item=source_item, conn=conn)
+            existing = await self.repo.get_translation_item_by_locale(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                translation_group_id=group.id,
+                locale=target_locale,
+                conn=conn,
+            )
+            if existing is not None:
+                raise Conflict(
+                    "Translation locale already exists",
+                    error="CONTENT_TRANSLATION_LOCALE_ALREADY_EXISTS",
+                    meta={"locale": target_locale},
+                )
+            translated_item = await self.repo.create_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                model_definition_id=source_item.model_definition_id,
+                translation_group_id=group.id,
+                slug=source_item.slug,
+                title=source_item.title,
+                locale=target_locale,
+                status=normalize_initial_status(ContentItemStatus.DRAFT),
+                visibility=normalize_visibility(ContentItemVisibility(source_item.visibility)),
+                bootstrap_preset_key=source_item.bootstrap_preset_key,
+                bootstrap_preset_state=str(source_item.bootstrap_preset_state),
+                capability_pack_ids=normalize_capability_pack_ids(source_item.capability_pack_ids or []),
+                resolved_role=source_item.resolved_role,
+                resolved_posture=source_item.resolved_posture,
+                resolved_surface=source_item.resolved_surface,
+                shape_state=source_item.shape_state,
+                shape_reason_code=source_item.shape_reason_code,
+                shape_reason_meta=source_item.shape_reason_meta
+                if isinstance(source_item.shape_reason_meta, dict)
+                else None,
+                actor_user_id=actor_user_id,
+                conn=conn,
+            )
+            source_version_number = int(source_item.draft_version or source_item.published_version or 0)
+            if source_version_number > 0:
+                source_version = await self._get_locked_version(
+                    item_id=source_item.id,
+                    version_number=source_version_number,
+                    conn=conn,
+                )
+                translated_version = await self.repo.create_version(
+                    item_id=translated_item.id,
+                    version=1,
+                    state=str(ContentVersionState.DRAFT),
+                    fields_snapshot=source_version.fields_snapshot or {},
+                    change_summary=None,
+                    actor_user_id=actor_user_id,
+                    last_transition_by_user_id=actor_user_id,
+                    conn=conn,
+                )
+                version_out = await self.reads.build_version_out(version=source_version, conn=conn)
+                presentations: PresentationPayload = [
+                    (presentation.kind, presentation.payload) for presentation in version_out.presentations
+                ]
+                await self._replace_presentations(
+                    version_id=translated_version.id,
+                    presentations=presentations,
+                    conn=conn,
+                )
+                translated_item = await self.repo.update_item_fields(
+                    translated_item,
+                    fields={"draft_version": 1, "updated_by_user_id": actor_user_id},
+                    conn=conn,
+                )
+            translations = await self.repo.list_translation_items(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                translation_group_id=group.id,
+                conn=conn,
+            )
+            status = self._translation_status_from_items(
+                group_id=group.id,
+                primary_item_id=group.primary_item_id,
+                primary_locale=group.primary_locale,
+                items=translations,
+            )
+            return to_item_out(translated_item, source_item.model_definition, translation_status=status)
+
+    async def get_translation_group(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        environment_id: UUID | None,
+        item_id: UUID,
+    ) -> ContentTranslationGroupOut:
+        return await self.list_translations(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            environment_id=environment_id,
+            item_id=item_id,
+        )
 
     async def delete_item(
         self,

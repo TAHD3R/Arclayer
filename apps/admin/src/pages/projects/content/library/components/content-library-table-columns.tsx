@@ -17,6 +17,7 @@ import {
   ContentLibraryRuntimeBadgeList,
   ContentLibraryRuntimeDiagnosticList,
 } from "./content-library-runtime-badges";
+import { ContentTranslationStatusBadge } from "./content-translation-status-badge";
 import { ContentLibraryRowActions } from "./content-library-row-actions";
 import type { ContentLibraryTableRow } from "../types";
 import { contentHasAddress } from "../utils";
@@ -192,6 +193,7 @@ export function useContentLibraryTableColumns(params: {
   onEditVisibility?: (row: ContentLibraryTableRow) => void;
   onOpenPageSettings?: (row: ContentLibraryTableRow) => void;
   onOpenStructuredFields?: (row: ContentLibraryTableRow) => void;
+  onCreateTranslation?: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
@@ -363,6 +365,17 @@ export function useContentLibraryTableColumns(params: {
         minSize: 120,
       },
       {
+        id: "translations",
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_TRANSLATIONS"),
+          kind: "meta",
+        },
+        header: t("CONTENT_LIBRARY_TABLE_COL_TRANSLATIONS"),
+        cell: ({ row }) => <ContentTranslationStatusBadge row={row.original} />,
+        size: 180,
+        minSize: 160,
+      },
+      {
         id: "actions",
         enableHiding: false,
         enableSorting: false,
@@ -382,6 +395,7 @@ export function useContentLibraryTableColumns(params: {
               onEditVisibility={params.onEditVisibility}
               onOpenPageSettings={params.onOpenPageSettings}
               onOpenStructuredFields={params.onOpenStructuredFields}
+              onCreateTranslation={params.onCreateTranslation}
               onDuplicate={params.onDuplicate}
               onDelete={params.onDelete}
               onArchive={params.onArchive}
@@ -404,6 +418,7 @@ export function useContentLibraryTableColumns(params: {
       params.onEditVisibility,
       params.onOpenPageSettings,
       params.onOpenStructuredFields,
+      params.onCreateTranslation,
       params.formatDateTimeOrNull,
       params.onArchive,
       params.onDelete,

@@ -2094,6 +2094,12 @@ export type ContentItemCreateIn = {
      * Title
      */
     title: string;
+    /**
+     * Translationgroupid
+     *
+     * Optional translation group id to link this item into.
+     */
+    translationGroupId?: string | null;
 };
 
 /**
@@ -2276,6 +2282,16 @@ export type ContentItemOut = {
      * Optional item title.
      */
     title?: string | null;
+    /**
+     * Translationgroupid
+     *
+     * Translation group id.
+     */
+    translationGroupId?: string | null;
+    /**
+     * Translation coverage for this item.
+     */
+    translationStatus?: ContentTranslationStatusOut | null;
     /**
      * Updatedat
      *
@@ -4400,6 +4416,82 @@ export type ContentSeoProfileOut = {
      * Robots directive.
      */
     robotsDirective?: string | null;
+};
+
+/**
+ * ContentTranslationCreateIn
+ */
+export type ContentTranslationCreateIn = {
+    /**
+     * Targetlocale
+     */
+    targetLocale: string;
+};
+
+/**
+ * ContentTranslationGroupOut
+ */
+export type ContentTranslationGroupOut = {
+    /**
+     * Groupid
+     *
+     * Translation group id.
+     */
+    groupId: string;
+    /**
+     * Items
+     *
+     * Items linked to this translation group.
+     */
+    items?: Array<ContentItemOut>;
+    /**
+     * Primaryitemid
+     *
+     * Primary item id for this translation group.
+     */
+    primaryItemId?: string | null;
+    /**
+     * Primarylocale
+     *
+     * Primary locale for the group.
+     */
+    primaryLocale: string;
+};
+
+/**
+ * ContentTranslationStatusOut
+ */
+export type ContentTranslationStatusOut = {
+    /**
+     * Groupid
+     *
+     * Translation group id.
+     */
+    groupId: string;
+    /**
+     * Locales
+     *
+     * Locales currently available in this group.
+     */
+    locales?: Array<string>;
+    /**
+     * Missinglocales
+     *
+     * Supported locales missing from this group.
+     */
+    missingLocales?: Array<string>;
+    /**
+     * Primaryitemid
+     *
+     * Primary item id for this translation group.
+     */
+    primaryItemId?: string | null;
+    /**
+     * Primarylocale
+     *
+     * Primary locale for the group.
+     */
+    primaryLocale: string;
 };
 
 /**
@@ -13707,6 +13799,31 @@ export type ResponseModelContentSearchResultOut = {
  */
 export type ResponseModelContentSeoProfileOut = {
     data?: ContentSeoProfileOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentTranslationGroupOut]
+ */
+export type ResponseModelContentTranslationGroupOut = {
+    data?: ContentTranslationGroupOut | null;
     /**
      * Error
      */
@@ -27275,6 +27392,156 @@ export type DomainProjectsDuplicateProjectContentItemResponses = {
 };
 
 export type DomainProjectsDuplicateProjectContentItemResponse = DomainProjectsDuplicateProjectContentItemResponses[keyof DomainProjectsDuplicateProjectContentItemResponses];
+
+export type DomainProjectsGetProjectContentItemTranslationGroupData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/translation-group';
+};
+
+export type DomainProjectsGetProjectContentItemTranslationGroupErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetProjectContentItemTranslationGroupError = DomainProjectsGetProjectContentItemTranslationGroupErrors[keyof DomainProjectsGetProjectContentItemTranslationGroupErrors];
+
+export type DomainProjectsGetProjectContentItemTranslationGroupResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentTranslationGroupOut;
+};
+
+export type DomainProjectsGetProjectContentItemTranslationGroupResponse = DomainProjectsGetProjectContentItemTranslationGroupResponses[keyof DomainProjectsGetProjectContentItemTranslationGroupResponses];
+
+export type DomainProjectsListProjectContentItemTranslationsData = {
+    body?: never;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/translations';
+};
+
+export type DomainProjectsListProjectContentItemTranslationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsListProjectContentItemTranslationsError = DomainProjectsListProjectContentItemTranslationsErrors[keyof DomainProjectsListProjectContentItemTranslationsErrors];
+
+export type DomainProjectsListProjectContentItemTranslationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelContentTranslationGroupOut;
+};
+
+export type DomainProjectsListProjectContentItemTranslationsResponse = DomainProjectsListProjectContentItemTranslationsResponses[keyof DomainProjectsListProjectContentItemTranslationsResponses];
+
+export type DomainProjectsCreateProjectContentItemTranslationData = {
+    /**
+     * Create translation payload.
+     */
+    body: ContentTranslationCreateIn;
+    path: {
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Environment
+         *
+         * Environment key, id, or alias.
+         */
+        environment?: string | null;
+        /**
+         * Environmentid
+         *
+         * Environment id.
+         */
+        environmentId?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/content/items/{item_id}/translations';
+};
+
+export type DomainProjectsCreateProjectContentItemTranslationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCreateProjectContentItemTranslationError = DomainProjectsCreateProjectContentItemTranslationErrors[keyof DomainProjectsCreateProjectContentItemTranslationErrors];
+
+export type DomainProjectsCreateProjectContentItemTranslationResponses = {
+    /**
+     * Successful Response
+     */
+    201: ResponseModelContentItemOut;
+};
+
+export type DomainProjectsCreateProjectContentItemTranslationResponse = DomainProjectsCreateProjectContentItemTranslationResponses[keyof DomainProjectsCreateProjectContentItemTranslationResponses];
 
 export type DomainProjectsUnarchiveProjectContentItemData = {
     body?: never;

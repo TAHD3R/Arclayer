@@ -89,11 +89,25 @@ class ContentApiServiceBinding(Protocol):
         perspective: DeliveryPerspective,
         environment: str | None,
         environment_id: UUID | None,
+        locale: str | None,
         exact_filters: dict[str, str],
         contains_filters: dict[str, str],
         sort_field: str | None,
         sort_direction: SortDirection,
     ) -> list[Any]: ...
+
+    async def get_record(
+        self,
+        *,
+        runtime_context: Any,
+        query_service: Any,
+        model_key: str,
+        entry_id: UUID,
+        perspective: DeliveryPerspective,
+        environment: str | None,
+        environment_id: UUID | None,
+        locale: str | None,
+    ) -> Any | None: ...
 
     def to_entry_response(self, record: Any) -> Any: ...
 
@@ -138,21 +152,21 @@ class ContentApiGeneratedController:
             perspective=query.perspective,
             environment=query.environment,
             environment_id=query.environment_id,
+            locale=query.locale,
             exact_filters=query.exact_filters,
             contains_filters=query.contains_filters,
             sort_field=query.sort_field,
             sort_direction=query.sort_direction,
         )
-        filtered = filter_records_by_locale(records, query.locale)
         raw_response.headers["cache-control"] = _cache_control_for(query.perspective)
         return ApiResponse.success(
             data=self._service_binding.to_list_response(
                 route=route,
                 query=query,
-                total=len(filtered),
+                total=len(records),
                 items=[
                     self._service_binding.to_entry_response(record)
-                    for record in filtered[query.offset : query.offset + query.limit]
+                    for record in records[query.offset : query.offset + query.limit]
                 ],
             )
         )
@@ -182,25 +196,19 @@ class ContentApiGeneratedController:
             auth_service=auth_service,
             site_service=site_service,
         )
-        records = filter_records_by_locale(
-            await self._service_binding.list_records(
-                runtime_context=runtime_context,
-                query_service=query_service,
-                model_key=route.model_key,
-                perspective=perspective,
-                environment=environment,
-                environment_id=environment_id,
-                exact_filters={},
-                contains_filters={},
-                sort_field=None,
-                sort_direction="asc",
-            ),
-            locale,
+        record = await self._service_binding.get_record(
+            runtime_context=runtime_context,
+            query_service=query_service,
+            model_key=route.model_key,
+            entry_id=entry_id,
+            perspective=perspective,
+            environment=environment,
+            environment_id=environment_id,
+            locale=locale,
         )
         raw_response.headers["cache-control"] = _cache_control_for(perspective)
-        for record in records:
-            if getattr(record, "item_id", None) == entry_id:
-                return ApiResponse.success(data=self._service_binding.to_entry_response(record))
+        if record is not None:
+            return ApiResponse.success(data=self._service_binding.to_entry_response(record))
         raise NotFound("Content entry not found", error="CONTENT_ENTRY_NOT_FOUND")
 
 
@@ -240,6 +248,7 @@ def normalize_optional_text(value: str | None) -> str | None:
 
 
 def filter_records_by_locale(records: list[Any], locale: str | None) -> list[Any]:
+    """Deprecated compatibility helper; locale filtering belongs in service bindings."""
     normalized = normalize_optional_text(locale)
     if normalized is None:
         return records

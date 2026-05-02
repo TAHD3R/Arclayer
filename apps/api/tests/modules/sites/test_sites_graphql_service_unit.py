@@ -48,6 +48,7 @@ RUNTIME_REPOSITORY = REPO_ROOT / "apps/api/src/modules/sites/runtime/repository.
 def _article_record(**overrides) -> StructuredContentRecord:
     payload = {
         "item_id": UUID("00000000-0000-0000-0000-000000000001"),
+        "translation_group_id": None,
         "model_key": "article",
         "locale": "en-US",
         "title": "Hello GraphQL",
@@ -280,8 +281,9 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
         assert runtime_id == UUID("00000000-0000-0000-0000-000000000222")
         return site_id
 
-    async def _list_plan_records(plan, *, environment_id):  # type: ignore[no-untyped-def]
+    async def _list_plan_records(plan, *, environment_id, locale):  # type: ignore[no-untyped-def]
         assert environment_id is None
+        assert locale is None
         assert plan == GraphQLQueryPlan(
             site_id=site_id,
             model_key="article",
@@ -299,6 +301,7 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
     service._list_plan_records = _list_plan_records  # type: ignore[method-assign]
     service._to_structured_record = lambda record: StructuredContentRecord(  # type: ignore[method-assign]
         item_id=record.item.id,
+        translation_group_id=None,
         model_key="article",
         locale="en-US",
         title=record.fields.get("title"),
@@ -351,8 +354,9 @@ async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pyte
         ),
     ]
 
-    async def _list_plan_records(plan, *, environment_id):  # type: ignore[no-untyped-def]
+    async def _list_plan_records(plan, *, environment_id, locale):  # type: ignore[no-untyped-def]
         assert environment_id is None
+        assert locale is None
         return records
 
     async def _resolve_site_id(*, runtime_id):  # type: ignore[no-untyped-def]
@@ -363,6 +367,7 @@ async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pyte
     service._list_plan_records = _list_plan_records  # type: ignore[method-assign]
     service._to_structured_record = lambda record: StructuredContentRecord(  # type: ignore[method-assign]
         item_id=record.item.id,
+        translation_group_id=None,
         model_key="article",
         locale="en-US",
         title=record.fields.get("title"),
@@ -662,7 +667,10 @@ async def test_delivery_record_lookup_helpers_and_snapshot_edges() -> None:
         slug="header",
     )
 
+    observed: list[tuple[str, str | None]] = []
+
     async def _list_records(*, runtime_id, model_key, perspective, **kwargs):  # type: ignore[no-untyped-def]
+        observed.append((model_key, kwargs.get("locale")))
         if model_key == "article":
             return [article]
         if model_key == "page":
@@ -683,16 +691,26 @@ async def test_delivery_record_lookup_helpers_and_snapshot_edges() -> None:
             model_key="article",
             slug="hello",
             perspective="preview",
+            locale="zh-CN",
         )
         == article
     )
     assert await service.get_page_record_by_path(runtime_id=runtime_id, path=" ", perspective="preview") is None
-    assert await service.get_page_record_by_path(runtime_id=runtime_id, path="/pricing", perspective="preview") == page
+    assert (
+        await service.get_page_record_by_path(
+            runtime_id=runtime_id,
+            path="/pricing",
+            perspective="preview",
+            locale="zh-CN",
+        )
+        == page
+    )
     assert (
         await service.get_reusable_section_record_by_alias(
             runtime_id=runtime_id,
             alias="header-main",
             perspective="preview",
+            locale="zh-CN",
         )
         == section
     )
@@ -704,6 +722,11 @@ async def test_delivery_record_lookup_helpers_and_snapshot_edges() -> None:
         )
         is None
     )
+    assert observed == [
+        ("article", "zh-CN"),
+        ("page", "zh-CN"),
+        ("reusable-section", "zh-CN"),
+    ]
 
 
 @pytest.mark.asyncio

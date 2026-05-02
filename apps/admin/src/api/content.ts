@@ -6,6 +6,7 @@ import type {
   AdminContentModel,
   AdminContentModelJsonPreview,
   AdminContentModelImpactPreview,
+  AdminContentTranslationGroup,
   AdminContentSeoProfile,
   AdminContentVersion,
   AdminRelease,
@@ -18,6 +19,7 @@ import type {
   CreateAdminContentModelFieldPayload,
   CreateAdminContentModelPayload,
   CreateAdminContentLibraryViewPayload,
+  CreateAdminContentTranslationPayload,
   CreateAdminContentItemPayload,
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
@@ -254,6 +256,26 @@ export async function createContentItem(
   payload: CreateAdminContentItemPayload,
 ): Promise<AdminContentItem> {
   return api.post<AdminContentItem>(projectPath(projectId, "/content/items"), payload);
+}
+
+export async function listContentItemTranslations(
+  projectId: string,
+  itemId: string,
+): Promise<AdminContentTranslationGroup> {
+  return api.get<AdminContentTranslationGroup>(
+    projectPath(projectId, `/content/items/${itemId}/translations`),
+  );
+}
+
+export async function createContentItemTranslation(
+  projectId: string,
+  itemId: string,
+  payload: CreateAdminContentTranslationPayload,
+): Promise<AdminContentItem> {
+  return api.post<AdminContentItem>(
+    projectPath(projectId, `/content/items/${itemId}/translations`),
+    payload,
+  );
 }
 
 export async function applyContentBootstrapShape(

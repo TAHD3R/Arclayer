@@ -4,6 +4,7 @@ import {
   getContentLibraryViews,
   listAllContentItems,
   listAllContentModels,
+  listContentItemTranslations,
   listContentItemVersions,
 } from "@/api/content";
 import type {
@@ -133,6 +134,13 @@ export function buildContentLibraryVersionHistoryQueryKey(
   return ["content-library-runtime", "item", projectId, itemId, "versions"] as const;
 }
 
+export function buildContentLibraryItemTranslationsQueryKey(
+  projectId: string | null,
+  itemId: string | null,
+) {
+  return ["content-library-runtime", "item", projectId, itemId, "translations"] as const;
+}
+
 export function loadContentLibraryItems(projectId: string): Promise<AdminContentItem[]> {
   return listAllContentItems(projectId);
 }
@@ -152,6 +160,10 @@ export function loadContentLibraryItemRuntime(
   itemId: string,
 ): Promise<AdminContentItem> {
   return getContentItem(projectId, itemId);
+}
+
+export function loadContentLibraryItemTranslations(projectId: string, itemId: string) {
+  return listContentItemTranslations(projectId, itemId);
 }
 
 export function loadContentLibraryVersionHistory(

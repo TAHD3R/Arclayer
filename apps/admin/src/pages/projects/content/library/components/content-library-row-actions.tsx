@@ -8,6 +8,7 @@ import {
   Eye,
   Globe,
   Link2,
+  Languages,
   MoreHorizontal,
   Settings2,
   Trash2,
@@ -37,6 +38,7 @@ export function ContentLibraryRowActions(props: {
   onEditVisibility?: (row: ContentLibraryTableRow) => void;
   onOpenPageSettings?: (row: ContentLibraryTableRow) => void;
   onOpenStructuredFields?: (row: ContentLibraryTableRow) => void;
+  onCreateTranslation?: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
@@ -215,6 +217,13 @@ export function ContentLibraryRowActions(props: {
             onSelect={() => props.onDuplicate(props.row)}
           >
             {t("CONTENT_LIBRARY_ACTION_DUPLICATE")}
+          </DropdownMenuIconItem>
+          <DropdownMenuIconItem
+            icon={<Languages className="size-4" />}
+            disabled={props.pending || !canManageContent}
+            onSelect={() => props.onCreateTranslation?.(props.row)}
+          >
+            {t("CONTENT_LIBRARY_ACTION_CREATE_TRANSLATION")}
           </DropdownMenuIconItem>
           <DropdownMenuIconItem
             icon={<Trash2 className="size-4" />}

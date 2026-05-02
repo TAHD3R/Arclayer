@@ -274,6 +274,7 @@ describe("content-library-editor-toolbar-ui", () => {
   it("renders add block as a single dropdown trigger while keeping media insertion as split buttons", async () => {
     render(
       <ContentLibraryArticleEditorPageToolbar
+        currentItemId="content-1"
         hasPublishableVersion
         itemTitle="Launch memo"
         isPublishing={false}
@@ -301,6 +302,7 @@ describe("content-library-editor-toolbar-ui", () => {
 
     render(
       <ContentLibraryArticleEditorPageToolbar
+        currentItemId="content-1"
         hasPublishableVersion
         itemTitle="Launch memo"
         isPublishing={false}
@@ -335,6 +337,7 @@ describe("content-library-editor-toolbar-ui", () => {
   it("renders the document menu after the publish button", () => {
     render(
       <ContentLibraryArticleEditorPageToolbar
+        currentItemId="content-1"
         hasPublishableVersion
         itemTitle="Launch memo"
         isPublishing={false}

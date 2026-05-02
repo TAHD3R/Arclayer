@@ -32,6 +32,7 @@ from src.modules.projects.content.contracts.schema import (
     ContentPresentationOut,
     ContentRecoveryActionOut,
     ContentShapeState,
+    ContentTranslationStatusOut,
     ContentVersionOut,
 )
 from src.modules.projects.content.contracts.schema import (
@@ -375,6 +376,7 @@ def to_item_out(
     slug: str | None = None,
     summary: str | None = None,
     visibility: str | None = None,
+    translation_status: ContentTranslationStatusOut | None = None,
 ) -> ContentItemOut:
     route = f"/w/{encode_uuid(item.workspace_id)}/content/library/{encode_uuid(item.id)}"
     shape_reason_code = item.shape_reason_code or None
@@ -428,6 +430,8 @@ def to_item_out(
         status=cast(ContentItemStatusLiteral, str(item.status)),
         visibility=cast(ContentItemVisibilityLiteral, visibility or str(item.visibility)),
         locale=item.locale,
+        translation_group_id=getattr(item, "translation_group_id", None),
+        translation_status=translation_status,
         bootstrap_preset_key=item.bootstrap_preset_key,
         bootstrap_preset_state=cast(ContentBootstrapPresetState, str(item.bootstrap_preset_state)),
         capability_pack_ids=normalize_capability_pack_ids(item.capability_pack_ids or []),

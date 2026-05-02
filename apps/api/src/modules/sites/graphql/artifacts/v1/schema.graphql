@@ -197,14 +197,14 @@ type Query {
   deliveryPageById(pageId: ID!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): GraphQLDeliveryPage
   deliverySectionByAlias(alias: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): GraphQLDeliverySection!
   deliveryGlobalSet(key: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): GraphQLGlobalSet!
-  articleBySlug(slug: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): ArticleEntry
-  articles(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: ArticleFilterInput = null, sort: ArticleSortInput = null, limit: Int! = 20, offset: Int! = 0): [ArticleEntry!]!
-  pageEntryByPath(path: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): PageEntry
-  pages(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: PageFilterInput = null, sort: PageSortInput = null, limit: Int! = 20, offset: Int! = 0): [PageEntry!]!
-  reusableSectionByAlias(alias: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): ReusableSectionEntry
-  reusableSections(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: ReusableSectionFilterInput = null, sort: ReusableSectionSortInput = null, limit: Int! = 20, offset: Int! = 0): [ReusableSectionEntry!]!
-  categoryBySlug(slug: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null): CategoryEntry
-  categories(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: CategoryFilterInput = null, sort: CategorySortInput = null, limit: Int! = 20, offset: Int! = 0): [CategoryEntry!]!
+  articleBySlug(slug: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, locale: String = null): ArticleEntry
+  articles(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: ArticleFilterInput = null, sort: ArticleSortInput = null, locale: String = null, limit: Int! = 20, offset: Int! = 0): [ArticleEntry!]!
+  pageEntryByPath(path: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, locale: String = null): PageEntry
+  pages(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: PageFilterInput = null, sort: PageSortInput = null, locale: String = null, limit: Int! = 20, offset: Int! = 0): [PageEntry!]!
+  reusableSectionByAlias(alias: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, locale: String = null): ReusableSectionEntry
+  reusableSections(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: ReusableSectionFilterInput = null, sort: ReusableSectionSortInput = null, locale: String = null, limit: Int! = 20, offset: Int! = 0): [ReusableSectionEntry!]!
+  categoryBySlug(slug: String!, perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, locale: String = null): CategoryEntry
+  categories(perspective: DeliveryPerspective! = PUBLISHED, previewToken: String = null, filter: CategoryFilterInput = null, sort: CategorySortInput = null, locale: String = null, limit: Int! = 20, offset: Int! = 0): [CategoryEntry!]!
 }
 
 type ReusableSectionEntry {

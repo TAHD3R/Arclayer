@@ -395,7 +395,7 @@
   },
   "schemaFamily": "delivery-graphql",
   "schemaFile": "schema.graphql",
-  "sha256": "6e4becff8939ec98423431fbb9b3ee77218dd49fdab0185f235dc15cac9694ce",
+  "sha256": "3f072f114fcb52e44be29f4eb09b4ca83fc2204251eb273743e5581906c439d2",
   "subscriptions": {
     "events": [
       {

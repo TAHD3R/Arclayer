@@ -488,6 +488,7 @@ async def _list_model_entries(
     preview_token: str | None,
     filter_input: object | None,
     sort_input: object | None,
+    locale: str | None,
     limit: int,
     offset: int,
 ) -> list[Any]:
@@ -508,6 +509,7 @@ async def _list_model_entries(
             contains_filters=_query_filter_payload(model_key, filter_input, "contains"),
             sort_field=sort_field,
             sort_direction=sort_direction,
+            locale=locale,
             limit=limit,
             offset=offset,
         )
@@ -523,6 +525,7 @@ async def _get_single_model_entry(
     lookup_value: str,
     perspective: Perspective,
     preview_token: str | None,
+    locale: str | None,
 ) -> Any | None:
     resolved = await _require_access(info, perspective=perspective, preview_token=preview_token)
     schema = _required_model_schema(model_key)
@@ -534,6 +537,7 @@ async def _get_single_model_entry(
                 slug=lookup_value,
                 perspective=resolved,
                 environment_id=info.context.environment_id,
+                locale=locale,
             )
         elif schema.single_query.resolver == "get_page_record_by_path":
             record = await info.context.graphql.get_page_record_by_path(
@@ -541,6 +545,7 @@ async def _get_single_model_entry(
                 path=lookup_value,
                 perspective=resolved,
                 environment_id=info.context.environment_id,
+                locale=locale,
             )
         elif schema.single_query.resolver == "get_reusable_section_record_by_alias":
             record = await info.context.graphql.get_reusable_section_record_by_alias(
@@ -548,6 +553,7 @@ async def _get_single_model_entry(
                 alias=lookup_value,
                 perspective=resolved,
                 environment_id=info.context.environment_id,
+                locale=locale,
             )
         else:
             raise RuntimeError(f"GraphQL single query resolver is not registered: {schema.single_query.resolver}")
@@ -583,6 +589,7 @@ def _build_single_query_field(
         info: strawberry.Info[SiteGraphQLContext, None],
         perspective: DeliveryPerspectiveEnum = Perspective.PUBLISHED,
         preview_token: str | None = None,
+        locale: str | None = None,
         **kwargs: object,
     ) -> Any | None:
         lookup_value = kwargs.get(argument_name)
@@ -594,6 +601,7 @@ def _build_single_query_field(
             lookup_value=lookup_value,
             perspective=perspective,
             preview_token=preview_token,
+            locale=locale,
         )
 
     resolver = _configure_resolver_signature(
@@ -604,6 +612,7 @@ def _build_single_query_field(
             argument_name: str,
             "perspective": DeliveryPerspectiveEnum,
             "preview_token": str | None,
+            "locale": str | None,
             "return": entry_type | None,
         },
         signature=inspect.Signature(
@@ -623,6 +632,12 @@ def _build_single_query_field(
                 ),
                 inspect.Parameter(
                     "preview_token",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=None,
+                    annotation=str | None,
+                ),
+                inspect.Parameter(
+                    "locale",
                     inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     default=None,
                     annotation=str | None,
@@ -650,6 +665,7 @@ def _build_list_query_field(
         preview_token: str | None = None,
         filter: object | None = None,
         sort: object | None = None,
+        locale: str | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> list[Any]:
@@ -660,6 +676,7 @@ def _build_list_query_field(
             preview_token=preview_token,
             filter_input=filter,
             sort_input=sort,
+            locale=locale,
             limit=limit,
             offset=offset,
         )
@@ -673,6 +690,7 @@ def _build_list_query_field(
             "preview_token": str | None,
             "filter": filter_input_type | None,
             "sort": sort_input_type | None,
+            "locale": str | None,
             "limit": int,
             "offset": int,
             "return": list[entry_type],
@@ -708,6 +726,12 @@ def _build_list_query_field(
                     inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     default=None,
                     annotation=sort_input_type | None,
+                ),
+                inspect.Parameter(
+                    "locale",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=None,
+                    annotation=str | None,
                 ),
                 inspect.Parameter("limit", inspect.Parameter.POSITIONAL_OR_KEYWORD, default=20, annotation=int),
                 inspect.Parameter("offset", inspect.Parameter.POSITIONAL_OR_KEYWORD, default=0, annotation=int),

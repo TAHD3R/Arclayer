@@ -66,6 +66,7 @@ def _get_runtime_policy_evaluator() -> PolicyEvaluationService:
 @dataclass(frozen=True, slots=True)
 class StructuredContentRecord:
     item_id: UUID
+    translation_group_id: UUID | None
     model_key: str
     locale: str
     title: str | None
@@ -198,6 +199,11 @@ def _record_matches_all(
         if value is None or expected.lower() not in value.lower():
             return False
     return True
+
+
+def _normalize_locale_filter(value: str | None) -> str | None:
+    normalized = value.strip() if isinstance(value, str) else ""
+    return normalized or None
 
 
 class SiteGraphQLService:
@@ -365,6 +371,7 @@ class SiteGraphQLService:
         contains_filters: dict[str, str] | None = None,
         sort_field: str | None = None,
         sort_direction: GraphQLSortDirection = "asc",
+        locale: str | None = None,
         limit: int | None = None,
         offset: int = 0,
     ) -> list[StructuredContentRecord]:
@@ -380,7 +387,11 @@ class SiteGraphQLService:
             limit=limit,
             offset=offset,
         )
-        query_records = await self._list_plan_records(plan, environment_id=environment_id)
+        query_records = await self._list_plan_records(
+            plan,
+            environment_id=environment_id,
+            locale=_normalize_locale_filter(locale),
+        )
 
         boundary = self._document_runtime_boundary.build_query_boundary(query_records)
         result = boundary.execute(
@@ -420,22 +431,80 @@ class SiteGraphQLService:
             return filtered[plan.bounded_offset :]
         return filtered[plan.bounded_offset : plan.bounded_offset + plan.bounded_limit]
 
+    async def get_record(
+        self,
+        *,
+        runtime_id: UUID,
+        model_key: str,
+        entry_id: UUID,
+        perspective: GraphQLPerspective,
+        environment_id: UUID | None = None,
+        locale: str | None = None,
+    ) -> StructuredContentRecord | None:
+        records = await self.list_records(
+            runtime_id=runtime_id,
+            model_key=model_key,
+            perspective=perspective,
+            environment_id=environment_id,
+            locale=locale,
+        )
+        source_record = next((record for record in records if record.item_id == entry_id), None)
+        if source_record is not None:
+            return source_record
+
+        if locale is None:
+            return None
+
+        all_records = await self.list_records(
+            runtime_id=runtime_id,
+            model_key=model_key,
+            perspective=perspective,
+            environment_id=environment_id,
+            locale=None,
+        )
+        source_record = next((record for record in all_records if record.item_id == entry_id), None)
+        source_group_id = source_record.translation_group_id if source_record is not None else None
+        if source_group_id is None:
+            return None
+        return next((record for record in records if record.translation_group_id == source_group_id), None)
+
+    async def get_locale_fallback_chain(self, *, runtime_id: UUID, requested_locale: str | None) -> list[str | None]:
+        site = await self._site_service.get_site_by_runtime_id(runtime_id=runtime_id)
+        raw_chain = [
+            _normalize_locale_filter(requested_locale),
+            _normalize_locale_filter(getattr(site, "fallback_locale", None)),
+            _normalize_locale_filter(getattr(site, "default_locale", None)),
+            None,
+        ]
+        chain: list[str | None] = []
+        seen: set[str] = set()
+        for locale in raw_chain:
+            key = locale or "__any__"
+            if key in seen:
+                continue
+            seen.add(key)
+            chain.append(locale)
+        return chain
+
     async def _list_plan_records(
         self,
         plan: GraphQLQueryPlan,
         *,
         environment_id: UUID | None,
+        locale: str | None,
     ) -> list[DocumentQueryRecord]:
         if plan.perspective == "published":
             return await self._list_published_records(
                 site_id=plan.site_id,
                 model_key=plan.model_key,
                 environment_id=environment_id,
+                locale=locale,
             )
         return await self._list_preview_records(
             site_id=plan.site_id,
             model_key=plan.model_key,
             environment_id=environment_id,
+            locale=locale,
         )
 
     async def get_record_by_slug(
@@ -446,6 +515,7 @@ class SiteGraphQLService:
         slug: str,
         perspective: GraphQLPerspective,
         environment_id: UUID | None = None,
+        locale: str | None = None,
     ) -> StructuredContentRecord | None:
         normalized = slug.strip()
         if not normalized:
@@ -455,6 +525,7 @@ class SiteGraphQLService:
             model_key=model_key,
             perspective=perspective,
             environment_id=environment_id,
+            locale=locale,
         )
         for record in records:
             if record.slug == normalized:
@@ -468,6 +539,7 @@ class SiteGraphQLService:
         path: str,
         perspective: GraphQLPerspective,
         environment_id: UUID | None = None,
+        locale: str | None = None,
     ) -> StructuredContentRecord | None:
         normalized = path.strip()
         if not normalized:
@@ -477,6 +549,7 @@ class SiteGraphQLService:
             model_key="page",
             perspective=perspective,
             environment_id=environment_id,
+            locale=locale,
         )
         for record in records:
             record_path = record.route_path or str(record.fields.get("path") or "")
@@ -491,6 +564,7 @@ class SiteGraphQLService:
         alias: str,
         perspective: GraphQLPerspective,
         environment_id: UUID | None = None,
+        locale: str | None = None,
     ) -> StructuredContentRecord | None:
         normalized = alias.strip()
         if not normalized:
@@ -500,6 +574,7 @@ class SiteGraphQLService:
             model_key="reusable-section",
             perspective=perspective,
             environment_id=environment_id,
+            locale=locale,
         )
         for record in records:
             if (
@@ -519,11 +594,13 @@ class SiteGraphQLService:
         site_id: UUID,
         model_key: str,
         environment_id: UUID | None,
+        locale: str | None,
     ) -> list[DocumentQueryRecord]:
         items = await self._repo.list_content_entries_by_model_key(
             site_id=site_id,
             model_key=model_key,
             environment_id=environment_id,
+            locale=locale,
         )
         route_bindings: dict[UUID, RouteBindingRecord] = (
             {
@@ -578,11 +655,13 @@ class SiteGraphQLService:
         site_id: UUID,
         model_key: str,
         environment_id: UUID | None,
+        locale: str | None,
     ) -> list[DocumentQueryRecord]:
         graph_nodes = await self._repo.list_active_release_nodes_by_model_key(
             site_id=site_id,
             model_key=model_key,
             environment_id=environment_id,
+            locale=locale,
         )
         records: list[DocumentQueryRecord] = []
         for graph_node in graph_nodes:
@@ -660,6 +739,11 @@ class SiteGraphQLService:
         slug = _extract_system_field(model_key=model_key, fields=record.fields, field_key="slug")
         return StructuredContentRecord(
             item_id=UUID(str(item.id)),
+            translation_group_id=(
+                UUID(str(item.translation_group_id))
+                if getattr(item, "translation_group_id", None) is not None
+                else None
+            ),
             model_key=model_key,
             locale=str(item.locale or ""),
             title=title if isinstance(title, str) else item.title,

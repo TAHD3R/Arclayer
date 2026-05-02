@@ -118,6 +118,7 @@ async def test_graphql_single_query_runtime_uses_generated_argument_name_without
             slug = str(kwargs["slug"])
             return StructuredContentRecord(
                 item_id=UUID("00000000-0000-0000-0000-000000000001"),
+                translation_group_id=None,
                 model_key="article",
                 locale="en-US",
                 title="Runtime Article",

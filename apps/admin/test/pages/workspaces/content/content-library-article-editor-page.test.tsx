@@ -212,6 +212,9 @@ vi.mock(
 vi.mock(
   "@/pages/projects/content/library/article-editor/components/content-library-article-editor-page-toolbar",
   () => ({
+    ContentLibraryArticleEditorLocaleSelect: () => (
+      <div data-testid="content-library-article-editor-locale-select" />
+    ),
     ContentLibraryArticleEditorPageToolbar: (props: {
       canPublish?: boolean;
       saveState?: "hidden" | "saving" | "saved" | "error";

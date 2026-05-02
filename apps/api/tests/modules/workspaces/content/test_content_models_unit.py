@@ -32,6 +32,7 @@ from src.models.content.model_view import ContentModelViewRecord
 from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.route_binding import RouteBindingRecord
+from src.models.content.translation_group import TranslationGroupRecord
 from src.modules.projects.content.contracts import schema as contracts_schema
 from src.modules.projects.content.fields.base import FieldConfig
 from src.modules.projects.content.fields.types import PasswordFieldType
@@ -623,6 +624,24 @@ def test_content_item_record_unique_key_is_environment_model_locale_slug() -> No
     )
 
 
+def test_content_item_record_supports_translation_group_locale_index() -> None:
+    item_fields = _field_names(ContentItemRecord)
+
+    assert "translation_group" in item_fields
+    assert getattr(ContentItemRecord.Meta, "indexes", None) == (("translation_group_id", "locale"),)
+    translation_group_field = _field(ContentItemRecord, "translation_group")
+    assert translation_group_field.null is True
+    assert getattr(translation_group_field, "model_name", None) == "models.TranslationGroupRecord"
+
+
+def test_translation_group_record_links_workspace_site_and_primary_item() -> None:
+    assert TranslationGroupRecord.Meta.table == "domain_content_translation_groups"
+    assert _field(TranslationGroupRecord, "workspace").null is False
+    assert _field(TranslationGroupRecord, "site").null is False
+    assert _field(TranslationGroupRecord, "primary_item").null is True
+    assert _field(TranslationGroupRecord, "primary_locale").max_length == 16
+
+
 def test_content_item_record_supports_model_less_bootstrap_shape() -> None:
     model_definition_field = _field(ContentItemRecord, "model_definition")
     preset_state_field = _field(ContentItemRecord, "bootstrap_preset_state")
@@ -812,7 +831,7 @@ def test_migration_baseline_matches_content_kernel_constraints() -> None:
     assert "'capability_pack_ids'" in migration
     assert "'shape_state'" in migration
     assert "'last_transition_by_user_id'" in migration
-    assert "'unique_together': (('model_definition_id', 'locale', 'slug'),)" in migration
+    assert "'unique_together': (('model_definition_id', 'environment_id', 'locale', 'slug'),)" in migration
     assert "'field_values'" not in migration
     assert "'kind'" not in model_definition_section
 
