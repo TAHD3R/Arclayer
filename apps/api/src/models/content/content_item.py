@@ -126,4 +126,3 @@ class ContentItemRecord(BaseModel):
         table = "domain_content_items"
         abstract = False
         unique_together = (("model_definition_id", "environment_id", "locale", "slug"),)
-        indexes = (("translation_group_id", "locale"),)

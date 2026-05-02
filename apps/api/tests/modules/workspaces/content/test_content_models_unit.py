@@ -624,11 +624,10 @@ def test_content_item_record_unique_key_is_environment_model_locale_slug() -> No
     )
 
 
-def test_content_item_record_supports_translation_group_locale_index() -> None:
+def test_content_item_record_supports_translation_group_link() -> None:
     item_fields = _field_names(ContentItemRecord)
 
     assert "translation_group" in item_fields
-    assert getattr(ContentItemRecord.Meta, "indexes", None) == (("translation_group_id", "locale"),)
     translation_group_field = _field(ContentItemRecord, "translation_group")
     assert translation_group_field.null is True
     assert getattr(translation_group_field, "model_name", None) == "models.TranslationGroupRecord"
@@ -638,7 +637,9 @@ def test_translation_group_record_links_workspace_site_and_primary_item() -> Non
     assert TranslationGroupRecord.Meta.table == "domain_content_translation_groups"
     assert _field(TranslationGroupRecord, "workspace").null is False
     assert _field(TranslationGroupRecord, "site").null is False
-    assert _field(TranslationGroupRecord, "primary_item").null is True
+    primary_item_id_field = _field(TranslationGroupRecord, "primary_item_id")
+    assert primary_item_id_field.null is True
+    assert primary_item_id_field.index is True
     assert _field(TranslationGroupRecord, "primary_locale").max_length == 16
 
 

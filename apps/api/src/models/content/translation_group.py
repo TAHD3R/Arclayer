@@ -21,18 +21,12 @@ class TranslationGroupRecord(BaseModel):
         related_name="content_translation_groups",
         on_delete=fields.CASCADE,
     )
-    primary_item = fields.ForeignKeyField(
-        "models.ContentItemRecord",
-        related_name="primary_translation_groups",
-        on_delete=fields.SET_NULL,
-        null=True,
-    )
+    primary_item_id = fields.UUIDField(null=True, db_index=True)
     primary_locale = fields.CharField(max_length=16, default="zh-CN")
 
     if TYPE_CHECKING:
         workspace_id: UUID
         site_id: UUID
-        primary_item_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "domain_content_translation_groups"
