@@ -6,11 +6,14 @@ from uuid import UUID
 from src.core.exceptions import NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
+from src.models.content._enums import ContentReleaseStatus
 from src.models.content.release import ContentReleaseRecord
 from src.modules.projects.deployments.service import ProjectDeploymentsService
+from src.modules.projects.publish.jobs.service import PublishJobService
 from src.modules.projects.publish.service import ProjectPublishService
 from src.modules.projects.releases.repository import ProjectReleasesRepository
 from src.modules.projects.releases.schema import (
+    ReleaseCancelScheduledOut,
     ReleaseDryRunOut,
     ReleaseLineageOut,
     ReleaseListOut,
@@ -27,6 +30,7 @@ class ProjectReleasesService:
     def __init__(self, tenant_context: TenantContext) -> None:
         self.repo = ProjectReleasesRepository(tenant_context)
         self.publish_service = ProjectPublishService(tenant_context)
+        self.publish_job_service = PublishJobService(tenant_context)
         self.deployments_service = ProjectDeploymentsService(tenant_context)
 
     async def list_releases_out(self, *, workspace_id: UUID, site_id: UUID) -> ReleaseListOut:
@@ -47,7 +51,44 @@ class ProjectReleasesService:
         workspace_id: UUID,
         site_id: UUID,
         actor_user_id: UUID,
+        scheduled_at: datetime | None = None,
     ) -> ReleasePublishOut:
+        if scheduled_at is not None:
+            now = datetime.now(tz=UTC)
+            normalized_scheduled_at = scheduled_at if scheduled_at.tzinfo else scheduled_at.replace(tzinfo=UTC)
+            if normalized_scheduled_at <= now:
+                from src.core.exceptions import BadRequest
+
+                raise BadRequest(
+                    message=t("errors", "BAD_REQUEST"),
+                    error="SCHEDULED_PUBLISH_MUST_BE_FUTURE",
+                )
+            release, job, artifacts = await self.publish_job_service.create_scheduled_publish(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                actor_user_id=actor_user_id,
+                scheduled_at=normalized_scheduled_at,
+            )
+            logger.info(
+                "Project release scheduled",
+                actor_user_id=str(actor_user_id),
+                job_id=str(job.id),
+                release_id=str(release.id),
+                release_number=release.release_number,
+                scheduled_at=normalized_scheduled_at.isoformat(),
+                site_id=str(site_id),
+                workspace_id=str(workspace_id),
+            )
+            from src.modules.system.jobs.schema import PublishJobOut
+
+            return ReleasePublishOut(
+                release=await self._to_out(release),
+                job=PublishJobOut.model_validate(job, from_attributes=True),
+                graph_nodes=artifacts.graph_nodes,
+                selection_count=artifacts.selection_count,
+                impact=artifacts.impact,
+            )
+
         release, artifacts = await self.publish_service.publish_release(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -69,6 +110,7 @@ class ProjectReleasesService:
         )
         return ReleasePublishOut(
             release=await self._to_out(release),
+            job=None,
             graph_nodes=artifacts.graph_nodes,
             selection_count=artifacts.selection_count,
             impact=artifacts.impact,
@@ -110,6 +152,30 @@ class ProjectReleasesService:
             previous_active_release_id=previous_active_release_id,
         )
 
+    async def cancel_scheduled_publish_out(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        release_id: UUID,
+        actor_user_id: UUID,
+    ) -> ReleaseCancelScheduledOut:
+        job = await self.publish_job_service.cancel_scheduled_publish(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            release_id=release_id,
+            actor_user_id=actor_user_id,
+        )
+        release = self._require_release(
+            await self.repo.get_release(workspace_id=workspace_id, site_id=site_id, release_id=release_id)
+        )
+        from src.modules.system.jobs.schema import PublishJobOut
+
+        return ReleaseCancelScheduledOut(
+            release=await self._to_out(release),
+            job=PublishJobOut.model_validate(job, from_attributes=True),
+        )
+
     @staticmethod
     def _require_release(release: ContentReleaseRecord | None) -> ContentReleaseRecord:
         if release is None:
@@ -131,8 +197,10 @@ class ProjectReleasesService:
             site_id=release.site_id,
             release_number=release.release_number,
             is_active=release.is_active,
+            status=ContentReleaseStatus(str(release.status)),
             created_by_user_id=release.created_by_user_id,
             activated_at=release.activated_at,
+            scheduled_at=release.scheduled_at,
             selection_count=release.selection_count,
             lineage=ReleaseLineageOut(
                 parent_release_id=release.lineage_parent_release_id,

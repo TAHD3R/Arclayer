@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.core.exceptions import Conflict
-from src.models.content._enums import ContentShapeState, ContentWorkflowStage, PublishArtifactKind
+from src.models.content._enums import (
+    ContentReleaseStatus,
+    ContentShapeState,
+    ContentWorkflowStage,
+    PublishArtifactKind,
+)
 from src.models.content.component_binding import ComponentBindingRecord
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
@@ -189,6 +195,25 @@ async def _next_release_number(*, site_id: UUID, conn) -> int:
     return (int(latest.release_number) if latest is not None else 0) + 1
 
 
+async def _current_active_release(
+    *,
+    workspace_id: UUID,
+    site_id: UUID,
+    conn: BaseDBAsyncClient,
+) -> ContentReleaseRecord | None:
+    return (
+        await ContentReleaseRecord
+        .filter(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            is_active=True,
+        )
+        .using_db(conn)
+        .order_by("-release_number")
+        .first()
+    )
+
+
 async def _production_environment_id(*, site_id: UUID, conn: BaseDBAsyncClient) -> UUID | None:
     site = await SiteRecord.filter(id=site_id, project_id__not_isnull=True).using_db(conn).first()
     if site is not None and site.project_id is not None:
@@ -294,6 +319,90 @@ class ProjectPublishService:
                 meta=impact.model_dump(mode="json"),
             )
 
+        return await self.create_release_snapshot(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            actor_user_id=actor_user_id,
+            impact=impact,
+            activate=True,
+            scheduled_at=None,
+        )
+
+    async def create_scheduled_release(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        actor_user_id: UUID | None,
+        scheduled_at: datetime,
+    ) -> tuple[ContentReleaseRecord, PublishArtifactsOut]:
+        impact = await self.preview_impact(workspace_id=workspace_id, site_id=site_id)
+        if _has_blockers(impact):
+            raise Conflict(
+                "Publish blocked by unresolved impact",
+                error="PUBLISH_VALIDATION_FAILED",
+                meta=impact.model_dump(mode="json"),
+            )
+
+        return await self.create_release_snapshot(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            actor_user_id=actor_user_id,
+            impact=impact,
+            activate=False,
+            scheduled_at=scheduled_at,
+        )
+
+    async def activate_scheduled_release(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        release: ContentReleaseRecord,
+        activated_at: datetime,
+    ) -> ContentReleaseRecord:
+        async with self.tenant_db.connection() as conn:
+            target = (
+                await ContentReleaseRecord
+                .filter(
+                    id=release.id,
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    status=ContentReleaseStatus.SCHEDULED,
+                )
+                .using_db(conn)
+                .first()
+            )
+            if target is None:
+                raise Conflict("Scheduled release is no longer executable", error="SCHEDULED_RELEASE_NOT_EXECUTABLE")
+
+            await (
+                ContentReleaseRecord
+                .filter(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    is_active=True,
+                )
+                .exclude(id=target.id)
+                .using_db(conn)
+                .update(is_active=False, status=ContentReleaseStatus.PUBLISHED)
+            )
+            target.is_active = True
+            target.status = ContentReleaseStatus.ACTIVE
+            target.activated_at = activated_at
+            await target.save(update_fields=["is_active", "status", "activated_at"], using_db=conn)
+            return target
+
+    async def create_release_snapshot(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        actor_user_id: UUID | None,
+        impact: PublishImpactOut,
+        activate: bool,
+        scheduled_at: datetime | None,
+    ) -> tuple[ContentReleaseRecord, PublishArtifactsOut]:
         async with self.tenant_db.connection() as conn:
             environment_id = await _production_environment_id(site_id=site_id, conn=conn)
             items = await _load_publishable_items(
@@ -310,24 +419,22 @@ class ProjectPublishService:
             seo_profile_map = await _load_seo_profile_map(version_ids=version_ids, conn=conn)
             component_binding_map = await _load_component_binding_map(version_ids=version_ids, conn=conn)
             component_manifest_map = await _load_component_manifest_map(version_ids=version_ids, conn=conn)
-            current_active_release = (
-                await ContentReleaseRecord
-                .filter(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    is_active=True,
-                )
-                .using_db(conn)
-                .order_by("-release_number")
-                .first()
+            current_active_release = await _current_active_release(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                conn=conn,
             )
+            activation_time = datetime.now(tz=UTC) if activate else None
             release = await ContentReleaseRecord.create(
                 using_db=conn,
                 workspace_id=workspace_id,
                 site_id=site_id,
                 release_number=await _next_release_number(site_id=site_id, conn=conn),
-                is_active=True,
+                is_active=activate,
+                status=ContentReleaseStatus.ACTIVE if activate else ContentReleaseStatus.SCHEDULED,
                 created_by_user_id=actor_user_id,
+                activated_at=activation_time,
+                scheduled_at=scheduled_at,
                 lineage_parent_release_id=current_active_release.id if current_active_release is not None else None,
                 selection_count=len(items),
             )
@@ -450,17 +557,18 @@ class ProjectPublishService:
                         )
                     )
 
-            await (
-                ContentReleaseRecord
-                .filter(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    is_active=True,
+            if activate:
+                await (
+                    ContentReleaseRecord
+                    .filter(
+                        workspace_id=workspace_id,
+                        site_id=site_id,
+                        is_active=True,
+                    )
+                    .exclude(id=release.id)
+                    .using_db(conn)
+                    .update(is_active=False, status=ContentReleaseStatus.PUBLISHED)
                 )
-                .exclude(id=release.id)
-                .using_db(conn)
-                .update(is_active=False)
-            )
             if rows:
                 await PublishedGraphRecord.bulk_create(rows, using_db=conn)
             if artifact_rows:

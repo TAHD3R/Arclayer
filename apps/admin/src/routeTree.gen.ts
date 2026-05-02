@@ -23,6 +23,7 @@ import { Route as SystemTenantsIndexRouteImport } from './routes/system/tenants/
 import { Route as SystemStorageIndexRouteImport } from './routes/system/storage/index'
 import { Route as SystemOauthIndexRouteImport } from './routes/system/oauth/index'
 import { Route as SystemNotificationsIndexRouteImport } from './routes/system/notifications/index'
+import { Route as SystemJobsIndexRouteImport } from './routes/system/jobs/index'
 import { Route as SystemEmailIndexRouteImport } from './routes/system/email/index'
 import { Route as SystemAccessIndexRouteImport } from './routes/system/access/index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
@@ -133,6 +134,11 @@ const SystemNotificationsIndexRoute =
     path: '/notifications/',
     getParentRoute: () => SystemRoute,
   } as any)
+const SystemJobsIndexRoute = SystemJobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => SystemRoute,
+} as any)
 const SystemEmailIndexRoute = SystemEmailIndexRouteImport.update({
   id: '/email/',
   path: '/email/',
@@ -406,6 +412,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/system/access/': typeof SystemAccessIndexRoute
   '/system/email/': typeof SystemEmailIndexRoute
+  '/system/jobs/': typeof SystemJobsIndexRoute
   '/system/notifications/': typeof SystemNotificationsIndexRoute
   '/system/oauth/': typeof SystemOauthIndexRoute
   '/system/storage/': typeof SystemStorageIndexRoute
@@ -452,6 +459,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
   '/system/access': typeof SystemAccessIndexRoute
   '/system/email': typeof SystemEmailIndexRoute
+  '/system/jobs': typeof SystemJobsIndexRoute
   '/system/notifications': typeof SystemNotificationsIndexRoute
   '/system/oauth': typeof SystemOauthIndexRoute
   '/system/storage': typeof SystemStorageIndexRoute
@@ -501,6 +509,7 @@ export interface FileRoutesById {
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/system/access/': typeof SystemAccessIndexRoute
   '/system/email/': typeof SystemEmailIndexRoute
+  '/system/jobs/': typeof SystemJobsIndexRoute
   '/system/notifications/': typeof SystemNotificationsIndexRoute
   '/system/oauth/': typeof SystemOauthIndexRoute
   '/system/storage/': typeof SystemStorageIndexRoute
@@ -551,6 +560,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/'
     | '/system/access/'
     | '/system/email/'
+    | '/system/jobs/'
     | '/system/notifications/'
     | '/system/oauth/'
     | '/system/storage/'
@@ -597,6 +607,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/system/access'
     | '/system/email'
+    | '/system/jobs'
     | '/system/notifications'
     | '/system/oauth'
     | '/system/storage'
@@ -645,6 +656,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/'
     | '/system/access/'
     | '/system/email/'
+    | '/system/jobs/'
     | '/system/notifications/'
     | '/system/oauth/'
     | '/system/storage/'
@@ -790,6 +802,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/system/notifications/'
       preLoaderRoute: typeof SystemNotificationsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/jobs/': {
+      id: '/system/jobs/'
+      path: '/jobs'
+      fullPath: '/system/jobs/'
+      preLoaderRoute: typeof SystemJobsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/system/email/': {
@@ -1023,6 +1042,7 @@ interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
   SystemAccessIndexRoute: typeof SystemAccessIndexRoute
   SystemEmailIndexRoute: typeof SystemEmailIndexRoute
+  SystemJobsIndexRoute: typeof SystemJobsIndexRoute
   SystemNotificationsIndexRoute: typeof SystemNotificationsIndexRoute
   SystemOauthIndexRoute: typeof SystemOauthIndexRoute
   SystemStorageIndexRoute: typeof SystemStorageIndexRoute
@@ -1037,6 +1057,7 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
   SystemAccessIndexRoute: SystemAccessIndexRoute,
   SystemEmailIndexRoute: SystemEmailIndexRoute,
+  SystemJobsIndexRoute: SystemJobsIndexRoute,
   SystemNotificationsIndexRoute: SystemNotificationsIndexRoute,
   SystemOauthIndexRoute: SystemOauthIndexRoute,
   SystemStorageIndexRoute: SystemStorageIndexRoute,

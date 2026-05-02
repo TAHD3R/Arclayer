@@ -18,9 +18,11 @@ from src.modules.projects.http.service import get_project_context
 from src.modules.projects.releases.events import publish_project_release_event
 from src.modules.projects.releases.router_helpers import get_project_releases_service
 from src.modules.projects.releases.schema import (
+    ReleaseCancelScheduledOut,
     ReleaseDryRunOut,
     ReleaseListOut,
     ReleaseOut,
+    ReleasePublishIn,
     ReleasePublishOut,
     ReleaseRollbackOut,
 )
@@ -116,6 +118,7 @@ async def publish_project_release(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectReleasesService, Depends(get_project_releases_service)],
+    payload: ReleasePublishIn | None = None,
 ) -> ResponseModel[ReleasePublishOut]:
     runtime_context = await get_project_runtime_context(
         ctx=ctx,
@@ -126,13 +129,43 @@ async def publish_project_release(
         workspace_id=runtime_context.workspace_id,
         site_id=runtime_context.site_id,
         actor_user_id=actor_user_id,
+        scheduled_at=payload.scheduled_at if payload is not None else None,
     )
-    await publish_project_release_event(
+    if payload is None or payload.scheduled_at is None:
+        await publish_project_release_event(
+            actor_user_id=actor_user_id,
+            project_ctx=ctx,
+            event_name="project.release.published",
+            payload=data.release,
+            project_id=ctx.project_id,
+        )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/{release_id}/cancel-schedule",
+    response_model=ResponseModel[ReleaseCancelScheduledOut],
+    response_model_exclude_none=True,
+    summary="Cancel a scheduled project release",
+    dependencies=[require_project_permission("project:release:publish")],
+)
+async def cancel_scheduled_project_release(
+    release_id: PublicUUID,
+    ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
+    service: Annotated[ProjectReleasesService, Depends(get_project_releases_service)],
+) -> ResponseModel[ReleaseCancelScheduledOut]:
+    runtime_context = await get_project_runtime_context(
+        ctx=ctx,
         actor_user_id=actor_user_id,
-        project_ctx=ctx,
-        event_name="project.release.published",
-        payload=data.release,
-        project_id=ctx.project_id,
+        runtime_service=runtime_service,
+    )
+    data = await service.cancel_scheduled_publish_out(
+        workspace_id=runtime_context.workspace_id,
+        site_id=runtime_context.site_id,
+        release_id=release_id,
+        actor_user_id=actor_user_id,
     )
     return ApiResponse.success(data=data)
 

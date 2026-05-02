@@ -34,6 +34,7 @@ describe("buildAdminTopbarBreadcrumbs", () => {
       "nav:NAV_ASSETS",
       "nav:NAV_CONTENT_LIBRARY",
       "nav:NAV_CONTENT_MODELS",
+      "nav:NAV_CONTENT_RELEASES",
       "nav:NAV_SETTINGS",
     ]);
   });

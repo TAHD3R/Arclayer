@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from src.config import get_settings
 from src.platform.jobs.analytics_retention import analytics_audit_log_retention_cleanup
 from src.platform.jobs.assets_thumbnails import ASSET_THUMBNAILS_JOB_NAME, generate_asset_thumbnails
+from src.platform.jobs.scheduled_publish import check_scheduled_publishes, execute_scheduled_publish
 from src.platform.jobs.taskiq_app import broker
 
 
@@ -30,3 +33,22 @@ async def task_generate_asset_thumbnails(
 async def task_analytics_audit_log_retention_cleanup() -> None:
     settings = get_settings()
     await analytics_audit_log_retention_cleanup({"settings": settings})
+
+
+@broker.task(
+    task_name="content:scheduled_publish:check_due",
+    schedule=[
+        {
+            "cron": "* * * * *",
+            "args": [],
+            "kwargs": {},
+        }
+    ],
+)
+async def task_check_scheduled_publishes() -> int:
+    return await check_scheduled_publishes()
+
+
+@broker.task(task_name="content:scheduled_publish:execute")
+async def task_execute_scheduled_publish(release_id_raw: str) -> None:
+    await execute_scheduled_publish(UUID(release_id_raw))

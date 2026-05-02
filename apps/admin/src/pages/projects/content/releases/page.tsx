@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarClock, Send, XCircle } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  cancelScheduledProjectRelease,
   getProjectReleaseDryRun,
   listProjectReleases,
   publishProjectRelease,
@@ -14,6 +17,8 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { buildContentLibraryItemsQueryKey } from "@/pages/projects/content/library/runtime";
 import type { AdminRelease } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { dateTimeLocalValueToIso } from "@arclayer/ui/date-time-range-field";
 
 const RELEASE_LIST_QUERY_KEY_PREFIX = ["content", "releases"] as const;
 const RELEASE_DRY_RUN_QUERY_KEY_PREFIX = ["content", "releases", "dry-run"] as const;
@@ -110,6 +115,7 @@ function BlockedItemsList(props: {
 
 function ReleaseHistoryRow(props: {
   canPublish: boolean;
+  onCancelSchedule: (releaseId: string) => void;
   onRollback: (releaseId: string) => void;
   pending: boolean;
   release: AdminRelease;
@@ -117,6 +123,16 @@ function ReleaseHistoryRow(props: {
 }) {
   const { t } = useTranslation("content");
   const lineage = props.release.lineage;
+  const status = props.release.status ?? (props.release.isActive ? "active" : "published");
+  const canCancelSchedule = status === "scheduled";
+  const tagColor =
+    status === "active"
+      ? "green"
+      : status === "scheduled"
+        ? "gold"
+        : status === "cancelled"
+          ? "red"
+          : "default";
 
   return (
     <div className="grid gap-3 rounded-2xl border border-border/60 bg-background/80 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto]">
@@ -125,8 +141,8 @@ function ReleaseHistoryRow(props: {
           <div className="text-sm font-semibold text-foreground">
             #{props.release.releaseNumber}
           </div>
-          <BaseTag color={props.release.isActive ? "green" : "default"}>
-            {props.release.isActive ? t("CONTENT_RELEASE_ACTIVE") : t("CONTENT_RELEASE_INACTIVE")}
+          <BaseTag color={tagColor}>
+            {t(`CONTENT_RELEASE_STATUS_${String(status).toUpperCase()}`)}
           </BaseTag>
           <span className="text-footnote text-muted-foreground">
             {t("CONTENT_RELEASE_SELECTION_COUNT")}: {props.release.selectionCount ?? 0}
@@ -139,11 +155,27 @@ function ReleaseHistoryRow(props: {
               })
             : t("CONTENT_RELEASE_NO_LINEAGE")}
         </div>
-        <div className="mt-2 text-footnote text-muted-foreground">{props.release.activatedAt}</div>
+        <div className="mt-2 text-footnote text-muted-foreground">
+          {props.release.scheduledAt
+            ? t("CONTENT_RELEASE_SCHEDULED_FOR", { value: props.release.scheduledAt })
+            : props.release.activatedAt}
+        </div>
       </div>
 
       <div className="flex items-center justify-start lg:justify-end">
-        {!props.release.isActive ? (
+        {canCancelSchedule ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            loading={props.pending}
+            disabled={!props.canPublish || props.pending}
+            onClick={() => props.onCancelSchedule(props.release.id)}
+          >
+            <XCircle className="size-4" />
+            {t("CONTENT_RELEASE_ACTION_CANCEL_SCHEDULE")}
+          </Button>
+        ) : !props.release.isActive ? (
           <Button
             type="button"
             variant="outline"
@@ -163,6 +195,8 @@ function ReleaseHistoryRow(props: {
 export function ContentReleaseCenterPage(props: { projectId: string }) {
   const { t } = useTranslation("content");
   const queryClient = useQueryClient();
+  const [publishMode, setPublishMode] = useState<"now" | "scheduled">("now");
+  const [scheduledAt, setScheduledAt] = useState("");
   const permissionAccess = useProjectPermissionAccess(props.projectId);
   const permissionReady =
     permissionAccess.authzQuery.isFetched && permissionAccess.actionsQuery.isFetched;
@@ -180,9 +214,22 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
   });
 
   const publishMutation = useMutation({
-    mutationFn: async () => publishProjectRelease(props.projectId),
+    mutationFn: async () =>
+      publishProjectRelease(
+        props.projectId,
+        publishMode === "scheduled"
+          ? { scheduledAt: dateTimeLocalValueToIso(scheduledAt) ?? null }
+          : undefined,
+      ),
     onSuccess: async () => {
-      notifySuccessText(t("CONTENT_RELEASE_PUBLISH_SUCCESS"));
+      notifySuccessText(
+        publishMode === "scheduled"
+          ? t("CONTENT_RELEASE_SCHEDULE_SUCCESS")
+          : t("CONTENT_RELEASE_PUBLISH_SUCCESS"),
+      );
+      if (publishMode === "scheduled") {
+        setScheduledAt("");
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: buildReleaseDryRunQueryKey(props.projectId) }),
         queryClient.invalidateQueries({ queryKey: buildReleaseListQueryKey(props.projectId) }),
@@ -207,6 +254,15 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
     },
     onError: (error) => notifyError(error),
   });
+  const cancelScheduleMutation = useMutation({
+    mutationFn: async (releaseId: string) =>
+      cancelScheduledProjectRelease(props.projectId, releaseId),
+    onSuccess: async () => {
+      notifySuccessText(t("CONTENT_RELEASE_CANCEL_SCHEDULE_SUCCESS"));
+      await queryClient.invalidateQueries({ queryKey: buildReleaseListQueryKey(props.projectId) });
+    },
+    onError: (error) => notifyError(error),
+  });
 
   const readinessSummary = dryRunQuery.data?.readinessSummary;
   const impact = dryRunQuery.data?.impact;
@@ -217,23 +273,63 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
   const unresolvedRelations = impact?.unresolvedRelations ?? [];
   const unpublishedDependencies = impact?.unpublishedDependencies ?? [];
   const ready = readinessSummary?.ready === true;
-  const busy = publishMutation.isPending || rollbackMutation.isPending;
+  const scheduledIso = dateTimeLocalValueToIso(scheduledAt);
+  const scheduleReady = publishMode === "now" || Boolean(scheduledIso);
+  const busy =
+    publishMutation.isPending || rollbackMutation.isPending || cancelScheduleMutation.isPending;
 
   return (
     <DefaultPage
       title={t("CONTENT_RELEASE_TITLE")}
       showFavoriteToggle={false}
       action={
-        <Button
-          type="button"
-          loading={publishMutation.isPending}
-          disabled={!canPublish || !ready || busy}
-          onClick={() => publishMutation.mutate()}
-        >
-          {publishMutation.isPending
-            ? t("CONTENT_RELEASE_ACTION_PUBLISHING")
-            : t("CONTENT_RELEASE_ACTION_PUBLISH")}
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex rounded-md border border-border bg-background p-1">
+            <Button
+              type="button"
+              variant={publishMode === "now" ? "secondary" : "ghost"}
+              size="sm"
+              disabled={busy}
+              onClick={() => setPublishMode("now")}
+            >
+              <Send className="size-4" />
+              {t("CONTENT_RELEASE_MODE_NOW")}
+            </Button>
+            <Button
+              type="button"
+              variant={publishMode === "scheduled" ? "secondary" : "ghost"}
+              size="sm"
+              disabled={busy}
+              onClick={() => setPublishMode("scheduled")}
+            >
+              <CalendarClock className="size-4" />
+              {t("CONTENT_RELEASE_MODE_SCHEDULED")}
+            </Button>
+          </div>
+          {publishMode === "scheduled" ? (
+            <Input
+              type="datetime-local"
+              step={60}
+              value={scheduledAt}
+              aria-label={t("CONTENT_RELEASE_SCHEDULED_AT")}
+              className="w-[220px]"
+              disabled={busy}
+              onChange={(event) => setScheduledAt(event.target.value)}
+            />
+          ) : null}
+          <Button
+            type="button"
+            loading={publishMutation.isPending}
+            disabled={!canPublish || !ready || busy || !scheduleReady}
+            onClick={() => publishMutation.mutate()}
+          >
+            {publishMutation.isPending
+              ? t("CONTENT_RELEASE_ACTION_PUBLISHING")
+              : publishMode === "scheduled"
+                ? t("CONTENT_RELEASE_ACTION_SCHEDULE")
+                : t("CONTENT_RELEASE_ACTION_PUBLISH")}
+          </Button>
+        </div>
       }
       contentContainerClassName="mx-auto w-full max-w-7xl"
     >
@@ -344,6 +440,7 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
                   <ReleaseHistoryRow
                     key={release.id}
                     canPublish={canPublish}
+                    onCancelSchedule={(releaseId) => cancelScheduleMutation.mutate(releaseId)}
                     onRollback={(releaseId) => rollbackMutation.mutate(releaseId)}
                     pending={rollbackMutation.isPending}
                     release={release}

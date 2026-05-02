@@ -42,13 +42,13 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     to: "/content/models",
     icon: Boxes,
   },
-  // {
-  //   key: "content.releases",
-  //   label: "Release Center",
-  //   labelKey: "nav:NAV_CONTENT_RELEASES",
-  //   to: "/content/releases",
-  //   icon: History,
-  // },
+  {
+    key: "content.releases",
+    label: "Release Center",
+    labelKey: "nav:NAV_CONTENT_RELEASES",
+    to: "/content/releases",
+    icon: History,
+  },
   // {
   //   key: "content.automation",
   //   label: "Automations",

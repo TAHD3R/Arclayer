@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
+from src.models.content._enums import ContentReleaseStatus
 from src.models.content.release import ContentReleaseRecord
 from src.modules.tenancy.database import TenantScopedRepository
 from src.modules.tenancy.schema import TenantContext
@@ -84,10 +85,11 @@ class ProjectReleasesRepository(TenantScopedRepository):
                 )
                 .exclude(id=target.id)
                 .using_db(conn)
-                .update(is_active=False)
+                .update(is_active=False, status=ContentReleaseStatus.PUBLISHED)
             )
             if not target.is_active or previous_active_release_id is not None:
                 target.is_active = True
+                target.status = ContentReleaseStatus.ACTIVE
                 target.activated_at = activated_at
-                await target.save(update_fields=["is_active", "activated_at"], using_db=conn)
+                await target.save(update_fields=["is_active", "status", "activated_at"], using_db=conn)
             return target, previous_active_release_id

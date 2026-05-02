@@ -19,6 +19,7 @@ describe("resolveProjectSceneNavItems", () => {
       "assets",
       "content.library",
       "content.models",
+      "content.releases",
       "settings.site",
       "analytics.highlights",
       "analytics.real-time",

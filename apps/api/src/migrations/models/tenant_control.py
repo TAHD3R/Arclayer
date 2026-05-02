@@ -336,4 +336,27 @@ END $$;
 """.strip(),
         ),
     ),
+    TenantMigration.create(
+        version=6,
+        name="scheduled_release_fields",
+        sql=(
+            """
+ALTER TABLE {schema}.domain_content_releases
+    ADD COLUMN IF NOT EXISTS status VARCHAR(16) NOT NULL DEFAULT 'active',
+    ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ NULL
+""".strip(),
+            """
+ALTER TABLE {schema}.domain_content_releases
+    ALTER COLUMN activated_at DROP NOT NULL
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_domain_content_releases_status
+    ON {schema}.domain_content_releases (status)
+""".strip(),
+            """
+CREATE INDEX IF NOT EXISTS idx_domain_content_releases_scheduled_at
+    ON {schema}.domain_content_releases (scheduled_at)
+""".strip(),
+        ),
+    ),
 )

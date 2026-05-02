@@ -191,7 +191,7 @@ describe("content-release-center-page", () => {
 
     await user.click(publishButton);
     await waitFor(() => {
-      expect(mocked.publishProjectRelease).toHaveBeenCalledWith("project-1");
+      expect(mocked.publishProjectRelease).toHaveBeenCalledWith("project-1", undefined);
     });
 
     await user.click(

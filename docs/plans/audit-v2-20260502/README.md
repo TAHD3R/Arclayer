@@ -41,7 +41,7 @@ Do not include unrelated task cards in the default context. The current card may
 | ID | Card | Priority | Dependencies | Status | Last Result |
 |---|---|---|---|---|---|
 | EMAIL | `card-email-multi-provider-gateway.md` | P1 | none | verified | Multi-provider gateway shipped: EmailProvider ABC, SMTP/Resend/Cloudflare/SES providers, DynamicMailService fallback/retry/switching, Admin provider settings, security alert templates, i18n, and focused/provider tests. Final gates: `pnpm api:check` and `pnpm admin:check`. |
-| SCHEDULE | `card-scheduled-publish-task-center.md` | P1 | none | planned | — |
+| SCHEDULE | `card-scheduled-publish-task-center.md` | P1 | none | verified | Scheduled publishing shipped with release scheduling/cancel/execute flows, PublishJob tracking, Taskiq cron dispatch, super-admin task center filters/retry, i18n, OpenAPI, tenant schema migration, and focused API/Admin tests. Final gate: `pnpm check`. |
 
 ### P2 — 完善开发者体验
 
@@ -72,7 +72,7 @@ Status values:
 | I18N | `card-i18n-content-localization.md` | P0 | verified | Translation groups, create-translation flow, SQL locale filtering, delivery/GraphQL locale fallback, Admin translation UI, i18n keys, OpenAPI, migration, and tests shipped. Final gate: `pnpm check`. |
 | EMAIL | `card-email-multi-provider-gateway.md` | P1 | verified | EmailProvider ABC, SMTP/Resend/Cloudflare/SES providers, DynamicMailService fallback/retry/switching, Admin provider settings, security alert templates, i18n, and focused/provider tests shipped. Final gates: `pnpm api:check` and `pnpm admin:check`. |
 | SENTRY | `card-sentry-sdk-integration.md` | P2 | planned | Backend (sentry-sdk[fastapi]) + Frontend (@sentry/react) + ErrorBoundary + env-based config. |
-| SCHEDULE | `card-scheduled-publish-task-center.md` | P1 | planned | PublishJobRecord model + Taskiq cron task + /system/jobs page + scheduled_at in ContentReleaseRecord. |
+| SCHEDULE | `card-scheduled-publish-task-center.md` | P1 | verified | Scheduled release creation/cancel/execute, PublishJobRecord tracking, Taskiq minute cron, `/system/jobs` super-admin page with filters/retry, tenant schema migration, i18n/OpenAPI, and focused API/Admin tests shipped. Final gate: `pnpm check`. |
 | AUDIT | `card-platform-audit-log-page.md` | P3 | planned | System-wide audit log page reusing existing ActivityTimeline + ActivityFilterPopover components + event catalog completion. |
 
 ## Per-Task Completion Contract

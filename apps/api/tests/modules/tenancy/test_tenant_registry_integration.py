@@ -110,12 +110,24 @@ ORDER BY column_name
 """.strip(),
             [record.schema_name],
         )
+        release_column_rows = await conn.execute_query(
+            """
+SELECT column_name, is_nullable
+FROM information_schema.columns
+WHERE table_schema = $1
+  AND table_name = 'domain_content_releases'
+  AND column_name IN ('activated_at', 'scheduled_at', 'status')
+ORDER BY column_name
+""".strip(),
+            [record.schema_name],
+        )
         migration_rows = await conn.execute_query(
             f"SELECT version, status FROM {quote_schema_name(record.schema_name)}.tenant_schema_migrations ORDER BY version"
         )
 
     schema_payload = schema_rows[1] if isinstance(schema_rows, tuple) else schema_rows
     column_payload = column_rows[1] if isinstance(column_rows, tuple) else column_rows
+    release_column_payload = release_column_rows[1] if isinstance(release_column_rows, tuple) else release_column_rows
     migration_payload = migration_rows[1] if isinstance(migration_rows, tuple) else migration_rows
     assert schema_payload
     assert [row["column_name"] for row in column_payload] == [
@@ -123,6 +135,11 @@ ORDER BY column_name
         "singular_key",
         "updated_by_user_id",
     ]
+    assert {row["column_name"]: row["is_nullable"] for row in release_column_payload} == {
+        "activated_at": "YES",
+        "scheduled_at": "YES",
+        "status": "NO",
+    }
     assert [row["version"] for row in migration_payload] == [
         migration.version for migration in TENANT_CONTROL_MIGRATIONS
     ]

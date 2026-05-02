@@ -12,6 +12,7 @@ from src.modules.auth.schema import TokenPair
 from src.modules.auth.service import AuthService
 from src.modules.auth.sessions.request_context import build_auth_request_context
 from src.modules.system.directory.router import router as system_directory_router
+from src.modules.system.jobs.router import router as system_jobs_router
 from src.modules.system.mail.router import router as system_mail_router
 from src.modules.system.rbac.router import router as system_rbac_router
 from src.modules.system.schema import (
@@ -100,5 +101,6 @@ router.include_router(system_settings_router, prefix="/settings")
 router.include_router(system_storage_profiles_router, prefix="/storage-profiles")
 router.include_router(system_directory_router, prefix="/directory")
 router.include_router(system_mail_router, prefix="/mail")
+router.include_router(system_jobs_router, prefix="/jobs")
 router.include_router(system_rbac_router, prefix="/rbac")
 router.include_router(system_activity_router, prefix="/activity")

@@ -434,8 +434,24 @@ export async function getProjectReleaseDryRun(projectId: string): Promise<AdminR
   return api.get<AdminReleaseDryRun>(projectPath(projectId, "/releases/dry-run"));
 }
 
-export async function publishProjectRelease(projectId: string): Promise<AdminReleasePublishResult> {
-  return api.post<AdminReleasePublishResult>(projectPath(projectId, "/releases/publish"));
+export type PublishProjectReleasePayload = {
+  scheduledAt?: string | null;
+};
+
+export async function publishProjectRelease(
+  projectId: string,
+  payload?: PublishProjectReleasePayload,
+): Promise<AdminReleasePublishResult> {
+  return api.post<AdminReleasePublishResult>(projectPath(projectId, "/releases/publish"), payload);
+}
+
+export async function cancelScheduledProjectRelease(
+  projectId: string,
+  releaseId: string,
+): Promise<{ release: AdminRelease; job: unknown }> {
+  return api.post<{ release: AdminRelease; job: unknown }>(
+    projectPath(projectId, `/releases/${releaseId}/cancel-schedule`),
+  );
 }
 
 export async function rollbackProjectRelease(

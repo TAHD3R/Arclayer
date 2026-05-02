@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 
 from src.core.events import Event
+from src.models.content._enums import ContentReleaseStatus
 from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.releases.events import publish_project_release_event
@@ -87,6 +88,7 @@ async def test_publish_release_event_serializes_enriched_tenant_payload(monkeypa
         site_id=site_id,
         release_number=3,
         is_active=True,
+        status=ContentReleaseStatus.ACTIVE,
         created_by_user_id=actor_user_id,
         activated_at=now,
         selection_count=4,

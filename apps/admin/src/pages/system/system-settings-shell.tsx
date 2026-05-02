@@ -8,7 +8,7 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 
-type SystemNavKey = "access" | "storage" | "email" | "notifications" | "oauth";
+type SystemNavKey = "access" | "storage" | "email" | "notifications" | "oauth" | "jobs";
 
 type SystemNavRoute = {
   key: SystemNavKey;
@@ -18,7 +18,8 @@ type SystemNavRoute = {
     | "/system/storage"
     | "/system/email"
     | "/system/notifications"
-    | "/system/oauth";
+    | "/system/oauth"
+    | "/system/jobs";
 };
 
 const SYSTEM_NAV_ROUTES: readonly SystemNavRoute[] = [
@@ -47,6 +48,11 @@ const SYSTEM_NAV_ROUTES: readonly SystemNavRoute[] = [
     labelKey: "settings:SETTINGS_SYSTEM_NAV_OAUTH",
     to: "/system/oauth",
   },
+  {
+    key: "jobs",
+    labelKey: "settings:SETTINGS_SYSTEM_NAV_JOBS",
+    to: "/system/jobs",
+  },
 ] as const;
 
 function resolveSystemNavKey(pathname: string): SystemNavKey {
@@ -55,6 +61,7 @@ function resolveSystemNavKey(pathname: string): SystemNavKey {
   if (pathname.startsWith("/system/email")) return "email";
   if (pathname.startsWith("/system/notifications")) return "notifications";
   if (pathname.startsWith("/system/oauth")) return "oauth";
+  if (pathname.startsWith("/system/jobs")) return "jobs";
   return "access";
 }
 

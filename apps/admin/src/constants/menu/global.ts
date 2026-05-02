@@ -76,7 +76,6 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_GLOBAL_PLATFORM_JOBS",
     to: "/system/jobs",
     icon: Wrench,
-    disabled: true,
   },
   {
     key: "global.platform.configuration",

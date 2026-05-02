@@ -4219,6 +4219,11 @@ export type ContentRecoveryActionOut = {
 };
 
 /**
+ * ContentReleaseStatus
+ */
+export type ContentReleaseStatus = 'active' | 'scheduled' | 'published' | 'cancelled';
+
+/**
  * ContentRoutingContract
  */
 export type ContentRoutingContract = {
@@ -6691,6 +6696,60 @@ export type LogoutRequest = {
 };
 
 /**
+ * MailProviderInfo
+ */
+export type MailProviderInfo = {
+    /**
+     * Active
+     *
+     * Whether this provider is active.
+     */
+    active: boolean;
+    /**
+     * Available
+     *
+     * Whether provider validation succeeds.
+     */
+    available: boolean;
+    /**
+     * Configured
+     *
+     * Whether required provider configuration is present.
+     */
+    configured: boolean;
+    /**
+     * Error
+     *
+     * Validation error when unavailable.
+     */
+    error?: string | null;
+    /**
+     * Label
+     *
+     * Human-readable provider label.
+     */
+    label: string;
+    /**
+     * Providerid
+     *
+     * Provider id.
+     */
+    providerId: string;
+};
+
+/**
+ * MailProviderSwitchRequest
+ */
+export type MailProviderSwitchRequest = {
+    /**
+     * Provider
+     *
+     * Provider id to activate.
+     */
+    provider: string;
+};
+
+/**
  * MailTestRequest
  */
 export type MailTestRequest = {
@@ -6712,6 +6771,12 @@ export type MailTestResult = {
      * Whether the test mail request is accepted.
      */
     ok: boolean;
+    /**
+     * Provider
+     *
+     * Provider that accepted the test message.
+     */
+    provider?: string | null;
 };
 
 /**
@@ -10206,6 +10271,54 @@ export type PageDataProjectMemberOut = {
 };
 
 /**
+ * PageData[PublishJobOut]
+ */
+export type PageDataPublishJobOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<PublishJobOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
  * PageData[SettingsNamespaceSummary]
  */
 export type PageDataSettingsNamespaceSummary = {
@@ -12454,6 +12567,102 @@ export type PublishImpactOut = {
 };
 
 /**
+ * PublishJobOut
+ */
+export type PublishJobOut = {
+    /**
+     * Completedat
+     *
+     * Completed at.
+     */
+    completedAt?: string | null;
+    /**
+     * Createdat
+     *
+     * Created at.
+     */
+    createdAt: string;
+    /**
+     * Createdbyuserid
+     *
+     * Actor user id.
+     */
+    createdByUserId?: string | null;
+    /**
+     * Errormessage
+     *
+     * Failure details.
+     */
+    errorMessage?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Publish job type.
+     */
+    jobType: PublishJobType;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId?: string | null;
+    /**
+     * Releaseid
+     *
+     * Release id.
+     */
+    releaseId?: string | null;
+    /**
+     * Scheduledat
+     *
+     * Scheduled execution time.
+     */
+    scheduledAt?: string | null;
+    /**
+     * Siteid
+     *
+     * Site id.
+     */
+    siteId: string;
+    /**
+     * Startedat
+     *
+     * Started at.
+     */
+    startedAt?: string | null;
+    /**
+     * Publish job status.
+     */
+    status: PublishJobStatus;
+    /**
+     * Updatedat
+     *
+     * Updated at.
+     */
+    updatedAt: string;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * PublishJobStatus
+ */
+export type PublishJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * PublishJobType
+ */
+export type PublishJobType = 'scheduled_publish' | 'manual_publish' | 'retry';
+
+/**
  * PublishReadinessSummaryOut
  */
 export type PublishReadinessSummaryOut = {
@@ -12530,6 +12739,20 @@ export type RegisterRequest = {
 };
 
 /**
+ * ReleaseCancelScheduledOut
+ */
+export type ReleaseCancelScheduledOut = {
+    /**
+     * Cancelled publish job metadata.
+     */
+    job: PublishJobOut;
+    /**
+     * Cancelled release metadata.
+     */
+    release: ReleaseOut;
+};
+
+/**
  * ReleaseDryRunOut
  */
 export type ReleaseDryRunOut = {
@@ -12582,7 +12805,7 @@ export type ReleaseOut = {
      *
      * Current activation timestamp for the release.
      */
-    activatedAt: string;
+    activatedAt?: string | null;
     /**
      * Createdat
      *
@@ -12618,6 +12841,12 @@ export type ReleaseOut = {
      */
     releaseNumber: number;
     /**
+     * Scheduledat
+     *
+     * Scheduled publish timestamp.
+     */
+    scheduledAt?: string | null;
+    /**
      * Selectioncount
      *
      * Number of items selected into the release graph.
@@ -12630,6 +12859,10 @@ export type ReleaseOut = {
      */
     siteId: string;
     /**
+     * Release lifecycle status.
+     */
+    status: ContentReleaseStatus;
+    /**
      * Updatedat
      *
      * Updated at.
@@ -12641,6 +12874,18 @@ export type ReleaseOut = {
      * Workspace id.
      */
     workspaceId: string;
+};
+
+/**
+ * ReleasePublishIn
+ */
+export type ReleasePublishIn = {
+    /**
+     * Scheduledat
+     *
+     * Future publish time.
+     */
+    scheduledAt?: string | null;
 };
 
 /**
@@ -12657,6 +12902,10 @@ export type ReleasePublishOut = {
      * Resolved publish impact snapshot used by the release.
      */
     impact: PublishImpactOut;
+    /**
+     * Scheduled publish job metadata.
+     */
+    job?: PublishJobOut | null;
     /**
      * Created release metadata.
      */
@@ -15798,6 +16047,31 @@ export type ResponseModelPageDataProjectMemberOut = {
 };
 
 /**
+ * ResponseModel[PageData[PublishJobOut]]
+ */
+export type ResponseModelPageDataPublishJobOut = {
+    data?: PageDataPublishJobOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[SettingsNamespaceSummary]]
  */
 export type ResponseModelPageDataSettingsNamespaceSummary = {
@@ -16527,6 +16801,56 @@ export type ResponseModelPublishExportContractOut = {
  */
 export type ResponseModelPublishImpactOut = {
     data?: PublishImpactOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PublishJobOut]
+ */
+export type ResponseModelPublishJobOut = {
+    data?: PublishJobOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[ReleaseCancelScheduledOut]
+ */
+export type ResponseModelReleaseCancelScheduledOut = {
+    data?: ReleaseCancelScheduledOut | null;
     /**
      * Error
      */
@@ -17808,6 +18132,34 @@ export type ResponseModelListHierarchyNodeOut = {
      * Data
      */
     data?: Array<HierarchyNodeOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[list[MailProviderInfo]]
+ */
+export type ResponseModelListMailProviderInfo = {
+    /**
+     * Data
+     */
+    data?: Array<MailProviderInfo> | null;
     /**
      * Error
      */
@@ -30295,7 +30647,10 @@ export type DomainProjectsGetProjectReleaseDryRunResponses = {
 export type DomainProjectsGetProjectReleaseDryRunResponse = DomainProjectsGetProjectReleaseDryRunResponses[keyof DomainProjectsGetProjectReleaseDryRunResponses];
 
 export type DomainProjectsPublishProjectReleaseData = {
-    body?: never;
+    /**
+     * Payload
+     */
+    body?: ReleasePublishIn | null;
     path: {
         /**
          * Project Id
@@ -30361,6 +30716,42 @@ export type DomainProjectsGetProjectReleaseResponses = {
 };
 
 export type DomainProjectsGetProjectReleaseResponse = DomainProjectsGetProjectReleaseResponses[keyof DomainProjectsGetProjectReleaseResponses];
+
+export type DomainProjectsCancelScheduledProjectReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * Release Id
+         */
+        release_id: string;
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/releases/{release_id}/cancel-schedule';
+};
+
+export type DomainProjectsCancelScheduledProjectReleaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsCancelScheduledProjectReleaseError = DomainProjectsCancelScheduledProjectReleaseErrors[keyof DomainProjectsCancelScheduledProjectReleaseErrors];
+
+export type DomainProjectsCancelScheduledProjectReleaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelReleaseCancelScheduledOut;
+};
+
+export type DomainProjectsCancelScheduledProjectReleaseResponse = DomainProjectsCancelScheduledProjectReleaseResponses[keyof DomainProjectsCancelScheduledProjectReleaseResponses];
 
 export type DomainProjectsRollbackProjectReleaseData = {
     body?: never;
@@ -32512,6 +32903,123 @@ export type InternalSystemRestoreWorkspaceResponses = {
 };
 
 export type InternalSystemRestoreWorkspaceResponse = InternalSystemRestoreWorkspaceResponses[keyof InternalSystemRestoreWorkspaceResponses];
+
+export type InternalSystemListSystemJobsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: PublishJobStatus | null;
+        /**
+         * Jobtype
+         */
+        jobType?: PublishJobType | null;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/system/jobs';
+};
+
+export type InternalSystemListSystemJobsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemListSystemJobsError = InternalSystemListSystemJobsErrors[keyof InternalSystemListSystemJobsErrors];
+
+export type InternalSystemListSystemJobsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataPublishJobOut;
+};
+
+export type InternalSystemListSystemJobsResponse = InternalSystemListSystemJobsResponses[keyof InternalSystemListSystemJobsResponses];
+
+export type InternalSystemRetrySystemJobData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/v1/system/jobs/{job_id}/retry';
+};
+
+export type InternalSystemRetrySystemJobErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemRetrySystemJobError = InternalSystemRetrySystemJobErrors[keyof InternalSystemRetrySystemJobErrors];
+
+export type InternalSystemRetrySystemJobResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPublishJobOut;
+};
+
+export type InternalSystemRetrySystemJobResponse = InternalSystemRetrySystemJobResponses[keyof InternalSystemRetrySystemJobResponses];
+
+export type InternalSystemListMailProvidersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/mail/providers';
+};
+
+export type InternalSystemListMailProvidersResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListMailProviderInfo;
+};
+
+export type InternalSystemListMailProvidersResponse = InternalSystemListMailProvidersResponses[keyof InternalSystemListMailProvidersResponses];
+
+export type InternalSystemSwitchMailProviderData = {
+    body: MailProviderSwitchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/system/mail/providers/switch';
+};
+
+export type InternalSystemSwitchMailProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemSwitchMailProviderError = InternalSystemSwitchMailProviderErrors[keyof InternalSystemSwitchMailProviderErrors];
+
+export type InternalSystemSwitchMailProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListMailProviderInfo;
+};
+
+export type InternalSystemSwitchMailProviderResponse = InternalSystemSwitchMailProviderResponses[keyof InternalSystemSwitchMailProviderResponses];
 
 export type InternalSystemSendTestEmailData = {
     body: MailTestRequest;

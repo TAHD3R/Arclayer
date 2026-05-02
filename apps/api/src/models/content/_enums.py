@@ -110,6 +110,27 @@ class ContentVersionState(StrEnum):
     ARCHIVED = "archived"
 
 
+class ContentReleaseStatus(StrEnum):
+    ACTIVE = "active"
+    SCHEDULED = "scheduled"
+    PUBLISHED = "published"
+    CANCELLED = "cancelled"
+
+
+class PublishJobStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class PublishJobType(StrEnum):
+    SCHEDULED_PUBLISH = "scheduled_publish"
+    MANUAL_PUBLISH = "manual_publish"
+    RETRY = "retry"
+
+
 class ContentModelKind(StrEnum):
     COLLECTION_TYPE = "collection_type"
     SINGLE_TYPE = "single_type"

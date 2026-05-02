@@ -6,6 +6,7 @@ from uuid import UUID
 from tortoise import fields
 
 from src.common.models import BaseModel
+from src.models.content._enums import ContentReleaseStatus
 
 
 class ContentReleaseRecord(BaseModel):
@@ -24,8 +25,15 @@ class ContentReleaseRecord(BaseModel):
 
     release_number = fields.IntField()
     is_active = fields.BooleanField(default=True, db_index=True)
+    status = fields.CharEnumField(
+        ContentReleaseStatus,
+        max_length=16,
+        default=ContentReleaseStatus.ACTIVE,
+        db_index=True,
+    )
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
-    activated_at = fields.DatetimeField(auto_now_add=True, db_index=True)
+    activated_at = fields.DatetimeField(null=True, db_index=True)
+    scheduled_at = fields.DatetimeField(null=True, db_index=True)
     lineage_parent_release_id = fields.UUIDField(null=True, db_index=True)
     selection_count = fields.IntField(default=0)
 

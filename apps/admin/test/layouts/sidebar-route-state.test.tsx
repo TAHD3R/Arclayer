@@ -219,6 +219,7 @@ describe("sidebar route state wiring", () => {
       "assets",
       "content.library",
       "content.models",
+      "content.releases",
       "settings.site",
       "analytics.highlights",
       "analytics.real-time",
