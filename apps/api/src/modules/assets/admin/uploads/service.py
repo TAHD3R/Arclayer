@@ -130,6 +130,7 @@ def normalize_visibility_and_indexable(
 class UploadsService(BaseService):
     def __init__(self, settings: Settings, tenant_context: TenantContext | None = None) -> None:
         super().__init__(settings)
+        self._tenant_context = tenant_context
         self.repo = UploadsRepository(tenant_context)
 
         # Temp storage is always local (even for S3 multipart, we don't store bytes here).
@@ -564,9 +565,8 @@ class UploadsService(BaseService):
         }
         if scope.type == ASSET_SCOPE_PROJECT:
             payload["project_id"] = str(scope.id)
-            tenant_context = current_tenant_context_or_none()
-            if tenant_context is not None:
-                payload["tenant"] = tenant_payload_from_context(tenant_context)
+            tenant_context = self._tenant_context or current_tenant_context_or_none()
+            payload["tenant"] = tenant_payload_from_context(tenant_context)
         event = Event(
             name=ASSET_UPLOADED_EVENT,
             payload=payload,
