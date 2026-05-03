@@ -1,0 +1,28 @@
+[project]
+name = "code-review-engine"
+version = "0.1.0"
+description = "Monorepo consistency audit engine"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Arclayer" }]
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-q"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

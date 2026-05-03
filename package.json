@@ -14,6 +14,7 @@
     "api:test": "pnpm -C apps/api test",
     "api:check": "turbo run lint format typecheck test --filter=@arclayer/api",
     "cli:check": "turbo run lint format typecheck test build --filter=@arclayer/cli",
+    "code-review-engine": "pnpm -C scripts/code-review-engine run cli",
     "docker": "docker compose up -d",
     "docker:devtools": "docker compose --profile devtools up -d"
   },

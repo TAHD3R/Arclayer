@@ -1,0 +1,8 @@
+{
+  "name": "@arclayer/code-review-engine",
+  "private": true,
+  "scripts": {
+    "cli": "uv run python -m code_review_engine.cli",
+    "test": "uv run pytest"
+  }
+}
