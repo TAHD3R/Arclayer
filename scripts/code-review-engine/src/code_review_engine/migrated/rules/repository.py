@@ -1,10 +1,8 @@
-"""Repository layer audit rules — new architecture target.
+"""Repository layer audit rules — canonical architecture target.
 
 Target architecture:
   - core/repository/implementations/tortoise.py: TortoiseORMRepository[T] — THE canonical base.
-  - common/repositories/base.py: BaseRepository — OLD pattern, must migrate.
 
-Hard-cut rule: no dual BaseRepository + TortoiseORMRepository patterns in the same module.
 One canonical path: TortoiseORMRepository.
 """
 
@@ -15,7 +13,6 @@ from code_review_engine.migrated.rules.base import AuditRule, v
 
 # The canonical repository base — target architecture.
 CANONICAL_REPO_BASE = "TortoiseORMRepository"
-# Recognized but deprecated — must migrate to TortoiseORMRepository.
 DEPRECATED_REPO_BASES = frozenset({"BaseRepository"})
 # All recognized base classes (for detection).
 RECOGNIZED_REPO_BASES = frozenset({
@@ -30,7 +27,7 @@ CANONICAL_REPO_CLASSES = frozenset({"AbstractRepository", "TortoiseORMRepository
 class RepositoryMustExtendTortoiseORM(AuditRule):
     """Repository MUST extend TortoiseORMRepository — the new architecture canonical base.
 
-    BaseRepository is the old pattern. All repositories must migrate to TortoiseORMRepository.
+    Legacy imports, inheritance, and compatibility aliases are blocker findings.
     """
 
     rule_id = "repository.must-extend-tortoise-orm"
@@ -39,6 +36,30 @@ class RepositoryMustExtendTortoiseORM(AuditRule):
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
         for sym in symbols:
+            if sym["kind"] == "repository_legacy_import":
+                violations.append(
+                    v(
+                        file=sym["file"],
+                        line=sym["line"],
+                        rule=self.rule_id,
+                        message="Legacy repository import is forbidden. Use src.core.repository.implementations.tortoise.",
+                        severity=Severity.BLOCKER,
+                        evidence=str(sym.get("evidence") or "BaseRepository import"),
+                    )
+                )
+                continue
+            if sym["kind"] == "repository_compat_alias":
+                violations.append(
+                    v(
+                        file=sym["file"],
+                        line=sym["line"],
+                        rule=self.rule_id,
+                        message="Repository compatibility alias is forbidden. Use TortoiseORMRepository directly.",
+                        severity=Severity.BLOCKER,
+                        evidence=str(sym.get("evidence") or "BaseRepository = TortoiseORMRepository"),
+                    )
+                )
+                continue
             if sym["kind"] != "repository":
                 continue
             if sym["name"] in CANONICAL_REPO_CLASSES and sym["file"].startswith("apps/api/src/core/repository/"):

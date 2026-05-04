@@ -218,6 +218,28 @@ A rule can move to `blocking` when all items are complete:
 - `frontend.no-cross-app-source-import`
 - `frontend.server-state-not-in-zustand`
 
+## Repository Hard-Cut Enforcement
+
+`repository.must-extend-tortoise-orm` enforces the backend repository foundation contract:
+
+```python
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
+```
+
+The rule reports blocker findings for direct legacy imports, barrel imports, old inheritance, compatibility aliases, and repository classes with ORM behavior that lack the canonical base.
+
+Accepted locations for the literal string `BaseRepository`:
+
+- code-review-engine rule code
+- code-review-engine test fixtures
+- guidelines and planning docs that describe the forbidden pattern
+
+Production verification command:
+
+```bash
+rg -n "BaseRepository|src\.common\.repositories\.base|from src\.common\.repositories" apps/api/src packages
+```
+
 ## Execution Phases
 
 1. Planning and contract confirmation.

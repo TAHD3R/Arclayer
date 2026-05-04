@@ -1,5 +1,0 @@
-"""Repository layer (data access)."""
-
-from src.common.repositories.base import BaseRepository
-
-__all__ = ["BaseRepository"]

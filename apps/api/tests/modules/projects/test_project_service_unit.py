@@ -130,24 +130,21 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
         provision_calls.append(kwargs)
         return type("SiteRef", (), {"id": uuid4()})()
 
+    async def fake_get_active_workspace_by_id(*, workspace_id):
+        assert workspace_id == workspace.id
+        return workspace
+
     monkeypatch.setattr(service, "_require_workspace", fake_require_workspace)
     monkeypatch.setattr(service.repo, "create_project", fake_create_project)
     monkeypatch.setattr(service.repo, "bootstrap_project_memberships", fake_bootstrap_project_memberships)
     monkeypatch.setattr(service.repo, "list_project_memberships", fake_list_project_memberships)
     monkeypatch.setattr(service.repo, "get_primary_runtime", fake_get_primary_runtime)
+    monkeypatch.setattr(service.workspace_repo, "get_active_workspace_by_id", fake_get_active_workspace_by_id)
     monkeypatch.setattr(
         service.runtime_site_service,
         "get_or_create_site_for_project_runtime",
         fake_get_or_create_site_for_project_runtime,
     )
-
-    class _WorkspaceModel:
-        @classmethod
-        async def get(cls, **kwargs):
-            assert kwargs == {"id": workspace_id}
-            return workspace
-
-    monkeypatch.setattr("src.modules.projects.service.Workspace", _WorkspaceModel)
 
     out = await service.create_project(
         workspace_id=workspace_id,

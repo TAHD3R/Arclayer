@@ -319,6 +319,81 @@ def test_repository_rule_accepts_canonical_base_after_mixins(tmp_path) -> None:
     assert report.findings == ()
 
 
+@pytest.mark.parametrize(
+    ("source", "expected_evidence"),
+    (
+        (
+            "from src.common.repositories.base import BaseRepository\n"
+            "class GoodRepository(TortoiseORMRepository):\n"
+            "    pass\n",
+            "from src.common.repositories.base import BaseRepository",
+        ),
+        (
+            "from src.common.repositories import BaseRepository\n"
+            "class GoodRepository(TortoiseORMRepository):\n"
+            "    pass\n",
+            "from src.common.repositories import BaseRepository",
+        ),
+        (
+            "class BadRepository(BaseRepository):\n"
+            "    pass\n",
+            "class BadRepository(BaseRepository): ...",
+        ),
+        (
+            "BaseRepository = TortoiseORMRepository\n",
+            "BaseRepository = TortoiseORMRepository",
+        ),
+        (
+            "class BadRepository:\n"
+            "    async def list_users(self):\n"
+            "        return await User.filter(is_active=True).first()\n",
+            "class BadRepository: ...",
+        ),
+    ),
+)
+def test_repository_rule_rejects_legacy_base_repository_patterns(
+    tmp_path,
+    source: str,
+    expected_evidence: str,
+) -> None:
+    repository = tmp_path / "apps/api/src/modules/auth/repository.py"
+    repository.parent.mkdir(parents=True)
+    repository.write_text(source, encoding="utf-8")
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("repository.must-extend-tortoise-orm",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "repository.must-extend-tortoise-orm"
+    assert report.findings[0].evidence == expected_evidence
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "class GoodRepository(TortoiseORMRepository):\n"
+        "    pass\n",
+        "class TenantContentRepository(TenantScopedRepository):\n"
+        "    pass\n",
+    ),
+)
+def test_repository_rule_accepts_canonical_repository_bases(tmp_path, source: str) -> None:
+    repository = tmp_path / "apps/api/src/modules/projects/repository.py"
+    repository.parent.mkdir(parents=True)
+    repository.write_text(source, encoding="utf-8")
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("repository.must-extend-tortoise-orm",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
 def test_lifecycle_subscriber_rule_reads_runtime_registrations(tmp_path) -> None:
     subscribers = tmp_path / "apps/api/src/core/lifecycles/subscribers"
     subscribers.mkdir(parents=True)

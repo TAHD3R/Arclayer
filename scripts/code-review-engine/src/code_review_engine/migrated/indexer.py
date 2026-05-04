@@ -99,12 +99,76 @@ class _SymbolVisitor(ast.NodeVisitor):
         self._import_names: set[str] = set()
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        module = node.module or ""
         for alias in node.names:
             self._import_names.add(alias.name)
+            if module in {"src.common.repositories", "src.common.repositories.base"} and alias.name == "BaseRepository":
+                self.symbols.append(
+                    {
+                        "name": "BaseRepository",
+                        "kind": "repository_legacy_import",
+                        "file": self.filepath,
+                        "line": node.lineno,
+                        "parent_class": None,
+                        "base_classes": [],
+                        "decorators": [],
+                        "imports": sorted(self._import_names),
+                        "type_annotations": {},
+                        "calls": [],
+                        "t_calls": [],
+                        "raises": [],
+                        "body_lines": (node.lineno, node.lineno),
+                        "evidence": f"from {module} import {alias.name}",
+                    }
+                )
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
             self._import_names.add(alias.name)
+            if alias.name == "src.common.repositories.base":
+                self.symbols.append(
+                    {
+                        "name": "src.common.repositories.base",
+                        "kind": "repository_legacy_import",
+                        "file": self.filepath,
+                        "line": node.lineno,
+                        "parent_class": None,
+                        "base_classes": [],
+                        "decorators": [],
+                        "imports": sorted(self._import_names),
+                        "type_annotations": {},
+                        "calls": [],
+                        "t_calls": [],
+                        "raises": [],
+                        "body_lines": (node.lineno, node.lineno),
+                        "evidence": f"import {alias.name}",
+                    }
+                )
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id == "BaseRepository":
+                value_name = _class_name(node.value).split(".")[-1]
+                if value_name == "TortoiseORMRepository":
+                    self.symbols.append(
+                        {
+                            "name": "BaseRepository",
+                            "kind": "repository_compat_alias",
+                            "file": self.filepath,
+                            "line": node.lineno,
+                            "parent_class": None,
+                            "base_classes": [],
+                            "decorators": [],
+                            "imports": sorted(self._import_names),
+                            "type_annotations": {},
+                            "calls": [],
+                            "t_calls": [],
+                            "raises": [],
+                            "body_lines": (node.lineno, node.lineno),
+                            "evidence": "BaseRepository = TortoiseORMRepository",
+                        }
+                    )
+        self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         bases = [_class_name(b) for b in node.bases]

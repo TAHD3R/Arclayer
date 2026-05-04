@@ -91,9 +91,47 @@ Hard prohibitions:
 - no circular imports across layers
 - no cross-domain orchestration hidden in repositories
 
-## 7. Model and Table Rules
+## 7. Repository Foundation Rules
 
-### 7.1 Table namespace contract
+All ORM-backed repositories use one canonical foundation:
+
+```python
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
+```
+
+Model-bound repositories set `model_cls` on the concrete class:
+
+```python
+class ProjectRepository(TortoiseORMRepository[Project]):
+    model_cls = Project
+```
+
+Tenant-scoped repositories keep tenant binding in the tenant-aware base:
+
+```python
+class ProjectContentItemsRepository(TenantScopedRepository[ContentItemRecord]):
+    model_cls = ContentItemRecord
+```
+
+Repository methods that participate in a service transaction accept an explicit `conn` parameter or run through a repository instance bound to the transaction. Use `_using_db_kwargs(conn)` and `using_db(query, conn)` from `TortoiseORMRepository` for Tortoise connection propagation.
+
+Shared ORM mechanics belong in `TortoiseORMRepository`. Tenant filtering belongs in tenant-aware repository bases. Domain query helpers belong in the domain repository. Business orchestration belongs in services.
+
+Forbidden legacy surfaces:
+
+```python
+from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
+
+class ProjectRepository(BaseRepository):
+    ...
+
+BaseRepository = TortoiseORMRepository
+```
+
+## 8. Model and Table Rules
+
+### 8.1 Table namespace contract
 
 - `Meta.table` is mandatory for authored models.
 - Table names must use one of these prefixes:
@@ -107,7 +145,7 @@ Hard prohibitions:
   - `internal_*`: internal/system-governance data
   - `external_*`: externally-facing ingestion/proxy boundaries when they truly deserve a separate namespace
 
-### 7.2 Model docstring rule
+### 8.2 Model docstring rule
 
 - The first line of every model docstring is normative.
 - It must be standardized because it is used as the database table comment in admin tooling.
@@ -117,7 +155,7 @@ Hard prohibitions:
   - `"""Internal model for system configuration revisions."""`
 - Additional lines may explain scope or behavior, but the first line must stay clean.
 
-### 7.3 Content model storage sync
+### 8.3 Content model storage sync
 
 - Runtime content field values are stored in `ContentVersionRecord.fields_snapshot` on `domain_content_versions`.
 - Content model schema revisions are tracked through `draft_contract_revision`, `published_contract_revision`, and canonical snapshot payloads.
@@ -125,7 +163,7 @@ Hard prohibitions:
 - `AbstractFieldType.get_db_column_type()` is the extension point for generated indexes, projections, API generation, and future storage strategies; it does not imply one physical content table per model.
 - Dynamic physical tables require a separate tenant migration engine, online backfill plan, and rollback design before they become a runtime storage strategy.
 
-## 8. Router Metadata Rules
+## 9. Router Metadata Rules
 
 - Router tags must use the dotted domain vocabulary:
   - `domain.*`
@@ -135,7 +173,7 @@ Hard prohibitions:
 - Endpoint functions must contain concise product-facing docstrings inside the function body.
 - Prefer obvious, literal wording over internal implementation jargon.
 
-## 9. Migration Rules
+## 10. Migration Rules
 
 - Use the built-in Tortoise migration flow via:
   - `pnpm --filter @arclayer/api db:migrate`
@@ -149,7 +187,7 @@ Hard prohibitions:
   - regenerate through `db:migrate`
 - Keep the migration chain command-driven and reviewable.
 
-## 10. Hard-Cut Architecture Rule
+## 11. Hard-Cut Architecture Rule
 
 - Do not keep old and new architecture paths alive in parallel by default.
 - When correcting a backend architecture mistake, remove the obsolete path cleanly in the same change set.
@@ -159,7 +197,7 @@ Hard prohibitions:
   - endpoint contract surfaces
   - stale module shells
 
-## 11. Validation Expectations
+## 12. Validation Expectations
 
 Prefer the narrowest validation that matches the change:
 
@@ -169,7 +207,7 @@ Prefer the narrowest validation that matches the change:
 
 Backend work is not complete until validation results and residual risks are recorded honestly.
 
-## 12. Architecture Checklist
+## 13. Architecture Checklist
 
 - [ ] Route registration happens from `src/core/routes.py`, not an aggregation layer.
 - [ ] Files live in the correct layer.
