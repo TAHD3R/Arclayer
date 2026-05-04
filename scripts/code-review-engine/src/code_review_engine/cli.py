@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+from datetime import UTC, datetime
 import sys
+from pathlib import Path
 
 from code_review_engine.config import build_paths
 from code_review_engine.engine import run_audit
@@ -31,6 +33,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--baseline", help="Accepted baseline path. Parsed in a later phase.")
     parser.add_argument("--write-baseline", help="Write baseline path. Implemented in a later phase.")
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Write report artifact to this file path. Defaults to reports/code-review-engine/<timestamp>-<scope>.<ext>.",
+    )
     parser.add_argument("--list-rules", action="store_true", help="Print registered rules and exit.")
     return parser
 
@@ -62,6 +69,37 @@ def _render_rules() -> str:
     return "\n".join(lines)
 
 
+def _default_output_path(repo_root: Path, selector: ScopeSelector, output_format: OutputFormat) -> Path:
+    extension_by_format = {
+        OutputFormat.JSON: "json",
+        OutputFormat.HUMAN: "txt",
+        OutputFormat.MARKDOWN: "md",
+    }
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    extension = extension_by_format[output_format]
+    return repo_root / "reports" / "code-review-engine" / f"{timestamp}-{selector.scope.value}.{extension}"
+
+
+def _resolve_output_path(
+    output_arg: str | None,
+    repo_root: Path,
+    selector: ScopeSelector,
+    output_format: OutputFormat,
+) -> Path:
+    if output_arg:
+        explicit = Path(output_arg).expanduser()
+        if explicit.is_absolute():
+            return explicit.resolve()
+        return (repo_root / explicit).resolve()
+    return _default_output_path(repo_root=repo_root, selector=selector, output_format=output_format).resolve()
+
+
+def _write_report(output_path: Path, rendered_report: str) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(rendered_report + "\n", encoding="utf-8")
+    return output_path
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -72,7 +110,17 @@ def main(argv: list[str] | None = None) -> int:
         paths = build_paths(args.repo_root)
         selector = _selector_from_args(args)
         report = run_audit(repo_root=paths.repo_root, selector=selector, registry=DEFAULT_REGISTRY)
-        print(render_report(report, OutputFormat(args.format)))
+        output_format = OutputFormat(args.format)
+        rendered_report = render_report(report, output_format)
+        output_path = _resolve_output_path(
+            output_arg=args.output,
+            repo_root=paths.repo_root,
+            selector=selector,
+            output_format=output_format,
+        )
+        _write_report(output_path, rendered_report)
+        print(rendered_report)
+        print(f"Report artifact: {output_path}", file=sys.stderr)
         return 1 if report.summary.blockers > 0 else 0
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)

@@ -15,49 +15,49 @@ No facades, no shims, no dual old+new patterns.
 
 from __future__ import annotations
 
-from src.core.audit.rules.architecture import (
+from code_review_engine.migrated.rules.architecture import (
     ORMLeakDetection,
     RouterNoDirectRepository,
     WritePathViolation,
 )
-from src.core.audit.rules.base import AuditRule
-from src.core.audit.rules.endpoint import (
+from code_review_engine.migrated.rules.base import AuditRule
+from code_review_engine.migrated.rules.endpoint import (
     EndpointMissingDocstring,
     EndpointMissingResponseModel,
 )
-from src.core.audit.rules.entity_manager import (
+from code_review_engine.migrated.rules.entity_manager import (
     EntityManagerNoAnyFields,
     EntityManagerNoDataclassReturn,
     EntityManagerWriteMustUseEM,
 )
-from src.core.audit.rules.filesystem import ModuleStructureRule
-from src.core.audit.rules.frontend import (
+from code_review_engine.migrated.rules.filesystem import ModuleStructureRule
+from code_review_engine.migrated.rules.frontend import (
     FrontendDataMustUseReactQuery,
     FrontendNoAny,
     FrontendPageStructureRule,
     FrontendRouteNoAPICalls,
 )
-from src.core.audit.rules.hard_cut import NoDualRepositoryPattern, NoShimFacadePattern
-from src.core.audit.rules.i18n import (
+from code_review_engine.migrated.rules.hard_cut import NoDualRepositoryPattern, NoShimFacadePattern
+from code_review_engine.migrated.rules.i18n import (
     InvalidI18nKeyFormat,
     InvalidI18nNamespace,
     MissingI18nRule,
 )
-from src.core.audit.rules.lifecycle import (
+from code_review_engine.migrated.rules.lifecycle import (
     LifecycleMustDispatchHooks,
     LifecycleSubscriberCoverage,
 )
-from src.core.audit.rules.plugin import PluginMustHaveLocales, PluginMustRegisterLifecycle
-from src.core.audit.rules.repository import (
+from code_review_engine.migrated.rules.plugin import PluginMustHaveLocales, PluginMustRegisterLifecycle
+from code_review_engine.migrated.rules.repository import (
     RepositoryMustExtendTortoiseORM,
     RepositoryNoBusinessLogic,
 )
-from src.core.audit.rules.schema_rules import (
+from code_review_engine.migrated.rules.schema_rules import (
     SchemaMustExtendBase,
     SchemaNoAnyDictFields,
 )
-from src.core.audit.rules.service import ServiceNoDirectORM
-from src.core.audit.rules.test_coverage import (
+from code_review_engine.migrated.rules.service import ServiceNoDirectORM
+from code_review_engine.migrated.rules.test_coverage import (
     CoreMustHaveTests,
     ModuleMustHaveTests,
     NoSkippedTestsWithoutRationale,

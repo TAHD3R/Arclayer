@@ -10,18 +10,17 @@ Per user requirement:
 from __future__ import annotations
 
 import pathlib
-import subprocess
 
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.rules.base import AuditRule, v
+from code_review_engine.migrated.runtime import get_repo_root_from_env
 
 
 def _repo_root() -> pathlib.Path:
-    try:
-        out = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True, stderr=subprocess.DEVNULL)
-        return pathlib.Path(out.strip())
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return pathlib.Path(".")
+    env_root = get_repo_root_from_env()
+    if env_root is not None:
+        return env_root
+    return pathlib.Path(".")
 
 
 class ModuleMustHaveTests(AuditRule):

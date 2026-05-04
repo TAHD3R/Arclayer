@@ -11,20 +11,16 @@ from __future__ import annotations
 import ast
 import pathlib
 
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.rules.base import AuditRule, v
+from code_review_engine.migrated.runtime import get_repo_root_from_env
 
 
 def _resolve_file_path(rel: str) -> pathlib.Path:
-    import subprocess
-
-    try:
-        root = subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"], text=True, stderr=subprocess.DEVNULL
-        ).strip()
-        return pathlib.Path(root) / rel
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    root = get_repo_root_from_env()
+    if root is None:
         return pathlib.Path(rel)
+    return root / rel
 
 
 class EndpointMissingResponseModel(AuditRule):

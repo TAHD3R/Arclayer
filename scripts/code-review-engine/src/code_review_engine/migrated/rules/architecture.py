@@ -13,9 +13,9 @@ Guideline references:
 
 from __future__ import annotations
 
-from src.core.audit.indexer import is_orm_call
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.indexer import call_evidence, call_line, call_name, is_orm_call
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.rules.base import AuditRule, v
 
 
 class ORMLeakDetection(AuditRule):
@@ -33,15 +33,16 @@ class ORMLeakDetection(AuditRule):
             if sym["kind"] in self.ALLOWED_KINDS:
                 continue
             for call in sym["calls"]:
-                if is_orm_call(call):
+                name = call_name(call)
+                if is_orm_call(name):
                     violations.append(
                         v(
                             file=sym["file"],
-                            line=sym["line"],
+                            line=call_line(call, sym["line"]),
                             rule=self.rule_id,
-                            message=f"ORM leak: '{sym['name']}' ({sym['kind']}) calls '{call}'. Move to Repository (reads) or EntityManager (writes).",
+                            message=f"ORM leak: '{sym['name']}' ({sym['kind']}) calls '{name}'. Move to Repository (reads) or EntityManager (writes).",
                             severity=Severity.BLOCKER,
-                            evidence=call,
+                            evidence=call_evidence(call),
                         )
                     )
         return violations
@@ -63,18 +64,19 @@ class WritePathViolation(AuditRule):
             if sym["kind"] == "entity_manager":
                 continue  # EntityManager is the correct write path
             for call in sym["calls"]:
-                if not is_orm_call(call):
+                name = call_name(call)
+                if not is_orm_call(name):
                     continue
-                method = call.split(".")[-1]
+                method = name.split(".")[-1]
                 if method in self.WRITE_METHODS:
                     violations.append(
                         v(
                             file=sym["file"],
-                            line=sym["line"],
+                            line=call_line(call, sym["line"]),
                             rule=self.rule_id,
-                            message=f"Write outside EntityManager: '{sym['name']}' ({sym['kind']}) calls '{call}'. All writes must go through EntityManager.",
+                            message=f"Write outside EntityManager: '{sym['name']}' ({sym['kind']}) calls '{name}'. All writes must go through EntityManager.",
                             severity=Severity.BLOCKER,
-                            evidence=call,
+                            evidence=call_evidence(call),
                         )
                     )
         return violations
@@ -107,16 +109,17 @@ class RouterNoDirectRepository(AuditRule):
             if sym["kind"] != "other" or not sym["file"].endswith("/router.py"):
                 continue
             for call in sym["calls"]:
-                parts = call.split(".")
+                name = call_name(call)
+                parts = name.split(".")
                 if len(parts) >= 2 and parts[0] in repo_names and parts[-1] in self.REPO_METHODS:
                     violations.append(
                         v(
                             file=sym["file"],
-                            line=sym["line"],
+                            line=call_line(call, sym["line"]),
                             rule=self.rule_id,
-                            message=f"Router calls repository directly: '{call}'. Route through service instead.",
+                            message=f"Router calls repository directly: '{name}'. Route through service instead.",
                             severity=Severity.BLOCKER,
-                            evidence=call,
+                            evidence=call_evidence(call),
                         )
                     )
         return violations

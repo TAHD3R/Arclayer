@@ -8,21 +8,36 @@ Full tree-sitter-typescript AST analysis is planned for P2.
 from __future__ import annotations
 
 import re
-import subprocess
 from pathlib import Path
 
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.rules.base import AuditRule, v
+from code_review_engine.migrated.runtime import get_repo_root_from_env
 
 
 def _admin_root() -> Path:
-    try:
-        root = subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"], text=True, stderr=subprocess.DEVNULL
-        ).strip()
-        return Path(root) / "apps" / "admin" / "src"
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    root = get_repo_root_from_env()
+    if root is None:
         return Path("apps/admin/src")
+    return root / "apps" / "admin" / "src"
+
+
+def _repo_root() -> Path:
+    root = get_repo_root_from_env()
+    if root is None:
+        return Path(".")
+    return root
+
+
+def _relative_file(path: Path) -> str:
+    try:
+        return str(path.relative_to(_repo_root()))
+    except ValueError:
+        return str(path)
+
+
+def _is_test_file(path: Path) -> bool:
+    return path.name.endswith((".test.ts", ".test.tsx")) or "test" in path.name or "tests" in path.parts
 
 
 def _ts_files(root: Path) -> list[Path]:
@@ -57,7 +72,7 @@ class FrontendNoAny(AuditRule):
         violations: list[Violation] = []
         root = _admin_root()
         for f in _ts_files(root):
-            if "test" in str(f) or f.name.endswith(".test.ts") or f.name.endswith(".test.tsx"):
+            if _is_test_file(f):
                 continue
             for i, line in enumerate(_read_lines(f), 1):
                 stripped = line.strip()
@@ -67,7 +82,7 @@ class FrontendNoAny(AuditRule):
                     # Skip lines where "any" appears only as a string value like value="any"
                     violations.append(
                         v(
-                            file=str(f.relative_to(f.parents[2])),
+                            file=_relative_file(f),
                             line=i,
                             rule=self.rule_id,
                             message="Use of `any` in TypeScript source.",
@@ -106,7 +121,7 @@ class FrontendRouteNoAPICalls(AuditRule):
                     if pat.search(stripped):
                         violations.append(
                             v(
-                                file=str(f.relative_to(f.parents[2])),
+                                file=_relative_file(f),
                                 line=i,
                                 rule=self.rule_id,
                                 message=f"Route file contains API/data-fetching logic: {stripped[:60]}",
@@ -138,7 +153,7 @@ class FrontendDataMustUseReactQuery(AuditRule):
             if not d.is_dir():
                 continue
             for f in _ts_files(d):
-                if "test" in str(f):
+                if _is_test_file(f):
                     continue
                 for i, line in enumerate(_read_lines(f), 1):
                     stripped = line.strip()
@@ -147,7 +162,7 @@ class FrontendDataMustUseReactQuery(AuditRule):
                     if self.RAW_FETCH_RE.search(stripped):
                         violations.append(
                             v(
-                                file=str(f.relative_to(f.parents[2])),
+                                file=_relative_file(f),
                                 line=i,
                                 rule=self.rule_id,
                                 message="Raw fetch() in UI layer. Use React Query + typed API wrapper.",
@@ -167,6 +182,17 @@ class FrontendPageStructureRule(AuditRule):
 
     rule_id = "frontend.page-structure"
     description = "Page directories must have a page.tsx entry (per frontend-folder-architecture.md sec 5.3)."
+    PAGE_LOCAL_DIRS = frozenset(
+        {
+            "components",
+            "constants",
+            "hooks",
+            "shared",
+            "tabs",
+            "types",
+            "utils",
+        }
+    )
 
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
@@ -178,6 +204,8 @@ class FrontendPageStructureRule(AuditRule):
         for d in sorted(pages_dir.rglob("*")):
             if not d.is_dir():
                 continue
+            if any(part in self.PAGE_LOCAL_DIRS for part in d.relative_to(pages_dir).parts):
+                continue
             # Check if this looks like a page directory
             tsx_files = list(d.glob("*.tsx"))
             has_page = any(f.name == "page.tsx" for f in tsx_files)
@@ -185,7 +213,7 @@ class FrontendPageStructureRule(AuditRule):
             if not has_page and not has_index and tsx_files:
                 violations.append(
                     v(
-                        file=str(d.relative_to(d.parents[2])),
+                        file=_relative_file(d),
                         line=0,
                         rule=self.rule_id,
                         message=f"Page directory '{d.name}' has .tsx files but no page.tsx or index.tsx entry.",

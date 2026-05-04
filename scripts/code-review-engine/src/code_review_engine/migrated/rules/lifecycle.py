@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import ast
 import pathlib
-import subprocess
 
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.indexer import call_name
+from code_review_engine.migrated.rules.base import AuditRule, v
+from code_review_engine.migrated.runtime import get_repo_root_from_env
 
 REQUIRED_LIFECYCLE_ACTIONS = frozenset({
     "BEFORE_CREATE",
@@ -32,11 +33,10 @@ REQUIRED_LIFECYCLE_ACTIONS = frozenset({
 
 
 def _repo_root() -> pathlib.Path:
-    try:
-        out = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True, stderr=subprocess.DEVNULL)
-        return pathlib.Path(out.strip())
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return pathlib.Path(".")
+    env_root = get_repo_root_from_env()
+    if env_root is not None:
+        return env_root
+    return pathlib.Path(".")
 
 
 class LifecycleMustDispatchHooks(AuditRule):
@@ -56,8 +56,8 @@ class LifecycleMustDispatchHooks(AuditRule):
         for sym in symbols:
             if sym["kind"] != "entity_manager":
                 continue
-            has_before = any("_dispatch_before" in c for c in sym["calls"])
-            has_after = any("_dispatch_after" in c for c in sym["calls"])
+            has_before = any("_dispatch_before" in call_name(c) for c in sym["calls"])
+            has_after = any("_dispatch_after" in call_name(c) for c in sym["calls"])
             if not has_before:
                 violations.append(
                     v(

@@ -9,8 +9,17 @@ Target architecture:
 
 from __future__ import annotations
 
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.indexer import (
+    annotation_evidence,
+    annotation_line,
+    annotation_type,
+    call_evidence,
+    call_line,
+    call_name,
+    is_orm_call,
+)
+from code_review_engine.migrated.rules.base import AuditRule, v
 
 
 class EntityManagerNoDataclassReturn(AuditRule):
@@ -39,16 +48,17 @@ class EntityManagerNoDataclassReturn(AuditRule):
                 )
             # Also check entity_manager symbols referencing dataclass types
             if sym["kind"] == "entity_manager":
-                for ann_name, ann_type in sym.get("type_annotations", {}).items():
+                for ann_name, annotation in sym.get("type_annotations", {}).items():
+                    ann_type = annotation_type(annotation)
                     if ann_type == "Any" or "dataclass" in ann_type.lower():
                         violations.append(
                             v(
                                 file=sym["file"],
-                                line=sym["line"],
+                                line=annotation_line(annotation, sym["line"]),
                                 rule=self.rule_id,
                                 message=f"EntityManager references untyped '{ann_type}' in '{ann_name}'. Use a Pydantic BaseModel.",
                                 severity=Severity.BLOCKER,
-                                evidence=f"{ann_name}: {ann_type}",
+                                evidence=annotation_evidence(ann_name, annotation),
                             )
                         )
         return violations
@@ -65,29 +75,31 @@ class EntityManagerNoAnyFields(AuditRule):
         for sym in symbols:
             if sym["kind"] not in ("entity_manager", "dataclass"):
                 continue
-            for field_name, field_type in sym.get("type_annotations", {}).items():
+            for field_name, annotation in sym.get("type_annotations", {}).items():
+                field_type = annotation_type(annotation)
                 if "Any" in field_type or field_type == "dict":
                     violations.append(
                         v(
                             file=sym["file"],
-                            line=sym["line"],
+                            line=annotation_line(annotation, sym["line"]),
                             rule=self.rule_id,
                             message=f"'{sym['name']}' field '{field_name}' has type '{field_type}'. Use a specific type or Pydantic model.",
                             severity=Severity.BLOCKER,
-                            evidence=f"{field_name}: {field_type}",
+                            evidence=annotation_evidence(field_name, annotation),
                         )
                     )
             # Check dict[str, Any] in data parameters (common in EM)
             for call in sym.get("calls", []):
-                if "dict" in call:
+                name = call_name(call)
+                if "dict" in name:
                     violations.append(
                         v(
                             file=sym["file"],
-                            line=sym["line"],
+                            line=call_line(call, sym["line"]),
                             rule=self.rule_id,
-                            message=f"'{sym['name']}' passes untyped dict in call: {call}. Use typed Pydantic model.",
+                            message=f"'{sym['name']}' passes untyped dict in call: {name}. Use typed Pydantic model.",
                             severity=Severity.MAJOR,
-                            evidence=call,
+                            evidence=call_evidence(call),
                         )
                     )
         return violations
@@ -107,7 +119,6 @@ class EntityManagerWriteMustUseEM(AuditRule):
 
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
-        from src.core.audit.indexer import is_orm_call
 
         for sym in symbols:
             if sym["kind"] == "entity_manager":
@@ -115,18 +126,19 @@ class EntityManagerWriteMustUseEM(AuditRule):
             if sym["kind"] not in ("service", "other"):
                 continue
             for call in sym["calls"]:
-                if not is_orm_call(call):
+                name = call_name(call)
+                if not is_orm_call(name):
                     continue
-                method = call.split(".")[-1]
+                method = name.split(".")[-1]
                 if method in self.WRITE_METHODS:
                     violations.append(
                         v(
                             file=sym["file"],
-                            line=sym["line"],
+                            line=call_line(call, sym["line"]),
                             rule=self.rule_id,
-                            message=f"Write operation outside EntityManager: '{sym['name']}' calls '{call}'. All writes must go through EntityManager.",
+                            message=f"Write operation outside EntityManager: '{sym['name']}' calls '{name}'. All writes must go through EntityManager.",
                             severity=Severity.BLOCKER,
-                            evidence=call,
+                            evidence=call_evidence(call),
                         )
                     )
         return violations

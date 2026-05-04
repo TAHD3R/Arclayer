@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import re
 
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.rules.base import AuditRule, v
 
 UPPER_SNAKE_RE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$")
 RESERVED_NAMESPACES = frozenset({

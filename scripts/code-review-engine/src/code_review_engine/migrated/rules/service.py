@@ -11,9 +11,9 @@ Hard-cut: no service should call ORM models directly for reads OR writes.
 
 from __future__ import annotations
 
-from src.core.audit.indexer import is_orm_call
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.indexer import call_evidence, call_line, call_name, is_orm_call
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.rules.base import AuditRule, v
 
 
 class ServiceNoDirectORM(AuditRule):
@@ -32,8 +32,9 @@ class ServiceNoDirectORM(AuditRule):
             if sym["kind"] != "service":
                 continue
             for call in sym["calls"]:
-                if is_orm_call(call):
-                    parts = call.split(".")
+                name = call_name(call)
+                if is_orm_call(name):
+                    parts = name.split(".")
                     method = parts[-1] if len(parts) >= 2 else ""
                     if method in ("create", "update", "delete", "bulk_create", "save"):
                         suggestion = "EntityManager"
@@ -42,11 +43,11 @@ class ServiceNoDirectORM(AuditRule):
                     violations.append(
                         v(
                             file=sym["file"],
-                            line=sym["line"],
+                            line=call_line(call, sym["line"]),
                             rule=self.rule_id,
-                            message=f"Service '{sym['name']}' calls ORM directly: {call}. Use {suggestion} instead.",
+                            message=f"Service '{sym['name']}' calls ORM directly: {name}. Use {suggestion} instead.",
                             severity=Severity.BLOCKER,
-                            evidence=call,
+                            evidence=call_evidence(call),
                         )
                     )
         return violations

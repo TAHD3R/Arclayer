@@ -57,6 +57,7 @@ node_modules/
 .pytest_cache/
 htmlcov/
 .coverage
+reports/code-review-engine/
 
 # Upload files
 /static/upload

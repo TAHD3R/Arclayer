@@ -10,8 +10,8 @@ One canonical path: TortoiseORMRepository.
 
 from __future__ import annotations
 
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.rules.base import AuditRule, v
 
 # The canonical repository base — target architecture.
 CANONICAL_REPO_BASE = "TortoiseORMRepository"

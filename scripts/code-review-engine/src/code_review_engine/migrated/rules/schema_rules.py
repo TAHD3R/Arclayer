@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from src.core.audit.models import Severity, Violation
-from src.core.audit.rules.base import AuditRule, v
+from code_review_engine.migrated.contracts import Severity, Violation
+from code_review_engine.migrated.indexer import annotation_evidence, annotation_line, annotation_type
+from code_review_engine.migrated.rules.base import AuditRule, v
 
 
 class SchemaNoAnyDictFields(AuditRule):
@@ -19,17 +20,18 @@ class SchemaNoAnyDictFields(AuditRule):
         for sym in symbols:
             if sym["kind"] != "schema":
                 continue
-            for field_name, field_type in sym.get("type_annotations", {}).items():
+            for field_name, annotation in sym.get("type_annotations", {}).items():
+                field_type = annotation_type(annotation)
                 cleaned = field_type.replace(" ", "")
                 if cleaned in self.BANNED_TYPES or "Any" in cleaned:
                     violations.append(
                         v(
                             file=sym["file"],
-                            line=sym["line"],
+                            line=annotation_line(annotation, sym["line"]),
                             rule=self.rule_id,
                             message=f"Schema '{sym['name']}' field '{field_name}' uses '{field_type}'. Use a specific type.",
                             severity=Severity.MAJOR,
-                            evidence=f"{field_name}: {field_type}",
+                            evidence=annotation_evidence(field_name, annotation),
                         )
                     )
         return violations

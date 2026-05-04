@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from src.core.audit.models import Severity, Violation
+from code_review_engine.migrated.contracts import Severity, Violation
 
 
 class AuditRule(ABC):
