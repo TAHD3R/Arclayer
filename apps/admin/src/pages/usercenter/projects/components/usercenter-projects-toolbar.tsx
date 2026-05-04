@@ -12,11 +12,15 @@ import { DataTableSearchInput } from "@/components/common/data-table-search-inpu
 import { ViewModeToggle } from "@/components/common/view-mode-toggle";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 
-import type { UserCenterProjectsTranslateFn, UserCenterProjectsViewMode } from "../types";
+import type {
+  UserCenterProjectListItem,
+  UserCenterProjectsTranslateFn,
+  UserCenterProjectsViewMode,
+} from "../types";
 
 interface UserCenterProjectsToolbarProps {
   t: UserCenterProjectsTranslateFn;
-  table: Table<any>;
+  table: Table<UserCenterProjectListItem>;
   searchInput: string;
   onSearchInputChange: (nextValue: string) => void;
   viewMode: UserCenterProjectsViewMode;

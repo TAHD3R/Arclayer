@@ -13,6 +13,7 @@ from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.lifecycles.specs import LifecycleAction
 from src.core.lifecycles.subscribers.audit import audit_lifecycle_events
 from src.core.lifecycles.subscribers.timestamps import auto_timestamps
+from src.core.lifecycles.subscribers.validators import require_target_context
 from src.core.logging import get_logger
 from src.modules.analytics.ingest.service import ActivityIngestor
 from src.modules.projects.automation.runtime import AutomationRuntime
@@ -109,6 +110,16 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
         subscriber_id="core",
         action=LifecycleAction.BEFORE_UPDATE,
         handler=auto_timestamps,
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="core",
+        action=LifecycleAction.BEFORE_DELETE,
+        handler=require_target_context,
+    )
+    await lifecycle_dispatcher.register(
+        subscriber_id="core",
+        action=LifecycleAction.BEFORE_PUBLISH,
+        handler=require_target_context,
     )
     app.state.lifecycle_dispatcher = lifecycle_dispatcher
     await register_content_search_runtime(

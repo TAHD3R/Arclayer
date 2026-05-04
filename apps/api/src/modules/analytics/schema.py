@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import AliasChoices, Field
 
 from src.common.schemas import BaseOut, BaseSchema, TimestampMixin
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 
 
@@ -43,7 +43,7 @@ class AuditEventOut(BaseOut, TimestampMixin):
     trace_id: str | None = Field(default=None, description="Request trace id (best-effort).")
     source: str | None = Field(default=None, description="Event source.")
 
-    properties: dict[str, Any] | None = Field(default=None, description="Sanitized event properties.")
+    properties: JsonObject | None = Field(default=None, description="Sanitized event properties.")
 
 
 class AuditEventListQuery(BaseSchema):

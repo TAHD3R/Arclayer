@@ -6,12 +6,17 @@ from uuid import UUID
 from tortoise.queryset import QuerySet
 
 from src.common.protocols.tortoise import PermissionMutableFields
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
+from src.models.workspaces.workspace import Workspace
 from src.modules.permissions import PermissionConditionSet, deserialize_condition_sets, serialize_condition_sets
 
 
-class RBACRepository(BaseRepository):
+class RBACRepository(TortoiseORMRepository):
+    async def list_workspace_ids(self) -> list[UUID]:
+        rows = await Workspace.all().values_list("id", flat=True)
+        return [UUID(str(row)) for row in rows if row is not None]
+
     # -------- Roles (workspace-scoped) --------
     def query_roles(self, *, workspace_id: UUID) -> QuerySet[Role]:
         return Role.filter(workspace_id=workspace_id).order_by("code")

@@ -9,7 +9,7 @@ from src.core.exceptions import NotFound
 from src.models.projects.runtime import ProjectRuntimeRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.projects.repository import ProjectRepository
-from src.modules.projects.runtime.schema import ProjectRuntimeBridgeOut
+from src.modules.projects.runtime.schema import ProjectRuntimeContextOut
 from src.modules.projects.runtime.site.schema import ProjectRuntimeSiteOut
 from src.modules.tenancy.router_helpers import bind_project_tenant_context, bind_workspace_tenant_context
 from src.modules.tenancy.schema import TenantContext, TenantScope
@@ -76,7 +76,7 @@ class ProjectRuntimeService:
     ) -> ProjectRuntimeContext:
         site = await self.project_repo.get_runtime_site(runtime_id=runtime.id)
         if site is None:
-            raise NotFound("Project runtime site bridge not found", error="PROJECT_RUNTIME_SITE_NOT_FOUND")
+            raise NotFound("Project runtime site not found", error="PROJECT_RUNTIME_SITE_NOT_FOUND")
         workspace = await Workspace.get(id=workspace_id)
         await bind_workspace_tenant_context(
             workspace_id=workspace_id, organization_id=UUID(str(workspace.organization_id))
@@ -102,8 +102,8 @@ class ProjectRuntimeService:
         )
 
     @staticmethod
-    def to_bridge_out(context: ProjectRuntimeContext) -> ProjectRuntimeBridgeOut:
-        return ProjectRuntimeBridgeOut.model_validate({
+    def to_runtime_context_out(context: ProjectRuntimeContext) -> ProjectRuntimeContextOut:
+        return ProjectRuntimeContextOut.model_validate({
             "runtime_id": context.runtime_id,
             "project_id": context.project_id,
             "workspace_id": context.workspace_id,

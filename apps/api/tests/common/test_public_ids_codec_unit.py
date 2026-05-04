@@ -53,6 +53,7 @@ def test_public_id_accepts_uuid7_when_available() -> None:
     try:
         from uuid6 import uuid7
     except Exception:
+        # skip reason: optional uuid6 dependency can be absent in minimal test env; owner: platform; deadline: 2026-12-31
         pytest.skip("uuid6.uuid7 not available")
 
     u7 = UUID(str(uuid7()))

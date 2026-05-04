@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
 
 TRANSFER_SCHEMA_VERSION = 1
 
@@ -43,7 +44,7 @@ class ContentTransferDiagnostic(BaseSchema):
     resource: str | None = Field(default=None, description="Optional resource kind.")
     resource_id: str | None = Field(default=None, description="Optional resource identifier.")
     path: str | None = Field(default=None, description="Optional payload path.")
-    meta: dict[str, Any] | None = Field(default=None, description="Diagnostic metadata.")
+    meta: JsonObject | None = Field(default=None, description="Diagnostic metadata.")
 
 
 class ContentTransferPhase(BaseSchema):
@@ -95,25 +96,25 @@ class ContentTransferManifest(BaseSchema):
 class ContentTransferResourceBundle(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    workspace: dict[str, Any] = Field(default_factory=dict, description="Workspace configuration payload.")
-    project: dict[str, Any] = Field(default_factory=dict, description="Project configuration payload.")
-    runtime: dict[str, Any] | None = Field(default=None, description="Project runtime payload.")
-    site: dict[str, Any] = Field(default_factory=dict, description="Site configuration payload.")
-    content_models: list[dict[str, Any]] = Field(default_factory=list, description="Content model records.")
-    content_model_fields: list[dict[str, Any]] = Field(default_factory=list, description="Content model fields.")
-    content_model_relations: list[dict[str, Any]] = Field(default_factory=list, description="Content model relations.")
-    content_model_views: list[dict[str, Any]] = Field(default_factory=list, description="Content model views.")
-    content_items: list[dict[str, Any]] = Field(default_factory=list, description="Content items.")
-    content_versions: list[dict[str, Any]] = Field(default_factory=list, description="Content item versions.")
-    presentation_documents: list[dict[str, Any]] = Field(default_factory=list, description="Presentation documents.")
-    seo_profiles: list[dict[str, Any]] = Field(default_factory=list, description="SEO profiles.")
-    component_bindings: list[dict[str, Any]] = Field(default_factory=list, description="Component bindings.")
-    route_bindings: list[dict[str, Any]] = Field(default_factory=list, description="Route bindings.")
-    hierarchy_nodes: list[dict[str, Any]] = Field(default_factory=list, description="Hierarchy nodes.")
-    releases: list[dict[str, Any]] = Field(default_factory=list, description="Content releases.")
-    published_graph: list[dict[str, Any]] = Field(default_factory=list, description="Published graph rows.")
-    publish_artifacts: list[dict[str, Any]] = Field(default_factory=list, description="Publish artifact rows.")
-    assets: list[dict[str, Any]] = Field(default_factory=list, description="Asset metadata rows.")
+    workspace: JsonObject = Field(default_factory=dict, description="Workspace configuration payload.")
+    project: JsonObject = Field(default_factory=dict, description="Project configuration payload.")
+    runtime: JsonObject | None = Field(default=None, description="Project runtime payload.")
+    site: JsonObject = Field(default_factory=dict, description="Site configuration payload.")
+    content_models: list[JsonObject] = Field(default_factory=list, description="Content model records.")
+    content_model_fields: list[JsonObject] = Field(default_factory=list, description="Content model fields.")
+    content_model_relations: list[JsonObject] = Field(default_factory=list, description="Content model relations.")
+    content_model_views: list[JsonObject] = Field(default_factory=list, description="Content model views.")
+    content_items: list[JsonObject] = Field(default_factory=list, description="Content items.")
+    content_versions: list[JsonObject] = Field(default_factory=list, description="Content item versions.")
+    presentation_documents: list[JsonObject] = Field(default_factory=list, description="Presentation documents.")
+    seo_profiles: list[JsonObject] = Field(default_factory=list, description="SEO profiles.")
+    component_bindings: list[JsonObject] = Field(default_factory=list, description="Component bindings.")
+    route_bindings: list[JsonObject] = Field(default_factory=list, description="Route bindings.")
+    hierarchy_nodes: list[JsonObject] = Field(default_factory=list, description="Hierarchy nodes.")
+    releases: list[JsonObject] = Field(default_factory=list, description="Content releases.")
+    published_graph: list[JsonObject] = Field(default_factory=list, description="Published graph rows.")
+    publish_artifacts: list[JsonObject] = Field(default_factory=list, description="Publish artifact rows.")
+    assets: list[JsonObject] = Field(default_factory=list, description="Asset metadata rows.")
 
 
 class ContentTransferBundle(BaseSchema):

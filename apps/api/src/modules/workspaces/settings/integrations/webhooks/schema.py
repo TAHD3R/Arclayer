@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import Field, HttpUrl
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 
 
@@ -28,7 +28,7 @@ class WebhookSubscriptionCreateIn(BaseSchema):
     endpoint_url: HttpUrl
     enabled: bool = True
     secret: str | None = Field(default=None, description="Optional secret for delivery signing (encrypted at rest).")
-    meta: dict[str, Any] | None = None
+    meta: JsonObject | None = None
 
 
 class WebhookDeliveryOut(BaseSchema):

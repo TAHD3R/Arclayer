@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
-from src.common.repositories.base import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.modules.tenancy.schema import TenantContext
 from src.modules.tenancy.schema_names import validate_tenant_schema_name
 
@@ -54,7 +54,7 @@ class TenantDatabaseRouter:
             yield await self.bind(tx)
 
 
-class TenantScopedRepository(BaseRepository):
+class TenantScopedRepository(TortoiseORMRepository):
     def __init__(self, tenant_context: TenantContext) -> None:
         super().__init__()
         self.tenant_context = tenant_context

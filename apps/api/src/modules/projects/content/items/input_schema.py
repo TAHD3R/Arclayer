@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import ConfigDict, Field, field_validator
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.modules.projects.content.contracts.schema import (
     ContentBootstrapPresetState,
@@ -60,7 +59,7 @@ class ContentPresentationIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     kind: ContentPresentationKind
-    payload: dict[str, Any] | None = None
+    payload: JsonObject | None = None
 
 
 class ContentVersionDraftSaveIn(BaseSchema):
@@ -68,7 +67,7 @@ class ContentVersionDraftSaveIn(BaseSchema):
 
     expected_version: int | None = Field(default=None, ge=0)
     change_summary: str | None = Field(default=None, max_length=512)
-    fields_snapshot: dict[str, Any] = Field(default_factory=dict)
+    fields_snapshot: JsonObject = Field(default_factory=dict)
     presentations: list[ContentPresentationIn] = Field(default_factory=list)
 
 
@@ -76,7 +75,7 @@ class ContentVersionPatchIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     change_summary: str | None = Field(default=None, max_length=512)
-    fields_snapshot: dict[str, Any] | None = None
+    fields_snapshot: JsonObject | None = None
     presentations: list[ContentPresentationIn] | None = None
 
 

@@ -11,6 +11,7 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.core.exceptions import NotFound
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
 from src.models.content.presentation_document import PresentationDocumentRecord
@@ -24,10 +25,11 @@ from src.modules.projects.deployments.service import ProjectDeploymentsService
 from src.modules.sites.shared.service import normalize_path
 
 
-class RuntimeRepositoryMixin:
+class RuntimeRepositoryMixin(TortoiseORMRepository):
     _conn: BaseDBAsyncClient | None
 
     def __init__(self, conn: BaseDBAsyncClient | None = None) -> None:
+        super().__init__(conn=conn)
         self._conn = conn
         self._deployments = ProjectDeploymentsService(conn=conn)
 

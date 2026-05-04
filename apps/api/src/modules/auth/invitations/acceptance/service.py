@@ -26,11 +26,9 @@ from src.models.organization.org_invitation import (
     OrganizationInviteLinkUseEvent,
 )
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization
-from src.models.organization.user import User, UserCredential, UserStatus
+from src.models.organization.user import User
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace import (
-    Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
@@ -40,6 +38,7 @@ from src.models.workspaces.workspace_invite import (
     WorkspaceInviteLink,
     WorkspaceInviteLinkUseEvent,
 )
+from src.modules.auth.repository import UserRepository
 from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
@@ -47,6 +46,8 @@ from src.modules.auth.schema import (
     TokenPair,
 )
 from src.modules.auth.tokens.service import hash_password
+from src.modules.organization.repository import OrganizationRepository
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.projects.repository import ProjectRepository
 from src.modules.system.admin.notifications.preferences import (
     is_notification_channel_enabled_for_event,
@@ -69,6 +70,9 @@ class AuthInvitationAcceptanceService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.project_repo = ProjectRepository()
+        self.user_repo = UserRepository()
+        self.organization_repo = OrganizationRepository()
+        self.workspace_repo = OrganizationWorkspaceRepository()
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -260,11 +264,11 @@ class AuthInvitationAcceptanceService(BaseService):
             if organization_id is None:
                 raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
 
-            org = await Organization.get_or_none(id=organization_id, using_db=conn)
+            org = await self.organization_repo.get_by_id_in_connection(organization_id, conn=conn)
             if org is None or not org.is_active:
                 raise Forbidden(message=self._ta("ORG_INACTIVE", "组织不可用"), error="ORG_INACTIVE")
             if not is_org_scope:
-                ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
+                ws = await self.workspace_repo.get_by_id_in_connection(workspace_id, conn=conn)
                 if ws is None or not ws.is_active or ws.archived_at is not None:
                     raise Forbidden(
                         message=t("errors", "NOT_FOUND"),
@@ -285,23 +289,21 @@ class AuthInvitationAcceptanceService(BaseService):
             if not email:
                 raise BadRequest(message=self._ta("EMAIL_REQUIRED", "邮箱不能为空"), error="EMAIL_REQUIRED")
 
-            if await User.filter(username=username).using_db(conn).exists():
+            if await self.user_repo.exists_username_in_connection(username, conn=conn):
                 raise Conflict(message=self._ta("USERNAME_EXISTS", "用户名已存在"), error="USERNAME_EXISTS")
-            if await User.filter(email=email).using_db(conn).exists():
+            if await self.user_repo.exists_email_in_connection(email, conn=conn):
                 raise Conflict(message=self._ta("EMAIL_EXISTS", "邮箱已存在"), error="EMAIL_EXISTS")
 
             ensure_password_strength(payload.password)
 
             password_hash = hash_password(payload.password, self.settings.auth)
-            user = await User.create(
-                using_db=conn,
+            user = await self.user_repo.create_user_in_connection(
+                conn=conn,
                 username=username,
                 email=email,
-                status=UserStatus.ACTIVE,
                 display_name=display_name,
-                avatar_url=None,
+                password_hash=password_hash,
             )
-            await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
 
             join_as_guest = bool((not is_org_scope) and is_workspace_guest_invite_code(code))
 
@@ -684,11 +686,11 @@ class AuthInvitationAcceptanceService(BaseService):
             if organization_id is None:
                 raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
 
-            org = await Organization.get_or_none(id=organization_id, using_db=conn)
+            org = await self.organization_repo.get_by_id_in_connection(organization_id, conn=conn)
             if org is None or not org.is_active:
                 raise Forbidden(message=self._ta("ORG_INACTIVE", "组织不可用"), error="ORG_INACTIVE")
             if not is_org_scope:
-                ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
+                ws = await self.workspace_repo.get_by_id_in_connection(workspace_id, conn=conn)
                 if ws is None or not ws.is_active or ws.archived_at is not None:
                     raise Forbidden(
                         message=t("errors", "NOT_FOUND"),

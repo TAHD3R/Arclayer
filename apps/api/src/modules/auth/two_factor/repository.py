@@ -7,6 +7,7 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
 
 
@@ -51,7 +52,7 @@ class TwoFactorRepositoryLike(Protocol):
     async def try_advance_totp_counter(self, *, user_id: UUID, counter: int, used_at: datetime) -> bool: ...
 
 
-class TwoFactorRepository(TwoFactorRepositoryLike):
+class TwoFactorRepository(TortoiseORMRepository, TwoFactorRepositoryLike):
     async def get_record(self, user_id: UUID) -> UserTwoFactor | None:
         return await UserTwoFactor.get_or_none(user_id=user_id)
 

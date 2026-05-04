@@ -29,17 +29,18 @@ from src.modules.projects.content.items.domain_helpers import WORKFLOW_PUBLISH_B
 from src.modules.projects.publish.schema import (
     PublishArtifactsOut,
     PublishBlockedItemOut,
-    PublishImpactOut,
+    PublishReadinessOut,
     PublishReadinessSummaryOut,
 )
+from src.modules.projects.releases.repository import ProjectReleasesRepository
 from src.modules.tenancy.database import TenantDatabaseRouter
 from src.modules.tenancy.schema import TenantContext
 
 _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST = frozenset({"seo", "slot_mapping"})
 
 
-def _empty_impact() -> PublishImpactOut:
-    return PublishImpactOut(
+def _empty_impact() -> PublishReadinessOut:
+    return PublishReadinessOut(
         missing_routes=[],
         unresolved_relations=[],
         unpublished_dependencies=[],
@@ -48,14 +49,14 @@ def _empty_impact() -> PublishImpactOut:
     )
 
 
-def _has_blockers(impact: PublishImpactOut) -> bool:
+def _has_blockers(impact: PublishReadinessOut) -> bool:
     return bool(
         impact.missing_routes or impact.unresolved_relations or impact.unpublished_dependencies or impact.blocked_items
     )
 
 
 def _append_blocked_item(
-    impact: PublishImpactOut,
+    impact: PublishReadinessOut,
     *,
     item: ContentItemRecord,
     reason_code: str,
@@ -73,7 +74,7 @@ def _append_blocked_item(
     )
 
 
-def _refresh_readiness_summary(impact: PublishImpactOut, *, selected_item_count: int) -> None:
+def _refresh_readiness_summary(impact: PublishReadinessOut, *, selected_item_count: int) -> None:
     blocker_codes = sorted({blocked.reason_code for blocked in impact.blocked_items})
     impact.readiness_summary = PublishReadinessSummaryOut(
         ready=not _has_blockers(impact),
@@ -190,30 +191,6 @@ async def _load_component_manifest_map(
     return {version_id: {"presentations": presentations} for version_id, presentations in out.items() if presentations}
 
 
-async def _next_release_number(*, site_id: UUID, conn) -> int:
-    latest = await ContentReleaseRecord.filter(site_id=site_id).using_db(conn).order_by("-release_number").first()
-    return (int(latest.release_number) if latest is not None else 0) + 1
-
-
-async def _current_active_release(
-    *,
-    workspace_id: UUID,
-    site_id: UUID,
-    conn: BaseDBAsyncClient,
-) -> ContentReleaseRecord | None:
-    return (
-        await ContentReleaseRecord
-        .filter(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            is_active=True,
-        )
-        .using_db(conn)
-        .order_by("-release_number")
-        .first()
-    )
-
-
 async def _production_environment_id(*, site_id: UUID, conn: BaseDBAsyncClient) -> UUID | None:
     site = await SiteRecord.filter(id=site_id, project_id__not_isnull=True).using_db(conn).first()
     if site is not None and site.project_id is not None:
@@ -243,8 +220,9 @@ class ProjectPublishService:
     def __init__(self, tenant_context: TenantContext) -> None:
         self.tenant_context = tenant_context
         self.tenant_db = TenantDatabaseRouter(tenant_context)
+        self.releases_repo = ProjectReleasesRepository(tenant_context)
 
-    async def preview_impact(self, *, workspace_id: UUID, site_id: UUID) -> PublishImpactOut:
+    async def preview_impact(self, *, workspace_id: UUID, site_id: UUID) -> PublishReadinessOut:
         async with self.tenant_db.connection() as conn:
             environment_id = await _production_environment_id(site_id=site_id, conn=conn)
             items = await _load_publishable_items(
@@ -362,36 +340,23 @@ class ProjectPublishService:
         activated_at: datetime,
     ) -> ContentReleaseRecord:
         async with self.tenant_db.connection() as conn:
-            target = (
-                await ContentReleaseRecord
-                .filter(
-                    id=release.id,
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    status=ContentReleaseStatus.SCHEDULED,
-                )
-                .using_db(conn)
-                .first()
+            target = await self.releases_repo.get_release_in_connection(
+                release_id=release.id,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                status=ContentReleaseStatus.SCHEDULED,
+                conn=conn,
             )
             if target is None:
                 raise Conflict("Scheduled release is no longer executable", error="SCHEDULED_RELEASE_NOT_EXECUTABLE")
 
-            await (
-                ContentReleaseRecord
-                .filter(
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                    is_active=True,
-                )
-                .exclude(id=target.id)
-                .using_db(conn)
-                .update(is_active=False, status=ContentReleaseStatus.PUBLISHED)
+            await self.releases_repo.deactivate_other_active_releases(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                active_release_id=target.id,
+                conn=conn,
             )
-            target.is_active = True
-            target.status = ContentReleaseStatus.ACTIVE
-            target.activated_at = activated_at
-            await target.save(update_fields=["is_active", "status", "activated_at"], using_db=conn)
-            return target
+            return await self.releases_repo.mark_release_active(release=target, activated_at=activated_at, conn=conn)
 
     async def create_release_snapshot(
         self,
@@ -399,7 +364,7 @@ class ProjectPublishService:
         workspace_id: UUID,
         site_id: UUID,
         actor_user_id: UUID | None,
-        impact: PublishImpactOut,
+        impact: PublishReadinessOut,
         activate: bool,
         scheduled_at: datetime | None,
     ) -> tuple[ContentReleaseRecord, PublishArtifactsOut]:
@@ -419,17 +384,17 @@ class ProjectPublishService:
             seo_profile_map = await _load_seo_profile_map(version_ids=version_ids, conn=conn)
             component_binding_map = await _load_component_binding_map(version_ids=version_ids, conn=conn)
             component_manifest_map = await _load_component_manifest_map(version_ids=version_ids, conn=conn)
-            current_active_release = await _current_active_release(
+            current_active_release = await self.releases_repo.get_current_active_release(
                 workspace_id=workspace_id,
                 site_id=site_id,
                 conn=conn,
             )
             activation_time = datetime.now(tz=UTC) if activate else None
-            release = await ContentReleaseRecord.create(
-                using_db=conn,
+            release = await self.releases_repo.create_release(
+                conn=conn,
                 workspace_id=workspace_id,
                 site_id=site_id,
-                release_number=await _next_release_number(site_id=site_id, conn=conn),
+                release_number=await self.releases_repo.next_release_number(site_id=site_id, conn=conn),
                 is_active=activate,
                 status=ContentReleaseStatus.ACTIVE if activate else ContentReleaseStatus.SCHEDULED,
                 created_by_user_id=actor_user_id,
@@ -558,16 +523,11 @@ class ProjectPublishService:
                     )
 
             if activate:
-                await (
-                    ContentReleaseRecord
-                    .filter(
-                        workspace_id=workspace_id,
-                        site_id=site_id,
-                        is_active=True,
-                    )
-                    .exclude(id=release.id)
-                    .using_db(conn)
-                    .update(is_active=False, status=ContentReleaseStatus.PUBLISHED)
+                await self.releases_repo.deactivate_other_active_releases(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    active_release_id=release.id,
+                    conn=conn,
                 )
             if rows:
                 await PublishedGraphRecord.bulk_create(rows, using_db=conn)

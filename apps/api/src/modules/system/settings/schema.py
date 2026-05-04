@@ -1,26 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject, JsonValue
 
 
 class SettingsFieldItem(BaseSchema):
     key: str = Field(..., description="Config key.")
     type: str = Field(..., description="Config field type.")
-    default: Any | None = Field(default=None, description="Default value.")
+    default: JsonValue | None = Field(default=None, description="Default value.")
     secret: bool = Field(default=False, description="Whether this field is secret/sensitive.")
     options: list[SettingsOptionItem] = Field(default_factory=list, description="Optional select options for UI.")
-    ui: dict[str, Any] | None = Field(default=None, description="UI rendering hints (optional).")
+    ui: JsonObject | None = Field(default=None, description="UI rendering hints (optional).")
     label: str | None = Field(default=None, description="Localized label.")
     description: str | None = Field(default=None, description="Localized description.")
 
 
 class SettingsOptionItem(BaseSchema):
-    value: Any = Field(..., description="Option value.")
+    value: JsonValue = Field(..., description="Option value.")
     label: str | None = Field(default=None, description="Localized label.")
     description: str | None = Field(default=None, description="Localized description.")
 
@@ -45,10 +46,10 @@ class SettingsNamespaceSummary(BaseSchema):
 class SettingsDetail(BaseSchema):
     namespace: str = Field(..., description="Settings namespace.")
     setting_schema: SettingsSchemaItem = Field(..., description="Schema for UI and validation.")
-    value: dict[str, Any] = Field(default_factory=dict, description="Masked settings value.")
+    value: JsonObject = Field(default_factory=dict, description="Masked settings value.")
     secrets: dict[str, bool] = Field(default_factory=dict, description="Secret field set state by path.")
     updated_at: datetime | None = Field(default=None, description="Last update time.")
 
 
 class SettingsPatch(BaseSchema):
-    patch: dict[str, Any] = Field(default_factory=dict, description="Merge patch payload.")
+    patch: JsonObject = Field(default_factory=dict, description="Merge patch payload.")

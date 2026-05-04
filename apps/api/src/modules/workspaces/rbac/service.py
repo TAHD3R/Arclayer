@@ -12,7 +12,6 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.models.system.rbac import Permission, PermissionScope, Role
-from src.models.workspaces.workspace import Workspace
 from src.modules.permissions import PermissionConditionSet
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.system.rbac.repository import RBACRepository
@@ -514,9 +513,9 @@ class WorkspaceRBACService(BaseService):
         )
 
     async def ensure_all_workspaces_ready(self) -> int:
-        workspace_ids = await Workspace.all().values_list("id", flat=True)
+        workspace_ids = await self.repo.list_workspace_ids()
         total = 0
         for workspace_id in workspace_ids:
             total += 1
-            await self.ensure_workspace_system_role_grants(workspace_id=UUID(str(workspace_id)))
+            await self.ensure_workspace_system_role_grants(workspace_id=workspace_id)
         return total

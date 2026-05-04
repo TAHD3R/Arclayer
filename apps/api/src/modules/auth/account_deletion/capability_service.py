@@ -9,6 +9,7 @@ from src.core.exceptions import Forbidden, Unauthorized
 from src.core.i18n import t
 from src.models.organization.user import User
 from src.modules.auth.account_deletion.guard import AccountDeletionGuard
+from src.modules.auth.oauth.social.repository import OAuthSocialRepository
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.schema import DeleteMyAccountCapabilityOut
 
@@ -17,6 +18,7 @@ class AccountDeletionCapabilityService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.user_repo = UserRepository()
+        self.oauth_repo = OAuthSocialRepository()
 
     async def get_capabilities(self, *, user: User, two_factor_enabled: bool) -> DeleteMyAccountCapabilityOut:
         user_with_cred = cast(User | None, await self.user_repo.get_by_id_with_credential(UUID(str(user.id))))
@@ -48,9 +50,7 @@ class AccountDeletionCapabilityService(BaseService):
         return None
 
     async def _has_linked_oauth_identities(self, *, user_id: UUID) -> bool:
-        from src.models.auth.oauth_identity import OAuthIdentity
-
-        return await OAuthIdentity.filter(user_id=user_id).exists()
+        return await self.oauth_repo.has_identity_for_user(user_id=user_id)
 
     @staticmethod
     def _required_reauth_methods(*, has_password: bool, two_factor_enabled: bool) -> list[str]:

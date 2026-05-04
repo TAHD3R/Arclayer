@@ -4,12 +4,12 @@ from typing import Any, cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import SettingUpdatedBy
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.system.setting import SettingRecord
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 
-class SettingsRepository(BaseRepository):
+class SettingsRepository(TortoiseORMRepository):
     async def get_by_namespace(self, namespace: str) -> SettingRecord | None:
         # Admin settings are system-scoped in v2.
         return await SettingRecord.get_or_none(

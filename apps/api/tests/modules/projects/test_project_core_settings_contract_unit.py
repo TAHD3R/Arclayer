@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import uuid4
 
 import pytest
 
+from src.common.types.json_types import JsonObject
 from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.projects.governance.router import (
     get_project_core_settings as get_project_core_settings_route,
@@ -71,7 +73,8 @@ async def test_project_core_settings_route_returns_project_detail(monkeypatch: p
 
     assert response.data is not None
     assert response.data.namespace == "core"
-    assert response.data.value["site"]["name"] == "Arclayer"
+    site_settings = cast(JsonObject, response.data.value["site"])
+    assert site_settings["name"] == "Arclayer"
 
 
 @pytest.mark.asyncio

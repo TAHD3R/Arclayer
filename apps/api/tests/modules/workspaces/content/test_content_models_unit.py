@@ -253,7 +253,8 @@ def test_content_model_field_type_registry_exposes_builtin_and_plugin_contracts(
     assert "uid" not in field_types
     assert field_types["short_text"].scalar == "text"
     assert field_types["reference"].allowed_model_kinds == ["collection_type", "single_type"]
-    assert field_types["dynamic_zone"].config_schema["properties"]["components"] == "string[]"
+    dynamic_zone_properties = cast(dict[str, str], field_types["dynamic_zone"].config_schema["properties"])
+    assert dynamic_zone_properties["components"] == "string[]"
     assert field_types["plugin.color.swatch"].source == "plugin"
 
 

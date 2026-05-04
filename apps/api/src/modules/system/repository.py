@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 
 
-class SystemRepository(BaseRepository):
+class SystemRepository(TortoiseORMRepository):
     """
     System repository.
 

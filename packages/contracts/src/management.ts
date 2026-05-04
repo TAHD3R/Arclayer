@@ -26,7 +26,7 @@ import type {
   ProjectSettingsDetail,
   ProjectSettingsPatch,
   PublishExportContractOut,
-  PublishImpactOut,
+  PublishReadinessOut,
   ReleaseDryRunOut,
   ReleaseListOut,
   ReleaseOut,
@@ -60,7 +60,7 @@ export type ContentVersionContract = ContentVersionOut;
 export type ContentVersionDraftSaveContract = ContentVersionDraftSaveIn;
 export type ContentVersionPatchContract = ContentVersionPatchIn;
 export type PersonalApiKeyCreateContract = PersonalApiKeyCreateIn;
-export type PublishImpactContract = PublishImpactOut;
+export type PublishReadinessContract = PublishReadinessOut;
 export type PublishPreviewContract = PublishExportContractOut;
 export type ProjectApiKeyCreateContract = ProjectApiKeyCreateIn;
 export type ProjectRuntimeSiteContract = ProjectRuntimeSiteOut;

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type MutableRefObject } from "react";
 import { Button } from "@arclayer/ui/button";
 import { Spinner } from "@arclayer/ui/spinner";
 
+import { fetchAssetBlob } from "@/lib/assets/storage-transfer";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import { buildAssetAuthHeaders, getAssetPreviewKind } from "./asset-preview-file-utils";
@@ -145,16 +146,11 @@ function useResolvedPreviewSource(params: { source: string | null; requiresAuth:
     setIsLoading(true);
     setLoadFailed(false);
 
-    fetch(params.source, {
+    fetchAssetBlob({
+      url: params.source,
       headers: buildAssetAuthHeaders(),
       signal: controller.signal,
     })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`image fetch failed: ${response.status}`);
-        }
-        return response.blob();
-      })
       .then((blob) => {
         objectUrl = URL.createObjectURL(blob);
         setResolvedSrc(objectUrl);

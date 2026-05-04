@@ -7,7 +7,7 @@ from pydantic import ConfigDict, Field
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
 from src.models.content._enums import ContentReleaseStatus
-from src.modules.projects.publish.schema import PublishImpactOut, PublishReadinessSummaryOut
+from src.modules.projects.publish.schema import PublishReadinessOut, PublishReadinessSummaryOut
 from src.modules.system.jobs.schema import PublishJobOut
 
 
@@ -22,7 +22,7 @@ class ReleaseDryRunOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     readiness_summary: PublishReadinessSummaryOut = Field(..., description="Aggregated release readiness summary.")
-    impact: PublishImpactOut = Field(..., description="Detailed dry-run diagnostics for the pending release.")
+    impact: PublishReadinessOut = Field(..., description="Detailed dry-run diagnostics for the pending release.")
 
 
 class ReleaseOut(BaseOut):
@@ -55,7 +55,7 @@ class ReleasePublishOut(BaseSchema):
     job: PublishJobOut | None = Field(default=None, description="Scheduled publish job metadata.")
     graph_nodes: int = Field(..., ge=0, description="Number of generated graph nodes.")
     selection_count: int = Field(..., ge=0, description="Number of selected items captured in the release.")
-    impact: PublishImpactOut = Field(..., description="Resolved publish impact snapshot used by the release.")
+    impact: PublishReadinessOut = Field(..., description="Resolved publish readiness snapshot used by the release.")
 
 
 class ReleaseRollbackOut(BaseSchema):

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseSchema
-from src.common.types.json_types import JsonValue
+from src.common.types.json_types import JsonObject, JsonValue
 from src.common.types.public_uuid import PublicUUID
 from src.modules.sites.design.schema import PageBlueprint
 
@@ -144,7 +144,7 @@ class SitePrimaryContextOut(BaseSchema):
     model_key: str | None = Field(default=None, alias="modelKey", description="Primary entry model key.")
     slug: str | None = Field(default=None, description="Primary entry slug.")
     title: str | None = Field(default=None, description="Primary entry title.")
-    data: dict[str, Any] = Field(
+    data: JsonObject = Field(
         default_factory=dict,
         description="Primary entry data snapshot with depth-1 fields.",
     )

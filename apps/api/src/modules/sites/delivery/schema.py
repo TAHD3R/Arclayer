@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseSchema
-from src.common.types.json_types import JsonValue
+from src.common.types.json_types import JsonObject, JsonValue
 from src.common.types.public_uuid import PublicUUID
 from src.modules.sites.runtime.schema import ResolveWarningV1, SiteFlattenedSectionOut, SiteRouteResolveOut
 
@@ -17,13 +17,13 @@ class DeliveryMenuOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     key: str = Field(..., description="Menu key.")
-    items: list[dict[str, Any]] = Field(default_factory=list, description="Menu items.")
+    items: list[JsonObject] = Field(default_factory=list, description="Menu items.")
 
 
 class DeliveryStyleOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    effective: dict[str, Any] | None = Field(default=None, description="Effective site style payload.")
+    effective: JsonObject | None = Field(default=None, description="Effective site style payload.")
 
 
 class DeliverySectionDocumentOut(BaseSchema):
@@ -65,7 +65,7 @@ class DeliveryGlobalSetItemOut(BaseSchema):
     id: str = Field(..., min_length=1, description="Global set item id.")
     name: str = Field(..., min_length=1, description="Global set item display name.")
     key: str = Field(..., min_length=1, description="Global set logical key.")
-    payload: dict[str, Any] | None = Field(default=None, description="Stored binding payload.")
+    payload: JsonObject | None = Field(default=None, description="Stored binding payload.")
     section_alias: str | None = Field(default=None, alias="sectionAlias", description="Bound reusable section alias.")
     section: DeliverySectionOut | None = Field(default=None, description="Resolved reusable section document.")
 

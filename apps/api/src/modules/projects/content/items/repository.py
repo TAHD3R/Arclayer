@@ -65,7 +65,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentItemRecord:
         async with self.connection(conn) as tenant_conn:
-            return await self.create(
+            return await self.create_record(
                 ContentItemRecord,
                 conn=tenant_conn,
                 workspace_id=workspace_id,
@@ -103,7 +103,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         conn: BaseDBAsyncClient | None = None,
     ) -> TranslationGroupRecord:
         async with self.connection(conn) as tenant_conn:
-            return await self.create(
+            return await self.create_record(
                 TranslationGroupRecord,
                 conn=tenant_conn,
                 workspace_id=workspace_id,
@@ -337,7 +337,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentVersionRecord:
         async with self.connection(conn) as tenant_conn:
-            return await self.create(
+            return await self.create_record(
                 ContentVersionRecord,
                 conn=tenant_conn,
                 item_id=item_id,
@@ -471,7 +471,7 @@ class ProjectContentItemsRepository(TenantScopedRepository):
             if payload is None:
                 return
 
-            await self.create(
+            await self.create_record(
                 SEOProfileRecord,
                 conn=tenant_conn,
                 version_id=version_id,

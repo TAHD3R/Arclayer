@@ -34,6 +34,10 @@ class TenantIdentity(BaseSchema):
     isolation_mode: TenantIsolationMode = Field(..., description="Isolation mode for tenant-owned data.")
 
 
+class TenantIdentityOut(TenantIdentity):
+    model_config = TenantIdentity.model_config | ConfigDict(frozen=True)
+
+
 @dataclass(frozen=True, slots=True)
 class TenantContext:
     identity: TenantIdentity

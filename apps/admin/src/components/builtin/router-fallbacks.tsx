@@ -9,8 +9,10 @@ import { UnauthorizedView } from "@/components/builtin/unauthorized-page";
 
 export function RouterDefaultNotFound(_props: NotFoundRouteProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const historyState =
+    typeof window !== "undefined" ? (window.history.state as { __TSR_index?: number }) : undefined;
   const historyIndex =
-    typeof window !== "undefined" ? (window.history.state as any)?.__TSR_index : undefined;
+    typeof historyState?.__TSR_index === "number" ? historyState.__TSR_index : undefined;
   // When the user lands on a non-existing route via the address bar / external jump,
   // the current history entry is typically the first one (index=0). In that case we
   // prefer a fullscreen error so the broken URL doesn't render under AdminLayout shell.

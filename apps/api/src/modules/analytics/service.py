@@ -6,7 +6,6 @@ from uuid import UUID
 from src.common.services import BaseService
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams
-from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.user import User
 from src.modules.analytics.repository import AuditEventRepository
 from src.modules.analytics.schema import ActivityUserSummaryOut, AuditEventListQuery, AuditEventOut
@@ -48,7 +47,7 @@ class ActivityService(BaseService):
                 if r.subject_user_id:
                     user_ids.add(UUID(str(r.subject_user_id)))
 
-            users = await User.filter(id__in=list(user_ids)).all() if user_ids else []
+            users = await self.repo.list_users_by_ids(user_ids=user_ids)
             user_by_id = {UUID(str(u.id)): u for u in users}
 
             items = []
@@ -89,7 +88,7 @@ class ActivityService(BaseService):
         organization_id: UUID | None,
         event_id: UUID,
     ) -> AuditEventOut:
-        row = await AuditEvent.get_or_none(id=event_id)
+        row = await self.repo.get_event_by_id(event_id=event_id)
         if row is None:
             raise NotFound(error="NOT_FOUND")
         if organization_id is not None and UUID(str(row.organization_id)) != organization_id:
@@ -101,7 +100,7 @@ class ActivityService(BaseService):
             user_ids.add(UUID(str(row.actor_user_id)))
         if row.subject_user_id:
             user_ids.add(UUID(str(row.subject_user_id)))
-        users = await User.filter(id__in=list(user_ids)).all() if user_ids else []
+        users = await self.repo.list_users_by_ids(user_ids=user_ids)
         user_by_id = {UUID(str(u.id)): u for u in users}
 
         actor_u = user_by_id.get(UUID(str(row.actor_user_id))) if row.actor_user_id else None

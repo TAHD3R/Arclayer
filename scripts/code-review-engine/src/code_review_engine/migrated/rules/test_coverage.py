@@ -10,6 +10,7 @@ Per user requirement:
 from __future__ import annotations
 
 import pathlib
+import re
 
 from code_review_engine.migrated.contracts import Severity, Violation
 from code_review_engine.migrated.rules.base import AuditRule, v
@@ -130,6 +131,7 @@ class NoSkippedTestsWithoutRationale(AuditRule):
     description = (
         "Skipped tests (skip/xfail) must have owner, rationale, deadline per testing-and-quality-gates.md sec 8."
     )
+    SKIP_MARKER_RE = re.compile(r"(^|[.@])(?:skip|skipif|xfail)\b")
 
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
@@ -146,7 +148,7 @@ class NoSkippedTestsWithoutRationale(AuditRule):
             lines = content.splitlines()
             for i, line in enumerate(lines, 1):
                 stripped = line.strip()
-                if "skip" in stripped.lower() or "xfail" in stripped.lower():
+                if self.SKIP_MARKER_RE.search(stripped.lower()):
                     if stripped.startswith("#") or stripped.startswith('"""'):
                         continue
                     # Check if rationale is nearby (within 3 lines)

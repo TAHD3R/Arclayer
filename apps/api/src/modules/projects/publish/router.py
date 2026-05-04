@@ -19,7 +19,7 @@ from src.modules.projects.publish.router_helpers import (
     get_project_publish_preview_service,
     get_project_publish_service,
 )
-from src.modules.projects.publish.schema import PublishExportContractOut, PublishImpactOut
+from src.modules.projects.publish.schema import PublishExportContractOut, PublishReadinessOut
 from src.modules.projects.publish.service import ProjectPublishService
 from src.modules.projects.runtime.service import ProjectRuntimeService
 
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/projects/{project_id}/publish", tags=["domain.projec
 
 @router.get(
     "/impact",
-    response_model=ResponseModel[PublishImpactOut],
+    response_model=ResponseModel[PublishReadinessOut],
     response_model_exclude_none=True,
     summary="Preview project publish impact",
     dependencies=[require_project_permission("project:release:read")],
@@ -38,7 +38,7 @@ async def get_project_publish_impact(
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     runtime_service: Annotated[ProjectRuntimeService, Depends(get_project_runtime_service)],
     service: Annotated[ProjectPublishService, Depends(get_project_publish_service)],
-) -> ResponseModel[PublishImpactOut]:
+) -> ResponseModel[PublishReadinessOut]:
     runtime_context = await get_project_runtime_context(
         ctx=ctx,
         actor_user_id=actor_user_id,

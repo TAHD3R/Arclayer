@@ -13,9 +13,10 @@ from src.models.content.release import ContentReleaseRecord
 from src.models.sites.site import SiteRecord
 from src.models.system.notification import NotificationCategory, NotificationRecord
 from src.models.tenancy.workspace_tenant import WorkspaceTenantRecord
-from src.models.workspaces.workspace import Workspace
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.projects.publish.schema import PublishArtifactsOut
 from src.modules.projects.publish.service import ProjectPublishService
+from src.modules.projects.releases.repository import ProjectReleasesRepository
 from src.modules.tenancy.database import TenantDatabaseRouter
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
 
@@ -27,6 +28,7 @@ class PublishJobService:
         self.tenant_context = tenant_context
         self.tenant_db = TenantDatabaseRouter(tenant_context) if tenant_context is not None else None
         self.publish_service = ProjectPublishService(tenant_context) if tenant_context is not None else None
+        self.releases_repo = ProjectReleasesRepository(tenant_context) if tenant_context is not None else None
 
     async def create_scheduled_publish(
         self,
@@ -64,16 +66,13 @@ class PublishJobService:
         actor_user_id: UUID,
     ) -> PublishJobRecord:
         tenant_db = self._require_tenant_db()
+        releases_repo = self._require_releases_repo()
         async with tenant_db.connection() as conn:
-            release = (
-                await ContentReleaseRecord
-                .filter(
-                    id=release_id,
-                    workspace_id=workspace_id,
-                    site_id=site_id,
-                )
-                .using_db(conn)
-                .first()
+            release = await releases_repo.get_release_in_connection(
+                release_id=release_id,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                conn=conn,
             )
         if release is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="RELEASE_NOT_FOUND")
@@ -124,8 +123,9 @@ class PublishJobService:
 
         tenant_context = await self._tenant_context_for_workspace(workspace_id=job.workspace_id)
         tenant_db = TenantDatabaseRouter(tenant_context)
+        releases_repo = ProjectReleasesRepository(tenant_context)
         async with tenant_db.connection() as conn:
-            release = await ContentReleaseRecord.filter(id=release_id).using_db(conn).first()
+            release = await releases_repo.get_release_in_connection(release_id=release_id, conn=conn)
         if release is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="RELEASE_NOT_FOUND")
 
@@ -181,10 +181,14 @@ class PublishJobService:
             raise RuntimeError("PROJECT_TENANT_CONTEXT_REQUIRED")
         return self.publish_service
 
-    @staticmethod
-    async def _tenant_context_for_workspace(*, workspace_id: UUID) -> TenantContext:
+    def _require_releases_repo(self) -> ProjectReleasesRepository:
+        if self.releases_repo is None:
+            raise RuntimeError("PROJECT_TENANT_CONTEXT_REQUIRED")
+        return self.releases_repo
+
+    async def _tenant_context_for_workspace(self, *, workspace_id: UUID) -> TenantContext:
         record = await WorkspaceTenantRecord.get_or_none(workspace_id=workspace_id)
-        workspace = await Workspace.get_or_none(id=workspace_id)
+        workspace = await OrganizationWorkspaceRepository().get_by_id(workspace_id=workspace_id)
         if record is None or workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="WORKSPACE_TENANT_NOT_FOUND")
         return TenantContext(

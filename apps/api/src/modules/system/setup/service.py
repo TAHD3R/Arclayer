@@ -11,7 +11,7 @@ from tortoise import Tortoise
 
 from src.common.services import BaseService
 from src.config import Settings
-from src.models.organization.user import User
+from src.modules.auth.repository import UserRepository
 
 
 class InstanceSetupStatus(StrEnum):
@@ -44,6 +44,7 @@ class InstanceSetupService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self._database_available = bool(settings.database.enabled)
+        self.user_repo = UserRepository()
 
     @property
     def install_lock_path(self) -> Path:
@@ -82,7 +83,7 @@ class InstanceSetupService(BaseService):
     async def count_super_admins(self) -> int:
         if not self._database_available or not Tortoise._inited:
             return 0
-        return int(await User.filter(is_super_admin=True).count())
+        return await self.user_repo.count_super_admins()
 
     def read_install_lock(self) -> InstallLockMetadata:
         raw = json.loads(self.install_lock_path.read_text(encoding="utf-8"))

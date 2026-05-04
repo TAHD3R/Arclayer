@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.modules.sites.delivery.schema import DeliveryPerspective
 
@@ -21,10 +22,10 @@ class ContentApiEntryOut(BaseSchema):
     revision_state: Literal["draft", "published"] = Field(..., description="Resolved revision state.")
     draft_revision: int = Field(..., ge=0, description="Current draft revision pointer.")
     published_revision: int | None = Field(default=None, ge=1, description="Current published revision pointer.")
-    fields: dict[str, Any] = Field(default_factory=dict, description="Delivery-safe field payload.")
-    custom_fields: dict[str, Any] = Field(default_factory=dict, description="Delivery-safe custom field payload.")
+    fields: JsonObject = Field(default_factory=dict, description="Delivery-safe field payload.")
+    custom_fields: JsonObject = Field(default_factory=dict, description="Delivery-safe custom field payload.")
     route_path: str | None = Field(default=None, description="Bound route path, when the entry owns one.")
-    route_contract: dict[str, Any] | None = Field(default=None, description="Bound route contract, when available.")
+    route_contract: JsonObject | None = Field(default=None, description="Bound route contract, when available.")
 
 
 class ContentApiEntryListOut(BaseSchema):

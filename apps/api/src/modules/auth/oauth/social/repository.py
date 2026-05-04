@@ -5,8 +5,8 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
-from src.common.repositories import BaseRepository
 from src.common.utils.ids import uuid7
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.organization.user import User, UserStatus
 
@@ -23,7 +23,7 @@ def _sanitize_username_base(value: str) -> str:
     return raw[:32]
 
 
-class OAuthSocialRepository(BaseRepository):
+class OAuthSocialRepository(TortoiseORMRepository):
     async def get_identity(self, *, provider: str, subject: str) -> OAuthIdentity | None:
         return await OAuthIdentity.get_or_none(provider=provider, subject=subject)
 
@@ -51,14 +51,23 @@ class OAuthSocialRepository(BaseRepository):
     async def list_identities_for_user(self, *, user_id: UUID) -> list[OAuthIdentity]:
         return await OAuthIdentity.filter(user_id=user_id).order_by("-created_at").all()
 
+    async def has_identity_for_user(self, *, user_id: UUID) -> bool:
+        return await OAuthIdentity.filter(user_id=user_id).exists()
+
     async def delete_identity_for_user(self, *, user_id: UUID, provider: str) -> int:
         return await OAuthIdentity.filter(user_id=user_id, provider=provider).delete()
+
+    async def delete_identities_for_user(self, *, user_id: UUID) -> int:
+        return await OAuthIdentity.filter(user_id=user_id).delete()
 
     async def get_user_by_email(self, *, email: str) -> User | None:
         normalized = (email or "").strip().lower()
         if not normalized:
             return None
         return await User.get_or_none(email=normalized)
+
+    async def get_user_by_id(self, *, user_id: UUID) -> User | None:
+        return await User.get_or_none(id=user_id)
 
     async def create_user(
         self,

@@ -5,7 +5,8 @@ from uuid import UUID
 from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import NotFound
-from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
 from src.modules.workspaces.schema import WorkspaceDangerActionOut, WorkspaceDangerCapabilitiesOut
@@ -14,11 +15,12 @@ from src.modules.workspaces.schema import WorkspaceDangerActionOut, WorkspaceDan
 class WorkspaceDangerService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
+        self.repo = OrganizationWorkspaceRepository()
 
     async def get_capabilities(
         self, *, organization_id: UUID, workspace_id: UUID, user_id: UUID
     ) -> WorkspaceDangerCapabilitiesOut:
-        workspace = await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)
+        workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(error="NOT_FOUND")
         leave_blocked_reason = await self._get_leave_blocked_reason(workspace_id=workspace_id, user_id=user_id)
@@ -70,7 +72,8 @@ class WorkspaceDangerService(BaseService):
         snap = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=workspace_id)
         if not (snap.is_superuser or "system:settings:manage" in set(snap.permission_codes)):
             return "WORKSPACE_SETTINGS_MANAGE_REQUIRED"
-        active_count = await Workspace.filter(organization_id=organization_id, is_active=True, archived_at=None).count()
+        active_workspaces = await self.repo.list_active_non_archived_for_org(organization_id=organization_id)
+        active_count = len(active_workspaces)
         if int(active_count) <= 1:
             return "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE"
         return None

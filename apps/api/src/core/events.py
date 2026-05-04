@@ -4,11 +4,11 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any
 
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -39,7 +39,7 @@ class Event(BaseSchema):
     model_config = ConfigDict(frozen=True)
 
     name: str
-    payload: dict[str, Any] = Field(default_factory=dict)
+    payload: JsonObject = Field(default_factory=dict)
     version: str = "1.0"
     occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     source: str | None = None
@@ -152,9 +152,9 @@ class EventBus:
             await asyncio.gather(*tasks, return_exceptions=True)
         self._tasks.clear()
 
-    async def snapshot(self) -> dict[str, list[dict[str, Any]]]:
+    async def snapshot(self) -> dict[str, list[JsonObject]]:
         async with self._lock:
-            out: dict[str, list[dict[str, Any]]] = {}
+            out: dict[str, list[JsonObject]] = {}
             for event_name, subs in self._subs.items():
                 out[event_name] = [
                     {

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
 from src.models.organization.org_membership import OrgMembership
@@ -78,7 +79,7 @@ def _normalize_ordering(value: str | None, allowed: dict[str, str], default: str
     return fields or [default]
 
 
-class SystemDirectoryRepository:
+class SystemDirectoryRepository(TortoiseORMRepository):
     async def _user_filter_q(self, *, filters: DirectoryUserListFilters) -> Q:
         query = Q()
         if filters.status is not None:

@@ -4,13 +4,13 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.modules.sites.shared.service import normalize_path
 
 
-class SiteRoutingRepository(BaseRepository):
+class SiteRoutingRepository(TortoiseORMRepository):
     def __init__(self, conn: BaseDBAsyncClient | None = None) -> None:
         super().__init__()
         self._conn = conn

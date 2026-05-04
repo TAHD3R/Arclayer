@@ -14,7 +14,6 @@ from src.core.http.file_stream import stream_file_response
 from src.core.http.pagination import PageData, PageParams, paginate_queryset
 from src.core.i18n import t
 from src.models.assets.asset import AssetRecord
-from src.models.organization.user import User
 from src.modules.assets.admin.assets.repository import AdminAssetsRepository
 from src.modules.assets.admin.assets.schema import (
     AdminAssetBulkDeleteOut,
@@ -39,6 +38,7 @@ from src.modules.assets.admin.assets.schema import (
 )
 from src.modules.assets.admin.uploads.policy.service import normalize_original_filename
 from src.modules.assets.scope import AssetScope
+from src.modules.auth.repository import UserRepository
 from src.modules.tenancy.schema import TenantContext
 from src.platform.assets.images import (
     IMAGE_TRANSFORM_CACHE_CONTROL,
@@ -144,6 +144,7 @@ class AdminAssetsService(BaseService):
     def __init__(self, settings: Settings, tenant_context: TenantContext | None = None) -> None:
         super().__init__(settings)
         self.repo = AdminAssetsRepository(tenant_context)
+        self.user_repo = UserRepository()
 
     async def _get_profile_for_key(self, profile_key: str | None):
         if profile_key:
@@ -308,23 +309,17 @@ class AdminAssetsService(BaseService):
             # Best-effort uploader name (avoid N+1; load all users for current page in one query).
             user_ids = {x.owner_user_id for x in items if x.owner_user_id is not None}
             if user_ids:
-                users = await User.filter(id__in=list(user_ids)).values(
-                    "id",
-                    "username",
-                    "display_name",
-                    "avatar_url",
-                    "email",
-                )
+                users = await self.user_repo.list_by_ids(list(user_ids))
                 id_to_name: dict[UUID, str] = {}
                 id_to_avatar_url: dict[UUID, str] = {}
                 id_to_email: dict[UUID, str] = {}
                 for u in users:
-                    uid = u.get("id")
+                    uid = u.id
                     if uid is None:
                         continue
-                    name = (u.get("display_name") or u.get("username") or "") if isinstance(u, dict) else ""
-                    avatar_url = u.get("avatar_url") if isinstance(u, dict) else None
-                    email = u.get("email") if isinstance(u, dict) else None
+                    name = u.display_name or u.username or ""
+                    avatar_url = u.avatar_url
+                    email = u.email
                     if isinstance(name, str) and name.strip():
                         id_to_name[uid] = name.strip()
                     if isinstance(avatar_url, str) and avatar_url.strip():
@@ -409,7 +404,7 @@ class AdminAssetsService(BaseService):
             else:
                 detail.public_direct_url = None
         if detail.owner_user_id is not None:
-            user = await User.get_or_none(id=detail.owner_user_id)
+            user = await self.user_repo.get_by_id(detail.owner_user_id)
             if user is not None:
                 detail.uploader_name = user.display_name or user.username or None
                 detail.uploader_avatar_url = user.avatar_url

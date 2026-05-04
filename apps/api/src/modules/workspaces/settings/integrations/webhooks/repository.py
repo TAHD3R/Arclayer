@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.integrations.webhook_delivery import WebhookDelivery
 from src.models.integrations.webhook_subscription import WebhookSubscription
 
 
-class WebhooksRepository(BaseRepository):
+class WebhooksRepository(TortoiseORMRepository):
     async def list_subscriptions(self, *, workspace_id: UUID) -> list[WebhookSubscription]:
         return await WebhookSubscription.filter(workspace_id=workspace_id).order_by("created_at").all()
 

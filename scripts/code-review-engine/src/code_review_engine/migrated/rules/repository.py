@@ -24,6 +24,7 @@ RECOGNIZED_REPO_BASES = frozenset({
     "BaseRepository",
     "TenantScopedRepository",
 })
+CANONICAL_REPO_CLASSES = frozenset({"AbstractRepository", "TortoiseORMRepository"})
 
 
 class RepositoryMustExtendTortoiseORM(AuditRule):
@@ -40,8 +41,11 @@ class RepositoryMustExtendTortoiseORM(AuditRule):
         for sym in symbols:
             if sym["kind"] != "repository":
                 continue
+            if sym["name"] in CANONICAL_REPO_CLASSES and sym["file"].startswith("apps/api/src/core/repository/"):
+                continue
+            parents = tuple(sym.get("base_classes") or ())
             parent = sym.get("parent_class", "")
-            if not parent:
+            if not parents:
                 violations.append(
                     v(
                         file=sym["file"],
@@ -53,27 +57,35 @@ class RepositoryMustExtendTortoiseORM(AuditRule):
                     )
                 )
                 continue
-            base_name = parent.split(".")[-1]
-            if base_name in DEPRECATED_REPO_BASES:
+            base_names = {base.split(".")[-1] for base in parents}
+            deprecated_bases = sorted(base_names & DEPRECATED_REPO_BASES)
+            if deprecated_bases:
+                deprecated_base = deprecated_bases[0]
                 violations.append(
                     v(
                         file=sym["file"],
                         line=sym["line"],
                         rule=self.rule_id,
-                        message=f"Repository '{sym['name']}' extends deprecated '{parent}'. Migrate to TortoiseORMRepository.",
+                        message=(
+                            f"Repository '{sym['name']}' extends deprecated "
+                            f"'{deprecated_base}'. Migrate to TortoiseORMRepository."
+                        ),
                         severity=Severity.BLOCKER,
-                        evidence=f"class {sym['name']}({parent}): ...",
+                        evidence=f"class {sym['name']}({', '.join(parents)}): ...",
                     )
                 )
-            elif base_name not in RECOGNIZED_REPO_BASES:
+            elif not base_names & RECOGNIZED_REPO_BASES:
                 violations.append(
                     v(
                         file=sym["file"],
                         line=sym["line"],
                         rule=self.rule_id,
-                        message=f"Repository '{sym['name']}' extends unrecognized base '{parent}'. Must extend TortoiseORMRepository.",
+                        message=(
+                            f"Repository '{sym['name']}' extends unrecognized bases "
+                            f"'{', '.join(parents)}'. Must extend TortoiseORMRepository."
+                        ),
                         severity=Severity.BLOCKER,
-                        evidence=f"class {sym['name']}({parent}): ...",
+                        evidence=f"class {sym['name']}({', '.join(parents)}): ...",
                     )
                 )
         return violations

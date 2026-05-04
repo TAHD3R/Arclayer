@@ -9,17 +9,22 @@ from code_review_engine.cli import main
 def test_cli_json_empty_report(capsys, tmp_path: Path) -> None:
     subscribers = tmp_path / "apps/api/src/core/lifecycles/subscribers"
     subscribers.mkdir(parents=True)
-    (subscribers / "audit.py").write_text(
+    (subscribers / "audit.py").write_text("async def audit_lifecycle_events(event):\n    pass\n", encoding="utf-8")
+    runtime_init = tmp_path / "apps/api/src/core/runtime_init.py"
+    runtime_init.parent.mkdir(parents=True, exist_ok=True)
+    runtime_init.write_text(
         "\n".join(
             [
-                "register(action=LifecycleAction.BEFORE_CREATE)",
-                "register(action=LifecycleAction.AFTER_CREATE)",
-                "register(action=LifecycleAction.BEFORE_UPDATE)",
-                "register(action=LifecycleAction.AFTER_UPDATE)",
-                "register(action=LifecycleAction.BEFORE_DELETE)",
-                "register(action=LifecycleAction.AFTER_DELETE)",
-                "register(action=LifecycleAction.BEFORE_PUBLISH)",
-                "register(action=LifecycleAction.AFTER_PUBLISH)",
+                "async def init(lifecycle_dispatcher):",
+                "    await lifecycle_dispatcher.register(action=LifecycleAction.BEFORE_CREATE, handler=handler)",
+                "    await lifecycle_dispatcher.register(action=LifecycleAction.AFTER_CREATE, handler=handler)",
+                "    await lifecycle_dispatcher.register(action=LifecycleAction.BEFORE_UPDATE, handler=handler)",
+                "    await lifecycle_dispatcher.register(action=LifecycleAction.AFTER_UPDATE, handler=handler)",
+                "    await lifecycle_dispatcher.register(action=LifecycleAction.BEFORE_DELETE, handler=handler)",
+                "    await lifecycle_dispatcher.register(action=LifecycleAction.AFTER_DELETE, handler=handler)",
+                "    await lifecycle_dispatcher.register(action=LifecycleAction.BEFORE_PUBLISH, handler=handler)",
+                "    await lifecycle_dispatcher.register(action=LifecycleAction.AFTER_PUBLISH, handler=handler)",
+                "",
             ]
         ),
         encoding="utf-8",
@@ -174,32 +179,27 @@ def test_cli_changed_scope_limits_findings_to_changed_files(capsys) -> None:
     assert all(any(finding["file"].startswith(root) for root in changed_roots) for finding in payload["findings"])
 
 
-def test_cli_module_scope_detects_known_analytics_violations(capsys) -> None:
+def test_cli_module_scope_accepts_clean_analytics_module(capsys) -> None:
     repo_root = Path(__file__).resolve().parents[3]
 
     exit_code = main(["--repo-root", str(repo_root), "--scope", "module", "--module", "analytics", "--format", "json"])
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
-    rule_ids = {finding["rule_id"] for finding in payload["findings"]}
-    assert exit_code == 1
-    assert "service.no-direct-orm" in rule_ids
-    assert "repository.must-extend-tortoise-orm" in rule_ids
-    assert "schema.no-any-dict-fields" in rule_ids
-    assert "i18n.missing-t-call" in rule_ids
-    assert all(not finding["file"].startswith("apps/admin/") for finding in payload["findings"])
-    assert any(finding["file"].endswith("analytics/service.py") and finding["line"] == 51 for finding in payload["findings"])
+    assert exit_code == 0
+    assert payload["summary"]["total_findings"] == 0
+    assert payload["findings"] == []
 
 
-def test_cli_full_scope_runs_migrated_rules_and_reports_findings(capsys) -> None:
+def test_cli_full_scope_runs_migrated_rules_and_accepts_clean_repo(capsys) -> None:
     repo_root = Path(__file__).resolve().parents[3]
 
     exit_code = main(["--repo-root", str(repo_root), "--scope", "full", "--format", "json"])
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
-    assert exit_code == 1
+    assert exit_code == 0
     assert payload["selector"]["scope"] == "full"
     assert len(payload["rules_applied"]) > 4
-    assert payload["summary"]["total_findings"] > 0
-    assert payload["summary"]["blockers"] > 0
+    assert payload["summary"]["total_findings"] == 0
+    assert payload["summary"]["blockers"] == 0

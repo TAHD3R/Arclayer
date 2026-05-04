@@ -6,11 +6,11 @@ from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 
 
-class ProjectRuntimeBridgeOut(BaseSchema):
+class ProjectRuntimeContextOut(BaseSchema):
     runtime_id: PublicUUID = Field(..., alias="runtimeId", description="Primary runtime id.")
     project_id: PublicUUID = Field(..., alias="projectId", description="Project id.")
     workspace_id: PublicUUID = Field(..., alias="workspaceId", description="Workspace id.")
-    site_id: PublicUUID = Field(..., alias="siteId", description="Resolved site bridge id.")
+    site_id: PublicUUID = Field(..., alias="siteId", description="Resolved site id.")
     kind: str = Field(..., description="Runtime kind.")
     name: str = Field(..., description="Runtime name.")
     slug: str = Field(..., description="Resolved runtime slug.")

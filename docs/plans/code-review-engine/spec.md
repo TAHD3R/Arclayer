@@ -36,6 +36,8 @@ pnpm code-review-engine --scope changed --base develop --format json
 pnpm code-review-engine --rules service.no-direct-orm,frontend.route-no-api-calls --format json
 pnpm code-review-engine --baseline .baseline/code-review-engine.json --format json
 pnpm code-review-engine --write-baseline .baseline/code-review-engine.json
+pnpm code-review-engine --scope full --format json
+pnpm code-review-engine --scope full --format markdown --output reports/code-review-engine/full.md
 ```
 
 The CLI must:
@@ -44,6 +46,8 @@ The CLI must:
 - exit non-zero on invalid scope, missing module, malformed baseline, or malformed waiver;
 - print direct errors with actionable file paths;
 - support JSON output suitable for CI and Markdown/human output suitable for local review.
+- write report content to stdout and persist an artifact on every run; use `reports/code-review-engine/<timestamp>-<scope>.<ext>` when `--output` is omitted.
+- exit non-zero when any `BLOCKER` severity finding is present.
 
 ## Scope Model
 

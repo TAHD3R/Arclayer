@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.modules.sites.routing.repository import SiteRoutingRepository
 from src.modules.sites.runtime.repository import RuntimeRepositoryMixin
 from src.modules.sites.settings.repository import SettingsRepositoryMixin
@@ -11,7 +11,7 @@ from src.modules.sites.settings.repository import SettingsRepositoryMixin
 class SitesRepository(
     RuntimeRepositoryMixin,
     SettingsRepositoryMixin,
-    BaseRepository,
+    TortoiseORMRepository,
 ):
     def __init__(self, conn: BaseDBAsyncClient | None = None) -> None:
         super().__init__(conn=conn)

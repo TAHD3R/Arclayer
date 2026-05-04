@@ -4,6 +4,7 @@ from typing import Any, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, validate_call
 
+from src.common.types.json_types import JsonObject
 from src.core.logging import get_logger
 
 T = TypeVar("T")
@@ -23,7 +24,7 @@ class ResponseModel[T](BaseModel):
     data: T | None = None
     error: str | None = None
     timestamp: int = Field(default_factory=_now_ms)
-    meta: dict[str, Any] | None = None
+    meta: JsonObject | None = None
 
     @classmethod
     def __class_getitem__(cls, params: Any):  # ty: ignore[invalid-method-override]
@@ -51,7 +52,7 @@ class ApiResponseBuilder:
         *,
         message: str = "OK",
         data: Any | None = None,
-        meta: dict[str, Any] | None = None,
+        meta: JsonObject | None = None,
     ) -> ResponseModel[Any]:
         return ResponseModel[Any](
             message=message,
@@ -68,7 +69,7 @@ class ApiResponseBuilder:
         message: str = "Failed",
         error: str | None = None,
         data: Any | None = None,
-        meta: dict[str, Any] | None = None,
+        meta: JsonObject | None = None,
     ) -> ResponseModel[Any]:
         return ResponseModel[Any](
             message=message,

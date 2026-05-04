@@ -6,11 +6,12 @@ from uuid import UUID
 from src.common.protocols.tortoise import HasWorkspaceId
 from src.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 from src.core.exceptions import Conflict, NotFound
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.assets.asset import AssetRecord
 from src.models.sites.site import SiteRecord
 
 
-class DepsValidationRepositoryMixin:
+class DepsValidationRepositoryMixin(TortoiseORMRepository):
     async def _list_missing_assets(
         self,
         *,

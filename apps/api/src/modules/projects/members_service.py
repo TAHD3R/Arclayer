@@ -7,9 +7,7 @@ from src.common.protocols.tortoise import HasProjectId
 from src.config import Settings
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams
-from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
-from src.models.workspaces.workspace import Workspace
 from src.modules.projects.members_repository import ProjectMembersRepository
 from src.modules.projects.members_schema import ProjectMemberOut, ProjectMemberRoleUpdateRequest
 
@@ -26,25 +24,16 @@ class ProjectMembersService:
         workspace_id: UUID,
         actor_user_id: UUID,
     ) -> None:
-        existing = await ProjectMembership.filter(project_id=project_id).exists()
+        existing = await self.repo.project_has_memberships(project_id=project_id)
         if existing:
             return
 
-        workspace = await Workspace.get_or_none(id=workspace_id)
+        workspace = await self.repo.get_workspace(workspace_id=workspace_id)
         if workspace is None:
             raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
 
         workspace_user_ids = set(await self.repo.get_workspace_member_user_ids(workspace_id=workspace_id))
-
-        owner_user_ids = {
-            UUID(str(value))
-            for value in await OrgMembership.filter(
-                organization_id=workspace.organization_id,
-                status="active",
-                role=OrgRole.OWNER,
-            ).values_list("user_id", flat=True)
-            if value is not None
-        }
+        owner_user_ids = await self.repo.get_owner_user_ids(organization_id=workspace.organization_id)
         member_user_ids = workspace_user_ids | owner_user_ids | {actor_user_id}
         if not member_user_ids:
             return
@@ -61,8 +50,7 @@ class ProjectMembersService:
                 )
             )
 
-        if rows:
-            await ProjectMembership.bulk_create(rows, ignore_conflicts=True)
+        await self.repo.bulk_create_memberships(rows=rows)
 
     def _build_member_out(self, *, membership: ProjectMembership, workspace_id: UUID) -> ProjectMemberOut:
         user = membership.user

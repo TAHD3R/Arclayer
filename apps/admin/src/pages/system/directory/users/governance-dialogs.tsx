@@ -17,6 +17,7 @@ import { PasswordRequirementChecklist } from "@/components/auth/password-require
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import { uploadPresignedPart } from "@/lib/assets/storage-transfer";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError } from "@/lib/notifications";
 import type { SystemDirectoryUser } from "@/types/api/system-directory";
@@ -115,15 +116,13 @@ async function uploadDirectoryUserAvatarFile(params: {
             uploadId: init.uploadId,
             partNumber,
           });
-          const res = await fetch(presign.url, {
-            method: presign.method || "PUT",
-            headers: presign.headers || {},
-            body: chunk,
+          const etag = await uploadPresignedPart({
+            presign,
+            chunk,
             signal: params.signal,
+            errorMessage: "Avatar upload failed on multipart PUT request.",
+            missingEtagMessage: "Avatar upload response is missing ETag.",
           });
-          if (!res.ok) throw new Error("Avatar upload failed on multipart PUT request.");
-          const etag = res.headers.get("etag") || res.headers.get("ETag");
-          if (!etag) throw new Error("Avatar upload response is missing ETag.");
           await commitSystemDirectoryUserAvatarUploadPart({
             userId: params.userId,
             uploadId: init.uploadId,

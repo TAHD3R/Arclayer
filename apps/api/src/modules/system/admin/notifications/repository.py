@@ -5,11 +5,11 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.system.notification import NotificationRecord
 
 
-class NotificationRepository(BaseRepository):
+class NotificationRepository(TortoiseORMRepository):
     @staticmethod
     def _build_scope_condition(*, recipient_user_id: UUID, workspace_id: UUID | None = None) -> Q:
         cond = Q(recipient_user_id=recipient_user_id)

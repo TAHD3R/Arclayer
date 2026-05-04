@@ -3,6 +3,7 @@ import { codeToHtml } from "shiki";
 
 import { Spinner } from "@arclayer/ui/spinner";
 
+import { fetchAssetText } from "@/lib/assets/storage-transfer";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import {
@@ -25,12 +26,11 @@ type TextPreviewState = {
 async function loadAssetText(active: AssetMasonryItem) {
   if (!active.contentUrl) throw new Error("missing asset content url");
 
-  const response = await fetch(active.contentUrl, {
+  return fetchAssetText({
+    url: active.contentUrl,
     headers: buildAssetAuthHeaders(),
     credentials: "include",
   });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.text();
 }
 
 async function buildHighlightedHtml(active: AssetMasonryItem, source: string) {

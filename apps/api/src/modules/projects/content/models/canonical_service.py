@@ -7,13 +7,15 @@ import json
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import datetime
 from hashlib import sha256
-from typing import Any, cast
+from typing import cast
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject, JsonValue
 from src.config import Settings
 from src.core.exceptions import Conflict, ServiceUnavailable
 from src.core.http.pagination import PageData, PageParams, paginate_items
@@ -100,10 +102,10 @@ class ContentModelDefinitionPatchContract(BaseSchema):
     routing: ContentRoutingContract | None = None
     workflow: ContentWorkflowContract | None = None
     views: list[ContentModelViewContract] | None = None
-    presentation: dict[str, Any] | None = None
-    seo: dict[str, Any] | None = None
-    starter_pack_policy: dict[str, Any] | None = None
-    surface_policy: dict[str, Any] | None = None
+    presentation: JsonObject | None = None
+    seo: JsonObject | None = None
+    starter_pack_policy: JsonObject | None = None
+    surface_policy: JsonObject | None = None
     impact_preview_token: str | None = None
 
 
@@ -176,7 +178,7 @@ class ContentModelMutationResult:
     record: ContentModelDefinitionRecord
     impact: ContentModelImpactOut
     preview: ContentModelImpactPreviewResult | None = None
-    default_changes: dict[str, dict[str, Any | None]] | None = None
+    default_changes: dict[str, dict[str, JsonValue | None]] | None = None
 
 
 @dataclass(frozen=True)
@@ -195,7 +197,7 @@ class _PreviewFieldRow:
     key: str
     field_type: str
     is_required: bool
-    config: dict[str, Any] | None = None
+    config: JsonObject | None = None
 
 
 @dataclass(frozen=True)
@@ -214,9 +216,9 @@ class _PreviewModelRecord:
 
 @dataclass(frozen=True)
 class _ModelUpdateContext:
-    fields_to_update: dict[str, Any]
+    fields_to_update: JsonObject
     preview: ContentModelImpactPreviewResult
-    default_changes: dict[str, dict[str, Any | None]]
+    default_changes: dict[str, dict[str, JsonValue | None]]
 
 
 def _field_count(record: ContentModelDefinitionRecord) -> int:
@@ -259,7 +261,7 @@ def _sort_model_records(
     return rows
 
 
-def _content_model_user_ref(user: dict[str, Any]) -> ContentModelUserRefOut | None:
+def _content_model_user_ref(user: JsonObject) -> ContentModelUserRefOut | None:
     user_id = user.get("id")
     username = user.get("username")
     if not isinstance(user_id, UUID) or not isinstance(username, str) or not username.strip():
@@ -296,7 +298,7 @@ async def _load_content_model_user_refs(
     return refs
 
 
-def _snapshot_counts(payload: dict[str, Any]) -> tuple[int, int, int]:
+def _snapshot_counts(payload: JsonObject) -> tuple[int, int, int]:
     fields = payload.get("fields")
     relations = payload.get("relations")
     views = payload.get("views")
@@ -311,11 +313,11 @@ def _build_snapshot(
     *,
     stage: str,
     revision: int | None,
-    payload: dict[str, Any],
+    payload: JsonObject,
 ) -> ContentModelSchemaSnapshotOut:
     field_count, relation_count, view_count = _snapshot_counts(payload)
     return ContentModelSchemaSnapshotOut(
-        stage=cast(Any, stage),
+        stage=cast(JsonValue, stage),
         revision=revision,
         field_count=field_count,
         relation_count=relation_count,
@@ -324,21 +326,21 @@ def _build_snapshot(
     )
 
 
-def _read_snapshot_fields(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _read_snapshot_fields(payload: JsonObject) -> dict[str, JsonObject]:
     rows = payload.get("fields")
     if not isinstance(rows, list):
         return {}
     return {str(row["key"]): row for row in rows if isinstance(row, dict) and isinstance(row.get("key"), str)}
 
 
-def _read_snapshot_relations(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _read_snapshot_relations(payload: JsonObject) -> dict[str, JsonObject]:
     rows = payload.get("relations")
     if not isinstance(rows, list):
         return {}
     return {str(row["key"]): row for row in rows if isinstance(row, dict) and isinstance(row.get("key"), str)}
 
 
-def _read_snapshot_views(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _read_snapshot_views(payload: JsonObject) -> dict[str, JsonObject]:
     rows = payload.get("views")
     if not isinstance(rows, list):
         return {}
@@ -352,12 +354,12 @@ def _schema_diff_entry(
     target: str,
     summary: str,
     breaking: bool = False,
-    before: Any | None = None,
-    after: Any | None = None,
+    before: JsonValue | None = None,
+    after: JsonValue | None = None,
 ) -> ContentModelSchemaDiffEntryOut:
     return ContentModelSchemaDiffEntryOut(
-        kind=cast(Any, kind),
-        operation=cast(Any, operation),
+        kind=cast(JsonValue, kind),
+        operation=cast(JsonValue, operation),
         target=target,
         summary=summary,
         breaking=breaking,
@@ -371,8 +373,8 @@ def _append_mapping_diff_entries(
     entries: list[ContentModelSchemaDiffEntryOut],
     kind: str,
     prefix: str,
-    before_map: dict[str, dict[str, Any]],
-    after_map: dict[str, dict[str, Any]],
+    before_map: dict[str, JsonObject],
+    after_map: dict[str, JsonObject],
 ) -> None:
     for key in sorted(before_map.keys() - after_map.keys()):
         entries.append(
@@ -418,7 +420,7 @@ def _append_scalar_diff_entries(
     *,
     entries: list[ContentModelSchemaDiffEntryOut],
     kind: str,
-    targets: dict[str, tuple[str, Any | None, Any | None]],
+    targets: dict[str, tuple[str, JsonValue | None, JsonValue | None]],
 ) -> None:
     for target, (summary, before, after) in targets.items():
         if before == after:
@@ -444,8 +446,8 @@ def _append_scalar_diff_entries(
 
 def _build_schema_diff(
     *,
-    current_snapshot: dict[str, Any],
-    next_snapshot: dict[str, Any],
+    current_snapshot: JsonObject,
+    next_snapshot: JsonObject,
     impact: ContentModelImpactOut,
 ) -> ContentModelSchemaDiffOut:
     entries: list[ContentModelSchemaDiffEntryOut] = []
@@ -688,15 +690,15 @@ def _compare_field_changes(
     return changes
 
 
-def _read_config_bool(config: dict[str, Any] | None, key: str) -> bool:
+def _read_config_bool(config: JsonObject | None, key: str) -> bool:
     return bool(config.get(key) is True) if isinstance(config, dict) else False
 
 
-def _read_config_value(config: dict[str, Any] | None, key: str) -> Any:
+def _read_config_value(config: JsonObject | None, key: str) -> JsonValue:
     return config.get(key) if isinstance(config, dict) else None
 
 
-def _read_config_list(config: dict[str, Any] | None, key: str) -> tuple[str, ...]:
+def _read_config_list(config: JsonObject | None, key: str) -> tuple[str, ...]:
     value = _read_config_value(config, key)
     if not isinstance(value, list):
         return ()
@@ -706,8 +708,8 @@ def _read_config_list(config: dict[str, Any] | None, key: str) -> tuple[str, ...
 def _compare_field_config_changes(
     *,
     key: str,
-    before: dict[str, Any] | None,
-    after: dict[str, Any] | None,
+    before: JsonObject | None,
+    after: JsonObject | None,
 ) -> list[ContentModelImpactChangeOut]:
     changes: list[ContentModelImpactChangeOut] = []
     if not _read_config_bool(before, "omitFromApiResponse") and _read_config_bool(after, "omitFromApiResponse"):
@@ -820,7 +822,7 @@ def _build_mutation_impact(
 
 def _preview_field_rows(
     payload: ContentModelDefinitionPatchContract, record: ContentModelDefinitionRecord
-) -> tuple[Any, ...]:
+) -> tuple[ContentModelFieldRecord | _PreviewFieldRow, ...]:
     if "fields" not in payload.model_fields_set:
         return tuple(_field_rows(record).values())
     return tuple(
@@ -834,7 +836,9 @@ def _preview_field_rows(
     )
 
 
-def _preview_field_rows_from_contracts(fields: list[ContentModelFieldContract]) -> tuple[Any, ...]:
+def _preview_field_rows_from_contracts(
+    fields: list[ContentModelFieldContract],
+) -> tuple[ContentModelFieldRecord | _PreviewFieldRow, ...]:
     return tuple(
         _PreviewFieldRow(
             key=item.key,
@@ -848,7 +852,7 @@ def _preview_field_rows_from_contracts(fields: list[ContentModelFieldContract]) 
 
 def _preview_relation_rows(
     payload: ContentModelDefinitionPatchContract, record: ContentModelDefinitionRecord
-) -> tuple[Any, ...]:
+) -> tuple[ContentModelRelationRecord | _PreviewRelationRow, ...]:
     if "relations" not in payload.model_fields_set:
         return tuple(_relation_rows(record).values())
     return tuple(
@@ -862,7 +866,7 @@ def _preview_relation_rows(
     )
 
 
-def _preview_payload_fingerprint(payload: ContentModelDefinitionPatchContract) -> dict[str, Any]:
+def _preview_payload_fingerprint(payload: ContentModelDefinitionPatchContract) -> JsonObject:
     explicit_fields = sorted(name for name in payload.model_fields_set if name != "impact_preview_token")
     explicit_values = payload.model_dump(
         mode="json",
@@ -882,7 +886,7 @@ def _get_preview_signing_secret(settings: Settings) -> bytes:
     return secret.encode("utf-8")
 
 
-def _serialize_preview_claims(claims: dict[str, Any]) -> str:
+def _serialize_preview_claims(claims: JsonObject) -> str:
     return json.dumps(claims, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
@@ -892,9 +896,9 @@ def _build_preview_claims(
     site_id: UUID,
     environment_id: UUID | None,
     model_id: UUID,
-    updated_at: Any,
+    updated_at: datetime,
     payload: ContentModelDefinitionPatchContract,
-) -> dict[str, Any]:
+) -> JsonObject:
     return {
         "workspace_id": str(workspace_id),
         "site_id": str(site_id),
@@ -905,7 +909,7 @@ def _build_preview_claims(
     }
 
 
-def _build_impact_preview_token(settings: Settings, *, claims: dict[str, Any]) -> str:
+def _build_impact_preview_token(settings: Settings, *, claims: JsonObject) -> str:
     raw = _serialize_preview_claims(claims)
     body = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
     sig = hmac.new(_get_preview_signing_secret(settings), raw.encode("utf-8"), sha256).digest()
@@ -917,7 +921,7 @@ def _verify_impact_preview_token(
     settings: Settings,
     *,
     token: str,
-    claims: dict[str, Any],
+    claims: JsonObject,
 ) -> bool:
     raw = (token or "").strip()
     if not raw or "." not in raw:
@@ -946,7 +950,7 @@ def _verify_impact_preview_token(
     return hmac.compare_digest(sig, expected_sig)
 
 
-def _read_existing_default_value(record: ContentModelDefinitionRecord, field_name: str) -> Any:
+def _read_existing_default_value(record: ContentModelDefinitionRecord, field_name: str) -> JsonValue:
     value = getattr(record, field_name)
     if field_name in {"default_role", "default_posture", "default_surface"}:
         return str(value) if value is not None else None
@@ -960,9 +964,13 @@ def _continuation_controls_touched(fields_set: set[str]) -> bool:
 def _resolved_next_defaults(
     *,
     record: ContentModelDefinitionRecord,
-    fields_to_update: dict[str, Any],
+    fields_to_update: JsonObject,
     fields_set: set[str],
 ) -> tuple[str | None, str | None, str | None]:
+    def read_next_default(field_name: str, current: object) -> str | None:
+        value = fields_to_update.get(field_name, current)
+        return str(value) if value is not None else None
+
     if not _continuation_controls_touched(fields_set):
         return (
             str(record.default_role) if record.default_role is not None else None,
@@ -970,14 +978,14 @@ def _resolved_next_defaults(
             str(record.default_surface) if record.default_surface is not None else None,
         )
     return (
-        fields_to_update.get("default_role", str(record.default_role) if record.default_role is not None else None),
-        fields_to_update.get(
+        read_next_default("default_role", record.default_role),
+        read_next_default(
             "default_posture",
-            str(record.default_posture) if record.default_posture is not None else None,
+            record.default_posture,
         ),
-        fields_to_update.get(
+        read_next_default(
             "default_surface",
-            str(record.default_surface) if record.default_surface is not None else None,
+            record.default_surface,
         ),
     )
 
@@ -1008,7 +1016,7 @@ def _build_preview_truth(
     )
 
 
-def _truth_signature_from_item(item: ContentItemRecord) -> tuple[Any, ...]:
+def _truth_signature_from_item(item: ContentItemRecord) -> tuple[JsonValue, ...]:
     return (
         str(item.resolved_role) if item.resolved_role is not None else None,
         str(item.resolved_posture) if item.resolved_posture is not None else None,
@@ -1018,7 +1026,7 @@ def _truth_signature_from_item(item: ContentItemRecord) -> tuple[Any, ...]:
     )
 
 
-def _truth_signature_from_preview(truth: ContentItemContinuationTruth) -> tuple[Any, ...]:
+def _truth_signature_from_preview(truth: ContentItemContinuationTruth) -> tuple[JsonValue, ...]:
     return (
         truth.resolved_role,
         truth.resolved_posture,
@@ -1031,9 +1039,9 @@ def _truth_signature_from_preview(truth: ContentItemContinuationTruth) -> tuple[
 def _build_default_changes(
     *,
     record: ContentModelDefinitionRecord,
-    fields_to_update: dict[str, Any],
+    fields_to_update: JsonObject,
     fields_set: set[str],
-) -> dict[str, dict[str, Any | None]]:
+) -> dict[str, dict[str, JsonValue | None]]:
     next_default_role, next_default_posture, next_default_surface = _resolved_next_defaults(
         record=record,
         fields_to_update=fields_to_update,
@@ -1046,7 +1054,7 @@ def _build_default_changes(
         "starter_pack_policy": fields_to_update.get("starter_pack_policy", record.starter_pack_policy),
         "surface_policy": fields_to_update.get("surface_policy", record.surface_policy),
     }
-    changes: dict[str, dict[str, Any | None]] = {}
+    changes: dict[str, dict[str, JsonValue | None]] = {}
     for field_name, after_value in after_values.items():
         before_value = _read_existing_default_value(record, field_name)
         if before_value == after_value:
@@ -1152,33 +1160,38 @@ def _contract_snapshot_payload(
     fields: list[ContentModelFieldContract],
     relations: list[ContentModelRelationContract],
     views: list[ContentModelViewContract],
-) -> dict[str, Any]:
-    payload = {
-        "protocol_key": protocol.key,
-        "protocol_version": protocol.protocol_version,
-        "system_managed": protocol.system_managed,
-        "system_field_keys": _system_field_keys(protocol),
-        "singular_key": protocol.singular_key,
-        "plural_key": protocol.plural_key,
-        "name": protocol.name,
-        "description": description,
-        "category": protocol.category,
-        "model_kind": model_kind,
-        "default_editor": protocol.default_editor,
-        "default_role": protocol.default_role,
-        "default_posture": protocol.default_posture,
-        "default_surface": protocol.default_surface,
-        "capabilities": list(protocol.capabilities),
-        "routing_policy": protocol.routing_policy,
-        "presentation_policy": protocol.presentation_policy,
-        "seo_policy": protocol.seo_policy,
-        "starter_pack_policy": protocol.starter_pack_policy,
-        "surface_policy": protocol.surface_policy,
-        "workflow_policy": protocol.workflow_policy,
-        "fields": [field.model_dump(mode="json", by_alias=False, exclude_none=True) for field in fields],
-        "relations": [relation.model_dump(mode="json", by_alias=False, exclude_none=True) for relation in relations],
-        "views": [view.model_dump(mode="json", by_alias=False, exclude_none=True) for view in views],
-    }
+) -> JsonObject:
+    payload = cast(
+        JsonObject,
+        {
+            "protocol_key": protocol.key,
+            "protocol_version": protocol.protocol_version,
+            "system_managed": protocol.system_managed,
+            "system_field_keys": _system_field_keys(protocol),
+            "singular_key": protocol.singular_key,
+            "plural_key": protocol.plural_key,
+            "name": protocol.name,
+            "description": description,
+            "category": protocol.category,
+            "model_kind": model_kind,
+            "default_editor": protocol.default_editor,
+            "default_role": protocol.default_role,
+            "default_posture": protocol.default_posture,
+            "default_surface": protocol.default_surface,
+            "capabilities": list(protocol.capabilities),
+            "routing_policy": protocol.routing_policy,
+            "presentation_policy": protocol.presentation_policy,
+            "seo_policy": protocol.seo_policy,
+            "starter_pack_policy": protocol.starter_pack_policy,
+            "surface_policy": protocol.surface_policy,
+            "workflow_policy": protocol.workflow_policy,
+            "fields": [field.model_dump(mode="json", by_alias=False, exclude_none=True) for field in fields],
+            "relations": [
+                relation.model_dump(mode="json", by_alias=False, exclude_none=True) for relation in relations
+            ],
+            "views": [view.model_dump(mode="json", by_alias=False, exclude_none=True) for view in views],
+        },
+    )
     payload["storage_sync"] = storage_sync_payload(
         build_storage_sync_snapshot(snapshot=payload, schema_revision=1, state="applied")
     )
@@ -1193,8 +1206,8 @@ def _bump_draft_contract_revision(record: ContentModelDefinitionRecord, *, field
     return current + 1
 
 
-def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[str, Any]:
-    updates: dict[str, Any] = {}
+def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> JsonObject:
+    updates: JsonObject = {}
     fields_set = payload.model_fields_set
     if "singular_key" in fields_set:
         if payload.singular_key is None:
@@ -1239,7 +1252,7 @@ def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[s
     return updates
 
 
-def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, Any]:
+def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> JsonObject:
     payload = {
         "protocol_key": record.protocol_key,
         "protocol_version": int(record.protocol_version or 1),
@@ -1266,7 +1279,7 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, 
             ContentModelFieldContract(
                 key=str(field.key),
                 label=str(field.label),
-                scalar=cast(Any, str(field.field_type)),
+                scalar=cast(JsonValue, str(field.field_type)),
                 required=bool(field.is_required),
                 config=field.config,
             ).model_dump(mode="json", by_alias=False, exclude_none=True)
@@ -1275,7 +1288,7 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, 
         "relations": [
             ContentModelRelationContract(
                 key=str(relation.key),
-                relation=cast(Any, str(relation.relation_type)),
+                relation=cast(JsonValue, str(relation.relation_type)),
                 target_model_key=str(relation.target_model_key),
                 required=bool(relation.is_required),
                 config=relation.config,
@@ -1286,7 +1299,7 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> dict[str, 
             ContentModelViewContract(
                 key=str(view.key),
                 label=str(view.label),
-                type=cast(Any, str(view.view_type)),
+                type=cast(JsonValue, str(view.view_type)),
                 config=view.dsl,
             ).model_dump(mode="json", by_alias=False, exclude_none=True)
             for view in record.views
@@ -1307,7 +1320,7 @@ def _field_contracts(record: ContentModelDefinitionRecord) -> list[ContentModelF
         ContentModelFieldContract(
             key=str(field.key),
             label=str(field.label),
-            scalar=cast(Any, str(field.field_type)),
+            scalar=cast(JsonValue, str(field.field_type)),
             required=bool(field.is_required),
             config=field.config,
         )
@@ -1318,12 +1331,12 @@ def _field_contracts(record: ContentModelDefinitionRecord) -> list[ContentModelF
 def _next_snapshot_payload(
     *,
     record: ContentModelDefinitionRecord,
-    fields_to_update: dict[str, Any],
+    fields_to_update: JsonObject,
     fields_set: set[str],
     fields: list[ContentModelFieldContract],
     relations: list[ContentModelRelationContract] | None,
     views: list[ContentModelViewContract] | None,
-) -> dict[str, Any]:
+) -> JsonObject:
     current_payload = _record_snapshot_payload(record)
     next_payload = dict(current_payload)
     for field_name in (
@@ -1557,7 +1570,7 @@ class ProjectContentCanonicalModelsService:
                 ContentModelFieldContract(
                     key=field.key,
                     label=payload.label if payload.label is not None else field.label,
-                    scalar=cast(Any, payload.scalar if payload.scalar is not None else field.scalar),
+                    scalar=cast(JsonValue, payload.scalar if payload.scalar is not None else field.scalar),
                     required=payload.required if payload.required is not None else field.required,
                     config=payload.config if "config" in payload.model_fields_set else field.config,
                 )
@@ -1864,7 +1877,7 @@ class ProjectContentCanonicalModelsService:
                     ContentModelFieldContract(
                         key=str(field.key),
                         label=str(field.label),
-                        scalar=cast(Any, str(field.field_type)),
+                        scalar=cast(JsonValue, str(field.field_type)),
                         required=bool(field.is_required),
                         config=field.config,
                     )
@@ -1901,7 +1914,7 @@ class ProjectContentCanonicalModelsService:
             else [
                 ContentModelRelationContract(
                     key=str(relation.key),
-                    relation=cast(Any, str(relation.relation_type)),
+                    relation=cast(JsonValue, str(relation.relation_type)),
                     target_model_key=str(relation.target_model_key),
                     required=bool(relation.is_required),
                     config=relation.config,
@@ -1917,7 +1930,7 @@ class ProjectContentCanonicalModelsService:
                 ContentModelViewContract(
                     key=str(view.key),
                     label=str(view.label),
-                    type=cast(Any, str(view.view_type)),
+                    type=cast(JsonValue, str(view.view_type)),
                     config=view.dsl,
                 )
                 for view in record.views

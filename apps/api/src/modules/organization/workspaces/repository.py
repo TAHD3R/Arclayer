@@ -3,14 +3,15 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembership, WorkspaceMembershipStatus
 
 
-class OrganizationWorkspaceRepository(BaseRepository):
+class OrganizationWorkspaceRepository(TortoiseORMRepository):
     async def list_active_workspaces_for_org(self, *, organization_id: UUID) -> list[Workspace]:
         return (
             await Workspace
@@ -39,6 +40,51 @@ class OrganizationWorkspaceRepository(BaseRepository):
             is_active=True,
             deleted_at__isnull=True,
         )
+
+    async def get_active_workspace_by_id(self, *, workspace_id: UUID) -> Workspace | None:
+        return await Workspace.get_or_none(id=workspace_id, is_active=True, deleted_at__isnull=True)
+
+    async def get_by_id(self, *, workspace_id: UUID) -> Workspace | None:
+        return await Workspace.get_or_none(id=workspace_id)
+
+    async def get_by_id_in_connection(self, workspace_id: UUID, *, conn: BaseDBAsyncClient) -> Workspace | None:
+        return await Workspace.get_or_none(id=workspace_id, using_db=conn)
+
+    async def list_active_by_ids(self, *, workspace_ids: Sequence[UUID]) -> list[Workspace]:
+        if not workspace_ids:
+            return []
+        return (
+            await Workspace
+            .filter(id__in=list(workspace_ids), is_active=True, deleted_at__isnull=True)
+            .order_by("created_at")
+            .all()
+        )
+
+    async def list_non_deleted_by_ids(self, *, workspace_ids: Sequence[UUID]) -> list[Workspace]:
+        if not workspace_ids:
+            return []
+        return await Workspace.filter(id__in=list(workspace_ids), deleted_at__isnull=True).order_by("created_at").all()
+
+    async def list_active_by_organization_ids(self, *, organization_ids: Sequence[UUID]) -> list[Workspace]:
+        if not organization_ids:
+            return []
+        return (
+            await Workspace
+            .filter(organization_id__in=list(organization_ids), is_active=True, deleted_at__isnull=True)
+            .order_by("created_at")
+            .all()
+        )
+
+    async def list_active_non_archived_for_org(self, *, organization_id: UUID) -> list[Workspace]:
+        return (
+            await Workspace
+            .filter(organization_id=organization_id, is_active=True, archived_at=None)
+            .order_by("created_at")
+            .all()
+        )
+
+    async def list_all_workspaces(self) -> list[Workspace]:
+        return list(await Workspace.all())
 
     async def count_active_workspaces(self, *, organization_id: UUID) -> int:
         return int(

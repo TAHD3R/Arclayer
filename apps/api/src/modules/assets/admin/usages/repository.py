@@ -7,12 +7,13 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.queryset import QuerySet
 
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.assets.asset_usage import AssetUsageRecord
 from src.modules.assets.scope import AssetScope, AssetScopeDatabaseRouter, scope_filter_kwargs
 from src.modules.tenancy.schema import TenantContext
 
 
-class AdminAssetUsagesRepository:
+class AdminAssetUsagesRepository(TortoiseORMRepository):
     def __init__(self, tenant_context: TenantContext | None = None) -> None:
         self.scope_db = AssetScopeDatabaseRouter(tenant_context)
 

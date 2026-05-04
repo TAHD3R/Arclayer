@@ -53,8 +53,8 @@ Tasks:
 Verification:
 
 ```bash
-rtk pnpm code-review-engine -- --help
-rtk pnpm code-review-engine -- --scope backend --format json
+rtk pnpm code-review-engine --help
+rtk pnpm code-review-engine --scope backend --format json
 ```
 
 ## Phase 2: Rule Metadata and Scope Engine
@@ -178,6 +178,7 @@ Acceptance:
 Tasks:
 
 - Update all command references to use `scripts/code-review-engine`.
+- Ensure report content writes to stdout, report artifacts are stored under `reports/code-review-engine` by default, and explicit `--output` remains supported.
 - Remove `apps/api/src/core/audit` after parity.
 - Remove stale imports and module docs.
 - Run `gitnexus_detect_changes` before commit.

@@ -14,12 +14,13 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.protocols.tortoise import SettingUpdatedBy
 from src.core.exceptions import Conflict, NotFound
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.system.setting import SettingRecord
 from src.modules.sites.namespaces.service import EDITOR_STYLE_NAMESPACE
 from src.settings.scopes import SCOPE_TYPE_SITE
 
 
-class SettingsRepositoryMixin:
+class SettingsRepositoryMixin(TortoiseORMRepository):
     _conn: BaseDBAsyncClient | None
 
     @staticmethod

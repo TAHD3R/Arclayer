@@ -7,12 +7,13 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.queryset import QuerySet
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.analytics.audit_event import AuditEvent
+from src.models.organization.user import User
 from src.modules.analytics.schema import AuditEventListQuery
 
 
-class AuditEventRepository(BaseRepository):
+class AuditEventRepository(TortoiseORMRepository):
     def build_queryset(
         self,
         *,
@@ -53,6 +54,14 @@ class AuditEventRepository(BaseRepository):
             qs = qs.filter(occurred_at__lte=occurred_to)
 
         return qs.order_by("-occurred_at", "-id")
+
+    async def get_event_by_id(self, *, event_id: UUID) -> AuditEvent | None:
+        return await AuditEvent.get_or_none(id=event_id)
+
+    async def list_users_by_ids(self, *, user_ids: set[UUID]) -> list[User]:
+        if not user_ids:
+            return []
+        return await User.filter(id__in=list(user_ids)).all()
 
     async def create_many(
         self,

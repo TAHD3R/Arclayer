@@ -222,8 +222,16 @@ class WorkspaceTeamInviteMixin:
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
         invite_url = f"{base}/invitations?token={token}" if base else None
 
-        inviter_user = await User.get_or_none(id=inv.created_by_user_id)
-        accepted_by = await User.get_or_none(id=inv.accepted_by_user_id) if inv.accepted_by_user_id else None
+        invite_users = await self.repo.list_users_by_ids(
+            user_ids=[
+                UUID(str(user_id))
+                for user_id in [inv.created_by_user_id, inv.accepted_by_user_id]
+                if user_id is not None
+            ]
+        )
+        invite_user_by_id = {UUID(str(user.id)): user for user in invite_users}
+        inviter_user = invite_user_by_id.get(UUID(str(inv.created_by_user_id)))
+        accepted_by = invite_user_by_id.get(UUID(str(inv.accepted_by_user_id))) if inv.accepted_by_user_id else None
         out = WorkspaceEmailInviteOut(
             id=inv.id,
             email=inv.email,
@@ -302,7 +310,7 @@ class WorkspaceTeamInviteMixin:
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
         invite_url = f"{base}/invitations?token={token}" if base else None
 
-        inviter_user = await User.get_or_none(id=inv.created_by_user_id)
+        inviter_user = await self._get_user_ref_record(user_id=inv.created_by_user_id)
         out = WorkspaceEmailInviteOut(
             id=inv.id,
             email=inv.email,
@@ -438,7 +446,7 @@ class WorkspaceTeamInviteMixin:
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
         invite_url = f"{base}/invitations?token={token}" if base else None
 
-        creator = await User.get_or_none(id=link.created_by_user_id) if link.created_by_user_id else None
+        creator = await self._get_user_ref_record(user_id=link.created_by_user_id)
         out = WorkspaceInviteLinkOut(
             id=link.id,
             display_code=link.display_code,
@@ -496,8 +504,16 @@ class WorkspaceTeamInviteMixin:
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
         invite_url = f"{base}/invitations?token={token}" if base else None
 
-        creator = await User.get_or_none(id=link.created_by_user_id) if link.created_by_user_id else None
-        last_used = await User.get_or_none(id=link.last_used_by_user_id) if link.last_used_by_user_id else None
+        link_users = await self.repo.list_users_by_ids(
+            user_ids=[
+                UUID(str(user_id))
+                for user_id in [link.created_by_user_id, link.last_used_by_user_id]
+                if user_id is not None
+            ]
+        )
+        link_user_by_id = {UUID(str(user.id)): user for user in link_users}
+        creator = link_user_by_id.get(UUID(str(link.created_by_user_id))) if link.created_by_user_id else None
+        last_used = link_user_by_id.get(UUID(str(link.last_used_by_user_id))) if link.last_used_by_user_id else None
         out = WorkspaceInviteLinkOut(
             id=link.id,
             display_code=link.display_code,
@@ -596,7 +612,7 @@ class WorkspaceTeamInviteMixin:
                 user_ids.add(UUID(str(r.created_by_user_id)))
             if r.last_used_by_user_id:
                 user_ids.add(UUID(str(r.last_used_by_user_id)))
-        users = await User.filter(id__in=list(user_ids)).all() if user_ids else []
+        users = await self.repo.list_users_by_ids(user_ids=list(user_ids))
         user_by_id = {UUID(str(u.id)): u for u in users}
 
         items: list[WorkspaceInviteLinkOut] = []
@@ -668,10 +684,8 @@ class WorkspaceTeamInviteMixin:
         if q:
             needle = q.strip()
             if needle:
-                raw_ids = await User.filter(
-                    Q(username__icontains=needle) | Q(email__icontains=needle) | Q(display_name__icontains=needle)
-                ).values_list("id", flat=True)
-                ids = [UUID(str(x)) for x in raw_ids] if raw_ids else []
+                users = await self.repo.list_users_matching(needle=needle)
+                ids = [UUID(str(user.id)) for user in users]
                 if not ids:
                     return PageData[WorkspaceInviteLinkParticipantOut](
                         items=[],
@@ -693,7 +707,7 @@ class WorkspaceTeamInviteMixin:
             if r.used_by_user_id:
                 user_ids.append(UUID(str(r.used_by_user_id)))
 
-        users = await User.filter(id__in=user_ids).all() if user_ids else []
+        users = await self.repo.list_users_by_ids(user_ids=user_ids)
         user_by_id = {UUID(str(u.id)): u for u in users}
 
         items: list[WorkspaceInviteLinkParticipantOut] = []
@@ -764,7 +778,7 @@ class WorkspaceTeamInviteMixin:
             user_ids.add(UUID(str(r.created_by_user_id)))
             if r.accepted_by_user_id:
                 user_ids.add(UUID(str(r.accepted_by_user_id)))
-        users = await User.filter(id__in=list(user_ids)).all() if user_ids else []
+        users = await self.repo.list_users_by_ids(user_ids=list(user_ids))
         user_by_id = {UUID(str(u.id)): u for u in users}
 
         items: list[WorkspaceEmailInviteOut] = []
@@ -802,3 +816,9 @@ class WorkspaceTeamInviteMixin:
             next=next_page,
             prev=prev_page,
         )
+
+    async def _get_user_ref_record(self, *, user_id: UUID | None) -> User | None:
+        if user_id is None:
+            return None
+        users = await self.repo.list_users_by_ids(user_ids=[UUID(str(user_id))])
+        return users[0] if users else None

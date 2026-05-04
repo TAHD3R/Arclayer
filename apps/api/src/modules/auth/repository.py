@@ -5,13 +5,14 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 
 from src.common.constants.auth import REFRESH_STATUS_REVOKED, REFRESH_STATUS_ROTATED
 from src.common.protocols.tortoise import UserMutableFields
-from src.common.repositories import BaseRepository
 from src.common.utils.ids import uuid7
 from src.config import AuthSettings
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.user import User, UserCredential, UserStatus
 from src.modules.auth.contracts.schema import UserLike
 from src.platform.cache.valkey import ValkeyClientLike
@@ -32,7 +33,7 @@ def _coerce_int(value: object) -> int | None:
     return None
 
 
-class UserRepository(BaseRepository):
+class UserRepository(TortoiseORMRepository):
     _UNSET = object()
 
     async def get_by_identifier(self, identifier: str) -> User | None:
@@ -54,6 +55,37 @@ class UserRepository(BaseRepository):
 
     async def get_by_id(self, user_id: UUID) -> User | None:
         return await User.get_or_none(id=user_id)
+
+    async def get_by_id_in_connection(self, user_id: UUID, *, conn: BaseDBAsyncClient) -> User | None:
+        return await User.get_or_none(id=user_id, using_db=conn)
+
+    async def exists_username_in_connection(self, username: str, *, conn: BaseDBAsyncClient) -> bool:
+        return await User.filter(username=username).using_db(conn).exists()
+
+    async def exists_email_in_connection(self, email: str, *, conn: BaseDBAsyncClient) -> bool:
+        return await User.filter(email=email).using_db(conn).exists()
+
+    async def list_by_ids(self, user_ids: list[UUID]) -> list[User]:
+        if not user_ids:
+            return []
+        return await User.filter(id__in=list(user_ids)).all()
+
+    async def count_super_admins(self) -> int:
+        return int(await User.filter(is_super_admin=True).count())
+
+    async def exists_by_username(self, username: str) -> bool:
+        return await User.filter(username=username).exists()
+
+    async def exists_by_email(self, email: str) -> bool:
+        return await User.filter(email=email).exists()
+
+    async def list_matching(self, needle: str) -> list[User]:
+        normalized = needle.strip()
+        if not normalized:
+            return []
+        return await User.filter(
+            Q(username__icontains=normalized) | Q(email__icontains=normalized) | Q(display_name__icontains=normalized)
+        ).all()
 
     async def get_by_id_with_credential(self, user_id: UUID) -> User | None:
         return await User.get_or_none(id=user_id).prefetch_related("credential")
@@ -97,6 +129,28 @@ class UserRepository(BaseRepository):
             avatar_url=None,
         )
         await UserCredential.create(user=user, password_hash=password_hash)
+        return user
+
+    async def create_user_in_connection(
+        self,
+        *,
+        username: str,
+        email: str | None,
+        display_name: str | None,
+        password_hash: str,
+        conn: BaseDBAsyncClient,
+        is_super_admin: bool = False,
+    ) -> User:
+        user = await User.create(
+            using_db=conn,
+            username=username,
+            email=email,
+            status=UserStatus.ACTIVE,
+            is_super_admin=is_super_admin,
+            display_name=display_name,
+            avatar_url=None,
+        )
+        await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
         return user
 
     async def set_password(self, user: UserLike, password_hash: str) -> None:

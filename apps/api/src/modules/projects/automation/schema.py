@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.models.automation.flow import (
     AutomationFlowStatus,
@@ -39,7 +39,7 @@ class AutomationCatalogOut(BaseSchema):
 class AutomationOperationIn(BaseSchema):
     name: str = Field(..., min_length=1, max_length=128)
     kind: AutomationOperationKind
-    config: dict[str, Any] | None = None
+    config: JsonObject | None = None
     sort_order: int = Field(default=0)
 
 
@@ -50,7 +50,7 @@ class AutomationFlowCreateIn(BaseSchema):
     status: AutomationFlowStatus = AutomationFlowStatus.ACTIVE
     retry_limit: int = Field(default=0, ge=0, le=5)
     dead_letter_enabled: bool = True
-    credential_binding: dict[str, Any] | None = None
+    credential_binding: JsonObject | None = None
     operations: list[AutomationOperationIn] = Field(default_factory=list)
 
 
@@ -60,7 +60,7 @@ class AutomationFlowPatchIn(BaseSchema):
     status: AutomationFlowStatus | None = None
     retry_limit: int | None = Field(default=None, ge=0, le=5)
     dead_letter_enabled: bool | None = None
-    credential_binding: dict[str, Any] | None = None
+    credential_binding: JsonObject | None = None
     operations: list[AutomationOperationIn] | None = None
 
 
@@ -69,7 +69,7 @@ class AutomationOperationOut(BaseSchema):
     flow_id: PublicUUID
     name: str
     kind: AutomationOperationKind
-    config: dict[str, Any] | None = None
+    config: JsonObject | None = None
     sort_order: int
     created_at: datetime
     updated_at: datetime
@@ -86,7 +86,7 @@ class AutomationFlowOut(BaseSchema):
     trigger_event: str
     retry_limit: int
     dead_letter_enabled: bool
-    credential_binding: dict[str, Any] | None = None
+    credential_binding: JsonObject | None = None
     created_by_user_id: UUID | None = None
     updated_by_user_id: UUID | None = None
     operations: list[AutomationOperationOut] = Field(default_factory=list)
@@ -104,7 +104,7 @@ class AutomationRunLogOut(BaseSchema):
     operation_id: PublicUUID | None = None
     level: AutomationRunLogLevel
     message: str
-    payload: dict[str, Any] | None = None
+    payload: JsonObject | None = None
     created_at: datetime
 
 
@@ -117,8 +117,8 @@ class AutomationRunOut(BaseSchema):
     status: AutomationRunStatus
     attempt: int
     max_attempts: int
-    event_payload: dict[str, Any] | None = None
-    result_payload: dict[str, Any] | None = None
+    event_payload: JsonObject | None = None
+    result_payload: JsonObject | None = None
     error: str | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None

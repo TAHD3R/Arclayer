@@ -6,7 +6,7 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_rbac import (
     OrganizationPermission,
     OrganizationRole,
@@ -18,7 +18,7 @@ class _HasNullableDescription(Protocol):
     description: str | None
 
 
-class OrganizationRBACRepository(BaseRepository):
+class OrganizationRBACRepository(TortoiseORMRepository):
     async def list_roles(self, *, organization_id: UUID) -> list[OrganizationRole]:
         return (
             await OrganizationRole.filter(organization_id=organization_id).order_by("-is_system", "name", "code").all()

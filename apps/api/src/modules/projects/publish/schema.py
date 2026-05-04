@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import ConfigDict, Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 
 
@@ -15,7 +14,7 @@ class PublishBlockedItemOut(BaseSchema):
     reason_code: str = Field(..., min_length=1, description="Machine-readable continuation blocker reason.")
     shape_state: str = Field(..., min_length=1, description="Continuation shape state at publish time.")
     surface: str | None = Field(default=None, description="Resolved continuation surface seen by publish.")
-    reason_meta: dict[str, Any] | None = Field(
+    reason_meta: JsonObject | None = Field(
         default=None,
         description="Structured blocker metadata propagated from continuation truth or publish validation.",
     )
@@ -34,7 +33,7 @@ class PublishReadinessSummaryOut(BaseSchema):
     )
 
 
-class PublishImpactOut(BaseSchema):
+class PublishReadinessOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     missing_routes: list[PublicUUID] = Field(default_factory=list, description="Published items missing active routes.")
@@ -56,7 +55,7 @@ class PublishArtifactsOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     graph_nodes: int = Field(default=0, ge=0, description="Number of generated graph nodes.")
-    impact: PublishImpactOut = Field(..., description="Publish impact summary.")
+    impact: PublishReadinessOut = Field(..., description="Publish readiness summary.")
     selection_count: int = Field(default=0, ge=0, description="Number of selected items captured in the release.")
 
 
@@ -75,7 +74,7 @@ class PublishExportArtifactOut(BaseSchema):
     tenant_id: str = Field(..., min_length=1, description="Tenant identity used by delivery adapters.")
     artifact_key: str = Field(..., min_length=1, description="Artifact pointer key.")
     kind: str = Field(..., min_length=1, description="Artifact payload type.")
-    payload: dict[str, Any] | None = Field(default=None, description="Artifact payload for runtime rendering.")
+    payload: JsonObject | None = Field(default=None, description="Artifact payload for runtime rendering.")
     html: str | None = Field(default=None, description="Optional pre-rendered HTML artifact.")
 
 

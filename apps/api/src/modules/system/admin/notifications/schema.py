@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import Field
 
 from src.common.schemas import BaseOut, BaseSchema
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.models.system.notification import NotificationCategory
 
@@ -21,7 +22,7 @@ class NotificationOut(BaseOut):
     body: str | None = Field(default=None, description="Short body (max 2 lines in UI).")
 
     target_to: str = Field(..., description="Frontend route path (e.g. /team/members).")
-    target_meta: dict[str, Any] | None = Field(default=None, description="Frontend routing metadata (non-sensitive).")
+    target_meta: JsonObject | None = Field(default=None, description="Frontend routing metadata (non-sensitive).")
 
     event_name: str | None = Field(default=None, description="Optional event name.")
     dedupe_key: str | None = Field(default=None, description="Optional dedupe key.")

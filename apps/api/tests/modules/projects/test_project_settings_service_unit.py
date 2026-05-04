@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
 
 import pytest
 
+from src.common.types.json_types import JsonObject
 from src.config import get_settings
 from src.modules.projects.settings.service import ProjectSettingsService
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
@@ -42,7 +44,8 @@ async def test_project_settings_service_get_core_detail_returns_project_schema(m
     detail = await service.get_core_detail(project_id=uuid4())
 
     assert detail.namespace == "core"
-    assert detail.value["site"]["name"] == "Arclayer"
+    site_settings = cast(JsonObject, detail.value["site"])
+    assert site_settings["name"] == "Arclayer"
 
 
 @pytest.mark.asyncio

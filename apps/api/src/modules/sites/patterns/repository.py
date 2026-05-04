@@ -5,11 +5,11 @@ from uuid import UUID
 
 from tortoise.queryset import QuerySet
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.sites.site_pattern import SitePattern
 
 
-class SitePatternRepository(BaseRepository):
+class SitePatternRepository(TortoiseORMRepository):
     def list_by_site(self, site_id: UUID) -> QuerySet[SitePattern]:
         return SitePattern.filter(site_id=site_id).order_by("-created_at")
 

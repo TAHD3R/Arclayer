@@ -29,6 +29,7 @@ from src.models.organization.org_membership import OrgMembership
 from src.models.organization.user import User
 from src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
 from src.modules.auth.invitations.service import AuthInvitationService
+from src.modules.auth.oauth.social.repository import OAuthSocialRepository
 from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.auth.repository import (
     EmailChangeStore,
@@ -103,6 +104,7 @@ class AuthService(BaseService):
         self.email_service = EmailService(settings)
         self.invitation_service = AuthInvitationService(settings)
         self.location_lookup = AuthSessionLocationLookup(settings)
+        self.oauth_repo = OAuthSocialRepository()
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -309,9 +311,7 @@ class AuthService(BaseService):
         )
 
     async def _has_linked_oauth_identities(self, *, user_id: UUID) -> bool:
-        from src.models.auth.oauth_identity import OAuthIdentity
-
-        return await OAuthIdentity.filter(user_id=user_id).exists()
+        return await self.oauth_repo.has_identity_for_user(user_id=user_id)
 
     async def confirm_email_change(
         self,
@@ -590,9 +590,7 @@ class AuthService(BaseService):
 
         # Best-effort: remove OAuth identity mappings to prevent SSO sign-in after deletion.
         try:
-            from src.models.auth.oauth_identity import OAuthIdentity
-
-            await OAuthIdentity.filter(user_id=user_id).delete()
+            await self.oauth_repo.delete_identities_for_user(user_id=user_id)
         except BaseException as exc:
             _raise_if_fatal(exc)
             self.logger.warning("OAuth identities cleanup failed", user_id=str(user_id), error=str(exc))

@@ -6,13 +6,13 @@ from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
 from src.common.constants.assets import PUBLIC_LIBRARY_ASSET_ALLOWED_ORDER_FIELDS
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
 from src.models.organization.organization import Organization
 from src.modules.library.schema import PublicLibraryListQuery
 
 
-class PublicLibraryRepository(BaseRepository):
+class PublicLibraryRepository(TortoiseORMRepository):
     async def get_org_by_slug(self, *, slug: str) -> Organization | None:
         s = (slug or "").strip()
         if not s:

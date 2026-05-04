@@ -7,6 +7,7 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.automation.flow import (
     AutomationFlowRecord,
     AutomationFlowStatus,
@@ -20,7 +21,7 @@ from src.models.automation.flow import (
 )
 
 
-class AutomationRepository:
+class AutomationRepository(TortoiseORMRepository):
     @staticmethod
     def _project_id_from_binding(binding: dict[str, Any] | None) -> str | None:
         if not isinstance(binding, dict):

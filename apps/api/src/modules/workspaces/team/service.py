@@ -6,7 +6,6 @@ from typing import cast
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
-from tortoise.expressions import Q
 
 from src.common.email.service import EmailService
 from src.common.protocols.tortoise import HasUserId
@@ -18,13 +17,7 @@ from src.core.i18n import t
 from src.models.organization.user import User
 from src.models.system.notification import NotificationCategory, NotificationRecord
 from src.models.system.rbac import Role
-from src.models.workspaces.workspace import (
-    Workspace,
-    WorkspaceMembership,
-    WorkspaceMembershipRole,
-    WorkspaceMembershipStatus,
-)
-from src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
+from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipRole, WorkspaceMembershipStatus
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.system.admin.notifications.preferences import (
@@ -121,7 +114,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     async def _resolve_actor_label(self, *, actor_user_id: UUID | None) -> str:
         if actor_user_id is None:
             return SYSTEM_ACTOR_LABEL
-        user = await User.get_or_none(id=actor_user_id)
+        user = await self.user_repo.get_by_id(actor_user_id)
         if user is None:
             return SYSTEM_ACTOR_LABEL
         label = (user.display_name or user.username or user.email or "").strip()
@@ -187,7 +180,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         normalized_email = invited_email.strip().lower()
         if not normalized_email:
             return
-        recipient = await User.get_or_none(email=normalized_email)
+        recipient = await self.user_repo.get_by_email(normalized_email)
         if recipient is None:
             return
 
@@ -344,11 +337,11 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     async def _list_recent_participants(
         self, *, link_id: UUID, limit: int = 3
     ) -> list[WorkspaceInviteLinkParticipantOut]:
-        events = await WorkspaceInviteLinkUseEvent.filter(link_id=link_id).order_by("-used_at").limit(limit).all()
+        events = await self.repo.list_recent_link_events(link_id=link_id, limit=limit)
         if not events:
             return []
         user_ids = [UUID(str(e.used_by_user_id)) for e in events if e.used_by_user_id]
-        users = await User.filter(id__in=user_ids).all()
+        users = await self.repo.list_users_by_ids(user_ids=user_ids)
         user_by_id = {UUID(str(u.id)): u for u in users}
         out: list[WorkspaceInviteLinkParticipantOut] = []
         for e in events:
@@ -359,7 +352,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         return out
 
     async def get_workspace_name(self, *, workspace_id: UUID) -> str:
-        ws = await Workspace.get_or_none(id=workspace_id)
+        ws = await self.repo.get_workspace(workspace_id=workspace_id)
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         return ws.name
@@ -418,27 +411,11 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         - We include both ACTIVE and DISABLED members so historical actors remain discoverable.
         """
 
-        qs = (
-            WorkspaceMembership
-            .filter(workspace_id=workspace_id)
-            .filter(status__in=[WorkspaceMembershipStatus.ACTIVE, WorkspaceMembershipStatus.DISABLED])
-            .select_related("user")
-        )
-
-        if q:
-            needle = q.strip()
-            if needle:
-                qs = qs.filter(
-                    Q(user__username__icontains=needle)
-                    | Q(user__email__icontains=needle)
-                    | Q(user__display_name__icontains=needle)
-                )
+        qs = await self.repo.query_user_options(workspace_id=workspace_id, q=q)
 
         total = int(await qs.count())
         pages = (total + params.size - 1) // params.size if params.size else 0
-        rows = (
-            await qs.order_by("-user__last_login_at", "user__username").limit(params.limit).offset(params.offset).all()
-        )
+        rows = await qs.limit(params.limit).offset(params.offset).all()
 
         items: list[WorkspaceTeamUserOptionOut] = []
         for m in rows:
@@ -525,12 +502,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
                 },
             )
 
-        membership = (
-            await WorkspaceMembership
-            .get_or_none(id=membership.id)
-            .select_related("user")
-            .prefetch_related("membership_roles__role")
-        )
+        membership = await self.repo.get_membership_with_roles(membership_id=membership.id)
         assert membership is not None
         return self._build_member_out(membership=membership)
 

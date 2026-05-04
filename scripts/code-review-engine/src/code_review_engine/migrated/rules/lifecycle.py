@@ -84,10 +84,7 @@ class LifecycleMustDispatchHooks(AuditRule):
 
 
 class LifecycleSubscriberCoverage(AuditRule):
-    """Critical lifecycle actions must have registered subscribers.
-
-    Checks that lifecycle subscribers exist in the subscriber directory.
-    """
+    """Critical lifecycle actions must be registered with LifecycleDispatcher."""
 
     rule_id = "lifecycle.missing-subscribers"
     description = "Lifecycle subscribers must be registered for critical CRUD and publish actions."
@@ -95,6 +92,7 @@ class LifecycleSubscriberCoverage(AuditRule):
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
         root = _repo_root()
+        runtime_init = root / "apps" / "api" / "src" / "core" / "runtime_init.py"
         subscribers_dir = root / "apps" / "api" / "src" / "core" / "lifecycles" / "subscribers"
         if not subscribers_dir.is_dir():
             violations.append(
@@ -108,38 +106,36 @@ class LifecycleSubscriberCoverage(AuditRule):
                 )
             )
             return violations
-
-        # Check that subscriber files exist and register for actions
-        py_files = list(subscribers_dir.rglob("*.py"))
-        if not py_files:
+        if not runtime_init.is_file():
             violations.append(
                 v(
-                    file=str(subscribers_dir),
+                    file="apps/api/src/core/runtime_init.py",
                     line=0,
                     rule=self.rule_id,
-                    message="No lifecycle subscribers registered. At minimum, audit logging subscriber required.",
+                    message="Lifecycle runtime registration file missing. Register core subscribers during startup.",
                     severity=Severity.MAJOR,
-                    evidence="No .py files in subscribers/",
+                    evidence="File not found",
                 )
             )
             return violations
 
-        # Check what actions are covered
         covered_actions: set[str] = set()
-        for f in py_files:
-            if f.name.startswith("_"):
+        try:
+            tree = ast.parse(runtime_init.read_text(encoding="utf-8"))
+        except (SyntaxError, UnicodeDecodeError):
+            tree = ast.Module(body=[], type_ignores=[])
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
                 continue
-            try:
-                tree = ast.parse(f.read_text(encoding="utf-8"))
-            except (SyntaxError, UnicodeDecodeError):
+            call_target = ast.unparse(node.func) if hasattr(ast, "unparse") else ""
+            if not call_target.endswith(".register"):
                 continue
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Call):
-                    for kw in node.keywords:
-                        if kw.arg == "action" and isinstance(kw.value, ast.Attribute):
-                            covered_actions.add(kw.value.attr)
-                        elif kw.arg == "action" and isinstance(kw.value, ast.Constant):
-                            covered_actions.add(str(kw.value.value))
+            for kw in node.keywords:
+                if kw.arg == "action" and isinstance(kw.value, ast.Attribute):
+                    covered_actions.add(kw.value.attr)
+                elif kw.arg == "action" and isinstance(kw.value, ast.Constant):
+                    covered_actions.add(str(kw.value.value))
 
         missing = REQUIRED_LIFECYCLE_ACTIONS - covered_actions
         if missing:

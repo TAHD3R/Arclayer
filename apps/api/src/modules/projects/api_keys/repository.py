@@ -4,10 +4,11 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord
 
 
-class ProjectApiKeysRepository:
+class ProjectApiKeysRepository(TortoiseORMRepository):
     async def get_key_by_public_id(self, *, token_public_id: str) -> ApiKeyRecord | None:
         return await ApiKeyRecord.filter(token_public_id=token_public_id).first()
 

@@ -4,13 +4,13 @@ from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.assets.asset import AssetRecord, AssetVisibility
 from src.models.tenancy.workspace_tenant import WorkspaceTenantRecord, WorkspaceTenantStatus
 from src.modules.tenancy.database import set_tenant_search_path
 
 
-class AssetsRepository(BaseRepository):
+class AssetsRepository(TortoiseORMRepository):
     async def get_public_asset(self, *, asset_id: UUID) -> AssetRecord | None:
         """
         Fetch a public, non-deleted asset.

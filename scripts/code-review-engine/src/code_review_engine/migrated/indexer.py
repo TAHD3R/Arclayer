@@ -77,7 +77,15 @@ ORM_METHODS = frozenset(
 )
 
 SERVICE_BASE_NAMES = frozenset({"BaseService", "Service"})
-REPO_BASE_NAMES = frozenset({"AbstractRepository", "TortoiseORMRepository", "BaseRepository", "Repository"})
+REPO_BASE_NAMES = frozenset({
+    "AbstractRepository",
+    "TortoiseORMRepository",
+    "BaseRepository",
+    "Repository",
+    "RuntimeRepositoryMixin",
+    "SettingsRepositoryMixin",
+    "TwoFactorRepositoryLike",
+})
 SCHEMA_BASE_NAMES = frozenset({"BaseModel", "BaseSchema", "BaseOut", "BaseIn"})
 
 
@@ -137,6 +145,7 @@ class _SymbolVisitor(ast.NodeVisitor):
             "file": self.filepath,
             "line": node.lineno,
             "parent_class": _class_name(node.bases[0]) if node.bases else None,
+            "base_classes": bases,
             "decorators": decorator_names,
             "imports": sorted(self._import_names),
             "type_annotations": annotations,
@@ -174,7 +183,7 @@ def _classify_class(name: str, bases: list[str], decorators: list[str]) -> str:
 
     if "EntityManager" in name:
         return "entity_manager"
-    if name_lower.endswith("repository") or base_names & REPO_BASE_NAMES:
+    if name_lower.endswith("repository") or name_lower.endswith("repositorymixin") or base_names & REPO_BASE_NAMES:
         return "repository"
     if base_names & SCHEMA_BASE_NAMES:
         return "schema"
@@ -213,19 +222,28 @@ def _is_t_call(node: ast.Call) -> bool:
     return isinstance(node.func, ast.Name) and node.func.id == "t"
 
 
-def _t_call_info(node: ast.Call) -> dict[str, str]:
-    result: dict[str, str] = {"raw": "<dynamic>", "namespace": "", "key": "", "pattern": "dynamic"}
+def _t_call_info(node: ast.Call) -> dict[str, str | int]:
+    result: dict[str, str | int] = {
+        "raw": "<dynamic>",
+        "namespace": "",
+        "key": "",
+        "pattern": "dynamic",
+        "line": node.lineno,
+    }
     if not node.args:
         return result
 
     if len(node.args) >= 2:
         ns = node.args[0]
         key_node = node.args[1]
-        if isinstance(ns, ast.Constant) and isinstance(key_node, ast.Constant):
+        if isinstance(ns, ast.Constant):
             result["namespace"] = str(ns.value)
-            result["key"] = str(key_node.value)
-            result["raw"] = f"t({str(ns.value)}, {str(key_node.value)})"
-            result["pattern"] = "two_arg"
+            result["raw"] = f"t({str(ns.value)}, <dynamic>)"
+            result["pattern"] = "two_arg_dynamic"
+            if isinstance(key_node, ast.Constant):
+                result["key"] = str(key_node.value)
+                result["raw"] = f"t({str(ns.value)}, {str(key_node.value)})"
+                result["pattern"] = "two_arg"
             return result
 
     first_arg = node.args[0]

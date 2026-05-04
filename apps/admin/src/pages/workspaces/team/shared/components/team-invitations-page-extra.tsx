@@ -11,9 +11,9 @@ import { DataTableSearchInput } from "@/components/common/data-table-search-inpu
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 
-type TeamInvitationsPageExtraProps<TTab extends string> = {
+type TeamInvitationsPageExtraProps<TTab extends string, TData> = {
   tabs: Array<{ value: TTab; label: string }>;
-  table: Table<any>;
+  table: Table<TData>;
   searchInput: string;
   onSearchInputChange: (value: string) => void;
   searchPlaceholder: string;
@@ -28,7 +28,7 @@ type TeamInvitationsPageExtraProps<TTab extends string> = {
   labels: DataTableToolsLabels;
 };
 
-export function TeamInvitationsPageExtra<TTab extends string>({
+export function TeamInvitationsPageExtra<TTab extends string, TData>({
   tabs,
   table,
   searchInput,
@@ -43,7 +43,7 @@ export function TeamInvitationsPageExtra<TTab extends string>({
   refreshing,
   onResetColumnVisibility,
   labels,
-}: TeamInvitationsPageExtraProps<TTab>) {
+}: TeamInvitationsPageExtraProps<TTab, TData>) {
   return (
     <PageExtraToolbar
       className="items-center lg:flex-nowrap"

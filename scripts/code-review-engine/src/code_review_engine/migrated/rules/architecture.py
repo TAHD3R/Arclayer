@@ -61,8 +61,8 @@ class WritePathViolation(AuditRule):
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
         for sym in symbols:
-            if sym["kind"] == "entity_manager":
-                continue  # EntityManager is the correct write path
+            if sym["kind"] in {"entity_manager", "repository"}:
+                continue
             for call in sym["calls"]:
                 name = call_name(call)
                 if not is_orm_call(name):

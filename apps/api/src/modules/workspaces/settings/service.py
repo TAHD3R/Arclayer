@@ -12,7 +12,6 @@ from src.core.i18n import t
 from src.models.system.rbac import Role
 from src.models.system.setting import SettingRecord
 from src.models.workspaces.workspace import (
-    Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
@@ -21,6 +20,7 @@ from src.modules.auth.onboarding.service import (
     WorkspaceFirstOnboardingService,
     WorkspaceFirstOnboardingStatus,
 )
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.workspaces.settings.integrations.webhooks.service import WebhooksService
 from src.modules.workspaces.settings.schema import (
@@ -121,7 +121,7 @@ class WorkspaceSettingsService(BaseService):
         )
 
     async def get_role_policy(self, *, workspace_id: UUID) -> WorkspaceRolePolicyOut:
-        workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
+        workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
@@ -141,7 +141,7 @@ class WorkspaceSettingsService(BaseService):
         workspace_id: UUID,
         default_role_code: str,
     ) -> WorkspaceRolePolicyOut:
-        workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
+        workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
@@ -173,7 +173,7 @@ class WorkspaceSettingsService(BaseService):
         role_code: str,
         confirm_name: str,
     ) -> WorkspaceAssignRoleToMembersResult:
-        workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
+        workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
@@ -256,3 +256,7 @@ class WorkspaceSettingsService(BaseService):
             else:
                 out.append(path)
         return out
+
+    def __init__(self, settings) -> None:
+        super().__init__(settings)
+        self.workspace_repo = OrganizationWorkspaceRepository()

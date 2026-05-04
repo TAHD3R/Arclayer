@@ -6,8 +6,8 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
-from src.common.repositories import BaseRepository
 from src.core.http.pagination import PageParams
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_invitation import (
     OrganizationEmailInvite,
     OrganizationInviteLink,
@@ -18,7 +18,7 @@ from src.models.organization.user import User
 from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
 
 
-class OrganizationMemberRepository(BaseRepository):
+class OrganizationMemberRepository(TortoiseORMRepository):
     async def list_memberships(self, *, organization_id: UUID) -> list[OrgMembership]:
         return (
             await OrgMembership

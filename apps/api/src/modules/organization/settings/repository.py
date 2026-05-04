@@ -4,7 +4,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import SettingUpdatedBy
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization
 from src.models.system.setting import SettingRecord
@@ -12,7 +12,7 @@ from src.models.workspaces.workspace import Workspace, WorkspaceMembership, Work
 from src.settings.scopes import SCOPE_TYPE_ORG
 
 
-class OrganizationSettingsRepository(BaseRepository):
+class OrganizationSettingsRepository(TortoiseORMRepository):
     async def get_organization(self, *, organization_id: UUID) -> Organization | None:
         return await Organization.get_or_none(id=organization_id)
 

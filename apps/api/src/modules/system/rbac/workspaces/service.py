@@ -5,7 +5,6 @@ from uuid import UUID
 
 from src.config import Settings
 from src.core.exceptions import Conflict
-from src.models.workspaces.workspace import Workspace
 from src.modules.system.rbac.catalogsync.service import RBACCatalogSyncMixin
 from src.modules.system.rbac.constants.service import (
     ROLE_ADMIN,
@@ -143,11 +142,11 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
             await self.repo.replace_role_permissions(role=role, permission_ids=perm_ids)
 
     async def ensure_all_workspaces_ready(self) -> WorkspacesSyncResult:
-        workspaces = await Workspace.all().values_list("id", flat=True)
+        workspaces = await self.repo.list_workspace_ids()
         total = 0
         for ws_id in workspaces:
             total += 1
-            await self.ensure_workspace_system_role_grants(workspace_id=UUID(str(ws_id)))
+            await self.ensure_workspace_system_role_grants(workspace_id=ws_id)
         return WorkspacesSyncResult(workspaces=total)
 
     async def sync_permissions_with_workspaces(self) -> PermissionSyncResult:

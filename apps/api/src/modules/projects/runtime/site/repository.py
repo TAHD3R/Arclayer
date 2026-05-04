@@ -4,11 +4,11 @@ from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.sites.site import SiteRecord
 
 
-class ProjectRuntimeSiteRepository(BaseRepository):
+class ProjectRuntimeSiteRepository(TortoiseORMRepository):
     async def get_site_by_runtime_id(self, *, runtime_id: UUID) -> SiteRecord | None:
         return await SiteRecord.filter(runtime_id=runtime_id).order_by("created_at", "id").first()
 

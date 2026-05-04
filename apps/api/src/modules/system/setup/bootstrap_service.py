@@ -57,10 +57,10 @@ class InstanceBootstrapService(BaseService):
             return
         if state.status == InstanceSetupStatus.REPAIR_REQUIRED:
             raise Conflict(
-                message=t("sys:INSTANCE_SETUP_REPAIR_REQUIRED"),
+                message=t("errors", "INSTANCE_SETUP_REPAIR_REQUIRED"),
                 error="INSTANCE_SETUP_REPAIR_REQUIRED",
             )
         raise Conflict(
-            message=t("sys:INSTANCE_ALREADY_INITIALIZED"),
+            message=t("errors", "INSTANCE_ALREADY_INITIALIZED"),
             error="INSTANCE_ALREADY_INITIALIZED",
         )

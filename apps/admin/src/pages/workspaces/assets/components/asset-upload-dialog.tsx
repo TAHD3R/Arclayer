@@ -25,6 +25,7 @@ import {
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { cn } from "@arclayer/lib/utils";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
+import { uploadPresignedPart } from "@/lib/assets/storage-transfer";
 
 type UploadItem = {
   id: string;
@@ -256,15 +257,13 @@ export function AssetUploadDialog(props: {
             uploadId: init.uploadId,
             partNumber,
           });
-          const res = await fetch(presign.url, {
-            method: presign.method || "PUT",
-            headers: presign.headers || {},
-            body: chunk,
+          const etag = await uploadPresignedPart({
+            presign,
+            chunk,
             signal: controller.signal,
+            errorMessage: t("assets:ASSET_UPLOAD_S3_PUT_FAILED"),
+            missingEtagMessage: t("assets:ASSET_UPLOAD_S3_ETAG_MISSING"),
           });
-          if (!res.ok) throw new Error(t("assets:ASSET_UPLOAD_S3_PUT_FAILED"));
-          const etag = res.headers.get("etag") || res.headers.get("ETag");
-          if (!etag) throw new Error(t("assets:ASSET_UPLOAD_S3_ETAG_MISSING"));
 
           await api.commitPart({
             uploadId: init.uploadId,

@@ -193,6 +193,7 @@ class FrontendPageStructureRule(AuditRule):
             "utils",
         }
     )
+    PAGE_SUPPORT_FILE_RE = re.compile(r"(?:shell|dialog|dialogs|table|card|form-utils|pages)\.tsx$")
 
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
@@ -211,6 +212,8 @@ class FrontendPageStructureRule(AuditRule):
             has_page = any(f.name == "page.tsx" for f in tsx_files)
             has_index = any(f.name == "index.tsx" for f in tsx_files)
             if not has_page and not has_index and tsx_files:
+                if all(self.PAGE_SUPPORT_FILE_RE.search(f.name) for f in tsx_files):
+                    continue
                 violations.append(
                     v(
                         file=_relative_file(d),

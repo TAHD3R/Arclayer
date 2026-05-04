@@ -6,6 +6,7 @@ import {
   presignAvatarUploadPart,
   uploadAvatarPart,
 } from "@/api/uploads";
+import { uploadPresignedPart } from "@/lib/assets/storage-transfer";
 
 const MIN_UPLOAD_CHUNK_SIZE = 1;
 const MIN_UPLOAD_PARTS = 1;
@@ -63,16 +64,13 @@ async function uploadS3Part(params: {
     partNumber: params.partNumber,
   });
 
-  const res = await fetch(presign.url, {
-    method: presign.method || "PUT",
-    headers: presign.headers || {},
-    body: params.chunk,
+  const etag = await uploadPresignedPart({
+    presign,
+    chunk: params.chunk,
     signal: params.signal,
+    errorMessage: "Avatar upload failed on multipart PUT request.",
+    missingEtagMessage: "Avatar upload response is missing ETag.",
   });
-  if (!res.ok) throw new Error("Avatar upload failed on multipart PUT request.");
-
-  const etag = res.headers.get("etag") || res.headers.get("ETag");
-  if (!etag) throw new Error("Avatar upload response is missing ETag.");
 
   await commitAvatarUploadPart({
     uploadId: params.uploadId,

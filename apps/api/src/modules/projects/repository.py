@@ -5,9 +5,9 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
-from src.common.repositories.base import BaseRepository
 from src.common.utils.slug import slugify
 from src.core.exceptions import Conflict, NotFound
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
@@ -17,7 +17,7 @@ from src.models.sites.site import SiteRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 
 
-class ProjectRepository(BaseRepository):
+class ProjectRepository(TortoiseORMRepository):
     async def list_projects(
         self,
         *,

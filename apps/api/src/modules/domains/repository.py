@@ -6,9 +6,9 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
-from src.common.repositories import BaseRepository
 from src.core.exceptions import Conflict, NotFound
 from src.core.i18n import t
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.domains.domain_binding import (
     DomainBindingCertificateStatus,
     DomainBindingRecord,
@@ -21,7 +21,7 @@ def _te(key: str) -> str:
     return t("errors", key)
 
 
-class DomainBindingRepository(BaseRepository):
+class DomainBindingRepository(TortoiseORMRepository):
     async def get_by_hostname(self, *, hostname: str) -> DomainBindingRecord | None:
         raw = (hostname or "").strip().lower()
         if not raw:

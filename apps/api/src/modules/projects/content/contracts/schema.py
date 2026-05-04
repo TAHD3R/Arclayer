@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject, JsonValue
 from src.common.types.public_uuid import PublicUUID
 
 ContentModelCategory = Literal["site_builder", "content_library", "system", "custom"]
@@ -116,7 +117,7 @@ class ContentModelFieldDefinitionOut(BaseSchema):
     label: str = Field(..., min_length=1, description="User-facing field label.")
     scalar: FieldScalarType = Field(..., description="Stored scalar type.")
     required: bool = Field(default=False, description="Whether the field is required.")
-    config: dict[str, Any] | None = Field(default=None, description="Optional field configuration payload.")
+    config: JsonObject | None = Field(default=None, description="Optional field configuration payload.")
 
 
 class ContentModelContractBoundaryOut(BaseSchema):
@@ -186,7 +187,7 @@ class ContentModelFieldTypeDefinitionOut(BaseSchema):
     description: str | None = Field(default=None, min_length=1, description="Plugin provided description.")
     icon: str | None = Field(default=None, min_length=1, max_length=64, description="Admin icon token.")
     plugin_id: str | None = Field(default=None, min_length=1, max_length=128, description="Owning plugin id.")
-    config_schema: dict[str, Any] = Field(
+    config_schema: JsonObject = Field(
         default_factory=dict,
         description="JSON-schema-like config contract owned by the registry definition.",
     )
@@ -241,9 +242,9 @@ class ContentModelContractRegistryOut(BaseSchema):
         default_factory=ContentModelCapabilityRegistryOut,
         description="Capability registry grouped by platform concern.",
     )
-    workflow_policy: dict[str, Any] | None = Field(default=None, description="Workflow governance policy payload.")
-    delivery_policy: dict[str, Any] | None = Field(default=None, description="Delivery governance policy payload.")
-    graphql_policy: dict[str, Any] | None = Field(default=None, description="GraphQL governance policy payload.")
+    workflow_policy: JsonObject | None = Field(default=None, description="Workflow governance policy payload.")
+    delivery_policy: JsonObject | None = Field(default=None, description="Delivery governance policy payload.")
+    graphql_policy: JsonObject | None = Field(default=None, description="GraphQL governance policy payload.")
 
 
 class ContentModelImpactChangeOut(BaseSchema):
@@ -285,7 +286,7 @@ class ContentModelSchemaSnapshotOut(BaseSchema):
     field_count: int = Field(default=0, ge=0, description="Number of fields stored in the snapshot payload.")
     relation_count: int = Field(default=0, ge=0, description="Number of relations stored in the snapshot payload.")
     view_count: int = Field(default=0, ge=0, description="Number of views stored in the snapshot payload.")
-    payload: dict[str, Any] = Field(
+    payload: JsonObject = Field(
         default_factory=dict,
         description="Canonical schema snapshot payload used for diff and review surfaces.",
     )
@@ -299,8 +300,8 @@ class ContentModelSchemaDiffEntryOut(BaseSchema):
     target: str = Field(..., min_length=1, description="Machine-readable change target path.")
     summary: str = Field(..., min_length=1, description="Human-readable description for the changed target.")
     breaking: bool = Field(default=False, description="Whether this diff entry introduces a breaking change.")
-    before: Any | None = Field(default=None, description="Current draft value before the change.")
-    after: Any | None = Field(default=None, description="Next draft value after the change.")
+    before: JsonValue | None = Field(default=None, description="Current draft value before the change.")
+    after: JsonValue | None = Field(default=None, description="Next draft value after the change.")
 
 
 class ContentModelSchemaDiffOut(BaseSchema):
@@ -350,8 +351,8 @@ class ContentModelStorageMigrationOut(BaseSchema):
     state: ContentModelStorageSyncState = Field(..., description="Migration state in the current plan.")
     reversible: bool = Field(default=True, description="Whether a rollback plan is available.")
     summary: str = Field(..., min_length=1, description="Human-readable storage migration summary.")
-    before: Any = Field(default=None, description="Source storage metadata.")
-    after: Any = Field(default=None, description="Target storage metadata.")
+    before: JsonValue = Field(default=None, description="Source storage metadata.")
+    after: JsonValue = Field(default=None, description="Target storage metadata.")
     forward_steps: list[str] = Field(default_factory=list, description="Idempotent forward migration steps.")
     rollback_steps: list[str] = Field(default_factory=list, description="Idempotent rollback steps.")
 
@@ -481,11 +482,11 @@ class ContentModelOut(BaseSchema):
         default=None,
         description="Default continuation surface resolved for new items of this model.",
     )
-    starter_pack_policy: dict[str, Any] | None = Field(
+    starter_pack_policy: JsonObject | None = Field(
         default=None,
         description="Starter pack policy used when shaping new items.",
     )
-    surface_policy: dict[str, Any] | None = Field(
+    surface_policy: JsonObject | None = Field(
         default=None,
         description="Surface policy constraints for continuation routing.",
     )
@@ -493,12 +494,12 @@ class ContentModelOut(BaseSchema):
         default_factory=ContentModelContractRegistryOut,
         description="Formal model contract registry entry used by admin governance surfaces.",
     )
-    field_schema: dict[str, Any] | None = Field(default=None, description="Field schema payload.")
-    relation_schema: dict[str, Any] | None = Field(default=None, description="Relation schema payload.")
-    routing_schema: dict[str, Any] | None = Field(default=None, description="Routing schema payload.")
-    presentation_schema: dict[str, Any] | None = Field(default=None, description="Presentation schema payload.")
-    workflow_policy: dict[str, Any] | None = Field(default=None, description="Workflow policy payload.")
-    view_schema: dict[str, Any] | None = Field(default=None, description="View schema payload.")
+    field_schema: JsonObject | None = Field(default=None, description="Field schema payload.")
+    relation_schema: JsonObject | None = Field(default=None, description="Relation schema payload.")
+    routing_schema: JsonObject | None = Field(default=None, description="Routing schema payload.")
+    presentation_schema: JsonObject | None = Field(default=None, description="Presentation schema payload.")
+    workflow_policy: JsonObject | None = Field(default=None, description="Workflow policy payload.")
+    view_schema: JsonObject | None = Field(default=None, description="View schema payload.")
 
 
 class ContentRecoveryActionOut(BaseSchema):
@@ -525,7 +526,7 @@ class ContentOpenIntentOut(BaseSchema):
         default=None,
         description="Machine-readable blocker or recovery code.",
     )
-    reason_meta: dict[str, Any] | None = Field(
+    reason_meta: JsonObject | None = Field(
         default=None,
         description="Structured metadata for the blocker or recovery reason.",
     )
@@ -649,7 +650,7 @@ class ContentItemOut(BaseSchema):
         default=None,
         description="Machine-readable reason for blocked or unshaped continuation.",
     )
-    shape_reason_meta: dict[str, Any] | None = Field(
+    shape_reason_meta: JsonObject | None = Field(
         default=None,
         description="Structured metadata for the current shape reason.",
     )
@@ -691,7 +692,7 @@ class ContentPresentationOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     kind: ContentPresentationKind = Field(..., description="Presentation kind.")
-    payload: dict[str, Any] | None = Field(default=None, description="Presentation payload.")
+    payload: JsonObject | None = Field(default=None, description="Presentation payload.")
 
 
 class ContentPresentationListOut(BaseSchema):
@@ -707,7 +708,7 @@ class ContentSeoProfileOut(BaseSchema):
     meta_description: str | None = Field(default=None, max_length=512, description="Resolved SEO description.")
     canonical_url: str | None = Field(default=None, max_length=1024, description="Canonical URL.")
     robots_directive: str | None = Field(default=None, max_length=128, description="Robots directive.")
-    payload: dict[str, Any] | None = Field(default=None, description="Raw SEO payload.")
+    payload: JsonObject | None = Field(default=None, description="Raw SEO payload.")
 
 
 class ContentComponentBindingOut(BaseSchema):
@@ -715,7 +716,7 @@ class ContentComponentBindingOut(BaseSchema):
 
     component_key: str = Field(..., min_length=1, max_length=128, description="Component identity.")
     binding_key: str = Field(..., min_length=1, max_length=128, description="Binding identity.")
-    binding_payload: dict[str, Any] | None = Field(default=None, description="Binding payload.")
+    binding_payload: JsonObject | None = Field(default=None, description="Binding payload.")
     sort_order: int = Field(default=0, ge=0, description="Binding order within the version.")
 
 
@@ -737,7 +738,7 @@ class ContentVersionOut(BaseSchema):
         default=None,
         description="Last transition actor user id.",
     )
-    fields_snapshot: dict[str, Any] = Field(default_factory=dict, description="Structured fields snapshot.")
+    fields_snapshot: JsonObject = Field(default_factory=dict, description="Structured fields snapshot.")
     presentations: list[ContentPresentationOut] = Field(default_factory=list, description="Presentation snapshots.")
     change_summary: str | None = Field(default=None, max_length=512, description="Optional change summary.")
 
@@ -752,8 +753,8 @@ class ContentVersionCompareChangeOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     path: str = Field(..., min_length=1, description="Changed snapshot path.")
-    before: Any = Field(default=None, description="Value from the source version.")
-    after: Any = Field(default=None, description="Value from the target version.")
+    before: JsonValue = Field(default=None, description="Value from the source version.")
+    after: JsonValue = Field(default=None, description="Value from the target version.")
 
 
 class ContentVersionCompareOut(BaseSchema):
@@ -772,7 +773,7 @@ class ContentModelFieldContract(BaseSchema):
     label: str = Field(..., min_length=1, max_length=128, description="Field label.")
     scalar: FieldScalarType = Field(..., description="Field scalar type.")
     required: bool = Field(default=False, description="Whether the field must be provided.")
-    config: dict[str, Any] | None = Field(default=None, description="Field-level configuration payload.")
+    config: JsonObject | None = Field(default=None, description="Field-level configuration payload.")
 
 
 class ContentModelFieldPatchContract(BaseSchema):
@@ -781,7 +782,7 @@ class ContentModelFieldPatchContract(BaseSchema):
     label: str | None = Field(default=None, min_length=1, max_length=128, description="Field label.")
     scalar: FieldScalarType | None = Field(default=None, description="Field scalar type.")
     required: bool | None = Field(default=None, description="Whether the field must be provided.")
-    config: dict[str, Any] | None = Field(default=None, description="Field-level configuration payload.")
+    config: JsonObject | None = Field(default=None, description="Field-level configuration payload.")
 
 
 class ContentModelFieldReorderContract(BaseSchema):
@@ -797,7 +798,7 @@ class ContentModelRelationContract(BaseSchema):
     relation: RelationType = Field(..., description="Relation cardinality.")
     target_model_key: str = Field(..., min_length=1, max_length=64, description="Target model key.")
     required: bool = Field(default=False, description="Whether the relation must be provided.")
-    config: dict[str, Any] | None = Field(default=None, description="Relation-level configuration payload.")
+    config: JsonObject | None = Field(default=None, description="Relation-level configuration payload.")
 
 
 class ContentRoutingContract(BaseSchema):
@@ -887,7 +888,7 @@ class ContentModelViewContract(BaseSchema):
     key: str = Field(..., min_length=1, max_length=64, description="Stable view key.")
     label: str = Field(..., min_length=1, max_length=128, description="View label.")
     type: ViewType = Field(..., description="View type.")
-    config: dict[str, Any] | None = Field(default=None, description="View-level configuration payload.")
+    config: JsonObject | None = Field(default=None, description="View-level configuration payload.")
 
 
 class ContentModelDefinitionContract(BaseSchema):
@@ -930,19 +931,19 @@ class ContentModelDefinitionContract(BaseSchema):
         description="Workflow contract.",
     )
     views: list[ContentModelViewContract] = Field(default_factory=list, description="View contracts.")
-    presentation: dict[str, Any] | None = Field(
+    presentation: JsonObject | None = Field(
         default=None,
         description="Presentation policy contract.",
     )
-    seo: dict[str, Any] | None = Field(
+    seo: JsonObject | None = Field(
         default=None,
         description="SEO policy contract.",
     )
-    starter_pack_policy: dict[str, Any] | None = Field(
+    starter_pack_policy: JsonObject | None = Field(
         default=None,
         description="Starter pack policy contract.",
     )
-    surface_policy: dict[str, Any] | None = Field(
+    surface_policy: JsonObject | None = Field(
         default=None,
         description="Surface policy contract.",
     )

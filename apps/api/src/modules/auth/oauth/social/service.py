@@ -422,9 +422,7 @@ class OAuthSocialService(BaseService):
         redirect: str | None,
     ) -> RedirectResponse:
         try:
-            from src.models.organization.user import User
-
-            target_user = await User.get_or_none(id=UUID(link_user_id))
+            target_user = await self.repo.get_user_by_id(user_id=UUID(link_user_id))
             if target_user is None:
                 return self._redirect_to_frontend_link_error(frontend_base, error="oauth_failed", redirect=redirect)
 
@@ -448,10 +446,9 @@ class OAuthSocialService(BaseService):
 
     async def _auto_accept_email_invites(self, *, user_id: UUID, email: str) -> None:
         try:
-            from src.models.organization.user import User
             from src.models.workspaces.workspace_invite import WorkspaceEmailInvite
 
-            user = await User.get_or_none(id=user_id)
+            user = await self.repo.get_user_by_id(user_id=user_id)
             if user is None:
                 return
 

@@ -9,7 +9,7 @@ from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
 from src.common.constants.assets import ADMIN_ASSET_ALLOWED_ORDER_FIELDS
-from src.common.repositories import BaseRepository
+from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.assets.asset import AssetRecord
 from src.models.assets.asset_folder import AssetFolderRecord
 from src.models.assets.asset_tag import AssetTagLinkRecord, AssetTagRecord
@@ -18,7 +18,7 @@ from src.modules.assets.scope import AssetScope, AssetScopeDatabaseRouter, scope
 from src.modules.tenancy.schema import TenantContext
 
 
-class AdminAssetsRepository(BaseRepository):
+class AdminAssetsRepository(TortoiseORMRepository):
     def __init__(self, tenant_context: TenantContext | None = None) -> None:
         super().__init__()
         self.scope_db = AssetScopeDatabaseRouter(tenant_context)

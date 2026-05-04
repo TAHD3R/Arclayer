@@ -197,6 +197,7 @@ async def _build_workspace_member_meta(
     *,
     workspaces: list[Workspace],
     memberships: list[WorkspaceMembership],
+    users: list[User],
 ) -> tuple[dict[UUID, int], dict[UUID, list[MyWorkspaceMemberPreviewOut]]]:
     member_ids_by_workspace: dict[UUID, list[UUID]] = defaultdict(list)
     for membership in memberships:
@@ -205,11 +206,6 @@ async def _build_workspace_member_meta(
         if user_id is None:
             continue
         member_ids_by_workspace[workspace_id].append(UUID(str(user_id)))
-
-    unique_user_ids = list({user_id for ids in member_ids_by_workspace.values() for user_id in ids})
-    users: list[User] = []
-    if unique_user_ids:
-        users = await User.filter(id__in=unique_user_ids).all()
 
     user_by_id = {UUID(str(user.id)): user for user in users}
     member_count_by_workspace: dict[UUID, int] = {}
@@ -265,19 +261,14 @@ class WorkspaceService(BaseService):
         membership_by_workspace_id = {UUID(str(cast(HasWorkspaceId, m).workspace_id)): m for m in memberships}
 
         membership_workspace_ids = list(membership_by_workspace_id.keys())
-        membership_workspaces: list[Workspace] = []
-        if membership_workspace_ids:
-            membership_workspaces = (
-                await Workspace
-                .filter(id__in=membership_workspace_ids, is_active=True, deleted_at__isnull=True)
-                .order_by("created_at")
-                .all()
-            )
+        membership_workspaces = await self.repo.list_active_by_ids(workspace_ids=membership_workspace_ids)
 
         if not orgms:
+            users = await self.repo.list_users(user_ids=self._membership_user_ids(memberships))
             member_count_by_workspace, preview_by_workspace = await _build_workspace_member_meta(
                 workspaces=membership_workspaces,
                 memberships=memberships,
+                users=users,
             )
             project_id_by_workspace = await self.project_repo.get_primary_project_ids_by_workspace_ids(
                 workspace_ids=membership_workspace_ids,
@@ -298,14 +289,7 @@ class WorkspaceService(BaseService):
         membership_workspaces_by_org = _group_workspaces_by_org(membership_workspaces)
 
         owner_org_ids = [org_id for org_id in org_order if org_roles.get(org_id) == OrgRole.OWNER]
-        owner_workspaces: list[Workspace] = []
-        if owner_org_ids:
-            owner_workspaces = (
-                await Workspace
-                .filter(organization_id__in=owner_org_ids, is_active=True, deleted_at__isnull=True)
-                .order_by("created_at")
-                .all()
-            )
+        owner_workspaces = await self.repo.list_active_by_organization_ids(organization_ids=owner_org_ids)
         owner_workspaces_by_org = _group_workspaces_by_org(owner_workspaces)
         visible_workspaces_by_id = {
             UUID(str(workspace.id)): workspace for workspace in [*membership_workspaces, *owner_workspaces]
@@ -317,9 +301,11 @@ class WorkspaceService(BaseService):
                 workspace_id__in=visible_workspace_ids,
                 status=WorkspaceMembershipStatus.ACTIVE,
             ).all()
+        users = await self.repo.list_users(user_ids=self._membership_user_ids(active_memberships))
         member_count_by_workspace, preview_by_workspace = await _build_workspace_member_meta(
             workspaces=list(visible_workspaces_by_id.values()),
             memberships=active_memberships,
+            users=users,
         )
         project_id_by_workspace = await self.project_repo.get_primary_project_ids_by_workspace_ids(
             workspace_ids=visible_workspace_ids,
@@ -359,11 +345,7 @@ class WorkspaceService(BaseService):
                     message=t("errors", "BAD_REQUEST"),
                     error="WORKSPACE_ONBOARDING_STATE_INVALID",
                 )
-            existing_workspace = await Workspace.get_or_none(
-                id=onboarding_state.workspace_id,
-                is_active=True,
-                deleted_at__isnull=True,
-            )
+            existing_workspace = await self.repo.get_active_workspace_by_id(workspace_id=onboarding_state.workspace_id)
             if existing_workspace is None:
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
             return OnboardingWorkspaceCreateOut(
@@ -396,12 +378,7 @@ class WorkspaceService(BaseService):
         )
 
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:
-        ws = await Workspace.get_or_none(
-            id=workspace_id,
-            organization_id=organization_id,
-            is_active=True,
-            deleted_at__isnull=True,
-        )
+        ws = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         project = await self.project_repo.get_first_project_by_workspace_id(workspace_id=workspace_id)
@@ -465,15 +442,7 @@ class WorkspaceService(BaseService):
         user_id: UUID,
         organization_name: str,
     ) -> Organization:
-        organization = (
-            await Organization
-            .filter(
-                kind=OrganizationKind.TEAM,
-                owner_user_id=user_id,
-            )
-            .order_by("created_at", "id")
-            .first()
-        )
+        organization = await self.org_repo.get_onboarding_team_organization(owner_user_id=user_id)
         if organization is None:
             organization = await self.org_repo.create_organization(
                 slug=f"team-org-{user_id.hex[:12]}",
@@ -506,12 +475,7 @@ class WorkspaceService(BaseService):
         payload: WorkspaceUpdateRequest,
         actor_user_id: UUID,
     ) -> WorkspaceDetailOut:
-        ws = await Workspace.get_or_none(
-            id=workspace_id,
-            organization_id=organization_id,
-            is_active=True,
-            deleted_at__isnull=True,
-        )
+        ws = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
@@ -615,12 +579,7 @@ class WorkspaceService(BaseService):
                 error="WORKSPACE_LEAVE_CONFIRM_TEXT_MISMATCH",
             )
 
-        ws = await Workspace.get_or_none(
-            id=workspace_id,
-            organization_id=organization_id,
-            is_active=True,
-            deleted_at__isnull=True,
-        )
+        ws = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
@@ -658,3 +617,11 @@ class WorkspaceService(BaseService):
             membership_id=membership_id,
             left=True,
         )
+
+    @staticmethod
+    def _membership_user_ids(memberships: list[WorkspaceMembership]) -> list[UUID]:
+        return [
+            UUID(str(user_id))
+            for membership in memberships
+            if (user_id := cast(HasUserId, membership).user_id) is not None
+        ]

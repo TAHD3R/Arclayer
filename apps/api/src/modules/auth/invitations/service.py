@@ -29,6 +29,7 @@ from src.models.workspaces.workspace_invite import (
     WorkspaceInviteLink,
 )
 from src.modules.auth.invitations.acceptance.service import AuthInvitationAcceptanceService
+from src.modules.auth.repository import UserRepository
 from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
@@ -53,6 +54,7 @@ class AuthInvitationService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.acceptance_service = AuthInvitationAcceptanceService(settings)
+        self.user_repo = UserRepository()
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -187,7 +189,7 @@ class AuthInvitationService(BaseService):
 
         inviter_map: dict[UUID, MyInvitationInviterOut] = {}
         if inviter_ids:
-            inviter_rows = await User.filter(id__in=list(inviter_ids)).all()
+            inviter_rows = await self.user_repo.list_by_ids(list(inviter_ids))
             for u in inviter_rows:
                 inviter_map[u.id] = MyInvitationInviterOut(
                     id=u.id,
@@ -372,7 +374,7 @@ class AuthInvitationService(BaseService):
 
         inviter: InvitationPreviewInviterOut | None = None
         if inviter_user_id is not None:
-            u = await User.get_or_none(id=inviter_user_id)
+            u = await self.user_repo.get_by_id(inviter_user_id)
             if u is not None:
                 inviter = InvitationPreviewInviterOut(
                     id=u.id,
@@ -416,7 +418,7 @@ class AuthInvitationService(BaseService):
                     description=org_role.description,
                 )
 
-        user_exists = bool(invitation_email) and await User.filter(email=invitation_email).exists()
+        user_exists = bool(invitation_email) and await self.user_repo.exists_email(invitation_email)
 
         return InvitationPreviewResult(
             invitation=InvitationPreviewInvitationOut(

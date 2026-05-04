@@ -9,6 +9,7 @@ from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageParams, paginate_items
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
 from src.modules.projects.schema import (
@@ -32,6 +33,7 @@ class ProjectService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.repo = ProjectRepository()
+        self.workspace_repo = OrganizationWorkspaceRepository()
         self.runtime_site_service = ProjectRuntimeSiteService(settings)
 
     async def get_project_detail(self, *, project_id: UUID) -> ProjectDetailOut:
@@ -58,7 +60,7 @@ class ProjectService(BaseService):
             is_active=not archived,
         )
         workspace_ids = list({UUID(str(project.workspace_id)) for project in projects})
-        workspaces = await Workspace.filter(id__in=workspace_ids, deleted_at__isnull=True).all()
+        workspaces = await self.workspace_repo.list_non_deleted_by_ids(workspace_ids=workspace_ids)
         workspace_by_id = {UUID(str(workspace.id)): workspace for workspace in workspaces}
 
         memberships = await self.repo.list_project_memberships(
@@ -115,7 +117,7 @@ class ProjectService(BaseService):
             workspace_id=workspace_id,
             actor_user_id=actor_user_id,
         )
-        workspace = await Workspace.get(id=workspace_id)
+        workspace = await self._get_active_workspace(workspace_id=workspace_id)
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
         if runtime is None:
             raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")
@@ -181,7 +183,7 @@ class ProjectService(BaseService):
                 {"icon_mode", "icon_color", "icon_glyph", "icon_emoji", "icon_url"} & payload.model_fields_set
             ),
         )
-        workspace = await Workspace.get(id=project.workspace_id)
+        workspace = await self._get_active_workspace(workspace_id=UUID(str(project.workspace_id)))
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
         return ProjectDetailOut(
             project=self._build_project_out(project=project, workspace=workspace),
@@ -250,9 +252,15 @@ class ProjectService(BaseService):
         )
 
     async def _require_workspace(self, *, workspace_id: UUID) -> None:
-        workspace = await Workspace.get_or_none(id=workspace_id, deleted_at__isnull=True)
+        workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
         if workspace is None or not bool(workspace.is_active):
             raise BadRequest("Workspace not found", error="WORKSPACE_NOT_FOUND")
+
+    async def _get_active_workspace(self, *, workspace_id: UUID) -> Workspace:
+        workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
+        if workspace is None:
+            raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
+        return workspace
 
     def _normalize_slug(self, slug: str | None) -> str | None:
         if slug is None:

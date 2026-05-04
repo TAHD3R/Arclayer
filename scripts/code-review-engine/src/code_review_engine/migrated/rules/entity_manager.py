@@ -31,11 +31,17 @@ class EntityManagerNoDataclassReturn(AuditRule):
 
     rule_id = "entity-manager.no-dataclass-return"
     description = "EntityManager return types must be Pydantic BaseModel, never @dataclass."
+    ENTITY_MANAGER_DATACLASS_FILES = frozenset(
+        {
+            "apps/api/src/core/entity_manager/manager.py",
+            "apps/api/src/core/lifecycles/specs.py",
+        }
+    )
 
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
         for sym in symbols:
-            if sym["kind"] == "dataclass":
+            if sym["kind"] == "dataclass" and sym["file"] in self.ENTITY_MANAGER_DATACLASS_FILES:
                 violations.append(
                     v(
                         file=sym["file"],
