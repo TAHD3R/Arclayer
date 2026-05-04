@@ -44,6 +44,14 @@ It is complementary to `AGENTS.md`:
 - local env and caches (e.g. `.venv/`, `.uv-cache/`)
 - build outputs / generated artifacts (e.g. `dist/`, `build/`, `.turbo/`)
 
+### Tracking boundary
+
+- Keep `docs/plans/**` outside git tracking.
+- `docs/plans/**` is the local task-document workspace and supports creating task cards and execution notes.
+- Keep `.trellis/**` outside git tracking.
+- When these paths appear in index history, remove them from tracking and keep ignore rules active.
+- Keep long-lived standards in `docs/guidelines/**`.
+
 ## 7. Command Discipline (Monorepo)
 
 This repo uses Turborepo + pnpm workspaces. Commands must go through `package.json` scripts.
@@ -69,6 +77,8 @@ Avoid running infra / interactive commands unless the user explicitly asks:
 ## 8. Cross-References (Source of Truth)
 
 - Guidelines index: `docs/guidelines/README.md`
+- Code review engine guideline: `docs/guidelines/code-review-engine.md`
+- Hard-cut task documents workspace: `docs/plans/**`
 - API contract: `docs/guidelines/backend-endpoint-contract.md`
 - Backend folder architecture: `docs/guidelines/backend-folder-architecture.md`
 - Frontend folder architecture: `docs/guidelines/frontend-folder-architecture.md`

@@ -78,6 +78,7 @@ reports/code-review-engine/
 
 # Trellis
 .trellis/
+docs/plans/
 
 # Audit reports (generated)
 audit-report*.json

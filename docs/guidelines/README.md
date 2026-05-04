@@ -12,6 +12,7 @@ Current guidelines:
 - `agents-guide.md`
 - `backend-endpoint-contract.md`
 - `backend-folder-architecture.md`
+- `code-review-engine.md`
 - `frontend-design.md`
 - `frontend-folder-architecture.md`
 - `images-api.md`
@@ -23,4 +24,5 @@ Current guidelines:
 
 - Keep these documents versioned and continuously updated.
 - Add new standards to this directory instead of `docs/` root.
+- Keep execution task cards under `docs/plans/**` as local working docs.
 - When moving or deleting guideline files, update references in `AGENTS.md` and related docs.
