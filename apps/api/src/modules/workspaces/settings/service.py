@@ -3,7 +3,10 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.common.protocols.tortoise import SettingUpdatedBy
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
@@ -14,6 +17,7 @@ from src.models.workspaces.workspace import (
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.auth.onboarding.service import (
     WorkspaceFirstOnboardingService,
     WorkspaceFirstOnboardingStatus,
@@ -31,6 +35,7 @@ from src.settings.scopes import SCOPE_TYPE_WORKSPACE
 from src.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
 
 WORKSPACE_CORE_SETTINGS_UPDATED_EVENT = "settings.workspace.core.updated"
+WORKSPACE_ROLE_POLICY_CHANGED_EVENT = "permission.assignment.changed"
 
 
 class WorkspaceSettingsService(BaseService):
@@ -53,6 +58,33 @@ class WorkspaceSettingsService(BaseService):
         self.webhooks_service = webhooks_service or WebhooksService(settings)
         self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
 
+    async def _write_role_policy_activity_event(
+        self,
+        *,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        properties: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        payload: JsonObject = {
+            "workspace_id": str(workspace_id),
+            "actor_user_id": str(actor_user_id),
+        }
+        payload.update(properties)
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=WORKSPACE_ROLE_POLICY_CHANGED_EVENT,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="workspace_role_policy",
+                entity_id=workspace_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
+
     async def get_core_detail(self, *, workspace_id: UUID) -> WorkspaceSettingsDetail:
         record = await SettingRecord.get_or_none(
             scope_type=SCOPE_TYPE_WORKSPACE,
@@ -69,12 +101,18 @@ class WorkspaceSettingsService(BaseService):
         )
 
     async def patch_core(
-        self, *, workspace_id: UUID, patch: dict[str, Any], updated_by: UUID | None
+        self,
+        *,
+        workspace_id: UUID,
+        patch: dict[str, Any],
+        updated_by: UUID | None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> WorkspaceSettingsDetail:
         record = await SettingRecord.get_or_none(
             scope_type=SCOPE_TYPE_WORKSPACE,
             scope_id=workspace_id,
             namespace=CORE_SETTINGS_NAMESPACE,
+            using_db=conn,
         )
         current = record.value if record and isinstance(record.value, dict) else {}
         merged = merge_deep(current, patch)
@@ -83,6 +121,7 @@ class WorkspaceSettingsService(BaseService):
 
         if record is None:
             saved = await SettingRecord.create(
+                using_db=conn,
                 scope_type=SCOPE_TYPE_WORKSPACE,
                 scope_id=workspace_id,
                 namespace=CORE_SETTINGS_NAMESPACE,
@@ -92,7 +131,7 @@ class WorkspaceSettingsService(BaseService):
         else:
             record.value = merged or None
             cast(SettingUpdatedBy, record).updated_by = updated_by
-            await record.save(update_fields=["value", "updated_by", "updated_at"])
+            await record.save(update_fields=["value", "updated_by", "updated_at"], using_db=conn)
             saved = record
 
         masked, secrets = self._mask_secrets(merged)
@@ -150,6 +189,7 @@ class WorkspaceSettingsService(BaseService):
         *,
         workspace_id: UUID,
         default_role_code: str,
+        actor_user_id: UUID,
     ) -> WorkspaceRolePolicyOut:
         workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
         if workspace is None:
@@ -163,16 +203,30 @@ class WorkspaceSettingsService(BaseService):
         if target_role is None:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
-        async with self.tx():
+        current_default_role = await Role.filter(workspace_id=workspace_id, is_default=True).order_by("code").first()
+        previous_default_role_code = str(current_default_role.code) if current_default_role is not None else None
+
+        async with self.tx() as conn:
             await (
                 Role
                 .filter(workspace_id=workspace_id, is_default=True)
+                .using_db(conn)
                 .exclude(id=target_role.id)
                 .update(is_default=False)
             )
             if not bool(target_role.is_default):
                 target_role.is_default = True
-                await target_role.save(update_fields=["is_default", "updated_at"])
+                await target_role.save(update_fields=["is_default", "updated_at"], using_db=conn)
+            await self._write_role_policy_activity_event(
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                properties={
+                    "change": "default_role",
+                    "previous_default_role_code": previous_default_role_code,
+                    "default_role_code": code,
+                },
+                conn=conn,
+            )
 
         return await self.get_role_policy(workspace_id=workspace_id)
 
@@ -182,6 +236,7 @@ class WorkspaceSettingsService(BaseService):
         workspace_id: UUID,
         role_code: str,
         confirm_name: str,
+        actor_user_id: UUID,
     ) -> WorkspaceAssignRoleToMembersResult:
         workspace = await self.workspace_repo.get_active_workspace_by_id(workspace_id=workspace_id)
         if workspace is None:
@@ -226,10 +281,24 @@ class WorkspaceSettingsService(BaseService):
                 updated_count=0,
             )
 
-        async with self.tx():
+        async with self.tx() as conn:
             for membership in target_memberships:
-                await WorkspaceMembershipRole.filter(membership_id=membership.id).delete()
-                await WorkspaceMembershipRole.get_or_create(membership_id=membership.id, role_id=target_role.id)
+                await WorkspaceMembershipRole.filter(membership_id=membership.id).using_db(conn).delete()
+                await WorkspaceMembershipRole.get_or_create(
+                    using_db=conn,
+                    membership_id=membership.id,
+                    role_id=target_role.id,
+                )
+            await self._write_role_policy_activity_event(
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                properties={
+                    "change": "regular_member_role_assignment",
+                    "role_code": code,
+                    "updated_count": len(target_memberships),
+                },
+                conn=conn,
+            )
 
         return WorkspaceAssignRoleToMembersResult(
             workspace_id=workspace_id,

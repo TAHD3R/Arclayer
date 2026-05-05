@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 
 from src.core.http.pagination import PageParams
@@ -15,7 +16,7 @@ from src.models.organization.org_invitation import (
 )
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
-from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 
 
 class OrganizationMemberRepository(TortoiseORMRepository):
@@ -31,6 +32,20 @@ class OrganizationMemberRepository(TortoiseORMRepository):
     async def get_membership(self, *, organization_id: UUID, membership_id: UUID) -> OrgMembership | None:
         return await OrgMembership.get_or_none(id=membership_id, organization_id=organization_id).select_related("user")
 
+    async def get_membership_in_connection(
+        self,
+        *,
+        organization_id: UUID,
+        membership_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> OrgMembership | None:
+        return (
+            await self
+            .using_db(OrgMembership.filter(id=membership_id, organization_id=organization_id), conn)
+            .select_related("user")
+            .first()
+        )
+
     async def count_role_memberships(self, *, organization_id: UUID, role: OrgRole) -> int:
         return int(await OrgMembership.filter(organization_id=organization_id, role=role).count())
 
@@ -41,10 +56,70 @@ class OrganizationMemberRepository(TortoiseORMRepository):
         ).select_related("user")
 
     async def disable_workspace_memberships(self, *, organization_id: UUID, user_id: UUID) -> None:
-        await WorkspaceMembership.filter(
-            user_id=user_id,
-            workspace__organization_id=organization_id,
+        ws_ids = await Workspace.filter(organization_id=organization_id).values_list("id", flat=True)
+        if not ws_ids:
+            return
+        await WorkspaceMembership.filter(user_id=user_id, workspace_id__in=list(ws_ids)).update(
+            status=WorkspaceMembershipStatus.DISABLED
+        )
+
+    async def disable_workspace_memberships_in_connection(
+        self,
+        *,
+        organization_id: UUID,
+        user_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        ws_ids = await self.using_db(Workspace.filter(organization_id=organization_id), conn).values_list(
+            "id",
+            flat=True,
+        )
+        if not ws_ids:
+            return
+        await self.using_db(
+            WorkspaceMembership.filter(
+                user_id=user_id,
+                workspace_id__in=list(ws_ids),
+            ),
+            conn,
         ).update(status=WorkspaceMembershipStatus.DISABLED)
+
+    async def create_email_invite(
+        self,
+        *,
+        organization_id: UUID,
+        email: str,
+        role_code: str,
+        code: str,
+        expires_at: datetime | None,
+        created_by_user_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> OrganizationEmailInvite:
+        return await OrganizationEmailInvite.create(
+            organization_id=organization_id,
+            email=email,
+            role_code=role_code,
+            code=code,
+            expires_at=expires_at,
+            created_by_user_id=created_by_user_id,
+            **self._using_db_kwargs(conn),
+        )
+
+    async def save_membership_role(
+        self,
+        *,
+        membership: OrgMembership,
+        role: OrgRole,
+        role_code: str,
+        conn: BaseDBAsyncClient,
+    ) -> OrgMembership:
+        membership.role = role
+        membership.role_code = role_code
+        await membership.save(update_fields=["role", "role_code", "updated_at"], using_db=conn)
+        return membership
+
+    async def delete_membership(self, *, membership: OrgMembership, conn: BaseDBAsyncClient) -> None:
+        await membership.delete(using_db=conn)
 
     async def list_workspace_memberships_for_user_ids(
         self,

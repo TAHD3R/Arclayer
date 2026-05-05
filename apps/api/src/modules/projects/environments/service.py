@@ -8,6 +8,7 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 
+from src.common.types.json_types import JsonObject
 from src.common.utils.public_ids import PublicIdDecodeError, decode_public_id, is_public_id
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
@@ -18,6 +19,7 @@ from src.models.projects.environment import (
     ProjectEnvironmentKey,
     ProjectEnvironmentRecord,
 )
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.projects.environments.repository import EnvironmentCopyCounts, ProjectEnvironmentsRepository
 from src.modules.projects.environments.schema import (
     ProjectEnvironmentAliasOut,
@@ -32,6 +34,8 @@ from src.modules.projects.environments.schema import (
 from src.modules.tenancy.database import TenantDatabaseRouter
 from src.modules.tenancy.router_helpers import current_tenant_context_or_none
 from src.modules.tenancy.schema import TenantContext
+
+PROJECT_ENVIRONMENT_UPDATED_EVENT = "project.environment.updated"
 
 
 def _te(key: str) -> str:
@@ -55,6 +59,37 @@ class ProjectEnvironmentsService(BaseService):
     @staticmethod
     def _using_db(qs, conn: BaseDBAsyncClient | None):
         return qs if conn is None else qs.using_db(conn)
+
+    async def _write_environment_activity_event(
+        self,
+        *,
+        workspace_id: UUID | None,
+        project_id: UUID,
+        environment_id: UUID,
+        actor_user_id: UUID,
+        properties: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        payload: JsonObject = {
+            "workspace_id": str(workspace_id) if workspace_id is not None else None,
+            "project_id": str(project_id),
+            "environment_id": str(environment_id),
+            "actor_user_id": str(actor_user_id),
+        }
+        payload.update(properties)
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=PROJECT_ENVIRONMENT_UPDATED_EVENT,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="project_environment",
+                entity_id=environment_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
 
     @asynccontextmanager
     async def _operation_connection(self) -> AsyncIterator[BaseDBAsyncClient | None]:
@@ -95,6 +130,8 @@ class ProjectEnvironmentsService(BaseService):
         project_id: UUID,
         environment_id: UUID,
         payload: ProjectEnvironmentPatchIn,
+        actor_user_id: UUID,
+        workspace_id: UUID | None = None,
     ) -> ProjectEnvironmentOut:
         async with self._operation_connection() as conn:
             row = await self._using_db(
@@ -136,6 +173,17 @@ class ProjectEnvironmentsService(BaseService):
 
             if update_fields:
                 await current.save(using_db=conn, update_fields=[*dict.fromkeys([*update_fields, "updated_at"])])
+                await self._write_environment_activity_event(
+                    workspace_id=workspace_id,
+                    project_id=project_id,
+                    environment_id=environment_id,
+                    actor_user_id=actor_user_id,
+                    properties={
+                        "environment_key": str(current.key),
+                        "updated_fields": sorted(update_fields),
+                    },
+                    conn=conn,
+                )
 
         async with self._operation_connection() as conn:
             refreshed = await self._using_db(ProjectEnvironmentRecord.filter(id=environment_id), conn).first()

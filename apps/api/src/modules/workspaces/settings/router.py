@@ -84,6 +84,7 @@ async def get_workspace_role_policy(
 async def patch_workspace_role_policy(
     payload: WorkspaceRolePolicyPatch,
     ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceRolePolicyOut]:
     """Patch workspace role policy."""
@@ -91,6 +92,7 @@ async def patch_workspace_role_policy(
     out = await service.patch_role_policy(
         workspace_id=ctx.workspace_id,
         default_role_code=payload.default_role_code,
+        actor_user_id=user_id,
     )
     return ApiResponse.success(data=out)
 
@@ -104,6 +106,7 @@ async def patch_workspace_role_policy(
 async def assign_workspace_role_to_regular_members(
     payload: WorkspaceAssignRoleToMembersRequest,
     ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceAssignRoleToMembersResult]:
     """Assign role to all regular members in workspace."""
@@ -112,5 +115,6 @@ async def assign_workspace_role_to_regular_members(
         workspace_id=ctx.workspace_id,
         role_code=payload.role_code,
         confirm_name=payload.confirm_name,
+        actor_user_id=user_id,
     )
     return ApiResponse.success(data=out)

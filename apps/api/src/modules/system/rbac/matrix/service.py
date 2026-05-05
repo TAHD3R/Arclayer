@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.models.system.rbac import PermissionScope
 from src.modules.system.rbac.repository import RBACRepository
 from src.modules.system.rbac.schema import RBACMatrixPayload
@@ -10,7 +12,12 @@ from src.modules.system.rbac.schema import RBACMatrixPayload
 class RBACMatrixMixin:
     repo: RBACRepository
 
-    async def ensure_workspace_system_roles(self, *, workspace_id: UUID) -> None: ...
+    async def ensure_workspace_system_roles(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None: ...
 
     async def get_matrix(self, *, workspace_id: UUID) -> RBACMatrixPayload:
         await self.ensure_workspace_system_roles(workspace_id=workspace_id)

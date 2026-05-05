@@ -6,7 +6,10 @@ from math import ceil
 from typing import Any, Literal, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
@@ -16,6 +19,7 @@ from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
@@ -67,6 +71,37 @@ class OrganizationWorkspaceService(BaseService):
         self.workspace_settings_service = workspace_settings_service or WorkspaceSettingsService(settings)
         self.workspace_danger_service = workspace_danger_service or WorkspaceDangerService(settings)
         self.rbac_service = rbac_service or RBACService(settings)
+
+    async def _write_workspace_activity_event(
+        self,
+        *,
+        event_name: str,
+        organization_id: UUID,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        properties: JsonObject,
+        conn,
+    ) -> None:
+        payload: JsonObject = {
+            "organization_id": str(organization_id),
+            "workspace_id": str(workspace_id),
+            "actor_user_id": str(actor_user_id),
+        }
+        payload.update(properties)
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="workspace",
+                entity_id=workspace_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
 
     async def list_workspaces(
         self,
@@ -248,31 +283,50 @@ class OrganizationWorkspaceService(BaseService):
 
         description = str(payload.description or "").strip() or None
 
-        ws = await self.repo.create_workspace(
-            organization_id=organization_id,
-            name=name,
-            description=description,
-            created_by_user_id=user_id,
-        )
-
-        membership = await self.repo.ensure_active_membership(workspace_id=UUID(str(ws.id)), user_id=user_id)
-        await self._ensure_operator_role_binding(
-            workspace_id=UUID(str(ws.id)),
-            membership_id=UUID(str(membership.id)),
-            org_role=org_role,
-        )
-
-        # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
-        await self.workspace_settings_service.patch_core(
-            workspace_id=UUID(str(ws.id)),
-            patch={
-                "content_strategy": {
-                    "autosave": {"enabled": True, "interval_sec": 30, "save_on_blur": True},
-                    "retention": {"draft_max_revisions": 100},
-                }
-            },
-            updated_by=user_id,
-        )
+        async with self.tx() as conn:
+            ws = await self.repo.create_workspace(
+                organization_id=organization_id,
+                name=name,
+                description=description,
+                created_by_user_id=user_id,
+                conn=conn,
+            )
+            workspace_id = UUID(str(ws.id))
+            membership = await self.repo.ensure_active_membership(
+                workspace_id=workspace_id,
+                user_id=user_id,
+                conn=conn,
+            )
+            await self._ensure_operator_role_binding(
+                workspace_id=workspace_id,
+                membership_id=UUID(str(membership.id)),
+                org_role=org_role,
+                conn=conn,
+            )
+            # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
+            await self.workspace_settings_service.patch_core(
+                workspace_id=workspace_id,
+                patch={
+                    "content_strategy": {
+                        "autosave": {"enabled": True, "interval_sec": 30, "save_on_blur": True},
+                        "retention": {"draft_max_revisions": 100},
+                    }
+                },
+                updated_by=user_id,
+                conn=conn,
+            )
+            await self._write_workspace_activity_event(
+                event_name="workspace.created",
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=user_id,
+                properties={
+                    "template": str(payload.template),
+                    "created": True,
+                    "initialized_settings": ["content_strategy"],
+                },
+                conn=conn,
+            )
 
         self.logger.info(
             "Organization workspace created",
@@ -328,9 +382,18 @@ class OrganizationWorkspaceService(BaseService):
         )
 
         if workspace.archived_at is None:
-            workspace.archived_at = datetime.now(UTC)
-            workspace.archived_by_user_id = user_id
-            await workspace.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"])
+            async with self.tx() as conn:
+                workspace.archived_at = datetime.now(UTC)
+                workspace.archived_by_user_id = user_id
+                await workspace.save(update_fields=["archived_at", "archived_by_user_id", "updated_at"], using_db=conn)
+                await self._write_workspace_activity_event(
+                    event_name="workspace.archived",
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                    actor_user_id=user_id,
+                    properties={"archived": True},
+                    conn=conn,
+                )
 
         self.logger.info(
             "Organization workspace archived",
@@ -415,7 +478,16 @@ class OrganizationWorkspaceService(BaseService):
                     error="LAST_ACTIVE_WORKSPACE_NOT_DELETABLE",
                 )
 
-        await workspace.delete()
+        async with self.tx() as conn:
+            await workspace.delete(using_db=conn)
+            await self._write_workspace_activity_event(
+                event_name="workspace.deleted",
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=user_id,
+                properties={"deleted": True},
+                conn=conn,
+            )
 
         self.logger.info(
             "Organization workspace hard deleted",
@@ -454,13 +526,14 @@ class OrganizationWorkspaceService(BaseService):
         workspace_id: UUID,
         membership_id: UUID,
         org_role: OrgRole,
+        conn: BaseDBAsyncClient,
     ) -> None:
         role_code = ROLE_OWNER if org_role == OrgRole.OWNER else ROLE_ADMIN
-        await self.rbac_service.ensure_workspace_system_roles(workspace_id=workspace_id)
-        role = await Role.get_or_none(workspace_id=workspace_id, code=role_code)
+        await self.rbac_service.ensure_workspace_system_roles(workspace_id=workspace_id, conn=conn)
+        role = await Role.get_or_none(workspace_id=workspace_id, code=role_code, using_db=conn)
         if role is None:
             return
-        await WorkspaceMembershipRole.get_or_create(membership_id=membership_id, role_id=role.id)
+        await WorkspaceMembershipRole.get_or_create(using_db=conn, membership_id=membership_id, role_id=role.id)
 
     def _build_workspace_out(
         self,

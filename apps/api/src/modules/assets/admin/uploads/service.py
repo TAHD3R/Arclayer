@@ -5,7 +5,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import BackgroundTasks
 from tortoise.exceptions import IntegrityError, OperationalError
 
 from src.common.constants.assets import (
@@ -25,6 +24,7 @@ from src.core.logging import get_logger
 from src.core.services import BaseService, DomainEventPublisher
 from src.models.assets.asset import AssetPurpose, AssetVisibility
 from src.models.assets.upload import UploadSessionRecord, UploadStatus
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.assets.admin.uploads.policy.service import (
     build_upload_policy,
     normalize_original_filename,
@@ -340,6 +340,10 @@ class UploadsService(BaseService):
         scope: AssetScope,
         conn=None,
     ) -> tuple[UploadSessionRecord, list[int]]:
+        if conn is None:
+            async with self.repo.connection(scope=scope) as scoped_conn:
+                return await self.get_status(upload_id=upload_id, scope=scope, conn=scoped_conn)
+
         session = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
         if session is None:
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
@@ -498,107 +502,103 @@ class UploadsService(BaseService):
             )
             await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
 
-    async def complete(
-        self, *, upload_id: UUID, scope: AssetScope, background_tasks: BackgroundTasks | None = None
-    ) -> UUID:
-        async with self.repo.connection(scope=scope) as conn:
-            session, missing = await self.get_status(upload_id=upload_id, scope=scope, conn=conn)
-            if session.status == UploadStatus.COMPLETED and session.asset_id is not None:
-                return session.asset_id
-            if missing:
-                raise BadRequest(
-                    message=_ts("UPLOAD_INCOMPLETE", "仍有分片未上传"),
-                    error="UPLOAD_INCOMPLETE",
-                    meta={"missing_parts": missing},
-                )
+    async def complete(self, *, upload_id: UUID, scope: AssetScope) -> UUID:
+        async with self.tx() as tx:
+            async with self.repo.connection(scope=scope, conn=tx) as conn:
+                session, missing = await self.get_status(upload_id=upload_id, scope=scope, conn=conn)
+                if session.status == UploadStatus.COMPLETED and session.asset_id is not None:
+                    return session.asset_id
+                if missing:
+                    raise BadRequest(
+                        message=_ts("UPLOAD_INCOMPLETE", "仍有分片未上传"),
+                        error="UPLOAD_INCOMPLETE",
+                        meta={"missing_parts": missing},
+                    )
 
-            winner = await self.repo.try_mark_completing(upload_id=upload_id, scope=scope, conn=conn)
-            if not winner:
-                for _ in range(10):
-                    latest = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
-                    if latest is None:
+                winner = await self.repo.try_mark_completing(upload_id=upload_id, scope=scope, conn=conn)
+                if not winner:
+                    for _ in range(10):
+                        latest = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
+                        if latest is None:
+                            break
+                        if latest.status == UploadStatus.COMPLETED and latest.asset_id is not None:
+                            return latest.asset_id
+                        if latest.status == UploadStatus.COMPLETING:
+                            await asyncio.sleep(0.2)
+                            continue
                         break
-                    if latest.status == UploadStatus.COMPLETED and latest.asset_id is not None:
-                        return latest.asset_id
-                    if latest.status == UploadStatus.COMPLETING:
-                        await asyncio.sleep(0.2)
-                        continue
-                    break
-                raise BadRequest(
-                    message=_ts("UPLOAD_COMPLETING", "上传正在完成中，请稍后重试"), error="UPLOAD_COMPLETING"
-                )
+                    raise BadRequest(
+                        message=_ts("UPLOAD_COMPLETING", "上传正在完成中，请稍后重试"), error="UPLOAD_COMPLETING"
+                    )
 
-            session = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
-            if session is None:
-                raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
+                session = await self.repo.get_session(upload_id=upload_id, scope=scope, conn=conn)
+                if session is None:
+                    raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
 
-            try:
-                if is_local_storage_provider(str(session.storage_provider)):
-                    asset_id = await self._complete_local(session=session, scope=scope, conn=conn)
-                else:
-                    asset_id = await self._complete_s3(session=session, scope=scope, conn=conn)
-            except UPLOAD_COMPLETION_ERRORS as exc:
-                logger.warning(
-                    "Upload completion failed",
-                    scope_type=str(scope.type),
-                    scope_id=str(scope.id),
-                    upload_id=str(upload_id),
-                    storage_provider=str(session.storage_provider),
-                    action="complete_upload",
-                    error=str(exc),
-                )
                 try:
-                    await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
-                except UPLOAD_STATUS_RESET_ERRORS as status_exc:
+                    if is_local_storage_provider(str(session.storage_provider)):
+                        asset_id = await self._complete_local(session=session, scope=scope, conn=conn)
+                    else:
+                        asset_id = await self._complete_s3(session=session, scope=scope, conn=conn)
+                except UPLOAD_COMPLETION_ERRORS as exc:
                     logger.warning(
-                        "Upload status reset failed after completion error",
+                        "Upload completion failed",
                         scope_type=str(scope.type),
                         scope_id=str(scope.id),
                         upload_id=str(upload_id),
-                        action="reset_upload_status_after_complete_error",
-                        error=str(status_exc),
+                        storage_provider=str(session.storage_provider),
+                        action="complete_upload",
+                        error=str(exc),
                     )
-                raise
+                    try:
+                        await self.repo.set_session_status(session, status=UploadStatus.UPLOADING, conn=conn)
+                    except UPLOAD_STATUS_RESET_ERRORS as status_exc:
+                        logger.warning(
+                            "Upload status reset failed after completion error",
+                            scope_type=str(scope.type),
+                            scope_id=str(scope.id),
+                            upload_id=str(upload_id),
+                            action="reset_upload_status_after_complete_error",
+                            error=str(status_exc),
+                        )
+                    raise
 
-        # Emit post-upload event for asynchronous processors.
-        payload: JsonObject = {
-            "scope_type": str(scope.type),
-            "scope_id": str(scope.id),
-            "asset_id": str(asset_id),
-            "purpose": str(session.purpose),
-            "storage_provider": str(session.storage_provider),
-            "visibility": str(session.visibility),
-            "indexable": bool(session.indexable),
-        }
-        if scope.type == ASSET_SCOPE_PROJECT:
-            payload["project_id"] = str(scope.id)
-            tenant_context = self._tenant_context or current_tenant_context_or_none()
-            payload["tenant"] = tenant_payload_from_context(tenant_context)
+                payload: JsonObject = {
+                    "scope_type": str(scope.type),
+                    "scope_id": str(scope.id),
+                    "asset_id": str(asset_id),
+                    "purpose": str(session.purpose),
+                    "storage_provider": str(session.storage_provider),
+                    "visibility": str(session.visibility),
+                    "indexable": bool(session.indexable),
+                }
+                if scope.type == ASSET_SCOPE_PROJECT:
+                    payload["project_id"] = str(scope.id)
+                    tenant_context = self._tenant_context or current_tenant_context_or_none()
+                    payload["tenant"] = tenant_payload_from_context(tenant_context)
+                    organization_id = tenant_context.organization_id if tenant_context is not None else None
+                    workspace_id = tenant_context.workspace_id if tenant_context is not None else None
+                elif scope.type == ASSET_SCOPE_ORGANIZATION:
+                    organization_id = scope.id
+                    workspace_id = None
+                else:
+                    organization_id = None
+                    workspace_id = None
 
-        async def _publish() -> None:
-            try:
-                await self.publish_optional_domain_event(
-                    name=ASSET_UPLOADED_EVENT,
-                    payload=payload,
-                    actor_user_id=UUID(str(session.actor_user_id)),
-                    source="core",
+                await write_required_activity_event(
+                    settings=self.settings,
+                    payload=ActivityAuditPayload(
+                        event_name=ASSET_UPLOADED_EVENT,
+                        actor_user_id=UUID(str(session.actor_user_id)),
+                        organization_id=organization_id,
+                        workspace_id=workspace_id,
+                        source="core",
+                        entity_type="asset",
+                        entity_id=asset_id,
+                        properties=payload,
+                    ),
+                    conn=conn,
                 )
-            except UPLOAD_EVENT_PUBLISH_ERRORS as exc:
-                logger.warning(
-                    "Asset uploaded event publish failed",
-                    scope_type=str(scope.type),
-                    scope_id=str(scope.id),
-                    upload_id=str(upload_id),
-                    asset_id=str(asset_id),
-                    action="publish_asset_uploaded_event",
-                    error=str(exc),
-                )
-                return
-
-        if background_tasks is not None:
-            background_tasks.add_task(_publish)
-        else:
-            await _publish()
 
         return asset_id
 

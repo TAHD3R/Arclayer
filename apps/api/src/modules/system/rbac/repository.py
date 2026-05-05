@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.queryset import QuerySet
 
 from src.common.protocols.tortoise import PermissionMutableFields
@@ -24,8 +25,14 @@ class RBACRepository(TortoiseORMRepository):
     async def list_roles(self, *, workspace_id: UUID) -> list[Role]:
         return await self.query_roles(workspace_id=workspace_id).all()
 
-    async def get_role_by_code(self, *, workspace_id: UUID, code: str) -> Role | None:
-        return await Role.get_or_none(workspace_id=workspace_id, code=code)
+    async def get_role_by_code(
+        self,
+        *,
+        workspace_id: UUID,
+        code: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> Role | None:
+        return await Role.get_or_none(workspace_id=workspace_id, code=code, using_db=conn)
 
     async def create_role(
         self,
@@ -39,8 +46,10 @@ class RBACRepository(TortoiseORMRepository):
         is_system: bool,
         is_default: bool,
         is_superuser: bool,
+        conn: BaseDBAsyncClient | None = None,
     ) -> Role:
         return await Role.create(
+            using_db=conn,
             workspace_id=workspace_id,
             code=code,
             name=name,
@@ -52,14 +61,20 @@ class RBACRepository(TortoiseORMRepository):
             is_superuser=is_superuser,
         )
 
-    async def update_role(self, role: Role, *, updates: dict[str, object]) -> Role:
+    async def update_role(
+        self,
+        role: Role,
+        *,
+        updates: dict[str, object],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> Role:
         for key, value in updates.items():
             setattr(role, key, value)
-        await role.save()
+        await role.save(using_db=conn)
         return role
 
-    async def delete_role(self, role: Role) -> int:
-        return await Role.filter(id=role.id).delete()
+    async def delete_role(self, role: Role, *, conn: BaseDBAsyncClient | None = None) -> int:
+        return await Role.filter(id=role.id).using_db(conn).delete()
 
     # -------- Permissions (global catalog) --------
     def query_permissions(self, *, scope: PermissionScope | None = None) -> QuerySet[Permission]:
@@ -147,14 +162,16 @@ class RBACRepository(TortoiseORMRepository):
         role: Role,
         permission_ids: list[UUID],
         condition_sets_by_permission_id: dict[UUID, list[PermissionConditionSet]] | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> None:
         # Delete+recreate keeps reconciliation logic explicit and deterministic.
-        await RolePermission.filter(role_id=role.id).delete()
+        await RolePermission.filter(role_id=role.id).using_db(conn).delete()
         for pid in permission_ids:
             await RolePermission.get_or_create(
                 role_id=role.id,
                 permission_id=pid,
                 defaults={"conditions": serialize_condition_sets((condition_sets_by_permission_id or {}).get(pid, []))},
+                using_db=conn,
             )
 
     async def ensure_role_permission(
@@ -163,16 +180,18 @@ class RBACRepository(TortoiseORMRepository):
         role: Role,
         permission: Permission,
         condition_sets: list[PermissionConditionSet] | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> bool:
         payload = serialize_condition_sets(condition_sets or [])
         grant, created = await RolePermission.get_or_create(
             role=role,
             permission=permission,
             defaults={"conditions": payload},
+            using_db=conn,
         )
         if not created and deserialize_condition_sets(grant.conditions) != (condition_sets or []):
             grant.conditions = payload
-            await grant.save()
+            await grant.save(using_db=conn)
         return created
 
     async def list_role_permission_condition_sets(
@@ -189,8 +208,14 @@ class RBACRepository(TortoiseORMRepository):
             out[permission_code] = deserialize_condition_sets(row.get("conditions"))
         return out
 
-    async def delete_role_permission(self, *, role_id: UUID, permission_id: UUID) -> int:
-        return await RolePermission.filter(role_id=role_id, permission_id=permission_id).delete()
+    async def delete_role_permission(
+        self,
+        *,
+        role_id: UUID,
+        permission_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> int:
+        return await RolePermission.filter(role_id=role_id, permission_id=permission_id).using_db(conn).delete()
 
     async def list_role_permission_edges_for_workspace(self, *, workspace_id: UUID) -> list[tuple[str, str]]:
         """

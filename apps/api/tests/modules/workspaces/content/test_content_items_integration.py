@@ -14,6 +14,7 @@ from src.common.utils.public_ids import decode_public_id, encode_uuid
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
+from src.models.analytics.audit_event import AuditEvent
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
 from src.models.content.presentation_document import PresentationDocumentRecord
@@ -24,6 +25,7 @@ from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.password.service import verify_password
 from src.modules.auth.repository import UserRepository
 from src.modules.organization.repository import OrganizationRepository
+from src.modules.projects.content.items import canonical_service as content_item_service_module
 from src.modules.tenancy.database import set_tenant_search_path
 from src.modules.tenancy.registry import WorkspaceTenantRegistryService
 from tests.utils.project_context import project_id_for_workspace
@@ -875,6 +877,7 @@ async def test_content_items_list_versions_endpoint_returns_latest_first(
 async def test_content_item_mutations_emit_workspace_activity_events(
     prepared_db,
     integration_valkey_settings,
+    monkeypatch,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
@@ -887,10 +890,43 @@ async def test_content_item_mutations_emit_workspace_activity_events(
         item_id = item_res.json()["data"]["id"]
         item_uuid = decode_public_id(item_id)
 
-        await _wait_latest_workspace_audit_event(
-            event_name="project.content.item.created",
+        created_event = await _wait_latest_workspace_audit_event(
+            event_name="content.item.created",
             workspace_id=workspace_uuid,
             entity_id=item_uuid,
+        )
+        assert created_event.properties["model_key"] == "article"
+        assert created_event.properties["draft_version"] == 1
+        assert "Hello World" not in str(created_event.properties)
+
+        original_write_required_activity_event = content_item_service_module.write_required_activity_event
+
+        async def _failing_create_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name == "content.item.created":
+                raise RuntimeError("forced activity write failure: content.item.created")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            _failing_create_activity_event,
+        )
+        create_count_before = await AuditEvent.filter(event_name="content.item.created").count()
+        async with _tenant_conn(workspace_id) as conn:
+            item_count_before = await ContentItemRecord.filter().using_db(conn).count()
+        rollback_create_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items",
+            json={**_item_payload(), "title": "Rollback Create"},
+        )
+        assert rollback_create_res.status_code == 500, rollback_create_res.text
+        assert await AuditEvent.filter(event_name="content.item.created").count() == create_count_before
+        async with _tenant_conn(workspace_id) as conn:
+            assert await ContentItemRecord.filter().using_db(conn).count() == item_count_before
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            original_write_required_activity_event,
         )
 
         shape_res = await client.patch(
@@ -898,47 +934,155 @@ async def test_content_item_mutations_emit_workspace_activity_events(
             json=_bootstrap_shape_payload(),
         )
         assert shape_res.status_code == 200, shape_res.text
-        await _wait_latest_workspace_audit_event(
-            event_name="project.content.item.bootstrap.applied",
-            workspace_id=workspace_uuid,
-            entity_id=item_uuid,
-        )
 
         draft_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
-            json=_draft_payload(),
+            json={**_draft_payload(), "expectedVersion": 1},
         )
         assert draft_res.status_code == 201, draft_res.text
-        await _wait_latest_workspace_audit_event(
-            event_name="project.content.version.saved",
+        patch_res = await client.patch(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2",
+            json={"changeSummary": "patched draft metadata"},
+        )
+        assert patch_res.status_code == 200, patch_res.text
+        updated_event = await _wait_latest_workspace_audit_event(
+            event_name="content.item.updated",
             workspace_id=workspace_uuid,
             entity_id=item_uuid,
         )
+        assert updated_event.properties["version_number"] == 2
+        assert updated_event.properties["updated_sections"] == ["change_summary"]
+        assert "patched draft metadata" not in str(updated_event.properties)
 
         await _approve_content_item_for_publish(client, project_id, item_id)
         publish_res = await client.post(
-            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/publish",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/publish",
             json={},
         )
         assert publish_res.status_code == 200, publish_res.text
-        await _wait_latest_workspace_audit_event(
-            event_name="project.content.version.published",
+        published_event = await _wait_latest_workspace_audit_event(
+            event_name="content.item.published",
             workspace_id=workspace_uuid,
             entity_id=item_uuid,
         )
+        assert published_event.properties["version_number"] == 2
+        assert published_event.properties["published_version"] == 2
+
+        restore_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/restore",
+            json={},
+        )
+        assert restore_res.status_code == 201, restore_res.text
+        restored_event = await _wait_latest_workspace_audit_event(
+            event_name="content.item.restored",
+            workspace_id=workspace_uuid,
+            entity_id=item_uuid,
+        )
+        assert restored_event.properties["source_version_number"] == 2
+        assert restored_event.properties["version_number"] == 3
 
         activity_res = await client.get(
             f"/api/v1/workspaces/{workspace_id}/activity?entityType=content_item&entityId={item_id}&page=1&size=10"
         )
         assert activity_res.status_code == 200, activity_res.text
         items = activity_res.json()["data"]["items"]
-        assert [entry["eventName"] for entry in items[:5]] == [
-            "project.content.version.published",
-            "project.content.item.workflow.updated",
-            "project.content.version.saved",
-            "project.content.item.bootstrap.applied",
-            "project.content.item.created",
+        canonical_event_names = [
+            entry["eventName"] for entry in items if entry["eventName"].startswith("content.item.")
         ]
+        assert canonical_event_names[:4] == [
+            "content.item.restored",
+            "content.item.published",
+            "content.item.updated",
+            "content.item.created",
+        ]
+
+        async def _failing_content_item_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name == "content.item.updated":
+                raise RuntimeError("forced activity write failure: content.item.updated")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            _failing_content_item_activity_event,
+        )
+        event_count_before = await AuditEvent.filter(event_name="content.item.updated").count()
+        rollback_patch_res = await client.patch(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/3",
+            json={"changeSummary": "rolled back draft metadata"},
+        )
+        assert rollback_patch_res.status_code == 500, rollback_patch_res.text
+        assert await AuditEvent.filter(event_name="content.item.updated").count() == event_count_before
+        async with _tenant_conn(workspace_id) as conn:
+            version_three = await ContentVersionRecord.get(item_id=item_uuid, version=3, using_db=conn)
+            assert version_three.change_summary == "Restored from version 2"
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            original_write_required_activity_event,
+        )
+
+        rollback_publish_draft_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
+            json={
+                **_draft_payload(),
+                "expectedVersion": 3,
+                "changeSummary": "publish rollback draft",
+            },
+        )
+        assert rollback_publish_draft_res.status_code == 201, rollback_publish_draft_res.text
+
+        async def _failing_publish_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name == "content.item.published":
+                raise RuntimeError("forced activity write failure: content.item.published")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            _failing_publish_activity_event,
+        )
+        published_count_before = await AuditEvent.filter(event_name="content.item.published").count()
+        rollback_publish_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/4/publish",
+            json={},
+        )
+        assert rollback_publish_res.status_code == 500, rollback_publish_res.text
+        assert await AuditEvent.filter(event_name="content.item.published").count() == published_count_before
+        async with _tenant_conn(workspace_id) as conn:
+            item_after_publish_failure = await ContentItemRecord.get(id=item_uuid, using_db=conn)
+            assert item_after_publish_failure.published_version == 2
+            version_four = await ContentVersionRecord.get(item_id=item_uuid, version=4, using_db=conn)
+            assert str(version_four.state) == "draft"
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            original_write_required_activity_event,
+        )
+
+        async def _failing_restore_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name == "content.item.restored":
+                raise RuntimeError("forced activity write failure: content.item.restored")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            _failing_restore_activity_event,
+        )
+        restored_count_before = await AuditEvent.filter(event_name="content.item.restored").count()
+        rollback_restore_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/restore",
+            json={},
+        )
+        assert rollback_restore_res.status_code == 500, rollback_restore_res.text
+        assert await AuditEvent.filter(event_name="content.item.restored").count() == restored_count_before
+        async with _tenant_conn(workspace_id) as conn:
+            item_after_restore_failure = await ContentItemRecord.get(id=item_uuid, using_db=conn)
+            assert item_after_restore_failure.draft_version == 4
+            assert await ContentVersionRecord.filter(item_id=item_uuid, version=5).using_db(conn).exists() is False
 
 
 @pytest.mark.asyncio
@@ -1077,6 +1221,7 @@ async def test_content_items_duplicate_creates_new_draft_copy_with_presentations
 async def test_content_items_delete_removes_item_and_versions(
     prepared_db,
     integration_valkey_settings,
+    monkeypatch,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await _create_article_model(client, workspace_id)
@@ -1089,7 +1234,7 @@ async def test_content_items_delete_removes_item_and_versions(
 
         draft_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
-            json=_draft_payload(),
+            json={**_draft_payload(), "expectedVersion": 1},
         )
         assert draft_res.status_code == 201, draft_res.text
 
@@ -1099,3 +1244,113 @@ async def test_content_items_delete_removes_item_and_versions(
 
         assert await ContentItemRecord.filter(id=item_uuid).exists() is False
         assert await ContentVersionRecord.filter(item_id=item_uuid).exists() is False
+        deleted_event = await _wait_latest_workspace_audit_event(
+            event_name="content.item.deleted",
+            workspace_id=decode_public_id(workspace_id),
+            entity_id=item_uuid,
+        )
+        assert deleted_event.properties["deleted"] is True
+        assert deleted_event.properties["model_key"] == "article"
+
+        rollback_item_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items",
+            json={**_item_payload(), "title": "Rollback Item"},
+        )
+        assert rollback_item_res.status_code == 201, rollback_item_res.text
+        rollback_item_id = rollback_item_res.json()["data"]["id"]
+        rollback_item_uuid = decode_public_id(rollback_item_id)
+
+        original_write_required_activity_event = content_item_service_module.write_required_activity_event
+
+        async def _failing_content_item_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name == "content.item.deleted":
+                raise RuntimeError("forced activity write failure: content.item.deleted")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            _failing_content_item_activity_event,
+        )
+        event_count_before = await AuditEvent.filter(event_name="content.item.deleted").count()
+        rollback_delete_res = await client.delete(f"/api/v1/projects/{project_id}/content/items/{rollback_item_id}")
+        assert rollback_delete_res.status_code == 500, rollback_delete_res.text
+        assert await AuditEvent.filter(event_name="content.item.deleted").count() == event_count_before
+        async with _tenant_conn(workspace_id) as conn:
+            assert await ContentItemRecord.filter(id=rollback_item_uuid).using_db(conn).exists() is True
+            assert (
+                await ContentVersionRecord.filter(item_id=rollback_item_uuid, version=1).using_db(conn).exists() is True
+            )
+
+
+@pytest.mark.asyncio
+async def test_content_items_bulk_unpublish_activity_readback_and_rollback(
+    prepared_db,
+    integration_valkey_settings,
+    monkeypatch,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
+        await _create_article_model(client, workspace_id)
+        item_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+        item_uuid = decode_public_id(item_id)
+
+        draft_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
+            json={**_draft_payload(), "expectedVersion": 1},
+        )
+        assert draft_res.status_code == 201, draft_res.text
+        await _approve_content_item_for_publish(client, project_id, item_id)
+        publish_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/publish",
+            json={},
+        )
+        assert publish_res.status_code == 200, publish_res.text
+
+        unpublish_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/bulk/unpublish",
+            json={"itemIds": [item_id]},
+        )
+        assert unpublish_res.status_code == 200, unpublish_res.text
+        unpublished_event = await _wait_latest_workspace_audit_event(
+            event_name="content.item.unpublished",
+            workspace_id=decode_public_id(workspace_id),
+            entity_id=item_uuid,
+        )
+        assert unpublished_event.properties["version_number"] == 2
+        assert unpublished_event.properties["published_version"] is None
+
+        republish_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/publish",
+            json={},
+        )
+        assert republish_res.status_code == 200, republish_res.text
+
+        original_write_required_activity_event = content_item_service_module.write_required_activity_event
+
+        async def _failing_unpublish_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name == "content.item.unpublished":
+                raise RuntimeError("forced activity write failure: content.item.unpublished")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            content_item_service_module,
+            "write_required_activity_event",
+            _failing_unpublish_activity_event,
+        )
+        unpublished_count_before = await AuditEvent.filter(event_name="content.item.unpublished").count()
+        rollback_unpublish_res = await client.post(
+            f"/api/v1/projects/{project_id}/content/items/bulk/unpublish",
+            json={"itemIds": [item_id]},
+        )
+        assert rollback_unpublish_res.status_code == 500, rollback_unpublish_res.text
+        assert await AuditEvent.filter(event_name="content.item.unpublished").count() == unpublished_count_before
+        async with _tenant_conn(workspace_id) as conn:
+            item_after_unpublish_failure = await ContentItemRecord.get(id=item_uuid, using_db=conn)
+            assert item_after_unpublish_failure.published_version == 2
+            version_two = await ContentVersionRecord.get(item_id=item_uuid, version=2, using_db=conn)
+            assert str(version_two.state) == "published"

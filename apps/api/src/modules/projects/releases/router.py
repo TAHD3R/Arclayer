@@ -135,7 +135,7 @@ async def publish_project_release(
         await publish_project_release_event(
             actor_user_id=actor_user_id,
             project_ctx=ctx,
-            event_name="project.release.published",
+            event_name="release.published",
             payload=data.release,
             project_id=ctx.project_id,
         )
@@ -198,7 +198,7 @@ async def rollback_project_release(
     await publish_project_release_event(
         actor_user_id=actor_user_id,
         project_ctx=ctx,
-        event_name="project.release.rolled_back",
+        event_name="release.rolled_back",
         payload=data.release,
         project_id=ctx.project_id,
         previous_active_release_id=(

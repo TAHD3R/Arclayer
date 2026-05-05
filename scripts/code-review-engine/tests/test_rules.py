@@ -517,6 +517,231 @@ def test_service_event_publish_rule_accepts_base_service_publisher(tmp_path) -> 
     assert report.findings == ()
 
 
+def test_service_optional_activity_publish_rule_flags_activity_event(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/workspaces/team/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class WorkspaceTeamService(BaseService):",
+                "    async def invite(self):",
+                "        await self.publish_optional_domain_event(name='workspace.member.invited')",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-optional-activity-publish",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.no-optional-activity-publish"
+
+
+def test_service_optional_activity_publish_rule_flags_activity_helper(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/workspaces/team/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class WorkspaceTeamService(BaseService):",
+                "    async def invite(self):",
+                "        await self._publish_activity_event(name='workspace.invite.email.created', payload={})",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-optional-activity-publish",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.no-optional-activity-publish"
+
+
+def test_service_optional_activity_publish_rule_flags_service_mixin_activity_helper(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/workspaces/team/invites/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class WorkspaceTeamInviteMixin:",
+                "    async def create_email_invite(self):",
+                "        await self._publish_activity_event(name='workspace.invite.email.created', payload={})",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-optional-activity-publish",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.no-optional-activity-publish"
+
+
+def test_service_optional_activity_publish_rule_flags_known_activity_constant(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/assets/admin/uploads/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "ASSET_UPLOADED_EVENT = 'asset.uploaded'",
+                "",
+                "class AssetUploadService(BaseService):",
+                "    async def complete(self):",
+                "        await self.publish_optional_domain_event(name=ASSET_UPLOADED_EVENT, payload={})",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-optional-activity-publish",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.no-optional-activity-publish"
+
+
+def test_service_optional_activity_publish_rule_accepts_non_activity_event(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/workspaces/team/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class WorkspaceTeamService(BaseService):",
+                "    async def notify(self):",
+                "        await self.publish_optional_domain_event(name='notification.delivered')",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-optional-activity-publish",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_service_required_activity_coverage_rule_flags_target_write_without_activity(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/workspaces/team/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class WorkspaceTeamService(BaseService):",
+                "    async def set_member_roles(self):",
+                "        await self.repo.replace_membership_roles(role_codes=['editor'])",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.required-activity-coverage",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.required-activity-coverage"
+
+
+def test_service_required_activity_coverage_rule_accepts_required_activity_helper(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/workspaces/team/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class WorkspaceTeamService(BaseService):",
+                "    async def set_member_roles(self):",
+                "        await self.repo.replace_membership_roles(role_codes=['editor'])",
+                "        await self._write_activity_event(name='workspace.member.roles_updated')",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.required-activity-coverage",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_service_required_activity_coverage_rule_accepts_direct_required_writer(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/system/settings/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class SettingsService(BaseService):",
+                "    async def patch_namespace(self):",
+                "        await self.repo.upsert(namespace='mail')",
+                "        await write_required_activity_event(payload=payload, conn=conn)",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.required-activity-coverage",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_service_required_activity_coverage_rule_ignores_non_matrix_write(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/automation/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectAutomationService(BaseService):",
+                "    async def create_flow_out(self):",
+                "        return await self.repo.create_flow(name='Flow')",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.required-activity-coverage",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
 def test_service_dependency_construction_rule_flags_method_repository_construction(tmp_path) -> None:
     service = tmp_path / "apps/api/src/modules/projects/service.py"
     service.parent.mkdir(parents=True)

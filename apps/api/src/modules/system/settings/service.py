@@ -75,14 +75,21 @@ class SettingsService(
 
             validate_config_schema(schema, merged, allow_unknown=True)
 
-            saved = await self.repo.upsert(namespace=CORE_SETTINGS_NAMESPACE, value=merged, updated_by=updated_by)
+            async with self.tx() as conn:
+                saved = await self.repo.upsert(
+                    namespace=CORE_SETTINGS_NAMESPACE,
+                    value=merged,
+                    updated_by=updated_by,
+                    conn=conn,
+                )
+                await self._emit_settings_updated(
+                    namespace=CORE_SETTINGS_NAMESPACE,
+                    schema=schema,
+                    patch=patch,
+                    actor_user_id=str(updated_by) if updated_by is not None else None,
+                    conn=conn,
+                )
             invalidate_core_settings_cache()
-            await self._emit_settings_updated(
-                namespace=CORE_SETTINGS_NAMESPACE,
-                schema=schema,
-                patch=patch,
-                actor_user_id=str(updated_by) if updated_by is not None else None,
-            )
             masked, secrets = self._mask_secrets(schema, merged)
             return SettingsDetail(
                 namespace=CORE_SETTINGS_NAMESPACE,

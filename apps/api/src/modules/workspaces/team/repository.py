@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
@@ -54,16 +55,28 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
 
         return qs.distinct()
 
-    async def get_membership(self, *, membership_id: UUID, workspace_id: UUID) -> WorkspaceMembership | None:
-        return await WorkspaceMembership.get_or_none(id=membership_id, workspace_id=workspace_id).select_related("user")
+    async def get_membership(
+        self,
+        *,
+        membership_id: UUID,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> WorkspaceMembership | None:
+        qs = WorkspaceMembership.filter(id=membership_id, workspace_id=workspace_id)
+        if conn is not None:
+            qs = qs.using_db(conn)
+        return await qs.select_related("user").first()
 
-    async def get_membership_with_roles(self, *, membership_id: UUID) -> WorkspaceMembership | None:
-        return (
-            await WorkspaceMembership
-            .get_or_none(id=membership_id)
-            .select_related("user")
-            .prefetch_related("membership_roles__role")
-        )
+    async def get_membership_with_roles(
+        self,
+        *,
+        membership_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> WorkspaceMembership | None:
+        qs = WorkspaceMembership.filter(id=membership_id)
+        if conn is not None:
+            qs = qs.using_db(conn)
+        return await qs.select_related("user").prefetch_related("membership_roles__role").first()
 
     async def query_user_options(self, *, workspace_id: UUID, q: str | None) -> QuerySet[WorkspaceMembership]:
         qs = (
@@ -98,15 +111,37 @@ class WorkspaceTeamRepository(TortoiseORMRepository):
     async def list_recent_link_events(self, *, link_id: UUID, limit: int) -> list[WorkspaceInviteLinkUseEvent]:
         return await WorkspaceInviteLinkUseEvent.filter(link_id=link_id).order_by("-used_at").limit(limit).all()
 
-    async def replace_membership_roles(self, *, membership_id: UUID, role_ids: list[UUID]) -> None:
-        await WorkspaceMembershipRole.filter(membership_id=membership_id).delete()
+    async def replace_membership_roles(
+        self,
+        *,
+        membership_id: UUID,
+        role_ids: list[UUID],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        delete_qs = WorkspaceMembershipRole.filter(membership_id=membership_id)
+        if conn is not None:
+            delete_qs = delete_qs.using_db(conn)
+        await delete_qs.delete()
         for rid in role_ids:
-            await WorkspaceMembershipRole.get_or_create(membership_id=membership_id, role_id=rid)
+            await WorkspaceMembershipRole.get_or_create(
+                membership_id=membership_id,
+                role_id=rid,
+                using_db=conn,
+            )
 
-    async def get_roles_by_codes(self, *, workspace_id: UUID, role_codes: list[str]) -> list[Role]:
+    async def get_roles_by_codes(
+        self,
+        *,
+        workspace_id: UUID,
+        role_codes: list[str],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[Role]:
         if not role_codes:
             return []
-        return await Role.filter(workspace_id=workspace_id, code__in=role_codes).all()
+        qs = Role.filter(workspace_id=workspace_id, code__in=role_codes)
+        if conn is not None:
+            qs = qs.using_db(conn)
+        return await qs.all()
 
 
 def _normalize_team_member_ordering(value: str) -> list[str]:

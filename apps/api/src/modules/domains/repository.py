@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
@@ -47,13 +48,16 @@ class DomainBindingRepository(TortoiseORMRepository):
             raise NotFound(_te("DOMAIN_BINDING_NOT_FOUND"), error="DOMAIN_BINDING_NOT_FOUND")
         return binding
 
-    async def get_platform_binding_for_runtime(self, *, runtime_id: UUID) -> DomainBindingRecord | None:
-        return await (
-            DomainBindingRecord
-            .filter(runtime_id=runtime_id, source=DomainBindingSource.PLATFORM)
-            .prefetch_related("runtime", "site")
-            .first()
-        )
+    async def get_platform_binding_for_runtime(
+        self,
+        *,
+        runtime_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> DomainBindingRecord | None:
+        query = DomainBindingRecord.filter(runtime_id=runtime_id, source=DomainBindingSource.PLATFORM)
+        if conn is not None:
+            query = query.using_db(conn)
+        return await query.prefetch_related("runtime", "site").first()
 
     async def list_for_project(self, *, project_id: UUID) -> list[DomainBindingRecord]:
         return await (
@@ -64,8 +68,11 @@ class DomainBindingRepository(TortoiseORMRepository):
             .all()
         )
 
-    async def has_primary_binding(self, *, project_id: UUID) -> bool:
-        return await DomainBindingRecord.filter(project_id=project_id, is_primary=True).exists()
+    async def has_primary_binding(self, *, project_id: UUID, conn: BaseDBAsyncClient | None = None) -> bool:
+        query = DomainBindingRecord.filter(project_id=project_id, is_primary=True)
+        if conn is not None:
+            query = query.using_db(conn)
+        return await query.exists()
 
     async def has_other_active_platform_binding(self, *, project_id: UUID, exclude_binding_id: UUID) -> bool:
         return (
@@ -90,10 +97,12 @@ class DomainBindingRepository(TortoiseORMRepository):
         is_primary: bool,
         created_by_user_id: UUID | None,
         environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> DomainBindingRecord:
         now = datetime.now(tz=UTC)
         try:
             return await DomainBindingRecord.create(
+                using_db=conn,
                 workspace_id=workspace_id,
                 project_id=project_id,
                 runtime_id=runtime_id,

@@ -7,6 +7,7 @@ import pytest
 
 from src.common.utils.public_ids import decode_public_id
 from src.config import get_settings
+from src.models.projects.api_key import ApiKeyRecord
 from src.settings.crypto import ensure_master_key
 from tests.modules.workspaces.content.test_content_items_integration import (
     _wait_latest_workspace_audit_event,
@@ -142,6 +143,7 @@ async def test_project_api_key_management_flow(monkeypatch, tmp_path, prepared_d
             entity_id=decode_public_id(key_id),
         )
         assert created_event.properties["key_family"] == "workspace_service"
+        assert created["secretToken"] not in str(created_event.properties)
 
         list_res = await client.get(f"/api/v1/projects/{project_id}/api-keys")
         assert list_res.status_code == 200, list_res.text
@@ -164,6 +166,7 @@ async def test_project_api_key_management_flow(monkeypatch, tmp_path, prepared_d
             entity_id=decode_public_id(key_id),
         )
         assert rotated_event.properties["key_family"] == "workspace_service"
+        assert rotated["secretToken"] not in str(rotated_event.properties)
 
         revoke_res = await client.post(f"/api/v1/projects/{project_id}/api-keys/{key_id}/revoke")
         assert revoke_res.status_code == 200, revoke_res.text
@@ -174,6 +177,99 @@ async def test_project_api_key_management_flow(monkeypatch, tmp_path, prepared_d
             entity_id=decode_public_id(key_id),
         )
         assert revoked_event.properties["key_family"] == "workspace_service"
+        assert revoked_event.properties["project_id"] == str(decode_public_id(project_id))
+
+        activity_res = await client.get(
+            f"/api/v1/workspaces/{workspace_id}/activity"
+            f"?eventName=project.api_key.&entityType=api_key&entityId={key_id}&page=1&size=10"
+        )
+        assert activity_res.status_code == 200, activity_res.text
+        activity_items = activity_res.json()["data"]["items"]
+        activity_event_names = [entry["eventName"] for entry in activity_items]
+        assert set(activity_event_names[:3]) == {
+            "project.api_key.created",
+            "project.api_key.rotated",
+            "project.api_key.revoked",
+        }
+        assert all(entry["entityId"] == key_id for entry in activity_items[:3])
+        assert created["secretToken"] not in str(activity_items)
+        assert rotated["secretToken"] not in str(activity_items)
+
+        from src.models.analytics.audit_event import AuditEvent
+        from src.modules.projects.api_keys import service as api_key_service_module
+
+        original_write_required_activity_event = api_key_service_module.write_required_activity_event
+
+        async def _failing_write_required_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name.startswith("project.api_key."):
+                raise RuntimeError(f"forced activity write failure: {payload.event_name}")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            "src.modules.projects.api_keys.service.write_required_activity_event",
+            _failing_write_required_activity_event,
+        )
+
+        event_count_before = await AuditEvent.filter(event_name__startswith="project.api_key.").count()
+        key_count_before = await ApiKeyRecord.filter(workspace_id=workspace_uuid).count()
+
+        failed_create_res = await client.post(
+            f"/api/v1/projects/{project_id}/api-keys",
+            json={**_project_api_key_payload(), "name": "Rollback Worker"},
+        )
+        assert failed_create_res.status_code == 500, failed_create_res.text
+        assert await ApiKeyRecord.filter(workspace_id=workspace_uuid).count() == key_count_before
+        assert await AuditEvent.filter(event_name__startswith="project.api_key.").count() == event_count_before
+
+        monkeypatch.setattr(
+            "src.modules.projects.api_keys.service.write_required_activity_event",
+            original_write_required_activity_event,
+        )
+        rotate_seed_res = await client.post(
+            f"/api/v1/projects/{project_id}/api-keys",
+            json={**_project_api_key_payload(), "name": "Rotate Seed"},
+        )
+        assert rotate_seed_res.status_code == 200, rotate_seed_res.text
+        rotate_seed = rotate_seed_res.json()["data"]
+        rotate_seed_id = rotate_seed["key"]["id"]
+        rotate_seed_public_id = rotate_seed["key"]["tokenPublicId"]
+
+        monkeypatch.setattr(
+            "src.modules.projects.api_keys.service.write_required_activity_event",
+            _failing_write_required_activity_event,
+        )
+        key_count_before = await ApiKeyRecord.filter(workspace_id=workspace_uuid).count()
+        event_count_before = await AuditEvent.filter(event_name__startswith="project.api_key.").count()
+        failed_rotate_res = await client.post(f"/api/v1/projects/{project_id}/api-keys/{rotate_seed_id}/rotate")
+        assert failed_rotate_res.status_code == 500, failed_rotate_res.text
+        rotate_seed_record = await ApiKeyRecord.get(id=decode_public_id(rotate_seed_id))
+        assert rotate_seed_record.token_public_id == rotate_seed_public_id
+        assert await ApiKeyRecord.filter(workspace_id=workspace_uuid).count() == key_count_before
+        assert await AuditEvent.filter(event_name__startswith="project.api_key.").count() == event_count_before
+
+        monkeypatch.setattr(
+            "src.modules.projects.api_keys.service.write_required_activity_event",
+            original_write_required_activity_event,
+        )
+        revoke_seed_res = await client.post(
+            f"/api/v1/projects/{project_id}/api-keys",
+            json={**_project_api_key_payload(), "name": "Revoke Seed"},
+        )
+        assert revoke_seed_res.status_code == 200, revoke_seed_res.text
+        revoke_seed_id = revoke_seed_res.json()["data"]["key"]["id"]
+
+        monkeypatch.setattr(
+            "src.modules.projects.api_keys.service.write_required_activity_event",
+            _failing_write_required_activity_event,
+        )
+        key_count_before = await ApiKeyRecord.filter(workspace_id=workspace_uuid).count()
+        event_count_before = await AuditEvent.filter(event_name__startswith="project.api_key.").count()
+        failed_revoke_res = await client.post(f"/api/v1/projects/{project_id}/api-keys/{revoke_seed_id}/revoke")
+        assert failed_revoke_res.status_code == 500, failed_revoke_res.text
+        revoke_seed_record = await ApiKeyRecord.get(id=decode_public_id(revoke_seed_id))
+        assert revoke_seed_record.revoked_at is None
+        assert await ApiKeyRecord.filter(workspace_id=workspace_uuid).count() == key_count_before
+        assert await AuditEvent.filter(event_name__startswith="project.api_key.").count() == event_count_before
 
     get_settings.cache_clear()
 

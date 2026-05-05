@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 
 from src.common.utils.slug import slugify
@@ -91,6 +92,17 @@ class ProjectRepository(TortoiseORMRepository):
             raise NotFound("Project not found", error="PROJECT_NOT_FOUND")
         return project
 
+    async def get_project_by_id_in_connection(
+        self,
+        *,
+        project_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> ProjectRecord:
+        project = await ProjectRecord.get_or_none(id=project_id, using_db=conn)
+        if project is None:
+            raise NotFound("Project not found", error="PROJECT_NOT_FOUND")
+        return project
+
     async def get_project_with_workspace(self, *, project_id: UUID) -> tuple[ProjectRecord, Workspace]:
         project = await self.get_project_by_id(project_id=project_id)
         workspace = await Workspace.get_or_none(id=project.workspace_id, deleted_at__isnull=True)
@@ -104,17 +116,26 @@ class ProjectRepository(TortoiseORMRepository):
         workspace_id: UUID,
         slug: str,
         exclude_project_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> bool:
         qs = ProjectRecord.filter(workspace_id=workspace_id, slug=slug)
+        if conn is not None:
+            qs = qs.using_db(conn)
         if exclude_project_id is not None:
             qs = qs.exclude(id=exclude_project_id)
         return await qs.exists()
 
-    async def _next_available_slug(self, *, workspace_id: UUID, name: str) -> str:
+    async def _next_available_slug(
+        self,
+        *,
+        workspace_id: UUID,
+        name: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> str:
         base_slug = slugify(name)[:64] or "project"
         slug = base_slug
         suffix = 2
-        while await self.slug_exists(workspace_id=workspace_id, slug=slug):
+        while await self.slug_exists(workspace_id=workspace_id, slug=slug, conn=conn):
             suffix_text = f"-{suffix}"
             slug = f"{base_slug[: max(1, 64 - len(suffix_text))]}{suffix_text}"
             suffix += 1
@@ -160,12 +181,14 @@ class ProjectRepository(TortoiseORMRepository):
         slug: str | None,
         description: str | None,
         actor_user_id: UUID | None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> ProjectRecord:
-        resolved_slug = slug or await self._next_available_slug(workspace_id=workspace_id, name=name)
-        if await self.slug_exists(workspace_id=workspace_id, slug=resolved_slug):
+        resolved_slug = slug or await self._next_available_slug(workspace_id=workspace_id, name=name, conn=conn)
+        if await self.slug_exists(workspace_id=workspace_id, slug=resolved_slug, conn=conn):
             raise Conflict("Project slug already exists", error="PROJECT_SLUG_EXISTS")
 
         return await ProjectRecord.create(
+            using_db=conn,
             workspace_id=workspace_id,
             slug=resolved_slug,
             name=name[:128],
@@ -180,33 +203,39 @@ class ProjectRepository(TortoiseORMRepository):
         project_id: UUID,
         workspace_id: UUID,
         actor_user_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
     ) -> None:
-        existing = await ProjectMembership.filter(project_id=project_id).exists()
+        existing_query = ProjectMembership.filter(project_id=project_id)
+        if conn is not None:
+            existing_query = existing_query.using_db(conn)
+        existing = await existing_query.exists()
         if existing:
             return
 
-        workspace = await Workspace.get_or_none(id=workspace_id)
+        workspace = await Workspace.get_or_none(id=workspace_id, using_db=conn)
         if workspace is None:
             raise NotFound("Workspace not found", error="WORKSPACE_NOT_FOUND")
 
+        workspace_membership_query = WorkspaceMembership.filter(
+            workspace_id=workspace_id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        )
+        if conn is not None:
+            workspace_membership_query = workspace_membership_query.using_db(conn)
         workspace_user_ids = {
             UUID(str(value))
-            for value in await WorkspaceMembership.filter(
-                workspace_id=workspace_id,
-                status=WorkspaceMembershipStatus.ACTIVE,
-            ).values_list("user_id", flat=True)
+            for value in await workspace_membership_query.values_list("user_id", flat=True)
             if value is not None
         }
 
-        owner_user_ids = {
-            UUID(str(value))
-            for value in await OrgMembership.filter(
-                organization_id=workspace.organization_id,
-                status="active",
-                role=OrgRole.OWNER,
-            ).values_list("user_id", flat=True)
-            if value is not None
-        }
+        owner_query = OrgMembership.filter(
+            organization_id=workspace.organization_id,
+            status="active",
+            role=OrgRole.OWNER,
+        )
+        if conn is not None:
+            owner_query = owner_query.using_db(conn)
+        owner_user_ids = {UUID(str(value)) for value in await owner_query.values_list("user_id", flat=True) if value}
         member_user_ids = workspace_user_ids | owner_user_ids | {actor_user_id}
         if not member_user_ids:
             return
@@ -221,7 +250,7 @@ class ProjectRepository(TortoiseORMRepository):
             for user_id in sorted(member_user_ids)
         ]
         if rows:
-            await ProjectMembership.bulk_create(rows, ignore_conflicts=True)
+            await ProjectMembership.bulk_create(rows, ignore_conflicts=True, using_db=conn)
 
     async def update_project(
         self,
@@ -237,8 +266,13 @@ class ProjectRepository(TortoiseORMRepository):
         icon_emoji: str | None,
         icon_url: str | None,
         icon_fields_provided: bool,
+        conn: BaseDBAsyncClient | None = None,
     ) -> ProjectRecord:
-        project = await self.get_project_by_id(project_id=project_id)
+        project = (
+            await self.get_project_by_id(project_id=project_id)
+            if conn is None
+            else await self.get_project_by_id_in_connection(project_id=project_id, conn=conn)
+        )
         update_fields: list[str] = []
 
         if name is not None:
@@ -272,20 +306,45 @@ class ProjectRepository(TortoiseORMRepository):
             update_fields.extend(["icon_glyph", "icon_emoji", "icon_url"])
 
         if update_fields:
-            await project.save(update_fields=[*dict.fromkeys([*update_fields, "updated_at"])])
-        return await self.get_project_by_id(project_id=project_id)
+            await project.save(update_fields=[*dict.fromkeys([*update_fields, "updated_at"])], using_db=conn)
+        return (
+            await self.get_project_by_id(project_id=project_id)
+            if conn is None
+            else await self.get_project_by_id_in_connection(project_id=project_id, conn=conn)
+        )
 
-    async def set_project_active(self, *, project_id: UUID, is_active: bool) -> ProjectRecord:
-        project = await self.get_project_by_id(project_id=project_id)
+    async def set_project_active(
+        self,
+        *,
+        project_id: UUID,
+        is_active: bool,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> ProjectRecord:
+        project = (
+            await self.get_project_by_id(project_id=project_id)
+            if conn is None
+            else await self.get_project_by_id_in_connection(project_id=project_id, conn=conn)
+        )
         if bool(project.is_active) != is_active:
             project.is_active = is_active
-            await project.save(update_fields=["is_active", "updated_at"])
-        return await self.get_project_by_id(project_id=project_id)
+            await project.save(update_fields=["is_active", "updated_at"], using_db=conn)
+        return (
+            await self.get_project_by_id(project_id=project_id)
+            if conn is None
+            else await self.get_project_by_id_in_connection(project_id=project_id, conn=conn)
+        )
 
-    async def delete_project(self, *, project_id: UUID) -> bool:
-        project = await self.get_project_by_id(project_id=project_id)
-        deleted_count = await project.delete()
-        return int(deleted_count or 0) > 0
+    async def delete_project(self, *, project_id: UUID, conn: BaseDBAsyncClient | None = None) -> bool:
+        project = (
+            await self.get_project_by_id(project_id=project_id)
+            if conn is None
+            else await self.get_project_by_id_in_connection(project_id=project_id, conn=conn)
+        )
+        await project.delete(using_db=conn)
+        query = ProjectRecord.filter(id=project_id)
+        if conn is not None:
+            query = query.using_db(conn)
+        return not await query.exists()
 
     async def list_project_memberships(self, *, project_ids: list[UUID]) -> list[ProjectMembership]:
         if not project_ids:
@@ -331,8 +390,17 @@ class ProjectRepository(TortoiseORMRepository):
             created_by_user_id=actor_user_id,
         )
 
-    async def get_primary_runtime(self, *, project_id: UUID) -> ProjectRuntimeRecord | None:
-        return await ProjectRuntimeRecord.get_or_none(project_id=project_id, kind=ProjectRuntimeKind.PRIMARY)
+    async def get_primary_runtime(
+        self,
+        *,
+        project_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> ProjectRuntimeRecord | None:
+        return await ProjectRuntimeRecord.get_or_none(
+            project_id=project_id,
+            kind=ProjectRuntimeKind.PRIMARY,
+            using_db=conn,
+        )
 
     async def get_runtime_by_id(self, *, runtime_id: UUID) -> ProjectRuntimeRecord:
         runtime = await ProjectRuntimeRecord.get_or_none(id=runtime_id)

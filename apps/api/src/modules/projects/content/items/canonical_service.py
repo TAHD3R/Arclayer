@@ -6,6 +6,7 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 
+from src.common.types.json_types import JsonObject
 from src.core.entity_manager.manager import EntityManager
 from src.core.exceptions import Conflict, NotFound
 from src.core.services import BaseService
@@ -17,6 +18,7 @@ from src.models.content._enums import (
 )
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.projects.content.continuation import resolve_item_continuation_truth
 from src.modules.projects.content.contracts.schema import (
     ContentItemBulkTransitionOut,
@@ -74,6 +76,13 @@ from src.modules.projects.content.items.workflow_policy import (
     validate_workflow_transition,
 )
 
+CONTENT_ITEM_CREATED_EVENT = "content.item.created"
+CONTENT_ITEM_UPDATED_EVENT = "content.item.updated"
+CONTENT_ITEM_DELETED_EVENT = "content.item.deleted"
+CONTENT_ITEM_PUBLISHED_EVENT = "content.item.published"
+CONTENT_ITEM_UNPUBLISHED_EVENT = "content.item.unpublished"
+CONTENT_ITEM_RESTORED_EVENT = "content.item.restored"
+
 
 def _compare_mapping(
     prefix: str, before: dict[str, Any], after: dict[str, Any]
@@ -107,11 +116,47 @@ class ProjectContentCanonicalItemsService(BaseService):
         repo: ProjectContentItemsRepository,
         *,
         entity_manager: EntityManager,
+        organization_id: UUID | None = None,
     ) -> None:
         super().__init__()
         self.repo = repo
         self.entity_manager: EntityManager = entity_manager
+        self.organization_id = organization_id
         self.reads = ProjectContentCanonicalItemReadService(repo)
+
+    async def _write_content_item_activity_event(
+        self,
+        *,
+        event_name: str,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        actor_user_id: UUID | None,
+        properties: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        payload: JsonObject = {
+            "organization_id": str(self.organization_id) if self.organization_id is not None else None,
+            "workspace_id": str(workspace_id),
+            "site_id": str(site_id),
+            "content_item_id": str(item_id),
+            "actor_user_id": str(actor_user_id) if actor_user_id is not None else None,
+        }
+        payload.update(properties)
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                organization_id=self.organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="content_item",
+                entity_id=item_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
 
     async def _replace_presentations(
         self,
@@ -298,6 +343,32 @@ class ProjectContentCanonicalItemsService(BaseService):
                         meta={"locale": payload.locale},
                     )
 
+            async def _before_create_commit(
+                item: ContentItemRecord,
+                version: ContentVersionRecord,
+                conn: BaseDBAsyncClient,
+            ) -> None:
+                if translation_group_id is None:
+                    await self.repo.ensure_translation_group_for_item(item=item, conn=conn)
+                await self._write_content_item_activity_event(
+                    event_name=CONTENT_ITEM_CREATED_EVENT,
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=UUID(str(item.id)),
+                    actor_user_id=actor_user_id,
+                    properties={
+                        "model_key": model_key,
+                        "locale": str(item.locale),
+                        "status": str(item.status),
+                        "draft_version": int(version.version),
+                        "published_version": None,
+                        "translation_group_id": (
+                            str(item.translation_group_id) if item.translation_group_id is not None else None
+                        ),
+                    },
+                    conn=conn,
+                )
+
             em_result = await self.entity_manager.create(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -315,10 +386,9 @@ class ProjectContentCanonicalItemsService(BaseService):
                 shape_reason_code=continuation.shape_reason_code,
                 shape_reason_meta=continuation.shape_reason_meta,
                 translation_group_id=translation_group_id,
+                before_commit=_before_create_commit,
             )
             item = em_result.item
-            if translation_group_id is None:
-                await self.repo.ensure_translation_group_for_item(item=item)
         except IntegrityError as exc:
             raise Conflict(
                 "Content item conflict",
@@ -677,6 +747,32 @@ class ProjectContentCanonicalItemsService(BaseService):
         if item.model_definition is None:
             raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
         model_key = str(item.model_definition.singular_key)
+        deleted_status = str(item.status)
+        deleted_locale = str(item.locale)
+        deleted_draft_version = int(item.draft_version or 0)
+        deleted_published_version = int(item.published_version) if item.published_version is not None else None
+
+        async def _before_delete_commit(
+            deleted_item: ContentItemRecord,
+            conn: BaseDBAsyncClient,
+        ) -> None:
+            await self._write_content_item_activity_event(
+                event_name=CONTENT_ITEM_DELETED_EVENT,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=UUID(str(deleted_item.id)),
+                actor_user_id=actor_user_id,
+                properties={
+                    "model_key": model_key,
+                    "locale": deleted_locale,
+                    "status": deleted_status,
+                    "draft_version": deleted_draft_version,
+                    "published_version": deleted_published_version,
+                    "deleted": True,
+                },
+                conn=conn,
+            )
+
         deleted = await self.entity_manager.delete(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -684,6 +780,7 @@ class ProjectContentCanonicalItemsService(BaseService):
             model_key=model_key,
             item_id=item_id,
             actor_id=actor_user_id,
+            before_commit=_before_delete_commit,
         )
         if not deleted:
             raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
@@ -905,6 +1002,36 @@ class ProjectContentCanonicalItemsService(BaseService):
                 ),
                 conn=conn,
             )
+            event_name: str | None = None
+            if target_state == ContentVersionState.PUBLISHED:
+                event_name = CONTENT_ITEM_PUBLISHED_EVENT
+            elif target_state == ContentVersionState.DRAFT and int(item.published_version or 0) == version_number:
+                event_name = CONTENT_ITEM_UNPUBLISHED_EVENT
+            if event_name is not None:
+                await self._write_content_item_activity_event(
+                    event_name=event_name,
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=UUID(str(item.id)),
+                    actor_user_id=actor_user_id,
+                    properties={
+                        "model_key": str(item.model_definition.singular_key)
+                        if item.model_definition is not None
+                        else None,
+                        "locale": str(item.locale),
+                        "version_number": int(version.version),
+                        "version_state": str(version.state),
+                        "status": str(
+                            ContentItemStatus.PUBLISHED
+                            if target_state == ContentVersionState.PUBLISHED
+                            else ContentItemStatus.DRAFT
+                        ),
+                        "published_version": int(version.version)
+                        if target_state == ContentVersionState.PUBLISHED
+                        else None,
+                    },
+                    conn=conn,
+                )
             result = await self.reads.build_version_out(version=version, conn=conn)
 
         if published_model_key is not None and published_item_id is not None:
@@ -989,6 +1116,24 @@ class ProjectContentCanonicalItemsService(BaseService):
                         "published_version": None,
                         "status": str(ContentItemStatus.DRAFT),
                         "updated_by_user_id": actor_user_id,
+                    },
+                    conn=conn,
+                )
+                await self._write_content_item_activity_event(
+                    event_name=CONTENT_ITEM_UNPUBLISHED_EVENT,
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=UUID(str(item.id)),
+                    actor_user_id=actor_user_id,
+                    properties={
+                        "model_key": str(item.model_definition.singular_key)
+                        if item.model_definition is not None
+                        else None,
+                        "locale": str(item.locale),
+                        "version_number": int(version.version),
+                        "version_state": str(version.state),
+                        "status": str(ContentItemStatus.DRAFT),
+                        "published_version": None,
                     },
                     conn=conn,
                 )
@@ -1080,6 +1225,22 @@ class ProjectContentCanonicalItemsService(BaseService):
                         fallback=ContentItemStatus.DRAFT,
                     ),
                     "updated_by_user_id": actor_user_id,
+                },
+                conn=conn,
+            )
+            await self._write_content_item_activity_event(
+                event_name=CONTENT_ITEM_RESTORED_EVENT,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=UUID(str(item.id)),
+                actor_user_id=actor_user_id,
+                properties={
+                    "model_key": str(item.model_definition.singular_key) if item.model_definition is not None else None,
+                    "locale": str(item.locale),
+                    "source_version_number": int(version_number),
+                    "version_number": next_version,
+                    "version_state": str(version.state),
+                    "published_version": int(item.published_version) if item.published_version is not None else None,
                 },
                 conn=conn,
             )
@@ -1196,4 +1357,36 @@ class ProjectContentCanonicalItemsService(BaseService):
             )
             if item_fields:
                 await self.repo.update_item_fields(item, fields=item_fields, conn=conn)
+            if has_version_changes or has_presentation_changes or item_fields:
+                await self._write_content_item_activity_event(
+                    event_name=CONTENT_ITEM_UPDATED_EVENT,
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=UUID(str(item.id)),
+                    actor_user_id=actor_user_id,
+                    properties={
+                        "model_key": str(item.model_definition.singular_key)
+                        if item.model_definition is not None
+                        else None,
+                        "locale": str(item.locale),
+                        "version_number": int(version.version),
+                        "version_state": str(version.state),
+                        "updated_sections": sorted(
+                            name
+                            for name in (
+                                "fields_snapshot",
+                                "presentations",
+                                "change_summary",
+                                "workflow_metadata",
+                            )
+                            if name in payload.model_fields_set
+                        ),
+                        "status": str(item.status),
+                        "draft_version": int(item.draft_version or 0),
+                        "published_version": int(item.published_version)
+                        if item.published_version is not None
+                        else None,
+                    },
+                    conn=conn,
+                )
             return await self.reads.build_version_out(version=version, conn=conn)

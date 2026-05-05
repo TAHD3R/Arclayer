@@ -214,6 +214,10 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeValkeyClient, FakeUser
     repo = FakeUserRepository(user)
     service = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
 
+    async def _fake_write_auth_activity_event(**kwargs: object) -> None:
+        _ = kwargs
+
+    monkeypatch.setattr(service, "_write_auth_activity_event", _fake_write_auth_activity_event)
     return service, valkey, user
 
 

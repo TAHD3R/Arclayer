@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import cast
 from uuid import uuid4
@@ -22,6 +23,10 @@ class _FakeSettingRecord:
     async def save(self, *, update_fields: list[str]) -> None:
         assert update_fields == ["value", "updated_by", "updated_at"]
         self.updated_at = datetime.now(UTC)
+
+
+class _FakeConn:
+    pass
 
 
 @pytest.mark.asyncio
@@ -57,16 +62,29 @@ async def test_project_settings_service_patch_core_creates_project_scoped_record
     service = ProjectSettingsService(settings)
     project_id = uuid4()
     updated_by = uuid4()
+    tx_conn = _FakeConn()
     captured: dict[str, object] = {}
 
     async def fake_get_or_none(**kwargs):
-        _ = kwargs
+        assert kwargs["using_db"] is tx_conn
         return None
 
     async def fake_create(**kwargs):
+        assert kwargs["using_db"] is tx_conn
         captured["create"] = kwargs
         return _FakeSettingRecord(kwargs["value"])
 
+    @asynccontextmanager
+    async def fake_tx(*, conn=None):
+        assert conn is None
+        yield tx_conn
+
+    async def fake_write_settings_activity_event(**kwargs):
+        assert kwargs["conn"] is tx_conn
+        captured["activity"] = kwargs
+
+    monkeypatch.setattr(service, "tx", fake_tx)
+    monkeypatch.setattr(service, "_write_settings_activity_event", fake_write_settings_activity_event)
     monkeypatch.setattr(
         "src.modules.projects.settings.service.SettingRecord.get_or_none",
         fake_get_or_none,
@@ -94,4 +112,12 @@ async def test_project_settings_service_patch_core_creates_project_scoped_record
         "namespace": CORE_SETTINGS_NAMESPACE,
         "value": {"site": {"name": "Arclayer"}},
         "updated_by": updated_by,
+        "using_db": tx_conn,
+    }
+    assert captured["activity"] == {
+        "project_id": project_id,
+        "actor_user_id": updated_by,
+        "changed_paths": ["site.name"],
+        "contains_sensitive_values": False,
+        "conn": tx_conn,
     }

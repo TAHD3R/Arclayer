@@ -27,6 +27,8 @@ class AuditEventRepository(TortoiseORMRepository):
         if organization_id is not None:
             qs = qs.filter(organization_id=organization_id)
 
+        if filters.organization_id is not None:
+            qs = qs.filter(organization_id=filters.organization_id)
         if filters.workspace_id is not None:
             qs = qs.filter(workspace_id=filters.workspace_id)
         if filters.actor_user_id is not None:

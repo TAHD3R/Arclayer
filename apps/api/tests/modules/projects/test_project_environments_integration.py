@@ -3,8 +3,10 @@ from __future__ import annotations
 import pytest
 
 from src.common.utils.public_ids import decode_public_id
+from src.models.analytics.audit_event import AuditEvent
 from src.models.projects.environment import ProjectEnvironmentRecord
 from src.modules.projects.content.transfer.service import ProjectContentTransferService
+from src.modules.projects.environments import service as environments_service_module
 from src.modules.tenancy.registry import WorkspaceTenantRegistryService
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode
 from tests.modules.projects.helpers import (
@@ -92,11 +94,13 @@ async def test_new_project_bootstraps_three_environments_and_lists_in_predictabl
 async def test_project_environment_patch_updates_name_and_default_preview(
     prepared_db,
     integration_valkey_settings,
+    monkeypatch,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, _workspace_id, project_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         initial = await client.get(f"/api/v1/projects/{project_id}/environments")
         assert initial.status_code == 200, initial.text
         staging = next(item for item in initial.json()["data"]["items"] if item["key"] == "staging")
+        development = next(item for item in initial.json()["data"]["items"] if item["key"] == "development")
 
         patch_res = await client.patch(
             f"/api/v1/projects/{project_id}/environments/{staging['id']}",
@@ -110,6 +114,48 @@ async def test_project_environment_patch_updates_name_and_default_preview(
         assert refreshed.status_code == 200, refreshed.text
         rows = refreshed.json()["data"]["items"]
         assert [item["key"] for item in rows if item["isDefaultPreview"]] == ["staging"]
+
+        staging_uuid = decode_public_id(staging["id"])
+        project_uuid = decode_public_id(project_id)
+        workspace_uuid = decode_public_id(workspace_id)
+        event = await AuditEvent.filter(
+            event_name="project.environment.updated",
+            workspace_id=workspace_uuid,
+            entity_type="project_environment",
+            entity_id=staging_uuid,
+        ).first()
+        assert event is not None
+        assert event.properties["project_id"] == str(project_uuid)
+        assert event.properties["environment_id"] == str(staging_uuid)
+        assert event.properties["environment_key"] == "staging"
+        assert event.properties["updated_fields"] == ["is_default_preview", "name"]
+        assert "QA" not in str(event.properties)
+
+        original_write_required_activity_event = environments_service_module.write_required_activity_event
+
+        async def _failing_environment_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name == "project.environment.updated":
+                raise RuntimeError("forced activity write failure: project.environment.updated")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            "src.modules.projects.environments.service.write_required_activity_event",
+            _failing_environment_activity_event,
+        )
+        event_count_before = await AuditEvent.filter(event_name="project.environment.updated").count()
+        development_uuid = decode_public_id(development["id"])
+        rollback_res = await client.patch(
+            f"/api/v1/projects/{project_id}/environments/{development['id']}",
+            json={"name": "Rolled Back Dev", "isDefaultPreview": True},
+        )
+        assert rollback_res.status_code == 500, rollback_res.text
+
+        assert await AuditEvent.filter(event_name="project.environment.updated").count() == event_count_before
+        development_row = await ProjectEnvironmentRecord.get(id=development_uuid)
+        staging_row = await ProjectEnvironmentRecord.get(id=staging_uuid)
+        assert development_row.name == "Development"
+        assert development_row.is_default_preview is False
+        assert staging_row.is_default_preview is True
 
 
 @pytest.mark.asyncio

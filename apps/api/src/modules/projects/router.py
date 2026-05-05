@@ -224,7 +224,7 @@ async def update_project(
 ) -> ResponseModel[ProjectDetailOut]:
     await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
     service = ProjectService(settings)
-    detail = await service.update_project(project_id=ctx.project_id, payload=payload)
+    detail = await service.update_project(project_id=ctx.project_id, payload=payload, actor_user_id=user_id)
     return ApiResponse.success(data=detail)
 
 
@@ -240,7 +240,7 @@ async def archive_project(
 ) -> ResponseModel[ProjectArchiveResult]:
     await require_project_team_permission("project:settings:manage", ctx=ctx, user_id=user_id)
     service = ProjectService(settings)
-    out = await service.archive_project(project_id=ctx.project_id)
+    out = await service.archive_project(project_id=ctx.project_id, actor_user_id=user_id)
     return ApiResponse.success(data=out)
 
 
@@ -282,7 +282,7 @@ async def delete_project(
     detail = await service.get_project_detail(project_id=ctx.project_id)
     if (confirm_name or "").strip() != detail.project.name:
         raise BadRequest("Project delete confirmation does not match", error="PROJECT_DELETE_CONFIRM_NAME_MISMATCH")
-    out = await service.delete_project(project_id=ctx.project_id)
+    out = await service.delete_project(project_id=ctx.project_id, actor_user_id=user_id)
     return ApiResponse.success(data=out)
 
 

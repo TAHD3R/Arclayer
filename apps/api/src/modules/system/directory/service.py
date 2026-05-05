@@ -798,9 +798,14 @@ class SystemDirectoryService(BaseService):
         *,
         project_id: UUID,
         payload: DirectoryProjectUpdateRequest,
+        acting_user_id: UUID,
     ) -> DirectoryProjectDetailOut:
         service_payload = ProjectUpdateRequest(**payload.model_dump(exclude_none=False, by_alias=False))
-        await self.project_service.update_project(project_id=project_id, payload=service_payload)
+        await self.project_service.update_project(
+            project_id=project_id,
+            payload=service_payload,
+            actor_user_id=acting_user_id,
+        )
         return await self.get_project_detail(project_id=project_id)
 
     async def set_project_enabled(
@@ -830,7 +835,7 @@ class SystemDirectoryService(BaseService):
         normalized_confirm_name = str(payload.confirm_name or "").strip()
         if normalized_confirm_name != str(row.name):
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="PROJECT_DELETE_CONFIRM_NAME_MISMATCH")
-        await self.project_service.delete_project(project_id=project_id)
+        await self.project_service.delete_project(project_id=project_id, actor_user_id=acting_user_id)
 
     async def delete_organization(
         self,

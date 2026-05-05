@@ -13,6 +13,7 @@ from typing import cast
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.schemas import BaseSchema
 from src.common.types.json_types import JsonObject, JsonValue
@@ -26,6 +27,7 @@ from src.models.content.model_definition import ContentModelDefinitionRecord
 from src.models.content.model_field import ContentModelFieldRecord
 from src.models.content.model_relation import ContentModelRelationRecord
 from src.models.organization.user import User
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.projects.content.continuation import (
     MODEL_DEFAULT_INVALID_REASON_CODE,
     ContentItemContinuationTruth,
@@ -167,6 +169,10 @@ def _capabilities(values: list[ContentModelCapability]) -> list[str]:
     return [str(value) for value in values]
 
 
+def _audit_default_change_keys(changes: dict[str, dict[str, JsonValue | None]] | None) -> list[str]:
+    return sorted(changes.keys()) if changes else []
+
+
 _SYSTEM_MANAGED_MUTABLE_PATCH_FIELDS = frozenset({
     "description",
     "default_role",
@@ -177,6 +183,10 @@ _SYSTEM_MANAGED_MUTABLE_PATCH_FIELDS = frozenset({
     "views",
     "impact_preview_token",
 })
+
+CONTENT_MODEL_CREATED_EVENT = "content.model.created"
+CONTENT_MODEL_UPDATED_EVENT = "content.model.updated"
+CONTENT_MODEL_DELETED_EVENT = "content.model.deleted"
 
 
 @dataclass(frozen=True)
@@ -1383,6 +1393,36 @@ class ProjectContentCanonicalModelsService(BaseService):
         super().__init__(settings)
         self.repo = repo
 
+    async def _write_content_model_activity_event(
+        self,
+        *,
+        event_name: str,
+        workspace_id: UUID,
+        model_id: UUID,
+        actor_user_id: UUID | None,
+        properties: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        payload: JsonObject = {
+            "workspace_id": str(workspace_id),
+            "content_model_id": str(model_id),
+            "actor_user_id": str(actor_user_id) if actor_user_id is not None else None,
+        }
+        payload.update(properties)
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="content_model",
+                entity_id=model_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
+
     async def _validate_model_identifiers(
         self,
         *,
@@ -1476,6 +1516,7 @@ class ProjectContentCanonicalModelsService(BaseService):
         site_id: UUID,
         environment_id: UUID | None,
         model_id: UUID,
+        actor_user_id: UUID | None,
     ) -> bool:
         record = await self.repo.get_model_definition(
             workspace_id=workspace_id,
@@ -1504,12 +1545,27 @@ class ProjectContentCanonicalModelsService(BaseService):
                 meta={"itemCount": len(items)},
             )
 
-        return await self.repo.delete_model_definition(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            environment_id=environment_id,
-            model_id=model_id,
-        )
+        async with self.repo.connection() as conn:
+            deleted = await self.repo.delete_model_definition(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                model_id=model_id,
+                conn=conn,
+            )
+            if deleted:
+                await self._write_content_model_activity_event(
+                    event_name=CONTENT_MODEL_DELETED_EVENT,
+                    workspace_id=workspace_id,
+                    model_id=model_id,
+                    actor_user_id=actor_user_id,
+                    properties={
+                        "model_key": str(record.singular_key),
+                        "deleted": True,
+                    },
+                    conn=conn,
+                )
+            return deleted
 
     async def add_model_field(
         self,
@@ -1739,39 +1795,59 @@ class ProjectContentCanonicalModelsService(BaseService):
             )
             if defaults.default_role is None or defaults.default_posture is None or defaults.default_surface is None:
                 raise ValueError("Content model continuation defaults must resolve before create_model_definition")
-            record = await self.repo.create_model_definition(
-                workspace_id=workspace_id,
-                site_id=site_id,
-                environment_id=environment_id,
-                singular_key=singular_key,
-                plural_key=plural_key,
-                name=_normalize_required_text(payload.name, error="Invalid model name"),
-                description=payload.description,
-                category=normalize_model_category(payload.category),
-                model_kind=model_kind,
-                default_editor=normalize_default_editor(payload.default_editor),
-                default_role=defaults.default_role,
-                default_posture=defaults.default_posture,
-                default_surface=defaults.default_surface,
-                protocol_key=None,
-                protocol_version=1,
-                is_system_managed=False,
-                system_field_keys=[],
-                draft_contract_revision=1,
-                published_contract_revision=None,
-                published_contract_snapshot=None,
-                updated_by_user_id=actor_user_id,
-                capabilities=_capabilities(payload.capabilities),
-                routing_policy=dump_contract(payload.routing),
-                presentation_policy=dump_contract(payload.presentation),
-                seo_policy=dump_contract(payload.seo),
-                starter_pack_policy=defaults.starter_pack_policy,
-                surface_policy=defaults.surface_policy,
-                workflow_policy=dump_contract(payload.workflow),
-                fields=payload.fields,
-                relations=payload.relations,
-                views=payload.views,
-            )
+            async with self.repo.connection() as conn:
+                record = await self.repo.create_model_definition(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    environment_id=environment_id,
+                    singular_key=singular_key,
+                    plural_key=plural_key,
+                    name=_normalize_required_text(payload.name, error="Invalid model name"),
+                    description=payload.description,
+                    category=normalize_model_category(payload.category),
+                    model_kind=model_kind,
+                    default_editor=normalize_default_editor(payload.default_editor),
+                    default_role=defaults.default_role,
+                    default_posture=defaults.default_posture,
+                    default_surface=defaults.default_surface,
+                    protocol_key=None,
+                    protocol_version=1,
+                    is_system_managed=False,
+                    system_field_keys=[],
+                    draft_contract_revision=1,
+                    published_contract_revision=None,
+                    published_contract_snapshot=None,
+                    updated_by_user_id=actor_user_id,
+                    capabilities=_capabilities(payload.capabilities),
+                    routing_policy=dump_contract(payload.routing),
+                    presentation_policy=dump_contract(payload.presentation),
+                    seo_policy=dump_contract(payload.seo),
+                    starter_pack_policy=defaults.starter_pack_policy,
+                    surface_policy=defaults.surface_policy,
+                    workflow_policy=dump_contract(payload.workflow),
+                    fields=payload.fields,
+                    relations=payload.relations,
+                    views=payload.views,
+                    conn=conn,
+                )
+                await self._write_content_model_activity_event(
+                    event_name=CONTENT_MODEL_CREATED_EVENT,
+                    workspace_id=workspace_id,
+                    model_id=UUID(str(record.id)),
+                    actor_user_id=actor_user_id,
+                    properties={
+                        "model_key": str(record.singular_key),
+                        "model_kind": str(record.model_kind),
+                        "system_managed": bool(record.is_system_managed),
+                        "draft_contract_revision": int(record.draft_contract_revision or 1),
+                        "published_contract_revision": (
+                            int(record.published_contract_revision)
+                            if record.published_contract_revision is not None
+                            else None
+                        ),
+                    },
+                    conn=conn,
+                )
             return ContentModelMutationResult(record=record, impact=ContentModelImpactOut())
         if protocol is None:
             raise Conflict(
@@ -1804,39 +1880,59 @@ class ProjectContentCanonicalModelsService(BaseService):
         )
         if defaults.default_role is None or defaults.default_posture is None or defaults.default_surface is None:
             raise ValueError("Content model continuation defaults must resolve before create_model_definition")
-        record = await self.repo.create_model_definition(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            environment_id=environment_id,
-            singular_key=protocol.singular_key,
-            plural_key=protocol.plural_key,
-            name=_normalize_required_text(protocol.name, error="Invalid model name"),
-            description=payload.description,
-            category=normalize_model_category(cast(ContentModelCategory, protocol.category)),
-            model_kind=model_kind,
-            default_editor=normalize_default_editor(cast(ContentDefaultEditor, protocol.default_editor)),
-            default_role=defaults.default_role,
-            default_posture=defaults.default_posture,
-            default_surface=defaults.default_surface,
-            protocol_key=protocol.key,
-            protocol_version=protocol.protocol_version,
-            is_system_managed=protocol.system_managed,
-            system_field_keys=_system_field_keys(protocol),
-            draft_contract_revision=1,
-            published_contract_revision=1,
-            published_contract_snapshot=published_contract_snapshot,
-            updated_by_user_id=actor_user_id,
-            capabilities=list(protocol.capabilities),
-            routing_policy=protocol.routing_policy,
-            presentation_policy=protocol.presentation_policy,
-            seo_policy=protocol.seo_policy,
-            starter_pack_policy=defaults.starter_pack_policy,
-            surface_policy=defaults.surface_policy,
-            workflow_policy=protocol.workflow_policy,
-            fields=merged_fields,
-            relations=payload.relations,
-            views=payload.views,
-        )
+        async with self.repo.connection() as conn:
+            record = await self.repo.create_model_definition(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                singular_key=protocol.singular_key,
+                plural_key=protocol.plural_key,
+                name=_normalize_required_text(protocol.name, error="Invalid model name"),
+                description=payload.description,
+                category=normalize_model_category(cast(ContentModelCategory, protocol.category)),
+                model_kind=model_kind,
+                default_editor=normalize_default_editor(cast(ContentDefaultEditor, protocol.default_editor)),
+                default_role=defaults.default_role,
+                default_posture=defaults.default_posture,
+                default_surface=defaults.default_surface,
+                protocol_key=protocol.key,
+                protocol_version=protocol.protocol_version,
+                is_system_managed=protocol.system_managed,
+                system_field_keys=_system_field_keys(protocol),
+                draft_contract_revision=1,
+                published_contract_revision=1,
+                published_contract_snapshot=published_contract_snapshot,
+                updated_by_user_id=actor_user_id,
+                capabilities=list(protocol.capabilities),
+                routing_policy=protocol.routing_policy,
+                presentation_policy=protocol.presentation_policy,
+                seo_policy=protocol.seo_policy,
+                starter_pack_policy=defaults.starter_pack_policy,
+                surface_policy=defaults.surface_policy,
+                workflow_policy=protocol.workflow_policy,
+                fields=merged_fields,
+                relations=payload.relations,
+                views=payload.views,
+                conn=conn,
+            )
+            await self._write_content_model_activity_event(
+                event_name=CONTENT_MODEL_CREATED_EVENT,
+                workspace_id=workspace_id,
+                model_id=UUID(str(record.id)),
+                actor_user_id=actor_user_id,
+                properties={
+                    "model_key": str(record.singular_key),
+                    "model_kind": str(record.model_kind),
+                    "system_managed": bool(record.is_system_managed),
+                    "draft_contract_revision": int(record.draft_contract_revision or 1),
+                    "published_contract_revision": (
+                        int(record.published_contract_revision)
+                        if record.published_contract_revision is not None
+                        else None
+                    ),
+                },
+                conn=conn,
+            )
         return ContentModelMutationResult(record=record, impact=ContentModelImpactOut())
 
     async def _build_update_context(
@@ -2169,16 +2265,44 @@ class ProjectContentCanonicalModelsService(BaseService):
             if protocol is not None and "fields" in fields_set
             else payload.fields
         )
-        updated = await self.repo.update_model_definition(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            environment_id=environment_id,
-            model_id=model_id,
-            fields_to_update={**context.fields_to_update, "updated_by_user_id": actor_user_id},
-            fields=(merged_fields if "fields" in fields_set else None),
-            relations=(payload.relations if "relations" in fields_set else None),
-            views=(payload.views if "views" in fields_set else None),
-        )
+        async with self.repo.connection() as conn:
+            updated = await self.repo.update_model_definition(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                environment_id=environment_id,
+                model_id=model_id,
+                fields_to_update={**context.fields_to_update, "updated_by_user_id": actor_user_id},
+                fields=(merged_fields if "fields" in fields_set else None),
+                relations=(payload.relations if "relations" in fields_set else None),
+                views=(payload.views if "views" in fields_set else None),
+                conn=conn,
+            )
+            if updated is not None:
+                await self._write_content_model_activity_event(
+                    event_name=CONTENT_MODEL_UPDATED_EVENT,
+                    workspace_id=workspace_id,
+                    model_id=model_id,
+                    actor_user_id=actor_user_id,
+                    properties={
+                        "model_key": str(updated.singular_key),
+                        "updated_fields": sorted(name for name in fields_set if name != "impact_preview_token"),
+                        "draft_contract_revision": int(updated.draft_contract_revision or 1),
+                        "published_contract_revision": (
+                            int(updated.published_contract_revision)
+                            if updated.published_contract_revision is not None
+                            else None
+                        ),
+                        "default_changes": _audit_default_change_keys(context.default_changes),
+                        "impact": {
+                            "has_breaking_changes": context.preview.impact.has_breaking_changes,
+                            "breaking_change_targets": [
+                                change.target for change in context.preview.impact.breaking_changes
+                            ],
+                            "warning_count": len(context.preview.impact.warnings),
+                        },
+                    },
+                    conn=conn,
+                )
         if updated is None:
             return None
         return ContentModelMutationResult(

@@ -12,12 +12,15 @@ from urllib.parse import quote, urlencode
 from uuid import UUID
 
 from cryptography.exceptions import InvalidTag
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.constants.auth import REAUTH_MAX_AGE_SECONDS
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
 from src.core.services import BaseService
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.auth.tokens.service import verify_password
 from src.modules.auth.two_factor.repository import TwoFactorRepository, TwoFactorRepositoryLike
 from src.modules.auth.two_factor.totp import generate_totp_secret, verify_totp_code
@@ -136,6 +139,28 @@ class AuthTwoFactorService(BaseService):
                 error="MASTER_KEY_INVALID",
             ) from exc
 
+    async def _write_two_factor_activity_event(
+        self,
+        *,
+        name: str,
+        user_id: UUID,
+        properties: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=name,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                entity_type="auth_mfa",
+                entity_id=user_id,
+                source="api",
+                properties=properties,
+            ),
+            conn=conn,
+        )
+
     async def get_status(self, *, user_id: UUID) -> tuple[bool, int]:
         record = await self.repo.get_record(user_id)
         enabled = bool(record and record.enabled_at is not None)
@@ -220,37 +245,48 @@ class AuthTwoFactorService(BaseService):
         return secret, otpauth_uri
 
     async def confirm_setup(self, *, user_id: UUID, code: str) -> list[str]:
-        record = await self.repo.get_record(user_id)
-        if record is None:
-            raise NotFound(
-                message=self._ta("TWO_FACTOR_NOT_SETUP", "尚未开始 2FA 绑定"),
-                error="TWO_FACTOR_NOT_SETUP",
-            )
-        if record.enabled_at is not None:
-            raise Conflict(
-                message=self._ta("TWO_FACTOR_ALREADY_ENABLED", "已启用 2FA"),
-                error="TWO_FACTOR_ALREADY_ENABLED",
-            )
-
         now = datetime.now(tz=UTC)
-        await self._verify_totp_or_raise(
-            user_id=user_id,
-            totp_secret_enc=cast(str, record.totp_secret_enc),
-            code=code,
-            now=now,
-        )
-
         enabled_at = now
-        await self.repo.set_enabled_at(user_id=user_id, enabled_at=enabled_at)
-
         master_key = self._ensure_secret_key()
         backup_codes = [_build_backup_code() for _ in range(_BACKUP_CODE_COUNT)]
         hashes = _make_backup_code_hashes(codes=backup_codes, pepper=master_key)
-        await self.repo.delete_backup_codes(user_id=user_id)
-        await self.repo.create_backup_codes(
-            user_id=user_id,
-            items=[{"salt": h.salt, "code_hash": h.code_hash} for h in hashes],
-        )
+        async with self.tx() as conn:
+            record = await self.repo.get_record(user_id, conn=conn)
+            if record is None:
+                raise NotFound(
+                    message=self._ta("TWO_FACTOR_NOT_SETUP", "尚未开始 2FA 绑定"),
+                    error="TWO_FACTOR_NOT_SETUP",
+                )
+            if record.enabled_at is not None:
+                raise Conflict(
+                    message=self._ta("TWO_FACTOR_ALREADY_ENABLED", "已启用 2FA"),
+                    error="TWO_FACTOR_ALREADY_ENABLED",
+                )
+
+            await self._verify_totp_or_raise(
+                user_id=user_id,
+                totp_secret_enc=cast(str, record.totp_secret_enc),
+                code=code,
+                now=now,
+                conn=conn,
+            )
+            await self.repo.set_enabled_at(user_id=user_id, enabled_at=enabled_at, conn=conn)
+            await self.repo.delete_backup_codes(user_id=user_id, conn=conn)
+            await self.repo.create_backup_codes(
+                user_id=user_id,
+                items=[{"salt": h.salt, "code_hash": h.code_hash} for h in hashes],
+                conn=conn,
+            )
+            await self._write_two_factor_activity_event(
+                name="auth.mfa.enabled",
+                user_id=user_id,
+                properties={
+                    "method": "totp",
+                    "backup_code_count": len(backup_codes),
+                    "enabled_at": enabled_at.isoformat(),
+                },
+                conn=conn,
+            )
         return backup_codes
 
     async def _verify_or_consume_backup(
@@ -260,6 +296,7 @@ class AuthTwoFactorService(BaseService):
         totp_secret_enc: str,
         backup_code: str,
         now: datetime,
+        conn: BaseDBAsyncClient | None = None,
     ) -> None:
         master_key = self._ensure_secret_key()
         self._decrypt_totp_secret_or_raise(
@@ -273,11 +310,11 @@ class AuthTwoFactorService(BaseService):
                 message=self._ta("BACKUP_CODE_INVALID", "备份码无效"),
                 error="BACKUP_CODE_INVALID",
             )
-        candidates = await self.repo.list_unused_backup_codes(user_id=user_id)
+        candidates = await self.repo.list_unused_backup_codes(user_id=user_id, conn=conn)
         for item in candidates:
             expected = _hash_backup_code(code=normalized, salt=cast(str, item.salt), pepper=master_key)
             if hmac.compare_digest(expected, cast(str, item.code_hash)):
-                await self.repo.mark_backup_code_used(code_id=UUID(str(item.id)), used_at=now)
+                await self.repo.mark_backup_code_used(code_id=UUID(str(item.id)), used_at=now, conn=conn)
                 return
         raise BadRequest(
             message=self._ta("BACKUP_CODE_INVALID", "备份码无效"),
@@ -291,6 +328,7 @@ class AuthTwoFactorService(BaseService):
         totp_secret_enc: str,
         code: str,
         now: datetime,
+        conn: BaseDBAsyncClient | None = None,
     ) -> None:
         master_key = self._ensure_secret_key()
         secret = self._decrypt_totp_secret_or_raise(
@@ -304,7 +342,12 @@ class AuthTwoFactorService(BaseService):
                 message=self._ta("TWO_FACTOR_CODE_INVALID", "验证码错误"),
                 error="TWO_FACTOR_CODE_INVALID",
             )
-        advanced = await self.repo.try_advance_totp_counter(user_id=user_id, counter=result.used_counter, used_at=now)
+        advanced = await self.repo.try_advance_totp_counter(
+            user_id=user_id,
+            counter=result.used_counter,
+            used_at=now,
+            conn=conn,
+        )
         if not advanced:
             raise BadRequest(
                 message=self._ta("TWO_FACTOR_CODE_INVALID", "验证码错误"),
@@ -312,33 +355,45 @@ class AuthTwoFactorService(BaseService):
             )
 
     async def disable(self, *, user_id: UUID, code: str | None, backup_code: str | None) -> None:
-        record = await self.repo.get_record(user_id)
-        if record is None or record.enabled_at is None:
-            raise BadRequest(
-                message=self._ta("TWO_FACTOR_NOT_ENABLED", "尚未启用 2FA"),
-                error="TWO_FACTOR_NOT_ENABLED",
-            )
-
         now = datetime.now(tz=UTC)
-        if code:
-            await self._verify_totp_or_raise(
-                user_id=user_id,
-                totp_secret_enc=cast(str, record.totp_secret_enc),
-                code=code,
-                now=now,
-            )
-        elif backup_code:
-            await self._verify_or_consume_backup(
-                user_id=user_id,
-                totp_secret_enc=cast(str, record.totp_secret_enc),
-                backup_code=backup_code,
-                now=now,
-            )
-        else:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
+        async with self.tx() as conn:
+            record = await self.repo.get_record(user_id, conn=conn)
+            if record is None or record.enabled_at is None:
+                raise BadRequest(
+                    message=self._ta("TWO_FACTOR_NOT_ENABLED", "尚未启用 2FA"),
+                    error="TWO_FACTOR_NOT_ENABLED",
+                )
 
-        await self.repo.delete_backup_codes(user_id=user_id)
-        await self.repo.delete_record(user_id=user_id)
+            if code:
+                await self._verify_totp_or_raise(
+                    user_id=user_id,
+                    totp_secret_enc=cast(str, record.totp_secret_enc),
+                    code=code,
+                    now=now,
+                    conn=conn,
+                )
+            elif backup_code:
+                await self._verify_or_consume_backup(
+                    user_id=user_id,
+                    totp_secret_enc=cast(str, record.totp_secret_enc),
+                    backup_code=backup_code,
+                    now=now,
+                    conn=conn,
+                )
+            else:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
+
+            await self.repo.delete_backup_codes(user_id=user_id, conn=conn)
+            await self.repo.delete_record(user_id=user_id, conn=conn)
+            await self._write_two_factor_activity_event(
+                name="auth.mfa.disabled",
+                user_id=user_id,
+                properties={
+                    "method": "totp",
+                    "verification_method": "totp" if code else "backup_code",
+                },
+                conn=conn,
+            )
 
     async def regenerate_backup_codes(
         self,
@@ -347,40 +402,54 @@ class AuthTwoFactorService(BaseService):
         code: str | None,
         backup_code: str | None,
     ) -> list[str]:
-        record = await self.repo.get_record(user_id)
-        if record is None or record.enabled_at is None:
-            raise BadRequest(
-                message=self._ta("TWO_FACTOR_NOT_ENABLED", "尚未启用 2FA"),
-                error="TWO_FACTOR_NOT_ENABLED",
-            )
-
         now = datetime.now(tz=UTC)
-        if code:
-            await self._verify_totp_or_raise(
-                user_id=user_id,
-                totp_secret_enc=cast(str, record.totp_secret_enc),
-                code=code,
-                now=now,
-            )
-        elif backup_code:
-            await self._verify_or_consume_backup(
-                user_id=user_id,
-                totp_secret_enc=cast(str, record.totp_secret_enc),
-                backup_code=backup_code,
-                now=now,
-            )
-        else:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
-
         master_key = self._ensure_secret_key()
         backup_codes = [_build_backup_code() for _ in range(_BACKUP_CODE_COUNT)]
         hashes = _make_backup_code_hashes(codes=backup_codes, pepper=master_key)
 
-        await self.repo.delete_backup_codes(user_id=user_id)
-        await self.repo.create_backup_codes(
-            user_id=user_id,
-            items=[{"salt": h.salt, "code_hash": h.code_hash} for h in hashes],
-        )
+        async with self.tx() as conn:
+            record = await self.repo.get_record(user_id, conn=conn)
+            if record is None or record.enabled_at is None:
+                raise BadRequest(
+                    message=self._ta("TWO_FACTOR_NOT_ENABLED", "尚未启用 2FA"),
+                    error="TWO_FACTOR_NOT_ENABLED",
+                )
+
+            if code:
+                await self._verify_totp_or_raise(
+                    user_id=user_id,
+                    totp_secret_enc=cast(str, record.totp_secret_enc),
+                    code=code,
+                    now=now,
+                    conn=conn,
+                )
+            elif backup_code:
+                await self._verify_or_consume_backup(
+                    user_id=user_id,
+                    totp_secret_enc=cast(str, record.totp_secret_enc),
+                    backup_code=backup_code,
+                    now=now,
+                    conn=conn,
+                )
+            else:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
+
+            await self.repo.delete_backup_codes(user_id=user_id, conn=conn)
+            await self.repo.create_backup_codes(
+                user_id=user_id,
+                items=[{"salt": h.salt, "code_hash": h.code_hash} for h in hashes],
+                conn=conn,
+            )
+            await self._write_two_factor_activity_event(
+                name="auth.mfa.backup_codes_regenerated",
+                user_id=user_id,
+                properties={
+                    "method": "totp",
+                    "verification_method": "totp" if code else "backup_code",
+                    "backup_code_count": len(backup_codes),
+                },
+                conn=conn,
+            )
         return backup_codes
 
     async def verify_for_login(

@@ -38,6 +38,18 @@ class _RepoHarness:
         return _call
 
 
+def _install_service_test_doubles(monkeypatch: pytest.MonkeyPatch, service: AdminAssetsService) -> None:
+    @asynccontextmanager
+    async def _fake_tx(*, conn=None):
+        yield conn or object()
+
+    async def _fake_write_folder_activity_event(**kwargs):
+        _ = kwargs
+
+    monkeypatch.setattr(service, "tx", _fake_tx)
+    monkeypatch.setattr(service, "_write_folder_activity_event", _fake_write_folder_activity_event)
+
+
 class _Folder(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -64,11 +76,12 @@ class _FakeQuery:
 
 
 @pytest.mark.asyncio
-async def test_update_folder_requires_existing_folder() -> None:
+async def test_update_folder_requires_existing_folder(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
     from src.core.exceptions import NotFound
 
     service = AdminAssetsService(get_settings())
+    _install_service_test_doubles(monkeypatch, service)
     scope = AssetScope(type="workspace", id=uuid4())
 
     class FakeRepo(_RepoHarness):
@@ -88,7 +101,7 @@ async def test_update_folder_requires_existing_folder() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_folder_rejects_cycle_parent() -> None:
+async def test_update_folder_rejects_cycle_parent(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
     from src.core.exceptions import BadRequest
 
@@ -98,6 +111,7 @@ async def test_update_folder_rejects_cycle_parent() -> None:
     descendant_id = uuid4()
 
     service = AdminAssetsService(get_settings())
+    _install_service_test_doubles(monkeypatch, service)
 
     class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
@@ -128,7 +142,7 @@ async def test_update_folder_rejects_cycle_parent() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_folder_rejects_duplicate_name_under_target_parent() -> None:
+async def test_update_folder_rejects_duplicate_name_under_target_parent(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
     from src.core.exceptions import Conflict
 
@@ -137,6 +151,7 @@ async def test_update_folder_rejects_duplicate_name_under_target_parent() -> Non
     folder_id = uuid4()
 
     service = AdminAssetsService(get_settings())
+    _install_service_test_doubles(monkeypatch, service)
 
     class FakeRepo(_RepoHarness):
         async def get_folder(self, *, scope, folder_id):
@@ -164,7 +179,7 @@ async def test_update_folder_rejects_duplicate_name_under_target_parent() -> Non
 
 
 @pytest.mark.asyncio
-async def test_update_folder_trims_description_and_allows_clear() -> None:
+async def test_update_folder_trims_description_and_allows_clear(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
 
     workspace_id = uuid4()
@@ -172,6 +187,7 @@ async def test_update_folder_trims_description_and_allows_clear() -> None:
     folder_id = uuid4()
 
     service = AdminAssetsService(get_settings())
+    _install_service_test_doubles(monkeypatch, service)
 
     updated: dict[str, object] = {"updates": None}
 

@@ -4,12 +4,14 @@ from typing import cast
 from uuid import UUID
 
 from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgRole
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
 from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
 from src.modules.assets.scope import AssetScope
@@ -30,6 +32,7 @@ _DEFAULT_ORG_TIMEZONE = "Asia/Shanghai"
 _DEFAULT_ORG_DATE_FORMAT = "YYYY-MM-DD"
 _DEFAULT_ORG_USE_BROWSER_TIMEZONE = True
 _DEFAULT_ORG_USE_RELATIVE_DATETIME = True
+ORGANIZATION_SETTINGS_UPDATED_EVENT = "organization.settings.updated"
 
 
 class OrganizationSettingsService(BaseService):
@@ -37,6 +40,34 @@ class OrganizationSettingsService(BaseService):
         super().__init__(settings)
         self.repo = OrganizationSettingsRepository()
         self.rbac = OrganizationRBACService(settings)
+
+    async def _write_settings_activity_event(
+        self,
+        *,
+        organization_id: UUID,
+        actor_user_id: UUID,
+        changed_paths: list[str],
+        conn,
+    ) -> None:
+        properties: JsonObject = {
+            "organization_id": str(organization_id),
+            "actor_user_id": str(actor_user_id),
+            "paths": changed_paths,
+            "contains_sensitive_values": False,
+        }
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=ORGANIZATION_SETTINGS_UPDATED_EVENT,
+                organization_id=organization_id,
+                actor_user_id=actor_user_id,
+                entity_type="organization",
+                entity_id=organization_id,
+                source="api",
+                properties=properties,
+            ),
+            conn=conn,
+        )
 
     async def get_core_detail(self, *, organization_id: UUID) -> OrganizationSettingsCoreOut:
         org = await self.repo.get_organization(organization_id=organization_id)
@@ -91,7 +122,9 @@ class OrganizationSettingsService(BaseService):
         )
         next_value: dict[str, object] = dict(current_value)
         changed_setting = False
+        changed_paths: list[str] = []
         logo_asset_aligned = False
+        organization_updates: dict[str, object] = {}
 
         if patch.organization_name is not None:
             normalized_name = str(patch.organization_name).strip()
@@ -100,8 +133,8 @@ class OrganizationSettingsService(BaseService):
             if len(normalized_name) > 128:
                 raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_ORG_NAME")
             if org.name != normalized_name:
-                org.name = normalized_name
-                await org.save(update_fields=["name", "updated_at"])
+                organization_updates["name"] = normalized_name
+                changed_paths.append("organization_name")
 
         if patch.organization_logo_url is not None:
             raw = str(patch.organization_logo_url).strip()
@@ -118,8 +151,8 @@ class OrganizationSettingsService(BaseService):
                         purpose=AssetPurpose.SITE_LOGO,
                     )
             if org.logo_url != logo_url:
-                org.logo_url = logo_url
-                await org.save(update_fields=["logo_url", "updated_at"])
+                organization_updates["logo_url"] = logo_url
+                changed_paths.append("organization_logo_url")
 
         if patch.organization_localization is not None:
             raw_localization = next_value.get("organization_localization")
@@ -142,23 +175,42 @@ class OrganizationSettingsService(BaseService):
                 localization["use_browser_timezone"] = bool(patch.organization_localization.use_browser_timezone)
             if patch.organization_localization.use_relative_datetime is not None:
                 localization["use_relative_datetime"] = bool(patch.organization_localization.use_relative_datetime)
-            next_value["organization_localization"] = localization
-            changed_setting = True
+            if next_value.get("organization_localization") != localization:
+                next_value["organization_localization"] = localization
+                changed_setting = True
+                changed_paths.append("organization_localization")
 
         if patch.default_role_code is not None:
             role_code = await self._normalize_role_code(
                 organization_id=organization_id,
                 role_code=patch.default_role_code,
             )
-            next_value["default_role_code"] = role_code
-            changed_setting = True
+            if next_value.get("default_role_code") != role_code:
+                next_value["default_role_code"] = role_code
+                changed_setting = True
+                changed_paths.append("default_role_code")
 
-        if changed_setting:
-            await self.repo.save_core_setting(
-                organization_id=organization_id,
-                value=next_value,
-                updated_by=updated_by,
-            )
+        if changed_setting or organization_updates:
+            async with self.tx() as conn:
+                if organization_updates:
+                    await self.repo.save_organization_fields(
+                        organization=org,
+                        fields=organization_updates,
+                        conn=conn,
+                    )
+                if changed_setting:
+                    await self.repo.save_core_setting(
+                        organization_id=organization_id,
+                        value=next_value,
+                        updated_by=updated_by,
+                        conn=conn,
+                    )
+                await self._write_settings_activity_event(
+                    organization_id=organization_id,
+                    actor_user_id=updated_by,
+                    changed_paths=changed_paths,
+                    conn=conn,
+                )
 
         out = await self.get_core_detail(organization_id=organization_id)
         return out.model_copy(update={"organization_logo_asset_aligned": logo_asset_aligned})

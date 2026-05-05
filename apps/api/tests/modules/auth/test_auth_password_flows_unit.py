@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+from contextlib import asynccontextmanager
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -129,6 +130,10 @@ class FakeUserRepository:
     async def get_by_id_with_credential(self, user_id: UUID) -> FakeUser | None:
         return await self.get_by_id(user_id)
 
+    async def get_by_id_with_credential_in_connection(self, user_id: UUID, *, conn: object) -> FakeUser | None:
+        _ = conn
+        return await self.get_by_id(user_id)
+
     async def update_last_login(self, user: UserLike) -> None:
         return None
 
@@ -136,6 +141,10 @@ class FakeUserRepository:
         record = cast(FakeUser, user)
         record.token_version += 1
         return record
+
+    async def increment_token_version_in_connection(self, user: UserLike, *, conn: object) -> FakeUser:
+        _ = conn
+        return await self.increment_token_version(user)
 
     def is_active(self, user: UserLike) -> bool:
         record = cast(FakeUser, user)
@@ -148,9 +157,23 @@ class FakeUserRepository:
         else:
             record.credential.password_hash = password_hash
 
+    async def set_password_in_connection(
+        self,
+        user: UserLike,
+        *,
+        password_hash: str,
+        conn: object,
+    ) -> None:
+        _ = conn
+        await self.set_password(user, password_hash)
+
     async def remove_password(self, user: UserLike) -> None:
         record = cast(FakeUser, user)
         record.credential = None
+
+    async def remove_password_in_connection(self, user: UserLike, *, conn: object) -> None:
+        _ = conn
+        await self.remove_password(user)
 
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
@@ -197,6 +220,17 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeUser]:
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
     service = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
+
+    @asynccontextmanager
+    async def _fake_tx(*, conn: object | None = None):
+        yield conn or object()
+
+    monkeypatch.setattr(service, "tx", _fake_tx)
+
+    async def _fake_write_auth_activity_event(**kwargs: object) -> None:
+        _ = kwargs
+
+    monkeypatch.setattr(service, "_write_auth_activity_event", _fake_write_auth_activity_event)
     return service, user
 
 

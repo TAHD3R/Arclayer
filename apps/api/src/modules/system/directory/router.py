@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Request
+from fastapi import APIRouter, Depends, Header, Query, Request
 
 from src.common.constants.assets import ASSET_SCOPE_USER
 from src.common.types.public_uuid import PublicUUID
@@ -210,12 +210,11 @@ async def upload_user_avatar_part(
     summary="Complete avatar upload for a directory user",
 )
 async def complete_user_avatar_upload(
-    background_tasks: BackgroundTasks,
     upload_id: PublicUUID,
     user_scope: AssetScope = Depends(require_directory_user_scope),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
-    asset_id = await service.complete(upload_id=upload_id, scope=user_scope, background_tasks=background_tasks)
+    asset_id = await service.complete(upload_id=upload_id, scope=user_scope)
     return ApiResponse.success(data=UploadCompleteOut(asset_id=asset_id))
 
 
@@ -658,9 +657,10 @@ async def get_project_detail(
 async def update_project(
     project_id: PublicUUID,
     payload: DirectoryProjectUpdateRequest,
+    acting_user: User = Depends(require_super_admin),
     service: SystemDirectoryService = Depends(get_directory_service),
 ) -> ResponseModel[DirectoryProjectDetailOut]:
-    detail = await service.update_project(project_id=project_id, payload=payload)
+    detail = await service.update_project(project_id=project_id, payload=payload, acting_user_id=acting_user.id)
     return ApiResponse.success(data=detail)
 
 

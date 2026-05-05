@@ -34,7 +34,7 @@ from src.modules.projects.content.items.router_helpers import (
     get_event_bus,
     get_project_content_canonical_item_reads,
     get_project_content_canonical_items_service,
-    publish_content_activity_event,
+    publish_content_runtime_event,
 )
 from src.modules.projects.content.shared.router import (
     ProjectContentRouteContext,
@@ -51,7 +51,7 @@ router = APIRouter(
 )
 
 
-async def _publish_project_content_activity_event(
+async def _publish_project_content_runtime_event(
     *,
     actor_user_id: UUID | None,
     ctx: ProjectContentRouteContext,
@@ -61,7 +61,7 @@ async def _publish_project_content_activity_event(
     event_name: str,
     properties: JsonObject | None = None,
 ) -> None:
-    await publish_content_activity_event(
+    await publish_content_runtime_event(
         actor_user_id=actor_user_id,
         project_ctx=ctx.project_ctx,
         entity_id=entity_id,
@@ -112,7 +112,6 @@ async def bulk_publish_project_content_items(
     payload: Annotated[ContentItemBulkTransitionIn, Body(description="Bulk content item publish payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_publish_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
@@ -128,15 +127,6 @@ async def bulk_publish_project_content_items(
     )
     if search_service.enabled:
         await search_service.reindex_runtime(runtime_context=ctx.runtime_ctx)
-    await _publish_project_content_activity_event(
-        actor_user_id=actor_user_id,
-        ctx=ctx,
-        entity_id=ctx.project_id,
-        entity_type="content_item_bulk",
-        event_bus=event_bus,
-        event_name="project.content.items.bulk_published",
-        properties={"item_count": len(data.items)},
-    )
     return ApiResponse.success(data=data)
 
 
@@ -150,7 +140,6 @@ async def bulk_unpublish_project_content_items(
     payload: Annotated[ContentItemBulkTransitionIn, Body(description="Bulk content item unpublish payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_publish_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
@@ -169,15 +158,6 @@ async def bulk_unpublish_project_content_items(
             runtime_context=ctx.runtime_ctx,
             item_ids=(item.item_id for item in data.items),
         )
-    await _publish_project_content_activity_event(
-        actor_user_id=actor_user_id,
-        ctx=ctx,
-        entity_id=ctx.project_id,
-        entity_type="content_item_bulk",
-        event_bus=event_bus,
-        event_name="project.content.items.bulk_unpublished",
-        properties={"item_count": len(data.items)},
-    )
     return ApiResponse.success(data=data)
 
 
@@ -215,7 +195,6 @@ async def create_project_content_item(
     payload: Annotated[ContentItemCreateIn, Body(description="Create content item payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
@@ -227,19 +206,6 @@ async def create_project_content_item(
         environment_id=ctx.environment_id,
         actor_user_id=actor_user_id,
         payload=payload,
-    )
-    await _publish_project_content_activity_event(
-        actor_user_id=actor_user_id,
-        ctx=ctx,
-        entity_id=data.id,
-        entity_type="content_item",
-        event_bus=event_bus,
-        event_name="project.content.item.created",
-        properties={
-            "item_title": data.title,
-            "item_slug": data.slug,
-            "item_status": str(data.status),
-        },
     )
     return ApiResponse.success(data=data)
 
@@ -267,7 +233,7 @@ async def duplicate_project_content_item(
         item_id=item_id,
         actor_user_id=actor_user_id,
     )
-    await _publish_project_content_activity_event(
+    await _publish_project_content_runtime_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
         entity_id=item_id,
@@ -334,7 +300,7 @@ async def create_project_content_item_translation(
         actor_user_id=actor_user_id,
         payload=payload,
     )
-    await _publish_project_content_activity_event(
+    await _publish_project_content_runtime_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
         entity_id=item_id,
@@ -382,7 +348,6 @@ async def delete_project_content_item(
     item_id: PublicUUID,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
@@ -398,14 +363,6 @@ async def delete_project_content_item(
     )
     if search_service.enabled:
         await search_service.remove_items(runtime_context=ctx.runtime_ctx, item_ids=[item_id])
-    await _publish_project_content_activity_event(
-        actor_user_id=actor_user_id,
-        ctx=ctx,
-        entity_id=item_id,
-        entity_type="content_item",
-        event_bus=event_bus,
-        event_name="project.content.item.deleted",
-    )
     return ApiResponse.success()
 
 
@@ -432,7 +389,7 @@ async def archive_project_content_item(
         item_id=item_id,
         actor_user_id=actor_user_id,
     )
-    await _publish_project_content_activity_event(
+    await _publish_project_content_runtime_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
         entity_id=data.id,
@@ -467,7 +424,7 @@ async def unarchive_project_content_item(
         item_id=item_id,
         actor_user_id=actor_user_id,
     )
-    await _publish_project_content_activity_event(
+    await _publish_project_content_runtime_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
         entity_id=data.id,
@@ -504,7 +461,7 @@ async def apply_project_content_item_bootstrap_shape(
         actor_user_id=actor_user_id,
         payload=payload,
     )
-    await _publish_project_content_activity_event(
+    await _publish_project_content_runtime_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
         entity_id=data.id,
@@ -545,7 +502,7 @@ async def patch_project_content_item_workflow(
         actor_user_id=actor_user_id,
         payload=payload,
     )
-    await _publish_project_content_activity_event(
+    await _publish_project_content_runtime_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
         entity_id=item_id,
@@ -574,7 +531,6 @@ async def save_project_content_item_draft_version(
     payload: Annotated[ContentVersionDraftSaveIn, Body(description="Draft save payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
@@ -587,19 +543,6 @@ async def save_project_content_item_draft_version(
         item_id=item_id,
         actor_user_id=actor_user_id,
         payload=payload,
-    )
-    await _publish_project_content_activity_event(
-        actor_user_id=actor_user_id,
-        ctx=ctx,
-        entity_id=item_id,
-        entity_type="content_item",
-        event_bus=event_bus,
-        event_name="project.content.version.saved",
-        properties={
-            "version_number": data.version_number,
-            "version_state": str(data.state),
-            "change_summary": data.change_summary,
-        },
     )
     return ApiResponse.success(data=data)
 
@@ -693,7 +636,6 @@ async def restore_project_content_item_version(
     version_number: int,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
@@ -706,20 +648,6 @@ async def restore_project_content_item_version(
         item_id=item_id,
         version_number=version_number,
         actor_user_id=actor_user_id,
-    )
-    await _publish_project_content_activity_event(
-        actor_user_id=actor_user_id,
-        ctx=ctx,
-        entity_id=item_id,
-        entity_type="content_item",
-        event_bus=event_bus,
-        event_name="project.content.version.restored",
-        properties={
-            "source_version_number": version_number,
-            "version_number": data.version_number,
-            "version_state": str(data.state),
-            "change_summary": data.change_summary,
-        },
     )
     return ApiResponse.success(data=data)
 
@@ -735,7 +663,6 @@ async def publish_project_content_item_version(
     version_number: int,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_publish_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
@@ -753,19 +680,6 @@ async def publish_project_content_item_version(
     )
     if search_service.enabled:
         await search_service.reindex_runtime(runtime_context=ctx.runtime_ctx)
-    await _publish_project_content_activity_event(
-        actor_user_id=actor_user_id,
-        ctx=ctx,
-        entity_id=item_id,
-        entity_type="content_item",
-        event_bus=event_bus,
-        event_name="project.content.version.published",
-        properties={
-            "version_number": data.version_number,
-            "version_state": str(data.state),
-            "change_summary": data.change_summary,
-        },
-    )
     return ApiResponse.success(data=data)
 
 
@@ -795,7 +709,7 @@ async def schedule_project_content_item_version(
         target_state=ContentVersionState.SCHEDULED,
         actor_user_id=actor_user_id,
     )
-    await _publish_project_content_activity_event(
+    await _publish_project_content_runtime_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
         entity_id=item_id,
@@ -837,7 +751,7 @@ async def archive_project_content_item_version(
         target_state=ContentVersionState.ARCHIVED,
         actor_user_id=actor_user_id,
     )
-    await _publish_project_content_activity_event(
+    await _publish_project_content_runtime_event(
         actor_user_id=actor_user_id,
         ctx=ctx,
         entity_id=item_id,
@@ -865,7 +779,6 @@ async def patch_project_content_item_version(
     payload: Annotated[ContentVersionPatchIn, Body(description="Version patch payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalItemsService,
         Depends(get_project_content_canonical_items_service),
@@ -879,18 +792,5 @@ async def patch_project_content_item_version(
         version_number=version_number,
         actor_user_id=actor_user_id,
         payload=payload,
-    )
-    await _publish_project_content_activity_event(
-        actor_user_id=actor_user_id,
-        ctx=ctx,
-        entity_id=item_id,
-        entity_type="content_item",
-        event_bus=event_bus,
-        event_name="project.content.version.patched",
-        properties={
-            "version_number": data.version_number,
-            "version_state": str(data.state),
-            "change_summary": data.change_summary,
-        },
     )
     return ApiResponse.success(data=data)

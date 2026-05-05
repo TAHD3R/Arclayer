@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 
 from src.common.email.service import EmailService
@@ -18,6 +19,11 @@ from src.models.organization.user import User
 from src.models.system.notification import NotificationCategory, NotificationRecord
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipRole, WorkspaceMembershipStatus
+from src.modules.analytics.audit import (
+    ActivityAuditPayload,
+    activity_properties_from_payload,
+    write_required_activity_event,
+)
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.system.admin.notifications.preferences import (
@@ -52,6 +58,15 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
+def _coerce_uuid(value: object | None) -> UUID | None:
+    if value is None:
+        return None
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
 def _user_ref(user: User) -> WorkspaceTeamUserRefOut:
     return WorkspaceTeamUserRefOut(
         user_id=user.id,
@@ -69,40 +84,32 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         self.user_repo = UserRepository()
         self.email_service = EmailService(settings)
 
-    async def _publish_activity_event(
+    async def _write_activity_event(
         self,
         *,
         name: str,
         actor_user_id: UUID | None,
         payload: dict,
+        conn: BaseDBAsyncClient | None = None,
         source: str = "api",
     ) -> None:
-        """
-        Best-effort publish of in-process events for Activity ingestion.
+        """Persist required workspace team Activity evidence."""
 
-        Notes:
-        - Must never break the main request flow.
-        - Keep payload minimal; ingestion layer will sanitize again.
-        """
-
-        try:
-            await self.publish_optional_domain_event(
-                name=name,
-                payload=payload,
-                actor_user_id=actor_user_id,
-                source=source,
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "Workspace team activity event publish failed",
-                action="publish_workspace_team_activity",
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
                 event_name=name,
-                actor_user_id=str(actor_user_id) if actor_user_id else None,
-                error=str(exc),
-            )
-            # Best-effort only.
-            return
+                actor_user_id=actor_user_id,
+                organization_id=_coerce_uuid(payload.get("organization_id") or payload.get("org_id")),
+                workspace_id=_coerce_uuid(payload.get("workspace_id")),
+                subject_user_id=_coerce_uuid(payload.get("subject_user_id")),
+                entity_type=str(payload["entity_type"]) if payload.get("entity_type") is not None else None,
+                entity_id=_coerce_uuid(payload.get("entity_id")),
+                source=source,
+                properties=activity_properties_from_payload(payload),
+            ),
+            conn=conn,
+        )
 
     async def _resolve_actor_label(self, *, actor_user_id: UUID | None) -> str:
         if actor_user_id is None:
@@ -451,51 +458,64 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         - We do not allow changing username here.
         """
 
-        membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
-        if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        if membership.status != WorkspaceMembershipStatus.ACTIVE:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="MEMBERSHIP_NOT_ACTIVE")
-
-        user = membership.user
-        updates: dict = {}
-        if payload.email is not None:
-            email = str(payload.email).strip().lower() if payload.email else None
-            if email and email != (user.email or "").strip().lower() and await self.user_repo.exists_email(email):
-                raise Conflict(message=t("auth", "EMAIL_EXISTS"), error="CONFLICT")
-            updates["email"] = email
-        if payload.display_name is not None:
-            updates["display_name"] = payload.display_name
-        if payload.avatar_url is not None:
-            updates["avatar_url"] = payload.avatar_url
-
-        if updates:
-            for k, v in updates.items():
-                setattr(user, k, v)
-            try:
-                await user.save(update_fields=list(updates.keys()))
-            except IntegrityError as exc:
-                # Defensive: email has a unique constraint. Race conditions can still happen.
-                raise Conflict(message=t("errors", "CONFLICT"), error="CONFLICT") from exc
-
-            await self._publish_activity_event(
-                name="workspace.member.profile.updated",
-                actor_user_id=acting_user_id,
-                payload={
-                    "organization_id": str(organization_id),
-                    "workspace_id": str(workspace_id),
-                    "membership_id": str(membership.id),
-                    "subject_user_id": str(user.id),
-                    "entity_type": "workspace_membership",
-                    "entity_id": str(membership.id),
-                    "changed_fields": sorted(updates.keys()),
-                    "email_updated": "email" in updates,
-                    "display_name_updated": "display_name" in updates,
-                    "avatar_url_updated": "avatar_url" in updates,
-                },
+        async with self.tx() as conn:
+            membership = await self.repo.get_membership(
+                membership_id=membership_id,
+                workspace_id=workspace_id,
+                conn=conn,
             )
+            if membership is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            if membership.status != WorkspaceMembershipStatus.ACTIVE:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="MEMBERSHIP_NOT_ACTIVE")
 
-        membership = await self.repo.get_membership_with_roles(membership_id=membership.id)
+            user = membership.user
+            updates: dict = {}
+            if payload.email is not None:
+                email = str(payload.email).strip().lower() if payload.email else None
+                if (
+                    email
+                    and email != (user.email or "").strip().lower()
+                    and await self.user_repo.exists_email_in_connection(email, conn=conn)
+                ):
+                    raise Conflict(message=t("auth", "EMAIL_EXISTS"), error="CONFLICT")
+                updates["email"] = email
+            if payload.display_name is not None:
+                updates["display_name"] = payload.display_name
+            if payload.avatar_url is not None:
+                updates["avatar_url"] = payload.avatar_url
+
+            if updates:
+                for k, v in updates.items():
+                    setattr(user, k, v)
+                try:
+                    await user.save(update_fields=list(updates.keys()), using_db=conn)
+                except IntegrityError as exc:
+                    # Defensive: email has a unique constraint. Race conditions can still happen.
+                    raise Conflict(message=t("errors", "CONFLICT"), error="CONFLICT") from exc
+
+                await self._write_activity_event(
+                    name="workspace.member.profile.updated",
+                    actor_user_id=acting_user_id,
+                    conn=conn,
+                    payload={
+                        "organization_id": str(organization_id),
+                        "workspace_id": str(workspace_id),
+                        "membership_id": str(membership.id),
+                        "subject_user_id": str(user.id),
+                        "entity_type": "workspace_membership",
+                        "entity_id": str(membership.id),
+                        "changed_fields": sorted(updates.keys()),
+                        "email_updated": "email" in updates,
+                        "display_name_updated": "display_name" in updates,
+                        "avatar_url_updated": "avatar_url" in updates,
+                    },
+                )
+
+            membership = await self.repo.get_membership_with_roles(
+                membership_id=membership.id,
+                conn=conn,
+            )
         assert membership is not None
         return self._build_member_out(membership=membership)
 
@@ -508,41 +528,47 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         enabled: bool,
         acting_user_id: UUID,
     ) -> WorkspaceTeamMemberStatusResult:
-        membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
-        if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-
-        membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
-        if membership_user_id == acting_user_id and not enabled:
-            raise BadRequest(
-                message=t("errors", "CANNOT_DISABLE_SELF"),
-                error="CANNOT_DISABLE_SELF",
+        subject_user_id: UUID | None = None
+        async with self.tx() as conn:
+            membership = await self.repo.get_membership(
+                membership_id=membership_id,
+                workspace_id=workspace_id,
+                conn=conn,
             )
+            if membership is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
-        target = WorkspaceMembershipStatus.ACTIVE if enabled else WorkspaceMembershipStatus.DISABLED
-        status_changed = membership.status != target
-        if status_changed:
-            membership.status = target
-            await membership.save(update_fields=["status", "updated_at"])
+            membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
+            if membership_user_id == acting_user_id and not enabled:
+                raise BadRequest(
+                    message=t("errors", "CANNOT_DISABLE_SELF"),
+                    error="CANNOT_DISABLE_SELF",
+                )
 
-        # Emit activity event (best-effort).
-        try:
-            subject_user_id = UUID(str(cast(HasUserId, membership).user_id))
-        except (TypeError, ValueError):
-            subject_user_id = None
-        await self._publish_activity_event(
-            name="workspace.member.status.updated",
-            actor_user_id=acting_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "membership_id": str(membership.id),
-                "subject_user_id": str(subject_user_id) if subject_user_id else None,
-                "entity_type": "workspace_membership",
-                "entity_id": str(membership.id),
-                "enabled": bool(enabled),
-            },
-        )
+            target = WorkspaceMembershipStatus.ACTIVE if enabled else WorkspaceMembershipStatus.DISABLED
+            status_changed = membership.status != target
+            if status_changed:
+                membership.status = target
+                await membership.save(update_fields=["status", "updated_at"], using_db=conn)
+
+            try:
+                subject_user_id = UUID(str(cast(HasUserId, membership).user_id))
+            except (TypeError, ValueError):
+                subject_user_id = None
+            await self._write_activity_event(
+                name="workspace.member.status.updated",
+                actor_user_id=acting_user_id,
+                conn=conn,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "membership_id": str(membership.id),
+                    "subject_user_id": str(subject_user_id) if subject_user_id else None,
+                    "entity_type": "workspace_membership",
+                    "entity_id": str(membership.id),
+                    "enabled": bool(enabled),
+                },
+            )
         if status_changed and subject_user_id is not None:
             await self._notify_member_status_updated(
                 workspace_id=workspace_id,
@@ -570,30 +596,38 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         - This affects the global user account, but remains workspace-scoped for authorization.
         """
 
-        membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
-        if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        membership_user_id: UUID | None = None
+        async with self.tx() as conn:
+            membership = await self.repo.get_membership(
+                membership_id=membership_id,
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            if membership is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
-        membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
-        user = await self.user_repo.get_by_id_with_credential(membership_user_id)
-        if user is None:
-            raise NotFound(message=t("auth", "USER_NOT_FOUND"), error="NOT_FOUND")
+            membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
+            user = await self.user_repo.get_by_id_with_credential_in_connection(membership_user_id, conn=conn)
+            if user is None:
+                raise NotFound(message=t("auth", "USER_NOT_FOUND"), error="NOT_FOUND")
 
-        password_hash = hash_password(payload.new_password, self.settings.auth)
-        await self.user_repo.set_password(user, password_hash)
-        await self.user_repo.increment_token_version(user)
-        await self._publish_activity_event(
-            name="workspace.member.password.reset",
-            actor_user_id=acting_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "membership_id": str(membership.id),
-                "subject_user_id": str(membership_user_id),
-                "entity_type": "workspace_membership",
-                "entity_id": str(membership.id),
-            },
-        )
+            password_hash = hash_password(payload.new_password, self.settings.auth)
+            await self.user_repo.set_password_in_connection(user, password_hash=password_hash, conn=conn)
+            await self.user_repo.increment_token_version_in_connection(user, conn=conn)
+            await self._write_activity_event(
+                name="workspace.member.password.reset",
+                actor_user_id=acting_user_id,
+                conn=conn,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "membership_id": str(membership.id),
+                    "subject_user_id": str(membership_user_id),
+                    "entity_type": "workspace_membership",
+                    "entity_id": str(membership.id),
+                },
+            )
+        assert membership_user_id is not None
         await self._notify_member_password_reset(
             workspace_id=workspace_id,
             subject_user_id=membership_user_id,
@@ -609,65 +643,74 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         payload: WorkspaceTeamMemberRoleSetRequest,
         acting_user_id: UUID,
     ) -> None:
-        membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
-        if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-
-        if membership.status != WorkspaceMembershipStatus.ACTIVE:
-            raise BadRequest(
-                message=t("errors", "MEMBERSHIP_NOT_ACTIVE"),
-                error="MEMBERSHIP_NOT_ACTIVE",
-            )
-
-        role_codes = [c.strip() for c in (payload.role_codes or []) if c and c.strip()]
-        roles = await self.repo.get_roles_by_codes(workspace_id=workspace_id, role_codes=role_codes)
-        found = {r.code for r in roles}
-        missing = [c for c in role_codes if c not in found]
-        if missing:
-            raise BadRequest(
-                message=t("errors", "ROLE_NOT_FOUND"),
-                error="ROLE_NOT_FOUND",
-                meta={"missing": missing},
-            )
-
-        # Capture current roles (best-effort; for Activity diff display).
+        subject_user_id: UUID | None = None
         before_codes: list[str] = []
-        try:
-            rows = await WorkspaceMembershipRole.filter(membership_id=membership.id).prefetch_related("role").all()
+        role_codes_after: list[str] = []
+        async with self.tx() as conn:
+            membership = await self.repo.get_membership(
+                membership_id=membership_id,
+                workspace_id=workspace_id,
+                conn=conn,
+            )
+            if membership is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+
+            if membership.status != WorkspaceMembershipStatus.ACTIVE:
+                raise BadRequest(
+                    message=t("errors", "MEMBERSHIP_NOT_ACTIVE"),
+                    error="MEMBERSHIP_NOT_ACTIVE",
+                )
+
+            role_codes = [c.strip() for c in (payload.role_codes or []) if c and c.strip()]
+            roles = await self.repo.get_roles_by_codes(
+                workspace_id=workspace_id,
+                role_codes=role_codes,
+                conn=conn,
+            )
+            found = {r.code for r in roles}
+            missing = [c for c in role_codes if c not in found]
+            if missing:
+                raise BadRequest(
+                    message=t("errors", "ROLE_NOT_FOUND"),
+                    error="ROLE_NOT_FOUND",
+                    meta={"missing": missing},
+                )
+
+            rows = (
+                await WorkspaceMembershipRole
+                .filter(membership_id=membership.id)
+                .using_db(conn)
+                .prefetch_related("role")
+                .all()
+            )
             before_codes = sorted({r.role.code for r in rows if getattr(r, "role", None)})
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            before_codes = []
-            self.logger.warning(
-                "Workspace member role snapshot failed",
-                action="snapshot_member_roles",
-                workspace_id=str(workspace_id),
-                membership_id=str(membership.id),
-                error=str(exc),
+
+            await self.repo.replace_membership_roles(
+                membership_id=membership.id,
+                role_ids=[r.id for r in roles],
+                conn=conn,
             )
 
-        await self.repo.replace_membership_roles(membership_id=membership.id, role_ids=[r.id for r in roles])
-
-        # Emit activity event (best-effort).
-        try:
-            subject_user_id = UUID(str(cast(HasUserId, membership).user_id))
-        except (TypeError, ValueError):
-            subject_user_id = None
-        await self._publish_activity_event(
-            name="workspace.member.roles.updated",
-            actor_user_id=acting_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "membership_id": str(membership.id),
-                "subject_user_id": str(subject_user_id) if subject_user_id else None,
-                "entity_type": "workspace_membership",
-                "entity_id": str(membership.id),
-                "role_codes_before": before_codes,
-                "role_codes_after": sorted({r.code for r in roles}),
-            },
-        )
-        role_codes_after = sorted({r.code for r in roles})
+            role_codes_after = sorted({r.code for r in roles})
+            try:
+                subject_user_id = UUID(str(cast(HasUserId, membership).user_id))
+            except (TypeError, ValueError):
+                subject_user_id = None
+            await self._write_activity_event(
+                name="workspace.member.roles.updated",
+                actor_user_id=acting_user_id,
+                conn=conn,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "membership_id": str(membership.id),
+                    "subject_user_id": str(subject_user_id) if subject_user_id else None,
+                    "entity_type": "workspace_membership",
+                    "entity_id": str(membership.id),
+                    "role_codes_before": before_codes,
+                    "role_codes_after": role_codes_after,
+                },
+            )
         if subject_user_id is not None and before_codes != role_codes_after:
             await self._notify_member_roles_updated(
                 workspace_id=workspace_id,

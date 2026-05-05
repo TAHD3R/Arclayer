@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -53,13 +54,13 @@ class _FakeProjectRepository:
         assert project_id == self.project.id
         return self.project, self.workspace
 
-    async def set_project_active(self, *, project_id, is_active):
+    async def set_project_active(self, *, project_id, is_active, conn=None):
         assert project_id == self.project.id
         self.archived_project_id = project_id
         self.project.is_active = is_active
         return self.project
 
-    async def delete_project(self, *, project_id):
+    async def delete_project(self, *, project_id, conn=None):
         assert project_id == self.project.id
         self.deleted_project_id = project_id
         return True
@@ -95,8 +96,10 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
     workspace = _FakeWorkspace(workspace_id=workspace_id)
     membership = _FakeMembership()
     membership.project_id = project.id
+    tx_conn = object()
     bootstrap_calls: list[tuple] = []
     provision_calls: list[dict[str, object]] = []
+    activity_events: list[dict[str, object]] = []
     runtime = type(
         "RuntimeRef",
         (),
@@ -113,20 +116,25 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
         return None
 
     async def fake_create_project(**kwargs):
+        assert kwargs["conn"] is tx_conn
         return project
 
-    async def fake_bootstrap_project_memberships(*, project_id, workspace_id, actor_user_id):
-        bootstrap_calls.append((project_id, workspace_id, actor_user_id))
+    async def fake_bootstrap_project_memberships(*, project_id, workspace_id, actor_user_id, conn):
+        assert conn is tx_conn
+        bootstrap_calls.append((project_id, workspace_id, actor_user_id, conn))
 
     async def fake_list_project_memberships(*, project_ids):
         assert project_ids == [project.id]
         return [membership]
 
-    async def fake_get_primary_runtime(*, project_id):
+    async def fake_get_primary_runtime(*, project_id, conn=None):
         assert project_id == project.id
+        if conn is not None:
+            assert conn is tx_conn
         return runtime
 
     async def fake_get_or_create_site_for_project_runtime(**kwargs):
+        assert kwargs["conn"] is tx_conn
         provision_calls.append(kwargs)
         return type("SiteRef", (), {"id": uuid4()})()
 
@@ -134,7 +142,18 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
         assert workspace_id == workspace.id
         return workspace
 
+    @asynccontextmanager
+    async def fake_tx(*, conn=None):
+        assert conn is None
+        yield tx_conn
+
+    async def fake_write_project_activity_event(**kwargs):
+        assert kwargs["conn"] is tx_conn
+        activity_events.append(kwargs)
+
+    monkeypatch.setattr(service, "tx", fake_tx)
     monkeypatch.setattr(service, "_require_workspace", fake_require_workspace)
+    monkeypatch.setattr(service, "_write_project_activity_event", fake_write_project_activity_event)
     monkeypatch.setattr(service.repo, "create_project", fake_create_project)
     monkeypatch.setattr(service.repo, "bootstrap_project_memberships", fake_bootstrap_project_memberships)
     monkeypatch.setattr(service.repo, "list_project_memberships", fake_list_project_memberships)
@@ -157,7 +176,7 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
         actor_user_id=actor_user_id,
     )
 
-    assert bootstrap_calls == [(project.id, workspace_id, actor_user_id)]
+    assert bootstrap_calls == [(project.id, workspace_id, actor_user_id, tx_conn)]
     assert provision_calls == [
         {
             "workspace_id": workspace_id,
@@ -166,6 +185,21 @@ async def test_create_project_bootstraps_memberships_provisions_runtime_site_and
             "project_slug": project.slug,
             "project_name": project.name,
             "actor_user_id": actor_user_id,
+            "conn": tx_conn,
+        }
+    ]
+    assert activity_events == [
+        {
+            "event_name": "project.created",
+            "workspace_id": workspace_id,
+            "project_id": project.id,
+            "actor_user_id": actor_user_id,
+            "properties": {
+                "created": True,
+                "slug": project.slug,
+                "initialized": ["primary_runtime", "environments", "runtime_site", "platform_domain_binding"],
+            },
+            "conn": tx_conn,
         }
     ]
     assert out.id == project.id
@@ -201,25 +235,39 @@ async def test_project_archive_and_delete_allow_last_active_project(monkeypatch)
     settings = get_settings()
     workspace_id = uuid4()
     workspace = _FakeWorkspace(workspace_id=workspace_id)
+    events: list[str] = []
+
+    async def fake_write_project_activity_event(**kwargs):
+        events.append(kwargs["event_name"])
+
+    @asynccontextmanager
+    async def fake_tx(*, conn=None):
+        yield conn
 
     archive_service = ProjectService(settings)
     archive_project = _FakeProject(workspace_id=workspace_id)
     archive_repo = _FakeProjectRepository(project=archive_project, workspace=workspace)
     archive_service.repo = archive_repo
+    monkeypatch.setattr(archive_service, "tx", fake_tx)
+    monkeypatch.setattr(archive_service, "_write_project_activity_event", fake_write_project_activity_event)
 
-    archive_out = await archive_service.archive_project(project_id=archive_project.id)
+    archive_out = await archive_service.archive_project(project_id=archive_project.id, actor_user_id=uuid4())
 
     assert archive_out.project_id == archive_project.id
     assert archive_out.is_active is False
     assert archive_repo.archived_project_id == archive_project.id
+    assert events == ["project.archived"]
 
     delete_service = ProjectService(settings)
     delete_project = _FakeProject(workspace_id=workspace_id)
     delete_repo = _FakeProjectRepository(project=delete_project, workspace=workspace)
     delete_service.repo = delete_repo
+    monkeypatch.setattr(delete_service, "tx", fake_tx)
+    monkeypatch.setattr(delete_service, "_write_project_activity_event", fake_write_project_activity_event)
 
-    delete_out = await delete_service.delete_project(project_id=delete_project.id)
+    delete_out = await delete_service.delete_project(project_id=delete_project.id, actor_user_id=uuid4())
 
     assert delete_out.project_id == delete_project.id
     assert delete_out.deleted is True
     assert delete_repo.deleted_project_id == delete_project.id
+    assert events == ["project.archived", "project.deleted"]

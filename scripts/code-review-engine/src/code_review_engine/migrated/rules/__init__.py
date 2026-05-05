@@ -62,6 +62,8 @@ from code_review_engine.migrated.rules.service import (
     ServiceMustExtendBaseService,
     ServiceNoDirectEventPublish,
     ServiceNoDirectORM,
+    ServiceNoOptionalActivityPublish,
+    ServiceRequiredActivityCoverage,
 )
 from code_review_engine.migrated.rules.test_coverage import (
     CoreMustHaveTests,
@@ -74,6 +76,8 @@ ALL_RULES: list[AuditRule] = [
     ServiceNoDirectORM(),
     ServiceMustExtendBaseService(),
     ServiceNoDirectEventPublish(),
+    ServiceNoOptionalActivityPublish(),
+    ServiceRequiredActivityCoverage(),
     ServiceNoMethodDependencyConstruction(),
     ServiceNoDirectInTransaction(),
     # ── Backend: Repository — must use TortoiseORMRepository (new architecture) ──

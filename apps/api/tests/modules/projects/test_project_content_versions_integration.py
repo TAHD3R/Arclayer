@@ -13,7 +13,7 @@ from tests.modules.projects.helpers import (
     project_page_draft_payload,
     publish_project_item_version,
 )
-from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from tests.modules.workspaces.content.test_content_items_integration import _tenant_conn, _workspace_client
 
 pytestmark = pytest.mark.integration
 
@@ -23,7 +23,7 @@ async def test_project_content_version_compare_and_restore_to_draft(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
-    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, _workspace_id, project_id):
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id, project_id):
         await create_project_page_model(client, project_id)
         item_id = await create_project_publishable_page_item(client, project_id, title="Home")
 
@@ -36,12 +36,12 @@ async def test_project_content_version_compare_and_restore_to_draft(
         )
         draft_res = await client.post(
             f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/draft",
-            json=project_page_draft_payload("Home v2", path="/home", expected_version=1),
+            json=project_page_draft_payload("Home v2", path="/home", expected_version=2),
         )
         assert draft_res.status_code == 201, draft_res.text
 
         compare_res = await client.get(
-            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/compare/2",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/compare/3",
         )
         assert compare_res.status_code == 200, compare_res.text
         changes = compare_res.json()["data"]["changes"]
@@ -54,20 +54,21 @@ async def test_project_content_version_compare_and_restore_to_draft(
         }
 
         restore_res = await client.post(
-            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/1/restore",
+            f"/api/v1/projects/{project_id}/content/items/{item_id}/versions/2/restore",
             json={},
         )
         assert restore_res.status_code == 201, restore_res.text
         restored = restore_res.json()["data"]
-        assert restored["versionNumber"] == 3
+        assert restored["versionNumber"] == 4
         assert restored["state"] == "draft"
         assert restored["fieldsSnapshot"]["title"] == "Home v1"
         assert restored["fieldsSnapshot"]["path"] == "/"
 
         item_uuid = UUID(str(decode_public_id(item_id)))
-        item = await ContentItemRecord.get(id=item_uuid)
-        assert item.draft_version == 3
-        assert item.published_version == 1
+        async with _tenant_conn(workspace_id) as conn:
+            item = await ContentItemRecord.get(id=item_uuid, using_db=conn)
+            assert item.draft_version == 4
+            assert item.published_version == 2
 
-        version = await ContentVersionRecord.get(item_id=item_uuid, version=3)
-        assert version.fields_snapshot["title"] == "Home v1"
+            version = await ContentVersionRecord.get(item_id=item_uuid, version=4, using_db=conn)
+            assert version.fields_snapshot["title"] == "Home v1"

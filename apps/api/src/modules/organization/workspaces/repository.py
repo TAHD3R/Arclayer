@@ -110,8 +110,10 @@ class OrganizationWorkspaceRepository(TortoiseORMRepository):
         created_by_user_id: UUID,
         kind: WorkspaceKind = WorkspaceKind.TEAM,
         owner_user_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> Workspace:
         return await Workspace.create(
+            using_db=conn,
             organization_id=organization_id,
             name=name,
             kind=kind,
@@ -164,13 +166,20 @@ class OrganizationWorkspaceRepository(TortoiseORMRepository):
         rows = await query.order_by("created_at").offset(offset).limit(limit).all()
         return total, rows
 
-    async def ensure_active_membership(self, *, workspace_id: UUID, user_id: UUID) -> WorkspaceMembership:
+    async def ensure_active_membership(
+        self,
+        *,
+        workspace_id: UUID,
+        user_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> WorkspaceMembership:
         membership, _created = await WorkspaceMembership.get_or_create(
+            using_db=conn,
             workspace_id=workspace_id,
             user_id=user_id,
             defaults={"status": WorkspaceMembershipStatus.ACTIVE, "invited_by_user_id": None},
         )
         if membership.status != WorkspaceMembershipStatus.ACTIVE:
             membership.status = WorkspaceMembershipStatus.ACTIVE
-            await membership.save(update_fields=["status", "updated_at"])
+            await membership.save(update_fields=["status", "updated_at"], using_db=conn)
         return membership

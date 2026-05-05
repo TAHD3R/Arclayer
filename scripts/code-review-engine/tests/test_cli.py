@@ -203,3 +203,4 @@ def test_cli_full_scope_runs_migrated_rules_and_accepts_clean_repo(capsys) -> No
     assert len(payload["rules_applied"]) > 4
     assert payload["summary"]["total_findings"] == 0
     assert payload["summary"]["blockers"] == 0
+    assert payload["findings"] == []

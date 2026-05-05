@@ -19,6 +19,7 @@ from src.modules.analytics.repository import AuditEventRepository
 logger = get_logger(__name__)
 
 ACTIVITY_CONTEXT_ERRORS = (LookupError, RuntimeError, ValueError, TypeError)
+ACTIVITY_INGEST_FLAG = "activity_ingest"
 _FATAL_ACTIVITY_INGEST_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
     GeneratorExit,
@@ -237,6 +238,8 @@ class ActivityIngestor:
             return
 
         payload = event.payload if isinstance(event.payload, dict) else {}
+        if payload.get(ACTIVITY_INGEST_FLAG) is False:
+            return
 
         ctx = {}
         try:
@@ -264,6 +267,7 @@ class ActivityIngestor:
             for k, v in payload.items()
             if k
             not in {
+                ACTIVITY_INGEST_FLAG,
                 "organization_id",
                 "org_id",
                 "workspace_id",

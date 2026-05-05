@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from src.common.types.json_types import JsonObject
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale
-from src.core.logging import get_logger
 from src.models.system.rbac import PermissionScope
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -32,45 +29,6 @@ from src.modules.workspaces.rbac.schema import (
 from src.modules.workspaces.rbac.service import WorkspaceRBACService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/rbac", tags=["domain.workspaces.rbac"])
-logger = get_logger(__name__)
-_FATAL_RBAC_EVENT_ERRORS: tuple[type[BaseException], ...] = (
-    asyncio.CancelledError,
-    GeneratorExit,
-    KeyboardInterrupt,
-    SystemExit,
-)
-
-
-def _raise_if_fatal(exc: BaseException) -> None:
-    if isinstance(exc, _FATAL_RBAC_EVENT_ERRORS):
-        raise exc
-
-
-async def _publish_rbac_event(*, event_name: str, payload: JsonObject, actor_user_id: UUID) -> None:
-    try:
-        from asgi_correlation_id import correlation_id
-
-        from src.core.events import Event, events
-
-        await events.publish(
-            Event(
-                name=event_name,
-                payload=payload,
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(actor_user_id),
-            )
-        )
-    except BaseException as exc:
-        _raise_if_fatal(exc)
-        logger.warning(
-            "Workspace RBAC event publish failed",
-            action="publish_workspace_rbac_event",
-            event_name=event_name,
-            workspace_id=str(payload.get("workspace_id") or ""),
-            actor_user_id=str(actor_user_id),
-            error=str(exc),
-        )
 
 
 def get_rbac_service(settings: Settings = Depends(get_settings)) -> WorkspaceRBACService:
@@ -215,16 +173,13 @@ async def create_role(
     """Create a custom role from template."""
     locale = get_current_locale()
     role = await service.create_custom_role(
+        organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
+        actor_user_id=user_id,
         code=body.code,
         name=str(body.name or "").strip(),
         description=body.description,
         template_role_code=body.template_role_code,
-    )
-    await _publish_rbac_event(
-        event_name="rbac.role.created",
-        payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
-        actor_user_id=user_id,
     )
     return ApiResponse.success(data=await _to_workspace_role_out(service=service, role=role, locale=locale))
 
@@ -245,15 +200,12 @@ async def update_role(
     """Update a custom role."""
     locale = get_current_locale()
     role = await service.update_custom_role(
+        organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
+        actor_user_id=user_id,
         role_code=role_code,
         name=body.name,
         description=body.description,
-    )
-    await _publish_rbac_event(
-        event_name="rbac.role.updated",
-        payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
-        actor_user_id=user_id,
     )
     return ApiResponse.success(data=await _to_workspace_role_out(service=service, role=role, locale=locale))
 
@@ -271,11 +223,11 @@ async def delete_role(
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
     """Delete a custom role (auto-unbind from members)."""
-    await service.delete_custom_role(workspace_id=ctx.workspace_id, role_code=role_code)
-    await _publish_rbac_event(
-        event_name="rbac.role.deleted",
-        payload={"workspace_id": str(ctx.workspace_id), "role_code": str(role_code)},
+    await service.delete_custom_role(
+        organization_id=ctx.organization_id,
+        workspace_id=ctx.workspace_id,
         actor_user_id=user_id,
+        role_code=role_code,
     )
     return ApiResponse.success()
 
@@ -295,18 +247,11 @@ async def set_permission_roles(
 ) -> ResponseModel[None]:
     """Set custom roles that can perform a permission (system roles are immutable)."""
     await service.set_permission_custom_roles(
+        organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
+        actor_user_id=user_id,
         permission_code=permission_code,
         role_codes=body.role_codes,
-    )
-    await _publish_rbac_event(
-        event_name="rbac.permission.roles_set",
-        payload={
-            "workspace_id": str(ctx.workspace_id),
-            "permission_code": str(permission_code),
-            "role_codes": sorted({str(x).strip() for x in (body.role_codes or []) if x and str(x).strip()}),
-        },
-        actor_user_id=user_id,
     )
     return ApiResponse.success()
 
@@ -326,20 +271,13 @@ async def set_role_permissions(
 ) -> ResponseModel[None]:
     """Replace permissions granted to a custom role (system roles are immutable)."""
     await service.set_custom_role_permissions(
+        organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
+        actor_user_id=user_id,
         role_code=role_code,
         permission_codes=body.permission_codes,
         permission_condition_sets_by_code={
             str(grant.permission_code): grant.condition_sets for grant in body.permission_grants
         },
-    )
-    await _publish_rbac_event(
-        event_name="rbac.role.permissions_set",
-        payload={
-            "workspace_id": str(ctx.workspace_id),
-            "role_code": str(role_code),
-            "permission_codes": sorted({str(x).strip() for x in (body.permission_codes or []) if x and str(x).strip()}),
-        },
-        actor_user_id=user_id,
     )
     return ApiResponse.success()

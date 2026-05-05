@@ -130,6 +130,10 @@ class FakeUserRepository:
         record = cast(FakeUser, user)
         record.last_login_at = "updated"
 
+    async def update_last_login_in_connection(self, user: UserLike, *, conn) -> None:  # type: ignore[no-untyped-def]
+        _ = conn
+        await self.update_last_login(user)
+
     async def increment_token_version(self, user: UserLike) -> FakeUser:
         record = cast(FakeUser, user)
         record.token_version += 1
@@ -191,6 +195,15 @@ def _get_refresh_record(valkey: FakeValkeyClient, *, jti: str) -> dict[str, Any]
     return record
 
 
+def _get_session_id_from_refresh_store(valkey: FakeValkeyClient, *, token: str, settings) -> str:  # type: ignore[no-untyped-def]
+    refresh_payload = decode_token(token, settings.auth)
+    refresh_jti = refresh_payload.get("jti")
+    assert isinstance(refresh_jti, str)
+    sid = _get_refresh_record(valkey, jti=refresh_jti).get("sid")
+    assert isinstance(sid, str)
+    return sid
+
+
 def _build(monkeypatch) -> tuple[AuthService, AuthSessionService, FakeValkeyClient, FakeUser]:
     monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
@@ -203,17 +216,22 @@ def _build(monkeypatch) -> tuple[AuthService, AuthSessionService, FakeValkeyClie
     auth = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
     sessions = AuthSessionService(settings, valkey=valkey)
 
+    async def _skip_activity_event(**kwargs: object) -> None:
+        _ = kwargs
+
+    monkeypatch.setattr(auth, "_write_auth_activity_event", _skip_activity_event)
+    monkeypatch.setattr(sessions, "_write_session_activity_event", _skip_activity_event)
+
     return auth, sessions, valkey, user
 
 
 async def test_session_list_and_revoke(monkeypatch) -> None:
-    auth, sessions, _, user = _build(monkeypatch)
+    auth, sessions, valkey, user = _build(monkeypatch)
 
     a = await auth.login(identifier="demo", password="pass")
     b = await auth.login(identifier="demo", password="pass")
 
-    a_sid = decode_token(a.access_token, auth.settings.auth).get("sid")
-    assert isinstance(a_sid, str)
+    a_sid = _get_session_id_from_refresh_store(valkey, token=a.refresh_token, settings=auth.settings)
 
     listed = await sessions.list_sessions(user_id=user.id, current_session_id=a_sid)
     assert listed.total == 2
@@ -222,8 +240,7 @@ async def test_session_list_and_revoke(monkeypatch) -> None:
     assert any(s.current and s.session_id == a_sid for s in listed.items)
 
     # Revoke one specific session (pick the other).
-    other_sid = decode_token(b.access_token, auth.settings.auth).get("sid")
-    assert isinstance(other_sid, str)
+    other_sid = _get_session_id_from_refresh_store(valkey, token=b.refresh_token, settings=auth.settings)
     await sessions.revoke_session(user_id=user.id, session_id=other_sid)
 
     listed2 = await sessions.list_sessions(user_id=user.id, current_session_id=a_sid)
@@ -232,14 +249,13 @@ async def test_session_list_and_revoke(monkeypatch) -> None:
 
 
 async def test_revoke_other_sessions(monkeypatch) -> None:
-    auth, sessions, _, user = _build(monkeypatch)
+    auth, sessions, valkey, user = _build(monkeypatch)
 
     a = await auth.login(identifier="demo", password="pass")
     _ = await auth.login(identifier="demo", password="pass")
     _ = await auth.login(identifier="demo", password="pass")
 
-    a_sid = decode_token(a.access_token, auth.settings.auth).get("sid")
-    assert isinstance(a_sid, str)
+    a_sid = _get_session_id_from_refresh_store(valkey, token=a.refresh_token, settings=auth.settings)
 
     revoked = await sessions.revoke_other_sessions(user_id=user.id, current_session_id=a_sid)
     assert revoked == 2

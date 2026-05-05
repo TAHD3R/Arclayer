@@ -41,14 +41,14 @@ async def register_content_search_runtime(
 
     await event_bus.subscribe(
         subscriber_id="content-search",
-        event_name="project.release.published",
+        event_name="release.published",
         handler=reindex_release,
         priority=0,
         name="content-search:release-published",
     )
     await event_bus.subscribe(
         subscriber_id="content-search",
-        event_name="project.release.rolled_back",
+        event_name="release.rolled_back",
         handler=reindex_release,
         priority=0,
         name="content-search:release-rolled-back",

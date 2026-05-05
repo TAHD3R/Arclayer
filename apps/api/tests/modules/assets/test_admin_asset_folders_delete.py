@@ -35,6 +35,18 @@ class _RepoHarness:
         return _call
 
 
+def _install_service_test_doubles(monkeypatch: pytest.MonkeyPatch, service: AdminAssetsService) -> None:
+    @asynccontextmanager
+    async def _fake_tx(*, conn=None):
+        yield conn or object()
+
+    async def _fake_write_folder_activity_event(**kwargs):
+        _ = kwargs
+
+    monkeypatch.setattr(service, "tx", _fake_tx)
+    monkeypatch.setattr(service, "_write_folder_activity_event", _fake_write_folder_activity_event)
+
+
 def test_admin_assets_router_exposes_folder_delete_endpoint() -> None:
     from fastapi.routing import APIRoute
 
@@ -48,12 +60,13 @@ def test_admin_assets_router_exposes_folder_delete_endpoint() -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_folder_requires_existing_folder() -> None:
+async def test_delete_folder_requires_existing_folder(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
     from src.core.exceptions import NotFound
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    _install_service_test_doubles(monkeypatch, service)
     scope = AssetScope(type="workspace", id=uuid4())
 
     class FakeRepo(_RepoHarness):
@@ -69,12 +82,13 @@ async def test_delete_folder_requires_existing_folder() -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_folder_rejects_non_empty_folder_children() -> None:
+async def test_delete_folder_rejects_non_empty_folder_children(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
     from src.core.exceptions import Conflict
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    _install_service_test_doubles(monkeypatch, service)
     scope = AssetScope(type="workspace", id=uuid4())
 
     class FakeRepo(_RepoHarness):
@@ -96,12 +110,13 @@ async def test_delete_folder_rejects_non_empty_folder_children() -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_folder_rejects_non_empty_folder_assets() -> None:
+async def test_delete_folder_rejects_non_empty_folder_assets(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
     from src.core.exceptions import Conflict
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    _install_service_test_doubles(monkeypatch, service)
     scope = AssetScope(type="workspace", id=uuid4())
 
     class FakeRepo(_RepoHarness):
@@ -123,11 +138,12 @@ async def test_delete_folder_rejects_non_empty_folder_assets() -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_folder_deletes_when_empty() -> None:
+async def test_delete_folder_deletes_when_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    _install_service_test_doubles(monkeypatch, service)
     scope = AssetScope(type="workspace", id=uuid4())
 
     deleted: dict[str, object] = {"called": False, "folder_id": None}
@@ -158,12 +174,13 @@ async def test_delete_folder_deletes_when_empty() -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_folder_can_move_contents_to_root_before_delete() -> None:
+async def test_delete_folder_can_move_contents_to_root_before_delete(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
     from src.modules.assets.admin.assets.schema import AdminAssetFolderDeleteRequest
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    _install_service_test_doubles(monkeypatch, service)
     scope = AssetScope(type="workspace", id=uuid4())
     folder_id = uuid4()
 
@@ -199,13 +216,14 @@ async def test_delete_folder_can_move_contents_to_root_before_delete() -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_folder_rejects_descendant_destination() -> None:
+async def test_delete_folder_rejects_descendant_destination(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.config import get_settings
     from src.core.exceptions import BadRequest
     from src.modules.assets.admin.assets.schema import AdminAssetFolderDeleteRequest
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    _install_service_test_doubles(monkeypatch, service)
     scope = AssetScope(type="workspace", id=uuid4())
     folder_id = uuid4()
     child_id = uuid4()

@@ -146,7 +146,7 @@ async def publish_project_item_version(
     project_id: str,
     item_id: str,
     *,
-    version: int = 1,
+    version: int = 2,
     title: str,
     path: str,
 ) -> None:

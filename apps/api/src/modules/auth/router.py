@@ -978,15 +978,12 @@ async def upload_avatar_part(
     summary="Complete avatar upload (current user)",
 )
 async def complete_avatar_upload(
-    background_tasks: BackgroundTasks,
     upload_id: PublicUUID,
     user: User = Depends(get_current_user),
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
     """Complete avatar upload (current user)."""
-    asset_id = await service.complete(
-        upload_id=upload_id, scope=_user_asset_scope(user), background_tasks=background_tasks
-    )
+    asset_id = await service.complete(upload_id=upload_id, scope=_user_asset_scope(user))
     return ApiResponse.success(data=UploadCompleteOut(asset_id=asset_id))
 
 

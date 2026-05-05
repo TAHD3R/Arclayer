@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
 from src.core.exceptions import NotFound
@@ -22,6 +25,15 @@ class EntityCreateResult:
 class EntityUpdateResult:
     version: Any
     previous_version_number: int
+
+
+@asynccontextmanager
+async def _transaction(conn: BaseDBAsyncClient | None = None) -> AsyncIterator[BaseDBAsyncClient]:
+    if conn is not None:
+        yield conn
+        return
+    async with in_transaction() as tx_conn:
+        yield tx_conn
 
 
 class EntityManager:
@@ -64,6 +76,7 @@ class EntityManager:
         bootstrap_preset_state: str = "none",
         capability_pack_ids: list[str] | None = None,
         translation_group_id: UUID | None = None,
+        before_commit: Callable[[Any, Any, BaseDBAsyncClient], Awaitable[None]] | None = None,
     ) -> EntityCreateResult:
         model = await self._items.get_model_definition_by_key(
             workspace_id=workspace_id,
@@ -84,7 +97,7 @@ class EntityManager:
         )
         resolved_data = {**data, **before_evt.data}
 
-        async with in_transaction() as conn:
+        async with _transaction() as conn:
             item = await self._items.create_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -120,6 +133,8 @@ class EntityManager:
                 conn=conn,
             )
             item = await self._items.update_item_fields(item, fields={"draft_version": 1}, conn=conn)
+            if before_commit is not None:
+                await before_commit(item, version, conn)
 
         await self._dispatch_after(
             action=LifecycleAction.AFTER_CREATE,
@@ -204,8 +219,9 @@ class EntityManager:
         model_key: str,
         item_id: UUID,
         actor_id: UUID | None = None,
+        before_commit: Callable[[Any, BaseDBAsyncClient], Awaitable[None]] | None = None,
     ) -> bool:
-        async with in_transaction() as conn:
+        async with _transaction() as conn:
             item = await self._items.get_item_with_model(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -227,6 +243,8 @@ class EntityManager:
             )
 
             count = await self._items.delete_item(item_id=item.id, conn=conn)
+            if count > 0 and before_commit is not None:
+                await before_commit(item, conn)
         deleted = count > 0
 
         if deleted:

@@ -15,12 +15,15 @@ import httpx
 from fastapi import Request
 from pydantic import ValidationError
 from starlette.responses import RedirectResponse
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden
 from src.core.i18n import t
 from src.core.services import BaseService
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.auth.oauth.social.providers import (
     OAUTH_PROVIDER_DEFINITIONS,
     OAuthProviderDefinition,
@@ -384,6 +387,8 @@ class OAuthSocialService(BaseService):
             return self._redirect_to_frontend_login(frontend_base, oauth_code=exchange_code, redirect=redirect)
         except BaseException as exc:
             _raise_if_fatal(exc)
+            if stage == "link_identity":
+                raise
             self.logger.warning(
                 "OAuth callback flow failed",
                 action="oauth_callback",
@@ -409,7 +414,20 @@ class OAuthSocialService(BaseService):
         provider_key = (provider or "").strip().lower()
         if not provider_key:
             return 0
-        return await self.repo.delete_identity_for_user(user_id=user_id, provider=provider_key)
+        async with self.tx() as conn:
+            identity = await self.repo.get_identity_for_user(user_id=user_id, provider=provider_key, conn=conn)
+            if identity is None:
+                return 0
+            deleted = await self.repo.delete_identity_for_user(user_id=user_id, provider=provider_key, conn=conn)
+            await self._write_sso_activity_event(
+                name="auth.sso.unlinked",
+                user_id=user_id,
+                provider=provider_key,
+                subject=str(identity.subject),
+                email=str(identity.email) if identity.email is not None else None,
+                conn=conn,
+            )
+            return deleted
 
     async def _handle_account_linking(
         self,
@@ -421,12 +439,13 @@ class OAuthSocialService(BaseService):
         link_user_id: str,
         redirect: str | None,
     ) -> RedirectResponse:
-        try:
-            target_user = await self.repo.get_user_by_id(user_id=UUID(link_user_id))
-            if target_user is None:
-                return self._redirect_to_frontend_link_error(frontend_base, error="oauth_failed", redirect=redirect)
+        target_user = await self.repo.get_user_by_id(user_id=UUID(link_user_id))
+        if target_user is None:
+            return self._redirect_to_frontend_link_error(frontend_base, error="oauth_failed", redirect=redirect)
 
-            existing = await self.repo.get_identity(provider=provider, subject=subject)
+        user_id = UUID(str(target_user.id))
+        async with self.tx() as conn:
+            existing = await self.repo.get_identity(provider=provider, subject=subject, conn=conn)
             if existing is not None and str(existing.user_id) != str(target_user.id):
                 return self._redirect_to_frontend_link_error(
                     frontend_base, error="oauth_already_linked", redirect=redirect
@@ -436,13 +455,49 @@ class OAuthSocialService(BaseService):
                 await self.repo.create_identity(
                     provider=provider,
                     subject=subject,
-                    user_id=UUID(str(target_user.id)),
+                    user_id=user_id,
                     email=email,
+                    conn=conn,
                 )
-            return self._redirect_to_frontend_link_result(frontend_base, provider=provider, redirect=redirect)
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            return self._redirect_to_frontend_link_error(frontend_base, error="oauth_failed", redirect=redirect)
+            await self._write_sso_activity_event(
+                name="auth.sso.linked",
+                user_id=user_id,
+                provider=provider,
+                subject=subject,
+                email=email,
+                conn=conn,
+            )
+        return self._redirect_to_frontend_link_result(frontend_base, provider=provider, redirect=redirect)
+
+    async def _write_sso_activity_event(
+        self,
+        *,
+        name: str,
+        user_id: UUID,
+        provider: str,
+        subject: str,
+        email: str | None,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        properties: JsonObject = {
+            "provider": provider,
+            "subject_hint": hashlib.sha256(subject.encode("utf-8")).hexdigest()[:16],
+        }
+        if email is not None:
+            properties["email_domain"] = email.rsplit("@", 1)[-1].lower() if "@" in email else None
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=name,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                entity_type="auth_sso_identity",
+                entity_id=user_id,
+                source="api",
+                properties=properties,
+            ),
+            conn=conn,
+        )
 
     async def _auto_accept_email_invites(self, *, user_id: UUID, email: str) -> None:
         try:

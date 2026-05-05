@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from src.core.events import Event, EventBus
-from src.modules.projects.content.items.router_helpers import publish_content_activity_event
+from src.modules.projects.content.items.router_helpers import publish_content_runtime_event
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.tenancy.context import reset_current_tenant_context, set_current_tenant_context
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
@@ -22,7 +22,7 @@ class _FakeEventBus:
 
 
 @pytest.mark.asyncio
-async def test_publish_content_activity_event_includes_tenant_job_payload() -> None:
+async def test_publish_content_runtime_event_includes_tenant_job_payload() -> None:
     organization_id = uuid4()
     workspace_id = uuid4()
     project_id = uuid4()
@@ -44,7 +44,7 @@ async def test_publish_content_activity_event_includes_tenant_job_payload() -> N
     event_bus = _FakeEventBus()
 
     try:
-        await publish_content_activity_event(
+        await publish_content_runtime_event(
             actor_user_id=uuid4(),
             project_ctx=cast(
                 ProjectRequestContext,
@@ -74,3 +74,4 @@ async def test_publish_content_activity_event_includes_tenant_job_payload() -> N
         "isolationMode": "workspace_schema",
         "scope": "runtime",
     }
+    assert payload["activity_ingest"] is False

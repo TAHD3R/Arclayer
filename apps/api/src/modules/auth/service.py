@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from typing import Protocol, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.common.constants.auth import (
     PASSWORD_REGEX,
     REAUTH_MAX_AGE_SECONDS,
@@ -17,6 +19,7 @@ from src.common.constants.auth import (
 )
 from src.common.email.service import EmailService
 from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.json_types import JsonObject
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable, Unauthorized
@@ -25,6 +28,7 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.organization.org_membership import OrgMembership
 from src.models.organization.user import User
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
 from src.modules.auth.invitations.service import AuthInvitationService
 from src.modules.auth.oauth.social.repository import OAuthSocialRepository
@@ -199,6 +203,86 @@ class AuthService(BaseService):
 
     def _coerce_user_id(self, user: UserLike) -> UUID:
         return UUID(str(user.id))
+
+    async def _write_auth_activity_event(
+        self,
+        *,
+        name: str,
+        user_id: UUID,
+        actor_user_id: UUID | None = None,
+        subject_user_id: UUID | None = None,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+        properties: JsonObject | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        query = OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id")
+        orgm = await (query.using_db(conn).first() if conn is not None else query.first())
+        org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=name,
+                organization_id=org_id,
+                actor_user_id=actor_user_id,
+                subject_user_id=subject_user_id,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                source="api",
+                properties=properties or {},
+            ),
+            conn=conn,
+        )
+
+    async def _write_password_activity_event(
+        self,
+        *,
+        user_id: UUID,
+        actor_user_id: UUID | None = None,
+        subject_user_id: UUID | None = None,
+        change_kind: str,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        await self._write_auth_activity_event(
+            name="auth.password.updated",
+            user_id=user_id,
+            actor_user_id=actor_user_id,
+            subject_user_id=subject_user_id,
+            entity_type="auth_credential",
+            properties={"change_kind": change_kind},
+            conn=conn,
+        )
+
+    async def _record_login_activity(
+        self,
+        *,
+        user: UserLike,
+        user_id: UUID,
+        auth_method: str,
+    ) -> None:
+        if isinstance(self.user_repo, UserRepository):
+            async with self.tx() as conn:
+                await self.user_repo.update_last_login_in_connection(user, conn=conn)
+                await self._write_auth_activity_event(
+                    name="auth.login",
+                    user_id=user_id,
+                    actor_user_id=user_id,
+                    subject_user_id=user_id,
+                    entity_type="auth_session",
+                    properties={"auth_method": auth_method},
+                    conn=conn,
+                )
+            return
+
+        await self.user_repo.update_last_login(user)
+        await self._write_auth_activity_event(
+            name="auth.login",
+            user_id=user_id,
+            actor_user_id=user_id,
+            subject_user_id=user_id,
+            entity_type="auth_session",
+            properties={"auth_method": auth_method},
+        )
 
     def _coerce_token_version(self, user: UserLike) -> int:
         raw = user.token_version
@@ -507,11 +591,29 @@ class AuthService(BaseService):
                 await store.delete(user_id=user_id)
             raise Unauthorized(message=self._ta("EMAIL_CODE_INVALID", "验证码无效或已过期"), error="EMAIL_CODE_INVALID")
 
-        await self.user_repo.remove_password(user)
-        await self.user_repo.increment_token_version(user)
-        await store.delete(user_id=user_id)
+        if isinstance(self.user_repo, UserRepository):
+            async with self.tx() as conn:
+                await self.user_repo.remove_password_in_connection(user, conn=conn)
+                await self.user_repo.increment_token_version_in_connection(user, conn=conn)
+                await self._write_password_activity_event(
+                    user_id=user_id,
+                    actor_user_id=user_id,
+                    subject_user_id=user_id,
+                    change_kind="remove",
+                    conn=conn,
+                )
+        else:
+            await self.user_repo.remove_password(user)
+            await self.user_repo.increment_token_version(user)
+            await self._write_password_activity_event(
+                user_id=user_id,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                change_kind="remove",
+            )
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(self._coerce_user_id(user))
+        await store.delete(user_id=user_id)
 
     async def set_password_for_current_user(
         self,
@@ -535,8 +637,30 @@ class AuthService(BaseService):
         else:
             self._reauth_by_recent_login_or_raise(user=user_with_cred)
 
-        await self.user_repo.set_password(user_with_cred, hash_password(new_password, self.settings.auth))
-        await self.user_repo.increment_token_version(user_with_cred)
+        if isinstance(self.user_repo, UserRepository):
+            async with self.tx() as conn:
+                await self.user_repo.set_password_in_connection(
+                    user_with_cred,
+                    password_hash=hash_password(new_password, self.settings.auth),
+                    conn=conn,
+                )
+                await self.user_repo.increment_token_version_in_connection(user_with_cred, conn=conn)
+                await self._write_password_activity_event(
+                    user_id=user_id,
+                    actor_user_id=user_id,
+                    subject_user_id=user_id,
+                    change_kind="set",
+                    conn=conn,
+                )
+        else:
+            await self.user_repo.set_password(user_with_cred, hash_password(new_password, self.settings.auth))
+            await self.user_repo.increment_token_version(user_with_cred)
+            await self._write_password_activity_event(
+                user_id=user_id,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                change_kind="set",
+            )
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(self._coerce_user_id(user_with_cred))
 
@@ -583,49 +707,52 @@ class AuthService(BaseService):
 
         await AccountDeletionGuard().ensure_deletable(user_id=user_id)
 
-        # Revoke refresh tokens + invalidate existing access tokens.
-        await self.user_repo.increment_token_version(user)
-        if self.refresh_store is not None:
-            await self.refresh_store.revoke_all(user_id)
-
-        # Best-effort: remove OAuth identity mappings to prevent SSO sign-in after deletion.
-        try:
-            await self.oauth_repo.delete_identities_for_user(user_id=user_id)
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning("OAuth identities cleanup failed", user_id=str(user_id), error=str(exc))
-
-        # Best-effort: remove 2FA secrets/backup codes.
-        try:
+        if isinstance(self.user_repo, UserRepository):
             from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
-
-            await UserTwoFactorBackupCode.filter(user_id=user_id).delete()
-            await UserTwoFactor.filter(user_id=user_id).delete()
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning("2FA cleanup failed", user_id=str(user_id), error=str(exc))
-
-        # Best-effort: disable memberships to prevent orphaned ownership edges.
-        try:
             from src.models.organization.org_membership import OrgMembership
+            from src.models.organization.user import UserCredential
             from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
 
-            await WorkspaceMembership.filter(user_id=user_id).update(status=WorkspaceMembershipStatus.DISABLED)
-            await OrgMembership.filter(user_id=user_id).delete()
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning("Membership cleanup failed", user_id=str(user_id), error=str(exc))
+            async with self.tx() as conn:
+                await self.user_repo.increment_token_version_in_connection(user_with_cred, conn=conn)
+                await self.oauth_repo.delete_identities_for_user(user_id=user_id, conn=conn)
+                await UserTwoFactorBackupCode.filter(user_id=user_id).using_db(conn).delete()
+                await UserTwoFactor.filter(user_id=user_id).using_db(conn).delete()
+                await self._write_auth_activity_event(
+                    name="auth.account.deleted",
+                    user_id=user_id,
+                    actor_user_id=user_id,
+                    subject_user_id=user_id,
+                    entity_type="auth_account",
+                    entity_id=user_id,
+                    properties={"change_kind": "delete"},
+                    conn=conn,
+                )
+                await (
+                    WorkspaceMembership
+                    .filter(user_id=user_id)
+                    .using_db(conn)
+                    .update(status=WorkspaceMembershipStatus.DISABLED)
+                )
+                await OrgMembership.filter(user_id=user_id).using_db(conn).delete()
+                await UserCredential.filter(user_id=user_id).using_db(conn).delete()
+                await self.user_repo.anonymize_user_in_connection(user_with_cred, conn=conn)
+        else:
+            await self.user_repo.increment_token_version(user)
+            await self.oauth_repo.delete_identities_for_user(user_id=user_id)
+            await cast(UserRepository, self.user_repo).anonymize_user(user_with_cred)
+            await self._write_auth_activity_event(
+                name="auth.account.deleted",
+                user_id=user_id,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                entity_type="auth_account",
+                entity_id=user_id,
+                properties={"change_kind": "delete"},
+            )
 
-        # Remove password credential and scrub PII.
-        try:
-            from src.models.organization.user import UserCredential
-
-            await UserCredential.filter(user_id=user_id).delete()
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning("Credential cleanup failed", user_id=str(user_id), error=str(exc))
-
-        await cast(UserRepository, self.user_repo).anonymize_user(user_with_cred)
+        if self.refresh_store is not None:
+            await self.refresh_store.revoke_all(user_id)
 
     async def _handle_refresh_reuse(self, user_id: UUID) -> None:
         user = await self.user_repo.get_by_id(user_id)
@@ -690,30 +817,11 @@ class AuthService(BaseService):
             auth_method="password",
         )
         await store.store(record, ttl=refresh_ttl)
-        await self.user_repo.update_last_login(user)
-
-        # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
-            orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
-            org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
-
-            await self.publish_optional_domain_event(
-                name="auth.login.succeeded",
-                payload={
-                    "organization_id": str(org_id) if org_id else None,
-                },
-                actor_user_id=user_id,
-                source="api",
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "Auth login event publish failed",
-                user_id=str(user_id),
-                action="publish_auth_login_event",
-                event_name="auth.login.succeeded",
-                error=str(exc),
-            )
+            await self._record_login_activity(user=user, user_id=user_id, auth_method="password")
+        except BaseException:
+            await store.forget(jti)
+            raise
 
         return TokenPair(
             access_token=access_token,
@@ -774,30 +882,11 @@ class AuthService(BaseService):
             auth_method=auth_method,
         )
         await store.store(record, ttl=refresh_ttl)
-        await self.user_repo.update_last_login(user)
-
-        # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
-            orgm = await OrgMembership.get_or_none(user_id=resolved_user_id)
-            org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
-
-            await self.publish_optional_domain_event(
-                name="auth.login.succeeded",
-                payload={
-                    "organization_id": str(org_id) if org_id else None,
-                },
-                actor_user_id=resolved_user_id,
-                source="api",
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "Auth token issue event publish failed",
-                user_id=str(resolved_user_id),
-                action="publish_auth_login_event",
-                event_name="auth.login.succeeded",
-                error=str(exc),
-            )
+            await self._record_login_activity(user=user, user_id=resolved_user_id, auth_method=auth_method)
+        except BaseException:
+            await store.forget(jti)
+            raise
 
         return TokenPair(
             access_token=access_token,
@@ -996,7 +1085,22 @@ class AuthService(BaseService):
             )
 
         jti = self._parse_refresh_jti(payload.get("jti"))
+        previous_record = await store.get(jti)
         await store.revoke(jti)
+        if previous_record is None:
+            return
+        try:
+            await self._write_auth_activity_event(
+                name="auth.session.revoked",
+                user_id=user_id,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                entity_type="auth_session",
+                properties={"session_id": str(previous_record.get("sid") or jti), "scope": "current"},
+            )
+        except BaseException:
+            await store.restore_active(jti, previous_record=previous_record)
+            raise
 
     async def logout_all(self, *, user_id: UUID) -> None:
         store = self._require_refresh_store()
@@ -1004,7 +1108,29 @@ class AuthService(BaseService):
         if not user:
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
 
-        await self.user_repo.increment_token_version(user)
+        active_session_count = len(await store.list_active(self._coerce_user_id(user)))
+        if isinstance(self.user_repo, UserRepository):
+            async with self.tx() as conn:
+                await self.user_repo.increment_token_version_in_connection(user, conn=conn)
+                await self._write_auth_activity_event(
+                    name="auth.session.revoked",
+                    user_id=user_id,
+                    actor_user_id=user_id,
+                    subject_user_id=user_id,
+                    entity_type="auth_session",
+                    properties={"scope": "all", "revoked_count": active_session_count},
+                    conn=conn,
+                )
+        else:
+            await self.user_repo.increment_token_version(user)
+            await self._write_auth_activity_event(
+                name="auth.session.revoked",
+                user_id=user_id,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                entity_type="auth_session",
+                properties={"scope": "all", "revoked_count": active_session_count},
+            )
         await store.revoke_all(self._coerce_user_id(user))
 
     async def change_password(self, *, user_id: UUID, old_password: str, new_password: str) -> None:
@@ -1029,8 +1155,30 @@ class AuthService(BaseService):
             )
         self._ensure_password_strength(new_password)
 
-        await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
-        await self.user_repo.increment_token_version(user)
+        if isinstance(self.user_repo, UserRepository):
+            async with self.tx() as conn:
+                await self.user_repo.set_password_in_connection(
+                    user,
+                    password_hash=hash_password(new_password, self.settings.auth),
+                    conn=conn,
+                )
+                await self.user_repo.increment_token_version_in_connection(user, conn=conn)
+                await self._write_password_activity_event(
+                    user_id=user_id,
+                    actor_user_id=user_id,
+                    subject_user_id=user_id,
+                    change_kind="change",
+                    conn=conn,
+                )
+        else:
+            await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
+            await self.user_repo.increment_token_version(user)
+            await self._write_password_activity_event(
+                user_id=user_id,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                change_kind="change",
+            )
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(self._coerce_user_id(user))
         await self.send_security_alert(user_id=user_id, event_key="password_changed")
@@ -1047,28 +1195,11 @@ class AuthService(BaseService):
         user_id = self._coerce_user_id(user)
         token, ttl = await store.issue(user_id)
 
-        # Best-effort: record password reset request for investigation (do not leak data in payload).
-        try:
-            orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
-            org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
-
-            await self.publish_optional_domain_event(
-                name="auth.password.reset.requested",
-                payload={
-                    "organization_id": str(org_id) if org_id else None,
-                    "subject_user_id": str(user_id),
-                },
-                source="api",
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "Password reset requested event publish failed",
-                user_id=str(user_id),
-                action="publish_password_reset_requested_event",
-                event_name="auth.password.reset.requested",
-                error=str(exc),
-            )
+        await self._write_auth_activity_event(
+            name="auth.password.reset.requested",
+            user_id=user_id,
+            subject_user_id=user_id,
+        )
 
         return token, ttl, email, user_id
 
@@ -1169,54 +1300,46 @@ class AuthService(BaseService):
             )
 
         user_id = self._parse_user_id(record.get("user_id"))
-        # We need credential loaded to compare password hashes. Without prefetch, `user.credential`
-        # is a lazy relation (QuerySet) and will break attribute access.
-        user = await self.user_repo.get_by_id_with_credential(user_id)
-        if not user:
-            raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
+        try:
+            async with self.tx() as conn:
+                # We need credential loaded to compare password hashes. Without prefetch,
+                # `user.credential` is a lazy relation and will break attribute access.
+                user = await self.user_repo.get_by_id_with_credential_in_connection(user_id, conn=conn)
+                if not user:
+                    raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
 
-        if not self.user_repo.is_active(user):
-            raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
+                if not self.user_repo.is_active(user):
+                    raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
-        credential = cast(CredentialLike | None, getattr(user, "credential", None))
-        if credential is not None and verify_password(
-            new_password, cast(str, credential.password_hash), self.settings.auth
-        ):
-            raise Conflict(
-                message=self._ta("PASSWORD_DUPLICATE", "新密码不能与旧密码相同"),
-                error="PASSWORD_DUPLICATE",
-            )
-        self._ensure_password_strength(new_password)
+                credential = cast(CredentialLike | None, getattr(user, "credential", None))
+                if credential is not None and verify_password(
+                    new_password, cast(str, credential.password_hash), self.settings.auth
+                ):
+                    raise Conflict(
+                        message=self._ta("PASSWORD_DUPLICATE", "新密码不能与旧密码相同"),
+                        error="PASSWORD_DUPLICATE",
+                    )
+                self._ensure_password_strength(new_password)
 
-        await self.user_repo.set_password(user, hash_password(new_password, self.settings.auth))
-        await self.user_repo.increment_token_version(user)
+                await self.user_repo.set_password_in_connection(
+                    user,
+                    password_hash=hash_password(new_password, self.settings.auth),
+                    conn=conn,
+                )
+                await self.user_repo.increment_token_version_in_connection(user, conn=conn)
+                await self._write_auth_activity_event(
+                    name="auth.password.reset.completed",
+                    user_id=user_id,
+                    actor_user_id=user_id,
+                    subject_user_id=user_id,
+                    conn=conn,
+                )
+        except BaseException:
+            await store.restore(reset_token, previous_record=record)
+            raise
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(self._coerce_user_id(user))
         await self.send_security_alert(user_id=user_id, event_key="password_reset")
-
-        # Best-effort: record password reset completion.
-        try:
-            orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
-            org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
-
-            await self.publish_optional_domain_event(
-                name="auth.password.reset.completed",
-                payload={
-                    "organization_id": str(org_id) if org_id else None,
-                    "subject_user_id": str(user_id),
-                },
-                actor_user_id=user_id,
-                source="api",
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "Password reset completed event publish failed",
-                user_id=str(user_id),
-                action="publish_password_reset_completed_event",
-                event_name="auth.password.reset.completed",
-                error=str(exc),
-            )
 
     @staticmethod
     def build_user_profile(user: UserLike) -> UserProfile:

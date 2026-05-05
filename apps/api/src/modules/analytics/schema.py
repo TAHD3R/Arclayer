@@ -49,17 +49,55 @@ class AuditEventOut(BaseOut, TimestampMixin):
 class AuditEventListQuery(BaseSchema):
     occurred_from: datetime | None = Field(
         default=None,
+        alias="occurredFrom",
         description="Filter: occurred_at >= this timestamp (UTC).",
-        validation_alias=AliasChoices("occurredFrom", "from"),
+        validation_alias=AliasChoices("occurredFrom", "occurred_from", "from"),
     )
     occurred_to: datetime | None = Field(
         default=None,
+        alias="occurredTo",
         description="Filter: occurred_at <= this timestamp (UTC).",
-        validation_alias=AliasChoices("occurredTo", "to"),
+        validation_alias=AliasChoices("occurredTo", "occurred_to", "to"),
     )
-    event_name: str | None = Field(default=None, description="Filter: event name (contains).")
-    workspace_id: PublicUUID | None = Field(default=None, description="Filter: workspace id.")
-    actor_user_id: PublicUUID | None = Field(default=None, description="Filter: actor user id.")
-    subject_user_id: PublicUUID | None = Field(default=None, description="Filter: subject user id.")
-    entity_type: str | None = Field(default=None, description="Filter: entity type.")
-    entity_id: PublicUUID | None = Field(default=None, description="Filter: entity id.")
+    event_name: str | None = Field(
+        default=None,
+        alias="eventName",
+        description="Filter: event name (contains).",
+        validation_alias=AliasChoices("eventName", "event_name"),
+    )
+    workspace_id: PublicUUID | None = Field(
+        default=None,
+        alias="workspaceId",
+        description="Filter: workspace id.",
+        validation_alias=AliasChoices("workspaceId", "workspace_id"),
+    )
+    organization_id: PublicUUID | None = Field(
+        default=None,
+        alias="organizationId",
+        description="Filter: organization id.",
+        validation_alias=AliasChoices("organizationId", "organization_id"),
+    )
+    actor_user_id: PublicUUID | None = Field(
+        default=None,
+        alias="actorUserId",
+        description="Filter: actor user id.",
+        validation_alias=AliasChoices("actorUserId", "actor_user_id"),
+    )
+    subject_user_id: PublicUUID | None = Field(
+        default=None,
+        alias="subjectUserId",
+        description="Filter: subject user id.",
+        validation_alias=AliasChoices("subjectUserId", "subject_user_id"),
+    )
+    entity_type: str | None = Field(
+        default=None,
+        alias="entityType",
+        description="Filter: entity type.",
+        validation_alias=AliasChoices("entityType", "entity_type"),
+    )
+    entity_id: PublicUUID | None = Field(
+        default=None,
+        alias="entityId",
+        description="Filter: entity id.",
+        validation_alias=AliasChoices("entityId", "entity_id"),
+    )

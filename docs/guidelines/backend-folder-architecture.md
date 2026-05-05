@@ -179,6 +179,24 @@ Actor and Activity metadata comes from `BaseService.resolve_actor_context()`. Th
 
 Allowed pure mixins contain helper behavior and are composed into a `BaseService` subclass. Mixins that publish events should call the host service's `BaseService` publisher instead of carrying their own event bus dependency.
 
+### 8.1 Full-flow Activity audit coverage
+
+Compliance-critical Activity events are business evidence, not observability fanout. A mutation is covered only when all of these are true:
+
+- The operation has a stable event name from the documented family vocabulary, such as `workspace.member.invited`, `content.item.published`, or `system.storage.updated`.
+- The event uses a typed Pydantic v2 payload model with explicit actor/context/entity fields and bounded sanitized properties.
+- The service receives or resolves actor context through `BaseService.resolve_actor_context()`.
+- The Activity evidence is written inside the same business transaction or through an outbox row created in that same transaction.
+- Rollback tests prove failed business writes leave no committed `AuditEvent` or outbox evidence.
+- Readback tests prove the user-visible Activity API can return the event.
+- Sanitization tests prove password, token, secret, credential, authorization, cookie, and raw API key material is absent from persisted properties.
+
+`ActivityIngestor` remains valid for non-critical operational telemetry, but its in-process queue and drop-on-overload behavior are not sufficient for compliance-critical business mutations. Required audit events must not use `publish_optional_domain_event()` as their only delivery path. Route helpers and services must not swallow non-fatal Activity publish failures for required audit evidence.
+
+For entity changes already flowing through `EntityManager`, prefer service-owned `before_commit` hooks or a same-transaction outbox write that receives the actor/context and transaction connection explicitly. Lifecycle subscribers may fan out non-critical runtime work, but they must not be the required Activity evidence path unless they can preserve actor context, organization/workspace context, and rollback semantics in the same transaction.
+
+Every Activity coverage rollout updates `docs/plans/architecture-hard-cut-2026-05-04/activity-coverage-matrix.md`. A row may be marked `Complete` only after the event name, payload model, durable path, sanitizer, readback test, and rollback test are recorded.
+
 ## 9. Model and Table Rules
 
 ### 9.1 Table namespace contract

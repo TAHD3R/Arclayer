@@ -10,8 +10,11 @@ from httpx import ASGITransport, AsyncClient
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
+from src.models.analytics.audit_event import AuditEvent
+from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
 from src.modules.auth.repository import EmailLoginCodeStore, UserRepository
 from src.modules.auth.tokens.service import hash_password
+from src.modules.auth.two_factor import service as two_factor_service_module
 from src.modules.auth.two_factor.challenge_store import TwoFactorChallengeStore
 from src.modules.auth.two_factor.totp import generate_totp_code
 from src.settings.crypto import ensure_master_key, generate_master_key
@@ -196,6 +199,230 @@ async def test_auth_security_endpoints_two_factor_flow(
             final_status = await client.get("/api/v1/auth/2fa", headers=final_headers)
             assert final_status.status_code == 200, final_status.text
             assert (final_status.json().get("data") or {}).get("enabled") is False
+
+
+async def test_auth_two_factor_activity_readback_and_rollback(
+    prepared_db,
+    integration_valkey_settings,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+    _set_test_env(monkeypatch, base_dir=tmp_path)
+
+    settings = get_settings()
+    ensure_master_key(Path(settings.security.master_key_path))
+    user = await _create_user(password="pass1234")
+
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            tokens = await _login(client, email=user.email, password="pass1234")
+            auth_headers = {"Authorization": f"Bearer {_access_token(tokens)}"}
+
+            setup = await client.post(
+                "/api/v1/auth/2fa/setup",
+                json={"password": "pass1234"},
+                headers=auth_headers,
+            )
+            assert setup.status_code == 200, setup.text
+            secret = str((setup.json().get("data") or {}).get("secret") or "")
+            assert secret
+
+            confirm = await client.post(
+                "/api/v1/auth/2fa/confirm",
+                json={"code": generate_totp_code(secret)},
+                headers=auth_headers,
+            )
+            assert confirm.status_code == 200, confirm.text
+            confirm_data = confirm.json().get("data") or {}
+            backup_codes = confirm_data.get("backupCodes") or confirm_data.get("backup_codes") or []
+            assert len(backup_codes) == 10
+
+            enabled_event = await AuditEvent.filter(event_name="auth.mfa.enabled", actor_user_id=user.id).first()
+            assert enabled_event is not None
+            assert enabled_event.subject_user_id == user.id
+            assert enabled_event.entity_type == "auth_mfa"
+            assert enabled_event.entity_id == user.id
+            assert enabled_event.properties is not None
+            assert enabled_event.properties.get("method") == "totp"
+            assert enabled_event.properties.get("backup_code_count") == 10
+            assert enabled_event.properties.get("secret") is None
+
+            two_factor_record = await UserTwoFactor.get(user_id=user.id)
+            assert two_factor_record.enabled_at is not None
+            assert await UserTwoFactorBackupCode.filter(user_id=user.id, used_at=None).count() == 10
+
+            challenge = await client.post(
+                "/api/v1/auth/login",
+                json={"email": user.email, "password": "pass1234"},
+            )
+            assert challenge.status_code == 401, challenge.text
+            challenge_meta = challenge.json().get("meta") or {}
+            challenge_token = challenge_meta.get("two_factor_token") or challenge_meta.get("twoFactorToken")
+            assert isinstance(challenge_token, str) and challenge_token
+
+            completed = await client.post(
+                "/api/v1/auth/login/2fa",
+                json={"twoFactorToken": challenge_token, "backupCode": backup_codes[0]},
+            )
+            assert completed.status_code == 200, completed.text
+            refreshed_tokens = completed.json().get("data") or {}
+            refreshed_headers = {"Authorization": f"Bearer {_access_token(refreshed_tokens)}"}
+
+            regenerate = await client.post(
+                "/api/v1/auth/2fa/backup-codes/regenerate",
+                json={"backupCode": backup_codes[1]},
+                headers=refreshed_headers,
+            )
+            assert regenerate.status_code == 200, regenerate.text
+            regenerate_data = regenerate.json().get("data") or {}
+            regenerated_codes = regenerate_data.get("backupCodes") or regenerate_data.get("backup_codes") or []
+            assert len(regenerated_codes) == 10
+
+            regenerated_event = await AuditEvent.filter(
+                event_name="auth.mfa.backup_codes_regenerated",
+                actor_user_id=user.id,
+            ).first()
+            assert regenerated_event is not None
+            assert regenerated_event.properties is not None
+            assert regenerated_event.properties.get("backup_code_count") == 10
+            assert regenerated_event.properties.get("backupCode") is None
+
+            disable = await client.post(
+                "/api/v1/auth/2fa/disable",
+                json={"backupCode": regenerated_codes[0]},
+                headers=refreshed_headers,
+            )
+            assert disable.status_code == 200, disable.text
+
+            disabled_event = await AuditEvent.filter(event_name="auth.mfa.disabled", actor_user_id=user.id).first()
+            assert disabled_event is not None
+            assert disabled_event.subject_user_id == user.id
+            assert disabled_event.entity_type == "auth_mfa"
+            assert disabled_event.properties is not None
+            assert disabled_event.properties.get("method") == "totp"
+            assert disabled_event.properties.get("verification_method") == "backup_code"
+            assert disabled_event.properties.get("backupCode") is None
+
+            assert await UserTwoFactor.filter(user_id=user.id).exists() is False
+            assert await UserTwoFactorBackupCode.filter(user_id=user.id).exists() is False
+
+
+async def test_auth_two_factor_activity_rollback_restores_state_on_write_failure(
+    prepared_db,
+    integration_valkey_settings,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+    _set_test_env(monkeypatch, base_dir=tmp_path)
+
+    settings = get_settings()
+    ensure_master_key(Path(settings.security.master_key_path))
+    user = await _create_user(password="pass1234")
+
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            tokens = await _login(client, email=user.email, password="pass1234")
+            auth_headers = {"Authorization": f"Bearer {_access_token(tokens)}"}
+
+            setup = await client.post(
+                "/api/v1/auth/2fa/setup",
+                json={"password": "pass1234"},
+                headers=auth_headers,
+            )
+            assert setup.status_code == 200, setup.text
+            secret = str((setup.json().get("data") or {}).get("secret") or "")
+            assert secret
+
+            original_write_required_activity_event = two_factor_service_module.write_required_activity_event
+
+            async def _failing_write_required_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+                if payload.event_name == "auth.mfa.enabled":
+                    raise RuntimeError("forced activity write failure: auth.mfa.enabled")
+                return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+            monkeypatch.setattr(
+                "src.modules.auth.two_factor.service.write_required_activity_event",
+                _failing_write_required_activity_event,
+            )
+            failure_transport = ASGITransport(app=app, raise_app_exceptions=True)
+            async with AsyncClient(transport=failure_transport, base_url="http://test") as failure_client:
+                with pytest.raises(RuntimeError, match="forced activity write failure"):
+                    await failure_client.post(
+                        "/api/v1/auth/2fa/confirm",
+                        json={"code": generate_totp_code(secret)},
+                        headers=auth_headers,
+                    )
+            monkeypatch.setattr(
+                "src.modules.auth.two_factor.service.write_required_activity_event",
+                original_write_required_activity_event,
+            )
+
+            assert await AuditEvent.filter(event_name="auth.mfa.enabled", actor_user_id=user.id).count() == 0
+            assert await UserTwoFactor.filter(user_id=user.id).exists() is True
+            record_after_failed_confirm = await UserTwoFactor.get(user_id=user.id)
+            assert record_after_failed_confirm.enabled_at is None
+            assert await UserTwoFactorBackupCode.filter(user_id=user.id).count() == 0
+
+            confirm = await client.post(
+                "/api/v1/auth/2fa/confirm",
+                json={"code": generate_totp_code(secret)},
+                headers=auth_headers,
+            )
+            assert confirm.status_code == 200, confirm.text
+            confirm_data = confirm.json().get("data") or {}
+            backup_codes = confirm_data.get("backupCodes") or confirm_data.get("backup_codes") or []
+            assert len(backup_codes) == 10
+            challenge = await client.post(
+                "/api/v1/auth/login",
+                json={"email": user.email, "password": "pass1234"},
+            )
+            assert challenge.status_code == 401, challenge.text
+            challenge_meta = challenge.json().get("meta") or {}
+            challenge_token = challenge_meta.get("two_factor_token") or challenge_meta.get("twoFactorToken")
+            assert isinstance(challenge_token, str) and challenge_token
+            completed = await client.post(
+                "/api/v1/auth/login/2fa",
+                json={"twoFactorToken": challenge_token, "backupCode": backup_codes[0]},
+            )
+            assert completed.status_code == 200, completed.text
+            refreshed_tokens = completed.json().get("data") or {}
+            refreshed_headers = {"Authorization": f"Bearer {_access_token(refreshed_tokens)}"}
+
+            event_count_before_disable = await AuditEvent.filter(event_name="auth.mfa.disabled").count()
+
+            async def _failing_disable_write_required_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+                if payload.event_name == "auth.mfa.disabled":
+                    raise RuntimeError("forced activity write failure: auth.mfa.disabled")
+                return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+            monkeypatch.setattr(
+                "src.modules.auth.two_factor.service.write_required_activity_event",
+                _failing_disable_write_required_activity_event,
+            )
+            service = two_factor_service_module.AuthTwoFactorService(settings)
+            with pytest.raises(RuntimeError, match="forced activity write failure"):
+                await service.disable(user_id=user.id, code=None, backup_code=backup_codes[1])
+            monkeypatch.setattr(
+                "src.modules.auth.two_factor.service.write_required_activity_event",
+                original_write_required_activity_event,
+            )
+
+            assert await AuditEvent.filter(event_name="auth.mfa.disabled").count() == event_count_before_disable
+            record_after_failed_disable = await UserTwoFactor.get(user_id=user.id)
+            assert record_after_failed_disable.enabled_at is not None
+            assert await UserTwoFactorBackupCode.filter(user_id=user.id, used_at=None).count() == 9
 
 
 async def test_auth_email_code_login_flow(

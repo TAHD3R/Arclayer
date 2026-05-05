@@ -3,12 +3,16 @@ from __future__ import annotations
 from collections import defaultdict
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageParams, paginate_items
 from src.core.services import BaseService
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.projects.repository import ProjectRepository
 from src.modules.projects.runtime.site.service import ProjectRuntimeSiteService
@@ -35,6 +39,36 @@ class ProjectService(BaseService):
         self.repo = ProjectRepository()
         self.workspace_repo = OrganizationWorkspaceRepository()
         self.runtime_site_service = ProjectRuntimeSiteService(settings)
+
+    async def _write_project_activity_event(
+        self,
+        *,
+        event_name: str,
+        workspace_id: UUID,
+        project_id: UUID,
+        actor_user_id: UUID,
+        properties: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        payload: JsonObject = {
+            "workspace_id": str(workspace_id),
+            "project_id": str(project_id),
+            "actor_user_id": str(actor_user_id),
+        }
+        payload.update(properties)
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="project",
+                entity_id=project_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
 
     async def get_project_detail(self, *, project_id: UUID) -> ProjectDetailOut:
         project, workspace = await self.repo.get_project_with_workspace(project_id=project_id)
@@ -105,30 +139,50 @@ class ProjectService(BaseService):
         actor_user_id: UUID,
     ) -> ProjectListItemOut:
         await self._require_workspace(workspace_id=workspace_id)
-        project = await self.repo.create_project(
-            workspace_id=workspace_id,
-            name=payload.name.strip(),
-            slug=self._normalize_slug(payload.slug),
-            description=(payload.description or "").strip() or None,
-            actor_user_id=actor_user_id,
-        )
-        await self.repo.bootstrap_project_memberships(
-            project_id=UUID(str(project.id)),
-            workspace_id=workspace_id,
-            actor_user_id=actor_user_id,
-        )
+        async with self.tx() as conn:
+            project = await self.repo.create_project(
+                workspace_id=workspace_id,
+                name=payload.name.strip(),
+                slug=self._normalize_slug(payload.slug),
+                description=(payload.description or "").strip() or None,
+                actor_user_id=actor_user_id,
+                conn=conn,
+            )
+            project_id = UUID(str(project.id))
+            await self.repo.bootstrap_project_memberships(
+                project_id=project_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                conn=conn,
+            )
+            runtime = await self.repo.get_primary_runtime(project_id=project.id, conn=conn)
+            if runtime is None:
+                raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")
+            await self.runtime_site_service.get_or_create_site_for_project_runtime(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                runtime_id=UUID(str(runtime.id)),
+                project_slug=str(project.slug),
+                project_name=str(project.name),
+                actor_user_id=actor_user_id,
+                conn=conn,
+            )
+            await self._write_project_activity_event(
+                event_name="project.created",
+                workspace_id=workspace_id,
+                project_id=project_id,
+                actor_user_id=actor_user_id,
+                properties={
+                    "created": True,
+                    "slug": str(project.slug),
+                    "initialized": ["primary_runtime", "environments", "runtime_site", "platform_domain_binding"],
+                },
+                conn=conn,
+            )
         workspace = await self._get_active_workspace(workspace_id=workspace_id)
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
         if runtime is None:
             raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")
-        await self.runtime_site_service.get_or_create_site_for_project_runtime(
-            workspace_id=workspace_id,
-            project_id=UUID(str(project.id)),
-            runtime_id=UUID(str(runtime.id)),
-            project_slug=str(project.slug),
-            project_name=str(project.name),
-            actor_user_id=actor_user_id,
-        )
         memberships = await self.repo.list_project_memberships(project_ids=[UUID(str(project.id))])
         members_preview = [self._build_member_preview(user=membership.user) for membership in memberships[:3]]
         return ProjectListItemOut(
@@ -147,6 +201,7 @@ class ProjectService(BaseService):
         *,
         project_id: UUID,
         payload: ProjectUpdateRequest,
+        actor_user_id: UUID,
     ) -> ProjectDetailOut:
         normalized_name = payload.name.strip() if payload.name is not None else None
         if normalized_name == "":
@@ -168,21 +223,45 @@ class ProjectService(BaseService):
         if normalized_icon_url == "":
             normalized_icon_url = None
 
-        project = await self.repo.update_project(
-            project_id=project_id,
-            name=normalized_name,
-            slug=self._normalize_slug(payload.slug) if payload.slug is not None else None,
-            description=normalized_description,
-            description_provided="description" in payload.model_fields_set,
-            icon_mode=payload.icon_mode,
-            icon_color=normalized_icon_color,
-            icon_glyph=normalized_icon_glyph,
-            icon_emoji=normalized_icon_emoji,
-            icon_url=normalized_icon_url,
-            icon_fields_provided=bool(
-                {"icon_mode", "icon_color", "icon_glyph", "icon_emoji", "icon_url"} & payload.model_fields_set
-            ),
+        updated_fields = sorted(
+            field
+            for field in (
+                "name",
+                "slug",
+                "description",
+                "icon_mode",
+                "icon_color",
+                "icon_glyph",
+                "icon_emoji",
+                "icon_url",
+            )
+            if field in payload.model_fields_set
         )
+        async with self.tx() as conn:
+            project = await self.repo.update_project(
+                project_id=project_id,
+                name=normalized_name,
+                slug=self._normalize_slug(payload.slug) if payload.slug is not None else None,
+                description=normalized_description,
+                description_provided="description" in payload.model_fields_set,
+                icon_mode=payload.icon_mode,
+                icon_color=normalized_icon_color,
+                icon_glyph=normalized_icon_glyph,
+                icon_emoji=normalized_icon_emoji,
+                icon_url=normalized_icon_url,
+                icon_fields_provided=bool(
+                    {"icon_mode", "icon_color", "icon_glyph", "icon_emoji", "icon_url"} & payload.model_fields_set
+                ),
+                conn=conn,
+            )
+            await self._write_project_activity_event(
+                event_name="project.updated",
+                workspace_id=UUID(str(project.workspace_id)),
+                project_id=UUID(str(project.id)),
+                actor_user_id=actor_user_id,
+                properties={"updated_fields": updated_fields},
+                conn=conn,
+            )
         workspace = await self._get_active_workspace(workspace_id=UUID(str(project.workspace_id)))
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
         return ProjectDetailOut(
@@ -190,22 +269,41 @@ class ProjectService(BaseService):
             primary_runtime=ProjectRuntimeOut.model_validate(runtime) if runtime is not None else None,
         )
 
-    async def archive_project(self, *, project_id: UUID) -> ProjectArchiveResult:
+    async def archive_project(self, *, project_id: UUID, actor_user_id: UUID) -> ProjectArchiveResult:
         blocked_reason = self._get_archive_blocked_reason(can_manage_settings=True)
         if blocked_reason is not None:
             raise BadRequest("Project archive is blocked", error=blocked_reason)
-        project = await self.repo.set_project_active(project_id=project_id, is_active=False)
+        async with self.tx() as conn:
+            project = await self.repo.set_project_active(project_id=project_id, is_active=False, conn=conn)
+            await self._write_project_activity_event(
+                event_name="project.archived",
+                workspace_id=UUID(str(project.workspace_id)),
+                project_id=UUID(str(project.id)),
+                actor_user_id=actor_user_id,
+                properties={"archived": True},
+                conn=conn,
+            )
         return ProjectArchiveResult(project_id=project.id, is_active=project.is_active)
 
     async def unarchive_project(self, *, project_id: UUID) -> ProjectArchiveResult:
         project = await self.repo.set_project_active(project_id=project_id, is_active=True)
         return ProjectArchiveResult(project_id=project.id, is_active=project.is_active)
 
-    async def delete_project(self, *, project_id: UUID) -> ProjectDeleteResult:
+    async def delete_project(self, *, project_id: UUID, actor_user_id: UUID) -> ProjectDeleteResult:
         blocked_reason = self._get_delete_blocked_reason(can_manage_settings=True)
         if blocked_reason is not None:
             raise BadRequest("Project delete is blocked", error=blocked_reason)
-        deleted = await self.repo.delete_project(project_id=project_id)
+        project = await self.repo.get_project_by_id(project_id=project_id)
+        async with self.tx() as conn:
+            deleted = await self.repo.delete_project(project_id=project_id, conn=conn)
+            await self._write_project_activity_event(
+                event_name="project.deleted",
+                workspace_id=UUID(str(project.workspace_id)),
+                project_id=project_id,
+                actor_user_id=actor_user_id,
+                properties={"deleted": bool(deleted)},
+                conn=conn,
+            )
         return ProjectDeleteResult(project_id=project_id, deleted=deleted)
 
     async def get_danger_capabilities(

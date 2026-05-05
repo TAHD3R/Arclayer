@@ -3,18 +3,23 @@ from __future__ import annotations
 from typing import TypedDict
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.common.constants.rbac import ROLE_ADMIN, ROLE_DESIGNER, ROLE_EDITOR, ROLE_OWNER, ROLE_VIEWER
+from src.common.types.json_types import JsonObject
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.system.rbac import Permission, PermissionScope, Role
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.permissions import PermissionConditionSet
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.system.rbac.repository import RBACRepository
 from src.modules.system.rbac.schema import PermissionTemplate
 
+SYSTEM_RBAC_UPDATED_EVENT = "system.settings.rbac.updated"
 _ROLE_CODE_MAX_LEN = 64
 _ROLE_CODE_GENERATE_ATTEMPTS = 20
 _ROLE_CODE_SUFFIX_HEX_LEN = 8
@@ -50,6 +55,40 @@ class WorkspaceRBACService(BaseService):
     def __init__(self, settings: Settings, repo: RBACRepository | None = None) -> None:
         super().__init__(settings)
         self.repo = repo or RBACRepository()
+
+    async def _write_rbac_activity_event(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        change_kind: str,
+        entity_type: str,
+        entity_id: UUID,
+        properties: JsonObject,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        payload: JsonObject = {
+            "organization_id": str(organization_id),
+            "workspace_id": str(workspace_id),
+            "actor_user_id": str(actor_user_id),
+            "change_kind": change_kind,
+        }
+        payload.update(properties)
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=SYSTEM_RBAC_UPDATED_EVENT,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
 
     def localize_role(self, role: Role, *, locale: str) -> dict[str, object]:
         _ = locale
@@ -336,7 +375,9 @@ class WorkspaceRBACService(BaseService):
     async def create_custom_role(
         self,
         *,
+        organization_id: UUID,
         workspace_id: UUID,
+        actor_user_id: UUID,
         code: str | None,
         name: str,
         description: str | None,
@@ -354,24 +395,47 @@ class WorkspaceRBACService(BaseService):
         else:
             role_code = await self._generate_custom_role_code(workspace_id=workspace_id)
 
-        role = await self.repo.create_role(
-            workspace_id=workspace_id,
-            code=role_code,
-            name=cleaned_name,
-            description=description,
-            name_i18n=None,
-            description_i18n=None,
-            is_system=False,
-            is_default=False,
-            is_superuser=False,
-        )
-        await self.repo.replace_role_permissions(role=role, permission_ids=template_permission_ids)
-        return role
+        async with self.tx() as conn:
+            role = await self.repo.create_role(
+                workspace_id=workspace_id,
+                code=role_code,
+                name=cleaned_name,
+                description=description,
+                name_i18n=None,
+                description_i18n=None,
+                is_system=False,
+                is_default=False,
+                is_superuser=False,
+                conn=conn,
+            )
+            await self.repo.replace_role_permissions(
+                role=role,
+                permission_ids=template_permission_ids,
+                conn=conn,
+            )
+            await self._write_rbac_activity_event(
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                change_kind="role_created",
+                entity_type="workspace_role",
+                entity_id=UUID(str(role.id)),
+                properties={
+                    "role_code": role.code,
+                    "is_system": False,
+                    "template_role_code": template_role_code,
+                    "permission_count": len(template_permission_ids),
+                },
+                conn=conn,
+            )
+            return role
 
     async def update_custom_role(
         self,
         *,
+        organization_id: UUID,
         workspace_id: UUID,
+        actor_user_id: UUID,
         role_code: str,
         name: str | None,
         description: str | None,
@@ -390,21 +454,62 @@ class WorkspaceRBACService(BaseService):
             updates["description"] = description
         if not updates:
             return role
-        return await self.repo.update_role(role, updates=updates)
+        async with self.tx() as conn:
+            updated = await self.repo.update_role(role, updates=updates, conn=conn)
+            await self._write_rbac_activity_event(
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                change_kind="role_updated",
+                entity_type="workspace_role",
+                entity_id=UUID(str(updated.id)),
+                properties={
+                    "role_code": updated.code,
+                    "changed_fields": sorted(updates.keys()),
+                    "is_system": False,
+                },
+                conn=conn,
+            )
+            return updated
 
-    async def delete_custom_role(self, *, workspace_id: UUID, role_code: str) -> None:
+    async def delete_custom_role(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        role_code: str,
+    ) -> None:
         cleaned_code = str(role_code or "").strip()
         role = await self.repo.get_role_by_code(workspace_id=workspace_id, code=cleaned_code)
         if role is None:
             raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
         if role.is_system:
             raise BadRequest(message=_tr("ROLE_DELETE_INVALID", "不允许删除系统角色"), error="ROLE_DELETE_INVALID")
-        await self.repo.delete_role(role)
+        role_id = UUID(str(role.id))
+        async with self.tx() as conn:
+            await self.repo.delete_role(role, conn=conn)
+            await self._write_rbac_activity_event(
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                change_kind="role_deleted",
+                entity_type="workspace_role",
+                entity_id=role_id,
+                properties={
+                    "role_code": cleaned_code,
+                    "is_system": False,
+                    "deleted": True,
+                },
+                conn=conn,
+            )
 
     async def set_permission_custom_roles(
         self,
         *,
+        organization_id: UUID,
         workspace_id: UUID,
+        actor_user_id: UUID,
         permission_code: str,
         role_codes: list[str],
     ) -> None:
@@ -434,20 +539,36 @@ class WorkspaceRBACService(BaseService):
                 meta={"missing": missing_role_codes},
             )
 
-        async with self.tx():
+        async with self.tx() as conn:
             for code, role in custom_roles.items():
                 if code in desired_role_codes:
-                    await self.repo.ensure_role_permission(role=role, permission=permission)
+                    await self.repo.ensure_role_permission(role=role, permission=permission, conn=conn)
                     continue
                 await self.repo.delete_role_permission(
                     role_id=UUID(str(role.id)),
                     permission_id=UUID(str(permission.id)),
+                    conn=conn,
                 )
+            await self._write_rbac_activity_event(
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                change_kind="permission_roles_set",
+                entity_type="workspace_permission",
+                entity_id=UUID(str(permission.id)),
+                properties={
+                    "permission_code": cleaned_permission_code,
+                    "role_codes": desired_role_codes,
+                },
+                conn=conn,
+            )
 
     async def set_custom_role_permissions(
         self,
         *,
+        organization_id: UUID,
         workspace_id: UUID,
+        actor_user_id: UUID,
         role_code: str,
         permission_codes: list[str],
         permission_condition_sets_by_code: dict[str, list[PermissionConditionSet]] | None = None,
@@ -471,7 +592,22 @@ class WorkspaceRBACService(BaseService):
             if item and str(item).strip()
         })
         if not desired_permission_codes:
-            await self.repo.replace_role_permissions(role=role, permission_ids=[])
+            async with self.tx() as conn:
+                await self.repo.replace_role_permissions(role=role, permission_ids=[], conn=conn)
+                await self._write_rbac_activity_event(
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    change_kind="role_permissions_set",
+                    entity_type="workspace_role",
+                    entity_id=UUID(str(role.id)),
+                    properties={
+                        "role_code": cleaned_role_code,
+                        "permission_codes": [],
+                        "permission_count": 0,
+                    },
+                    conn=conn,
+                )
             return
 
         permissions = await self.repo.list_permissions_by_codes(codes=desired_permission_codes)
@@ -504,11 +640,28 @@ class WorkspaceRBACService(BaseService):
             for code in desired_permission_codes
             if code in permissions_by_code
         }
-        await self.repo.replace_role_permissions(
-            role=role,
-            permission_ids=permission_ids,
-            condition_sets_by_permission_id=conditions_by_permission_id,
-        )
+        async with self.tx() as conn:
+            await self.repo.replace_role_permissions(
+                role=role,
+                permission_ids=permission_ids,
+                condition_sets_by_permission_id=conditions_by_permission_id,
+                conn=conn,
+            )
+            await self._write_rbac_activity_event(
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                change_kind="role_permissions_set",
+                entity_type="workspace_role",
+                entity_id=UUID(str(role.id)),
+                properties={
+                    "role_code": cleaned_role_code,
+                    "permission_codes": desired_permission_codes,
+                    "permission_count": len(desired_permission_codes),
+                    "conditional_permission_codes": sorted((permission_condition_sets_by_code or {}).keys()),
+                },
+                conn=conn,
+            )
 
     async def ensure_all_workspaces_ready(self) -> int:
         workspace_ids = await self.repo.list_workspace_ids()

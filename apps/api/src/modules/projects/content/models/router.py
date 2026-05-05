@@ -6,7 +6,6 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends, Query, status
 
 from src.common.types.public_uuid import PublicUUID
-from src.core.events import EventBus
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
@@ -28,9 +27,7 @@ from src.modules.projects.content.models.canonical_service import (
 from src.modules.projects.content.models.field_type_registry import content_model_field_type_registry
 from src.modules.projects.content.models.router_helpers import (
     ContentModelMutationOut,
-    get_event_bus,
     get_project_content_canonical_models_service,
-    publish_content_model_activity_event,
     to_mutation_out,
     to_preview_out,
 )
@@ -298,7 +295,6 @@ async def update_project_content_model(
     payload: Annotated[ContentModelDefinitionPatchContract, Body(description="Patch model contract payload.")],
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
     actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
-    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         ProjectContentCanonicalModelsService,
         Depends(get_project_content_canonical_models_service),
@@ -314,13 +310,6 @@ async def update_project_content_model(
     )
     if record is None:
         raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
-    await publish_content_model_activity_event(
-        actor_user_id=actor_user_id,
-        project_ctx=ctx.project_ctx,
-        entity_id=UUID(str(record.record.id)),
-        event_bus=event_bus,
-        result=record,
-    )
     return ApiResponse.success(data=to_mutation_out(record))
 
 
@@ -332,6 +321,7 @@ async def update_project_content_model(
 async def delete_project_content_model(
     model_id: PublicUUID,
     ctx: Annotated[ProjectContentRouteContext, Depends(require_project_content_manage_context)],
+    actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
     service: Annotated[
         ProjectContentCanonicalModelsService,
         Depends(get_project_content_canonical_models_service),
@@ -342,6 +332,7 @@ async def delete_project_content_model(
         site_id=ctx.site_id,
         environment_id=ctx.environment_id,
         model_id=model_id,
+        actor_user_id=actor_user_id,
     )
     if not deleted:
         raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")

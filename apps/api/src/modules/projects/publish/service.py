@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -84,6 +85,9 @@ def _refresh_readiness_summary(impact: PublishReadinessOut, *, selected_item_cou
         blocked_item_count=len(impact.blocked_items),
         blocker_codes=blocker_codes,
     )
+
+
+ReleaseSnapshotHook = Callable[[ContentReleaseRecord, PublishArtifactsOut, BaseDBAsyncClient], Awaitable[None]]
 
 
 async def _load_publishable_items(
@@ -291,6 +295,7 @@ class ProjectPublishService(BaseService):
         workspace_id: UUID,
         site_id: UUID,
         actor_user_id: UUID | None,
+        after_release_created: ReleaseSnapshotHook | None = None,
     ) -> tuple[ContentReleaseRecord, PublishArtifactsOut]:
         impact = await self.preview_impact(workspace_id=workspace_id, site_id=site_id)
         if _has_blockers(impact):
@@ -307,6 +312,7 @@ class ProjectPublishService(BaseService):
             impact=impact,
             activate=True,
             scheduled_at=None,
+            after_release_created=after_release_created,
         )
 
     async def create_scheduled_release(
@@ -370,6 +376,7 @@ class ProjectPublishService(BaseService):
         impact: PublishReadinessOut,
         activate: bool,
         scheduled_at: datetime | None,
+        after_release_created: ReleaseSnapshotHook | None = None,
     ) -> tuple[ContentReleaseRecord, PublishArtifactsOut]:
         async with self.tenant_db.connection() as conn:
             environment_id = await _production_environment_id(site_id=site_id, conn=conn)
@@ -536,4 +543,7 @@ class ProjectPublishService(BaseService):
                 await PublishedGraphRecord.bulk_create(rows, using_db=conn)
             if artifact_rows:
                 await PublishArtifactRecord.bulk_create(artifact_rows, using_db=conn)
-        return release, PublishArtifactsOut(graph_nodes=len(rows), impact=impact, selection_count=len(items))
+            artifacts = PublishArtifactsOut(graph_nodes=len(rows), impact=impact, selection_count=len(items))
+            if after_release_created is not None:
+                await after_release_created(release, artifacts, conn)
+        return release, artifacts

@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.common.utils.public_ids import encode_uuid
+from src.common.utils.public_ids import decode_public_id, encode_uuid
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
@@ -107,6 +107,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
         monkeypatch.setattr("src.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
 
+        from src.models.analytics.audit_event import AuditEvent
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
         from src.models.projects.project import ProjectRecord
@@ -177,6 +178,16 @@ async def test_workspace_email_invite_pending_unique_and_accept(
                 ).count()
                 == 1
             )
+            invite_row = await WorkspaceEmailInvite.get(workspace_id=ws.id, email=invite_email)
+            created_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.invite.email.created",
+                workspace_id=ws.id,
+            )
+            assert created_event.organization_id == org.id
+            assert created_event.workspace_id == ws.id
+            assert created_event.actor_user_id == owner.id
+            assert isinstance(created_event.properties, dict)
+            assert created_event.properties.get("invite_id") == str(invite_row.id)
 
             # Q2: create again should update existing (still one active invite).
             resp = await client.post(
@@ -194,6 +205,15 @@ async def test_workspace_email_invite_pending_unique_and_accept(
                 ).count()
                 == 1
             )
+            updated_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.invite.email.updated",
+                workspace_id=ws.id,
+            )
+            assert updated_event.organization_id == org.id
+            assert updated_event.workspace_id == ws.id
+            assert updated_event.actor_user_id == owner.id
+            assert isinstance(updated_event.properties, dict)
+            assert updated_event.properties.get("invite_id") == str(invite_row.id)
 
             assert (
                 await WorkspaceEmailInvite.filter(
@@ -201,6 +221,61 @@ async def test_workspace_email_invite_pending_unique_and_accept(
                 ).count()
                 == 1
             )
+
+            # Renew and revoke lifecycle should persist operation-level Activity evidence.
+            lifecycle_email = f"lifecycle_{uuid4().hex[:8]}@example.com"
+            resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites",
+                json={"email": lifecycle_email, "roleCode": "admin", "expiresInSeconds": 3600},
+            )
+            assert resp.status_code == 200
+            lifecycle_invite_id = resp.json()["data"]["invitation"]["id"]
+
+            resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/team/email-invites/{lifecycle_invite_id}/renew",
+                json={"expiresInSeconds": 7200},
+            )
+            assert resp.status_code == 200
+            renewed_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.invite.email.renewed",
+                workspace_id=ws.id,
+            )
+            assert renewed_event.organization_id == org.id
+            assert renewed_event.workspace_id == ws.id
+            assert renewed_event.actor_user_id == owner.id
+
+            resp = await client.delete(f"/api/v1/workspaces/{ws_pid}/team/email-invites/{lifecycle_invite_id}")
+            assert resp.status_code == 200
+            revoked_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.invite.email.revoked",
+                workspace_id=ws.id,
+            )
+            assert revoked_event.organization_id == org.id
+            assert revoked_event.workspace_id == ws.id
+            assert revoked_event.actor_user_id == owner.id
+
+            activity_res = await client.get(
+                f"/api/v1/workspaces/{ws_pid}/activity?eventName=workspace.invite.&page=1&size=10"
+            )
+            assert activity_res.status_code == 200, activity_res.text
+            activity_items = activity_res.json()["data"]["items"]
+            invite_event_names = [
+                entry["eventName"] for entry in activity_items if entry["eventName"].startswith("workspace.invite.")
+            ]
+            assert set(invite_event_names[:4]) == {
+                "workspace.invite.email.revoked",
+                "workspace.invite.email.renewed",
+                "workspace.invite.email.updated",
+                "workspace.invite.email.created",
+            }
+            invite_created_entry = next(
+                entry
+                for entry in activity_items
+                if entry["eventName"] == "workspace.invite.email.created"
+                and entry["properties"]["invite_id"] == str(invite_row.id)
+            )
+            assert invite_created_entry["properties"]["invite_id"] == str(invite_row.id)
+            assert "invited@example.com" not in str(invite_created_entry["properties"])
 
             # Accept existing with matching email.
             current_user = invitee
@@ -245,6 +320,125 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             assert resp.status_code == 200
             ordered_invites_desc_items = resp.json()["data"]["items"]
             assert ordered_invites_desc_items[0]["email"] == ordered_email_high
+
+            # Prepare pending invites used for rollback checks.
+            update_fail_email = f"rollback_update_{uuid4().hex[:8]}@example.com"
+            renew_fail_email = f"rollback_renew_{uuid4().hex[:8]}@example.com"
+            revoke_fail_email = f"rollback_revoke_{uuid4().hex[:8]}@example.com"
+            for pending_email in [update_fail_email, renew_fail_email, revoke_fail_email]:
+                resp = await client.post(
+                    f"/api/v1/workspaces/{ws_pid}/team/email-invites",
+                    json={"email": pending_email, "roleCode": "admin", "expiresInSeconds": 3600},
+                )
+                assert resp.status_code == 200
+
+            from src.modules.workspaces.team import service as team_service_module
+
+            original_write_required_activity_event = team_service_module.write_required_activity_event
+
+            async def _failing_write_required_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+                if payload.event_name in {
+                    "workspace.invite.email.created",
+                    "workspace.invite.email.updated",
+                    "workspace.invite.email.renewed",
+                    "workspace.invite.email.revoked",
+                }:
+                    raise RuntimeError(f"forced activity write failure: {payload.event_name}")
+                return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+            monkeypatch.setattr(
+                "src.modules.workspaces.team.service.write_required_activity_event",
+                _failing_write_required_activity_event,
+            )
+
+            created_event_count = await AuditEvent.filter(
+                event_name="workspace.invite.email.created",
+                workspace_id=ws.id,
+            ).count()
+            updated_event_count = await AuditEvent.filter(
+                event_name="workspace.invite.email.updated",
+                workspace_id=ws.id,
+            ).count()
+            renewed_event_count = await AuditEvent.filter(
+                event_name="workspace.invite.email.renewed",
+                workspace_id=ws.id,
+            ).count()
+            revoked_event_count = await AuditEvent.filter(
+                event_name="workspace.invite.email.revoked",
+                workspace_id=ws.id,
+            ).count()
+
+            create_fail_email = f"rollback_create_{uuid4().hex[:8]}@example.com"
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.email.created"):
+                await client.post(
+                    f"/api/v1/workspaces/{ws_pid}/team/email-invites",
+                    json={"email": create_fail_email, "roleCode": "admin", "expiresInSeconds": 3600},
+                )
+            assert (
+                await WorkspaceEmailInvite.filter(
+                    workspace_id=ws.id,
+                    email=create_fail_email,
+                ).count()
+                == 0
+            )
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.email.created",
+                    workspace_id=ws.id,
+                ).count()
+                == created_event_count
+            )
+
+            update_fail_invite = await WorkspaceEmailInvite.get(workspace_id=ws.id, email=update_fail_email)
+            update_fail_before_expires = update_fail_invite.expires_at
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.email.updated"):
+                await client.post(
+                    f"/api/v1/workspaces/{ws_pid}/team/email-invites",
+                    json={"email": update_fail_email, "roleCode": "admin", "expiresInSeconds": 7200},
+                )
+            update_fail_after = await WorkspaceEmailInvite.get(id=update_fail_invite.id)
+            assert update_fail_after.expires_at == update_fail_before_expires
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.email.updated",
+                    workspace_id=ws.id,
+                ).count()
+                == updated_event_count
+            )
+
+            renew_fail_invite = await WorkspaceEmailInvite.get(workspace_id=ws.id, email=renew_fail_email)
+            renew_fail_before_expires = renew_fail_invite.expires_at
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.email.renewed"):
+                await client.post(
+                    f"/api/v1/workspaces/{ws_pid}/team/email-invites/{encode_uuid(renew_fail_invite.id)}/renew",
+                    json={"expiresInSeconds": 7200},
+                )
+            renew_fail_after = await WorkspaceEmailInvite.get(id=renew_fail_invite.id)
+            assert renew_fail_after.expires_at == renew_fail_before_expires
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.email.renewed",
+                    workspace_id=ws.id,
+                ).count()
+                == renewed_event_count
+            )
+
+            revoke_fail_invite = await WorkspaceEmailInvite.get(workspace_id=ws.id, email=revoke_fail_email)
+            assert revoke_fail_invite.revoked_at is None
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.email.revoked"):
+                await client.delete(
+                    f"/api/v1/workspaces/{ws_pid}/team/email-invites/{encode_uuid(revoke_fail_invite.id)}"
+                )
+            revoke_fail_after = await WorkspaceEmailInvite.get(id=revoke_fail_invite.id)
+            assert revoke_fail_after.revoked_at is None
+            assert revoke_fail_after.revoked_by_user_id is None
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.email.revoked",
+                    workspace_id=ws.id,
+                ).count()
+                == revoked_event_count
+            )
 
 
 async def test_workspace_email_invite_email_mismatch_rejected(
@@ -335,7 +529,9 @@ async def test_workspace_email_invite_email_mismatch_rejected(
             assert resp.status_code == 403
 
 
-async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integration_valkey_settings) -> None:
+async def test_workspace_invite_link_disable_blocks_accept(
+    prepared_db, integration_valkey_settings, monkeypatch
+) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
 
@@ -346,9 +542,11 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from src.models.analytics.audit_event import AuditEvent
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
         from src.models.workspaces.workspace import Workspace
+        from src.models.workspaces.workspace_invite import WorkspaceInviteLink
         from src.modules.auth.repository import UserRepository
         from src.modules.auth.tokens.service import hash_password
         from src.modules.organization.repository import OrganizationRepository
@@ -405,6 +603,13 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
             assert resp.status_code == 200
             token = resp.json()["data"]["token"]
             link_id = resp.json()["data"]["link"]["id"]
+            created_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.invite.link.created",
+                workspace_id=ws.id,
+            )
+            assert created_event.organization_id == org.id
+            assert created_event.workspace_id == ws.id
+            assert created_event.actor_user_id == owner.id
 
             resp = await client.post(
                 f"/api/v1/workspaces/{ws_pid}/team/invite-links",
@@ -421,18 +626,129 @@ async def test_workspace_invite_link_disable_blocks_accept(prepared_db, integrat
             ordered_links_items = resp.json()["data"]["items"]
             assert ordered_links_items[0]["id"] == latest_link_id
 
+            # Renew should write operation-level Activity in the same mutation family.
+            resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links/{link_id}/renew",
+                json={"expiresInSeconds": 7200},
+            )
+            assert resp.status_code == 200
+            renewed_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.invite.link.renewed",
+                workspace_id=ws.id,
+            )
+            assert renewed_event.organization_id == org.id
+            assert renewed_event.workspace_id == ws.id
+            assert renewed_event.actor_user_id == owner.id
+
             # Disable the link.
             resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/invite-links/{link_id}/disable")
             assert resp.status_code == 200
+            disabled_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.invite.link.disabled",
+                workspace_id=ws.id,
+            )
+            assert disabled_event.organization_id == org.id
+            assert disabled_event.workspace_id == ws.id
+            assert disabled_event.actor_user_id == owner.id
 
             # Accept should fail.
             current_user = invitee
             resp = await client.post("/api/v1/auth/invitations/accept-existing", json={"token": token})
             assert resp.status_code == 403
 
+            current_user = owner
+            disable_fail_resp = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/team/invite-links",
+                json={"roleCode": "admin", "expiresInSeconds": 3600, "maxUses": None, "allowedEmailDomain": None},
+            )
+            assert disable_fail_resp.status_code == 200
+            disable_fail_link_id = disable_fail_resp.json()["data"]["link"]["id"]
+
+            from src.modules.workspaces.team import service as team_service_module
+
+            original_write_required_activity_event = team_service_module.write_required_activity_event
+
+            async def _failing_write_required_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+                if payload.event_name in {
+                    "workspace.invite.link.created",
+                    "workspace.invite.link.renewed",
+                    "workspace.invite.link.disabled",
+                }:
+                    raise RuntimeError(f"forced activity write failure: {payload.event_name}")
+                return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+            monkeypatch.setattr(
+                "src.modules.workspaces.team.service.write_required_activity_event",
+                _failing_write_required_activity_event,
+            )
+
+            created_event_count = await AuditEvent.filter(
+                event_name="workspace.invite.link.created",
+                workspace_id=ws.id,
+            ).count()
+            renewed_event_count = await AuditEvent.filter(
+                event_name="workspace.invite.link.renewed",
+                workspace_id=ws.id,
+            ).count()
+            disabled_event_count = await AuditEvent.filter(
+                event_name="workspace.invite.link.disabled",
+                workspace_id=ws.id,
+            ).count()
+
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.link.created"):
+                await client.post(
+                    f"/api/v1/workspaces/{ws_pid}/team/invite-links",
+                    json={"roleCode": "admin", "expiresInSeconds": 3600, "maxUses": None, "allowedEmailDomain": None},
+                )
+            assert (
+                await WorkspaceInviteLink.filter(
+                    workspace_id=ws.id,
+                    created_by_user_id=owner.id,
+                ).count()
+                == 3
+            )
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.link.created",
+                    workspace_id=ws.id,
+                ).count()
+                == created_event_count
+            )
+
+            renew_fail_link = await WorkspaceInviteLink.get(id=decode_public_id(link_id))
+            renew_fail_before_expires = renew_fail_link.expires_at
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.link.renewed"):
+                await client.post(
+                    f"/api/v1/workspaces/{ws_pid}/team/invite-links/{link_id}/renew",
+                    json={"expiresInSeconds": 10800},
+                )
+            renew_fail_after = await WorkspaceInviteLink.get(id=renew_fail_link.id)
+            assert renew_fail_after.expires_at == renew_fail_before_expires
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.link.renewed",
+                    workspace_id=ws.id,
+                ).count()
+                == renewed_event_count
+            )
+
+            disable_fail_link = await WorkspaceInviteLink.get(id=decode_public_id(disable_fail_link_id))
+            assert disable_fail_link.disabled_at is None
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.invite.link.disabled"):
+                await client.post(f"/api/v1/workspaces/{ws_pid}/team/invite-links/{disable_fail_link_id}/disable")
+            disable_fail_after = await WorkspaceInviteLink.get(id=disable_fail_link.id)
+            assert disable_fail_after.disabled_at is None
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.invite.link.disabled",
+                    workspace_id=ws.id,
+                ).count()
+                == disabled_event_count
+            )
+
 
 async def test_workspace_team_member_manage_update_disable_enable_and_reset_password(
-    prepared_db, integration_valkey_settings
+    prepared_db, integration_valkey_settings, monkeypatch
 ) -> None:
     _ = prepared_db
     _ = integration_valkey_settings
@@ -444,10 +760,11 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
+        from src.models.analytics.audit_event import AuditEvent
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
         from src.models.system.notification import NotificationRecord
-        from src.models.workspaces.workspace import Workspace, WorkspaceMembership
+        from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipRole
         from src.modules.auth.repository import UserRepository
         from src.modules.auth.tokens.service import hash_password
         from src.modules.organization.repository import OrganizationRepository
@@ -554,11 +871,33 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             assert resp.status_code == 200
             assert resp.json()["data"]["membershipId"] == member_m_pid
             assert resp.json()["data"]["status"] == "disabled"
+            disabled_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.member.status.updated",
+                workspace_id=ws.id,
+            )
+            assert disabled_event.organization_id == org.id
+            assert disabled_event.actor_user_id == owner.id
+            assert disabled_event.subject_user_id == member.id
+            assert disabled_event.entity_type == "workspace_membership"
+            assert disabled_event.entity_id == member_m.id
+            assert isinstance(disabled_event.properties, dict)
+            assert disabled_event.properties.get("enabled") is False
 
             # Enable member.
             resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/enable")
             assert resp.status_code == 200
             assert resp.json()["data"]["status"] == "active"
+            enabled_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.member.status.updated",
+                workspace_id=ws.id,
+            )
+            assert enabled_event.organization_id == org.id
+            assert enabled_event.actor_user_id == owner.id
+            assert enabled_event.subject_user_id == member.id
+            assert enabled_event.entity_type == "workspace_membership"
+            assert enabled_event.entity_id == member_m.id
+            assert isinstance(enabled_event.properties, dict)
+            assert enabled_event.properties.get("enabled") is True
             assert (
                 await NotificationRecord.filter(
                     workspace_id=ws.id,
@@ -574,6 +913,19 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
                 json={"roleCodes": ["admin"]},
             )
             assert resp.status_code == 200
+            roles_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.member.roles.updated",
+                workspace_id=ws.id,
+            )
+            assert roles_event.organization_id == org.id
+            assert roles_event.actor_user_id == owner.id
+            assert roles_event.subject_user_id == member.id
+            assert roles_event.entity_type == "workspace_membership"
+            assert roles_event.entity_id == member_m.id
+            assert isinstance(roles_event.properties, dict)
+            role_codes_after = roles_event.properties.get("role_codes_after")
+            assert isinstance(role_codes_after, list)
+            assert "admin" in role_codes_after
             assert (
                 await NotificationRecord.filter(
                     workspace_id=ws.id,
@@ -621,6 +973,162 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             assert pwd_event.entity_type == "workspace_membership"
             assert pwd_event.entity_id == member_m.id
 
+            activity_res = await client.get(
+                f"/api/v1/workspaces/{ws_pid}/activity?eventName=workspace.member.&page=1&size=10"
+            )
+            assert activity_res.status_code == 200, activity_res.text
+            activity_items = activity_res.json()["data"]["items"]
+            member_event_names = [
+                entry["eventName"] for entry in activity_items if entry["eventName"].startswith("workspace.member.")
+            ]
+            assert member_event_names[:5] == [
+                "workspace.member.password.reset",
+                "workspace.member.roles.updated",
+                "workspace.member.status.updated",
+                "workspace.member.status.updated",
+                "workspace.member.profile.updated",
+            ]
+            password_event = next(
+                entry for entry in activity_items if entry["eventName"] == "workspace.member.password.reset"
+            )
+            assert password_event["properties"]["membership_id"] == str(member_m.id)
+            assert "new_password" not in password_event["properties"]
+            assert "password" not in password_event["properties"]
+
             # Disabling self should be rejected.
             resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{owner_m_pid}/disable")
             assert resp.status_code == 400
+
+            from src.modules.workspaces.team import service as team_service_module
+
+            original_write_required_activity_event = team_service_module.write_required_activity_event
+
+            async def _failing_write_required_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+                if payload.event_name in {
+                    "workspace.member.profile.updated",
+                    "workspace.member.status.updated",
+                    "workspace.member.roles.updated",
+                    "workspace.member.password.reset",
+                }:
+                    raise RuntimeError(f"forced activity write failure: {payload.event_name}")
+                return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+            monkeypatch.setattr(
+                "src.modules.workspaces.team.service.write_required_activity_event",
+                _failing_write_required_activity_event,
+            )
+
+            profile_event_count = await AuditEvent.filter(
+                event_name="workspace.member.profile.updated",
+                workspace_id=ws.id,
+            ).count()
+            status_event_count = await AuditEvent.filter(
+                event_name="workspace.member.status.updated",
+                workspace_id=ws.id,
+            ).count()
+            roles_event_count = await AuditEvent.filter(
+                event_name="workspace.member.roles.updated",
+                workspace_id=ws.id,
+            ).count()
+            password_event_count = await AuditEvent.filter(
+                event_name="workspace.member.password.reset",
+                workspace_id=ws.id,
+            ).count()
+
+            before_profile_user = await user_repo.get_by_id(member.id)
+            assert before_profile_user is not None
+            before_profile_display_name = before_profile_user.display_name
+            before_profile_email = before_profile_user.email
+
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.member.profile.updated"):
+                await client.patch(
+                    f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}",
+                    json={"displayName": "Should Rollback", "email": "rollback.member@example.com"},
+                )
+
+            after_profile_user = await user_repo.get_by_id(member.id)
+            assert after_profile_user is not None
+            assert after_profile_user.display_name == before_profile_display_name
+            assert after_profile_user.email == before_profile_email
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.member.profile.updated",
+                    workspace_id=ws.id,
+                ).count()
+                == profile_event_count
+            )
+
+            before_disable_membership = await WorkspaceMembership.get(id=member_m.id)
+            assert before_disable_membership.status == "active"
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.member.status.updated"):
+                await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/disable")
+            after_disable_membership = await WorkspaceMembership.get(id=member_m.id)
+            assert after_disable_membership.status == "active"
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.member.status.updated",
+                    workspace_id=ws.id,
+                ).count()
+                == status_event_count
+            )
+
+            after_disable_membership.status = "disabled"
+            await after_disable_membership.save(update_fields=["status", "updated_at"])
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.member.status.updated"):
+                await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/enable")
+            after_enable_failure_membership = await WorkspaceMembership.get(id=member_m.id)
+            assert after_enable_failure_membership.status == "disabled"
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.member.status.updated",
+                    workspace_id=ws.id,
+                ).count()
+                == status_event_count
+            )
+            after_enable_failure_membership.status = "active"
+            await after_enable_failure_membership.save(update_fields=["status", "updated_at"])
+
+            before_roles = sorted(
+                await WorkspaceMembershipRole.filter(membership_id=member_m.id).values_list("role__code", flat=True)
+            )
+            assert before_roles == ["admin"]
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.member.roles.updated"):
+                await client.put(
+                    f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/roles",
+                    json={"roleCodes": ["viewer"]},
+                )
+            after_roles = sorted(
+                await WorkspaceMembershipRole.filter(membership_id=member_m.id).values_list("role__code", flat=True)
+            )
+            assert after_roles == before_roles
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.member.roles.updated",
+                    workspace_id=ws.id,
+                ).count()
+                == roles_event_count
+            )
+
+            before_reset = await user_repo.get_by_id_with_credential(member.id)
+            assert before_reset is not None
+            before_reset_like = cast(_UserWithCredential, before_reset)
+            before_reset_hash = before_reset_like.credential.password_hash if before_reset_like.credential else None
+            before_reset_ver = int(before_reset_like.token_version or 0)
+            with pytest.raises(RuntimeError, match="forced activity write failure: workspace.member.password.reset"):
+                await client.post(
+                    f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/reset-password",
+                    json={"newPassword": "rollback_password_1234"},
+                )
+            after_reset = await user_repo.get_by_id_with_credential(member.id)
+            assert after_reset is not None
+            after_reset_like = cast(_UserWithCredential, after_reset)
+            after_reset_hash = after_reset_like.credential.password_hash if after_reset_like.credential else None
+            assert after_reset_hash == before_reset_hash
+            assert int(after_reset_like.token_version or 0) == before_reset_ver
+            assert (
+                await AuditEvent.filter(
+                    event_name="workspace.member.password.reset",
+                    workspace_id=ws.id,
+                ).count()
+                == password_event_count
+            )

@@ -119,7 +119,7 @@ class _FakeTwoFactor:
         raise Unauthorized(message="invalid", error="TWO_FACTOR_CODE_INVALID")
 
 
-def _build_service(*, has_password: bool, two_factor_enabled: bool) -> tuple[AuthService, _FakeUser]:
+def _build_service(monkeypatch, *, has_password: bool, two_factor_enabled: bool) -> tuple[AuthService, _FakeUser]:
     settings = get_settings()
     user = _FakeUser(
         id=uuid4(),
@@ -135,6 +135,11 @@ def _build_service(*, has_password: bool, two_factor_enabled: bool) -> tuple[Aut
         user_repo=cast(UserRepositoryLike, repo),
         two_factor=_FakeTwoFactor(enabled=two_factor_enabled),
     )
+
+    async def _fake_write_auth_activity_event(**kwargs: object) -> None:
+        _ = kwargs
+
+    monkeypatch.setattr(service, "_write_auth_activity_event", _fake_write_auth_activity_event)
     return service, user
 
 
@@ -157,16 +162,16 @@ def test_security_capabilities_schema_fields_are_frozen() -> None:
 
 
 @pytest.mark.asyncio
-async def test_set_password_for_oauth_only_user_with_recent_login_success() -> None:
-    service, user = _build_service(has_password=False, two_factor_enabled=False)
+async def test_set_password_for_oauth_only_user_with_recent_login_success(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch, has_password=False, two_factor_enabled=False)
     await service.set_password_for_current_user(user_id=user.id, new_password="newpass1", code=None, backup_code=None)
     assert user.credential is not None
     assert verify_password("newpass1", user.credential.password_hash, service.settings.auth) is True
 
 
 @pytest.mark.asyncio
-async def test_set_password_conflicts_when_password_already_exists() -> None:
-    service, user = _build_service(has_password=True, two_factor_enabled=False)
+async def test_set_password_conflicts_when_password_already_exists(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch, has_password=True, two_factor_enabled=False)
     with pytest.raises(Conflict):
         await service.set_password_for_current_user(
             user_id=user.id,

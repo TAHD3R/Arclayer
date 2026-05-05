@@ -26,34 +26,47 @@ class _FakeTwoFactorRepo:
         self._record = record
         self._last_counter: int | None = None
 
-    async def get_record(self, user_id: UUID) -> _FakeTwoFactorRecord | None:
+    async def get_record(self, user_id: UUID, *, conn=None) -> _FakeTwoFactorRecord | None:  # type: ignore[no-untyped-def]
+        _ = conn
         return self._record if user_id == self._record.user_id else None
 
-    async def upsert_pending_secret(self, *, user_id: UUID, totp_secret_enc: str):
+    async def upsert_pending_secret(self, *, user_id: UUID, totp_secret_enc: str, conn=None):  # type: ignore[no-untyped-def]
+        _ = conn
         raise RuntimeError("not used")
 
-    async def set_enabled_at(self, *, user_id: UUID, enabled_at: datetime) -> None:
+    async def set_enabled_at(self, *, user_id: UUID, enabled_at: datetime, conn=None) -> None:  # type: ignore[no-untyped-def]
+        _ = conn
         raise RuntimeError("not used")
 
-    async def delete_record(self, *, user_id: UUID) -> None:
+    async def delete_record(self, *, user_id: UUID, conn=None) -> None:  # type: ignore[no-untyped-def]
+        _ = conn
         raise RuntimeError("not used")
 
-    async def delete_backup_codes(self, *, user_id: UUID) -> int:
+    async def delete_backup_codes(self, *, user_id: UUID, conn=None) -> int:  # type: ignore[no-untyped-def]
+        _ = conn
         raise RuntimeError("not used")
 
-    async def create_backup_codes(self, *, user_id: UUID, items: list[dict[str, str]]) -> None:
+    async def create_backup_codes(  # type: ignore[no-untyped-def]
+        self, *, user_id: UUID, items: list[dict[str, str]], conn=None
+    ) -> None:
+        _ = conn
         raise RuntimeError("not used")
 
-    async def list_unused_backup_codes(self, *, user_id: UUID):
+    async def list_unused_backup_codes(self, *, user_id: UUID, conn=None):  # type: ignore[no-untyped-def]
+        _ = conn
         raise RuntimeError("not used")
 
-    async def mark_backup_code_used(self, *, code_id: UUID, used_at: datetime) -> None:
+    async def mark_backup_code_used(self, *, code_id: UUID, used_at: datetime, conn=None) -> None:  # type: ignore[no-untyped-def]
+        _ = conn
         raise RuntimeError("not used")
 
     async def count_unused_backup_codes(self, *, user_id: UUID) -> int:
         raise RuntimeError("not used")
 
-    async def try_advance_totp_counter(self, *, user_id: UUID, counter: int, used_at: datetime) -> bool:
+    async def try_advance_totp_counter(  # type: ignore[no-untyped-def]
+        self, *, user_id: UUID, counter: int, used_at: datetime, conn=None
+    ) -> bool:
+        _ = conn
         if user_id != self._record.user_id:
             return False
         if self._last_counter is None or counter > self._last_counter:

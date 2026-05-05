@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
@@ -52,7 +51,11 @@ def get_project_content_canonical_items_service(
         items_repo=repo,
         lifecycle=lifecycle,
     )
-    return ProjectContentCanonicalItemsService(repo=repo, entity_manager=entity_manager)
+    return ProjectContentCanonicalItemsService(
+        repo=repo,
+        entity_manager=entity_manager,
+        organization_id=ctx.organization_id,
+    )
 
 
 def get_project_content_canonical_item_reads(
@@ -65,7 +68,7 @@ def get_project_content_canonical_item_reads(
     )
 
 
-async def publish_content_activity_event(
+async def publish_content_runtime_event(
     *,
     actor_user_id: UUID | None,
     project_ctx: ProjectRequestContext,
@@ -76,24 +79,20 @@ async def publish_content_activity_event(
     properties: JsonObject | None = None,
 ) -> None:
     tenant_payload = tenant_payload_from_context()
-    try:
-        await event_bus.publish(
-            Event(
-                name=event_name,
-                payload={
-                    "organization_id": str(project_ctx.organization_id),
-                    "workspace_id": str(project_ctx.workspace_id),
-                    "entity_type": entity_type,
-                    "entity_id": str(entity_id),
-                    "tenant": tenant_payload,
-                    **(properties or {}),
-                },
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(actor_user_id) if actor_user_id is not None else None,
-            )
+    await event_bus.publish(
+        Event(
+            name=event_name,
+            payload={
+                "organization_id": str(project_ctx.organization_id),
+                "workspace_id": str(project_ctx.workspace_id),
+                "activity_ingest": False,
+                "entity_type": entity_type,
+                "entity_id": str(entity_id),
+                "tenant": tenant_payload,
+                **(properties or {}),
+            },
+            source="api",
+            trace_id=correlation_id.get(None),
+            actor_user_id=str(actor_user_id) if actor_user_id is not None else None,
         )
-    except (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit):
-        raise
-    except BaseException:
-        return
+    )

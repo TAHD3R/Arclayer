@@ -146,8 +146,9 @@ class ProjectReleasesRepository(TenantScopedRepository):
         site_id: UUID,
         release: ContentReleaseRecord,
         activated_at: datetime,
+        conn: BaseDBAsyncClient | None = None,
     ) -> tuple[ContentReleaseRecord, UUID | None]:
-        async with self.connection() as conn:
+        async with self.connection(conn) as conn:
             target = (
                 await ContentReleaseRecord
                 .filter(

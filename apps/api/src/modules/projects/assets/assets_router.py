@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Header, Query
 from starlette.responses import Response
 
@@ -32,6 +34,7 @@ from src.modules.assets.admin.assets.schema import (
 )
 from src.modules.assets.admin.assets.service import AdminAssetsService
 from src.modules.assets.scope import AssetScope
+from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.router_helpers import require_project_permission
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
@@ -142,9 +145,15 @@ async def patch_asset(
     asset_id: PublicUUID,
     payload: AdminAssetUpdateRequest,
     ctx: ProjectRequestContext = Depends(get_project_context),
+    actor_user_id: UUID = Depends(get_current_user_id),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetDetailOut]:
-    updated = await service.update_asset(scope=_project_scope(ctx), asset_id=asset_id, payload=payload)
+    updated = await service.update_asset(
+        scope=_project_scope(ctx),
+        asset_id=asset_id,
+        payload=payload,
+        actor_user_id=actor_user_id,
+    )
     return JsonResponse.success(data=updated)
 
 
@@ -157,9 +166,10 @@ async def patch_asset(
 async def delete_asset(
     asset_id: PublicUUID,
     ctx: ProjectRequestContext = Depends(get_project_context),
+    actor_user_id: UUID = Depends(get_current_user_id),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetDeleteOut]:
-    deleted = await service.delete_asset(scope=_project_scope(ctx), asset_id=asset_id)
+    deleted = await service.delete_asset(scope=_project_scope(ctx), asset_id=asset_id, actor_user_id=actor_user_id)
     return JsonResponse.success(data=deleted)
 
 
@@ -172,9 +182,10 @@ async def delete_asset(
 async def create_asset_folder(
     payload: AdminAssetFolderCreateRequest,
     ctx: ProjectRequestContext = Depends(get_project_context),
+    actor_user_id: UUID = Depends(get_current_user_id),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderOut]:
-    created = await service.create_folder(scope=_project_scope(ctx), payload=payload)
+    created = await service.create_folder(scope=_project_scope(ctx), payload=payload, actor_user_id=actor_user_id)
     return JsonResponse.success(data=created)
 
 
@@ -188,9 +199,15 @@ async def update_asset_folder(
     folder_id: PublicUUID,
     payload: AdminAssetFolderUpdateRequest,
     ctx: ProjectRequestContext = Depends(get_project_context),
+    actor_user_id: UUID = Depends(get_current_user_id),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderOut]:
-    updated = await service.update_folder(scope=_project_scope(ctx), folder_id=folder_id, payload=payload)
+    updated = await service.update_folder(
+        scope=_project_scope(ctx),
+        folder_id=folder_id,
+        payload=payload,
+        actor_user_id=actor_user_id,
+    )
     return JsonResponse.success(data=updated)
 
 
@@ -203,9 +220,10 @@ async def update_asset_folder(
 async def delete_asset_folder(
     folder_id: PublicUUID,
     ctx: ProjectRequestContext = Depends(get_project_context),
+    actor_user_id: UUID = Depends(get_current_user_id),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderDeleteOut]:
-    deleted = await service.delete_folder(scope=_project_scope(ctx), folder_id=folder_id)
+    deleted = await service.delete_folder(scope=_project_scope(ctx), folder_id=folder_id, actor_user_id=actor_user_id)
     return JsonResponse.success(data=deleted)
 
 
@@ -219,9 +237,15 @@ async def delete_asset_folder_with_move(
     folder_id: PublicUUID,
     payload: AdminAssetFolderDeleteRequest,
     ctx: ProjectRequestContext = Depends(get_project_context),
+    actor_user_id: UUID = Depends(get_current_user_id),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderDeleteOut]:
-    deleted = await service.delete_folder(scope=_project_scope(ctx), folder_id=folder_id, payload=payload)
+    deleted = await service.delete_folder(
+        scope=_project_scope(ctx),
+        folder_id=folder_id,
+        payload=payload,
+        actor_user_id=actor_user_id,
+    )
     return JsonResponse.success(data=deleted)
 
 
@@ -280,9 +304,15 @@ async def move_asset(
     asset_id: PublicUUID,
     payload: AdminAssetMoveRequest,
     ctx: ProjectRequestContext = Depends(get_project_context),
+    actor_user_id: UUID = Depends(get_current_user_id),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetSummaryOut]:
-    updated = await service.move_asset(scope=_project_scope(ctx), asset_id=asset_id, payload=payload)
+    updated = await service.move_asset(
+        scope=_project_scope(ctx),
+        asset_id=asset_id,
+        payload=payload,
+        actor_user_id=actor_user_id,
+    )
     return JsonResponse.success(data=updated)
 
 

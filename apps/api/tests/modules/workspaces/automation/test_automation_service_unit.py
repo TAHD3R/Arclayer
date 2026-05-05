@@ -191,7 +191,7 @@ async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monke
 
     async def _fake_http_operation(*, config, event):  # type: ignore[no-untyped-def]
         assert config["url"] == "https://example.com/hooks/publish"
-        assert event.name == "project.release.published"
+        assert event.name == "release.published"
         return {"statusCode": 204}
 
     monkeypatch.setattr(service, "_execute_http_operation", _fake_http_operation)
@@ -202,12 +202,12 @@ async def test_execute_flow_marks_run_succeeded_and_records_operation_logs(monke
         dead_letter_enabled=True,
         retry_limit=0,
         status=AutomationFlowStatus.ACTIVE,
-        trigger_event="project.release.published",
+        trigger_event="release.published",
     )
     result = await service.execute_flow(
         flow=cast(AutomationFlowRecord, flow),
         event=Event(
-            name="project.release.published",
+            name="release.published",
             payload={"workspace_id": str(workspace_id), "project_id": str(uuid4()), "site_id": str(uuid4())},
             actor_user_id=str(uuid4()),
         ),

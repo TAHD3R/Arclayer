@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request
 
 from src.common.constants.assets import ASSET_SCOPE_PROJECT
 from src.common.types.public_uuid import PublicUUID
@@ -124,13 +124,12 @@ async def upload_part(
     dependencies=[require_project_permission("project:assets:manage")],
 )
 async def complete_upload(
-    background_tasks: BackgroundTasks,
     upload_id: PublicUUID,
     ctx: ProjectRequestContext = Depends(get_project_context),
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
-    asset_id = await service.complete(upload_id=upload_id, scope=_project_scope(ctx), background_tasks=background_tasks)
+    asset_id = await service.complete(upload_id=upload_id, scope=_project_scope(ctx))
     return ApiResponse.success(data=UploadCompleteOut(asset_id=asset_id))
 
 

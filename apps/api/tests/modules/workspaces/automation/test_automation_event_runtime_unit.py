@@ -22,7 +22,7 @@ async def test_automation_runtime_subscribes_all_trigger_events() -> None:
     await runtime.start(event_bus=bus)
     snapshot = await bus.snapshot()
 
-    assert "project.release.published" in snapshot
+    assert "release.published" in snapshot
     assert "project.content.item.workflow.updated" in snapshot
     assert "project.api_key.rotated" in snapshot
     assert "project.preview_token.created" in snapshot
@@ -51,9 +51,7 @@ async def test_automation_runtime_delegates_event_to_service(monkeypatch: pytest
 
     monkeypatch.setattr(runtime.service, "handle_event", _fake_handle_event)
 
-    await runtime.handle_event(
-        Event(name="project.release.published", payload={"workspace_id": "x", "project_id": "p"})
-    )
+    await runtime.handle_event(Event(name="release.published", payload={"workspace_id": "x", "project_id": "p"}))
 
-    assert observed == ["project.release.published"]
+    assert observed == ["release.published"]
     assert runtime.service.lifecycle_dispatcher is dispatcher

@@ -228,6 +228,11 @@ def _build_login_service(
     repo = FakeUserRepository(user)
     auth = AuthService(settings, valkey=valkey, user_repo=cast(UserRepositoryLike, repo))
 
+    async def _fake_write_auth_activity_event(**kwargs: object) -> None:
+        _ = kwargs
+
+    monkeypatch.setattr(auth, "_write_auth_activity_event", _fake_write_auth_activity_event)
+
     two_factor = FakeTwoFactor(enabled=two_factor_enabled)
     login = AuthLoginService(settings, valkey=valkey, auth_service=auth, two_factor=two_factor)
     return login, valkey, user

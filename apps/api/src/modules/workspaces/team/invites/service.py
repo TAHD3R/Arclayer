@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 
 from src.common.invitations.expiry import build_expires_at
@@ -126,12 +127,13 @@ class WorkspaceTeamInviteMixin:
     settings: Settings
     logger: Any
 
-    async def _publish_activity_event(
+    async def _write_activity_event(
         self,
         *,
         name: str,
         actor_user_id: UUID | None,
         payload: dict,
+        conn: BaseDBAsyncClient | None = None,
         source: str = "api",
     ) -> None: ...
 
@@ -173,6 +175,15 @@ class WorkspaceTeamInviteMixin:
         email = str(payload.email).strip().lower()
         role_code = payload.role_code.strip() if payload.role_code else None
         expires_at = build_expires_at(expires_in_seconds=payload.expires_in_seconds)
+
+        def _mask_email(value: str) -> str:
+            trimmed = (value or "").strip().lower()
+            if "@" not in trimmed:
+                return trimmed[:2] + "***" if trimmed else ""
+            local, domain = trimmed.split("@", 1)
+            safe_local = (local[:2] + "***") if local else "***"
+            safe_domain = domain if domain else "***"
+            return f"{safe_local}@{safe_domain}"
 
         if role_code:
             role = await self._get_role_by_code_in_workspace(workspace_id=workspace_id, role_code=role_code)
@@ -218,6 +229,20 @@ class WorkspaceTeamInviteMixin:
                 await existing.save(using_db=conn, update_fields=["role_code", "expires_at", "updated_at"])
                 inv = existing
 
+            await self._write_activity_event(
+                name="workspace.invite.email.created" if not is_update else "workspace.invite.email.updated",
+                actor_user_id=invited_by_user_id,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "invite_id": str(inv.id),
+                    "email_hint": _mask_email(inv.email),
+                    "role_code": inv.role_code,
+                    "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
+                },
+                conn=conn,
+            )
+
         token = build_invite_token(self.settings, code=inv.code)
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
         invite_url = f"{base}/invitations?token={token}" if base else None
@@ -250,27 +275,6 @@ class WorkspaceTeamInviteMixin:
             updated_at=inv.updated_at,
         )
 
-        def _mask_email(value: str) -> str:
-            trimmed = (value or "").strip().lower()
-            if "@" not in trimmed:
-                return trimmed[:2] + "***" if trimmed else ""
-            local, domain = trimmed.split("@", 1)
-            safe_local = (local[:2] + "***") if local else "***"
-            safe_domain = domain if domain else "***"
-            return f"{safe_local}@{safe_domain}"
-
-        await self._publish_activity_event(
-            name="workspace.invite.email.created" if not is_update else "workspace.invite.email.updated",
-            actor_user_id=invited_by_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "invite_id": str(inv.id),
-                "email_hint": _mask_email(inv.email),
-                "role_code": inv.role_code,
-                "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
-            },
-        )
         await self._notify_workspace_email_invite_change(
             workspace_id=workspace_id,
             invited_email=inv.email,
@@ -292,19 +296,41 @@ class WorkspaceTeamInviteMixin:
     ) -> WorkspaceEmailInviteCreateResult:
         expires_at = build_expires_at(expires_in_seconds=payload.expires_in_seconds)
 
-        inv = await WorkspaceEmailInvite.get_or_none(
-            id=invite_id, organization_id=organization_id, workspace_id=workspace_id
-        )
-        if inv is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        if inv.accepted_at is not None:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_ALREADY_ACCEPTED")
-        if inv.revoked_at is not None:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_REVOKED")
+        async with cast(BaseService, self).tx() as conn:
+            inv = (
+                await WorkspaceEmailInvite
+                .filter(
+                    id=invite_id,
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if inv is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            if inv.accepted_at is not None:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_ALREADY_ACCEPTED")
+            if inv.revoked_at is not None:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_REVOKED")
 
-        # Q1: only extend expires_at (do not rotate code).
-        cast(WorkspaceEmailInviteMutableFields, inv).expires_at = expires_at
-        await inv.save(update_fields=["expires_at", "updated_at"])
+            # Q1: only extend expires_at (do not rotate code).
+            cast(WorkspaceEmailInviteMutableFields, inv).expires_at = expires_at
+            await inv.save(using_db=conn, update_fields=["expires_at", "updated_at"])
+
+            await self._write_activity_event(
+                name="workspace.invite.email.renewed",
+                actor_user_id=renewed_by_user_id,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "invite_id": str(inv.id),
+                    "role_code": inv.role_code,
+                    "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
+                },
+                conn=conn,
+            )
 
         token = build_invite_token(self.settings, code=inv.code)
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
@@ -328,17 +354,6 @@ class WorkspaceTeamInviteMixin:
             created_at=inv.created_at,
             updated_at=inv.updated_at,
         )
-        await self._publish_activity_event(
-            name="workspace.invite.email.renewed",
-            actor_user_id=renewed_by_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "invite_id": str(inv.id),
-                "role_code": inv.role_code,
-                "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
-            },
-        )
         await self._notify_workspace_email_invite_change(
             workspace_id=workspace_id,
             invited_email=inv.email,
@@ -357,29 +372,39 @@ class WorkspaceTeamInviteMixin:
         invite_id: UUID,
         revoked_by_user_id: UUID,
     ) -> None:
-        inv = await WorkspaceEmailInvite.get_or_none(
-            id=invite_id, organization_id=organization_id, workspace_id=workspace_id
-        )
-        if inv is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        if inv.accepted_at is not None:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_ALREADY_ACCEPTED")
-        if inv.revoked_at is not None:
-            return
-        inv.revoked_at = datetime.now(UTC)
-        inv.revoked_by_user_id = revoked_by_user_id
-        await inv.save(update_fields=["revoked_at", "revoked_by_user_id", "updated_at"])
+        async with cast(BaseService, self).tx() as conn:
+            inv = (
+                await WorkspaceEmailInvite
+                .filter(
+                    id=invite_id,
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if inv is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            if inv.accepted_at is not None:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_ALREADY_ACCEPTED")
+            if inv.revoked_at is not None:
+                return
+            inv.revoked_at = datetime.now(UTC)
+            inv.revoked_by_user_id = revoked_by_user_id
+            await inv.save(using_db=conn, update_fields=["revoked_at", "revoked_by_user_id", "updated_at"])
 
-        await self._publish_activity_event(
-            name="workspace.invite.email.revoked",
-            actor_user_id=revoked_by_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "invite_id": str(inv.id),
-                "role_code": inv.role_code,
-            },
-        )
+            await self._write_activity_event(
+                name="workspace.invite.email.revoked",
+                actor_user_id=revoked_by_user_id,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "invite_id": str(inv.id),
+                    "role_code": inv.role_code,
+                },
+                conn=conn,
+            )
         await self._notify_workspace_email_invite_change(
             workspace_id=workspace_id,
             invited_email=inv.email,
@@ -429,18 +454,36 @@ class WorkspaceTeamInviteMixin:
             )
 
         code = generate_invite_code(prefix=_resolve_workspace_invite_link_prefix(payload.join_mode))
-        link = await WorkspaceInviteLink.create(
-            organization_id=organization_id,
-            workspace_id=workspace_id,
-            role_code=role_code,
-            code=code,
-            display_code=display_code,
-            expires_at=expires_at,
-            disabled_at=None,
-            max_uses=max_uses,
-            allowed_email_domain=allowed_domain,
-            created_by_user_id=created_by_user_id,
-        )
+        async with cast(BaseService, self).tx() as conn:
+            link = await WorkspaceInviteLink.create(
+                using_db=conn,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                role_code=role_code,
+                code=code,
+                display_code=display_code,
+                expires_at=expires_at,
+                disabled_at=None,
+                max_uses=max_uses,
+                allowed_email_domain=allowed_domain,
+                created_by_user_id=created_by_user_id,
+            )
+
+            await self._write_activity_event(
+                name="workspace.invite.link.created",
+                actor_user_id=created_by_user_id,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "link_id": str(link.id),
+                    "display_code": link.display_code,
+                    "role_code": link.role_code,
+                    "expires_at": link.expires_at.isoformat() if link.expires_at else None,
+                    "max_uses": int(link.max_uses) if link.max_uses is not None else None,
+                    "allowed_email_domain": link.allowed_email_domain,
+                },
+                conn=conn,
+            )
 
         token = build_invite_token(self.settings, code=link.code)
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
@@ -466,20 +509,6 @@ class WorkspaceTeamInviteMixin:
             updated_at=link.updated_at,
         )
 
-        await self._publish_activity_event(
-            name="workspace.invite.link.created",
-            actor_user_id=created_by_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "link_id": str(link.id),
-                "display_code": link.display_code,
-                "role_code": link.role_code,
-                "expires_at": link.expires_at.isoformat() if link.expires_at else None,
-                "max_uses": int(link.max_uses) if link.max_uses is not None else None,
-                "allowed_email_domain": link.allowed_email_domain,
-            },
-        )
         return WorkspaceInviteLinkCreateResult(link=out, token=token, invite_url=invite_url)
 
     async def renew_invite_link(
@@ -492,13 +521,36 @@ class WorkspaceTeamInviteMixin:
         renewed_by_user_id: UUID,
     ) -> WorkspaceInviteLinkCreateResult:
         expires_at = build_expires_at(expires_in_seconds=payload.expires_in_seconds)
-        link = await WorkspaceInviteLink.get_or_none(
-            id=link_id, organization_id=organization_id, workspace_id=workspace_id
-        )
-        if link is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        cast(WorkspaceInviteLinkMutableFields, link).expires_at = expires_at
-        await link.save(update_fields=["expires_at", "updated_at"])
+        async with cast(BaseService, self).tx() as conn:
+            link = (
+                await WorkspaceInviteLink
+                .filter(
+                    id=link_id,
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if link is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            cast(WorkspaceInviteLinkMutableFields, link).expires_at = expires_at
+            await link.save(using_db=conn, update_fields=["expires_at", "updated_at"])
+
+            await self._write_activity_event(
+                name="workspace.invite.link.renewed",
+                actor_user_id=renewed_by_user_id,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "link_id": str(link.id),
+                    "display_code": link.display_code,
+                    "role_code": link.role_code,
+                    "expires_at": link.expires_at.isoformat() if link.expires_at else None,
+                },
+                conn=conn,
+            )
 
         token = build_invite_token(self.settings, code=link.code)
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
@@ -533,18 +585,6 @@ class WorkspaceTeamInviteMixin:
             updated_at=link.updated_at,
         )
 
-        await self._publish_activity_event(
-            name="workspace.invite.link.renewed",
-            actor_user_id=renewed_by_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "link_id": str(link.id),
-                "display_code": link.display_code,
-                "role_code": link.role_code,
-                "expires_at": link.expires_at.isoformat() if link.expires_at else None,
-            },
-        )
         return WorkspaceInviteLinkCreateResult(link=out, token=token, invite_url=invite_url)
 
     async def disable_invite_link(
@@ -555,27 +595,37 @@ class WorkspaceTeamInviteMixin:
         link_id: UUID,
         disabled_by_user_id: UUID,
     ) -> None:
-        link = await WorkspaceInviteLink.get_or_none(
-            id=link_id, organization_id=organization_id, workspace_id=workspace_id
-        )
-        if link is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        if link.disabled_at is not None:
-            return
-        link.disabled_at = datetime.now(UTC)
-        await link.save(update_fields=["disabled_at", "updated_at"])
+        async with cast(BaseService, self).tx() as conn:
+            link = (
+                await WorkspaceInviteLink
+                .filter(
+                    id=link_id,
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                )
+                .using_db(conn)
+                .select_for_update()
+                .first()
+            )
+            if link is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            if link.disabled_at is not None:
+                return
+            link.disabled_at = datetime.now(UTC)
+            await link.save(using_db=conn, update_fields=["disabled_at", "updated_at"])
 
-        await self._publish_activity_event(
-            name="workspace.invite.link.disabled",
-            actor_user_id=disabled_by_user_id,
-            payload={
-                "organization_id": str(organization_id),
-                "workspace_id": str(workspace_id),
-                "link_id": str(link.id),
-                "display_code": link.display_code,
-                "role_code": link.role_code,
-            },
-        )
+            await self._write_activity_event(
+                name="workspace.invite.link.disabled",
+                actor_user_id=disabled_by_user_id,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "link_id": str(link.id),
+                    "display_code": link.display_code,
+                    "role_code": link.role_code,
+                },
+                conn=conn,
+            )
 
     async def list_invite_links(
         self,

@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from src.core.i18n import t
 from src.core.services import BaseService
+from src.models.organization.org_membership import OrgMembership
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.auth.repository import RefreshTokenStore
 from src.modules.auth.sessions.device_label import build_device_label
 from src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
@@ -56,6 +63,33 @@ class AuthSessionService(BaseService):
                 error="REFRESH_STORE_UNAVAILABLE",
             )
         return self._store
+
+    async def _write_session_activity_event(
+        self,
+        *,
+        name: str,
+        user_id: UUID,
+        actor_user_id: UUID | None = None,
+        subject_user_id: UUID | None = None,
+        properties: JsonObject | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        query = OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id")
+        orgm = await (query.using_db(conn).first() if conn is not None else query.first())
+        org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=name,
+                organization_id=org_id,
+                actor_user_id=actor_user_id,
+                subject_user_id=subject_user_id,
+                entity_type="auth_session",
+                source="api",
+                properties=properties or {},
+            ),
+            conn=conn,
+        )
 
     async def _lookup_location_label(self, *, ip_address: str | None) -> str | None:
         return self._location_lookup.lookup(ip_address=ip_address)
@@ -129,7 +163,19 @@ class AuthSessionService(BaseService):
             record_sid = _parse_sid(record.get("sid")) or jti
             if record_sid != desired:
                 continue
+            previous_record = dict(record)
             await store.revoke(jti)
+            try:
+                await self._write_session_activity_event(
+                    name="auth.session.revoked",
+                    user_id=user_id,
+                    actor_user_id=user_id,
+                    subject_user_id=user_id,
+                    properties={"session_id": record_sid, "scope": "current"},
+                )
+            except BaseException:
+                await store.restore_active(jti, previous_record=previous_record)
+                raise
             return
 
         raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
@@ -141,6 +187,7 @@ class AuthSessionService(BaseService):
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="CURRENT_SESSION_MISSING")
 
         revoked = 0
+        revoked_records: list[tuple[str, dict[str, object], str]] = []
         jtis = await store.list_active(user_id)
         for jti in jtis:
             record = await store.get(jti)
@@ -149,6 +196,19 @@ class AuthSessionService(BaseService):
             record_sid = _parse_sid(record.get("sid")) or jti
             if record_sid == desired:
                 continue
+            revoked_records.append((jti, dict(record), record_sid))
             await store.revoke(jti)
             revoked += 1
+        try:
+            await self._write_session_activity_event(
+                name="auth.session.revoked",
+                user_id=user_id,
+                actor_user_id=user_id,
+                subject_user_id=user_id,
+                properties={"scope": "others", "revoked_count": revoked},
+            )
+        except BaseException:
+            for jti, record, _record_sid in revoked_records:
+                await store.restore_active(jti, previous_record=record)
+            raise
         return revoked

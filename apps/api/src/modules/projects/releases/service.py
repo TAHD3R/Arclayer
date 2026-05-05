@@ -3,14 +3,19 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
 from src.core.services import BaseService
 from src.models.content._enums import ContentReleaseStatus
 from src.models.content.release import ContentReleaseRecord
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.projects.deployments.service import ProjectDeploymentsService
 from src.modules.projects.publish.jobs.service import PublishJobService
+from src.modules.projects.publish.schema import PublishArtifactsOut
 from src.modules.projects.publish.service import ProjectPublishService
 from src.modules.projects.releases.repository import ProjectReleasesRepository
 from src.modules.projects.releases.schema import (
@@ -30,6 +35,7 @@ logger = get_logger(__name__)
 class ProjectReleasesService(BaseService):
     def __init__(self, tenant_context: TenantContext) -> None:
         super().__init__()
+        self._tenant_context = tenant_context
         self.repo = ProjectReleasesRepository(tenant_context)
         self.publish_service = ProjectPublishService(tenant_context)
         self.publish_job_service = PublishJobService(tenant_context)
@@ -95,6 +101,12 @@ class ProjectReleasesService(BaseService):
             workspace_id=workspace_id,
             site_id=site_id,
             actor_user_id=actor_user_id,
+            after_release_created=lambda release, artifacts, conn: self._write_published_activity_event(
+                release=release,
+                artifacts=artifacts,
+                actor_user_id=actor_user_id,
+                conn=conn,
+            ),
         )
         logger.info(
             "Project release published",
@@ -128,12 +140,30 @@ class ProjectReleasesService(BaseService):
     ) -> ReleaseRollbackOut:
         row = await self.repo.get_release(workspace_id=workspace_id, site_id=site_id, release_id=release_id)
         release = self._require_release(row)
-        activated, previous_active_release_id = await self.repo.activate_release(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            release=release,
-            activated_at=datetime.now(tz=UTC),
-        )
+        async with self.repo.connection() as conn:
+            activated, previous_active_release_id = await self.repo.activate_release(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                release=release,
+                activated_at=datetime.now(tz=UTC),
+                conn=conn,
+            )
+            await self._write_release_activity_event(
+                conn=conn,
+                event_name="release.rolled_back",
+                actor_user_id=actor_user_id,
+                release=activated,
+                previous_active_release_id=previous_active_release_id,
+                properties={
+                    "outcome": "rolled_back",
+                    "previous_active_release_id": (
+                        str(previous_active_release_id) if previous_active_release_id is not None else None
+                    ),
+                    "project_id": str(self._tenant_context.project_id) if self._tenant_context.project_id else None,
+                    "release_number": activated.release_number,
+                    "site_id": str(site_id),
+                },
+            )
         logger.info(
             "Project release rolled back",
             previous_active_release_id=str(previous_active_release_id)
@@ -152,6 +182,64 @@ class ProjectReleasesService(BaseService):
         return ReleaseRollbackOut(
             release=await self._to_out(activated),
             previous_active_release_id=previous_active_release_id,
+        )
+
+    async def _write_published_activity_event(
+        self,
+        *,
+        release: ContentReleaseRecord,
+        artifacts: PublishArtifactsOut,
+        actor_user_id: UUID,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        await self._write_release_activity_event(
+            conn=conn,
+            event_name="release.published",
+            actor_user_id=actor_user_id,
+            release=release,
+            previous_active_release_id=release.lineage_parent_release_id,
+            properties={
+                "graph_nodes": artifacts.graph_nodes,
+                "outcome": "published",
+                "previous_active_release_id": (
+                    str(release.lineage_parent_release_id) if release.lineage_parent_release_id is not None else None
+                ),
+                "project_id": str(self._tenant_context.project_id) if self._tenant_context.project_id else None,
+                "release_number": release.release_number,
+                "selection_count": artifacts.selection_count,
+                "site_id": str(release.site_id),
+            },
+        )
+
+    async def _write_release_activity_event(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        event_name: str,
+        actor_user_id: UUID,
+        release: ContentReleaseRecord,
+        previous_active_release_id: UUID | None,
+        properties: JsonObject,
+    ) -> None:
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                actor_user_id=actor_user_id,
+                organization_id=self._tenant_context.organization_id,
+                workspace_id=release.workspace_id,
+                entity_type="release",
+                entity_id=release.id,
+                source="api",
+                properties={
+                    **properties,
+                    "previous_active_release_id": (
+                        str(previous_active_release_id) if previous_active_release_id is not None else None
+                    ),
+                    "status": str(release.status),
+                },
+            ),
+            conn=conn,
         )
 
     async def cancel_scheduled_publish_out(

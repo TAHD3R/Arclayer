@@ -6,6 +6,10 @@ from math import ceil
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
+from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION, ASSET_SCOPE_PROJECT, ASSET_SCOPE_USER
+from src.common.types.json_types import JsonObject
 from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
@@ -14,6 +18,8 @@ from src.core.http.pagination import PageData, PageParams, paginate_queryset
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.assets.asset import AssetRecord
+from src.models.assets.asset_folder import AssetFolderRecord
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.assets.admin.assets.repository import AdminAssetsRepository
 from src.modules.assets.admin.assets.schema import (
     AdminAssetBulkDeleteOut,
@@ -63,6 +69,12 @@ def _ts(key: str, default: str) -> str:
 
 
 _SYSTEM_PURPOSES = frozenset({"avatar", "site_logo", "workspace_icon", "favicon"})
+ASSET_FOLDER_CREATED_EVENT = "asset.folder.created"
+ASSET_FOLDER_UPDATED_EVENT = "asset.folder.updated"
+ASSET_FOLDER_DELETED_EVENT = "asset.folder.deleted"
+ASSET_METADATA_UPDATED_EVENT = "asset.metadata.updated"
+ASSET_MOVED_EVENT = "asset.moved"
+ASSET_DELETED_EVENT = "asset.deleted"
 
 
 def _is_system_purpose(purpose: object) -> bool:
@@ -145,6 +157,94 @@ class AdminAssetsService(BaseService):
         super().__init__(settings)
         self.repo = AdminAssetsRepository(tenant_context)
         self.user_repo = UserRepository()
+
+    async def _write_folder_activity_event(
+        self,
+        *,
+        event_name: str,
+        scope: AssetScope,
+        folder_id: UUID,
+        actor_user_id: UUID | None,
+        conn: BaseDBAsyncClient,
+        folder: AssetFolderRecord | None = None,
+        properties: JsonObject | None = None,
+    ) -> None:
+        payload: JsonObject = {
+            "scope_type": str(scope.type),
+            "scope_id": str(scope.id),
+        }
+        if scope.type == ASSET_SCOPE_PROJECT:
+            payload["project_id"] = str(scope.id)
+        elif scope.type == ASSET_SCOPE_ORGANIZATION:
+            payload["organization_id"] = str(scope.id)
+        elif scope.type == ASSET_SCOPE_USER:
+            payload["user_id"] = str(scope.id)
+            actor_user_id = actor_user_id or scope.id
+
+        if folder is not None:
+            payload["name"] = str(folder.name)
+            payload["parent_id"] = str(folder.parent_id) if folder.parent_id is not None else None
+            payload["sort_order"] = int(folder.sort_order)
+
+        payload.update(properties or {})
+
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                organization_id=scope.id if scope.type == ASSET_SCOPE_ORGANIZATION else None,
+                actor_user_id=actor_user_id,
+                entity_type="asset_folder",
+                entity_id=folder_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
+
+    async def _write_asset_activity_event(
+        self,
+        *,
+        event_name: str,
+        scope: AssetScope,
+        asset: AssetRecord,
+        actor_user_id: UUID | None,
+        conn: BaseDBAsyncClient,
+        properties: JsonObject | None = None,
+    ) -> None:
+        folder_id = getattr(asset, "folder_id", None)
+        payload: JsonObject = {
+            "scope_type": str(scope.type),
+            "scope_id": str(scope.id),
+            "asset_id": str(asset.id),
+            "folder_id": str(folder_id) if folder_id is not None else None,
+            "purpose": str(asset.purpose),
+            "visibility": str(asset.visibility),
+            "indexable": bool(asset.indexable),
+        }
+        if scope.type == ASSET_SCOPE_PROJECT:
+            payload["project_id"] = str(scope.id)
+        elif scope.type == ASSET_SCOPE_ORGANIZATION:
+            payload["organization_id"] = str(scope.id)
+        elif scope.type == ASSET_SCOPE_USER:
+            payload["user_id"] = str(scope.id)
+            actor_user_id = actor_user_id or scope.id
+
+        payload.update(properties or {})
+
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                organization_id=scope.id if scope.type == ASSET_SCOPE_ORGANIZATION else None,
+                actor_user_id=actor_user_id,
+                entity_type="asset",
+                entity_id=asset.id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
 
     async def _get_profile_for_key(self, profile_key: str | None):
         if profile_key:
@@ -464,18 +564,24 @@ class AdminAssetsService(BaseService):
 
         return updates
 
-    async def _apply_tag_patch(self, *, scope: AssetScope, asset_id: UUID, payload: AdminAssetUpdateRequest) -> None:
+    async def _apply_tag_patch(
+        self,
+        *,
+        scope: AssetScope,
+        asset_id: UUID,
+        payload: AdminAssetUpdateRequest,
+        conn: BaseDBAsyncClient,
+    ) -> None:
         fields = getattr(payload, "model_fields_set", set())
         if "tag_ids" not in fields:
             return
 
         ids = payload.tag_ids or []
         dedup: list[UUID] = list(dict.fromkeys(ids))
-        async with self.repo.connection(scope=scope) as conn:
-            tags = await self.repo.list_tags_by_ids(scope=scope, tag_ids=dedup, conn=conn)
-            if len(tags) != len(dedup):
-                raise BadRequest(message=_ts("ASSET_TAG_NOT_FOUND", "标签不存在"), error="ASSET_TAG_NOT_FOUND")
-            await self.repo.replace_asset_tags(asset_id=asset_id, tag_ids=dedup, conn=conn)
+        tags = await self.repo.list_tags_by_ids(scope=scope, tag_ids=dedup, conn=conn)
+        if len(tags) != len(dedup):
+            raise BadRequest(message=_ts("ASSET_TAG_NOT_FOUND", "标签不存在"), error="ASSET_TAG_NOT_FOUND")
+        await self.repo.replace_asset_tags(asset_id=asset_id, tag_ids=dedup, conn=conn)
 
     async def _build_access_updates_for_patch(
         self,
@@ -529,9 +635,15 @@ class AdminAssetsService(BaseService):
         return updates
 
     async def update_asset(
-        self, *, scope: AssetScope, asset_id: UUID, payload: AdminAssetUpdateRequest
+        self,
+        *,
+        scope: AssetScope,
+        asset_id: UUID,
+        payload: AdminAssetUpdateRequest,
+        actor_user_id: UUID | None = None,
     ) -> AdminAssetDetailOut:
-        async with self.repo.connection(scope=scope) as conn:
+        async with self.tx() as tx_conn, self.repo.connection(scope=scope, conn=tx_conn) as conn:
+            conn = cast(BaseDBAsyncClient, conn)
             asset = await self.repo.get_asset_with_tags(scope=scope, asset_id=asset_id, conn=conn)
             if asset is None:
                 raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
@@ -546,12 +658,26 @@ class AdminAssetsService(BaseService):
             )
 
             updates: dict[str, object] = {}
+            updated_fields: set[str] = set()
             updates.update(self._build_meta_updates_for_patch(asset=asset, payload=payload))
-            await self._apply_tag_patch(scope=scope, asset_id=asset.id, payload=payload)
+            updated_fields.update(updates.keys())
+            await self._apply_tag_patch(scope=scope, asset_id=asset.id, payload=payload, conn=conn)
+            if "tag_ids" in getattr(payload, "model_fields_set", set()):
+                updated_fields.add("tag_ids")
             updates.update(await self._build_access_updates_for_patch(asset=asset, payload=payload))
+            updated_fields.update(updates.keys())
 
             if updates:
                 asset = await self.repo.save_asset_updates(asset, updates=updates, conn=conn)
+            if updated_fields:
+                await self._write_asset_activity_event(
+                    event_name=ASSET_METADATA_UPDATED_EVENT,
+                    scope=scope,
+                    asset=asset,
+                    actor_user_id=actor_user_id,
+                    properties={"updated_fields": sorted(updated_fields)},
+                    conn=conn,
+                )
 
         # Reload to ensure tag_links/meta reflect latest state.
         return await self.get_asset_detail(scope=scope, asset_id=asset.id)
@@ -703,8 +829,15 @@ class AdminAssetsService(BaseService):
             indexable=self._compute_bulk_applied_indexable(payload),
         )
 
-    async def delete_asset(self, *, scope: AssetScope, asset_id: UUID) -> AdminAssetDeleteOut:
-        async with self.repo.connection(scope=scope) as conn:
+    async def delete_asset(
+        self,
+        *,
+        scope: AssetScope,
+        asset_id: UUID,
+        actor_user_id: UUID | None = None,
+    ) -> AdminAssetDeleteOut:
+        async with self.tx() as tx_conn, self.repo.connection(scope=scope, conn=tx_conn) as conn:
+            conn = cast(BaseDBAsyncClient, conn)
             asset = await self.repo.get_asset(scope=scope, asset_id=asset_id, conn=conn)
             if asset is None:
                 raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
@@ -712,17 +845,32 @@ class AdminAssetsService(BaseService):
             if asset.deleted_at is None:
                 asset.deleted_at = datetime.now(tz=UTC)
                 await asset.save(update_fields=["deleted_at", "updated_at"], using_db=conn)
+            await self._write_asset_activity_event(
+                event_name=ASSET_DELETED_EVENT,
+                scope=scope,
+                asset=asset,
+                actor_user_id=actor_user_id,
+                properties={"deleted_at": asset.deleted_at.isoformat() if asset.deleted_at is not None else None},
+                conn=conn,
+            )
 
         return AdminAssetDeleteOut(id=asset.id, deleted_at=asset.deleted_at)
 
-    async def create_folder(self, *, scope: AssetScope, payload: AdminAssetFolderCreateRequest) -> AdminAssetFolderOut:
+    async def create_folder(
+        self,
+        *,
+        scope: AssetScope,
+        payload: AdminAssetFolderCreateRequest,
+        actor_user_id: UUID | None = None,
+    ) -> AdminAssetFolderOut:
         name = payload.name.strip()
         if not name:
             raise BadRequest(
                 message=_ts("ASSET_FOLDER_NAME_INVALID", "文件夹名称不合法"), error="ASSET_FOLDER_NAME_INVALID"
             )
 
-        async with self.repo.connection(scope=scope) as conn:
+        async with self.tx() as tx_conn, self.repo.connection(scope=scope, conn=tx_conn) as conn:
+            conn = cast(BaseDBAsyncClient, conn)
             parent_id = payload.parent_id
             if parent_id is not None:
                 parent = await self.repo.get_folder(scope=scope, folder_id=parent_id, conn=conn)
@@ -749,12 +897,26 @@ class AdminAssetsService(BaseService):
                 sort_order=int(payload.sort_order),
                 conn=conn,
             )
+            await self._write_folder_activity_event(
+                event_name=ASSET_FOLDER_CREATED_EVENT,
+                scope=scope,
+                folder_id=folder.id,
+                actor_user_id=actor_user_id,
+                folder=folder,
+                conn=conn,
+            )
             return AdminAssetFolderOut.model_validate(folder, from_attributes=True)
 
     async def update_folder(
-        self, *, scope: AssetScope, folder_id: UUID, payload: AdminAssetFolderUpdateRequest
+        self,
+        *,
+        scope: AssetScope,
+        folder_id: UUID,
+        payload: AdminAssetFolderUpdateRequest,
+        actor_user_id: UUID | None = None,
     ) -> AdminAssetFolderOut:
-        async with self.repo.connection(scope=scope) as conn:
+        async with self.tx() as tx_conn, self.repo.connection(scope=scope, conn=tx_conn) as conn:
+            conn = cast(BaseDBAsyncClient, conn)
             folder = await self.repo.get_folder(scope=scope, folder_id=folder_id, conn=conn)
             if folder is None:
                 raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
@@ -825,6 +987,15 @@ class AdminAssetsService(BaseService):
 
             if updates:
                 folder = await self.repo.save_folder_updates(folder, updates=updates, conn=conn)
+                await self._write_folder_activity_event(
+                    event_name=ASSET_FOLDER_UPDATED_EVENT,
+                    scope=scope,
+                    folder_id=folder.id,
+                    actor_user_id=actor_user_id,
+                    folder=folder,
+                    properties={"updated_fields": sorted(updates.keys())},
+                    conn=conn,
+                )
             return AdminAssetFolderOut.model_validate(folder, from_attributes=True)
 
     async def _validate_folder_delete_destination(
@@ -833,6 +1004,7 @@ class AdminAssetsService(BaseService):
         scope: AssetScope,
         folder_id: UUID,
         destination_folder_id: UUID | None,
+        conn: BaseDBAsyncClient,
     ) -> None:
         if destination_folder_id is None:
             return
@@ -843,19 +1015,16 @@ class AdminAssetsService(BaseService):
                 error="ASSET_FOLDER_PARENT_INVALID",
             )
 
-        async with self.repo.connection(scope=scope) as conn:
-            destination = await self.repo.get_folder(scope=scope, folder_id=destination_folder_id, conn=conn)
-            if destination is None:
-                raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
+        destination = await self.repo.get_folder(scope=scope, folder_id=destination_folder_id, conn=conn)
+        if destination is None:
+            raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
-            descendants = await self.repo.collect_descendant_folder_ids(
-                scope=scope, root_folder_id=folder_id, conn=conn
+        descendants = await self.repo.collect_descendant_folder_ids(scope=scope, root_folder_id=folder_id, conn=conn)
+        if destination_folder_id in descendants:
+            raise BadRequest(
+                message=_ts("ASSET_FOLDER_PARENT_INVALID", "文件夹父级不合法"),
+                error="ASSET_FOLDER_PARENT_INVALID",
             )
-            if destination_folder_id in descendants:
-                raise BadRequest(
-                    message=_ts("ASSET_FOLDER_PARENT_INVALID", "文件夹父级不合法"),
-                    error="ASSET_FOLDER_PARENT_INVALID",
-                )
 
     async def _move_folder_contents(
         self,
@@ -863,23 +1032,23 @@ class AdminAssetsService(BaseService):
         scope: AssetScope,
         folder_id: UUID,
         destination_folder_id: UUID | None,
+        conn: BaseDBAsyncClient,
     ) -> None:
         now = datetime.now(tz=UTC)
-        async with self.repo.connection(scope=scope) as conn:
-            await self.repo.move_child_folders(
-                scope=scope,
-                from_folder_id=folder_id,
-                to_parent_id=destination_folder_id,
-                updated_at=now,
-                conn=conn,
-            )
-            await self.repo.move_assets_in_folder(
-                scope=scope,
-                from_folder_id=folder_id,
-                to_folder_id=destination_folder_id,
-                updated_at=now,
-                conn=conn,
-            )
+        await self.repo.move_child_folders(
+            scope=scope,
+            from_folder_id=folder_id,
+            to_parent_id=destination_folder_id,
+            updated_at=now,
+            conn=conn,
+        )
+        await self.repo.move_assets_in_folder(
+            scope=scope,
+            from_folder_id=folder_id,
+            to_folder_id=destination_folder_id,
+            updated_at=now,
+            conn=conn,
+        )
 
     async def delete_folder(
         self,
@@ -887,8 +1056,10 @@ class AdminAssetsService(BaseService):
         scope: AssetScope,
         folder_id: UUID,
         payload: AdminAssetFolderDeleteRequest | None = None,
+        actor_user_id: UUID | None = None,
     ) -> AdminAssetFolderDeleteOut:
-        async with self.repo.connection(scope=scope) as conn:
+        async with self.tx() as tx_conn, self.repo.connection(scope=scope, conn=tx_conn) as conn:
+            conn = cast(BaseDBAsyncClient, conn)
             folder = await self.repo.get_folder(scope=scope, folder_id=folder_id, conn=conn)
             if folder is None:
                 raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
@@ -898,13 +1069,28 @@ class AdminAssetsService(BaseService):
                     scope=scope,
                     folder_id=folder_id,
                     destination_folder_id=payload.destination_folder_id,
+                    conn=conn,
                 )
                 await self._move_folder_contents(
                     scope=scope,
                     folder_id=folder_id,
                     destination_folder_id=payload.destination_folder_id,
+                    conn=conn,
                 )
                 await self.repo.delete_folder(scope=scope, folder_id=folder_id, conn=conn)
+                await self._write_folder_activity_event(
+                    event_name=ASSET_FOLDER_DELETED_EVENT,
+                    scope=scope,
+                    folder_id=folder_id,
+                    actor_user_id=actor_user_id,
+                    folder=folder,
+                    properties={
+                        "destination_folder_id": str(payload.destination_folder_id)
+                        if payload.destination_folder_id is not None
+                        else None
+                    },
+                    conn=conn,
+                )
                 return AdminAssetFolderDeleteOut(id=folder_id)
 
             has_children = await self.repo.folder_has_children(scope=scope, folder_id=folder_id, conn=conn)
@@ -920,16 +1106,31 @@ class AdminAssetsService(BaseService):
                 )
 
             await self.repo.delete_folder(scope=scope, folder_id=folder_id, conn=conn)
+            await self._write_folder_activity_event(
+                event_name=ASSET_FOLDER_DELETED_EVENT,
+                scope=scope,
+                folder_id=folder_id,
+                actor_user_id=actor_user_id,
+                folder=folder,
+                conn=conn,
+            )
             return AdminAssetFolderDeleteOut(id=folder_id)
 
     async def move_asset(
-        self, *, scope: AssetScope, asset_id: UUID, payload: AdminAssetMoveRequest
+        self,
+        *,
+        scope: AssetScope,
+        asset_id: UUID,
+        payload: AdminAssetMoveRequest,
+        actor_user_id: UUID | None = None,
     ) -> AdminAssetSummaryOut:
-        async with self.repo.connection(scope=scope) as conn:
+        async with self.tx() as tx_conn, self.repo.connection(scope=scope, conn=tx_conn) as conn:
+            conn = cast(BaseDBAsyncClient, conn)
             asset = await self.repo.get_asset(scope=scope, asset_id=asset_id, conn=conn)
             if asset is None:
                 raise NotFound(message=_ts("ASSET_NOT_FOUND", "资源不存在"), error="ASSET_NOT_FOUND")
 
+            previous_folder_id = getattr(asset, "folder_id", None)
             folder_id = payload.folder_id
             if folder_id is not None:
                 folder = await self.repo.get_folder(scope=scope, folder_id=folder_id, conn=conn)
@@ -939,6 +1140,17 @@ class AdminAssetsService(BaseService):
                     )
 
             asset = await self.repo.save_asset_updates(asset, updates={"folder_id": folder_id}, conn=conn)
+            await self._write_asset_activity_event(
+                event_name=ASSET_MOVED_EVENT,
+                scope=scope,
+                asset=asset,
+                actor_user_id=actor_user_id,
+                properties={
+                    "previous_folder_id": str(previous_folder_id) if previous_folder_id is not None else None,
+                    "folder_id": str(folder_id) if folder_id is not None else None,
+                },
+                conn=conn,
+            )
             return AdminAssetSummaryOut.model_validate(asset, from_attributes=True)
 
     async def bulk_move_assets(

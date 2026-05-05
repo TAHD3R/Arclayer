@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated, cast
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request
 
 from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
 from src.common.protocols.tortoise import HasOrganizationId
@@ -136,13 +136,12 @@ async def upload_part(
     summary="Complete upload (organization scope)",
 )
 async def complete_upload(
-    background_tasks: BackgroundTasks,
     upload_id: PublicUUID,
     orgm: Annotated[OrgMembership, Depends(get_org_membership_for_organization)],
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
-    asset_id = await service.complete(upload_id=upload_id, scope=_org_scope(orgm), background_tasks=background_tasks)
+    asset_id = await service.complete(upload_id=upload_id, scope=_org_scope(orgm))
     return ApiResponse.success(data=UploadCompleteOut(asset_id=asset_id))
 
 

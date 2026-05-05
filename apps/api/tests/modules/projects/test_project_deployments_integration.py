@@ -10,6 +10,7 @@ from src.common.utils.public_ids import decode_public_id, encode_uuid
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
+from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
 from src.models.projects.deployment import (
@@ -23,6 +24,7 @@ from src.models.workspaces.workspace import Workspace, WorkspaceMembership, Work
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.organization.repository import OrganizationRepository
+from src.modules.projects.deployments import service as deployments_service_module
 from tests.modules.projects.helpers import (
     prepare_project_publishable_tree,
     project_context_ids,
@@ -97,16 +99,21 @@ async def _publish_release(
     client: AsyncClient,
     project_id: str,
     *,
-    version: int,
     title_prefix: str,
     root_item_id: str,
     child_item_id: str,
 ) -> dict:
+    root_item_res = await client.get(f"/api/v1/projects/{project_id}/content/items/{root_item_id}")
+    assert root_item_res.status_code == 200, root_item_res.text
+    root_version = int(root_item_res.json()["data"]["draftVersion"])
+    child_item_res = await client.get(f"/api/v1/projects/{project_id}/content/items/{child_item_id}")
+    assert child_item_res.status_code == 200, child_item_res.text
+    child_version = int(child_item_res.json()["data"]["draftVersion"])
     await publish_project_item_version(
         client,
         project_id,
         root_item_id,
-        version=version,
+        version=root_version + 1,
         title=f"{title_prefix} Home",
         path="/",
     )
@@ -114,7 +121,7 @@ async def _publish_release(
         client,
         project_id,
         child_item_id,
-        version=version,
+        version=child_version + 1,
         title=f"{title_prefix} About",
         path="/about",
     )
@@ -125,6 +132,7 @@ async def _publish_release(
 
 @pytest.mark.asyncio
 async def test_project_publish_creates_environment_deployments_and_public_runtime_reads_production_deployment(
+    monkeypatch,
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -132,17 +140,16 @@ async def test_project_publish_creates_environment_deployments_and_public_runtim
         _app,
         client,
         _current_user_ref,
-        _workspace_id,
+        workspace_id,
         project_id,
         runtime_id,
-        _owner,
+        owner,
         _viewer,
     ):
         root_item_id, child_item_id = await prepare_project_publishable_tree(client, project_id)
         release = await _publish_release(
             client,
             project_id,
-            version=1,
             title_prefix="First",
             root_item_id=root_item_id,
             child_item_id=child_item_id,
@@ -190,8 +197,51 @@ async def test_project_publish_creates_environment_deployments_and_public_runtim
             json={"environmentId": environments["staging"]["id"]},
         )
         assert staging_promote_res.status_code == 200, staging_promote_res.text
-        assert staging_promote_res.json()["data"]["deployment"]["environmentKey"] == "staging"
-        assert staging_promote_res.json()["data"]["deployment"]["sourceRef"] == release["id"]
+        staging_promotion = staging_promote_res.json()["data"]["deployment"]
+        assert staging_promotion["environmentKey"] == "staging"
+        assert staging_promotion["sourceRef"] == release["id"]
+
+        activity_res = await client.get(
+            f"/api/v1/workspaces/{workspace_id}/activity"
+            f"?eventName=deployment.promoted&entityType=deployment&entityId={staging_promotion['id']}&page=1&size=10"
+        )
+        assert activity_res.status_code == 200, activity_res.text
+        activity_items = activity_res.json()["data"]["items"]
+        assert len(activity_items) == 1
+        activity = activity_items[0]
+        assert activity["eventName"] == "deployment.promoted"
+        assert activity["actorUserId"] == encode_uuid(owner.id)
+        assert activity["organizationId"] is not None
+        assert activity["workspaceId"] == workspace_id
+        assert activity["entityType"] == "deployment"
+        assert activity["entityId"] == staging_promotion["id"]
+        assert activity["properties"]["project_id"] == str(decode_public_id(project_id))
+        assert activity["properties"]["status"] == "promoted"
+
+        original_write_required_activity_event = deployments_service_module.write_required_activity_event
+
+        async def _failing_write_required_activity_event(*, settings, payload, conn=None):  # type: ignore[no-untyped-def]
+            if payload.event_name == "deployment.promoted":
+                raise RuntimeError("forced activity write failure: deployment.promoted")
+            return await original_write_required_activity_event(settings=settings, payload=payload, conn=conn)
+
+        monkeypatch.setattr(
+            "src.modules.projects.deployments.service.write_required_activity_event",
+            _failing_write_required_activity_event,
+        )
+        deployment_count_before = await ProjectDeploymentRecord.all().count()
+        audit_count_before = await AuditEvent.filter(event_name="deployment.promoted").count()
+        failed_promote_res = await client.post(
+            f"/api/v1/projects/{project_id}/deployments/{development['id']}/promote",
+            json={"environmentId": environments["staging"]["id"]},
+        )
+        assert failed_promote_res.status_code == 500, failed_promote_res.text
+        assert await ProjectDeploymentRecord.all().count() == deployment_count_before
+        assert await AuditEvent.filter(event_name="deployment.promoted").count() == audit_count_before
+        monkeypatch.setattr(
+            "src.modules.projects.deployments.service.write_required_activity_event",
+            original_write_required_activity_event,
+        )
 
 
 @pytest.mark.asyncio
@@ -213,7 +263,6 @@ async def test_project_deployment_rollback_cancel_and_permission_gating(
         first_release = await _publish_release(
             client,
             project_id,
-            version=1,
             title_prefix="First",
             root_item_id=root_item_id,
             child_item_id=child_item_id,
@@ -221,7 +270,6 @@ async def test_project_deployment_rollback_cancel_and_permission_gating(
         second_release = await _publish_release(
             client,
             project_id,
-            version=2,
             title_prefix="Second",
             root_item_id=root_item_id,
             child_item_id=child_item_id,

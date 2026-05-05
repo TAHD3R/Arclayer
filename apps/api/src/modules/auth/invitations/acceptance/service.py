@@ -35,6 +35,7 @@ from src.models.workspaces.workspace_invite import (
     WorkspaceInviteLink,
     WorkspaceInviteLinkUseEvent,
 )
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
@@ -73,6 +74,33 @@ class AuthInvitationAcceptanceService(BaseService):
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
+
+    async def _write_invite_accepted_activity_event(
+        self,
+        *,
+        organization_id: UUID,
+        actor_user_id: UUID,
+        inviter_user_id: UUID | None,
+        invite_kind: str,
+        conn,
+    ) -> None:
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name="organization.invite.accepted",
+                organization_id=organization_id,
+                source="api",
+                actor_user_id=actor_user_id,
+                subject_user_id=actor_user_id,
+                entity_type="organization",
+                entity_id=organization_id,
+                properties={
+                    "inviter_user_id": str(inviter_user_id) if inviter_user_id else None,
+                    "invite_kind": invite_kind,
+                },
+            ),
+            conn=conn,
+        )
 
     @staticmethod
     def _to_builtin_org_role(role_code: str | None) -> OrgRole:
@@ -406,6 +434,31 @@ class AuthInvitationAcceptanceService(BaseService):
             accepted_user_id = user.id
             accepted_display_name = user.display_name or user.username
 
+            if organization_id is not None and workspace_id is not None:
+                await write_required_activity_event(
+                    settings=self.settings,
+                    payload=ActivityAuditPayload(
+                        event_name="workspace.invite.accepted",
+                        organization_id=organization_id,
+                        workspace_id=workspace_id,
+                        source="api",
+                        actor_user_id=accepted_user_id,
+                        properties={
+                            "inviter_user_id": str(inviter_user_id) if inviter_user_id else None,
+                            "invite_kind": "link" if is_workspace_invite_link_code(code) else "email",
+                        },
+                    ),
+                    conn=conn,
+                )
+            elif organization_id is not None and is_org_scope:
+                await self._write_invite_accepted_activity_event(
+                    organization_id=organization_id,
+                    actor_user_id=accepted_user_id,
+                    inviter_user_id=inviter_user_id,
+                    invite_kind="link" if code.startswith("ol_") else "email",
+                    conn=conn,
+                )
+
         tokens = await issue_tokens(identifier=payload.username, password=payload.password)
 
         # Best-effort: notify inviter that the invite was accepted.
@@ -476,33 +529,6 @@ class AuthInvitationAcceptanceService(BaseService):
                     error=str(exc),
                     org_id=str(organization_id),
                     inviter_user_id=str(inviter_user_id),
-                )
-
-        # Best-effort: emit audit event for invite acceptance.
-        if organization_id is not None and workspace_id is not None and accepted_user_id is not None:
-            try:
-                await self.publish_optional_domain_event(
-                    name="workspace.invite.accepted",
-                    payload={
-                        "organization_id": str(organization_id),
-                        "workspace_id": str(workspace_id),
-                        "inviter_user_id": str(inviter_user_id) if inviter_user_id else None,
-                        "invite_kind": "link" if is_workspace_invite_link_code(code) else "email",
-                    },
-                    source="api",
-                    actor_user_id=accepted_user_id,
-                )
-            except BaseException as exc:
-                _raise_if_fatal(exc)
-                self.logger.warning(
-                    "Invite acceptance event publish failed",
-                    action="publish_workspace_invite_accepted_event",
-                    event_name="workspace.invite.accepted",
-                    org_id=str(organization_id),
-                    workspace_id=str(workspace_id),
-                    inviter_user_id=str(inviter_user_id) if inviter_user_id else None,
-                    actor_user_id=str(accepted_user_id),
-                    error=str(exc),
                 )
 
         return tokens

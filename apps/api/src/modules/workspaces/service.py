@@ -6,6 +6,7 @@ from uuid import UUID
 
 from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
 from src.common.protocols.tortoise import HasOrganizationId, HasUserId, HasWorkspaceId
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden, NotFound
 from src.core.i18n import t
@@ -21,6 +22,7 @@ from src.models.workspaces.workspace import (
     WorkspaceMembership,
     WorkspaceMembershipStatus,
 )
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
 from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
 from src.modules.assets.scope import AssetScope
@@ -248,6 +250,37 @@ class WorkspaceService(BaseService):
         self.instance_setup_service = instance_setup_service or InstanceSetupService(settings)
         self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
         self.organization_workspace_service = organization_workspace_service or OrganizationWorkspaceService(settings)
+
+    async def _write_workspace_activity_event(
+        self,
+        *,
+        event_name: str,
+        organization_id: UUID,
+        workspace_id: UUID,
+        actor_user_id: UUID,
+        properties: JsonObject,
+        conn,
+    ) -> None:
+        payload: JsonObject = {
+            "organization_id": str(organization_id),
+            "workspace_id": str(workspace_id),
+            "actor_user_id": str(actor_user_id),
+        }
+        payload.update(properties)
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                organization_id=organization_id,
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                entity_type="workspace",
+                entity_id=workspace_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
 
     async def list_my_workspaces(self, *, user_id: UUID) -> MyWorkspaceListResult:
         """
@@ -558,9 +591,18 @@ class WorkspaceService(BaseService):
                 raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ICON_URL_REQUIRED")
 
         if updates:
-            for k, v in updates.items():
-                setattr(ws, k, v)
-            await ws.save(update_fields=list(updates.keys()) + ["updated_at"])
+            async with self.tx() as conn:
+                for k, v in updates.items():
+                    setattr(ws, k, v)
+                await ws.save(update_fields=list(updates.keys()) + ["updated_at"], using_db=conn)
+                await self._write_workspace_activity_event(
+                    event_name="workspace.updated",
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                    actor_user_id=actor_user_id,
+                    properties={"updated_fields": sorted(updates.keys())},
+                    conn=conn,
+                )
 
         return WorkspaceDetailOut(
             id=ws.id,

@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.common.protocols.tortoise import SettingUpdatedBy
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.organization.org_membership import OrgMembership, OrgRole
@@ -16,15 +18,32 @@ class OrganizationSettingsRepository(TortoiseORMRepository):
     async def get_organization(self, *, organization_id: UUID) -> Organization | None:
         return await Organization.get_or_none(id=organization_id)
 
+    async def save_organization_fields(
+        self,
+        *,
+        organization: Organization,
+        fields: dict[str, Any],
+        conn: BaseDBAsyncClient,
+    ) -> Organization:
+        return await self.update_fields(organization, fields=fields, conn=conn)
+
     async def get_membership(self, *, organization_id: UUID, user_id: UUID) -> OrgMembership | None:
         return await OrgMembership.get_or_none(organization_id=organization_id, user_id=user_id)
 
-    async def get_core_setting(self, *, organization_id: UUID) -> SettingRecord | None:
-        return await SettingRecord.get_or_none(
-            scope_type=SCOPE_TYPE_ORG,
-            scope_id=organization_id,
-            namespace="core",
-        )
+    async def get_core_setting(
+        self,
+        *,
+        organization_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> SettingRecord | None:
+        return await self.using_db(
+            SettingRecord.filter(
+                scope_type=SCOPE_TYPE_ORG,
+                scope_id=organization_id,
+                namespace="core",
+            ),
+            conn,
+        ).first()
 
     async def save_core_setting(
         self,
@@ -32,8 +51,9 @@ class OrganizationSettingsRepository(TortoiseORMRepository):
         organization_id: UUID,
         value: dict[str, Any],
         updated_by: UUID | None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> SettingRecord:
-        record = await self.get_core_setting(organization_id=organization_id)
+        record = await self.get_core_setting(organization_id=organization_id, conn=conn)
         if record is None:
             return await SettingRecord.create(
                 scope_type=SCOPE_TYPE_ORG,
@@ -41,11 +61,12 @@ class OrganizationSettingsRepository(TortoiseORMRepository):
                 namespace="core",
                 value=value,
                 updated_by=updated_by,
+                **self._using_db_kwargs(conn),
             )
 
         record.value = value
         cast(SettingUpdatedBy, record).updated_by = updated_by
-        await record.save(update_fields=["value", "updated_by", "updated_at"])
+        await record.save(update_fields=["value", "updated_by", "updated_at"], using_db=conn)
         return record
 
     async def count_owner_memberships(self, *, organization_id: UUID) -> int:

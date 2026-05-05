@@ -29,7 +29,7 @@ class AutomationOperationDefinition:
 TRIGGER_DEFINITIONS: tuple[AutomationTriggerDefinition, ...] = (
     AutomationTriggerDefinition(
         kind=AutomationTriggerKind.PUBLISH_COMPLETED,
-        event_name="project.release.published",
+        event_name="release.published",
         label="Release published",
         description="Runs after a project release is activated.",
     ),

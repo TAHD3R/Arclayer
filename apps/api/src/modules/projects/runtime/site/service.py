@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.core.exceptions import BadRequest
 from src.core.services import BaseService
 from src.modules.domains.service import DomainBindingService
@@ -23,6 +25,7 @@ class ProjectRuntimeSiteService(BaseService):
         project_slug: str | None = None,
         project_name: str | None = None,
         actor_user_id: UUID | None,
+        conn: BaseDBAsyncClient | None = None,
     ):
         """
         Resolve or create the site attached to a project runtime.
@@ -31,7 +34,7 @@ class ProjectRuntimeSiteService(BaseService):
         if project_id is None or runtime_id is None:
             raise BadRequest("Project runtime identity is required", error="PROJECT_RUNTIME_IDENTITY_REQUIRED")
 
-        existing = await self.repo.get_site_by_runtime_id(runtime_id=runtime_id)
+        existing = await self.repo.get_site_by_runtime_id(runtime_id=runtime_id, conn=conn)
         if existing is not None:
             await self.domain_bindings.ensure_platform_binding(
                 workspace_id=workspace_id,
@@ -40,6 +43,7 @@ class ProjectRuntimeSiteService(BaseService):
                 site_id=existing.id,
                 project_slug=str(project_slug or ""),
                 actor_user_id=actor_user_id,
+                conn=conn,
             )
             return existing
 
@@ -56,6 +60,7 @@ class ProjectRuntimeSiteService(BaseService):
             default_locale="zh-CN",
             fallback_locale="en-US",
             created_by_user_id=actor_user_id,
+            conn=conn,
         )
         await self.domain_bindings.ensure_platform_binding(
             workspace_id=workspace_id,
@@ -64,5 +69,6 @@ class ProjectRuntimeSiteService(BaseService):
             site_id=site.id,
             project_slug=site_slug,
             actor_user_id=actor_user_id,
+            conn=conn,
         )
         return site

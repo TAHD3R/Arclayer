@@ -1,21 +1,14 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Annotated, cast
+from typing import Annotated
 from uuid import UUID
 
-from asgi_correlation_id import correlation_id
-from fastapi import Request
 from fastapi.params import Depends
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
-from src.common.types.json_types import JsonObject, JsonValue
 from src.common.types.public_uuid import PublicUUID
 from src.config import get_settings
-from src.core.events import Event, EventBus
-from src.core.exceptions import ServiceUnavailable
-from src.core.i18n import t
 from src.modules.projects.content.contracts.schema import (
     ContentModelImpactOut,
     ContentModelImpactPreviewOut,
@@ -52,39 +45,6 @@ class ContentModelMutationOut(BaseSchema):
     starter_pack_policy: dict | None = None
     surface_policy: dict | None = None
     impact: ContentModelImpactOut
-
-
-def _flatten_audit_value(value: JsonValue | None, *, prefix: str = "") -> JsonValue | None:
-    if not isinstance(value, dict):
-        return value
-    flattened: JsonObject = {}
-    for key, nested_value in value.items():
-        if not isinstance(key, str):
-            continue
-        next_prefix = f"{prefix}.{key}" if prefix else key
-        if isinstance(nested_value, dict):
-            nested_flat = _flatten_audit_value(nested_value, prefix=next_prefix)
-            if isinstance(nested_flat, dict):
-                flattened.update(cast(JsonObject, nested_flat))
-            else:
-                flattened[next_prefix] = nested_flat
-            continue
-        flattened[next_prefix] = nested_value
-    return flattened
-
-
-def _normalize_default_changes_for_audit(
-    changes: dict[str, dict[str, JsonValue | None]] | None,
-) -> dict[str, dict[str, JsonValue | None]]:
-    if not changes:
-        return {}
-    normalized: dict[str, dict[str, JsonValue | None]] = {}
-    for field_name, diff in changes.items():
-        normalized[field_name] = {
-            "before": _flatten_audit_value(diff.get("before")),
-            "after": _flatten_audit_value(diff.get("after")),
-        }
-    return normalized
 
 
 def to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutationOut:
@@ -125,72 +85,6 @@ def to_preview_out(result: ContentModelImpactPreviewResult) -> ContentModelImpac
         impact=result.impact,
         change_plan=result.change_plan,
     )
-
-
-def get_event_bus(request: Request) -> EventBus:
-    bus = getattr(request.app.state, "event_bus", None)
-    if bus is None:
-        raise ServiceUnavailable(
-            message=t("settings:EVENT_BUS_UNAVAILABLE"),
-            error="EVENT_BUS_UNAVAILABLE",
-        )
-    return bus
-
-
-async def publish_content_model_activity_event(
-    *,
-    actor_user_id: UUID | None,
-    project_ctx: ProjectRequestContext,
-    entity_id: UUID,
-    event_bus: EventBus,
-    result: ContentModelMutationResult,
-) -> None:
-    properties = {
-        "model_key": str(result.record.singular_key),
-        "model_name": str(result.record.name),
-        "draft_contract_revision": int(result.record.draft_contract_revision or 1),
-        "published_contract_revision": (
-            int(result.record.published_contract_revision)
-            if result.record.published_contract_revision is not None
-            else None
-        ),
-        "default_changes": _normalize_default_changes_for_audit(result.default_changes),
-        "impact_preview": (
-            {
-                "affected_items_count": result.preview.affected_items_count,
-                "recovery_items_count": result.preview.recovery_items_count,
-                "reshape_items_count": result.preview.reshape_items_count,
-                "has_blocking_changes": result.preview.has_blocking_changes,
-            }
-            if result.preview is not None
-            else None
-        ),
-        "impact": {
-            "has_breaking_changes": result.impact.has_breaking_changes,
-            "breaking_changes": [change.model_dump(mode="json") for change in result.impact.breaking_changes],
-            "warnings": list(result.impact.warnings),
-        },
-    }
-    try:
-        await event_bus.publish(
-            Event(
-                name="project.content.model.updated",
-                payload={
-                    "organization_id": str(project_ctx.organization_id),
-                    "workspace_id": str(project_ctx.workspace_id),
-                    "entity_type": "content_model",
-                    "entity_id": str(entity_id),
-                    **properties,
-                },
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(actor_user_id) if actor_user_id is not None else None,
-            )
-        )
-    except (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit):
-        raise
-    except BaseException:
-        return
 
 
 def get_project_content_canonical_models_service(

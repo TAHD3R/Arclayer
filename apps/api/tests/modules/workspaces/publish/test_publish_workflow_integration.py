@@ -5,12 +5,12 @@ from typing import Any
 import pytest
 
 from src.common.utils.public_ids import decode_public_id, encode_uuid
+from src.models.analytics.audit_event import AuditEvent
 from src.models.projects.membership import ProjectMembership
 from tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
     _create_content_model,
     _create_page_model,
-    _wait_latest_workspace_audit_event,
     _workspace_client,
 )
 from tests.modules.workspaces.publish.test_publish_integration import _draft_payload, _item_payload
@@ -199,7 +199,7 @@ async def test_content_item_workflow_enforces_role_stage_assignment(
 
 
 @pytest.mark.asyncio
-async def test_content_item_workflow_allows_user_stage_assignment_and_audits_transition(
+async def test_content_item_workflow_allows_user_stage_assignment_without_activity_ingest(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -227,13 +227,14 @@ async def test_content_item_workflow_allows_user_stage_assignment_and_audits_tra
         assert workflow_data["workflowStage"] == "in_review"
         assert workflow_data["workflowAssigneeUserId"] == owner_user_id
 
-        event = await _wait_latest_workspace_audit_event(
-            event_name="project.content.item.workflow.updated",
-            workspace_id=decode_public_id(workspace_id),
-            entity_id=decode_public_id(item_id),
+        assert (
+            await AuditEvent.filter(
+                event_name="project.content.item.workflow.updated",
+                workspace_id=decode_public_id(workspace_id),
+                entity_id=decode_public_id(item_id),
+            ).count()
+            == 0
         )
-        assert event.properties["workflow_stage"] == "in_review"
-        assert event.properties["workflow_assignee_user_id"] == str(decode_public_id(owner_user_id))
 
 
 @pytest.mark.asyncio

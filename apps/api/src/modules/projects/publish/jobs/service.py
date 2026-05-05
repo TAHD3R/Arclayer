@@ -5,6 +5,9 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
@@ -15,6 +18,7 @@ from src.models.content.release import ContentReleaseRecord
 from src.models.sites.site import SiteRecord
 from src.models.system.notification import NotificationCategory, NotificationRecord
 from src.models.tenancy.workspace_tenant import WorkspaceTenantRecord
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.projects.publish.schema import PublishArtifactsOut
 from src.modules.projects.publish.service import ProjectPublishService
@@ -177,7 +181,24 @@ class PublishJobService(BaseService):
             job.status = PublishJobStatus.FAILED
             job.completed_at = datetime.now(tz=UTC)
             cast(Any, job).error_message = str(exc)[:4000]
-            await job.save(update_fields=["status", "completed_at", "error_message", "updated_at"])
+            async with self.tx() as conn:
+                await job.save(update_fields=["status", "completed_at", "error_message", "updated_at"], using_db=conn)
+                await self._write_publish_job_activity_event(
+                    conn=conn,
+                    event_name="deployment.failed",
+                    actor_user_id=release.created_by_user_id,
+                    job=job,
+                    tenant_context=tenant_context,
+                    properties={
+                        "failure_kind": type(exc).__name__,
+                        "job_type": str(job.job_type),
+                        "project_id": str(job.project_id) if job.project_id is not None else None,
+                        "release_id": str(release.id),
+                        "release_number": release.release_number,
+                        "site_id": str(release.site_id),
+                        "status": str(job.status),
+                    },
+                )
             await self._notify_publish_result(job=job, release=release, success=False)
             raise
 
@@ -226,6 +247,31 @@ class PublishJobService(BaseService):
                 isolation_mode=TenantIsolationMode(str(record.isolation_mode)),
             ),
             scope=TenantScope.JOB,
+        )
+
+    async def _write_publish_job_activity_event(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        event_name: str,
+        actor_user_id: UUID | None,
+        job: PublishJobRecord,
+        tenant_context: TenantContext,
+        properties: JsonObject,
+    ) -> None:
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                actor_user_id=actor_user_id,
+                organization_id=tenant_context.organization_id,
+                workspace_id=job.workspace_id,
+                entity_type="deployment",
+                entity_id=job.id,
+                source="job",
+                properties=properties,
+            ),
+            conn=conn,
         )
 
     @staticmethod

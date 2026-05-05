@@ -121,8 +121,9 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         relations: list[ContentModelRelationContract],
         views: list[ContentModelViewContract],
         environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> ContentModelDefinitionRecord:
-        async with self.connection() as conn:
+        async with self.connection(conn) as conn:
             record = await ContentModelDefinitionRecord.create(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -206,8 +207,9 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         relations: list[ContentModelRelationContract] | None,
         views: list[ContentModelViewContract] | None,
         environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> ContentModelDefinitionRecord | None:
-        async with self.connection() as conn:
+        async with self.connection(conn) as conn:
             record = await (
                 ContentModelDefinitionRecord
                 .filter(
@@ -275,8 +277,9 @@ class ProjectContentModelsRepository(TenantScopedRepository):
         site_id: UUID,
         model_id: UUID,
         environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> bool:
-        async with self.connection() as conn:
+        async with self.connection(conn) as conn:
             record = await (
                 ContentModelDefinitionRecord
                 .filter(

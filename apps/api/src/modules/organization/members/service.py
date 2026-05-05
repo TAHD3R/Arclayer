@@ -5,10 +5,13 @@ from datetime import UTC, datetime
 from typing import Any, Protocol, cast
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.common.email.service import EmailService
 from src.common.invitations.expiry import build_expires_at
 from src.common.invitations.tokens import build_invite_token, generate_invite_code
 from src.common.protocols.tortoise import HasUserId
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
@@ -22,6 +25,7 @@ from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
 from src.models.system.setting import SettingRecord
 from src.models.workspaces.workspace import WorkspaceMembership
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.members.repository import OrganizationMemberRepository
 from src.modules.organization.members.schema import (
     OrganizationInvitationOut,
@@ -78,6 +82,10 @@ _ORG_MEMBER_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({
     "last_login_at",
 })
 
+ORGANIZATION_MEMBER_INVITED_EVENT = "organization.member.invited"
+ORGANIZATION_MEMBER_ROLE_UPDATED_EVENT = "organization.member.role_updated"
+ORGANIZATION_MEMBER_REMOVED_EVENT = "organization.member.removed"
+
 
 def _normalize_member_ordering(value: str | None) -> list[str]:
     fields: list[str] = []
@@ -99,6 +107,43 @@ class OrganizationMemberService(BaseService):
         self.repo = OrganizationMemberRepository()
         self.rbac = OrganizationRBACService(settings)
         self.email_service = EmailService(settings)
+
+    async def _write_activity_event(
+        self,
+        *,
+        event_name: str,
+        organization_id: UUID,
+        actor_user_id: UUID,
+        entity_type: str,
+        entity_id: UUID,
+        conn: BaseDBAsyncClient,
+        subject_user_id: UUID | None = None,
+        properties: JsonObject | None = None,
+    ) -> None:
+        payload: JsonObject = {
+            "organization_id": str(organization_id),
+            "actor_user_id": str(actor_user_id),
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+        }
+        if subject_user_id is not None:
+            payload["subject_user_id"] = str(subject_user_id)
+        payload.update(properties or {})
+
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                organization_id=organization_id,
+                actor_user_id=actor_user_id,
+                subject_user_id=subject_user_id,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                source="api",
+                properties=payload,
+            ),
+            conn=conn,
+        )
 
     async def list_members(
         self,
@@ -247,14 +292,29 @@ class OrganizationMemberService(BaseService):
             role_code=requested_role_code,
         )
 
-        invite = await OrganizationEmailInvite.create(
-            organization_id=organization_id,
-            email=email,
-            role_code=role_code,
-            code=generate_invite_code(prefix="oi"),
-            expires_at=build_expires_at(expires_in_seconds=payload.expires_in_seconds),
-            created_by_user_id=actor_user_id,
-        )
+        async with self.tx() as conn:
+            invite = await self.repo.create_email_invite(
+                organization_id=organization_id,
+                email=email,
+                role_code=role_code,
+                code=generate_invite_code(prefix="oi"),
+                expires_at=build_expires_at(expires_in_seconds=payload.expires_in_seconds),
+                created_by_user_id=actor_user_id,
+                conn=conn,
+            )
+            await self._write_activity_event(
+                event_name=ORGANIZATION_MEMBER_INVITED_EVENT,
+                organization_id=organization_id,
+                actor_user_id=actor_user_id,
+                entity_type="organization_email_invite",
+                entity_id=invite.id,
+                properties={
+                    "email": email,
+                    "role_code": role_code,
+                    "expires_at": invite.expires_at.isoformat() if invite.expires_at is not None else None,
+                },
+                conn=conn,
+            )
 
         token = build_invite_token(self.settings, code=invite.code)
         invite_url = self._build_invite_url(token)
@@ -665,28 +725,57 @@ class OrganizationMemberService(BaseService):
         )
         normalized_role = self._to_builtin_org_role(normalized_role_code)
 
-        target = await self.repo.get_membership(organization_id=organization_id, membership_id=target_membership_id)
-        if target is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        async with self.tx() as conn:
+            target = await self.repo.get_membership_in_connection(
+                organization_id=organization_id,
+                membership_id=target_membership_id,
+                conn=conn,
+            )
+            if target is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
-        if actor_role != OrgRole.OWNER:
-            if target.role == OrgRole.OWNER or normalized_role == OrgRole.OWNER:
-                raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED"),
-                    error="ORG_OWNER_REQUIRED",
+            previous_role = target.role
+            previous_role_code = str(getattr(target, "role_code", target.role.value) or target.role.value)
+
+            if actor_role != OrgRole.OWNER:
+                if target.role == OrgRole.OWNER or normalized_role == OrgRole.OWNER:
+                    raise Forbidden(
+                        message=t("errors", "PERMISSION_DENIED"),
+                        error="ORG_OWNER_REQUIRED",
+                    )
+
+            if target.role == OrgRole.OWNER and normalized_role != OrgRole.OWNER:
+                owner_count = await self.repo.count_role_memberships(
+                    organization_id=organization_id, role=OrgRole.OWNER
                 )
+                if owner_count <= 1:
+                    raise BadRequest(
+                        message=t("errors", "BAD_REQUEST"),
+                        error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
+                    )
 
-        if target.role == OrgRole.OWNER and normalized_role != OrgRole.OWNER:
-            owner_count = await self.repo.count_role_memberships(organization_id=organization_id, role=OrgRole.OWNER)
-            if owner_count <= 1:
-                raise BadRequest(
-                    message=t("errors", "BAD_REQUEST"),
-                    error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
-                )
-
-        target.role = normalized_role
-        target.role_code = normalized_role_code
-        await target.save(update_fields=["role", "role_code", "updated_at"])
+            target = await self.repo.save_membership_role(
+                membership=target,
+                role=normalized_role,
+                role_code=normalized_role_code,
+                conn=conn,
+            )
+            await self._write_activity_event(
+                event_name=ORGANIZATION_MEMBER_ROLE_UPDATED_EVENT,
+                organization_id=organization_id,
+                actor_user_id=UUID(str(cast(HasUserId, actor_membership).user_id)),
+                subject_user_id=UUID(str(target.user.id)),
+                entity_type="organization_membership",
+                entity_id=target.id,
+                properties={
+                    "previous_role": str(previous_role),
+                    "previous_role_code": previous_role_code,
+                    "role": str(normalized_role),
+                    "role_code": normalized_role_code,
+                    "target_user_id": str(target.user.id),
+                },
+                conn=conn,
+            )
 
         self.logger.info(
             "Organization member role updated",
@@ -739,35 +828,62 @@ class OrganizationMemberService(BaseService):
             error_code="ORG_MEMBERS_MANAGE_REQUIRED",
         )
 
-        target = await self.repo.get_membership(organization_id=organization_id, membership_id=target_membership_id)
-        if target is None:
-            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-
-        target_user_id = UUID(str(target.user.id))
-
-        if actor_role != OrgRole.OWNER and target.role == OrgRole.OWNER:
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED"),
-                error="ORG_OWNER_REQUIRED",
+        async with self.tx() as conn:
+            target = await self.repo.get_membership_in_connection(
+                organization_id=organization_id,
+                membership_id=target_membership_id,
+                conn=conn,
             )
+            if target is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
-        if target.role == OrgRole.OWNER and actor_user_id == target_user_id:
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED"),
-                error="ORG_OWNER_SELF_REMOVE_FORBIDDEN",
-            )
+            target_user_id = UUID(str(target.user.id))
 
-        if target.role == OrgRole.OWNER:
-            owner_count = await self.repo.count_role_memberships(organization_id=organization_id, role=OrgRole.OWNER)
-            if owner_count <= 1:
-                raise BadRequest(
-                    message=t("errors", "BAD_REQUEST"),
-                    error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
+            if actor_role != OrgRole.OWNER and target.role == OrgRole.OWNER:
+                raise Forbidden(
+                    message=t("errors", "PERMISSION_DENIED"),
+                    error="ORG_OWNER_REQUIRED",
                 )
 
-        target_membership = UUID(str(target.id))
-        await self.repo.disable_workspace_memberships(organization_id=organization_id, user_id=target_user_id)
-        await target.delete()
+            if target.role == OrgRole.OWNER and actor_user_id == target_user_id:
+                raise Forbidden(
+                    message=t("errors", "PERMISSION_DENIED"),
+                    error="ORG_OWNER_SELF_REMOVE_FORBIDDEN",
+                )
+
+            if target.role == OrgRole.OWNER:
+                owner_count = await self.repo.count_role_memberships(
+                    organization_id=organization_id, role=OrgRole.OWNER
+                )
+                if owner_count <= 1:
+                    raise BadRequest(
+                        message=t("errors", "BAD_REQUEST"),
+                        error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
+                    )
+
+            target_membership = UUID(str(target.id))
+            target_role = str(target.role)
+            target_role_code = str(getattr(target, "role_code", target.role.value) or target.role.value)
+            await self.repo.disable_workspace_memberships_in_connection(
+                organization_id=organization_id,
+                user_id=target_user_id,
+                conn=conn,
+            )
+            await self.repo.delete_membership(membership=target, conn=conn)
+            await self._write_activity_event(
+                event_name=ORGANIZATION_MEMBER_REMOVED_EVENT,
+                organization_id=organization_id,
+                actor_user_id=actor_user_id,
+                subject_user_id=target_user_id,
+                entity_type="organization_membership",
+                entity_id=target_membership,
+                properties={
+                    "target_user_id": str(target_user_id),
+                    "role": target_role,
+                    "role_code": target_role_code,
+                },
+                conn=conn,
+            )
 
         self.logger.info(
             "Organization member removed",

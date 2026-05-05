@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 
 from src.common.utils.ids import uuid7
@@ -24,8 +25,15 @@ def _sanitize_username_base(value: str) -> str:
 
 
 class OAuthSocialRepository(TortoiseORMRepository):
-    async def get_identity(self, *, provider: str, subject: str) -> OAuthIdentity | None:
-        return await OAuthIdentity.get_or_none(provider=provider, subject=subject)
+    async def get_identity(
+        self, *, provider: str, subject: str, conn: BaseDBAsyncClient | None = None
+    ) -> OAuthIdentity | None:
+        return await self.using_db(OAuthIdentity.filter(provider=provider, subject=subject), conn).first()
+
+    async def get_identity_for_user(
+        self, *, user_id: UUID, provider: str, conn: BaseDBAsyncClient | None = None
+    ) -> OAuthIdentity | None:
+        return await self.using_db(OAuthIdentity.filter(user_id=user_id, provider=provider), conn).first()
 
     async def create_identity(
         self,
@@ -34,6 +42,7 @@ class OAuthSocialRepository(TortoiseORMRepository):
         subject: str,
         user_id: UUID,
         email: str | None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> OAuthIdentity:
         try:
             return await OAuthIdentity.create(
@@ -41,9 +50,10 @@ class OAuthSocialRepository(TortoiseORMRepository):
                 subject=subject,
                 user_id=user_id,
                 email=email,
+                **self._using_db_kwargs(conn),
             )
         except IntegrityError:
-            existing = await OAuthIdentity.get_or_none(provider=provider, subject=subject)
+            existing = await self.get_identity(provider=provider, subject=subject, conn=conn)
             if existing is not None:
                 return existing
             raise
@@ -54,11 +64,13 @@ class OAuthSocialRepository(TortoiseORMRepository):
     async def has_identity_for_user(self, *, user_id: UUID) -> bool:
         return await OAuthIdentity.filter(user_id=user_id).exists()
 
-    async def delete_identity_for_user(self, *, user_id: UUID, provider: str) -> int:
-        return await OAuthIdentity.filter(user_id=user_id, provider=provider).delete()
+    async def delete_identity_for_user(
+        self, *, user_id: UUID, provider: str, conn: BaseDBAsyncClient | None = None
+    ) -> int:
+        return await self.using_db(OAuthIdentity.filter(user_id=user_id, provider=provider), conn).delete()
 
-    async def delete_identities_for_user(self, *, user_id: UUID) -> int:
-        return await OAuthIdentity.filter(user_id=user_id).delete()
+    async def delete_identities_for_user(self, *, user_id: UUID, conn: BaseDBAsyncClient | None = None) -> int:
+        return await self.using_db(OAuthIdentity.filter(user_id=user_id), conn).delete()
 
     async def get_user_by_email(self, *, email: str) -> User | None:
         normalized = (email or "").strip().lower()

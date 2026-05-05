@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TypedDict
 from uuid import UUID
 
+from tortoise.backends.base.client import BaseDBAsyncClient
+
 from src.config import Settings
 from src.core.exceptions import Conflict
 from src.modules.system.rbac.catalogsync.service import RBACCatalogSyncMixin
@@ -22,7 +24,12 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
     settings: Settings
     repo: RBACRepository
 
-    async def ensure_workspace_system_roles(self, *, workspace_id: UUID) -> None:
+    async def ensure_workspace_system_roles(
+        self,
+        *,
+        workspace_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
         class _SystemRoleDefinition(TypedDict):
             code: str
             name: str
@@ -81,7 +88,7 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
         ]
 
         for d in system_defs:
-            existing = await self.repo.get_role_by_code(workspace_id=workspace_id, code=d["code"])
+            existing = await self.repo.get_role_by_code(workspace_id=workspace_id, code=d["code"], conn=conn)
             if existing is None:
                 await self.repo.create_role(
                     workspace_id=workspace_id,
@@ -93,6 +100,7 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
                     is_system=True,
                     is_default=bool(d["is_default"]),
                     is_superuser=bool(d["is_superuser"]),
+                    conn=conn,
                 )
                 continue
 
@@ -110,7 +118,7 @@ class RBACWorkspacesMixin(RBACCatalogSyncMixin):
             if not existing.is_system:
                 updates["is_system"] = True
             if updates:
-                await self.repo.update_role(existing, updates=updates)
+                await self.repo.update_role(existing, updates=updates, conn=conn)
 
     async def ensure_workspace_system_role_grants(self, *, workspace_id: UUID) -> None:
         await self.ensure_workspace_system_roles(workspace_id=workspace_id)

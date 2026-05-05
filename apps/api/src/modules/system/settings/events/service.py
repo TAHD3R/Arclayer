@@ -4,10 +4,18 @@ import asyncio
 from typing import cast
 from uuid import UUID
 
-from src.common.constants.events import SETTINGS_UPDATED
+from tortoise.backends.base.client import BaseDBAsyncClient
+
+from src.common.constants.events import (
+    SETTINGS_UPDATED,
+    SYSTEM_FEATURE_FLAGS_UPDATED,
+    SYSTEM_MAIL_UPDATED,
+    SYSTEM_STORAGE_UPDATED,
+)
 from src.common.protocols.logging import LoggerLike
 from src.common.types.json_types import JsonObject
 from src.core.services import BaseService
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.settings.schema import ConfigSchema
 from src.settings.validation import iter_secret_field_paths
 
@@ -17,6 +25,13 @@ _FATAL_SETTINGS_SERVICE_ERRORS: tuple[type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
 )
+
+_FEATURE_FLAG_SECTIONS: frozenset[str] = frozenset({
+    "auth",
+    "comments",
+    "notifications",
+    "oauth_provisioning",
+})
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -43,6 +58,17 @@ def _is_secret_descendant(path: str, secrets: set[str]) -> bool:
     return any(s.startswith(prefix) for s in secrets)
 
 
+def _event_name_for_changed_paths(changed_paths: list[str]) -> str:
+    top_level_sections = {path.split(".", 1)[0] for path in changed_paths if path}
+    if top_level_sections == {"mail"}:
+        return SYSTEM_MAIL_UPDATED
+    if top_level_sections == {"storage"}:
+        return SYSTEM_STORAGE_UPDATED
+    if top_level_sections and top_level_sections <= _FEATURE_FLAG_SECTIONS:
+        return SYSTEM_FEATURE_FLAGS_UPDATED
+    return SETTINGS_UPDATED
+
+
 class SettingsEventsMixin:
     logger: LoggerLike
 
@@ -53,31 +79,27 @@ class SettingsEventsMixin:
         schema: ConfigSchema,
         patch: JsonObject,
         actor_user_id: str | None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> None:
-        try:
-            secret_paths = set(iter_secret_field_paths(schema))
-            changed_paths = _flatten_patch_paths(patch)
-            contains_secrets = any((p in secret_paths) or _is_secret_descendant(p, secret_paths) for p in changed_paths)
-            await cast(BaseService, self).publish_optional_domain_event(
-                name=SETTINGS_UPDATED,
-                payload={
-                    "namespace": namespace,
-                    "paths": changed_paths,
-                    "contains_secrets": contains_secrets,
-                },
+        secret_paths = set(iter_secret_field_paths(schema))
+        changed_paths = _flatten_patch_paths(patch)
+        contains_secrets = any((p in secret_paths) or _is_secret_descendant(p, secret_paths) for p in changed_paths)
+        event_name = _event_name_for_changed_paths(changed_paths)
+        service = cast(BaseService, self)
+        await write_required_activity_event(
+            settings=service.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
                 source="core",
                 actor_user_id=_coerce_uuid(actor_user_id),
-            )
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "Settings updated event publish failed",
-                action="emit_settings_updated_event",
-                namespace=namespace,
-                event_name=SETTINGS_UPDATED,
-                error=str(exc),
-            )
-            return
+                properties={
+                    "namespace": namespace,
+                    "paths": changed_paths,
+                    "contains_sensitive_values": contains_secrets,
+                },
+            ),
+            conn=conn,
+        )
 
 
 def _coerce_uuid(value: str | None):

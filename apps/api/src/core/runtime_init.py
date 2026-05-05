@@ -11,7 +11,6 @@ from src.config import Settings
 from src.core.events import Event, EventBus
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.lifecycles.specs import LifecycleAction
-from src.core.lifecycles.subscribers.audit import audit_lifecycle_events
 from src.core.lifecycles.subscribers.timestamps import auto_timestamps
 from src.core.lifecycles.subscribers.validators import require_target_context
 from src.core.logging import get_logger
@@ -160,27 +159,6 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
         action=LifecycleAction.AFTER_PUBLISH,
         handler=webhook_service.handle_lifecycle_event,
     )
-    await lifecycle_dispatcher.register(
-        subscriber_id="audit",
-        action=LifecycleAction.AFTER_CREATE,
-        handler=lambda evt: audit_lifecycle_events(evt, event_bus=event_bus),
-    )
-    await lifecycle_dispatcher.register(
-        subscriber_id="audit",
-        action=LifecycleAction.AFTER_UPDATE,
-        handler=lambda evt: audit_lifecycle_events(evt, event_bus=event_bus),
-    )
-    await lifecycle_dispatcher.register(
-        subscriber_id="audit",
-        action=LifecycleAction.AFTER_DELETE,
-        handler=lambda evt: audit_lifecycle_events(evt, event_bus=event_bus),
-    )
-    await lifecycle_dispatcher.register(
-        subscriber_id="audit",
-        action=LifecycleAction.AFTER_PUBLISH,
-        handler=lambda evt: audit_lifecycle_events(evt, event_bus=event_bus),
-    )
-
     app.state.webhook_service = webhook_service
 
 

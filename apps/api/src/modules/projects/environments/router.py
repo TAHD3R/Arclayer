@@ -56,6 +56,7 @@ async def patch_project_environment(
     environment_id: PublicUUID,
     payload: ProjectEnvironmentPatchIn,
     ctx: Annotated[ProjectRequestContext, Depends(get_project_context)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ProjectEnvironmentsService, Depends(get_project_environments_service)],
 ) -> ResponseModel[ProjectEnvironmentOut]:
     """Update project environment settings."""
@@ -64,6 +65,8 @@ async def patch_project_environment(
             project_id=ctx.project_id,
             environment_id=environment_id,
             payload=payload,
+            actor_user_id=actor_user_id,
+            workspace_id=ctx.workspace_id,
         )
     )
 

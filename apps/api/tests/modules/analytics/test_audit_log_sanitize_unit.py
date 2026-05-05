@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from src.modules.analytics.ingest.service import sanitize_properties
+import pytest
+
+from src.config import get_settings
+from src.core.events import Event
+from src.modules.analytics.ingest.service import ActivityIngestor, sanitize_properties
 
 
 def test_sanitize_properties_drops_sensitive_keys() -> None:
@@ -47,3 +51,36 @@ def test_sanitize_properties_limits_keys() -> None:
     assert isinstance(out, dict)
     assert len([k for k in out.keys() if not k.startswith("__")]) <= 10
     assert out.get("__truncated__") is True
+
+
+@pytest.mark.asyncio
+async def test_activity_ingestor_skips_explicit_non_activity_events() -> None:
+    ingestor = ActivityIngestor(get_settings())
+
+    await ingestor._on_event(
+        Event(
+            name="project.content.item.workflow.updated",
+            payload={"activity_ingest": False, "entity_type": "content_item"},
+        )
+    )
+
+    assert ingestor._queue.empty()
+
+
+@pytest.mark.asyncio
+async def test_activity_ingestor_drops_internal_activity_ingest_flag_from_properties() -> None:
+    ingestor = ActivityIngestor(get_settings())
+
+    await ingestor._on_event(
+        Event(
+            name="project.content.item.workflow.updated",
+            payload={
+                "activity_ingest": True,
+                "entity_type": "content_item",
+                "workflow_stage": "in_review",
+            },
+        )
+    )
+
+    row = ingestor._queue.get_nowait()
+    assert row["properties"] == {"workflow_stage": "in_review"}

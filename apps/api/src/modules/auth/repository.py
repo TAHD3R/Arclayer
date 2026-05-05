@@ -8,7 +8,7 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.expressions import Q
 
-from src.common.constants.auth import REFRESH_STATUS_REVOKED, REFRESH_STATUS_ROTATED
+from src.common.constants.auth import REFRESH_STATUS_ACTIVE, REFRESH_STATUS_REVOKED, REFRESH_STATUS_ROTATED
 from src.common.protocols.tortoise import UserMutableFields
 from src.common.utils.ids import uuid7
 from src.config import AuthSettings
@@ -90,15 +90,29 @@ class UserRepository(TortoiseORMRepository):
     async def get_by_id_with_credential(self, user_id: UUID) -> User | None:
         return await User.get_or_none(id=user_id).prefetch_related("credential")
 
+    async def get_by_id_with_credential_in_connection(self, user_id: UUID, *, conn: BaseDBAsyncClient) -> User | None:
+        return await User.filter(id=user_id).using_db(conn).prefetch_related("credential").first()
+
     async def update_last_login(self, user: UserLike) -> None:
         record = cast(User, user)
         record.last_login_at = datetime.now(UTC)
         await record.save(update_fields=["last_login_at"])
 
+    async def update_last_login_in_connection(self, user: UserLike, *, conn: BaseDBAsyncClient) -> None:
+        record = cast(User, user)
+        record.last_login_at = datetime.now(UTC)
+        await record.save(update_fields=["last_login_at"], using_db=conn)
+
     async def increment_token_version(self, user: UserLike) -> User:
         record = cast(User, user)
         record.token_version = (record.token_version or 0) + 1
         await record.save(update_fields=["token_version"])
+        return record
+
+    async def increment_token_version_in_connection(self, user: UserLike, *, conn: BaseDBAsyncClient) -> User:
+        record = cast(User, user)
+        record.token_version = (record.token_version or 0) + 1
+        await record.save(update_fields=["token_version"], using_db=conn)
         return record
 
     def is_active(self, user: UserLike) -> bool:
@@ -163,9 +177,29 @@ class UserRepository(TortoiseORMRepository):
         credential.password_updated_at = datetime.now(UTC)
         await credential.save(update_fields=["password_hash", "password_updated_at"])
 
+    async def set_password_in_connection(
+        self,
+        user: UserLike,
+        *,
+        password_hash: str,
+        conn: BaseDBAsyncClient,
+    ) -> None:
+        record = cast(User, user)
+        credential = await UserCredential.get_or_none(user_id=record.id, using_db=conn)
+        if credential is None:
+            await UserCredential.create(user_id=record.id, password_hash=password_hash, using_db=conn)
+            return
+        credential.password_hash = password_hash
+        credential.password_updated_at = datetime.now(UTC)
+        await credential.save(update_fields=["password_hash", "password_updated_at"], using_db=conn)
+
     async def remove_password(self, user: UserLike) -> None:
         record = cast(User, user)
         await UserCredential.filter(user_id=record.id).delete()
+
+    async def remove_password_in_connection(self, user: UserLike, *, conn: BaseDBAsyncClient) -> None:
+        record = cast(User, user)
+        await UserCredential.filter(user_id=record.id).using_db(conn).delete()
 
     async def patch_profile(
         self,
@@ -232,6 +266,30 @@ class UserRepository(TortoiseORMRepository):
                 "avatar_asset_id",
                 "status",
             ]
+        )
+        return record
+
+    async def anonymize_user_in_connection(self, user: UserLike, *, conn: BaseDBAsyncClient) -> User:
+        record = cast(User, user)
+        mutable = cast(UserMutableFields, record)
+        # Keep username unique and within the allowed charset.
+        suffix = secrets.token_hex(6)
+        mutable.username = f"deleted_{suffix}"
+        mutable.email = None
+        mutable.display_name = None
+        mutable.avatar_url = None
+        mutable.avatar_asset_id = None
+        record.status = UserStatus.DISABLED
+        await record.save(
+            update_fields=[
+                "username",
+                "email",
+                "display_name",
+                "avatar_url",
+                "avatar_asset_id",
+                "status",
+            ],
+            using_db=conn,
         )
         return record
 
@@ -494,6 +552,13 @@ class RefreshTokenStore:
         if ttl > 0:
             await self._client.expire(set_key, ttl)
 
+    async def forget(self, jti: str) -> None:
+        record = await self.get(jti)
+        if record is None:
+            return
+        await self._client.delete(self._refresh_key(jti))
+        await self._client.srem(self._user_set_key(UUID(str(record["user_id"]))), jti)
+
     async def get(self, jti: str) -> dict[str, Any] | None:
         data = await self._client.get_json(self._refresh_key(jti))
         return data if isinstance(data, dict) else None
@@ -521,6 +586,20 @@ class RefreshTokenStore:
         record["revoked_at"] = int(datetime.now(UTC).timestamp())
         await self.update(jti, record)
         await self._client.srem(self._user_set_key(UUID(str(record["user_id"]))), jti)
+
+    async def restore_active(self, jti: str, *, previous_record: dict[str, Any]) -> None:
+        record = dict(previous_record)
+        user_id = UUID(str(record["user_id"]))
+        record["status"] = REFRESH_STATUS_ACTIVE
+        record.pop("revoked_at", None)
+        expires_at = _coerce_int(record.get("expires_at"))
+        ttl = None
+        if expires_at is not None:
+            ttl = max(expires_at - int(datetime.now(UTC).timestamp()), 0)
+        await self._client.set_json(self._refresh_key(jti), record, ex=ttl if ttl and ttl > 0 else None)
+        await self._client.sadd(self._user_set_key(user_id), jti)
+        if ttl is not None and ttl > 0:
+            await self._client.expire(self._user_set_key(user_id), ttl)
 
     async def list_active(self, user_id: UUID) -> list[str]:
         return sorted(await self._client.smembers(self._user_set_key(user_id)))
@@ -572,3 +651,16 @@ class PasswordResetStore:
             if current == token:
                 await self._client.delete(self._user_key(user_uuid))
         return record
+
+    async def restore(self, token: str, *, previous_record: dict[str, Any]) -> None:
+        record = dict(previous_record)
+        user_id = record.get("user_id")
+        if not user_id:
+            return
+        user_uuid = UUID(str(user_id))
+        expires_at = _coerce_int(record.get("expires_at"))
+        ttl = None
+        if expires_at is not None:
+            ttl = max(expires_at - int(datetime.now(UTC).timestamp()), 0)
+        await self._client.set_json(self._token_key(token), record, ex=ttl if ttl and ttl > 0 else None)
+        await self._client.set(self._user_key(user_uuid), token, ex=ttl if ttl and ttl > 0 else None)

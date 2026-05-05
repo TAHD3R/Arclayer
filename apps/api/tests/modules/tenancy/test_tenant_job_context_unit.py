@@ -121,7 +121,7 @@ async def test_publish_release_event_serializes_enriched_tenant_payload(monkeypa
     await publish_project_release_event(
         actor_user_id=actor_user_id,
         project_ctx=project_ctx,
-        event_name="project.release.published",
+        event_name="release.published",
         payload=release,
         project_id=project_id,
     )

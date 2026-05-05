@@ -7,6 +7,7 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
+from src.common.types.json_types import JsonObject
 from src.common.utils.public_ids import encode_uuid
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
@@ -19,6 +20,7 @@ from src.models.projects.deployment import (
 )
 from src.models.projects.environment import ProjectEnvironmentKey, ProjectEnvironmentRecord
 from src.models.sites.site import SiteRecord
+from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.projects.deployments.schema import (
     ProjectDeploymentActionOut,
     ProjectDeploymentListOut,
@@ -390,10 +392,52 @@ class ProjectDeploymentsService(BaseService):
                 promoted_from_deployment_id=source.id,
                 created_by_user_id=actor_user_id,
             )
+            await self._write_deployment_activity_event(
+                conn=conn,
+                event_name="deployment.promoted",
+                actor_user_id=actor_user_id,
+                deployment=promoted,
+                properties={
+                    "artifact_key": promoted.artifact_key,
+                    "environment_id": str(promoted.environment_id),
+                    "previous_active_deployment_id": str(previous_active_id) if previous_active_id else None,
+                    "promoted_from_deployment_id": str(source.id),
+                    "project_id": str(project_id),
+                    "source_type": str(promoted.source_type),
+                    "status": str(promoted.status),
+                },
+            )
         return ProjectDeploymentActionOut(
             deployment=self._to_out(await self._require_deployment(project_id=project_id, deployment_id=promoted.id)),
             previous_active_deployment_id=previous_active_id,
             changedAt=changed_at,
+        )
+
+    async def _write_deployment_activity_event(
+        self,
+        *,
+        conn: BaseDBAsyncClient,
+        event_name: str,
+        actor_user_id: UUID | None,
+        deployment: ProjectDeploymentRecord,
+        properties: JsonObject,
+    ) -> None:
+        context = self._current_tenant_context()
+        if context is None:
+            raise RuntimeError("PROJECT_TENANT_CONTEXT_REQUIRED")
+        await write_required_activity_event(
+            settings=self.settings,
+            payload=ActivityAuditPayload(
+                event_name=event_name,
+                actor_user_id=actor_user_id,
+                organization_id=context.organization_id,
+                workspace_id=context.workspace_id,
+                entity_type="deployment",
+                entity_id=deployment.id,
+                source="api",
+                properties=properties,
+            ),
+            conn=conn,
         )
 
     @staticmethod

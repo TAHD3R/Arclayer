@@ -5,6 +5,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
+from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.protocols.tortoise import DomainBindingRecordView
 from src.core.exceptions import Conflict, ServiceUnavailable
@@ -74,13 +75,14 @@ class DomainBindingService(BaseService):
         project_slug: str,
         actor_user_id: UUID | None,
         environment_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
     ) -> DomainBindingRecord:
-        existing = await self._repo.get_platform_binding_for_runtime(runtime_id=runtime_id)
+        existing = await self._repo.get_platform_binding_for_runtime(runtime_id=runtime_id, conn=conn)
         if existing is not None:
             return existing
 
         hostname = build_platform_hostname(project_slug, project_id, self.settings.saas.base_domain)
-        is_primary = not await self._repo.has_primary_binding(project_id=project_id)
+        is_primary = not await self._repo.has_primary_binding(project_id=project_id, conn=conn)
         binding = await self._repo.create_platform_binding(
             workspace_id=workspace_id,
             project_id=project_id,
@@ -90,6 +92,7 @@ class DomainBindingService(BaseService):
             is_primary=is_primary,
             created_by_user_id=actor_user_id,
             environment_id=environment_id,
+            conn=conn,
         )
         await self._invalidate_resolve_cache_best_effort(hostname=hostname)
         return binding
