@@ -7,9 +7,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from src.common.protocols.tortoise import DomainBindingRecordView
-from src.common.services import BaseService
 from src.core.exceptions import Conflict, ServiceUnavailable
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.domains.domain_binding import DomainBindingRecord, DomainBindingSource
 from src.modules.domains.hostname import HostnameValidationError, validate_custom_hostname
 from src.modules.domains.platform import build_platform_hostname

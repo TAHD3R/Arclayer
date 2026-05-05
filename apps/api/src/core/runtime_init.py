@@ -52,6 +52,8 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
         try:
             raw_asset_id = (event.payload or {}).get("asset_id")
             raw_project_id = (event.payload or {}).get("project_id")
+            raw_tenant_payload = (event.payload or {}).get("tenant")
+            tenant_payload = raw_tenant_payload if isinstance(raw_tenant_payload, dict) else None
             if not raw_asset_id or not raw_project_id:
                 return
 
@@ -68,7 +70,7 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
                         task_generate_asset_thumbnails,
                         str(asset_id),
                         str(project_id),
-                        (event.payload or {}).get("tenant"),
+                        tenant_payload,
                     )
                     if enqueued:
                         return
@@ -77,7 +79,7 @@ async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: Ev
                 {"settings": settings},
                 str(asset_id),
                 str(project_id),
-                (event.payload or {}).get("tenant"),
+                tenant_payload,
             )
         except BaseException as exc:
             _raise_if_fatal(exc)

@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.core.exceptions import Conflict
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.auth.service import AuthService
 from src.modules.system.setup.service import InstanceSetupService, InstanceSetupStatus
 
@@ -18,9 +18,16 @@ class InstanceBootstrapResult:
 class InstanceBootstrapService(BaseService):
     """Bootstrap an uninitialized instance by creating the sole super admin."""
 
-    def __init__(self, settings) -> None:
+    def __init__(
+        self,
+        settings,
+        *,
+        setup_state_service: InstanceSetupService | None = None,
+        auth_service: AuthService | None = None,
+    ) -> None:
         super().__init__(settings)
-        self.setup_state_service = InstanceSetupService(settings)
+        self.setup_state_service = setup_state_service or InstanceSetupService(settings)
+        self.auth_service = auth_service or AuthService(settings)
 
     async def bootstrap_instance(
         self,
@@ -32,10 +39,9 @@ class InstanceBootstrapService(BaseService):
     ) -> InstanceBootstrapResult:
         await self._assert_can_bootstrap()
 
-        auth_service = AuthService(self.settings)
         async with self.tx():
             await self._assert_can_bootstrap()
-            user = await auth_service.register(
+            user = await self.auth_service.register(
                 username=username,
                 password=password,
                 email=email,

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query, status
 
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.core.events import EventBus
 from src.core.http.pagination import PageData, PageParams, get_page_params
@@ -58,7 +59,7 @@ async def _publish_project_content_activity_event(
     entity_type: str,
     event_bus: EventBus,
     event_name: str,
-    properties: dict[str, object | None] | None = None,
+    properties: JsonObject | None = None,
 ) -> None:
     await publish_content_activity_event(
         actor_user_id=actor_user_id,

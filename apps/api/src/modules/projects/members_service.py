@@ -7,14 +7,15 @@ from src.common.protocols.tortoise import HasProjectId
 from src.config import Settings
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams
+from src.core.services import BaseService
 from src.models.projects.membership import ProjectMemberRole, ProjectMembership
 from src.modules.projects.members_repository import ProjectMembersRepository
 from src.modules.projects.members_schema import ProjectMemberOut, ProjectMemberRoleUpdateRequest
 
 
-class ProjectMembersService:
+class ProjectMembersService(BaseService):
     def __init__(self, settings: Settings) -> None:
-        self.settings = settings
+        super().__init__(settings)
         self.repo = ProjectMembersRepository()
 
     async def _bootstrap_project_memberships(

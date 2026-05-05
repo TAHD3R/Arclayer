@@ -7,8 +7,8 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
-from src.common.services import BaseService
 from src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
+from src.core.services import BaseService
 from src.models.sites.site import SiteRecord
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.content.service import SiteContentService

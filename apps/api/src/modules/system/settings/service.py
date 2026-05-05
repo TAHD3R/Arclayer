@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
-from src.common.services import BaseService
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.events import EventBus
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.system.settings.events.service import SettingsEventsMixin
 from src.modules.system.settings.repository import SettingsRepository
 from src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary
@@ -28,7 +29,7 @@ class SettingsService(
     BaseService,
 ):
     def __init__(self, settings: Settings, *, event_bus: EventBus) -> None:
-        super().__init__(settings)
+        super().__init__(settings, event_publisher=event_bus)
         self.repo = SettingsRepository()
         self.event_bus = event_bus
 
@@ -63,7 +64,7 @@ class SettingsService(
         self,
         namespace: str,
         *,
-        patch: dict[str, object],
+        patch: JsonObject,
         updated_by: UUID | None,
     ) -> SettingsDetail:
         if namespace == CORE_SETTINGS_NAMESPACE:
@@ -94,8 +95,8 @@ class SettingsService(
         raise NotFound(message=_ts("NAMESPACE_NOT_FOUND", "配置域不存在"), error="SETTINGS_NAMESPACE_NOT_FOUND")
 
     @staticmethod
-    def _mask_secrets(schema, config: dict[str, object]) -> tuple[dict[str, object], dict[str, bool]]:
-        masked: dict[str, object] = dict(config or {})
+    def _mask_secrets(schema, config: JsonObject) -> tuple[JsonObject, dict[str, bool]]:
+        masked: JsonObject = dict(config or {})
         secrets: dict[str, bool] = {}
 
         for path in iter_secret_field_paths(schema):
@@ -104,7 +105,7 @@ class SettingsService(
             if not isinstance(section, dict):
                 secrets[path] = False
                 continue
-            section_dict = cast(dict[str, object | None], section)
+            section_dict = cast(JsonObject, section)
             value = section_dict.get(field_key)
             if value is None:
                 secrets[path] = False

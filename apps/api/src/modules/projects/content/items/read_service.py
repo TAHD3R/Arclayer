@@ -5,8 +5,10 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
+from src.core.services import BaseService
 from src.models.content.component_binding import ComponentBindingRecord
 from src.models.content.content_version import ContentVersionRecord
 from src.models.content.seo_profile import SEOProfileRecord
@@ -25,12 +27,13 @@ from src.modules.projects.content.items.repository import ProjectContentItemsRep
 from src.modules.projects.content.runtime import DocumentRuntimeBoundary, DocumentRuntimeItemFields
 
 
-class ProjectContentCanonicalItemReadService:
+class ProjectContentCanonicalItemReadService(BaseService):
     def __init__(
         self,
         repo: ProjectContentItemsRepository,
         runtime_boundary: DocumentRuntimeBoundary | None = None,
     ) -> None:
+        super().__init__()
         self.repo = repo
         self.runtime_boundary = runtime_boundary or DocumentRuntimeBoundary.for_items_repo(repo)
         self.history = ContentHistoryService(repo=repo)
@@ -173,7 +176,7 @@ class ProjectContentCanonicalItemReadService:
 
     @staticmethod
     def _to_presentation_outs(
-        presentations: list[tuple[ContentPresentationKind, dict[str, object] | None]],
+        presentations: list[tuple[ContentPresentationKind, JsonObject | None]],
     ) -> list[ContentPresentationOut]:
         return [ContentPresentationOut(kind=kind, payload=payload) for kind, payload in presentations]
 

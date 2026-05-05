@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
-from src.common.services import BaseService
+from src.core.services import BaseService
 from src.models.system.setting import SettingRecord
 from src.modules.auth.schema import OnboardingProfileOut, OnboardingProfilePatchRequest
 from src.settings.scopes import SCOPE_TYPE_USER

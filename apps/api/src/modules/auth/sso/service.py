@@ -7,10 +7,10 @@ from uuid import UUID
 
 from fastapi import Request
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.auth.oauth.social.providers import OAUTH_PROVIDER_DEFINITIONS
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.sessions.request_context import AuthRequestContext

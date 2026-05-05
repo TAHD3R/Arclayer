@@ -7,11 +7,11 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
-from tortoise.transactions import in_transaction
 
 from src.common.utils.public_ids import PublicIdDecodeError, decode_public_id, is_public_id
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.projects.environment import (
     PROJECT_ENVIRONMENT_SPECS,
     ProjectEnvironmentAliasRecord,
@@ -38,13 +38,14 @@ def _te(key: str) -> str:
     return t("errors", key)
 
 
-class ProjectEnvironmentsService:
+class ProjectEnvironmentsService(BaseService):
     def __init__(
         self,
         tenant_context: TenantContext | None = None,
         *,
         conn: BaseDBAsyncClient | None = None,
     ) -> None:
+        super().__init__()
         self._tenant_context = tenant_context
         self._conn = conn
 
@@ -77,7 +78,7 @@ class ProjectEnvironmentsService:
             async with TenantDatabaseRouter(context).connection() as conn:
                 yield conn
             return
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             yield conn
 
     async def list_environments_out(self, *, project_id: UUID) -> ProjectEnvironmentListOut:

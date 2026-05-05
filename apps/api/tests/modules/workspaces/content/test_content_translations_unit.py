@@ -10,7 +10,6 @@ from pydantic import ValidationError
 
 from src.core.entity_manager.manager import EntityManager
 from src.models.content._enums import ContentWorkflowStage
-from src.modules.projects.content.items import canonical_service as canonical_service_module
 from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
 from src.modules.projects.content.items.input_schema import ContentItemCreateIn, ContentTranslationCreateIn
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
@@ -114,12 +113,11 @@ async def test_create_translation_links_new_locale_to_source_translation_group(m
         create_item=AsyncMock(return_value=translated_item),
         list_translation_items=AsyncMock(return_value=[source_item, translated_item]),
     )
-    monkeypatch.setattr(canonical_service_module, "in_transaction", lambda: _FakeTransaction(conn))
-
     service = ProjectContentCanonicalItemsService(
         repo=cast(ProjectContentItemsRepository, repo),
         entity_manager=cast(EntityManager, SimpleNamespace()),
     )
+    monkeypatch.setattr(service, "tx", lambda: _FakeTransaction(conn))
     out = await service.create_translation(
         workspace_id=workspace_id,
         site_id=site_id,

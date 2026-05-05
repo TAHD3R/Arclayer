@@ -159,6 +159,10 @@ A rule can move to `blocking` when all items are complete:
 ### Backend Layer and Architecture
 
 - `service.no-direct-orm`
+- `service.must-extend-base-service`
+- `service.no-direct-event-publish`
+- `service.no-method-dependency-construction`
+- `service.no-direct-in-transaction`
 - `repository.must-extend-tortoise-orm`
 - `repository.no-business-logic`
 - `entity-manager.no-dataclass-return`

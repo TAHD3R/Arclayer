@@ -6,6 +6,7 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 from fastapi import Depends, Request
 
+from src.common.types.json_types import JsonObject
 from src.core.entity_manager.manager import EntityManager
 from src.core.events import Event, EventBus
 from src.core.exceptions import ServiceUnavailable
@@ -72,7 +73,7 @@ async def publish_content_activity_event(
     entity_type: str,
     event_bus: EventBus,
     event_name: str,
-    properties: dict[str, object | None] | None = None,
+    properties: JsonObject | None = None,
 ) -> None:
     tenant_payload = tenant_payload_from_context()
     try:

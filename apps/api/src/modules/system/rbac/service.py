@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from src.common.services import BaseService
 from src.config import Settings
+from src.core.services import BaseService
 from src.modules.system.rbac.localization.service import RBACLocalizationMixin
 from src.modules.system.rbac.matrix.service import RBACMatrixMixin
 from src.modules.system.rbac.repository import RBACRepository

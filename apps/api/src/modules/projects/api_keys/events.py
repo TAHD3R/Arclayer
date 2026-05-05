@@ -7,6 +7,7 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 
 from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.common.utils.public_ids import decode_public_id
 from src.core.events import Event, events
@@ -48,7 +49,7 @@ async def publish_api_key_event(
     key_id = coerce_api_key_event_uuid(key.id)
     workspace_id = coerce_api_key_event_uuid(key.workspace_id)
     site_id = coerce_api_key_event_uuid(key.site_id)
-    payload: dict[str, object | None] = {
+    payload: JsonObject = {
         "delivery_perspective": str(key.delivery_perspective) if key.delivery_perspective is not None else None,
         "entity_id": str(key_id) if key_id is not None else None,
         "entity_type": "api_key",

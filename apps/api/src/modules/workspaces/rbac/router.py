@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from src.common.types.json_types import JsonObject
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from src.core.http.response import ApiResponse, ResponseModel
@@ -45,9 +46,7 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
-async def _publish_rbac_event(
-    *, event_name: str, payload: dict[str, str | list[str] | None], actor_user_id: UUID
-) -> None:
+async def _publish_rbac_event(*, event_name: str, payload: JsonObject, actor_user_id: UUID) -> None:
     try:
         from asgi_correlation_id import correlation_id
 

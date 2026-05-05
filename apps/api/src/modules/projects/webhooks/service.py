@@ -6,6 +6,7 @@ from uuid import UUID
 
 from src.config import Settings
 from src.core.lifecycles.specs import LifecycleEvent
+from src.core.services import BaseService
 from src.modules.workspaces.settings.integrations.webhooks.service import WebhooksService as WorkspaceWebhooksService
 
 _WEBHOOK_EVENT_MAP: dict[str, str] = {
@@ -20,7 +21,7 @@ class WorkspaceWebhookEmitter(Protocol):
     async def emit_workspace_event(self, *, workspace_id: UUID, event: str, payload: dict[str, object]) -> None: ...
 
 
-class WebhookService:
+class WebhookService(BaseService):
     """Dispatches content lifecycle webhooks through persisted workspace subscriptions."""
 
     def __init__(
@@ -31,6 +32,7 @@ class WebhookService:
     ) -> None:
         if workspace_webhooks is None and settings is None:
             raise ValueError("settings are required when workspace_webhooks is not provided")
+        super().__init__(settings)
         if workspace_webhooks is not None:
             self._workspace_webhooks = workspace_webhooks
         else:

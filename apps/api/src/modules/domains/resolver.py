@@ -4,9 +4,9 @@ from typing import cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import DomainBindingRecordView
-from src.common.services import BaseService
 from src.core.exceptions import NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.domains.hostname import normalize_hostname
 from src.modules.domains.repository import DomainBindingRepository
 from src.modules.sites import schema as sites_schema

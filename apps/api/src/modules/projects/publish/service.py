@@ -5,7 +5,9 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import Conflict
+from src.core.services import BaseService
 from src.models.content._enums import (
     ContentReleaseStatus,
     ContentShapeState,
@@ -60,7 +62,7 @@ def _append_blocked_item(
     *,
     item: ContentItemRecord,
     reason_code: str,
-    reason_meta: dict[str, object] | None = None,
+    reason_meta: JsonObject | None = None,
 ) -> None:
     impact.blocked_items.append(
         PublishBlockedItemOut(
@@ -176,13 +178,13 @@ async def _load_component_manifest_map(
     *,
     version_ids: list[UUID],
     conn: BaseDBAsyncClient,
-) -> dict[UUID, dict[str, object]]:
+) -> dict[UUID, JsonObject]:
     if not version_ids:
         return {}
     rows = (
         await PresentationDocumentRecord.filter(version_id__in=version_ids).using_db(conn).order_by("kind", "id").all()
     )
-    out: dict[UUID, list[dict[str, object] | None]] = {}
+    out: dict[UUID, list[JsonObject]] = {}
     for row in rows:
         if row.kind in _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST:
             continue
@@ -216,8 +218,9 @@ async def _production_environment_id(*, site_id: UUID, conn: BaseDBAsyncClient) 
     return UUID(str(item.environment_id))
 
 
-class ProjectPublishService:
+class ProjectPublishService(BaseService):
     def __init__(self, tenant_context: TenantContext) -> None:
+        super().__init__()
         self.tenant_context = tenant_context
         self.tenant_db = TenantDatabaseRouter(tenant_context)
         self.releases_repo = ProjectReleasesRepository(tenant_context)

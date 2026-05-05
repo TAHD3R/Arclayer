@@ -9,11 +9,11 @@ from src.common.email.service import EmailService
 from src.common.invitations.expiry import build_expires_at
 from src.common.invitations.tokens import build_invite_token, generate_invite_code
 from src.common.protocols.tortoise import HasUserId
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.org_invitation import (
     OrganizationEmailInvite,
     OrganizationInviteLink,

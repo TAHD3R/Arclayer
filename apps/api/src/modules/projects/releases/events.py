@@ -5,6 +5,7 @@ from uuid import UUID
 
 from asgi_correlation_id import correlation_id
 
+from src.common.types.json_types import JsonObject
 from src.common.types.public_uuid import PublicUUID
 from src.common.utils.public_ids import decode_public_id
 from src.core.events import Event, events
@@ -54,7 +55,7 @@ async def publish_project_release_event(
             site_id=normalized_site_id,
             scope=tenant_context.scope,
         )
-    event_payload: dict[str, object | None] = {
+    event_payload: JsonObject = {
         "entity_id": str(_normalize_public_or_uuid(payload.id)),
         "entity_type": "release",
         "is_active": payload.is_active,

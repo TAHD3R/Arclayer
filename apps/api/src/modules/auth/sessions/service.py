@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.auth.repository import RefreshTokenStore
 from src.modules.auth.sessions.device_label import build_device_label
 from src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup

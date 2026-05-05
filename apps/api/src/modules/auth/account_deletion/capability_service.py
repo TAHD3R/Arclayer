@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import Forbidden, Unauthorized
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.user import User
 from src.modules.auth.account_deletion.guard import AccountDeletionGuard
 from src.modules.auth.oauth.social.repository import OAuthSocialRepository

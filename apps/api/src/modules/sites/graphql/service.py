@@ -13,6 +13,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from src.config import Settings
 from src.core.exceptions import APIError, Forbidden, ServiceUnavailable
 from src.core.logging import get_logger
+from src.core.services import BaseService
 from src.models.content.route_binding import RouteBindingRecord
 from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
 from src.modules.projects.api_keys.repository import ProjectApiKeysRepository
@@ -206,7 +207,7 @@ def _normalize_locale_filter(value: str | None) -> str | None:
     return normalized or None
 
 
-class SiteGraphQLService:
+class SiteGraphQLService(BaseService):
     def __init__(
         self,
         settings: Settings,
@@ -214,6 +215,7 @@ class SiteGraphQLService:
         valkey: ValkeyClientLike | None = None,
         repo: SitesRepository | None = None,
     ) -> None:
+        super().__init__(settings)
         self._settings = settings
         self._valkey = valkey
         self._repo = repo or SitesRepository()

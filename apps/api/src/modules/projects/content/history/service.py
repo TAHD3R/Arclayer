@@ -8,6 +8,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
+from src.core.services import BaseService
 from src.modules.projects.content.contracts.schema import ContentPresentationKind, ContentVersionOut
 from src.modules.projects.content.items.domain_helpers import to_version_out
 
@@ -48,9 +49,10 @@ class ContentVersionSystemObjectList:
         return paginate_items(rows, params=params)
 
 
-@dataclass(frozen=True)
-class ContentHistoryService:
-    repo: ProjectContentItemsRepository
+class ContentHistoryService(BaseService):
+    def __init__(self, repo: ProjectContentItemsRepository) -> None:
+        super().__init__()
+        self.repo = repo
 
     async def get_item_or_raise(
         self,

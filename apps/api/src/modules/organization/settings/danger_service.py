@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import Forbidden, NotFound
+from src.core.services import BaseService
 from src.models.organization.org_membership import OrgRole
 from src.modules.organization.rbac.service import OrganizationRBACService
 from src.modules.organization.settings.leave_guard import OrganizationLeaveGuard

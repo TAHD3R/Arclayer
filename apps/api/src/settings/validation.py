@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import cast
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import BadRequest
 from src.core.i18n import t
 from src.settings.schema import ConfigSchema
@@ -11,7 +12,7 @@ def _ts(key: str, default: str) -> str:
     return t("settings", key, default=default)
 
 
-def merge_deep(current: dict[str, object], patch: dict[str, object]) -> dict[str, object]:
+def merge_deep(current: JsonObject, patch: JsonObject) -> JsonObject:
     """
     Deep-merge dictionaries for settings updates.
 
@@ -20,12 +21,12 @@ def merge_deep(current: dict[str, object], patch: dict[str, object]) -> dict[str
     - Unknown keys are preserved.
     """
 
-    merged: dict[str, object] = dict(current or {})
+    merged: JsonObject = dict(current or {})
     for key, value in (patch or {}).items():
         if isinstance(value, dict) and isinstance(merged.get(key), dict):
             merged[key] = merge_deep(
-                cast(dict[str, object], merged[key]),
-                cast(dict[str, object], value),
+                cast(JsonObject, merged[key]),
+                cast(JsonObject, value),
             )
         else:
             merged[key] = value
@@ -34,7 +35,7 @@ def merge_deep(current: dict[str, object], patch: dict[str, object]) -> dict[str
 
 def validate_config_schema(
     schema: ConfigSchema,
-    config: dict[str, object],
+    config: JsonObject,
     *,
     allow_unknown: bool = True,
 ) -> None:
@@ -63,7 +64,7 @@ def validate_config_schema(
                 error="SETTINGS_CONFIG_INVALID",
             )
 
-        values_dict = cast(dict[str, object], values)
+        values_dict = cast(JsonObject, values)
         fields = {field.key: field for field in section.fields}
         for key, value in values_dict.items():
             field = fields.get(key)
@@ -101,7 +102,7 @@ def _is_type_valid(field_type: str, value: object) -> bool:
     return False
 
 
-def _validate_section_semantics(section_id: str, values: dict[str, object]) -> None:
+def _validate_section_semantics(section_id: str, values: JsonObject) -> None:
     if section_id != "mail":
         return
 
@@ -128,7 +129,7 @@ def _validate_section_semantics(section_id: str, values: dict[str, object]) -> N
                 message=_ts("MAIL_RETRY_INVALID", "邮件重试配置不合法"),
                 error="MAIL_RETRY_INVALID",
             )
-        retry_config = cast(dict[str, object], retry)
+        retry_config = cast(JsonObject, retry)
         max_attempts = retry_config.get("max_attempts")
         backoff_seconds = retry_config.get("backoff_seconds")
         if max_attempts is not None and (

@@ -5,6 +5,7 @@ from typing import Any, cast
 
 from src.common.email.helpers import pick_str
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 
 
@@ -12,7 +13,7 @@ class SesEmailProvider(EmailProvider):
     provider_id = "ses"
     provider_label = "Amazon SES"
 
-    def __init__(self, *, settings: Settings, config: dict[str, object]) -> None:
+    def __init__(self, *, settings: Settings, config: JsonObject) -> None:
         self.settings = settings
         self.config = config
 
@@ -36,12 +37,12 @@ class SesEmailProvider(EmailProvider):
             latency_ms=(time.perf_counter() - started) * 1000,
         )
 
-    def _provider_config(self) -> dict[str, object]:
+    def _provider_config(self) -> JsonObject:
         providers = self.config.get("providers")
         if isinstance(providers, dict):
-            provider_value = cast(dict[str, object], providers).get("ses")
+            provider_value = cast(JsonObject, providers).get("ses")
             if isinstance(provider_value, dict):
-                return cast(dict[str, object], provider_value)
+                return cast(JsonObject, provider_value)
         return self.config
 
     def _region(self) -> str:
@@ -56,11 +57,11 @@ class SesEmailProvider(EmailProvider):
 
         return boto3.client("sesv2", region_name=self._region())
 
-    def _payload(self, message: EmailMessage) -> dict[str, Any]:
+    def _payload(self, message: EmailMessage) -> JsonObject:
         config = self._provider_config()
         mail_from = pick_str(config.get("mail_from"), self.settings.email.mail_from)
         mail_from_name = pick_str(config.get("mail_from_name"), self.settings.email.mail_from_name)
-        body: dict[str, Any] = {}
+        body: JsonObject = {}
         if message.text_body:
             body["Text"] = {"Data": message.text_body, "Charset": "UTF-8"}
         if message.html_body:

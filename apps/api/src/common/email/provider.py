@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from src.common.types.json_types import JsonObject
+
 EmailProviderId = Literal["smtp", "resend", "cloudflare", "ses"]
 
 
@@ -14,12 +16,12 @@ class EmailMessage:
     html_body: str | None = None
     text_body: str | None = None
     template_id: str | None = None
-    template_vars: dict[str, Any] = field(default_factory=dict)
+    template_vars: JsonObject = field(default_factory=dict)
     html_template: str | None = None
     plain_template: str | None = None
     reply_to: str | None = None
     attachments: tuple[Any, ...] = ()
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: JsonObject = field(default_factory=dict)
 
     @classmethod
     def single(
@@ -30,10 +32,10 @@ class EmailMessage:
         html_body: str | None = None,
         text_body: str | None = None,
         template_id: str | None = None,
-        template_vars: dict[str, Any] | None = None,
+        template_vars: JsonObject | None = None,
         html_template: str | None = None,
         plain_template: str | None = None,
-        metadata: dict[str, Any] | None = None,
+        metadata: JsonObject | None = None,
     ) -> EmailMessage:
         return cls(
             to=(recipient,),

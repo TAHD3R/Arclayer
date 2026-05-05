@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections import defaultdict
 from uuid import UUID
 
-from src.common.services.base import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageParams, paginate_items
+from src.core.services import BaseService
 from src.models.organization.user import User
 from src.models.workspaces.workspace import Workspace
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository

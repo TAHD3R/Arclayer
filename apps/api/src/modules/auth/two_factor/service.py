@@ -14,10 +14,10 @@ from uuid import UUID
 from cryptography.exceptions import InvalidTag
 
 from src.common.constants.auth import REAUTH_MAX_AGE_SECONDS
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.auth.tokens.service import verify_password
 from src.modules.auth.two_factor.repository import TwoFactorRepository, TwoFactorRepositoryLike
 from src.modules.auth.two_factor.totp import generate_totp_secret, verify_totp_code

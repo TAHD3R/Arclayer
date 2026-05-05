@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
@@ -7,6 +8,7 @@ from uuid import UUID
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
+from src.core.services import BaseService
 from src.models.content._enums import ContentReleaseStatus, PublishJobStatus, PublishJobType
 from src.models.content.publish_job import PublishJobRecord
 from src.models.content.release import ContentReleaseRecord
@@ -22,13 +24,35 @@ from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsol
 
 logger = get_logger(__name__)
 
+ProjectReleasesRepositoryFactory = Callable[[TenantContext], ProjectReleasesRepository]
+ProjectPublishServiceFactory = Callable[[TenantContext], ProjectPublishService]
 
-class PublishJobService:
-    def __init__(self, tenant_context: TenantContext | None = None) -> None:
+
+def default_releases_repository_factory(tenant_context: TenantContext) -> ProjectReleasesRepository:
+    return ProjectReleasesRepository(tenant_context)
+
+
+def default_publish_service_factory(tenant_context: TenantContext) -> ProjectPublishService:
+    return ProjectPublishService(tenant_context)
+
+
+class PublishJobService(BaseService):
+    def __init__(
+        self,
+        tenant_context: TenantContext | None = None,
+        *,
+        releases_repository_factory: ProjectReleasesRepositoryFactory = default_releases_repository_factory,
+        publish_service_factory: ProjectPublishServiceFactory = default_publish_service_factory,
+        organization_workspace_repo: OrganizationWorkspaceRepository | None = None,
+    ) -> None:
+        super().__init__()
         self.tenant_context = tenant_context
         self.tenant_db = TenantDatabaseRouter(tenant_context) if tenant_context is not None else None
-        self.publish_service = ProjectPublishService(tenant_context) if tenant_context is not None else None
-        self.releases_repo = ProjectReleasesRepository(tenant_context) if tenant_context is not None else None
+        self.publish_service = publish_service_factory(tenant_context) if tenant_context is not None else None
+        self.releases_repo = releases_repository_factory(tenant_context) if tenant_context is not None else None
+        self.releases_repository_factory = releases_repository_factory
+        self.publish_service_factory = publish_service_factory
+        self.organization_workspace_repo = organization_workspace_repo or OrganizationWorkspaceRepository()
 
     async def create_scheduled_publish(
         self,
@@ -123,7 +147,7 @@ class PublishJobService:
 
         tenant_context = await self._tenant_context_for_workspace(workspace_id=job.workspace_id)
         tenant_db = TenantDatabaseRouter(tenant_context)
-        releases_repo = ProjectReleasesRepository(tenant_context)
+        releases_repo = self.releases_repository_factory(tenant_context)
         async with tenant_db.connection() as conn:
             release = await releases_repo.get_release_in_connection(release_id=release_id, conn=conn)
         if release is None:
@@ -143,7 +167,7 @@ class PublishJobService:
         cast(Any, job).error_message = None
         await job.save(update_fields=["status", "started_at", "completed_at", "error_message", "updated_at"])
         try:
-            await ProjectPublishService(tenant_context).activate_scheduled_release(
+            await self.publish_service_factory(tenant_context).activate_scheduled_release(
                 workspace_id=release.workspace_id,
                 site_id=release.site_id,
                 release=release,
@@ -188,7 +212,7 @@ class PublishJobService:
 
     async def _tenant_context_for_workspace(self, *, workspace_id: UUID) -> TenantContext:
         record = await WorkspaceTenantRecord.get_or_none(workspace_id=workspace_id)
-        workspace = await OrganizationWorkspaceRepository().get_by_id(workspace_id=workspace_id)
+        workspace = await self.organization_workspace_repo.get_by_id(workspace_id=workspace_id)
         if record is None or workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="WORKSPACE_TENANT_NOT_FOUND")
         return TenantContext(

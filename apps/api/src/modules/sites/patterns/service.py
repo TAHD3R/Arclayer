@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_queryset
+from src.core.services import BaseService
 from src.modules.sites.patterns.repository import SitePatternRepository
 from src.modules.sites.schema import SitePatternCreateIn, SitePatternOut, SitePatternUpdateIn
 

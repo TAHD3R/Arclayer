@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
-from src.common.services import BaseService
 from src.core.exceptions import Forbidden, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.projects.content.views.repository import ProjectContentViewsRepository
 from src.modules.projects.content.views.schema import (
     ContentLibrarySystemViewId,

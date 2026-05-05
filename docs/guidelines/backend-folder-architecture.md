@@ -129,9 +129,59 @@ class ProjectRepository(BaseRepository):
 BaseRepository = TortoiseORMRepository
 ```
 
-## 8. Model and Table Rules
+## 8. Service Foundation Rules
 
-### 8.1 Table namespace contract
+All production service classes that own orchestration, persistence access, settings access, transactions, or domain events use `BaseService`:
+
+```python
+from src.core.services import BaseService
+
+
+class WorkspaceTeamService(BaseService):
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        repo: WorkspaceTeamRepository | None = None,
+        event_publisher: DomainEventPublisher | None = events,
+    ) -> None:
+        super().__init__(settings, event_publisher=event_publisher)
+        self.repo = repo or WorkspaceTeamRepository()
+```
+
+Constructor parameters after `settings` are keyword-only for dependencies. Repositories, sibling services, event publishers, lifecycle dispatchers, storage adapters, and test doubles are injected at the constructor or module factory boundary. Business methods should receive data and explicit context, then call already-wired dependencies.
+
+Service-level transactions start from `BaseService.tx()`:
+
+```python
+async with self.tx() as conn:
+    await self.repo.update_workspace(..., conn=conn)
+    await self.entity_manager.update(..., conn=conn)
+```
+
+Nested service/repository work receives `conn` explicitly or uses a repository instance bound to the same transaction. Avoid adding `tx()` around calls that ignore the yielded connection because that creates false transaction semantics.
+Service methods use `self.tx()` for default database transactions; direct `in_transaction()` calls are limited to `BaseService.tx()` and documented non-service infrastructure. Tenant-scoped services may use a tenant router connection helper when the helper preserves the same explicit connection-passing semantics.
+
+Service-level domain events go through `BaseService.publish_domain_event()` or the documented optional helper:
+
+```python
+await self.publish_domain_event(
+    name="workspace.member.invited",
+    payload={"workspace_id": str(workspace_id)},
+    actor_user_id=actor_user_id,
+    source="api",
+)
+```
+
+Required business or audit events use `publish_domain_event()` so publisher configuration and publish failures surface as typed service-contract errors. Non-critical observability fanout uses `publish_optional_domain_event()` and logs skipped/failed publication.
+
+Actor and Activity metadata comes from `BaseService.resolve_actor_context()`. The helper accepts explicit overrides for jobs and reads approved request context variables for request flows. Service business methods should pass actor/context values through arguments or typed context objects.
+
+Allowed pure mixins contain helper behavior and are composed into a `BaseService` subclass. Mixins that publish events should call the host service's `BaseService` publisher instead of carrying their own event bus dependency.
+
+## 9. Model and Table Rules
+
+### 9.1 Table namespace contract
 
 - `Meta.table` is mandatory for authored models.
 - Table names must use one of these prefixes:
@@ -145,7 +195,7 @@ BaseRepository = TortoiseORMRepository
   - `internal_*`: internal/system-governance data
   - `external_*`: externally-facing ingestion/proxy boundaries when they truly deserve a separate namespace
 
-### 8.2 Model docstring rule
+### 9.2 Model docstring rule
 
 - The first line of every model docstring is normative.
 - It must be standardized because it is used as the database table comment in admin tooling.
@@ -155,7 +205,7 @@ BaseRepository = TortoiseORMRepository
   - `"""Internal model for system configuration revisions."""`
 - Additional lines may explain scope or behavior, but the first line must stay clean.
 
-### 8.3 Content model storage sync
+### 9.3 Content model storage sync
 
 - Runtime content field values are stored in `ContentVersionRecord.fields_snapshot` on `domain_content_versions`.
 - Content model schema revisions are tracked through `draft_contract_revision`, `published_contract_revision`, and canonical snapshot payloads.
@@ -163,7 +213,7 @@ BaseRepository = TortoiseORMRepository
 - `AbstractFieldType.get_db_column_type()` is the extension point for generated indexes, projections, API generation, and future storage strategies; it does not imply one physical content table per model.
 - Dynamic physical tables require a separate tenant migration engine, online backfill plan, and rollback design before they become a runtime storage strategy.
 
-## 9. Router Metadata Rules
+## 10. Router Metadata Rules
 
 - Router tags must use the dotted domain vocabulary:
   - `domain.*`
@@ -173,7 +223,7 @@ BaseRepository = TortoiseORMRepository
 - Endpoint functions must contain concise product-facing docstrings inside the function body.
 - Prefer obvious, literal wording over internal implementation jargon.
 
-## 10. Migration Rules
+## 11. Migration Rules
 
 - Use the built-in Tortoise migration flow via:
   - `pnpm --filter @arclayer/api db:migrate`
@@ -187,7 +237,7 @@ BaseRepository = TortoiseORMRepository
   - regenerate through `db:migrate`
 - Keep the migration chain command-driven and reviewable.
 
-## 11. Hard-Cut Architecture Rule
+## 12. Hard-Cut Architecture Rule
 
 - Do not keep old and new architecture paths alive in parallel by default.
 - When correcting a backend architecture mistake, remove the obsolete path cleanly in the same change set.
@@ -197,7 +247,7 @@ BaseRepository = TortoiseORMRepository
   - endpoint contract surfaces
   - stale module shells
 
-## 12. Validation Expectations
+## 13. Validation Expectations
 
 Prefer the narrowest validation that matches the change:
 
@@ -207,7 +257,7 @@ Prefer the narrowest validation that matches the change:
 
 Backend work is not complete until validation results and residual risks are recorded honestly.
 
-## 13. Architecture Checklist
+## 14. Architecture Checklist
 
 - [ ] Route registration happens from `src/core/routes.py`, not an aggregation layer.
 - [ ] Files live in the correct layer.

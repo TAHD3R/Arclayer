@@ -6,7 +6,6 @@ from typing import Any, cast
 from uuid import UUID
 
 from tortoise.expressions import Q
-from tortoise.transactions import in_transaction
 
 from src.common.invitations.expiry import build_expires_at
 from src.common.invitations.tokens import build_invite_token, generate_invite_code
@@ -24,6 +23,7 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.user import User
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace_invite import (
@@ -184,7 +184,7 @@ class WorkspaceTeamInviteMixin:
                 )
 
         is_update = False
-        async with in_transaction() as conn:
+        async with cast(BaseService, self).tx() as conn:
             # Q2: only one active invite per (workspace, email). We enforce this by locking the existing row (if any).
             existing = (
                 await WorkspaceEmailInvite

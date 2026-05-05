@@ -394,6 +394,257 @@ def test_repository_rule_accepts_canonical_repository_bases(tmp_path, source: st
     assert report.findings == ()
 
 
+def test_service_base_rule_flags_service_without_base_service(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService:",
+                "    async def list_projects(self):",
+                "        return []",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.must-extend-base-service",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.must-extend-base-service"
+
+
+def test_service_base_rule_accepts_base_service(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService(BaseService):",
+                "    async def list_projects(self):",
+                "        return []",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.must-extend-base-service",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_service_event_publish_rule_flags_direct_publish(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService(BaseService):",
+                "    async def publish(self):",
+                "        await events.publish(Event(name='project.changed'))",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-direct-event-publish",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.no-direct-event-publish"
+
+
+def test_service_event_publish_rule_flags_direct_event_bus_publish(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService(BaseService):",
+                "    async def publish(self, event_bus):",
+                "        await event_bus.publish(Event(name='project.changed'))",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-direct-event-publish",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.no-direct-event-publish"
+
+
+def test_service_event_publish_rule_accepts_base_service_publisher(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService(BaseService):",
+                "    async def publish(self):",
+                "        await self.publish_optional_domain_event(name='project.changed')",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-direct-event-publish",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_service_dependency_construction_rule_flags_method_repository_construction(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService(BaseService):",
+                "    async def update_project(self):",
+                "        repo = ProjectsRepository()",
+                "        return await repo.get()",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-method-dependency-construction",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.no-method-dependency-construction"
+
+
+def test_service_dependency_construction_rule_accepts_constructor_injection(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService(BaseService):",
+                "    def __init__(self, repo=None):",
+                "        self.repo = repo or ProjectsRepository()",
+                "    async def update_project(self):",
+                "        return await self.repo.get()",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-method-dependency-construction",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_service_tx_rule_flags_direct_in_transaction_call(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService(BaseService):",
+                "    async def update_project(self):",
+                "        async with in_transaction() as conn:",
+                "            return conn",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-direct-in-transaction",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "service.no-direct-in-transaction"
+
+
+def test_service_tx_rule_accepts_base_service_tx(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/projects/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class ProjectService(BaseService):",
+                "    async def update_project(self):",
+                "        async with self.tx() as conn:",
+                "            return conn",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-direct-in-transaction",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_service_tx_rule_skips_base_service_foundation(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/core/services/base.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "class BaseService:",
+                "    async def tx(self):",
+                "        async with in_transaction() as conn:",
+                "            return conn",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("service.no-direct-in-transaction",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
 def test_lifecycle_subscriber_rule_reads_runtime_registrations(tmp_path) -> None:
     subscribers = tmp_path / "apps/api/src/core/lifecycles/subscribers"
     subscribers.mkdir(parents=True)

@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.auth.repository import EmailLoginCodeStore
 from src.modules.auth.schema import LoginEmailCodeRequestOut, TokenPair
 from src.modules.auth.service import AuthService

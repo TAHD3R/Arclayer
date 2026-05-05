@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any, Literal
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.core.exceptions import NotFound
+from src.core.services import BaseService
 from src.modules.sites.namespaces.service import EDITOR_GLOBAL_SECTIONS_NAMESPACE
 from src.modules.sites.publishing.includes.service import PublishingIncludesService
 from src.modules.sites.publishing.routes.resolve.content.service import ContentPageRouteResolver, _flatten_sections

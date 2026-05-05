@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from src.config import Settings
+from src.core.services import BaseService
 from src.modules.permissions.repository import PermissionsRepository
 from src.modules.permissions.schema import PermissionConditionTemplateOut
 
 
-class PermissionsService:
+class PermissionsService(BaseService):
     def __init__(self, settings: Settings) -> None:
-        self.settings = settings
+        super().__init__(settings)
         self.repo = PermissionsRepository()
 
     async def list_condition_templates(self) -> list[PermissionConditionTemplateOut]:

@@ -6,7 +6,8 @@ from uuid import UUID
 
 from src.config import Settings
 from src.core.exceptions import BadRequest
-from src.modules.projects.runtime.service import ProjectRuntimeContext
+from src.core.services import BaseService
+from src.modules.projects.runtime.service import ProjectRuntimeContext, ProjectRuntimeService
 from src.modules.sites.graphql.planner import list_graphql_query_rules
 from src.modules.sites.graphql.service import SiteGraphQLService, StructuredContentRecord
 from src.modules.sites.repository import SitesRepository
@@ -22,17 +23,22 @@ from src.modules.tenancy.database import TenantDatabaseRouter
 _INDEX_TOKEN_PATTERN = re.compile(r"[^a-zA-Z0-9_-]+")
 
 
-class ContentSearchService:
+class ContentSearchService(BaseService):
     def __init__(
         self,
         settings: Settings,
         *,
         backend: ContentSearchBackend | None = None,
         repo: SitesRepository | None = None,
+        query_service: SiteGraphQLService | None = None,
+        runtime_service: ProjectRuntimeService | None = None,
     ) -> None:
+        super().__init__(settings)
         self._settings = settings
         self._backend = backend or build_content_search_backend(settings.search)
         self._repo = repo or SitesRepository()
+        self._query_service = query_service or SiteGraphQLService(settings)
+        self._runtime_service = runtime_service or ProjectRuntimeService(settings)
 
     @property
     def enabled(self) -> bool:
@@ -90,7 +96,7 @@ class ContentSearchService:
         query_service: SiteGraphQLService | None = None,
     ) -> None:
         normalized_model_key = self._normalize_model_key(model_key)
-        service = query_service or SiteGraphQLService(self._settings)
+        service = query_service or self._query_service
         async with TenantDatabaseRouter(runtime_context.tenant_context).connection() as conn:
             records = await service.with_database_connection(conn).list_records(
                 runtime_id=runtime_context.runtime_id,
@@ -142,10 +148,8 @@ class ContentSearchService:
             )
 
     async def runtime_context_for_site(self, *, site_id: UUID) -> ProjectRuntimeContext:
-        from src.modules.projects.runtime.service import ProjectRuntimeService
-
         site = await self._repo.get_site_by_id(site_id=site_id)
-        return await ProjectRuntimeService(self._settings).get_context_by_runtime(
+        return await self._runtime_service.get_context_by_runtime(
             runtime_id=UUID(str(site.runtime_id)),
             actor_user_id=None,
         )

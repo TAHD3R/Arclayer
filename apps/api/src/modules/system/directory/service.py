@@ -8,12 +8,12 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
-from src.common.services import BaseService
 from src.common.utils.slug import slugify
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.organization import OrganizationKind
 from src.models.organization.user import User, UserStatus

@@ -8,6 +8,7 @@ from starlette.requests import Request
 
 from src.config import Settings
 from src.core.exceptions import Forbidden, ServiceUnavailable
+from src.core.services import BaseService
 from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
 from src.modules.projects.api_keys.repository import ProjectApiKeysRepository
 from src.modules.projects.api_keys.scopes import build_api_key_access_profile
@@ -38,8 +39,9 @@ def extract_content_api_token(request: Request) -> str | None:
     return tokens[0]
 
 
-class ContentApiAuthService:
+class ContentApiAuthService(BaseService):
     def __init__(self, settings: Settings, *, repo: ProjectApiKeysRepository | None = None) -> None:
+        super().__init__(settings)
         self._settings = settings
         self._repo = repo or ProjectApiKeysRepository()
 

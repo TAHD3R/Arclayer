@@ -6,6 +6,7 @@ from uuid import UUID
 from src.core.exceptions import NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
+from src.core.services import BaseService
 from src.models.content._enums import ContentReleaseStatus
 from src.models.content.release import ContentReleaseRecord
 from src.modules.projects.deployments.service import ProjectDeploymentsService
@@ -26,8 +27,9 @@ from src.modules.tenancy.schema import TenantContext
 logger = get_logger(__name__)
 
 
-class ProjectReleasesService:
+class ProjectReleasesService(BaseService):
     def __init__(self, tenant_context: TenantContext) -> None:
+        super().__init__()
         self.repo = ProjectReleasesRepository(tenant_context)
         self.publish_service = ProjectPublishService(tenant_context)
         self.publish_job_service = PublishJobService(tenant_context)

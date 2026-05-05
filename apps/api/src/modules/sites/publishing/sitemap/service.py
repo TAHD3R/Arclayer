@@ -5,8 +5,8 @@ from uuid import UUID
 from xml.sax.saxutils import escape as xml_escape
 
 from src.common.protocols.tortoise import HasProjectId
-from src.common.services import BaseService
 from src.core.exceptions import Conflict
+from src.core.services import BaseService
 from src.models.system.setting import SettingRecord
 from src.modules.sites.repository import SitesRepository
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE

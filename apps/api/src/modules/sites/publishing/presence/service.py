@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.core.exceptions import ServiceUnavailable
+from src.core.services import BaseService
 from src.modules.sites.repository import SitesRepository
 from src.modules.sites.schema import (
     SitePresenceHeartbeatIn,

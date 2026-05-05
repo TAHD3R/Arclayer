@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import NotFound
+from src.core.services import BaseService
 from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.system.rbac.constants.service import ROLE_OWNER

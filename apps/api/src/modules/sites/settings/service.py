@@ -13,6 +13,7 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import Conflict, NotFound
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.namespaces.service import EDITOR_GLOBAL_SECTIONS_NAMESPACE, EDITOR_STYLE_NAMESPACE
@@ -68,11 +69,11 @@ class SiteSettingsMixin:
     def _parse_global_sections_value(self, value: object) -> list[sites_schema.SiteGlobalSectionOut]:
         if not isinstance(value, dict):
             return []
-        return self._parse_global_sections_items(cast(dict[str, object], value).get("items"))
+        return self._parse_global_sections_items(cast(JsonObject, value).get("items"))
 
     @staticmethod
-    def _dump_global_sections_value(items: list[sites_schema.SiteGlobalSectionOut]) -> dict[str, object]:
-        return {"items": [cast(dict[str, object], item.model_dump()) for item in items]}
+    def _dump_global_sections_value(items: list[sites_schema.SiteGlobalSectionOut]) -> JsonObject:
+        return {"items": [item.model_dump(mode="json") for item in items]}
 
     async def _load_global_sections(self, *, site_id: UUID) -> list[sites_schema.SiteGlobalSectionOut]:
         setting = await self.get_site_setting(site_id=site_id, namespace=EDITOR_GLOBAL_SECTIONS_NAMESPACE)
@@ -134,7 +135,7 @@ class SiteSettingsMixin:
         payload: sites_schema.SiteGlobalSectionUpdateIn,
     ) -> sites_schema.SiteGlobalSectionOut:
         fields_set = payload.model_fields_set
-        patch_data: dict[str, object] = {}
+        patch_data: JsonObject = {}
 
         if "name" in fields_set and payload.name is not None:
             patch_data["name"] = payload.name

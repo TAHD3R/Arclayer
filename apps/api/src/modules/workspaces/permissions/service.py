@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from src.core.services import BaseService
 from src.modules.permissions import (
     PermissionConditionEvaluationContext,
     PermissionConditionSet,
@@ -15,8 +16,9 @@ from src.modules.workspaces.permissions.registry import (
 from src.modules.workspaces.permissions.schema import PermissionContext, PermissionDecision
 
 
-class PolicyEvaluationService:
+class PolicyEvaluationService(BaseService):
     def __init__(self, registry: dict[str, PermissionActionDefinition] | None = None) -> None:
+        super().__init__()
         self._registry = registry or get_permission_action_registry()
 
     def list_actions_for_permissions(self, permission_codes: Iterable[str]) -> tuple[str, ...]:

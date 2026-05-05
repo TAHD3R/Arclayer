@@ -3,13 +3,15 @@ from __future__ import annotations
 from uuid import UUID
 
 from src.core.http.pagination import PageData, PageParams, paginate_queryset
+from src.core.services import BaseService
 from src.models.content.publish_job import PublishJobRecord
 from src.modules.projects.publish.jobs.service import PublishJobService
 from src.modules.system.jobs.schema import PublishJobListQuery, PublishJobOut
 
 
-class SystemJobsService:
+class SystemJobsService(BaseService):
     def __init__(self) -> None:
+        super().__init__()
         self.publish_jobs = PublishJobService()
 
     async def list_jobs(self, *, params: PageParams, filters: PublishJobListQuery) -> PageData[PublishJobOut]:

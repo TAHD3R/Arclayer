@@ -9,11 +9,11 @@ from tortoise.exceptions import IntegrityError
 
 from src.common.email.service import EmailService
 from src.common.protocols.tortoise import HasUserId
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.user import User
 from src.models.system.notification import NotificationCategory, NotificationRecord
 from src.models.system.rbac import Role
@@ -86,18 +86,11 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         """
 
         try:
-            from asgi_correlation_id import correlation_id
-
-            from src.core.events import Event, events
-
-            await events.publish(
-                Event(
-                    name=name,
-                    payload=payload,
-                    source=source,
-                    trace_id=correlation_id.get(None),
-                    actor_user_id=str(actor_user_id) if actor_user_id else None,
-                )
+            await self.publish_optional_domain_event(
+                name=name,
+                payload=payload,
+                actor_user_id=actor_user_id,
+                source=source,
             )
         except BaseException as exc:
             _raise_if_fatal(exc)

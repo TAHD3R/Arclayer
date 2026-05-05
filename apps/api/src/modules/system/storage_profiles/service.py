@@ -4,9 +4,10 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
 
-from src.common.services import BaseService
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.assets.asset import AssetRecord
 from src.models.assets.upload import UploadSessionRecord
 from src.models.storage.storage_profile import StorageProfileRecord
@@ -285,8 +286,8 @@ class StorageProfilesService(BaseService):
             namespace=CORE_SETTINGS_NAMESPACE,
         )
         current_raw = record.value if record and isinstance(record.value, dict) else {}
-        current = cast(dict[str, object], current_raw)
-        patch: dict[str, object] = {"storage": {"default_profile_key": profile_key}}
+        current = cast(JsonObject, current_raw)
+        patch: JsonObject = {"storage": {"default_profile_key": profile_key}}
         merged = merge_deep(current, patch)
         if record is None:
             await SettingRecord.create(

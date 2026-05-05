@@ -3,14 +3,12 @@ from __future__ import annotations
 from typing import TypedDict
 from uuid import UUID
 
-from tortoise.transactions import in_transaction
-
 from src.common.constants.rbac import ROLE_ADMIN, ROLE_DESIGNER, ROLE_EDITOR, ROLE_OWNER, ROLE_VIEWER
-from src.common.services import BaseService
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.system.rbac import Permission, PermissionScope, Role
 from src.modules.permissions import PermissionConditionSet
 from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
@@ -436,7 +434,7 @@ class WorkspaceRBACService(BaseService):
                 meta={"missing": missing_role_codes},
             )
 
-        async with in_transaction():
+        async with self.tx():
             for code, role in custom_roles.items():
                 if code in desired_role_codes:
                     await self.repo.ensure_role_permission(role=role, permission=permission)

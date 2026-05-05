@@ -3,12 +3,10 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
-from tortoise.transactions import in_transaction
-
 from src.common.protocols.tortoise import SettingUpdatedBy
-from src.common.services import BaseService
 from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.system.rbac import Role
 from src.models.system.setting import SettingRecord
 from src.models.workspaces.workspace import (
@@ -41,6 +39,19 @@ class WorkspaceSettingsService(BaseService):
 
     Currently only supports the core settings namespace.
     """
+
+    def __init__(
+        self,
+        settings,
+        *,
+        workspace_repo: OrganizationWorkspaceRepository | None = None,
+        webhooks_service: WebhooksService | None = None,
+        onboarding_service: WorkspaceFirstOnboardingService | None = None,
+    ) -> None:
+        super().__init__(settings)
+        self.workspace_repo = workspace_repo or OrganizationWorkspaceRepository()
+        self.webhooks_service = webhooks_service or WebhooksService(settings)
+        self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
 
     async def get_core_detail(self, *, workspace_id: UUID) -> WorkspaceSettingsDetail:
         record = await SettingRecord.get_or_none(
@@ -86,7 +97,7 @@ class WorkspaceSettingsService(BaseService):
 
         masked, secrets = self._mask_secrets(merged)
         try:
-            WebhooksService(self.settings).emit_workspace_event_fire_and_forget(
+            self.webhooks_service.emit_workspace_event_fire_and_forget(
                 workspace_id=workspace_id,
                 event=WORKSPACE_CORE_SETTINGS_UPDATED_EVENT,
                 payload={
@@ -105,13 +116,12 @@ class WorkspaceSettingsService(BaseService):
             )
 
         if updated_by is not None and isinstance(patch.get("workspace_localization"), dict):
-            onboarding_service = WorkspaceFirstOnboardingService(self.settings)
-            onboarding_state = await onboarding_service.get_state(user_id=updated_by)
+            onboarding_state = await self.onboarding_service.get_state(user_id=updated_by)
             if (
                 onboarding_state.status == WorkspaceFirstOnboardingStatus.PENDING_WORKSPACE_DEFAULTS
                 and onboarding_state.workspace_id == workspace_id
             ):
-                await onboarding_service.mark_completed(user_id=updated_by, workspace_id=workspace_id)
+                await self.onboarding_service.mark_completed(user_id=updated_by, workspace_id=workspace_id)
 
         return WorkspaceSettingsDetail(
             namespace=CORE_SETTINGS_NAMESPACE,
@@ -153,7 +163,7 @@ class WorkspaceSettingsService(BaseService):
         if target_role is None:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
-        async with in_transaction():
+        async with self.tx():
             await (
                 Role
                 .filter(workspace_id=workspace_id, is_default=True)
@@ -216,7 +226,7 @@ class WorkspaceSettingsService(BaseService):
                 updated_count=0,
             )
 
-        async with in_transaction():
+        async with self.tx():
             for membership in target_memberships:
                 await WorkspaceMembershipRole.filter(membership_id=membership.id).delete()
                 await WorkspaceMembershipRole.get_or_create(membership_id=membership.id, role_id=target_role.id)
@@ -256,7 +266,3 @@ class WorkspaceSettingsService(BaseService):
             else:
                 out.append(path)
         return out
-
-    def __init__(self, settings) -> None:
-        super().__init__(settings)
-        self.workspace_repo = OrganizationWorkspaceRepository()

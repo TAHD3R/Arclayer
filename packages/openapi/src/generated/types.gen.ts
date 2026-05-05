@@ -1127,7 +1127,7 @@ export type AuditEventOut = {
      * Sanitized event properties.
      */
     properties?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Source
@@ -1400,7 +1400,7 @@ export type AutomationFlowCreateIn = {
      * Credentialbinding
      */
     credentialBinding?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Deadletterenabled
@@ -1452,7 +1452,7 @@ export type AutomationFlowOut = {
      * Credentialbinding
      */
     credentialBinding?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Deadletterenabled
@@ -1510,7 +1510,7 @@ export type AutomationFlowPatchIn = {
      * Credentialbinding
      */
     credentialBinding?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Deadletterenabled
@@ -1548,7 +1548,7 @@ export type AutomationOperationIn = {
      * Config
      */
     config?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     kind: AutomationOperationKind;
     /**
@@ -1593,7 +1593,7 @@ export type AutomationOperationOut = {
      * Config
      */
     config?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Createdat
@@ -1662,7 +1662,7 @@ export type AutomationRunLogOut = {
      * Payload
      */
     payload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Runid
@@ -1694,7 +1694,7 @@ export type AutomationRunOut = {
      * Eventpayload
      */
     eventPayload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Flowid
@@ -1720,7 +1720,7 @@ export type AutomationRunOut = {
      * Resultpayload
      */
     resultPayload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Startedat
@@ -1914,7 +1914,7 @@ export type ContentApiEntryOut = {
      * Delivery-safe custom field payload.
      */
     customFields?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
     /**
      * Draftrevision
@@ -1928,7 +1928,7 @@ export type ContentApiEntryOut = {
      * Delivery-safe field payload.
      */
     fields?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
     /**
      * Id
@@ -1972,7 +1972,7 @@ export type ContentApiEntryOut = {
      * Bound route contract, when available.
      */
     routeContract?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Routepath
@@ -2022,7 +2022,7 @@ export type ContentComponentBindingOut = {
      * Binding payload.
      */
     bindingPayload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Componentkey
@@ -2244,7 +2244,7 @@ export type ContentItemOut = {
      * Structured metadata for the current shape reason.
      */
     shapeReasonMeta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Shapestate
@@ -2689,7 +2689,7 @@ export type ContentModelContractRegistryOut = {
      * Delivery governance policy payload.
      */
     deliveryPolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Graphqlpolicy
@@ -2697,7 +2697,7 @@ export type ContentModelContractRegistryOut = {
      * GraphQL governance policy payload.
      */
     graphqlPolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Protocolkey
@@ -2723,7 +2723,7 @@ export type ContentModelContractRegistryOut = {
      * Workflow governance policy payload.
      */
     workflowPolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
 };
 
@@ -2803,7 +2803,7 @@ export type ContentModelDefinitionContract = {
      * Presentation policy contract.
      */
     presentation?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Relations
@@ -2821,7 +2821,7 @@ export type ContentModelDefinitionContract = {
      * SEO policy contract.
      */
     seo?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Singularkey
@@ -2835,7 +2835,7 @@ export type ContentModelDefinitionContract = {
      * Starter pack policy contract.
      */
     starterPackPolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Surfacepolicy
@@ -2843,7 +2843,7 @@ export type ContentModelDefinitionContract = {
      * Surface policy contract.
      */
     surfacePolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Views
@@ -2913,7 +2913,7 @@ export type ContentModelDefinitionPatchContract = {
      * Presentation
      */
     presentation?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Relations
@@ -2924,7 +2924,7 @@ export type ContentModelDefinitionPatchContract = {
      * Seo
      */
     seo?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Singularkey
@@ -2934,13 +2934,13 @@ export type ContentModelDefinitionPatchContract = {
      * Starterpackpolicy
      */
     starterPackPolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Surfacepolicy
      */
     surfacePolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Views
@@ -2959,7 +2959,7 @@ export type ContentModelFieldContract = {
      * Field-level configuration payload.
      */
     config?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Key
@@ -2997,7 +2997,7 @@ export type ContentModelFieldDefinitionOut = {
      * Optional field configuration payload.
      */
     config?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Key
@@ -3035,7 +3035,7 @@ export type ContentModelFieldPatchContract = {
      * Field-level configuration payload.
      */
     config?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Label
@@ -3091,7 +3091,7 @@ export type ContentModelFieldTypeDefinitionOut = {
      * JSON-schema-like config contract owned by the registry definition.
      */
     configSchema?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
     /**
      * Description
@@ -3462,7 +3462,7 @@ export type ContentModelOut = {
      * Field schema payload.
      */
     fieldSchema?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Id
@@ -3494,7 +3494,7 @@ export type ContentModelOut = {
      * Presentation schema payload.
      */
     presentationSchema?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Protocolkey
@@ -3520,7 +3520,7 @@ export type ContentModelOut = {
      * Relation schema payload.
      */
     relationSchema?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Routingschema
@@ -3528,7 +3528,7 @@ export type ContentModelOut = {
      * Routing schema payload.
      */
     routingSchema?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Singularkey
@@ -3548,7 +3548,7 @@ export type ContentModelOut = {
      * Starter pack policy used when shaping new items.
      */
     starterPackPolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Surfacepolicy
@@ -3556,7 +3556,7 @@ export type ContentModelOut = {
      * Surface policy constraints for continuation routing.
      */
     surfacePolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Systemfieldkeys
@@ -3592,7 +3592,7 @@ export type ContentModelOut = {
      * View schema payload.
      */
     viewSchema?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Workflowpolicy
@@ -3600,7 +3600,7 @@ export type ContentModelOut = {
      * Workflow policy payload.
      */
     workflowPolicy?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Workspaceid
@@ -3620,7 +3620,7 @@ export type ContentModelRelationContract = {
      * Relation-level configuration payload.
      */
     config?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Key
@@ -3749,17 +3749,13 @@ export type ContentModelSchemaChangePlanOut = {
  */
 export type ContentModelSchemaDiffEntryOut = {
     /**
-     * After
-     *
      * Next draft value after the change.
      */
-    after?: unknown | null;
+    after?: JsonValueOutput | null;
     /**
-     * Before
-     *
      * Current draft value before the change.
      */
-    before?: unknown | null;
+    before?: JsonValueOutput | null;
     /**
      * Breaking
      *
@@ -3838,7 +3834,7 @@ export type ContentModelSchemaSnapshotOut = {
      * Canonical schema snapshot payload used for diff and review surfaces.
      */
     payload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
     /**
      * Relationcount
@@ -3931,17 +3927,13 @@ export type ContentModelStorageFieldOut = {
  */
 export type ContentModelStorageMigrationOut = {
     /**
-     * After
-     *
      * Target storage metadata.
      */
-    after?: unknown;
+    after?: JsonValueOutput;
     /**
-     * Before
-     *
      * Source storage metadata.
      */
-    before?: unknown;
+    before?: JsonValueOutput;
     /**
      * Forwardsteps
      *
@@ -4080,7 +4072,7 @@ export type ContentModelViewContract = {
      * View-level configuration payload.
      */
     config?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Key
@@ -4124,7 +4116,7 @@ export type ContentOpenIntentOut = {
      * Structured metadata for the blocker or recovery reason.
      */
     reasonMeta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Recoveryactions
@@ -4158,7 +4150,7 @@ export type ContentPresentationIn = {
      * Payload
      */
     payload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
 };
 
@@ -4190,7 +4182,7 @@ export type ContentPresentationOut = {
      * Presentation payload.
      */
     payload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
 };
 
@@ -4251,7 +4243,7 @@ export type ContentSearchHitOut = {
      * Delivery-safe custom field payload.
      */
     customFields?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
     /**
      * Draftrevision
@@ -4265,7 +4257,7 @@ export type ContentSearchHitOut = {
      * Delivery-safe field payload.
      */
     fields?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
     /**
      * Id
@@ -4309,7 +4301,7 @@ export type ContentSearchHitOut = {
      * Bound route contract, when available.
      */
     routeContract?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Routepath
@@ -4413,7 +4405,7 @@ export type ContentSeoProfileOut = {
      * Raw SEO payload.
      */
     payload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Robotsdirective
@@ -4504,17 +4496,13 @@ export type ContentTranslationStatusOut = {
  */
 export type ContentVersionCompareChangeOut = {
     /**
-     * After
-     *
      * Value from the target version.
      */
-    after?: unknown;
+    after?: JsonValueOutput;
     /**
-     * Before
-     *
      * Value from the source version.
      */
-    before?: unknown;
+    before?: JsonValueOutput;
     /**
      * Path
      *
@@ -4569,7 +4557,7 @@ export type ContentVersionDraftSaveIn = {
      * Fieldssnapshot
      */
     fieldsSnapshot?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     };
     /**
      * Presentations
@@ -4605,7 +4593,7 @@ export type ContentVersionOut = {
      * Structured fields snapshot.
      */
     fieldsSnapshot?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
     /**
      * Itemid
@@ -4651,7 +4639,7 @@ export type ContentVersionPatchIn = {
      * Fieldssnapshot
      */
     fieldsSnapshot?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Presentations
@@ -4911,7 +4899,7 @@ export type DeliveryGlobalSetItemOut = {
      * Stored binding payload.
      */
     payload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Resolved reusable section document.
@@ -4960,7 +4948,7 @@ export type DeliveryMenuOut = {
      * Menu items.
      */
     items?: Array<{
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     }>;
     /**
      * Key
@@ -4980,7 +4968,7 @@ export type DeliverySectionDocumentOut = {
      * Optional section/root layout payload.
      */
     layout?: {
-        [key: string]: JsonValue;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Sections
@@ -5058,7 +5046,7 @@ export type DeliveryStyleOut = {
      * Effective site style payload.
      */
     effective?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
 };
 
@@ -6533,8 +6521,12 @@ export type InvitationPreviewWorkspaceOut = {
  */
 export type InviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
 
-export type JsonValue = string | number | number | boolean | Array<JsonValue> | {
-    [key: string]: JsonValue;
+export type JsonValueInput = string | number | number | boolean | Array<JsonValueInput> | {
+    [key: string]: JsonValueInput;
+} | null;
+
+export type JsonValueOutput = string | number | number | boolean | Array<JsonValueOutput> | {
+    [key: string]: JsonValueOutput;
 } | null;
 
 /**
@@ -7311,7 +7303,7 @@ export type NotificationOut = {
      * Frontend routing metadata (non-sensitive).
      */
     targetMeta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Targetto
@@ -10757,6 +10749,40 @@ export type PermissionConditionSetOutput = {
 };
 
 /**
+ * PermissionConditionTemplateOut
+ */
+export type PermissionConditionTemplateOut = {
+    /**
+     * Description
+     *
+     * Product-facing template description.
+     */
+    description: string;
+    /**
+     * Condition field preselected by this template.
+     */
+    field: PermissionConditionField;
+    /**
+     * Key
+     *
+     * Stable template key.
+     */
+    key: string;
+    /**
+     * Operators
+     *
+     * Supported operators for this template.
+     */
+    operators: Array<PermissionConditionOperator>;
+    /**
+     * Valuetype
+     *
+     * Expected value type for static operators.
+     */
+    valueType: string;
+};
+
+/**
  * PermissionOut
  */
 export type PermissionOut = {
@@ -12308,7 +12334,7 @@ export type ProjectSettingsDetail = {
      * Masked settings value.
      */
     value?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
 };
 
@@ -12322,7 +12348,7 @@ export type ProjectSettingsPatch = {
      * Merge patch payload.
      */
     patch?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     };
 };
 
@@ -12424,7 +12450,7 @@ export type PublishBlockedItemOut = {
      * Structured blocker metadata propagated from continuation truth or publish validation.
      */
     reasonMeta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Shapestate
@@ -12474,7 +12500,7 @@ export type PublishExportArtifactOut = {
      * Artifact payload for runtime rendering.
      */
     payload?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Tenantid
@@ -12530,40 +12556,6 @@ export type PublishExportRoutePointerOut = {
      * Tenant identity used by delivery adapters.
      */
     tenantId: string;
-};
-
-/**
- * PublishImpactOut
- */
-export type PublishImpactOut = {
-    /**
-     * Blockeditems
-     *
-     * Published items blocked by resolved continuation truth or publish validation.
-     */
-    blockedItems?: Array<PublishBlockedItemOut>;
-    /**
-     * Missingroutes
-     *
-     * Published items missing active routes.
-     */
-    missingRoutes?: Array<string>;
-    /**
-     * Aggregated readiness summary for release orchestration.
-     */
-    readinessSummary?: PublishReadinessSummaryOut;
-    /**
-     * Unpublisheddependencies
-     *
-     * Items depending on unpublished parents.
-     */
-    unpublishedDependencies?: Array<string>;
-    /**
-     * Unresolvedrelations
-     *
-     * Items with unresolved relations.
-     */
-    unresolvedRelations?: Array<string>;
 };
 
 /**
@@ -12663,6 +12655,40 @@ export type PublishJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 
 export type PublishJobType = 'scheduled_publish' | 'manual_publish' | 'retry';
 
 /**
+ * PublishReadinessOut
+ */
+export type PublishReadinessOut = {
+    /**
+     * Blockeditems
+     *
+     * Published items blocked by resolved continuation truth or publish validation.
+     */
+    blockedItems?: Array<PublishBlockedItemOut>;
+    /**
+     * Missingroutes
+     *
+     * Published items missing active routes.
+     */
+    missingRoutes?: Array<string>;
+    /**
+     * Aggregated readiness summary for release orchestration.
+     */
+    readinessSummary?: PublishReadinessSummaryOut;
+    /**
+     * Unpublisheddependencies
+     *
+     * Items depending on unpublished parents.
+     */
+    unpublishedDependencies?: Array<string>;
+    /**
+     * Unresolvedrelations
+     *
+     * Items with unresolved relations.
+     */
+    unresolvedRelations?: Array<string>;
+};
+
+/**
  * PublishReadinessSummaryOut
  */
 export type PublishReadinessSummaryOut = {
@@ -12759,7 +12785,7 @@ export type ReleaseDryRunOut = {
     /**
      * Detailed dry-run diagnostics for the pending release.
      */
-    impact: PublishImpactOut;
+    impact: PublishReadinessOut;
     /**
      * Aggregated release readiness summary.
      */
@@ -12899,9 +12925,9 @@ export type ReleasePublishOut = {
      */
     graphNodes: number;
     /**
-     * Resolved publish impact snapshot used by the release.
+     * Resolved publish readiness snapshot used by the release.
      */
-    impact: PublishImpactOut;
+    impact: PublishReadinessOut;
     /**
      * Scheduled publish job metadata.
      */
@@ -13085,7 +13111,7 @@ export type ResponseModelAcceptExistingInvitationResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13110,7 +13136,7 @@ export type ResponseModelAdminAssetBulkDeleteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13135,7 +13161,7 @@ export type ResponseModelAdminAssetBulkMoveOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13160,7 +13186,7 @@ export type ResponseModelAdminAssetBulkUpdateOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13185,7 +13211,7 @@ export type ResponseModelAdminAssetDeleteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13210,7 +13236,7 @@ export type ResponseModelAdminAssetDetailOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13235,7 +13261,7 @@ export type ResponseModelAdminAssetFolderDeleteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13260,7 +13286,7 @@ export type ResponseModelAdminAssetFolderOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13285,7 +13311,7 @@ export type ResponseModelAdminAssetSummaryOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13310,7 +13336,7 @@ export type ResponseModelAdminAssetTagOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13335,7 +13361,7 @@ export type ResponseModelAdminAssetUsageDeleteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13360,7 +13386,7 @@ export type ResponseModelAdminAssetUsageOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13385,7 +13411,7 @@ export type ResponseModelApiKeyCreateOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13410,7 +13436,7 @@ export type ResponseModelApiKeyListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13435,7 +13461,7 @@ export type ResponseModelApiKeyOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13460,7 +13486,7 @@ export type ResponseModelAuditEventOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13485,7 +13511,7 @@ export type ResponseModelAuthSsoLinkStateOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13510,7 +13536,7 @@ export type ResponseModelAuthSsoProvidersOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13535,7 +13561,7 @@ export type ResponseModelAuthSessionListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13560,7 +13586,7 @@ export type ResponseModelAuthSessionRevokeOthersOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13585,7 +13611,7 @@ export type ResponseModelAuthzSnapshot = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13610,7 +13636,7 @@ export type ResponseModelAutomationCatalogOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13635,7 +13661,7 @@ export type ResponseModelAutomationFlowListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13660,7 +13686,7 @@ export type ResponseModelAutomationFlowOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13685,7 +13711,7 @@ export type ResponseModelAutomationRunListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13710,7 +13736,7 @@ export type ResponseModelAutomationRunOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13735,7 +13761,7 @@ export type ResponseModelContentApiEntryListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13760,7 +13786,7 @@ export type ResponseModelContentApiEntryOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13785,7 +13811,7 @@ export type ResponseModelContentComponentBindingListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13810,7 +13836,7 @@ export type ResponseModelContentItemBulkTransitionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13835,7 +13861,7 @@ export type ResponseModelContentItemOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13860,7 +13886,7 @@ export type ResponseModelContentLibraryViewsStateOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13885,7 +13911,7 @@ export type ResponseModelContentModelFieldTypeRegistryOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13910,7 +13936,7 @@ export type ResponseModelContentModelImpactPreviewOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13935,7 +13961,7 @@ export type ResponseModelContentModelMutationOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13960,7 +13986,7 @@ export type ResponseModelContentModelOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -13985,7 +14011,7 @@ export type ResponseModelContentModelSchemaSnapshotOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14010,7 +14036,7 @@ export type ResponseModelContentPresentationListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14035,7 +14061,7 @@ export type ResponseModelContentSearchResultOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14060,7 +14086,7 @@ export type ResponseModelContentSeoProfileOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14085,7 +14111,7 @@ export type ResponseModelContentTranslationGroupOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14110,7 +14136,7 @@ export type ResponseModelContentVersionCompareOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14135,7 +14161,7 @@ export type ResponseModelContentVersionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14160,7 +14186,7 @@ export type ResponseModelDeleteMyAccountCapabilityOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14185,7 +14211,7 @@ export type ResponseModelDeleteOrganizationResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14210,7 +14236,7 @@ export type ResponseModelDeliveryGlobalSetOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14235,7 +14261,7 @@ export type ResponseModelDeliveryMenuOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14260,7 +14286,7 @@ export type ResponseModelDeliverySectionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14285,7 +14311,7 @@ export type ResponseModelDeliveryStyleOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14310,7 +14336,7 @@ export type ResponseModelDirectoryOrganizationDetailOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14335,7 +14361,7 @@ export type ResponseModelDirectoryProjectDetailOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14360,7 +14386,7 @@ export type ResponseModelDirectoryUserDetailOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14385,7 +14411,7 @@ export type ResponseModelDirectoryWorkspaceDetailOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14410,7 +14436,7 @@ export type ResponseModelDomainBindingCreateOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14435,7 +14461,7 @@ export type ResponseModelDomainBindingDeleteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14460,7 +14486,7 @@ export type ResponseModelDomainBindingOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14485,7 +14511,7 @@ export type ResponseModelDomainBindingVerifyOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14510,7 +14536,7 @@ export type ResponseModelEmailCheckOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14535,7 +14561,7 @@ export type ResponseModelHierarchyNodeOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14560,7 +14586,7 @@ export type ResponseModelInvitationPreviewResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14585,7 +14611,7 @@ export type ResponseModelLeaveOrganizationResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14610,7 +14636,7 @@ export type ResponseModelLeaveWorkspaceResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14635,7 +14661,7 @@ export type ResponseModelLoginEmailCodeRequestOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14660,7 +14686,7 @@ export type ResponseModelMailTestResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14685,7 +14711,7 @@ export type ResponseModelMyOrganizationListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14710,7 +14736,7 @@ export type ResponseModelMyOrganizationOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14735,7 +14761,7 @@ export type ResponseModelMySecurityCapabilityOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14760,7 +14786,7 @@ export type ResponseModelMyWorkspaceListResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14788,7 +14814,7 @@ export type ResponseModelNoneType = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14813,7 +14839,7 @@ export type ResponseModelNotificationArchiveResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14838,7 +14864,7 @@ export type ResponseModelNotificationDeleteResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14863,7 +14889,7 @@ export type ResponseModelNotificationDevSeedResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14888,7 +14914,7 @@ export type ResponseModelNotificationPreferencesOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14913,7 +14939,7 @@ export type ResponseModelNotificationPreviewOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14938,7 +14964,7 @@ export type ResponseModelNotificationReadAllResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14963,7 +14989,7 @@ export type ResponseModelNotificationReadResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -14988,7 +15014,7 @@ export type ResponseModelOAuthLinkedIdentityListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15013,7 +15039,7 @@ export type ResponseModelOnboardingProfileOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15038,7 +15064,7 @@ export type ResponseModelOnboardingWorkspaceCreateOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15063,7 +15089,7 @@ export type ResponseModelOrganizationAssignDefaultRoleResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15088,7 +15114,7 @@ export type ResponseModelOrganizationAuthzSnapshot = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15113,7 +15139,7 @@ export type ResponseModelOrganizationDangerCapabilitiesOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15138,7 +15164,7 @@ export type ResponseModelOrganizationInvitationRenewResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15163,7 +15189,7 @@ export type ResponseModelOrganizationInvitationRevokeResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15188,7 +15214,7 @@ export type ResponseModelOrganizationInviteLinkCreateResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15213,7 +15239,7 @@ export type ResponseModelOrganizationInviteLinkRenewResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15238,7 +15264,7 @@ export type ResponseModelOrganizationMemberDeleteResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15263,7 +15289,7 @@ export type ResponseModelOrganizationMemberInviteResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15288,7 +15314,7 @@ export type ResponseModelOrganizationMemberOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15313,7 +15339,7 @@ export type ResponseModelOrganizationRoleOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15338,7 +15364,7 @@ export type ResponseModelOrganizationSettingsCoreOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15363,7 +15389,7 @@ export type ResponseModelOrganizationWorkspaceArchiveResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15388,7 +15414,7 @@ export type ResponseModelOrganizationWorkspaceDeleteResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15413,7 +15439,7 @@ export type ResponseModelOrganizationWorkspaceOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15438,7 +15464,7 @@ export type ResponseModelPageDataAdminAssetFolderOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15463,7 +15489,7 @@ export type ResponseModelPageDataAdminAssetSummaryOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15488,7 +15514,7 @@ export type ResponseModelPageDataAdminAssetTagOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15513,7 +15539,7 @@ export type ResponseModelPageDataAdminAssetUsageOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15538,7 +15564,7 @@ export type ResponseModelPageDataAuditEventOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15563,7 +15589,7 @@ export type ResponseModelPageDataContentItemOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15588,7 +15614,7 @@ export type ResponseModelPageDataContentModelOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15613,7 +15639,7 @@ export type ResponseModelPageDataContentVersionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15638,7 +15664,7 @@ export type ResponseModelPageDataDirectoryOrganizationListItemOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15663,7 +15689,7 @@ export type ResponseModelPageDataDirectoryProjectListItemOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15688,7 +15714,7 @@ export type ResponseModelPageDataDirectoryUserListItemOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15713,7 +15739,7 @@ export type ResponseModelPageDataDirectoryWorkspaceListItemOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15738,7 +15764,7 @@ export type ResponseModelPageDataDomainBindingOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15763,7 +15789,7 @@ export type ResponseModelPageDataMyInvitationOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15788,7 +15814,7 @@ export type ResponseModelPageDataNotificationOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15813,7 +15839,7 @@ export type ResponseModelPageDataOrganizationInvitationOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15838,7 +15864,7 @@ export type ResponseModelPageDataOrganizationInviteLinkOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15863,7 +15889,7 @@ export type ResponseModelPageDataOrganizationInviteLinkParticipantOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15888,7 +15914,7 @@ export type ResponseModelPageDataOrganizationMemberOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15913,7 +15939,7 @@ export type ResponseModelPageDataOrganizationPermissionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15938,7 +15964,7 @@ export type ResponseModelPageDataOrganizationRoleOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15963,7 +15989,7 @@ export type ResponseModelPageDataOrganizationWorkspaceMemberOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -15988,7 +16014,7 @@ export type ResponseModelPageDataOrganizationWorkspaceOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16013,7 +16039,7 @@ export type ResponseModelPageDataPermissionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16038,7 +16064,7 @@ export type ResponseModelPageDataProjectMemberOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16063,7 +16089,7 @@ export type ResponseModelPageDataPublishJobOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16088,7 +16114,7 @@ export type ResponseModelPageDataSettingsNamespaceSummary = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16113,7 +16139,7 @@ export type ResponseModelPageDataWorkspaceEmailInviteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16138,7 +16164,7 @@ export type ResponseModelPageDataWorkspaceInviteLinkOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16163,7 +16189,7 @@ export type ResponseModelPageDataWorkspaceInviteLinkParticipantOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16188,7 +16214,7 @@ export type ResponseModelPageDataWorkspacePermissionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16213,7 +16239,7 @@ export type ResponseModelPageDataWorkspaceRoleOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16238,7 +16264,7 @@ export type ResponseModelPageDataWorkspaceTeamMemberOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16263,7 +16289,7 @@ export type ResponseModelPageDataWorkspaceTeamUserOptionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16288,7 +16314,7 @@ export type ResponseModelProjectArchiveResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16313,7 +16339,7 @@ export type ResponseModelProjectAuthzSnapshot = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16338,7 +16364,7 @@ export type ResponseModelProjectDangerCapabilitiesOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16363,7 +16389,7 @@ export type ResponseModelProjectDatabaseDetailOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16388,7 +16414,7 @@ export type ResponseModelProjectDatabaseListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16413,7 +16439,7 @@ export type ResponseModelProjectDeleteResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16438,7 +16464,7 @@ export type ResponseModelProjectDeploymentActionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16463,7 +16489,7 @@ export type ResponseModelProjectDeploymentListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16488,7 +16514,7 @@ export type ResponseModelProjectDeploymentOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16513,7 +16539,7 @@ export type ResponseModelProjectDetailOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16538,7 +16564,7 @@ export type ResponseModelProjectEnvironmentAliasOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16563,7 +16589,7 @@ export type ResponseModelProjectEnvironmentCopyOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16588,7 +16614,7 @@ export type ResponseModelProjectEnvironmentListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16613,7 +16639,7 @@ export type ResponseModelProjectEnvironmentOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16638,7 +16664,7 @@ export type ResponseModelProjectListItemOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16663,7 +16689,7 @@ export type ResponseModelProjectListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16688,7 +16714,7 @@ export type ResponseModelProjectMemberOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16713,7 +16739,7 @@ export type ResponseModelProjectRuntimeSiteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16738,7 +16764,7 @@ export type ResponseModelProjectSettingsDetail = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16763,7 +16789,7 @@ export type ResponseModelProjectSlugAvailabilityOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16788,32 +16814,7 @@ export type ResponseModelPublishExportContractOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PublishImpactOut]
- */
-export type ResponseModelPublishImpactOut = {
-    data?: PublishImpactOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16838,7 +16839,32 @@ export type ResponseModelPublishJobOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PublishReadinessOut]
+ */
+export type ResponseModelPublishReadinessOut = {
+    data?: PublishReadinessOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16863,7 +16889,7 @@ export type ResponseModelReleaseCancelScheduledOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16888,7 +16914,7 @@ export type ResponseModelReleaseDryRunOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16913,7 +16939,7 @@ export type ResponseModelReleaseListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16938,7 +16964,7 @@ export type ResponseModelReleaseOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16963,7 +16989,7 @@ export type ResponseModelReleasePublishOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -16988,7 +17014,7 @@ export type ResponseModelReleaseRollbackOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17013,7 +17039,7 @@ export type ResponseModelRequestMyEmailChangeOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17038,7 +17064,7 @@ export type ResponseModelRequestRemoveMyPasswordOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17063,7 +17089,7 @@ export type ResponseModelResetTokenPayload = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17088,7 +17114,7 @@ export type ResponseModelRouteBindingOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17113,7 +17139,7 @@ export type ResponseModelSettingsDetail = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17138,7 +17164,7 @@ export type ResponseModelSitePresenceHeartbeatOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17163,7 +17189,7 @@ export type ResponseModelSitePresenceListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17188,7 +17214,7 @@ export type ResponseModelSitePreviewTokenOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17213,7 +17239,7 @@ export type ResponseModelSiteResolveOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17238,7 +17264,7 @@ export type ResponseModelSiteRouteResolveOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17263,7 +17289,7 @@ export type ResponseModelSiteRuntimeOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17288,7 +17314,7 @@ export type ResponseModelSiteSettingGetOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17313,7 +17339,7 @@ export type ResponseModelStorageProfileDeleteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17338,7 +17364,7 @@ export type ResponseModelStorageProfileListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17363,7 +17389,7 @@ export type ResponseModelStorageProfileOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17388,7 +17414,7 @@ export type ResponseModelStorageProfileTestResultOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17413,7 +17439,32 @@ export type ResponseModelSystemRuntimeOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[TenantIdentityOut]
+ */
+export type ResponseModelTenantIdentityOut = {
+    data?: TenantIdentityOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17438,7 +17489,7 @@ export type ResponseModelTokenPair = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17463,7 +17514,7 @@ export type ResponseModelTwoFactorCapabilitiesOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17488,7 +17539,7 @@ export type ResponseModelTwoFactorConfirmOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17513,7 +17564,7 @@ export type ResponseModelTwoFactorRegenerateBackupCodesOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17538,7 +17589,7 @@ export type ResponseModelTwoFactorSetupOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17563,7 +17614,7 @@ export type ResponseModelTwoFactorStatusOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17588,7 +17639,7 @@ export type ResponseModelUploadAbortOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17613,7 +17664,7 @@ export type ResponseModelUploadCompleteOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17638,7 +17689,7 @@ export type ResponseModelUploadInitOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17663,7 +17714,7 @@ export type ResponseModelUploadPartPresignOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17688,7 +17739,7 @@ export type ResponseModelUploadStatusOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17713,7 +17764,7 @@ export type ResponseModelUserProfile = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17738,7 +17789,7 @@ export type ResponseModelUsernameCheckOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17763,7 +17814,7 @@ export type ResponseModelWebhookDeliveryListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17788,7 +17839,7 @@ export type ResponseModelWebhookSubscriptionListOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17813,7 +17864,7 @@ export type ResponseModelWebhookSubscriptionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17838,7 +17889,7 @@ export type ResponseModelWorkspaceAssignRoleToMembersResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17863,7 +17914,7 @@ export type ResponseModelWorkspaceDangerCapabilitiesOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17888,7 +17939,7 @@ export type ResponseModelWorkspaceDeleteResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17913,7 +17964,7 @@ export type ResponseModelWorkspaceDetailOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17938,7 +17989,7 @@ export type ResponseModelWorkspaceEmailInviteCreateResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17963,7 +18014,7 @@ export type ResponseModelWorkspaceInviteLinkCreateResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -17988,7 +18039,7 @@ export type ResponseModelWorkspaceRoleOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18013,7 +18064,7 @@ export type ResponseModelWorkspaceRolePolicyOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18038,7 +18089,7 @@ export type ResponseModelWorkspaceSettingsDetail = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18063,7 +18114,7 @@ export type ResponseModelWorkspaceTeamMemberOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18088,7 +18139,7 @@ export type ResponseModelWorkspaceTeamMemberStatusResult = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18116,7 +18167,7 @@ export type ResponseModelListDirectoryActorSummaryOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18144,7 +18195,7 @@ export type ResponseModelListHierarchyNodeOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18172,7 +18223,7 @@ export type ResponseModelListMailProviderInfo = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18200,7 +18251,35 @@ export type ResponseModelListOrganizationPermissionActionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[list[PermissionConditionTemplateOut]]
+ */
+export type ResponseModelListPermissionConditionTemplateOut = {
+    /**
+     * Data
+     */
+    data?: Array<PermissionConditionTemplateOut> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18228,7 +18307,7 @@ export type ResponseModelListProjectPermissionActionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18256,7 +18335,7 @@ export type ResponseModelListRouteBindingOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18284,7 +18363,7 @@ export type ResponseModelListWorkspacePermissionActionOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18312,7 +18391,7 @@ export type ResponseModelListWorkspacePermissionConditionTemplateOut = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Timestamp
@@ -18640,7 +18719,7 @@ export type SettingsDetail = {
      * Masked settings value.
      */
     value?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
 };
 
@@ -18649,11 +18728,9 @@ export type SettingsDetail = {
  */
 export type SettingsFieldItem = {
     /**
-     * Default
-     *
      * Default value.
      */
-    default?: unknown | null;
+    default?: JsonValueOutput | null;
     /**
      * Description
      *
@@ -18696,7 +18773,7 @@ export type SettingsFieldItem = {
      * UI rendering hints (optional).
      */
     ui?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
 };
 
@@ -18747,11 +18824,9 @@ export type SettingsOptionItem = {
      */
     label?: string | null;
     /**
-     * Value
-     *
      * Option value.
      */
-    value: unknown;
+    value: JsonValueOutput;
 };
 
 /**
@@ -18764,7 +18839,7 @@ export type SettingsPatch = {
      * Merge patch payload.
      */
     patch?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     };
 };
 
@@ -18814,7 +18889,7 @@ export type SiteFlattenedPageOut = {
      * Optional page/root layout payload.
      */
     layout?: {
-        [key: string]: JsonValue;
+        [key: string]: JsonValueOutput;
     } | null;
     /**
      * Path
@@ -18852,7 +18927,7 @@ export type SiteFlattenedSectionOut = {
      * Flattened section props.
      */
     props?: {
-        [key: string]: JsonValue;
+        [key: string]: JsonValueOutput;
     };
 };
 
@@ -19128,7 +19203,7 @@ export type SitePrimaryContextOut = {
      * Primary entry data snapshot with depth-1 fields.
      */
     data?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
     /**
      * Id
@@ -19424,7 +19499,7 @@ export type SiteSeoDefaultsOut = {
      * Structured title composition policy (v1).
      */
     titlePolicyV1?: {
-        [key: string]: JsonValue;
+        [key: string]: JsonValueOutput;
     } | null;
 };
 
@@ -19444,7 +19519,7 @@ export type SiteSettingGetOut = {
      * Setting value (JSON).
      */
     value?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     } | null;
 };
 
@@ -19458,7 +19533,7 @@ export type SiteSettingUpsertIn = {
      * Setting value (JSON).
      */
     value?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
 };
 
@@ -19789,6 +19864,57 @@ export type SystemRuntimeOut = {
      */
     instanceSetup: SystemInstanceSetupOut;
 };
+
+/**
+ * TenantIdentityOut
+ */
+export type TenantIdentityOut = {
+    /**
+     * Isolation mode for tenant-owned data.
+     */
+    isolationMode: TenantIsolationMode;
+    /**
+     * Organizationid
+     *
+     * Organization id.
+     */
+    organizationId: string;
+    /**
+     * Projectid
+     *
+     * Project id.
+     */
+    projectId?: string | null;
+    /**
+     * Runtimeid
+     *
+     * Runtime id.
+     */
+    runtimeId?: string | null;
+    /**
+     * Schemaname
+     *
+     * Tenant PostgreSQL schema name.
+     */
+    schemaName: string;
+    /**
+     * Siteid
+     *
+     * Site id.
+     */
+    siteId?: string | null;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * TenantIsolationMode
+ */
+export type TenantIsolationMode = 'public' | 'workspace_schema';
 
 /**
  * TokenPair
@@ -20419,7 +20545,7 @@ export type WebhookSubscriptionCreateIn = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     } | null;
     /**
      * Secret
@@ -21271,7 +21397,7 @@ export type WorkspaceSettingsDetail = {
      * Masked settings value.
      */
     value?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutput;
     };
 };
 
@@ -21285,7 +21411,7 @@ export type WorkspaceSettingsPatch = {
      * Merge patch payload.
      */
     patch?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueInput;
     };
 };
 
@@ -21838,8 +21964,12 @@ export type AdminAssetSummaryOutWritable = {
     workspaceId?: string | null;
 };
 
-export type JsonValueWritable = string | number | number | boolean | Array<JsonValueWritable> | {
-    [key: string]: JsonValueWritable;
+export type JsonValueInputWritable = string | number | number | boolean | Array<JsonValueInputWritable> | {
+    [key: string]: JsonValueInputWritable;
+} | null;
+
+export type JsonValueOutputWritable = string | number | number | boolean | Array<JsonValueOutputWritable> | {
+    [key: string]: JsonValueOutputWritable;
 } | null;
 
 /**
@@ -21907,7 +22037,7 @@ export type ResponseModelAdminAssetDetailOutWritable = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutputWritable;
     } | null;
     /**
      * Timestamp
@@ -21932,7 +22062,7 @@ export type ResponseModelAdminAssetSummaryOutWritable = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutputWritable;
     } | null;
     /**
      * Timestamp
@@ -21957,7 +22087,7 @@ export type ResponseModelPageDataAdminAssetSummaryOutWritable = {
      * Meta
      */
     meta?: {
-        [key: string]: unknown;
+        [key: string]: JsonValueOutputWritable;
     } | null;
     /**
      * Timestamp
@@ -25873,6 +26003,22 @@ export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses = {
 };
 
 export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponse = DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses[keyof DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses];
+
+export type InternalPermissionsListConditionTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/permissions/condition-templates';
+};
+
+export type InternalPermissionsListConditionTemplatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListPermissionConditionTemplateOut;
+};
+
+export type InternalPermissionsListConditionTemplatesResponse = InternalPermissionsListConditionTemplatesResponses[keyof InternalPermissionsListConditionTemplatesResponses];
 
 export type DomainProjectsListProjectsData = {
     body?: never;
@@ -30545,7 +30691,7 @@ export type DomainProjectsGetProjectPublishImpactResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPublishImpactOut;
+    200: ResponseModelPublishReadinessOut;
 };
 
 export type DomainProjectsGetProjectPublishImpactResponse = DomainProjectsGetProjectPublishImpactResponses[keyof DomainProjectsGetProjectPublishImpactResponses];
@@ -33353,6 +33499,36 @@ export type InternalSystemTestStorageProfileResponses = {
 };
 
 export type InternalSystemTestStorageProfileResponse = InternalSystemTestStorageProfileResponses[keyof InternalSystemTestStorageProfileResponses];
+
+export type InternalTenancyGetWorkspaceTenantData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/tenancy/workspaces/{workspace_id}';
+};
+
+export type InternalTenancyGetWorkspaceTenantErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalTenancyGetWorkspaceTenantError = InternalTenancyGetWorkspaceTenantErrors[keyof InternalTenancyGetWorkspaceTenantErrors];
+
+export type InternalTenancyGetWorkspaceTenantResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelTenantIdentityOut;
+};
+
+export type InternalTenancyGetWorkspaceTenantResponse = InternalTenancyGetWorkspaceTenantResponses[keyof InternalTenancyGetWorkspaceTenantResponses];
 
 export type DomainWorkspacesDeleteWorkspaceData = {
     body?: never;

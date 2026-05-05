@@ -56,7 +56,13 @@ from code_review_engine.migrated.rules.schema_rules import (
     SchemaMustExtendBase,
     SchemaNoAnyDictFields,
 )
-from code_review_engine.migrated.rules.service import ServiceNoDirectORM
+from code_review_engine.migrated.rules.service import (
+    ServiceNoDirectInTransaction,
+    ServiceNoMethodDependencyConstruction,
+    ServiceMustExtendBaseService,
+    ServiceNoDirectEventPublish,
+    ServiceNoDirectORM,
+)
 from code_review_engine.migrated.rules.test_coverage import (
     CoreMustHaveTests,
     ModuleMustHaveTests,
@@ -66,6 +72,10 @@ from code_review_engine.migrated.rules.test_coverage import (
 ALL_RULES: list[AuditRule] = [
     # ── Backend: Service ──
     ServiceNoDirectORM(),
+    ServiceMustExtendBaseService(),
+    ServiceNoDirectEventPublish(),
+    ServiceNoMethodDependencyConstruction(),
+    ServiceNoDirectInTransaction(),
     # ── Backend: Repository — must use TortoiseORMRepository (new architecture) ──
     RepositoryMustExtendTortoiseORM(),
     RepositoryNoBusinessLogic(),

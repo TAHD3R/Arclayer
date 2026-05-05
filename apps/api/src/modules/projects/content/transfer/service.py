@@ -10,9 +10,9 @@ from uuid import UUID
 from pydantic import BaseModel
 from tortoise.exceptions import IntegrityError
 from tortoise.models import Model
-from tortoise.transactions import in_transaction
 
 from src.core.exceptions import Conflict, NotFound
+from src.core.services import BaseService
 from src.models.assets.asset import AssetRecord
 from src.models.content.component_binding import ComponentBindingRecord
 from src.models.content.content_item import ContentItemRecord
@@ -100,8 +100,9 @@ def _info(code: str, message: str, *, meta: dict[str, Any] | None = None) -> Con
     return ContentTransferDiagnostic(severity="info", code=code, message=message, meta=meta)
 
 
-class ProjectContentTransferService:
+class ProjectContentTransferService(BaseService):
     def __init__(self, tenant_context: TenantContext) -> None:
+        super().__init__()
         self.tenant_context = tenant_context
         self.repo = ProjectContentTransferRepository(tenant_context)
 
@@ -255,7 +256,7 @@ class ProjectContentTransferService:
 
         phases: list[ContentTransferPhase] = []
         try:
-            async with in_transaction() as conn:
+            async with self.tx() as conn:
                 await self.repo.tenant_db.bind(conn)
                 for resource, model in _IMPORT_ORDER:
                     rows = getattr(bundle.resources, resource)

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from src.core.exceptions import NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.projects.database import (
     ProjectDatabaseBackupRecord,
     ProjectDatabaseCredentialRecord,
@@ -35,8 +36,9 @@ def _te(key: str) -> str:
     return t("errors", key)
 
 
-class ProjectDatabasesService:
+class ProjectDatabasesService(BaseService):
     def __init__(self, provisioner: ProjectDatabaseProvisioner) -> None:
+        super().__init__()
         self.provisioner = provisioner
 
     async def list_databases_out(self, *, project_id: UUID) -> ProjectDatabaseListOut:

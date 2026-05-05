@@ -4,13 +4,14 @@ from uuid import UUID
 
 from src.config import Settings
 from src.core.exceptions import NotFound
+from src.core.services import BaseService
 from src.modules.tenancy.repository import TenancyRepository
 from src.modules.tenancy.schema import TenantIdentityOut, TenantIsolationMode
 
 
-class TenancyService:
+class TenancyService(BaseService):
     def __init__(self, settings: Settings) -> None:
-        self.settings = settings
+        super().__init__(settings)
         self.repo = TenancyRepository()
 
     async def get_workspace_tenant(self, *, workspace_id: UUID) -> TenantIdentityOut:

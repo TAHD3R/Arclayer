@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_queryset
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.system.admin.notifications.preferences import (
     TOPIC_DEFINITIONS,
     is_topic_channel_mutable,

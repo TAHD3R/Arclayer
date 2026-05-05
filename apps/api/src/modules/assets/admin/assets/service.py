@@ -6,13 +6,13 @@ from math import ceil
 from typing import Any, cast
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.file_stream import stream_file_response
 from src.core.http.pagination import PageData, PageParams, paginate_queryset
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.assets.asset import AssetRecord
 from src.modules.assets.admin.assets.repository import AdminAssetsRepository
 from src.modules.assets.admin.assets.schema import (

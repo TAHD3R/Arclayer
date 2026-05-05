@@ -118,7 +118,7 @@ class RepositoryNoBusinessLogic(AuditRule):
     rule_id = "repository.no-business-logic"
     description = "Repository must not import service-layer or business-logic modules."
     BUSINESS_IMPORTS = frozenset({
-        "src.common.services",
+        "src.core.services",
         "src.core.entity_manager",
         "src.core.lifecycles",
         "src.modules.*.service",

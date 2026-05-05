@@ -10,6 +10,7 @@ from fastapi.params import Depends
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject, JsonValue
 from src.common.types.public_uuid import PublicUUID
 from src.config import get_settings
 from src.core.events import Event, EventBus
@@ -53,10 +54,10 @@ class ContentModelMutationOut(BaseSchema):
     impact: ContentModelImpactOut
 
 
-def _flatten_audit_value(value: object | None, *, prefix: str = "") -> object | None:
+def _flatten_audit_value(value: JsonValue | None, *, prefix: str = "") -> JsonValue | None:
     if not isinstance(value, dict):
         return value
-    flattened: dict[str, object | None] = {}
+    flattened: JsonObject = {}
     for key, nested_value in value.items():
         if not isinstance(key, str):
             continue
@@ -64,7 +65,7 @@ def _flatten_audit_value(value: object | None, *, prefix: str = "") -> object | 
         if isinstance(nested_value, dict):
             nested_flat = _flatten_audit_value(nested_value, prefix=next_prefix)
             if isinstance(nested_flat, dict):
-                flattened.update(cast(dict[str, object | None], nested_flat))
+                flattened.update(cast(JsonObject, nested_flat))
             else:
                 flattened[next_prefix] = nested_flat
             continue
@@ -73,11 +74,11 @@ def _flatten_audit_value(value: object | None, *, prefix: str = "") -> object | 
 
 
 def _normalize_default_changes_for_audit(
-    changes: dict[str, dict[str, object | None]] | None,
-) -> dict[str, dict[str, object | None]]:
+    changes: dict[str, dict[str, JsonValue | None]] | None,
+) -> dict[str, dict[str, JsonValue | None]]:
     if not changes:
         return {}
-    normalized: dict[str, dict[str, object | None]] = {}
+    normalized: dict[str, dict[str, JsonValue | None]] = {}
     for field_name, diff in changes.items():
         normalized[field_name] = {
             "before": _flatten_audit_value(diff.get("before")),

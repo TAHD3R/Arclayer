@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.config import Settings
 from src.models.projects.runtime import ProjectRuntimeRecord
 from src.models.workspaces.workspace import Workspace, WorkspaceKind
 from src.modules.projects.http.service import get_project_context
@@ -230,7 +231,7 @@ async def test_project_runtime_context_enriches_runtime_tenant_identity(monkeypa
     actor_user_id = uuid4()
     captured: dict[str, object] = {}
 
-    service = ProjectRuntimeService(SimpleNamespace())
+    service = ProjectRuntimeService(Settings())
 
     async def _fake_get_runtime_site(*, runtime_id):  # type: ignore[no-untyped-def]
         return SimpleNamespace(id=site_id, slug="site", default_locale="en-US", fallback_locale="en-US", is_active=True)

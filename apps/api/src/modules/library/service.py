@@ -8,6 +8,7 @@ from starlette.responses import HTMLResponse
 from src.config import Settings
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageParams, paginate_queryset
+from src.core.services import BaseService
 from src.modules.library.repository import PublicLibraryRepository
 from src.modules.library.schema import (
     PublicLibraryAssetOut,
@@ -23,9 +24,9 @@ def _wants_html(request: Request) -> bool:
     return "text/html" in accept and "application/json" not in accept
 
 
-class PublicLibraryService:
+class PublicLibraryService(BaseService):
     def __init__(self, settings: Settings) -> None:
-        self.settings = settings
+        super().__init__(settings)
         self.repo = PublicLibraryRepository()
 
     async def list_library(

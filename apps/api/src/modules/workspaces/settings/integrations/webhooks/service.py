@@ -11,11 +11,11 @@ from uuid import UUID
 import httpx
 
 from src.common.protocols.tortoise import HasWorkspaceId
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
 from src.core.logging import get_logger
+from src.core.services import BaseService
 from src.models.integrations.webhook_delivery import WebhookDelivery
 from src.models.integrations.webhook_subscription import WebhookSubscription
 from src.modules.workspaces.settings.integrations.webhooks.repository import WebhooksRepository

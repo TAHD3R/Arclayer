@@ -8,6 +8,7 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 
 from src.core.exceptions import Conflict, NotFound
+from src.core.services import BaseService
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.hierarchy_node import HierarchyNodeRecord
 from src.models.content.route_binding import RouteBindingRecord
@@ -264,8 +265,9 @@ async def _ensure_no_pattern_conflict(
             raise Conflict("Content route pattern conflict", error="CONTENT_ROUTE_PATTERN_CONFLICT")
 
 
-class ProjectContentRoutingService:
+class ProjectContentRoutingService(BaseService):
     def __init__(self, tenant_context: TenantContext) -> None:
+        super().__init__()
         self.tenant_db = TenantDatabaseRouter(tenant_context)
 
     async def list_route_bindings(

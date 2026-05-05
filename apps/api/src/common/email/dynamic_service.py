@@ -10,6 +10,7 @@ from fastapi_mail import FastMail
 from src.common.email.helpers import pick_int, pick_str, raise_if_fatal
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
 from src.common.email.providers import create_email_provider, supported_email_provider_ids
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.logging import get_logger
 
@@ -33,7 +34,7 @@ class DynamicMailService:
         self,
         *,
         settings: Settings,
-        config: dict[str, object],
+        config: JsonObject,
         smtp_fast_mail_factory: Callable[[], FastMail | Awaitable[FastMail]] | None = None,
         providers: dict[str, EmailProvider] | None = None,
         sleep: Callable[[float], Awaitable[object]] | None = None,
@@ -155,13 +156,13 @@ class DynamicMailService:
     def _max_attempts(self) -> int:
         retry = self.config.get("retry")
         if isinstance(retry, dict):
-            retry_config = cast(dict[str, object], retry)
+            retry_config = cast(JsonObject, retry)
             return max(pick_int(retry_config.get("max_attempts"), DEFAULT_RETRY_ATTEMPTS), 1)
         return max(getattr(self.settings.email, "retry_max_attempts", DEFAULT_RETRY_ATTEMPTS), 1)
 
     def _backoff_seconds(self) -> tuple[int, ...]:
         retry = self.config.get("retry")
-        retry_config = cast(dict[str, object], retry) if isinstance(retry, dict) else {}
+        retry_config = cast(JsonObject, retry) if isinstance(retry, dict) else {}
         raw = retry_config.get("backoff_seconds")
         if isinstance(raw, list):
             values = tuple(max(int(item), 0) for item in raw if isinstance(item, int))

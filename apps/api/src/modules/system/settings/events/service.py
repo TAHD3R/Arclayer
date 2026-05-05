@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, cast
+from typing import cast
+from uuid import UUID
 
 from src.common.constants.events import SETTINGS_UPDATED
 from src.common.protocols.logging import LoggerLike
-from src.core.events import Event, EventBus
+from src.common.types.json_types import JsonObject
+from src.core.services import BaseService
 from src.settings.schema import ConfigSchema
 from src.settings.validation import iter_secret_field_paths
 
@@ -22,7 +24,7 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
-def _flatten_patch_paths(patch: dict[str, object], *, _prefix: str = "") -> list[str]:
+def _flatten_patch_paths(patch: JsonObject, *, _prefix: str = "") -> list[str]:
     # Only emit keys/paths, never values (could contain secrets).
     out: list[str] = []
     for key, value in (patch or {}).items():
@@ -30,7 +32,7 @@ def _flatten_patch_paths(patch: dict[str, object], *, _prefix: str = "") -> list
             continue
         path = f"{_prefix}.{key}" if _prefix else str(key)
         if isinstance(value, dict):
-            out.extend(_flatten_patch_paths(cast(dict[str, Any], value), _prefix=path))
+            out.extend(_flatten_patch_paths(cast(JsonObject, value), _prefix=path))
         else:
             out.append(path)
     return out
@@ -42,7 +44,6 @@ def _is_secret_descendant(path: str, secrets: set[str]) -> bool:
 
 
 class SettingsEventsMixin:
-    event_bus: EventBus
     logger: LoggerLike
 
     async def _emit_settings_updated(
@@ -50,24 +51,22 @@ class SettingsEventsMixin:
         *,
         namespace: str,
         schema: ConfigSchema,
-        patch: dict[str, object],
+        patch: JsonObject,
         actor_user_id: str | None,
     ) -> None:
         try:
             secret_paths = set(iter_secret_field_paths(schema))
             changed_paths = _flatten_patch_paths(patch)
             contains_secrets = any((p in secret_paths) or _is_secret_descendant(p, secret_paths) for p in changed_paths)
-            await self.event_bus.publish(
-                Event(
-                    name=SETTINGS_UPDATED,
-                    payload={
-                        "namespace": namespace,
-                        "paths": changed_paths,
-                        "contains_secrets": contains_secrets,
-                    },
-                    source="core",
-                    actor_user_id=actor_user_id,
-                )
+            await cast(BaseService, self).publish_optional_domain_event(
+                name=SETTINGS_UPDATED,
+                payload={
+                    "namespace": namespace,
+                    "paths": changed_paths,
+                    "contains_secrets": contains_secrets,
+                },
+                source="core",
+                actor_user_id=_coerce_uuid(actor_user_id),
             )
         except BaseException as exc:
             _raise_if_fatal(exc)
@@ -79,3 +78,9 @@ class SettingsEventsMixin:
                 error=str(exc),
             )
             return
+
+
+def _coerce_uuid(value: str | None):
+    if value is None:
+        return None
+    return UUID(str(value))

@@ -17,10 +17,10 @@ from pydantic import ValidationError
 from starlette.responses import RedirectResponse
 from tortoise.expressions import Q
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.auth.oauth.social.providers import (
     OAUTH_PROVIDER_DEFINITIONS,
     OAuthProviderDefinition,

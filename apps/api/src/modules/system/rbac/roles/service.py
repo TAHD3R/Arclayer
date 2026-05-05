@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
-
-from tortoise.transactions import in_transaction
 
 from src.common.utils.ids import uuid7
 from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.core.services import BaseService
 from src.models.system.rbac import PermissionScope, Role
 from src.modules.system.rbac.localization.service import _tr
 from src.modules.system.rbac.repository import RBACRepository
@@ -170,7 +170,7 @@ class RBACRolesMixin:
                 meta={"missing": missing},
             )
 
-        async with in_transaction():
+        async with cast(BaseService, self).tx():
             for code, role in custom_roles.items():
                 if code in desired:
                     await self.repo.ensure_role_permission(role=role, permission=perm)

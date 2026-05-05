@@ -4,10 +4,10 @@ from typing import cast
 from uuid import UUID
 
 from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgRole
 from src.modules.assets.admin.assets.binding_align import align_asset_for_binding

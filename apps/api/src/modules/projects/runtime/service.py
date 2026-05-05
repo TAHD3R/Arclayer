@@ -5,7 +5,9 @@ from typing import cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import HasProjectId, HasWorkspaceId
+from src.config import Settings
 from src.core.exceptions import NotFound
+from src.core.services import BaseService
 from src.models.projects.runtime import ProjectRuntimeRecord
 from src.models.workspaces.workspace import Workspace
 from src.modules.projects.repository import ProjectRepository
@@ -30,8 +32,9 @@ class ProjectRuntimeContext:
     is_active: bool
 
 
-class ProjectRuntimeService:
-    def __init__(self, settings) -> None:
+class ProjectRuntimeService(BaseService):
+    def __init__(self, settings: Settings) -> None:
+        super().__init__(settings)
         self.project_repo = ProjectRepository()
 
     async def get_context_by_project(

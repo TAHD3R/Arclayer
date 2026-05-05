@@ -6,9 +6,6 @@ from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
-from asgi_correlation_id import correlation_id
-from tortoise.transactions import in_transaction
-
 from src.common.invitations.tokens import verify_invite_token
 from src.common.invitations.workspace_invites import (
     is_workspace_email_invite_code,
@@ -16,10 +13,10 @@ from src.common.invitations.workspace_invites import (
     is_workspace_invite_link_code,
 )
 from src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.org_invitation import (
     OrganizationEmailInvite,
     OrganizationInviteLink,
@@ -117,7 +114,7 @@ class AuthInvitationAcceptanceService(BaseService):
         organization_id: UUID | None = None
         workspace_id: UUID | None = None
 
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             assigned_role_code: str | None = None
             invite_email: str | None = None
             invite_link: WorkspaceInviteLink | None = None
@@ -268,6 +265,8 @@ class AuthInvitationAcceptanceService(BaseService):
             if org is None or not org.is_active:
                 raise Forbidden(message=self._ta("ORG_INACTIVE", "组织不可用"), error="ORG_INACTIVE")
             if not is_org_scope:
+                if workspace_id is None:
+                    raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
                 ws = await self.workspace_repo.get_by_id_in_connection(workspace_id, conn=conn)
                 if ws is None or not ws.is_active or ws.archived_at is not None:
                     raise Forbidden(
@@ -482,21 +481,16 @@ class AuthInvitationAcceptanceService(BaseService):
         # Best-effort: emit audit event for invite acceptance.
         if organization_id is not None and workspace_id is not None and accepted_user_id is not None:
             try:
-                from src.core.events import Event, events
-
-                await events.publish(
-                    Event(
-                        name="workspace.invite.accepted",
-                        payload={
-                            "organization_id": str(organization_id),
-                            "workspace_id": str(workspace_id),
-                            "inviter_user_id": str(inviter_user_id) if inviter_user_id else None,
-                            "invite_kind": "link" if is_workspace_invite_link_code(code) else "email",
-                        },
-                        source="api",
-                        trace_id=correlation_id.get(None),
-                        actor_user_id=str(accepted_user_id),
-                    )
+                await self.publish_optional_domain_event(
+                    name="workspace.invite.accepted",
+                    payload={
+                        "organization_id": str(organization_id),
+                        "workspace_id": str(workspace_id),
+                        "inviter_user_id": str(inviter_user_id) if inviter_user_id else None,
+                        "invite_kind": "link" if is_workspace_invite_link_code(code) else "email",
+                    },
+                    source="api",
+                    actor_user_id=accepted_user_id,
                 )
             except BaseException as exc:
                 _raise_if_fatal(exc)
@@ -541,7 +535,7 @@ class AuthInvitationAcceptanceService(BaseService):
         workspace_id: UUID | None = None
         assigned_role_code: str | None = None
 
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             invite_link: WorkspaceInviteLink | None = None
             email_inv: WorkspaceEmailInvite | None = None
             org_invite_link: OrganizationInviteLink | None = None
@@ -690,6 +684,8 @@ class AuthInvitationAcceptanceService(BaseService):
             if org is None or not org.is_active:
                 raise Forbidden(message=self._ta("ORG_INACTIVE", "组织不可用"), error="ORG_INACTIVE")
             if not is_org_scope:
+                if workspace_id is None:
+                    raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
                 ws = await self.workspace_repo.get_by_id_in_connection(workspace_id, conn=conn)
                 if ws is None or not ws.is_active or ws.archived_at is not None:
                     raise Forbidden(

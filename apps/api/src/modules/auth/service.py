@@ -6,8 +6,6 @@ from datetime import UTC, datetime
 from typing import Protocol, cast
 from uuid import UUID
 
-from asgi_correlation_id import correlation_id
-
 from src.common.constants.auth import (
     PASSWORD_REGEX,
     REAUTH_MAX_AGE_SECONDS,
@@ -19,12 +17,12 @@ from src.common.constants.auth import (
 )
 from src.common.email.service import EmailService
 from src.common.protocols.tortoise import HasOrganizationId
-from src.common.services import BaseService
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable, Unauthorized
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.org_membership import OrgMembership
 from src.models.organization.user import User
 from src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
@@ -90,6 +88,7 @@ class AuthService(BaseService):
         valkey: ValkeyClientLike | None = None,
         user_repo: UserRepositoryLike | None = None,
         two_factor: _TwoFactorReauthLike | None = None,
+        onboarding_service: WorkspaceFirstOnboardingService | None = None,
     ) -> None:
         super().__init__(settings)
         self.user_repo: UserRepositoryLike = user_repo or UserRepository()
@@ -105,6 +104,7 @@ class AuthService(BaseService):
         self.invitation_service = AuthInvitationService(settings)
         self.location_lookup = AuthSessionLocationLookup(settings)
         self.oauth_repo = OAuthSocialRepository()
+        self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -694,21 +694,16 @@ class AuthService(BaseService):
 
         # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
-            from src.core.events import Event, events
-
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await events.publish(
-                Event(
-                    name="auth.login.succeeded",
-                    payload={
-                        "organization_id": str(org_id) if org_id else None,
-                    },
-                    source="api",
-                    trace_id=correlation_id.get(None),
-                    actor_user_id=str(user_id),
-                )
+            await self.publish_optional_domain_event(
+                name="auth.login.succeeded",
+                payload={
+                    "organization_id": str(org_id) if org_id else None,
+                },
+                actor_user_id=user_id,
+                source="api",
             )
         except BaseException as exc:
             _raise_if_fatal(exc)
@@ -783,21 +778,16 @@ class AuthService(BaseService):
 
         # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
-            from src.core.events import Event, events
-
             orgm = await OrgMembership.get_or_none(user_id=resolved_user_id)
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await events.publish(
-                Event(
-                    name="auth.login.succeeded",
-                    payload={
-                        "organization_id": str(org_id) if org_id else None,
-                    },
-                    source="api",
-                    trace_id=correlation_id.get(None),
-                    actor_user_id=str(resolved_user_id),
-                )
+            await self.publish_optional_domain_event(
+                name="auth.login.succeeded",
+                payload={
+                    "organization_id": str(org_id) if org_id else None,
+                },
+                actor_user_id=resolved_user_id,
+                source="api",
             )
         except BaseException as exc:
             _raise_if_fatal(exc)
@@ -844,7 +834,7 @@ class AuthService(BaseService):
             is_super_admin=is_super_admin,
         )
         user_id = UUID(str(user.id))
-        await WorkspaceFirstOnboardingService(self.settings).ensure_initialized(user_id=user_id)
+        await self.onboarding_service.ensure_initialized(user_id=user_id)
         return user
 
     async def email_exists(self, *, email: str) -> bool:
@@ -1059,22 +1049,16 @@ class AuthService(BaseService):
 
         # Best-effort: record password reset request for investigation (do not leak data in payload).
         try:
-            from src.core.events import Event, events
-
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await events.publish(
-                Event(
-                    name="auth.password.reset.requested",
-                    payload={
-                        "organization_id": str(org_id) if org_id else None,
-                        "subject_user_id": str(user_id),
-                    },
-                    source="api",
-                    trace_id=correlation_id.get(None),
-                    actor_user_id=None,
-                )
+            await self.publish_optional_domain_event(
+                name="auth.password.reset.requested",
+                payload={
+                    "organization_id": str(org_id) if org_id else None,
+                    "subject_user_id": str(user_id),
+                },
+                source="api",
             )
         except BaseException as exc:
             _raise_if_fatal(exc)
@@ -1212,22 +1196,17 @@ class AuthService(BaseService):
 
         # Best-effort: record password reset completion.
         try:
-            from src.core.events import Event, events
-
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await events.publish(
-                Event(
-                    name="auth.password.reset.completed",
-                    payload={
-                        "organization_id": str(org_id) if org_id else None,
-                        "subject_user_id": str(user_id),
-                    },
-                    source="api",
-                    trace_id=correlation_id.get(None),
-                    actor_user_id=str(user_id),
-                )
+            await self.publish_optional_domain_event(
+                name="auth.password.reset.completed",
+                payload={
+                    "organization_id": str(org_id) if org_id else None,
+                    "subject_user_id": str(user_id),
+                },
+                actor_user_id=user_id,
+                source="api",
             )
         except BaseException as exc:
             _raise_if_fatal(exc)

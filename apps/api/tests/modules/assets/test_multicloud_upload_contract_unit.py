@@ -51,6 +51,14 @@ class FakeRemoteProvider:
         return "upload-123"
 
 
+class FakeEventPublisher:
+    def __init__(self) -> None:
+        self.events: list[Event] = []
+
+    async def publish(self, event: Event) -> None:
+        self.events.append(event)
+
+
 def _settings() -> Settings:
     base = Settings()
     return base.model_copy(
@@ -356,13 +364,12 @@ async def test_project_upload_complete_event_uses_explicit_tenant_context(
 ) -> None:
     project_id = uuid4()
     tenant_context = _tenant_context(project_id=project_id)
-    service = UploadsService(_settings(), tenant_context)
+    publisher = FakeEventPublisher()
+    service = UploadsService(_settings(), tenant_context, event_publisher=publisher)
     scope = AssetScope(type=ASSET_SCOPE_PROJECT, id=project_id)
     upload_id = uuid4()
     actor_user_id = uuid4()
     asset_id = uuid4()
-    published: dict[str, object] = {}
-
     session = SimpleNamespace(
         id=upload_id,
         status="uploading",
@@ -386,20 +393,16 @@ async def test_project_upload_complete_event_uses_explicit_tenant_context(
     async def fake_complete_local(**_kwargs):
         return asset_id
 
-    async def fake_publish(event):
-        published["event"] = event
-
     monkeypatch.setattr(service.repo, "connection", _unit_connection)
     monkeypatch.setattr(service, "get_status", fake_get_status)
     monkeypatch.setattr(service.repo, "try_mark_completing", fake_try_mark_completing)
     monkeypatch.setattr(service.repo, "get_session", fake_get_session)
     monkeypatch.setattr(service, "_complete_local", fake_complete_local)
     monkeypatch.setattr("src.modules.assets.admin.uploads.service.current_tenant_context_or_none", lambda: None)
-    monkeypatch.setattr("src.modules.assets.admin.uploads.service.events.publish", fake_publish)
 
     completed_asset_id = await service.complete(upload_id=upload_id, scope=scope)
 
-    event = cast(Event, published["event"])
+    event = publisher.events[0]
     payload = cast(dict[str, object], event.payload)
     restored = tenant_context_from_payload(payload)
     assert completed_asset_id == asset_id

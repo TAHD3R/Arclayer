@@ -6,10 +6,10 @@ from uuid import UUID
 
 from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
 from src.common.protocols.tortoise import HasOrganizationId, HasUserId, HasWorkspaceId
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization, OrganizationKind
@@ -230,13 +230,24 @@ async def _build_workspace_member_meta(
 
 
 class WorkspaceService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        repo: OrganizationWorkspaceRepository | None = None,
+        org_repo: OrganizationRepository | None = None,
+        project_repo: ProjectRepository | None = None,
+        instance_setup_service: InstanceSetupService | None = None,
+        onboarding_service: WorkspaceFirstOnboardingService | None = None,
+        organization_workspace_service: OrganizationWorkspaceService | None = None,
+    ) -> None:
         super().__init__(settings)
-        self.repo = OrganizationWorkspaceRepository()
-        self.org_repo = OrganizationRepository()
-        self.project_repo = ProjectRepository()
-        self.instance_setup_service = InstanceSetupService(settings)
-        self.onboarding_service = WorkspaceFirstOnboardingService(settings)
+        self.repo = repo or OrganizationWorkspaceRepository()
+        self.org_repo = org_repo or OrganizationRepository()
+        self.project_repo = project_repo or ProjectRepository()
+        self.instance_setup_service = instance_setup_service or InstanceSetupService(settings)
+        self.onboarding_service = onboarding_service or WorkspaceFirstOnboardingService(settings)
+        self.organization_workspace_service = organization_workspace_service or OrganizationWorkspaceService(settings)
 
     async def list_my_workspaces(self, *, user_id: UUID) -> MyWorkspaceListResult:
         """
@@ -360,7 +371,7 @@ class WorkspaceService(BaseService):
             user_id=user_id,
             organization_name=workspace_name,
         )
-        created_workspace = await OrganizationWorkspaceService(self.settings).create_workspace(
+        created_workspace = await self.organization_workspace_service.create_workspace(
             organization_id=UUID(str(organization.id)),
             user_id=user_id,
             org_role=OrgRole.OWNER,

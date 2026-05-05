@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from functools import lru_cache
 
+from src.core.services import BaseService
 from src.models.projects.membership import ProjectMemberRole
 from src.modules.permissions import (
     PermissionConditionEvaluationContext,
@@ -120,8 +121,9 @@ def get_project_permission_codes_for_role(role: ProjectMemberRole) -> tuple[str,
     return get_project_role_permission_map().get(role, ())
 
 
-class PolicyEvaluationService:
+class PolicyEvaluationService(BaseService):
     def __init__(self, registry: dict[str, PermissionActionDefinition] | None = None) -> None:
+        super().__init__()
         self._registry = registry or get_project_action_catalog()
 
     def list_actions_for_permissions_set(self, permission_codes: Iterable[str]) -> frozenset[str]:

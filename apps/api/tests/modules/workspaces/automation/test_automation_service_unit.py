@@ -330,14 +330,29 @@ async def test_execute_content_update_passes_lifecycle_dispatcher_to_entity_mana
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     dispatcher = LifecycleDispatcher()
-    service = ProjectAutomationService(repo=cast(Any, _FakeRepo()), lifecycle_dispatcher=dispatcher)
+    observed: dict[str, object] = {}
+
+    def _fake_items_service_factory(received_tenant_context, received_lifecycle):  # type: ignore[no-untyped-def]
+        observed["tenant_context"] = received_tenant_context
+        observed["lifecycle"] = received_lifecycle
+
+        class _FakeContentService:
+            async def patch_workflow(self, **kwargs):  # type: ignore[no-untyped-def]
+                return SimpleNamespace(id=kwargs["item_id"], workflow_stage=kwargs["payload"].stage)
+
+        return _FakeContentService()
+
+    service = ProjectAutomationService(
+        repo=cast(Any, _FakeRepo()),
+        lifecycle_dispatcher=dispatcher,
+        content_items_service_factory=_fake_items_service_factory,
+    )
     organization_id = uuid4()
     workspace_id = uuid4()
     project_id = uuid4()
     runtime_id = uuid4()
     site_id = uuid4()
     item_id = uuid4()
-    observed: dict[str, object] = {}
     tenant_context = TenantContext(
         identity=TenantIdentity(
             organization_id=organization_id,
@@ -349,28 +364,6 @@ async def test_execute_content_update_passes_lifecycle_dispatcher_to_entity_mana
             isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
         ),
         scope=TenantScope.RUNTIME,
-    )
-
-    def _fake_items_repo(received_tenant_context):  # type: ignore[no-untyped-def]
-        observed["tenant_context"] = received_tenant_context
-        return SimpleNamespace()
-
-    monkeypatch.setattr(
-        "src.modules.projects.automation.service.ProjectContentItemsRepository",
-        _fake_items_repo,
-    )
-
-    class _FakeContentService:
-        def __init__(self, *, repo, entity_manager):  # type: ignore[no-untyped-def]
-            observed["repo"] = repo
-            observed["lifecycle"] = entity_manager._lifecycle
-
-        async def patch_workflow(self, **kwargs):  # type: ignore[no-untyped-def]
-            return SimpleNamespace(id=kwargs["item_id"], workflow_stage=kwargs["payload"].stage)
-
-    monkeypatch.setattr(
-        "src.modules.projects.automation.service.ProjectContentCanonicalItemsService",
-        _FakeContentService,
     )
 
     result = await service._execute_content_update(

@@ -6,11 +6,11 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
-from src.common.services import BaseService
 from src.common.utils.ids import uuid7
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.org_rbac import (
     OrganizationPermission,

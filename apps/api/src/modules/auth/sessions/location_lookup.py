@@ -3,8 +3,8 @@ from __future__ import annotations
 import ipaddress
 from pathlib import Path
 
-from src.common.services import BaseService
 from src.config import Settings
+from src.core.services import BaseService
 
 
 class AuthSessionLocationLookup(BaseService):

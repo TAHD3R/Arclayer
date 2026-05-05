@@ -3,10 +3,11 @@ from __future__ import annotations
 from src.common.email.dynamic_service import DynamicMailService
 from src.common.email.errors import raise_mail_delivery_error
 from src.common.email.service import EmailService
-from src.common.services import BaseService
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.system.setting import SettingRecord
 from src.modules.system.mail.schema import MailProviderInfo, MailTestResult
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
@@ -15,9 +16,9 @@ from src.settings.validation import merge_deep
 
 
 class AdminMailService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, email_service: EmailService | None = None) -> None:
         super().__init__(settings)
-        self.email_service = EmailService(settings)
+        self.email_service = email_service or EmailService(settings)
 
     async def send_test_email(self, *, recipient: str, locale: str | None = None) -> MailTestResult:
         try:
@@ -45,18 +46,21 @@ class AdminMailService(BaseService):
 
     async def list_providers(self) -> list[MailProviderInfo]:
         mail = await self.email_service._get_core_mail_config()
-        service = DynamicMailService(settings=self.settings, config=mail)
+        service = self._dynamic_mail_service_factory(mail)
         infos = await service.get_available_providers()
         return [MailProviderInfo(**info.__dict__) for info in infos]
 
     async def switch_provider(self, *, provider: str) -> list[MailProviderInfo]:
         mail = await self.email_service._get_core_mail_config()
-        service = DynamicMailService(settings=self.settings, config=mail)
+        service = self._dynamic_mail_service_factory(mail)
         await service.switch_provider(provider)
         await self._patch_mail_settings({"provider": provider})
         return await self.list_providers()
 
-    async def _patch_mail_settings(self, patch: dict[str, object]) -> None:
+    def _dynamic_mail_service_factory(self, config: JsonObject) -> DynamicMailService:
+        return DynamicMailService(settings=self.settings, config=config)
+
+    async def _patch_mail_settings(self, patch: JsonObject) -> None:
         record, _created = await SettingRecord.get_or_create(
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,

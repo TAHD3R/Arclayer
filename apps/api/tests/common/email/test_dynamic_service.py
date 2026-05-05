@@ -4,6 +4,7 @@ import pytest
 
 from src.common.email.dynamic_service import DynamicMailService
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 
 
@@ -78,7 +79,7 @@ async def test_dynamic_mail_service_uses_fallback_chain_after_provider_failure()
 async def test_dynamic_mail_service_switch_provider_updates_runtime_config() -> None:
     smtp = RecordingProvider("smtp")
     resend = RecordingProvider("resend")
-    config: dict[str, object] = {"provider": "smtp"}
+    config: JsonObject = {"provider": "smtp"}
     service = DynamicMailService(
         settings=Settings(),
         config=config,

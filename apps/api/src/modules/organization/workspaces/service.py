@@ -7,11 +7,11 @@ from typing import Any, Literal, cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User
 from src.models.system.rbac import Role
@@ -51,10 +51,22 @@ def _normalize_workspace_ordering(value: str | None) -> list[str]:
 
 
 class OrganizationWorkspaceService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        repo: OrganizationWorkspaceRepository | None = None,
+        project_repo: ProjectRepository | None = None,
+        workspace_settings_service: WorkspaceSettingsService | None = None,
+        workspace_danger_service: WorkspaceDangerService | None = None,
+        rbac_service: RBACService | None = None,
+    ) -> None:
         super().__init__(settings)
-        self.repo = OrganizationWorkspaceRepository()
-        self.project_repo = ProjectRepository()
+        self.repo = repo or OrganizationWorkspaceRepository()
+        self.project_repo = project_repo or ProjectRepository()
+        self.workspace_settings_service = workspace_settings_service or WorkspaceSettingsService(settings)
+        self.workspace_danger_service = workspace_danger_service or WorkspaceDangerService(settings)
+        self.rbac_service = rbac_service or RBACService(settings)
 
     async def list_workspaces(
         self,
@@ -251,8 +263,7 @@ class OrganizationWorkspaceService(BaseService):
         )
 
         # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
-        settings_service = WorkspaceSettingsService(self.settings)
-        await settings_service.patch_core(
+        await self.workspace_settings_service.patch_core(
             workspace_id=UUID(str(ws.id)),
             patch={
                 "content_strategy": {
@@ -424,7 +435,7 @@ class OrganizationWorkspaceService(BaseService):
         user_id: UUID,
         action: Literal["archive", "delete"],
     ) -> None:
-        danger = await WorkspaceDangerService(self.settings).get_capabilities(
+        danger = await self.workspace_danger_service.get_capabilities(
             organization_id=organization_id,
             workspace_id=workspace_id,
             user_id=user_id,
@@ -445,8 +456,7 @@ class OrganizationWorkspaceService(BaseService):
         org_role: OrgRole,
     ) -> None:
         role_code = ROLE_OWNER if org_role == OrgRole.OWNER else ROLE_ADMIN
-        rbac = RBACService(self.settings)
-        await rbac.ensure_workspace_system_roles(workspace_id=workspace_id)
+        await self.rbac_service.ensure_workspace_system_roles(workspace_id=workspace_id)
         role = await Role.get_or_none(workspace_id=workspace_id, code=role_code)
         if role is None:
             return

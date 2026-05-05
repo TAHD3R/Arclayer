@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.config import Settings
 from src.core.exceptions import NotFound
 from src.models.projects.runtime import ProjectRuntimeRecord
 from src.modules.projects.runtime import service as runtime_service
@@ -35,7 +36,7 @@ async def test_project_runtime_service_requires_existing_runtime_scoped_site(mon
     project_id = uuid4()
     workspace_id = uuid4()
 
-    service = ProjectRuntimeService(settings=SimpleNamespace())
+    service = ProjectRuntimeService(settings=Settings())
     runtime = _FakeRuntime(runtime_id=runtime_id, project_id=project_id)
 
     async def fake_get_runtime_site(*, runtime_id):
@@ -61,7 +62,7 @@ async def test_project_runtime_service_reuses_attached_runtime_site(monkeypatch)
     workspace_id = uuid4()
     site_id = uuid4()
 
-    service = ProjectRuntimeService(settings=SimpleNamespace())
+    service = ProjectRuntimeService(settings=Settings())
     runtime = _FakeRuntime(runtime_id=runtime_id, project_id=project_id)
     site = SimpleNamespace(
         id=site_id,
@@ -119,7 +120,7 @@ async def test_project_runtime_service_does_not_adopt_workspace_level_site(monke
     project_id = uuid4()
     workspace_id = uuid4()
 
-    service = ProjectRuntimeService(settings=SimpleNamespace())
+    service = ProjectRuntimeService(settings=Settings())
     runtime = _FakeRuntime(runtime_id=runtime_id, project_id=project_id)
 
     async def fake_get_runtime_site(*, runtime_id):

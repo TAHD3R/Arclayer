@@ -19,6 +19,7 @@ from src.common.types.json_types import JsonObject, JsonValue
 from src.config import Settings
 from src.core.exceptions import Conflict, ServiceUnavailable
 from src.core.http.pagination import PageData, PageParams, paginate_items
+from src.core.services import BaseService
 from src.models.content._enums import ContentShapeState
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.model_definition import ContentModelDefinitionRecord
@@ -49,13 +50,18 @@ from src.modules.projects.content.contracts.schema import (
     ContentModelSchemaApplyGateOut,
     ContentModelSchemaChangePlanOut,
     ContentModelSchemaDiffEntryOut,
+    ContentModelSchemaDiffKind,
+    ContentModelSchemaDiffOperation,
     ContentModelSchemaDiffOut,
     ContentModelSchemaSnapshotOut,
+    ContentModelSchemaSnapshotStage,
     ContentModelUserRefOut,
     ContentModelViewContract,
     ContentRoutingContract,
     ContentWorkflowContract,
     FieldScalarType,
+    RelationType,
+    ViewType,
 )
 from src.modules.projects.content.models.domain_helpers import (
     dump_contract,
@@ -311,13 +317,13 @@ def _snapshot_counts(payload: JsonObject) -> tuple[int, int, int]:
 
 def _build_snapshot(
     *,
-    stage: str,
+    stage: ContentModelSchemaSnapshotStage,
     revision: int | None,
     payload: JsonObject,
 ) -> ContentModelSchemaSnapshotOut:
     field_count, relation_count, view_count = _snapshot_counts(payload)
     return ContentModelSchemaSnapshotOut(
-        stage=cast(JsonValue, stage),
+        stage=stage,
         revision=revision,
         field_count=field_count,
         relation_count=relation_count,
@@ -349,8 +355,8 @@ def _read_snapshot_views(payload: JsonObject) -> dict[str, JsonObject]:
 
 def _schema_diff_entry(
     *,
-    kind: str,
-    operation: str,
+    kind: ContentModelSchemaDiffKind,
+    operation: ContentModelSchemaDiffOperation,
     target: str,
     summary: str,
     breaking: bool = False,
@@ -358,8 +364,8 @@ def _schema_diff_entry(
     after: JsonValue | None = None,
 ) -> ContentModelSchemaDiffEntryOut:
     return ContentModelSchemaDiffEntryOut(
-        kind=cast(JsonValue, kind),
-        operation=cast(JsonValue, operation),
+        kind=kind,
+        operation=operation,
         target=target,
         summary=summary,
         breaking=breaking,
@@ -371,7 +377,7 @@ def _schema_diff_entry(
 def _append_mapping_diff_entries(
     *,
     entries: list[ContentModelSchemaDiffEntryOut],
-    kind: str,
+    kind: ContentModelSchemaDiffKind,
     prefix: str,
     before_map: dict[str, JsonObject],
     after_map: dict[str, JsonObject],
@@ -419,7 +425,7 @@ def _append_mapping_diff_entries(
 def _append_scalar_diff_entries(
     *,
     entries: list[ContentModelSchemaDiffEntryOut],
-    kind: str,
+    kind: ContentModelSchemaDiffKind,
     targets: dict[str, tuple[str, JsonValue | None, JsonValue | None]],
 ) -> None:
     for target, (summary, before, after) in targets.items():
@@ -1279,7 +1285,7 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> JsonObject
             ContentModelFieldContract(
                 key=str(field.key),
                 label=str(field.label),
-                scalar=cast(JsonValue, str(field.field_type)),
+                scalar=cast(FieldScalarType, str(field.field_type)),
                 required=bool(field.is_required),
                 config=field.config,
             ).model_dump(mode="json", by_alias=False, exclude_none=True)
@@ -1288,7 +1294,7 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> JsonObject
         "relations": [
             ContentModelRelationContract(
                 key=str(relation.key),
-                relation=cast(JsonValue, str(relation.relation_type)),
+                relation=cast(RelationType, str(relation.relation_type)),
                 target_model_key=str(relation.target_model_key),
                 required=bool(relation.is_required),
                 config=relation.config,
@@ -1299,7 +1305,7 @@ def _record_snapshot_payload(record: ContentModelDefinitionRecord) -> JsonObject
             ContentModelViewContract(
                 key=str(view.key),
                 label=str(view.label),
-                type=cast(JsonValue, str(view.view_type)),
+                type=cast(ViewType, str(view.view_type)),
                 config=view.dsl,
             ).model_dump(mode="json", by_alias=False, exclude_none=True)
             for view in record.views
@@ -1320,7 +1326,7 @@ def _field_contracts(record: ContentModelDefinitionRecord) -> list[ContentModelF
         ContentModelFieldContract(
             key=str(field.key),
             label=str(field.label),
-            scalar=cast(JsonValue, str(field.field_type)),
+            scalar=cast(FieldScalarType, str(field.field_type)),
             required=bool(field.is_required),
             config=field.config,
         )
@@ -1372,10 +1378,10 @@ def _next_snapshot_payload(
     return next_payload
 
 
-class ProjectContentCanonicalModelsService:
+class ProjectContentCanonicalModelsService(BaseService):
     def __init__(self, repo: ProjectContentModelsRepository, settings: Settings) -> None:
+        super().__init__(settings)
         self.repo = repo
-        self.settings = settings
 
     async def _validate_model_identifiers(
         self,
@@ -1570,7 +1576,7 @@ class ProjectContentCanonicalModelsService:
                 ContentModelFieldContract(
                     key=field.key,
                     label=payload.label if payload.label is not None else field.label,
-                    scalar=cast(JsonValue, payload.scalar if payload.scalar is not None else field.scalar),
+                    scalar=payload.scalar if payload.scalar is not None else field.scalar,
                     required=payload.required if payload.required is not None else field.required,
                     config=payload.config if "config" in payload.model_fields_set else field.config,
                 )
@@ -1877,7 +1883,7 @@ class ProjectContentCanonicalModelsService:
                     ContentModelFieldContract(
                         key=str(field.key),
                         label=str(field.label),
-                        scalar=cast(JsonValue, str(field.field_type)),
+                        scalar=cast(FieldScalarType, str(field.field_type)),
                         required=bool(field.is_required),
                         config=field.config,
                     )
@@ -1914,7 +1920,7 @@ class ProjectContentCanonicalModelsService:
             else [
                 ContentModelRelationContract(
                     key=str(relation.key),
-                    relation=cast(JsonValue, str(relation.relation_type)),
+                    relation=cast(RelationType, str(relation.relation_type)),
                     target_model_key=str(relation.target_model_key),
                     required=bool(relation.is_required),
                     config=relation.config,
@@ -1930,7 +1936,7 @@ class ProjectContentCanonicalModelsService:
                 ContentModelViewContract(
                     key=str(view.key),
                     label=str(view.label),
-                    type=cast(JsonValue, str(view.view_type)),
+                    type=cast(ViewType, str(view.view_type)),
                     config=view.dsl,
                 )
                 for view in record.views

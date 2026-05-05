@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from src.common.services import BaseService
+from src.core.services import BaseService
 from src.modules.sites.content.delivery.service import ContentDeliveryService
 from src.modules.sites.repository import SitesRepository
 

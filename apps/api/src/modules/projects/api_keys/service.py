@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
 from src.modules.projects.api_keys.repository import ProjectApiKeysRepository
 from src.modules.projects.api_keys.schema import (

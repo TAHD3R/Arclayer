@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from typing import Any, cast
+from typing import cast
 
 import httpx
 
 from src.common.email.helpers import pick_str
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
+from src.common.types.json_types import JsonObject, JsonValue
 from src.config import Settings
 
 
@@ -19,7 +20,7 @@ class CloudflareEmailProvider(EmailProvider):
         self,
         *,
         settings: Settings,
-        config: dict[str, object],
+        config: JsonObject,
         http_client_factory: Callable[[], httpx.AsyncClient] | None = None,
     ) -> None:
         self.settings = settings
@@ -43,16 +44,17 @@ class CloudflareEmailProvider(EmailProvider):
         token = str(config.get("api_token") or getattr(self.settings.email, "cloudflare_api_token", "")).strip()
         mail_from = pick_str(config.get("mail_from"), self.settings.email.mail_from)
         mail_from_name = pick_str(config.get("mail_from_name"), self.settings.email.mail_from_name)
-        payload: dict[str, Any] = {
+        content: list[JsonValue] = []
+        payload: JsonObject = {
             "personalizations": [{"to": [{"email": recipient} for recipient in message.to]}],
             "from": {"email": mail_from, "name": mail_from_name},
             "subject": message.subject,
-            "content": [],
+            "content": content,
         }
         if message.text_body:
-            payload["content"].append({"type": "text/plain", "value": message.text_body})
+            content.append({"type": "text/plain", "value": message.text_body})
         if message.html_body:
-            payload["content"].append({"type": "text/html", "value": message.html_body})
+            content.append({"type": "text/html", "value": message.html_body})
 
         client = self._http_client_factory() if self._http_client_factory else httpx.AsyncClient(timeout=15.0)
         async with client:
@@ -69,10 +71,10 @@ class CloudflareEmailProvider(EmailProvider):
             latency_ms=(time.perf_counter() - started) * 1000,
         )
 
-    def _provider_config(self) -> dict[str, object]:
+    def _provider_config(self) -> JsonObject:
         providers = self.config.get("providers")
         if isinstance(providers, dict):
-            provider_value = cast(dict[str, object], providers).get("cloudflare")
+            provider_value = cast(JsonObject, providers).get("cloudflare")
             if isinstance(provider_value, dict):
-                return cast(dict[str, object], provider_value)
+                return cast(JsonObject, provider_value)
         return self.config

@@ -9,16 +9,17 @@ from src.common.email.providers.cloudflare import CloudflareEmailProvider
 from src.common.email.providers.resend import ResendEmailProvider
 from src.common.email.providers.ses import SesEmailProvider
 from src.common.email.providers.smtp import SmtpEmailProvider
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 
-ProviderFactory = Callable[[Settings, dict[str, object], Callable[[], object] | None], EmailProvider]
+ProviderFactory = Callable[[Settings, JsonObject, Callable[[], object] | None], EmailProvider]
 
 
 def create_email_provider(
     provider_id: str,
     *,
     settings: Settings,
-    config: dict[str, object],
+    config: JsonObject,
     smtp_fast_mail_factory: Callable[[], FastMail | Awaitable[FastMail]] | None = None,
 ) -> EmailProvider:
     normalized = provider_id.strip().lower()

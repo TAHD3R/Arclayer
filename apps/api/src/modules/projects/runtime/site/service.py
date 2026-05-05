@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.core.exceptions import BadRequest
+from src.core.services import BaseService
 from src.modules.domains.service import DomainBindingService
 from src.modules.projects.runtime.site.repository import ProjectRuntimeSiteRepository
 

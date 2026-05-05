@@ -3,9 +3,9 @@ from __future__ import annotations
 from math import ceil
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams
+from src.core.services import BaseService
 from src.models.organization.user import User
 from src.modules.analytics.repository import AuditEventRepository
 from src.modules.analytics.schema import ActivityUserSummaryOut, AuditEventListQuery, AuditEventOut

@@ -6,11 +6,11 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
-from tortoise.transactions import in_transaction
 
 from src.common.utils.public_ids import encode_uuid
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.models.projects.deployment import (
     ProjectDeploymentRecord,
     ProjectDeploymentRuntimeKind,
@@ -34,13 +34,14 @@ def _te(key: str) -> str:
     return t("errors", key)
 
 
-class ProjectDeploymentsService:
+class ProjectDeploymentsService(BaseService):
     def __init__(
         self,
         tenant_context: TenantContext | None = None,
         *,
         conn: BaseDBAsyncClient | None = None,
     ) -> None:
+        super().__init__()
         self._tenant_context = tenant_context
         self._conn = conn
         self.environments = ProjectEnvironmentsService(tenant_context, conn=conn)
@@ -74,7 +75,7 @@ class ProjectDeploymentsService:
             async with TenantDatabaseRouter(context).connection() as conn:
                 yield conn
             return
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             yield conn
 
     async def list_deployments_out(

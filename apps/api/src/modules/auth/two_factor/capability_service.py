@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import Protocol, cast
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import Unauthorized
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.auth.two_factor.schema import TwoFactorCapabilitiesOut
 from src.modules.auth.two_factor.service import AuthTwoFactorService
 

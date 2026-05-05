@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import Any, Literal, cast
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.core.exceptions import Conflict, NotFound
 from src.core.exceptions.types import InternalServerError
+from src.core.services import BaseService
 from src.models.content.route_binding import RouteBindingRecord
 from src.modules.projects.content.routing.service import match_route_binding, route_sort_key
 from src.modules.sites.design.schema import PageBlueprint

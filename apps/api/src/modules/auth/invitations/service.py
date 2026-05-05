@@ -11,11 +11,11 @@ from src.common.invitations.workspace_invites import (
     is_workspace_email_invite_code,
     is_workspace_invite_link_code,
 )
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import get_current_locale, t
+from src.core.services import BaseService
 from src.models.organization.org_invitation import OrganizationEmailInvite, OrganizationInviteLink
 from src.models.organization.org_rbac import OrganizationRole
 from src.models.organization.organization import Organization
@@ -48,13 +48,24 @@ from src.modules.auth.schema import (
     TokenPair,
 )
 from src.modules.organization.rbac.service import OrganizationRBACService
+from src.modules.system.rbac.service import RBACService
 
 
 class AuthInvitationService(BaseService):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        acceptance_service: AuthInvitationAcceptanceService | None = None,
+        user_repo: UserRepository | None = None,
+        rbac_service: RBACService | None = None,
+        organization_rbac_service: OrganizationRBACService | None = None,
+    ) -> None:
         super().__init__(settings)
-        self.acceptance_service = AuthInvitationAcceptanceService(settings)
-        self.user_repo = UserRepository()
+        self.acceptance_service = acceptance_service or AuthInvitationAcceptanceService(settings)
+        self.user_repo = user_repo or UserRepository()
+        self.rbac_service = rbac_service or RBACService(settings)
+        self.organization_rbac_service = organization_rbac_service or OrganizationRBACService(settings)
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -394,10 +405,7 @@ class AuthInvitationService(BaseService):
                 role_obj = await Role.filter(workspace_id=ws.id, is_default=True).order_by("code").first()
             if role_obj is not None:
                 # Localize role name/description for preview UX.
-                from src.modules.system.rbac.service import RBACService
-
-                rbac = RBACService(self.settings)
-                localized = rbac.localize_role(role_obj, locale=get_current_locale())
+                localized = self.rbac_service.localize_role(role_obj, locale=get_current_locale())
                 localized_desc = localized.get("description")
                 role_out = InvitationPreviewRoleOut(
                     code=role_obj.code,
@@ -405,7 +413,7 @@ class AuthInvitationService(BaseService):
                     description=str(localized_desc) if isinstance(localized_desc, str) and localized_desc else None,
                 )
         else:
-            await OrganizationRBACService(self.settings).ensure_defaults(organization_id=org.id)
+            await self.organization_rbac_service.ensure_defaults(organization_id=org.id)
             org_role: OrganizationRole | None = None
             if role_code:
                 org_role = await OrganizationRole.get_or_none(organization_id=org.id, code=role_code)

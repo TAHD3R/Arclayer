@@ -4,11 +4,11 @@ from typing import cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import AssetUsageHasAssetId
-from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_queryset
 from src.core.i18n import t
+from src.core.services import BaseService
 from src.modules.assets.admin.assets.repository import AdminAssetsRepository
 from src.modules.assets.admin.usages.repository import AdminAssetUsagesRepository
 from src.modules.assets.admin.usages.schema import (

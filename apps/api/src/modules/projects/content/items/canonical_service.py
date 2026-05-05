@@ -5,10 +5,10 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
-from tortoise.transactions import in_transaction
 
 from src.core.entity_manager.manager import EntityManager
 from src.core.exceptions import Conflict, NotFound
+from src.core.services import BaseService
 from src.models.content._enums import (
     ContentItemStatus,
     ContentItemVisibility,
@@ -101,13 +101,14 @@ def _compare_version_payloads(
     return changes
 
 
-class ProjectContentCanonicalItemsService:
+class ProjectContentCanonicalItemsService(BaseService):
     def __init__(
         self,
         repo: ProjectContentItemsRepository,
         *,
         entity_manager: EntityManager,
     ) -> None:
+        super().__init__()
         self.repo = repo
         self.entity_manager: EntityManager = entity_manager
         self.reads = ProjectContentCanonicalItemReadService(repo)
@@ -357,7 +358,7 @@ class ProjectContentCanonicalItemsService:
         actor_user_id: UUID | None,
         payload: ContentItemBootstrapShapeIn,
     ) -> ContentItemOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -404,7 +405,7 @@ class ProjectContentCanonicalItemsService:
         payload: ContentItemWorkflowPatchIn,
         environment_id: UUID | None = None,
     ) -> ContentItemOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -442,7 +443,7 @@ class ProjectContentCanonicalItemsService:
         item_id: UUID,
         actor_user_id: UUID | None,
     ) -> ContentItemOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             source_item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -547,7 +548,7 @@ class ProjectContentCanonicalItemsService:
         payload: ContentTranslationCreateIn,
     ) -> ContentItemOut:
         target_locale = payload.target_locale.strip()
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             source_item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -696,7 +697,7 @@ class ProjectContentCanonicalItemsService:
         item_id: UUID,
         actor_user_id: UUID | None,
     ) -> ContentItemOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -754,7 +755,7 @@ class ProjectContentCanonicalItemsService:
         actor_user_id: UUID | None,
         payload: ContentVersionDraftSaveIn,
     ) -> ContentVersionOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -828,7 +829,7 @@ class ProjectContentCanonicalItemsService:
 
         published_model_key: str | None = None
         published_item_id: UUID | None = None
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -928,7 +929,7 @@ class ProjectContentCanonicalItemsService:
     ) -> ContentItemBulkTransitionOut:
         items: list[ContentVersionOut] = []
         for item_id in item_ids:
-            async with in_transaction() as conn:
+            async with self.tx() as conn:
                 item = await self._get_locked_item(
                     workspace_id=workspace_id,
                     site_id=site_id,
@@ -960,7 +961,7 @@ class ProjectContentCanonicalItemsService:
     ) -> ContentItemBulkTransitionOut:
         items: list[ContentVersionOut] = []
         for item_id in item_ids:
-            async with in_transaction() as conn:
+            async with self.tx() as conn:
                 item = await self._get_locked_item(
                     workspace_id=workspace_id,
                     site_id=site_id,
@@ -1004,7 +1005,7 @@ class ProjectContentCanonicalItemsService:
         source_version_number: int,
         target_version_number: int,
     ) -> ContentVersionCompareOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -1041,7 +1042,7 @@ class ProjectContentCanonicalItemsService:
         version_number: int,
         actor_user_id: UUID | None,
     ) -> ContentVersionOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -1093,7 +1094,7 @@ class ProjectContentCanonicalItemsService:
         item_id: UUID,
         actor_user_id: UUID | None,
     ) -> ContentItemOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -1144,7 +1145,7 @@ class ProjectContentCanonicalItemsService:
         actor_user_id: UUID | None,
         payload: ContentVersionPatchIn,
     ) -> ContentVersionOut:
-        async with in_transaction() as conn:
+        async with self.tx() as conn:
             item = await self._get_locked_item(
                 workspace_id=workspace_id,
                 site_id=site_id,

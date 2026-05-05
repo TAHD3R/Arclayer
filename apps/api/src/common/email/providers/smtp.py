@@ -12,6 +12,7 @@ from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
 from src.common.email.helpers import default_template_dir, pick_bool, pick_int, pick_str, to_name_email
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
@@ -33,7 +34,7 @@ class SmtpEmailProvider(EmailProvider):
         self,
         *,
         settings: Settings,
-        config: dict[str, object],
+        config: JsonObject,
         fast_mail_factory: Callable[[], FastMail | Awaitable[FastMail]] | None = None,
     ) -> None:
         self.settings = settings
@@ -73,19 +74,19 @@ class SmtpEmailProvider(EmailProvider):
     def build_connection_config(
         self,
         settings: Settings | None = None,
-        config: dict[str, object] | None = None,
+        config: JsonObject | None = None,
     ) -> ConnectionConfig:
         base = (settings or self.settings).email
         mail = config or self.config
         provider_config = mail.get("providers")
-        smtp_config: dict[str, object] = {}
+        smtp_config: JsonObject = {}
         if isinstance(provider_config, dict):
-            providers = cast(dict[str, object], provider_config)
+            providers = cast(JsonObject, provider_config)
             provider_value = providers.get("smtp")
             if isinstance(provider_value, dict):
-                smtp_config = cast(dict[str, object], provider_value)
+                smtp_config = cast(JsonObject, provider_value)
 
-        merged: dict[str, object] = {**mail, **smtp_config}
+        merged: JsonObject = {**mail, **smtp_config}
         server = pick_str(merged.get("server"), base.server)
         port = pick_int(merged.get("port"), base.port)
         username = pick_str(merged.get("username"), base.username or "")

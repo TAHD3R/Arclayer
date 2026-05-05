@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from src.core.services import BaseService
 from src.models.tenancy.workspace_tenant import (
     WorkspaceTenantIsolationMode,
     WorkspaceTenantRecord,
@@ -11,7 +12,10 @@ from src.modules.tenancy.migrations import TenantMigrationRunner
 from src.modules.tenancy.schema_names import build_workspace_schema_name, validate_tenant_schema_name
 
 
-class WorkspaceTenantRegistryService:
+class WorkspaceTenantRegistryService(BaseService):
+    def __init__(self) -> None:
+        super().__init__()
+
     async def get_by_workspace_id(self, workspace_id: UUID) -> WorkspaceTenantRecord | None:
         return await WorkspaceTenantRecord.get_or_none(workspace_id=workspace_id)
 

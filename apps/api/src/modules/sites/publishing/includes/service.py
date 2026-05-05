@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Literal, cast
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
+from src.core.services import BaseService
 from src.modules.sites.design.schema import PageBlueprint
 from src.modules.sites.namespaces.service import get_max_content_ref_depth
 from src.modules.sites.publishing.content_snapshot import build_canonical_content_snapshot

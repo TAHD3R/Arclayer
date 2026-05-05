@@ -9,8 +9,8 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field
 from tortoise import Tortoise
 
-from src.common.services import BaseService
 from src.config import Settings
+from src.core.services import BaseService
 from src.modules.auth.repository import UserRepository
 
 

@@ -14,14 +14,15 @@ from src.common.constants.assets import (
     ASSET_SCOPE_USER,
     ASSET_UPLOADED_EVENT,
 )
-from src.common.services import BaseService
+from src.common.types.json_types import JsonObject
 from src.common.utils.ids import uuid7
 from src.common.utils.slug import slugify
 from src.config import Settings
-from src.core.events import Event, events
+from src.core.events import events
 from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
+from src.core.services import BaseService, DomainEventPublisher
 from src.models.assets.asset import AssetPurpose, AssetVisibility
 from src.models.assets.upload import UploadSessionRecord, UploadStatus
 from src.modules.assets.admin.uploads.policy.service import (
@@ -128,8 +129,14 @@ def normalize_visibility_and_indexable(
 
 
 class UploadsService(BaseService):
-    def __init__(self, settings: Settings, tenant_context: TenantContext | None = None) -> None:
-        super().__init__(settings)
+    def __init__(
+        self,
+        settings: Settings,
+        tenant_context: TenantContext | None = None,
+        *,
+        event_publisher: DomainEventPublisher | None = events,
+    ) -> None:
+        super().__init__(settings, event_publisher=event_publisher)
         self._tenant_context = tenant_context
         self.repo = UploadsRepository(tenant_context)
 
@@ -554,7 +561,7 @@ class UploadsService(BaseService):
                 raise
 
         # Emit post-upload event for asynchronous processors.
-        payload: dict[str, object] = {
+        payload: JsonObject = {
             "scope_type": str(scope.type),
             "scope_id": str(scope.id),
             "asset_id": str(asset_id),
@@ -567,16 +574,15 @@ class UploadsService(BaseService):
             payload["project_id"] = str(scope.id)
             tenant_context = self._tenant_context or current_tenant_context_or_none()
             payload["tenant"] = tenant_payload_from_context(tenant_context)
-        event = Event(
-            name=ASSET_UPLOADED_EVENT,
-            payload=payload,
-            source="core",
-            actor_user_id=str(session.actor_user_id),
-        )
 
         async def _publish() -> None:
             try:
-                await events.publish(event)
+                await self.publish_optional_domain_event(
+                    name=ASSET_UPLOADED_EVENT,
+                    payload=payload,
+                    actor_user_id=UUID(str(session.actor_user_id)),
+                    source="core",
+                )
             except UPLOAD_EVENT_PUBLISH_ERRORS as exc:
                 logger.warning(
                     "Asset uploaded event publish failed",

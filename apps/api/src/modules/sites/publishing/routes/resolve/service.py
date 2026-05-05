@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from src.common.services import BaseService
 from src.common.types.public_uuid import PublicUUID
 from src.core.exceptions import Conflict, NotFound
+from src.core.services import BaseService
 from src.modules.sites.publishing.includes.service import PublishingIncludesService
 from src.modules.sites.publishing.routes.resolve.content.service import ContentPageRouteResolver
 from src.modules.sites.repository import SitesRepository

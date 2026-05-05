@@ -3,17 +3,19 @@ from __future__ import annotations
 from uuid import UUID
 
 from src.core.exceptions import NotFound
+from src.core.services import BaseService
 from src.modules.projects.publish.schema import PublishExportContractOut
 from src.modules.projects.publish.storage import ProjectPublishArtifactStorage
 from src.modules.tenancy.schema import TenantContext
 
 
-class ProjectPublishPreviewService:
+class ProjectPublishPreviewService(BaseService):
     def __init__(
         self,
         tenant_context: TenantContext,
         storage: ProjectPublishArtifactStorage | None = None,
     ) -> None:
+        super().__init__()
         self._storage = storage or ProjectPublishArtifactStorage(tenant_context)
 
     async def build_preview_contract(self, *, workspace_id: UUID, site_id: UUID) -> PublishExportContractOut:

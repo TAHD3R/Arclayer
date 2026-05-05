@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -8,11 +9,13 @@ import httpx
 from tortoise.exceptions import IntegrityError
 
 from src.config import Settings
+from src.core.entity_manager.manager import EntityManager
 from src.core.events import Event
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
 from src.core.i18n import t
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.logging import get_logger
+from src.core.services import BaseService
 from src.models.automation.flow import (
     AutomationFlowRecord,
     AutomationFlowStatus,
@@ -53,21 +56,51 @@ from src.modules.projects.content.items.read_service import ProjectContentCanoni
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 from src.modules.projects.releases.service import ProjectReleasesService
 from src.modules.tenancy.router_helpers import bind_tenant_context, require_tenant_context_from_payload
+from src.modules.tenancy.schema import TenantContext
 
 logger = get_logger(__name__)
 DEFAULT_HTTP_TIMEOUT_S = 5.0
 
+ContentReadServiceFactory = Callable[[TenantContext], ProjectContentCanonicalItemReadService]
+ContentItemsServiceFactory = Callable[[TenantContext, LifecycleDispatcher | None], ProjectContentCanonicalItemsService]
+ReleaseServiceFactory = Callable[[TenantContext], ProjectReleasesService]
 
-class ProjectAutomationService:
+
+def default_content_read_service_factory(tenant_context: TenantContext) -> ProjectContentCanonicalItemReadService:
+    return ProjectContentCanonicalItemReadService(repo=ProjectContentItemsRepository(tenant_context))
+
+
+def default_content_items_service_factory(
+    tenant_context: TenantContext,
+    lifecycle_dispatcher: LifecycleDispatcher | None,
+) -> ProjectContentCanonicalItemsService:
+    repo = ProjectContentItemsRepository(tenant_context)
+    return ProjectContentCanonicalItemsService(
+        repo=repo,
+        entity_manager=EntityManager(items_repo=repo, lifecycle=lifecycle_dispatcher),
+    )
+
+
+def default_release_service_factory(tenant_context: TenantContext) -> ProjectReleasesService:
+    return ProjectReleasesService(tenant_context)
+
+
+class ProjectAutomationService(BaseService):
     def __init__(
         self,
         settings: Settings | None = None,
         repo: AutomationRepository | None = None,
         lifecycle_dispatcher: LifecycleDispatcher | None = None,
+        content_read_service_factory: ContentReadServiceFactory = default_content_read_service_factory,
+        content_items_service_factory: ContentItemsServiceFactory = default_content_items_service_factory,
+        release_service_factory: ReleaseServiceFactory = default_release_service_factory,
     ) -> None:
-        self.settings = settings
+        super().__init__(settings)
         self.repo = repo or AutomationRepository()
         self.lifecycle_dispatcher = lifecycle_dispatcher
+        self.content_read_service_factory = content_read_service_factory
+        self.content_items_service_factory = content_items_service_factory
+        self.release_service_factory = release_service_factory
 
     async def get_catalog_out(self) -> AutomationCatalogOut:
         return await self.get_global_catalog_out()
@@ -524,7 +557,7 @@ class ProjectAutomationService:
         site_id = self._uuid_from_config_or_event(config, event, "siteId", "site_id")
         if item_id is None or site_id is None:
             raise BadRequest("Content read requires itemId and siteId.", error="AUTOMATION_CONTENT_READ_INVALID")
-        service = ProjectContentCanonicalItemReadService(repo=ProjectContentItemsRepository(tenant_context))
+        service = self.content_read_service_factory(tenant_context)
         item = await service.get_item(workspace_id=workspace_id, site_id=site_id, item_id=item_id)
         return {"itemId": str(item.id), "title": item.title, "workflowStage": item.workflow_stage}
 
@@ -543,18 +576,12 @@ class ProjectAutomationService:
             raise BadRequest(
                 "Content update requires itemId, siteId, and stage.", error="AUTOMATION_CONTENT_UPDATE_INVALID"
             )
-        from src.core.entity_manager.manager import EntityManager
-
         if self.lifecycle_dispatcher is None:
             raise ServiceUnavailable(
                 t("settings", "AUTOMATION_LIFECYCLE_DISPATCHER_UNAVAILABLE"),
                 error="AUTOMATION_LIFECYCLE_DISPATCHER_UNAVAILABLE",
             )
-        repo = ProjectContentItemsRepository(tenant_context)
-        service = ProjectContentCanonicalItemsService(
-            repo=repo,
-            entity_manager=EntityManager(items_repo=repo, lifecycle=self.lifecycle_dispatcher),
-        )
+        service = self.content_items_service_factory(tenant_context, self.lifecycle_dispatcher)
         item = await service.patch_workflow(
             project_id=self._project_id_from_event_payload(event.payload),
             workspace_id=workspace_id,
@@ -579,7 +606,7 @@ class ProjectAutomationService:
             raise BadRequest(
                 "Release publish requires siteId and actor user.", error="AUTOMATION_RELEASE_PUBLISH_INVALID"
             )
-        service = ProjectReleasesService(tenant_context)
+        service = self.release_service_factory(tenant_context)
         out = await service.publish_release_out(workspace_id=workspace_id, site_id=site_id, actor_user_id=actor_user_id)
         return {"releaseId": str(out.release.id), "releaseNumber": out.release.release_number}
 

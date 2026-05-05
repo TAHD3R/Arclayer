@@ -4,7 +4,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import SettingUpdatedBy
-from src.common.services import BaseService
+from src.core.services import BaseService
 from src.models.system.setting import SettingRecord
 from src.modules.projects.settings.schema import ProjectSettingsDetail
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA

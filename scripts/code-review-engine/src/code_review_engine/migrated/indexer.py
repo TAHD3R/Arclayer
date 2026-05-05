@@ -178,17 +178,26 @@ class _SymbolVisitor(ast.NodeVisitor):
         calls: list[dict] = []
         t_calls: list[dict] = []
         raises: list[dict] = []
-        for child in ast.walk(node):
-            if isinstance(child, ast.Call):
-                call_name = _call_chain_name(child)
-                if call_name:
-                    calls.append({"name": call_name, "line": child.lineno, "evidence": ast.unparse(child)[:160]})
-                if _is_t_call(child):
-                    t_calls.append(_t_call_info(child))
-            if isinstance(child, ast.Raise):
-                exc_info = _extract_raise(child)
-                if exc_info:
-                    raises.append(exc_info)
+        for child in node.body:
+            method_name = child.name if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef) else ""
+            for descendant in ast.walk(child):
+                if isinstance(descendant, ast.Call):
+                    call_name = _call_chain_name(descendant)
+                    if call_name:
+                        calls.append(
+                            {
+                                "name": call_name,
+                                "line": descendant.lineno,
+                                "method": method_name,
+                                "evidence": ast.unparse(descendant)[:160],
+                            }
+                        )
+                    if _is_t_call(descendant):
+                        t_calls.append(_t_call_info(descendant))
+                if isinstance(descendant, ast.Raise):
+                    exc_info = _extract_raise(descendant)
+                    if exc_info:
+                        raises.append(exc_info)
 
         annotations: dict[str, dict] = {}
         for stmt in node.body:
@@ -367,6 +376,12 @@ def call_evidence(call: str | dict) -> str:
     if isinstance(call, dict):
         return str(call.get("evidence") or call.get("name") or "")
     return call
+
+
+def call_method(call: str | dict) -> str:
+    if isinstance(call, dict):
+        return str(call.get("method") or "")
+    return ""
 
 
 def annotation_type(annotation: str | dict) -> str:

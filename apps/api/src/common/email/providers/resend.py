@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from typing import Any, cast
+from typing import cast
 
 import httpx
 
 from src.common.email.helpers import pick_str
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 
 
@@ -19,7 +20,7 @@ class ResendEmailProvider(EmailProvider):
         self,
         *,
         settings: Settings,
-        config: dict[str, object],
+        config: JsonObject,
         http_client_factory: Callable[[], httpx.AsyncClient] | None = None,
     ) -> None:
         self.settings = settings
@@ -38,7 +39,7 @@ class ResendEmailProvider(EmailProvider):
     async def send(self, message: EmailMessage) -> SendResult:
         self.validate_config()
         started = time.perf_counter()
-        payload: dict[str, Any] = {
+        payload: JsonObject = {
             "from": self._from_address(),
             "to": list(message.to),
             "subject": message.subject,
@@ -68,12 +69,12 @@ class ResendEmailProvider(EmailProvider):
             latency_ms=(time.perf_counter() - started) * 1000,
         )
 
-    def _provider_config(self) -> dict[str, object]:
+    def _provider_config(self) -> JsonObject:
         providers = self.config.get("providers")
         if isinstance(providers, dict):
-            provider_value = cast(dict[str, object], providers).get("resend")
+            provider_value = cast(JsonObject, providers).get("resend")
             if isinstance(provider_value, dict):
-                return cast(dict[str, object], provider_value)
+                return cast(JsonObject, provider_value)
         return self.config
 
     def _api_key(self) -> str:

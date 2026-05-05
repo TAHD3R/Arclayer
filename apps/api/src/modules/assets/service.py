@@ -13,6 +13,7 @@ from src.core.http.content_disposition import build_attachment_content_dispositi
 from src.core.http.file_stream import stream_file_response
 from src.core.i18n import t
 from src.core.logging import get_logger
+from src.core.services import BaseService
 from src.modules.assets.repository import AssetsRepository
 from src.modules.assets.schema import AssetPublicView
 from src.platform.assets.images import (
@@ -73,9 +74,9 @@ def build_asset_redirect_headers(asset: AssetPublicView) -> dict[str, str]:
     return headers
 
 
-class AssetsService:
+class AssetsService(BaseService):
     def __init__(self, settings: Settings) -> None:
-        self.settings = settings
+        super().__init__(settings)
         self.repo = AssetsRepository()
 
     async def _get_profile_for_key(self, profile_key: str | None):
