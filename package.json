@@ -13,6 +13,8 @@
     "api": "turbo run dev --filter=@arclayer/api",
     "api:test": "pnpm -C apps/api test",
     "api:check": "turbo run lint format typecheck test --filter=@arclayer/api",
+    "spec:sync": "node scripts/sync-spec.mjs sync",
+    "spec:check": "node scripts/sync-spec.mjs check",
     "cli:check": "turbo run lint format typecheck test build --filter=@arclayer/cli",
     "code-review-engine": "pnpm -C scripts/code-review-engine run cli",
     "docker": "docker compose up -d",

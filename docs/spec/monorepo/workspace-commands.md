@@ -1,0 +1,85 @@
+# Monorepo Workspace Commands
+
+This code-spec defines command ownership for pnpm workspaces and Turborepo in Arclayer.
+
+## Scenario: Running and Changing Workspace Commands
+
+### 1. Scope / Trigger
+
+- Trigger: adding, changing, or running root/package scripts, Turborepo tasks, workspace package membership, generated-client commands, database commands, or quality gates.
+- Applies to root `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `apps/*/package.json`, `packages/*/package.json`, and `scripts/*/package.json`.
+
+### 2. Signatures
+
+- Package manager: `pnpm@10.28.2`
+- Workspace manifest: `pnpm-workspace.yaml`
+- Task runner config: `turbo.json`
+- Root checks:
+  - `pnpm check`
+  - `pnpm admin:check`
+  - `pnpm api:check`
+  - `pnpm cli:check`
+- Filtered command shape: `pnpm --filter <package> <script>`
+- Directory command shape: `pnpm -C <dir> <script>`
+- OpenAPI generation: `pnpm --filter @arclayer/openapi generate`
+- API migrations:
+  - `pnpm --filter @arclayer/api db:migrate`
+  - `pnpm --filter @arclayer/api db:upgrade`
+
+### 3. Contracts
+
+- Use pnpm only. Do not introduce npm, yarn, bun, or direct package-manager lockfiles.
+- Run project tooling through package scripts: `pnpm <script>`, `pnpm --filter <pkg> <script>`, or `pnpm -C <dir> <script>`.
+- Do not bypass package scripts by directly calling `.venv/bin/*`, local binary paths, or ad hoc tool commands when an existing script covers the task.
+- Root scripts define user-facing task names. Package scripts define package-local execution. Turborepo orchestrates dependency order, caching, persistent tasks, and pass-through environment.
+- `turbo.json` tasks with `"persistent": true` are runtime/dev processes. Do not run persistent dev/worker/scheduler tasks in automation unless the user asks for runtime verification.
+- Database migration tasks are interactive and generated. Schema changes start from Tortoise model/source state, then migration files are generated through the package script and reviewed.
+- `pnpm-workspace.yaml` owns workspace inclusion. New packages must be covered by its globs and must expose package scripts that fit root/Turbo orchestration when they participate in shared checks.
+- Root command changes must be reflected in this spec and in task evidence when they alter validation expectations.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Need Admin-only verification | Run `pnpm admin:check` |
+| Need API-only verification | Run `pnpm api:check` |
+| Change crosses Admin and API | Run `pnpm check` or affected package checks with rationale |
+| Change affects `packages/openapi` generation | Run/regenerate through `pnpm --filter @arclayer/openapi generate` |
+| Need focused package script | Use `pnpm --filter <package> <script>` or `pnpm -C <dir> <script>` |
+| Need backend ad hoc Python command | Use `pnpm -C apps/api uv -- <command>` |
+| Need migration generation/application | Use `pnpm --filter @arclayer/api db:migrate` / `db:upgrade`; do not hand-edit migration files |
+| Command would start persistent infra/dev process | Run only when runtime verification is requested and report the URL/process scope |
+| New root or package script is added | Wire it through Turborepo only when it is part of shared orchestration |
+
+### 5. Good/Base/Bad Cases
+
+- Good: an Admin component change runs `pnpm admin:check`.
+- Good: a backend schema/API change runs `pnpm api:check`, regenerates OpenAPI when needed, and then runs the affected frontend check.
+- Good: an OpenAPI client refresh uses `pnpm --filter @arclayer/openapi generate`.
+- Base: a narrow API unit investigation uses `pnpm -C apps/api uv -- pytest <node>` with a timeout when it is a focused backend test.
+- Bad: running `.venv/bin/pytest` directly from `apps/api`.
+- Bad: changing `turbo.json` to make a broken task pass without fixing the failing package script.
+- Bad: hand-editing generated migration or OpenAPI output to satisfy a local test.
+
+### 6. Tests Required
+
+- Script changes require executing the changed script or the narrowest root command that exercises it.
+- Turborepo task changes require verifying the affected task dependency/caching behavior with the relevant `pnpm` script.
+- Workspace membership changes require verifying `pnpm --filter <package> <script>` resolves the intended package.
+- Generated-command changes require checking that generated output is produced from source inputs and reviewing the generated diff.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```bash
+.venv/bin/pytest tests/modules/workspaces/test_members.py
+```
+
+#### Correct
+
+```bash
+pnpm -C apps/api uv -- pytest tests/modules/workspaces/test_members.py
+```
+
+Backend tooling goes through package scripts or `pnpm -C apps/api uv -- ...` so environment behavior stays consistent.

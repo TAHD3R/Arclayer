@@ -129,7 +129,7 @@ class NoSkippedTestsWithoutRationale(AuditRule):
 
     rule_id = "test.no-skipped-without-rationale"
     description = (
-        "Skipped tests (skip/xfail) must have owner, rationale, deadline per testing-and-quality-gates.md sec 8."
+        "Skipped tests (skip/xfail) must have owner, rationale, deadline per docs/spec/monorepo/quality-gates.md sec 8."
     )
     SKIP_MARKER_RE = re.compile(r"(^|[.@])(?:skip|skipif|xfail)\b")
 
@@ -165,7 +165,7 @@ class NoSkippedTestsWithoutRationale(AuditRule):
                                 file=str(test_file.relative_to(root)),
                                 line=i,
                                 rule=self.rule_id,
-                                message="Skipped/xfail test without rationale. Add owner, reason, and deadline per testing-and-quality-gates.md sec 8.",
+                                message="Skipped/xfail test without rationale. Add owner, reason, and deadline per docs/spec/monorepo/quality-gates.md sec 8.",
                                 severity=Severity.MAJOR,
                                 evidence=stripped[:80],
                             )

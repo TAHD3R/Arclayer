@@ -3,10 +3,10 @@
 Project truth (2026-05-03):
   - Backend t() pattern: t(namespace, key, **kwargs) — two positional args.
   - Frontend t() pattern: t('namespace:KEY') — one arg, colon-separated.
-  - Key style: UPPER_SNAKE_CASE (per docs/guidelines/i18n.md sec 5.1).
+  - Key style: UPPER_SNAKE_CASE (per docs/spec/api/backend/i18n.md sec 5.1).
   - User-visible strings must be wrapped in t().
 
-Guideline reference: docs/guidelines/i18n.md sec 5-7.
+Spec reference: docs/spec/api/backend/i18n.md sec 5-7.
 """
 
 from __future__ import annotations
@@ -130,7 +130,7 @@ def _has_all_error_locales(error_code: str, localized_error_codes: dict[str, fro
 
 
 class InvalidI18nKeyFormat(AuditRule):
-    """Translation keys must follow UPPER_SNAKE_CASE per i18n.md sec 5.1."""
+    """Translation keys must follow UPPER_SNAKE_CASE per docs/spec/api/backend/i18n.md sec 5.1."""
 
     rule_id = "i18n.invalid-key-format"
     description = "Translation keys must be UPPER_SNAKE_CASE (e.g. 'ACTION_CONFIRM', 'ERROR_NOT_FOUND')."
@@ -160,7 +160,7 @@ class InvalidI18nNamespace(AuditRule):
     """Translation namespace should be from the recognized registry or a new feature domain."""
 
     rule_id = "i18n.invalid-namespace"
-    description = "Translation namespace not in the recognized core registry — verify ownership per i18n.md sec 4."
+    description = "Translation namespace not in the recognized core registry — verify ownership per docs/spec/api/backend/i18n.md sec 4."
 
     def check(self, symbols: list[dict]) -> list[Violation]:
         violations: list[Violation] = []
@@ -176,7 +176,7 @@ class InvalidI18nNamespace(AuditRule):
                             file=sym["file"],
                             line=int(tc.get("line", sym["line"])),
                             rule=self.rule_id,
-                            message=f"Translation namespace '{ns}' not in recognized registry. Verify per i18n.md sec 4.",
+                            message=f"Translation namespace '{ns}' not in recognized registry. Verify per docs/spec/api/backend/i18n.md sec 4.",
                             severity=Severity.MINOR,
                             evidence=tc.get("raw", ns),
                         )

@@ -1,28 +1,27 @@
-# Project Guidelines
+# Project Guidance Index
 
-This directory stores long-lived project standards and engineering guidelines.
+This directory stores **non-spec** project guidance.
 
-## Scope
+Implementation contracts are not maintained here.
+Canonical implementation contracts live in `docs/spec/**` and mirror into `.trellis/spec/**`.
 
-Use this directory for documents that define cross-team conventions, architecture boundaries,
-and implementation standards.
+## Active Non-Spec Guides
 
-Current guidelines:
+- `agents-guide.md`: long-lived agent behavior and communication norms.
+- `code-review-engine.md`: Code Review Engine tool guide and rule catalog.
+- `frontend-design.md`: Admin implementation-facing design guide (visual language source remains `DESIGN.md`).
 
-- `agents-guide.md`
-- `backend-endpoint-contract.md`
-- `backend-folder-architecture.md`
-- `code-review-engine.md`
-- `frontend-design.md`
-- `frontend-folder-architecture.md`
+## Pending Domain-Specific Migration Material
+
+These files remain temporarily while their domain contracts are being migrated into `docs/spec/**`:
+
 - `images-api.md`
-- `i18n.md`
 - `search-integration.md`
-- `testing-and-quality-gates.md`
 
-## Maintenance
+## Maintenance Rules
 
-- Keep these documents versioned and continuously updated.
-- Add new standards to this directory instead of `docs/` root.
-- Keep execution task cards under `docs/plans/**` as local working docs.
-- When moving or deleting guideline files, update references in `AGENTS.md` and related docs.
+- Add or update implementation contracts in `docs/spec/**`.
+- After changing `docs/spec/**`, run:
+  - `pnpm spec:sync`
+  - `pnpm spec:check`
+- Keep `.trellis/spec/**` generated-only; do not edit it manually.

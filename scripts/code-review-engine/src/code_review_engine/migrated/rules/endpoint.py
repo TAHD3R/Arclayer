@@ -1,4 +1,4 @@
-"""Endpoint contract audit rules — from docs/guidelines/backend-endpoint-contract.md.
+"""Endpoint contract audit rules — from docs/spec/api/backend/domain-design.md.
 
 Project truth (2026-05-03):
   - Analytics routers use ResponseModel[T], ApiResponse.success(), PublicUUID correctly.
@@ -26,7 +26,7 @@ def _resolve_file_path(rel: str) -> pathlib.Path:
 class EndpointMissingResponseModel(AuditRule):
     """Router endpoint decorators must declare response_model.
 
-    Per backend-endpoint-contract.md sec 3.1: "Every public endpoint must use
+    Per docs/spec/api/backend/domain-design.md sec 3.1: "Every public endpoint must use
     explicit Pydantic request/response schemas" and "must declare response_model explicitly."
     """
 
@@ -68,7 +68,7 @@ class EndpointMissingResponseModel(AuditRule):
 class EndpointMissingDocstring(AuditRule):
     """Router endpoint functions must have concise product docstrings.
 
-    Per backend-endpoint-contract.md sec 3.4: "Every endpoint function must
+    Per docs/spec/api/backend/domain-design.md sec 3.4: "Every endpoint function must
     contain a concise function docstring inside the function body."
     """
 

@@ -1,90 +1,43 @@
 # Agents Guide (Arclayer)
 
-This document defines behavioral rules for automated coding agents working in this repository.
+This document defines long-lived behavior guidance for coding agents.
+It is **not** the implementation contract source.
 
-It is complementary to `AGENTS.md`:
-- `AGENTS.md` focuses on repo navigation and fast operational rules.
-- This guideline defines longer-lived agent behavior and communication constraints.
+## Source Routing
 
-## 1. Priorities
+- Implementation contracts: `docs/spec/**` (canonical).
+- Trellis runtime mirror: `.trellis/spec/**` (generated from `docs/spec/**`).
+- Non-spec guidance: `docs/guidelines/**`.
+- Visual language: `DESIGN.md` (primary) plus `docs/guidelines/frontend-design.md`.
 
-1. Correctness and safety
-2. Minimal scope and reviewable diffs
-3. Alignment with existing architecture and conventions
-4. Clear failures (no silent fallbacks)
+## Behavior Priorities
 
-## 2. Language & Communication
+1. Correctness and safety first.
+2. Minimal, reviewable diffs.
+3. Clear failures over silent fallback behavior.
+4. Respect existing architecture boundaries.
 
-- Default user-facing replies to Chinese unless the user explicitly requests another language.
-- When the user requests a commit message, write it in English (prefer Conventional Commits).
-- Do not end the final answer with follow-up tasks or “nice-to-have” enhancements.
+## Communication
 
-## 3. Scope Discipline
+- Default user-facing replies in Chinese unless the user requests another language.
+- Use English when writing commit messages.
+- Do not end final responses with optional follow-up enhancements.
 
-- Do exactly what the user asked; avoid opportunistic refactors.
-- Fix root causes, but keep diffs minimal and localized.
-- Do not change public contracts/behavior without updating the relevant guideline and tests.
+## Execution Discipline
 
-## 4. Debug-First (No Silent Fallbacks)
+- Use repo scripts (`pnpm <script>`, `pnpm --filter`, `pnpm -C`).
+- Do not run `.venv/bin/*` directly.
+- Do not hand-edit generated artifacts.
 
-- Do not introduce mock/simulated “success” paths to make things appear fixed.
-- Do not swallow errors or hide failing validations.
-- Prefer explicit failures with actionable context (errors, logs, failing tests).
+## Hard-Cut Cleanup
 
-## 5. Hard-Cut Contract Cleanup
+When replacing a contract surface, remove superseded shims, facades, and dual-track paths in the same rollout unless the user explicitly approves a temporary compatibility path.
 
-- Hard-cut rollouts keep one canonical contract surface for each changed domain boundary.
-- The same rollout removes each superseded thin facade, shim, forwarding layer, and dual-track compatibility path tied to the replaced contract.
-- Thin facade, shim, and dual-track compatibility debt requires explicit user approval with scope, rationale, and removal plan before merge.
-- Backend API boundary TypeScript types are generated in `packages/openapi`. Do not reintroduce `packages/contracts`, `@arclayer/contracts`, Admin generated-type barrels, Admin local alias modules that forward generated boundary types, or SDK aliases that preserve removed contracts package naming.
-- Admin local types are UI-only view models/projections. SDK-local types are transport/runtime wrappers. Backend request/response payloads come directly from `@arclayer/openapi`.
+## Repository Hygiene
 
-## 6. Do Not Touch (Unless Explicitly Requested)
+Do not change these unless explicitly required by the task:
 
 - `node_modules/`
-- lockfiles (e.g. `pnpm-lock.yaml`, `uv.lock`)
-- local env and caches (e.g. `.venv/`, `.uv-cache/`)
-- build outputs / generated artifacts (e.g. `dist/`, `build/`, `.turbo/`)
-
-### Tracking boundary
-
-- Keep `docs/plans/**` outside git tracking.
-- `docs/plans/**` is the local task-document workspace and supports creating task cards and execution notes.
-- Keep `.trellis/**` outside git tracking.
-- When these paths appear in index history, remove them from tracking and keep ignore rules active.
-- Keep long-lived standards in `docs/guidelines/**`.
-
-## 7. Command Discipline (Monorepo)
-
-This repo uses Turborepo + pnpm workspaces. Commands must go through `package.json` scripts.
-
-- Use `pnpm <script>`, `pnpm --filter <pkg> <script>`, or `pnpm -C <dir> <script>`.
-- Do not run `.venv/bin/*` directly (e.g. `.venv/bin/pytest`, `.venv/bin/ty`).
-- Backend ad-hoc commands must go through scripts, e.g. `pnpm -C apps/api uv -- <command>`.
-
-Avoid running infra / interactive commands unless the user explicitly asks:
-- `pnpm infra:*` (starts `docker compose`)
-- `turbo run db:migrate` / `turbo run db:upgrade` (interactive tasks)
-
-### Backend Migration Workflow
-
-- Handle API schema changes through:
-  - `pnpm --filter @arclayer/api db:migrate`
-  - `pnpm --filter @arclayer/api db:upgrade`
-- Keep migration files command-generated.
-- Review generated migrations before applying them.
-- Resolve migration drift by auditing models and existing migrations, then regenerating through the commands above.
-- Do not hand-write or hand-edit migration file contents.
-
-## 8. Cross-References (Source of Truth)
-
-- Guidelines index: `docs/guidelines/README.md`
-- Code review engine guideline: `docs/guidelines/code-review-engine.md`
-- Hard-cut task documents workspace: `docs/plans/**`
-- API contract: `docs/guidelines/backend-endpoint-contract.md`
-- Backend folder architecture: `docs/guidelines/backend-folder-architecture.md`
-- Frontend folder architecture: `docs/guidelines/frontend-folder-architecture.md`
-- Visual language: `DESIGN.md`
-- UI design guideline (Admin): `docs/guidelines/frontend-design.md`
-- i18n: `docs/guidelines/i18n.md`
-- Testing & quality gates: `docs/guidelines/testing-and-quality-gates.md`
+- lockfiles (`pnpm-lock.yaml`, `uv.lock`)
+- local caches/env (`.venv/`, `.uv-cache/`)
+- build outputs (`dist/`, `build/`, `.turbo/`)

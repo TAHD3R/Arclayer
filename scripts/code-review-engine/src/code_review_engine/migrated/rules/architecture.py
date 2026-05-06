@@ -6,9 +6,9 @@ New architecture:
   - ORM models must only be accessed from Repository or EntityManager.
   - Router must never call repository directly.
 
-Guideline references:
-  - docs/guidelines/backend-folder-architecture.md sec 6
-  - docs/guidelines/backend-endpoint-contract.md sec 6
+Spec references:
+  - docs/spec/api/backend/index.md sec 6
+  - docs/spec/api/backend/domain-design.md sec 6
 """
 
 from __future__ import annotations
@@ -85,7 +85,7 @@ class WritePathViolation(AuditRule):
 class RouterNoDirectRepository(AuditRule):
     """Router must not call repository directly — must go through service layer.
 
-    Per backend-endpoint-contract.md sec 6: "Router must not call repository directly."
+    Per docs/spec/api/backend/domain-design.md sec 6: "Router must not call repository directly."
     """
 
     rule_id = "architecture.router-no-direct-repository"
