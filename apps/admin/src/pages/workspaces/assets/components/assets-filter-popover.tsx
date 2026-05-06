@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { AdminAssetTag } from "@/types/api";
+import type { AdminAssetTag } from "@arclayer/openapi/admin-types";
 import { DateTimeRangeField } from "@arclayer/ui/date-time-range-field";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
 import { Button } from "@arclayer/ui/button";

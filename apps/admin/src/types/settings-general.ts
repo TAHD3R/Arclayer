@@ -1,4 +1,5 @@
 import type { UseFormReturn } from "react-hook-form";
+import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import type { TitlePolicy } from "@/types/site-seo";
 
 export type StorageProvider = "local" | "s3";
@@ -64,7 +65,7 @@ export type GeneralSettingsFormValues = {
 
 export type GeneralSettingsFormController = UseFormReturn<GeneralSettingsFormValues>;
 
-export type GeneralSettingsPatchFn = (patch: Record<string, unknown>) => Promise<void>;
+export type GeneralSettingsPatchFn = (patch: Record<string, JsonValueInput>) => Promise<void>;
 
 export type WithSavingKeyFn = (key: string, fn: () => Promise<void>) => Promise<void>;
 

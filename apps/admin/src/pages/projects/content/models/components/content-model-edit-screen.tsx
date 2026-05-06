@@ -93,6 +93,7 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@arclayer/ui/chrome-tabs";
+import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import {
   useDataTableCore,
   useDataTableRowHeightPreference,
@@ -1461,7 +1462,7 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
 
   const patchFieldConfigMutation = useMutation({
     mutationFn: async (
-      updates: Array<{ row: ContentModelFieldRow; config: Record<string, unknown> }>,
+      updates: Array<{ row: ContentModelFieldRow; config: Record<string, JsonValueInput> }>,
     ) => {
       if (!activeModel) throw new Error("CONTENT_MODELS_ACTIVE_MODEL_REQUIRED");
       const results = await Promise.all(
@@ -1662,7 +1663,10 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
 
   const handleToggleFieldFlag = React.useCallback(
     (row: ContentModelFieldRow, flag: "hiddenInEditor" | "omitFromApiResponse") => {
-      const nextConfig = { ...row.config, [flag]: !getFieldConfigFlag(row, flag) };
+      const nextConfig: Record<string, JsonValueInput> = {
+        ...(row.config as Record<string, JsonValueInput>),
+        [flag]: !getFieldConfigFlag(row, flag),
+      };
       void patchFieldConfigMutation.mutateAsync([{ row, config: nextConfig }]);
     },
     [patchFieldConfigMutation],
@@ -1672,7 +1676,10 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     (rows: ContentModelFieldRow[], flag: "hiddenInEditor" | "omitFromApiResponse") => {
       const updates = rows
         .filter((row) => !row.locked)
-        .map((row) => ({ row, config: { ...row.config, [flag]: true } }));
+        .map((row) => ({
+          row,
+          config: { ...(row.config as Record<string, JsonValueInput>), [flag]: true },
+        }));
       if (updates.length === 0) return;
       void patchFieldConfigMutation.mutateAsync(updates);
     },

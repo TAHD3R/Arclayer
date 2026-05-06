@@ -23,7 +23,7 @@ import {
 import type { TeamMemberSort } from "@/pages/workspaces/team/shared/types";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { PageData, TeamMember } from "@/types/api";
+import type { PageData, TeamMember } from "@arclayer/openapi/admin-types";
 import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
 import {
   disableTeamMember,

@@ -1,4 +1,4 @@
-import type { Role } from "@/types/api";
+import type { Role } from "@arclayer/openapi/admin-types";
 
 export type WorkspaceRoleMetadata = {
   roleItems: Role[];

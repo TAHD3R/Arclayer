@@ -19,7 +19,8 @@ import type {
   AdminContentWorkbenchDerivedStatus,
   AdminContentVersion,
   AdminContentVersionState,
-} from "@/types/api";
+  JsonValueOutput,
+} from "@arclayer/openapi/admin-types";
 import {
   buildContentLibraryArticleEditorRuntimeState,
   type ContentLibraryArticleEditorSaveState,
@@ -28,7 +29,7 @@ import {
 import { findArticleEditorPresentation, loadContentLibraryArticleEditorSnapshot } from "./api";
 
 const SAVE_FEEDBACK_DURATION_MS = 1800;
-const EMPTY_ARTICLE_DOCUMENT = { type: "doc", content: [] } as const;
+const EMPTY_ARTICLE_DOCUMENT: Record<string, JsonValueOutput> = { type: "doc", content: [] };
 const MANAGED_FIELD_KEYS = new Set([
   "title",
   "summary",
@@ -44,7 +45,7 @@ type ContentLibraryArticleEditorSeoDraft = {
   metaDescription: string;
   canonicalUrl: string;
   robotsDirective: string;
-  payload: Record<string, unknown> | null;
+  payload: Record<string, JsonValueOutput> | null;
 };
 
 type ContentLibraryArticleEditorDraft = {
@@ -54,7 +55,7 @@ type ContentLibraryArticleEditorDraft = {
   status: AdminContentItemStatus;
   visibility: AdminContentItemVisibility;
   coverAssetId: string;
-  bodyDocument: Record<string, unknown>;
+  bodyDocument: Record<string, JsonValueOutput>;
   seo: ContentLibraryArticleEditorSeoDraft;
 };
 
@@ -95,16 +96,16 @@ function readCoverAssetIdField(source: Record<string, unknown>): string {
   return readStringField(source, "coverAssetId");
 }
 
-function normalizeDocument(value: unknown): Record<string, unknown> {
+function normalizeDocument(value: unknown): Record<string, JsonValueOutput> {
   if (value && typeof value === "object") {
-    return value as Record<string, unknown>;
+    return value as Record<string, JsonValueOutput>;
   }
   return { ...EMPTY_ARTICLE_DOCUMENT };
 }
 
 function normalizeSeoDraft(payload: unknown): ContentLibraryArticleEditorSeoDraft {
   const source =
-    payload && typeof payload === "object" ? (payload as Record<string, unknown>) : null;
+    payload && typeof payload === "object" ? (payload as Record<string, JsonValueOutput>) : null;
   return {
     metaTitle: source ? readStringField(source, "metaTitle") : "",
     metaDescription: source ? readStringField(source, "metaDescription") : "",
@@ -153,8 +154,10 @@ function cloneDraft(draft: ContentLibraryArticleEditorDraft): ContentLibraryArti
   };
 }
 
-function omitManagedFields(source: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(source).filter(([key]) => !MANAGED_FIELD_KEYS.has(key)));
+function omitManagedFields(source: Record<string, unknown>): Record<string, JsonValueOutput> {
+  return Object.fromEntries(
+    Object.entries(source).filter(([key]) => !MANAGED_FIELD_KEYS.has(key)),
+  ) as Record<string, JsonValueOutput>;
 }
 
 function omitManagedPresentations(source: AdminContentPresentation[]): AdminContentPresentation[] {
@@ -239,7 +242,7 @@ function buildManagedFieldsSnapshot(draft: ContentLibraryArticleEditorDraft) {
 
 function buildPersistedDraftPayload(params: {
   draft: ContentLibraryArticleEditorDraft;
-  otherFieldsSnapshot: Record<string, unknown>;
+  otherFieldsSnapshot: Record<string, JsonValueOutput>;
   otherPresentations: AdminContentPresentation[];
 }) {
   const seoPresentation = buildSeoPresentation(params.draft.seo);
@@ -331,7 +334,7 @@ export function useContentLibraryArticleEditor(params: {
   const inFlightPersistRef = React.useRef<Promise<AdminContentVersion | null> | null>(null);
   const queuedPersistRef = React.useRef<ContentLibraryArticleEditorDraft | null>(null);
   const lastSavedDraftRef = React.useRef<ContentLibraryArticleEditorDraft | null>(null);
-  const otherFieldsSnapshotRef = React.useRef<Record<string, unknown>>({});
+  const otherFieldsSnapshotRef = React.useRef<Record<string, JsonValueOutput>>({});
   const otherPresentationsRef = React.useRef<AdminContentPresentation[]>([]);
 
   const clearAutosaveTimer = React.useCallback(() => {

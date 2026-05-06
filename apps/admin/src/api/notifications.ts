@@ -8,7 +8,7 @@ import type {
   NotificationPreferences,
   NotificationPreview,
   PageData,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function getUnreadNotificationPreview(params?: {
   limit?: number;

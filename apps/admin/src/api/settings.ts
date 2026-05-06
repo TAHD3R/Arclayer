@@ -5,7 +5,7 @@ import type {
   ProjectSettingsPatch,
   SettingsDetail,
   SystemSettingsDetail,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function getCoreSettings(workspaceId: string): Promise<SettingsDetail> {
   return api.get<SettingsDetail>(workspacePath(workspaceId, "/settings/core"));

@@ -36,6 +36,8 @@ It is complementary to `AGENTS.md`:
 - Hard-cut rollouts keep one canonical contract surface for each changed domain boundary.
 - The same rollout removes each superseded thin facade, shim, forwarding layer, and dual-track compatibility path tied to the replaced contract.
 - Thin facade, shim, and dual-track compatibility debt requires explicit user approval with scope, rationale, and removal plan before merge.
+- Backend API boundary TypeScript types are generated in `packages/openapi`. Do not reintroduce `packages/contracts`, `@arclayer/contracts`, Admin generated-type barrels, Admin local alias modules that forward generated boundary types, or SDK aliases that preserve removed contracts package naming.
+- Admin local types are UI-only view models/projections. SDK-local types are transport/runtime wrappers. Backend request/response payloads come directly from `@arclayer/openapi`.
 
 ## 6. Do Not Touch (Unless Explicitly Requested)
 

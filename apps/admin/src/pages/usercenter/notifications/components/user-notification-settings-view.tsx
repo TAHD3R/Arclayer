@@ -12,7 +12,7 @@ import type {
   NotificationPreferenceChannel,
   NotificationPreferences,
   NotificationPreferenceTopic,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import {

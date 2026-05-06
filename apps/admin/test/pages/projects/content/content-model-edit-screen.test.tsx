@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelEditScreen } from "@/pages/projects/content/models/components/content-model-edit-screen";
-import type { AdminContentModel } from "@/types/api";
+import type { AdminContentModel } from "@arclayer/openapi/admin-types";
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const addContentModelFieldMock = vi.fn();

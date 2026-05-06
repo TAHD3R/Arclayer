@@ -9,8 +9,8 @@ vi.mock("@/lib/http", () => ({
 import { api } from "@/lib/http";
 import * as rbacApi from "@/api/rbac";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
-import type { AuthzSnapshot, PageData, Permission, Role } from "@/types/api";
-import type { WorkspacePermissionAction } from "@/types/api/rbac";
+import type { AuthzSnapshot, PageData, Permission, Role } from "@arclayer/openapi/admin-types";
+import type { WorkspacePermissionAction } from "@arclayer/openapi/admin-types";
 
 describe("api/workspace governance contracts", () => {
   beforeEach(() => {

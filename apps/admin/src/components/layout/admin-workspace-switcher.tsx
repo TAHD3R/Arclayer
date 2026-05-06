@@ -21,7 +21,7 @@ import {
 import { useUserCenterWorkspacesMutations } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { MyWorkspace } from "@/types/api";
+import type { MyWorkspace } from "@arclayer/openapi/admin-types";
 import { AvatarGroup, AvatarGroupCount } from "@arclayer/ui/avatar";
 import { cn } from "@arclayer/lib/utils";
 import {

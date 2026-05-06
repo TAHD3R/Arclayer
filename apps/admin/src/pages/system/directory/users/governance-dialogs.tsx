@@ -20,7 +20,7 @@ import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { uploadPresignedPart } from "@/lib/assets/storage-transfer";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError } from "@/lib/notifications";
-import type { SystemDirectoryUser } from "@/types/api/system-directory";
+import type { SystemDirectoryUser } from "@arclayer/openapi/admin-types";
 import {
   AlertDialog,
   AlertDialogContent,

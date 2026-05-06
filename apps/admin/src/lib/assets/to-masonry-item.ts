@@ -1,6 +1,6 @@
 import { getAppConfig } from "@/lib/config/app-config";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
-import type { AdminAssetDetail, AdminAssetSummary } from "@/types/api";
+import type { AdminAssetDetail, AdminAssetSummary } from "@arclayer/openapi/admin-types";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 type AssetSummaryLike = AdminAssetSummary | AdminAssetDetail;

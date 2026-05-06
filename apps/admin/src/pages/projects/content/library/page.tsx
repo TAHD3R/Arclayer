@@ -33,7 +33,7 @@ import type {
   AdminContentLibraryViewsState,
   AdminContentModel,
   CreateAdminContentLibraryViewPayload,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 import {
   AlertDialog,
   AlertDialogAction,

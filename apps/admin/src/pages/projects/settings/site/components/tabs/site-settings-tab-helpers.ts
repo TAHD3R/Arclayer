@@ -1,4 +1,5 @@
 import type { TitlePolicy } from "@/types/site-seo";
+import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -35,7 +36,7 @@ export function resolveDefaultLocaleValue(
   return String(firstValue || "").trim();
 }
 
-export function toApiTitlePolicy(input: TitlePolicy): Record<string, unknown> {
+export function toApiTitlePolicy(input: TitlePolicy): Record<string, JsonValueInput> {
   return {
     parts: input.parts,
     home_mode: input.homeMode ?? "siteOnly",

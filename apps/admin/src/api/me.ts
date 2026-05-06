@@ -3,7 +3,7 @@ import type {
   MyOrganization,
   MyOrganizationListResult,
   CreateMyOrganizationInput,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function getMyOrganization(): Promise<MyOrganization> {
   return api.get<MyOrganization>("/me/organization");

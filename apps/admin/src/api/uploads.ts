@@ -9,7 +9,7 @@ import type {
   UploadPartPresignOut,
   UploadPartCommitRequest,
   AvatarUploadInitRequest,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function initUpload(
   projectId: string,

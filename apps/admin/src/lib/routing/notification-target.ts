@@ -1,4 +1,4 @@
-import type { NotificationItem } from "@/types/api";
+import type { NotificationItem } from "@arclayer/openapi/admin-types";
 import type { SettingsSectionTarget } from "@/lib/settings/settings-screen";
 import { normalizeLegacyProjectSettingsPath } from "@/lib/routing/legacy-project-settings-paths";
 

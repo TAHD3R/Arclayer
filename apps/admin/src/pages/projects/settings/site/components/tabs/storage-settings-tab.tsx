@@ -18,6 +18,7 @@ import { NumberInput } from "@arclayer/ui/number-input";
 
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
 import type { StorageProvider } from "@/types/settings-general";
+import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import {
   buildS3Summary,
   formatSummaryText,
@@ -200,7 +201,7 @@ export function StorageSettingsTab({
         "s3PresignExpiresSeconds",
       ]);
 
-      const patchValue: Record<string, unknown> = {
+      const patchValue: Record<string, JsonValueInput> = {
         s3_endpoint_url: normalizeOptionalString(values.s3EndpointUrl),
         s3_region: normalizeOptionalString(values.s3Region),
         s3_bucket: normalizeOptionalString(values.s3Bucket),

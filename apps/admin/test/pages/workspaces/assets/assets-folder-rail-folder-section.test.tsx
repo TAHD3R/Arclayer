@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { AssetsFolderRailFolderSection } from "@/pages/workspaces/assets/components/assets-folder-rail-folder-section";
-import type { AdminAssetFolder } from "@/types/api";
+import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
 
 const ROOT_FOLDER: AdminAssetFolder = {
   id: "folder-1",

@@ -9,7 +9,7 @@ import {
   listOrganizationAssetTags,
   listOrganizationAssets,
 } from "@/api/assets";
-import type { AdminAssetFolder, AdminAssetSummary } from "@/types/api";
+import type { AdminAssetFolder, AdminAssetSummary } from "@arclayer/openapi/admin-types";
 import { filterFoldersByContentCheck } from "@/lib/assets/folder-visibility";
 import { isExplicitAssetsFilterActive } from "@/lib/assets/assets-filtering";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";

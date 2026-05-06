@@ -77,8 +77,9 @@ export function WorkspaceSettingsDangerSection(props: { workspaceId: string }) {
 
   const navigateAfterWorkspaceRemoved = async () => {
     const next = await listMyWorkspaces();
+    const nextItems = next.items ?? [];
     const nextWorkspace =
-      next.items.find((item) => item.workspaceId !== workspaceId) ?? next.items[0] ?? null;
+      nextItems.find((item) => item.workspaceId !== workspaceId) ?? nextItems[0] ?? null;
     if (!nextWorkspace) {
       clearWorkspace();
       await navigate({ to: "/", replace: true });

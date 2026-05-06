@@ -18,6 +18,9 @@ export type PageData<T> = {
   prev?: number | null;
 };
 
+export type JsonValueInput = Generated.JsonValueInput;
+export type JsonValueOutput = Generated.JsonValueOutput;
+
 export type AcceptExistingInvitationResult = Generated.AcceptExistingInvitationResult;
 
 export type AuthSSOProvider = Generated.AuthSsoProviderItem & {
@@ -36,6 +39,141 @@ export type AuthSSOLinkStateOut = Omit<Generated.AuthSsoLinkStateOut, "expiresIn
 
 export type OAuthLinkedIdentityListOut = Generated.OAuthLinkedIdentityListOut;
 
+export type TokenPair = Generated.TokenPair & {
+  access_token?: string;
+  refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
+  refresh_expires_in?: number;
+};
+export type UserProfile = Generated.UserProfile & {
+  display_name?: string | null;
+  avatar_url?: string | null;
+  avatar_asset_id?: string | null;
+};
+export type OnboardingProfile = Generated.OnboardingProfileOut & {
+  job_role?: Generated.OnboardingProfileOut["jobRole"];
+  company_size?: Generated.OnboardingProfileOut["companySize"];
+  subscribed_product_updates?: Generated.OnboardingProfileOut["subscribedProductUpdates"];
+  heard_about_us?: Generated.OnboardingProfileOut["heardAboutUs"];
+};
+export type UpdateMyProfilePayload = Generated.UpdateMyProfileRequest & {
+  display_name?: string | null;
+  avatarAssetId?: string | null;
+  avatar_asset_id?: string | null;
+};
+export type PatchOnboardingProfilePayload = Omit<
+  Generated.OnboardingProfilePatchRequest,
+  "companySize" | "heardAboutUs" | "jobRole"
+> & {
+  companySize?: string | null;
+  heardAboutUs?: string | null;
+  jobRole?: string | null;
+  job_role?: string | null;
+  company_size?: string | null;
+  subscribed_product_updates?: Generated.OnboardingProfilePatchRequest["subscribedProductUpdates"];
+  heard_about_us?: string | null;
+};
+export type RequestMyEmailChangePayload = Omit<
+  Generated.RequestMyEmailChangeRequest,
+  "newEmail"
+> & {
+  newEmail?: string;
+  new_email?: string;
+};
+export type RequestMyEmailChangeOut = Omit<Generated.RequestMyEmailChangeOut, "expiresIn"> & {
+  expiresIn?: number;
+  expires_in?: number;
+  retry_after?: number;
+};
+export type ConfirmMyEmailChangePayload = Omit<
+  Generated.ConfirmMyEmailChangeRequest,
+  "newEmail"
+> & {
+  newEmail?: string;
+  new_email?: string;
+};
+export type DeleteMyAccountReauthMethod = "password" | "2fa" | "relogin";
+export type MySecurityCapability = Generated.MySecurityCapabilityOut & {
+  has_password?: boolean;
+  two_factor_enabled?: boolean;
+  set_password_required_reauth_methods?: DeleteMyAccountReauthMethod[];
+  email_change_required_reauth_methods?: DeleteMyAccountReauthMethod[];
+  has_linked_oauth_identities?: boolean;
+};
+export type SetMyPasswordPayload = Omit<Generated.SetMyPasswordRequest, "newPassword"> & {
+  newPassword?: string;
+  new_password?: string;
+  backup_code?: string | null;
+};
+export type RequestRemoveMyPasswordPayload = Omit<
+  Generated.RequestRemoveMyPasswordRequest,
+  "currentPassword"
+> & {
+  currentPassword?: string;
+  current_password?: string;
+};
+export type ConfirmRemoveMyPasswordPayload = Generated.ConfirmRemoveMyPasswordRequest;
+export type DeleteMyAccountPayload = Generated.DeleteMyAccountRequest & {
+  backup_code?: string | null;
+};
+export type DeleteMyAccountCapability = Generated.DeleteMyAccountCapabilityOut;
+export type ResetTokenPayload = Generated.ResetTokenPayload & {
+  reset_token?: string;
+  expires_in?: number;
+};
+export type EmailCheckOut = Generated.EmailCheckOut & {
+  password_login_available?: boolean;
+};
+export type UsernameCheckOut = Generated.UsernameCheckOut;
+export type LoginEmailCodeRequestOut = Generated.LoginEmailCodeRequestOut & {
+  expires_in?: number;
+  retry_after?: number;
+};
+export type RegisterPayload = Omit<Generated.RegisterRequest, "displayName"> & {
+  displayName?: string;
+  display_name?: string;
+};
+export type TwoFactorChallengeMeta = {
+  twoFactorToken: string;
+  expiresIn: number;
+  two_factor_token?: string;
+  expires_in?: number;
+};
+export type TwoFactorReauthMethod = "password" | "relogin" | "totp" | "backup_code";
+export type TwoFactorCapabilities = Generated.TwoFactorCapabilitiesOut & {
+  can_setup?: boolean;
+  setup_required_reauth_methods?: TwoFactorReauthMethod[];
+  disable_required_reauth_methods?: TwoFactorReauthMethod[];
+  regenerate_backup_codes_required_reauth_methods?: TwoFactorReauthMethod[];
+  has_password?: boolean;
+};
+export type TwoFactorStatus = Generated.TwoFactorStatusOut & {
+  backup_codes_remaining?: number;
+};
+export type TwoFactorSetupResult = Generated.TwoFactorSetupOut & {
+  otpauth_uri?: string;
+};
+export type TwoFactorBackupCodesResult =
+  | (Generated.TwoFactorConfirmOut & { backup_codes?: string[] })
+  | (Generated.TwoFactorRegenerateBackupCodesOut & { backup_codes?: string[] });
+export type AuthSessionRow = Generated.AuthSessionOut & {
+  session_id?: string;
+  issued_at?: string;
+  last_used_at?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  device_label?: string | null;
+  location_label?: string | null;
+  auth_method?: string | null;
+};
+export type AuthSessionList = Omit<Generated.AuthSessionListOut, "items"> & {
+  items: AuthSessionRow[];
+};
+export type AuthSessionRevokeOthersResult = Generated.AuthSessionRevokeOthersOut & {
+  revoked_count?: number;
+};
+
 export type ActivityUserSummary = RequiredPresent<
   Generated.ActivityUserSummaryOut,
   "avatarUrl" | "displayName" | "username"
@@ -47,9 +185,16 @@ export type ActivityEvent = Omit<Generated.AuditEventOut, "actor" | "subject"> &
 export type ListActivityParams = QueryOf<Generated.InternalSystemListActivityData>;
 
 export type SystemRuntime = Generated.SystemRuntimeOut;
+export type SystemInstanceSetupStatus = Generated.SystemInstanceSetupOut["status"];
+export type SystemBootstrapPayload = Omit<Generated.SystemBootstrapRequest, "displayName"> & {
+  displayName?: string;
+  display_name?: string;
+};
 
 export type SettingsDetail = Generated.SettingsDetail;
+export type SettingsFieldItem = Generated.SettingsFieldItem;
 export type SettingsOptionItem = Generated.SettingsOptionItem;
+export type SettingsSectionItem = Generated.SettingsSectionItem;
 export type SettingsSchemaItem = Generated.SettingsSchemaItem;
 export type SystemSettingsDetail = Generated.SettingsDetail;
 export type SysStepUpResult = {
@@ -119,21 +264,100 @@ export type MyWorkspace = Omit<
   memberCount: number;
   membersPreview: Generated.MyWorkspaceMemberPreviewOut[];
 };
-export type MyWorkspaceListResult = Omit<Generated.MyWorkspaceListResult, "items"> & {
-  items: MyWorkspace[];
+export type MyWorkspaceListResult = Omit<
+  Generated.MyWorkspaceListResult,
+  "items" | "onboarding" | "switcher"
+> & {
+  items?: MyWorkspace[];
+  onboarding?: Generated.WorkspaceFirstOnboardingOut;
+  switcher: Omit<Generated.MyWorkspaceListResult["switcher"], "teams"> & {
+    teams?: MyWorkspace[];
+  };
 };
 export type AuthzSnapshot = Generated.AuthzSnapshot;
 export type ProjectAuthzSnapshot = Generated.ProjectAuthzSnapshot;
+export type OrganizationAuthzSnapshot = Generated.OrganizationAuthzSnapshot;
 export type WorkspaceDetail = Generated.WorkspaceDetailOut;
 export type WorkspaceRolePolicy = Generated.WorkspaceRolePolicyOut;
 export type WorkspaceAssignRoleResult = Generated.WorkspaceAssignRoleToMembersResult;
+export type OnboardingWorkspaceCreatePayload = Generated.OnboardingWorkspaceCreateRequest;
+export type OnboardingWorkspaceCreateResult = Generated.OnboardingWorkspaceCreateOut & {
+  workspace_id?: string;
+};
 export type LeaveWorkspaceResult = Generated.LeaveWorkspaceResult;
 export type WorkspaceDeleteResult = Generated.WorkspaceDeleteResult;
 export type WorkspaceDangerCapabilities = Generated.WorkspaceDangerCapabilitiesOut;
+export type WorkspaceIconMode = Generated.WorkspaceIconMode;
+export type WorkspaceIconMetadata = {
+  iconMode: WorkspaceIconMode;
+  iconColor: string;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
+  iconUrl?: string | null;
+};
 export type AdminWorkspaceSite = Generated.ProjectRuntimeSiteOut;
 export type CreateAdminSitePreviewTokenPayload = Generated.SitePreviewTokenCreateIn;
 export type AdminSitePreviewToken = Generated.SitePreviewTokenOut;
 export type ProjectApiKeyCreateIn = Generated.ProjectApiKeyCreateIn;
+
+export type Project = Generated.ProjectOut & {
+  description: string | null;
+  iconMode: WorkspaceIconMode;
+  iconColor: string;
+  iconUrl: string | null;
+  isActive: boolean;
+};
+export type ProjectRuntime = Generated.ProjectRuntimeOut;
+export type ProjectListItem = Omit<
+  Generated.ProjectListItemOut,
+  | "archivedAt"
+  | "archivedByUserId"
+  | "description"
+  | "enterable"
+  | "iconColor"
+  | "iconMode"
+  | "iconUrl"
+  | "memberCount"
+  | "membersPreview"
+  | "primaryRuntime"
+> & {
+  archivedAt: string | null;
+  archivedByUserId: string | null;
+  description: string | null;
+  enterable: boolean;
+  iconColor: string;
+  iconMode: WorkspaceIconMode;
+  iconUrl: string | null;
+  memberCount: number;
+  membersPreview: Array<
+    Omit<Generated.ProjectMemberPreviewOut, "avatarUrl" | "displayName" | "email"> & {
+      avatarUrl: string | null;
+      displayName: string | null;
+      email: string | null;
+    }
+  >;
+  primaryRuntime: ProjectRuntime | null;
+};
+export type ProjectCreateInput = Generated.ProjectCreateRequest;
+export type ProjectUpdateInput = Generated.ProjectUpdateRequest;
+export type ProjectSlugAvailability = Omit<
+  Generated.ProjectSlugAvailabilityOut,
+  "available" | "normalizedSlug" | "reason"
+> & {
+  available: boolean;
+  normalizedSlug: string | null;
+  reason: "invalid" | "reserved" | "exists" | null;
+};
+export type ProjectDangerAction = Generated.ProjectDangerActionOut;
+export type ProjectDangerCapabilities = Generated.ProjectDangerCapabilitiesOut;
+export type ProjectArchiveResult = Generated.ProjectArchiveResult;
+export type ProjectDeleteResult = Generated.ProjectDeleteResult;
+export type ProjectDetail = Omit<Generated.ProjectDetailOut, "primaryRuntime" | "project"> & {
+  primaryRuntime: ProjectRuntime | null;
+  project: Project;
+};
+export type ProjectMember = Generated.ProjectMemberOut;
+export type ProjectMemberRole = Generated.ProjectMemberRole;
 
 export type OrganizationSettingsCore = Generated.OrganizationSettingsCoreOut;
 export type OrganizationAssignDefaultRoleResult = Generated.OrganizationAssignDefaultRoleResult;
@@ -173,9 +397,132 @@ export type OrganizationMemberListParams =
   QueryOf<Generated.DomainOrganizationListOrganizationMembersData>;
 export type OrganizationPermission = Generated.OrganizationPermissionOut;
 export type OrganizationRole = Generated.OrganizationRoleOut;
+export type OrganizationPermissionAction = Omit<
+  Generated.OrganizationPermissionActionOut,
+  "permissionCodes" | "subjectKinds"
+> & {
+  permissionCodes: string[];
+  subjectKinds: string[];
+};
 export type ProjectPermissionAction = Generated.ProjectPermissionActionOut;
 export type ProjectSettingsDetail = Generated.ProjectSettingsDetail;
 export type ProjectSettingsPatch = Generated.ProjectSettingsPatch;
+export type WorkspacePermissionAction = Omit<
+  Generated.WorkspacePermissionActionOut,
+  "permissionCodes" | "subjectKinds"
+> & {
+  permissionCodes: string[];
+  subjectKinds: string[];
+};
+export type RolePermissionGrant = Omit<Generated.RolePermissionGrantOut, "conditionSets"> & {
+  conditionSets: Generated.PermissionConditionSetOutput[];
+};
+
+type DirectoryActorSummaryBase = Generated.DirectoryActorSummaryOut;
+export type DirectoryActorSummary = DirectoryActorSummaryBase & {
+  user_id?: string;
+  display_name?: string | null;
+  avatar_url?: string | null;
+};
+type DirectoryUserListItemBase = Generated.DirectoryUserListItemOut;
+type DirectoryUserDetailBase = Generated.DirectoryUserDetailOut;
+export type SystemDirectoryUser = DirectoryUserListItemBase & {
+  organizationMembershipCount: number;
+  ownedOrganizationsCount: number;
+  projectMembershipCount: number;
+  workspaceMembershipCount: number;
+  user_id?: string;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  is_super_admin?: boolean;
+  has_password?: boolean;
+  two_factor_enabled?: boolean;
+  linked_oauth_providers?: string[];
+  last_login_at?: string | null;
+  created_at?: string;
+  owned_organizations_count?: number;
+  organization_membership_count?: number;
+  workspace_membership_count?: number;
+  project_membership_count?: number;
+};
+export type SystemDirectoryOrganization = Omit<
+  Generated.DirectoryOrganizationListItemOut,
+  "isActive" | "memberCount" | "projectCount" | "workspaceCount"
+> & {
+  isActive: boolean;
+  memberCount: number;
+  projectCount: number;
+  workspaceCount: number;
+  organization_id?: string;
+  is_active?: boolean;
+  created_at?: string;
+  member_count?: number;
+  workspace_count?: number;
+  project_count?: number;
+};
+export type SystemDirectoryWorkspace = Omit<
+  Generated.DirectoryWorkspaceListItemOut,
+  "isActive" | "isArchived" | "memberCount" | "projectCount"
+> & {
+  isActive: boolean;
+  isArchived: boolean;
+  memberCount: number;
+  projectCount: number;
+  workspace_id?: string;
+  organization_id?: string;
+  organization_name?: string;
+  icon_mode?: WorkspaceIconMode | null;
+  icon_color?: string | null;
+  icon_glyph?: string | null;
+  icon_emoji?: string | null;
+  icon_url?: string | null;
+  is_active?: boolean;
+  is_archived?: boolean;
+  created_at?: string;
+  member_count?: number;
+  project_count?: number;
+};
+export type SystemDirectoryProject = Omit<
+  Generated.DirectoryProjectListItemOut,
+  "isActive" | "memberCount"
+> & {
+  isActive: boolean;
+  memberCount: number;
+  project_id?: string;
+  workspace_id?: string;
+  workspace_name?: string;
+  organization_id?: string;
+  organization_name?: string;
+  icon_mode?: WorkspaceIconMode | null;
+  icon_color?: string | null;
+  icon_glyph?: string | null;
+  icon_emoji?: string | null;
+  icon_url?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  member_count?: number;
+};
+export type SystemDirectoryUserDetail = DirectoryUserDetailBase &
+  SystemDirectoryUser & {
+    updated_at?: string;
+  };
+export type SystemDirectoryOrganizationDetail = Generated.DirectoryOrganizationDetailOut &
+  SystemDirectoryOrganization & {
+    updated_at?: string;
+    logo_url?: string | null;
+  };
+export type SystemDirectoryWorkspaceDetail = Generated.DirectoryWorkspaceDetailOut &
+  SystemDirectoryWorkspace & {
+    updated_at?: string;
+  };
+export type SystemDirectoryProjectDetail = Generated.DirectoryProjectDetailOut &
+  SystemDirectoryProject & {
+    updated_at?: string;
+  };
+export type SystemDirectoryUserPage = PageData<SystemDirectoryUser>;
+export type SystemDirectoryOrganizationPage = PageData<SystemDirectoryOrganization>;
+export type SystemDirectoryWorkspacePage = PageData<SystemDirectoryWorkspace>;
+export type SystemDirectoryProjectPage = PageData<SystemDirectoryProject>;
 
 export type AdminAssetSummary = Generated.AdminAssetSummaryOut;
 export type AdminAssetFolder = Generated.AdminAssetFolderOut;
@@ -345,7 +692,7 @@ export type SaveAdminContentDraftVersionPayload = Generated.ContentVersionDraftS
 export type PatchAdminContentVersionPayload = Generated.ContentVersionPatchIn;
 export type AdminContentSeoProfile = Generated.ContentSeoProfileOut;
 export type AdminPublishImpact = RequiredDefined<
-  Generated.PublishImpactOut,
+  Generated.PublishReadinessOut,
   | "blockedItems"
   | "missingRoutes"
   | "readinessSummary"

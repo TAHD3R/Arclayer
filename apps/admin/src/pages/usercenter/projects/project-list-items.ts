@@ -1,4 +1,5 @@
-import type { PageData, ProjectListItem } from "@/types/api";
+import type { ProjectListItem } from "@arclayer/openapi/admin-types";
+import type { PageData } from "@arclayer/openapi/admin-types";
 
 export type UserCenterProjectListItemMemberPreview = {
   userId: string;

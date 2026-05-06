@@ -5,7 +5,7 @@ import {
   type UseFormReturn,
 } from "react-hook-form";
 
-import type { Role } from "@/types/api";
+import type { Role } from "@arclayer/openapi/admin-types";
 import {
   AlertDialog,
   AlertDialogContent,

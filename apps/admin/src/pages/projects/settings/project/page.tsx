@@ -14,7 +14,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ProjectIconDialog } from "@/pages/usercenter/projects/components/project-icon-dialog";
 import type { ProjectIconDialogValues } from "@/pages/usercenter/projects/hooks/use-project-menu-actions";
 import type { UserCenterProjectListItem } from "@/pages/usercenter/projects/project-list-items";
-import type { ProjectDetail, ProjectUpdateInput } from "@/types/api";
+import type { ProjectDetail, ProjectUpdateInput } from "@arclayer/openapi/admin-types";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 import {
   ChromeTabs,

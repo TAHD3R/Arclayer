@@ -1,12 +1,17 @@
 import { api } from "@/lib/http";
 import { projectPath, toQueryString, workspacePath } from "@/lib/api";
 
-import type { PageData, Permission, ProjectPermissionAction, Role } from "@/types/api";
+import type {
+  PageData,
+  Permission,
+  ProjectPermissionAction,
+  Role,
+} from "@arclayer/openapi/admin-types";
 import type {
   OrganizationPermissionAction,
   RolePermissionGrant,
   WorkspacePermissionAction,
-} from "@/types/api/rbac";
+} from "@arclayer/openapi/admin-types";
 
 const RBAC_PAGE_SIZE = 200;
 

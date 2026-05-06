@@ -1,5 +1,5 @@
-import type { ProjectSettingsDetail } from "@/types/api";
-import type { SettingsDetail } from "@/types/api/settings";
+import type { ProjectSettingsDetail } from "@arclayer/openapi/admin-types";
+import type { SettingsDetail } from "@arclayer/openapi/admin-types";
 
 import type { GeneralSettingsFormValues, StorageProvider } from "@/types/settings-general";
 import type { TitlePolicy, TitlePolicyPart } from "@/types/site-seo";

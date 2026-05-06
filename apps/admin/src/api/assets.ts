@@ -20,7 +20,7 @@ import type {
   AdminAssetsBulkDeleteOut,
   AdminAssetsBulkUpdateRequest,
   AdminAssetsBulkUpdateOut,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function listAssets(
   projectId: string,

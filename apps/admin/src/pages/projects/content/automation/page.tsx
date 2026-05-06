@@ -25,7 +25,8 @@ import type {
   AdminAutomationOperationKindValue,
   AdminAutomationRun,
   AdminAutomationTriggerKind,
-} from "@/types/api";
+  JsonValueInput,
+} from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { Textarea } from "@arclayer/ui/textarea";
@@ -72,7 +73,9 @@ function draftFromFlow(flow: AdminAutomationFlow, catalog?: AdminAutomationCatal
 }
 
 function buildFlowPayload(draft: FlowDraft) {
-  const config = draft.operationUrl.trim() ? { url: draft.operationUrl.trim() } : {};
+  const config: Record<string, JsonValueInput> = draft.operationUrl.trim()
+    ? { url: draft.operationUrl.trim() }
+    : {};
   return {
     description: draft.description.trim() || null,
     name: draft.name.trim(),

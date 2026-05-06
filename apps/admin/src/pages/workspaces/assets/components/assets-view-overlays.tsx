@@ -1,7 +1,7 @@
 import { FolderInput, Settings2, Trash2 } from "lucide-react";
 
 import { FloatingBulkToolbar } from "@/components/common/floating-bulk-toolbar";
-import type { AdminAssetFolder } from "@/types/api";
+import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { AssetPreviewDialog, type AssetPreviewProjectBreadcrumb } from "./asset-preview-dialog";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";

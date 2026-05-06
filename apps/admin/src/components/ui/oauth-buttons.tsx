@@ -8,7 +8,7 @@ import { normalizeOAuthProvider, resolveOAuthProviderMeta } from "@/lib/auth/oau
 import { notifyErrorText } from "@/lib/notifications";
 import { readStorageItem, writeStorageItem } from "@/lib/storage";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import type { AuthSSOProvider } from "@/types/api";
+import type { AuthSSOProvider } from "@arclayer/openapi/admin-types";
 import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { Separator } from "@arclayer/ui/separator";

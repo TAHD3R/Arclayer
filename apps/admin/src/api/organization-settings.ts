@@ -7,7 +7,7 @@ import type {
   OrganizationAssignDefaultRoleResult,
   OrganizationDangerCapabilities,
   OrganizationSettingsCore,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function getOrganizationCoreSettings(): Promise<OrganizationSettingsCore> {
   return api.get<OrganizationSettingsCore>("/organizations/me/settings/core");

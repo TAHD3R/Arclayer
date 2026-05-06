@@ -19,7 +19,7 @@ import { PasswordInput } from "@arclayer/ui/password-input";
 import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
-import type { DeleteMyAccountPayload } from "@/types/api";
+import type { DeleteMyAccountPayload } from "@arclayer/openapi/admin-types";
 import { DialogField } from "./dialog-field";
 
 export type UserDangerSectionProps = {

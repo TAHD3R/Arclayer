@@ -1,7 +1,7 @@
 import { api } from "@/lib/http";
 import { toQueryString, workspacePath } from "@/lib/api";
 
-import type { ActivityEvent, ListActivityParams, PageData } from "@/types/api";
+import type { ActivityEvent, ListActivityParams, PageData } from "@arclayer/openapi/admin-types";
 
 export async function listSystemActivity(
   params: ListActivityParams = {},

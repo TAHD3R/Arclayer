@@ -9,7 +9,7 @@ import type {
   OrganizationInviteLinkParticipant,
   TeamInviteLinkParticipant,
   TeamUserRef,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,

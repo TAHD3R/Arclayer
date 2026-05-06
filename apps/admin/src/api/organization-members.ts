@@ -11,7 +11,7 @@ import type {
   OrganizationMember,
   OrganizationMemberListParams,
   PageData,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function listOrganizationMembers(
   params: OrganizationMemberListParams,

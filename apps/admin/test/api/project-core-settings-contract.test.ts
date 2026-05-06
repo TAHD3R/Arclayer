@@ -9,7 +9,7 @@ vi.mock("@/lib/http", () => ({
 
 import { api } from "@/lib/http";
 import { getProjectCoreSettings, patchProjectCoreSettings } from "@/api/settings";
-import type { ProjectSettingsDetail } from "@/types/api";
+import type { ProjectSettingsDetail } from "@arclayer/openapi/admin-types";
 
 describe("api/project core settings contracts", () => {
   beforeEach(() => {

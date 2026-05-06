@@ -12,8 +12,9 @@ def test_registry_filters_by_scope() -> None:
     rule_ids = {rule.metadata.id for rule in frontend_rules}
 
     assert "frontend.route-no-api-calls" in rule_ids
+    assert "hard-cut.openapi-single-source" in rule_ids
     assert "service.no-direct-orm" not in rule_ids
-    assert len(DEFAULT_REGISTRY.all()) >= 29
+    assert len(DEFAULT_REGISTRY.all()) >= 30
 
 
 def test_registry_rejects_unknown_rule_id() -> None:
@@ -33,6 +34,103 @@ def test_frontend_page_structure_allows_page_local_directories(tmp_path) -> None
     report = run_audit(
         repo_root=tmp_path,
         selector=ScopeSelector(scope=AuditScope.FRONTEND, selected_rules=("frontend.page-structure",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_openapi_single_source_flags_removed_contract_package_and_imports(tmp_path) -> None:
+    contracts_file = tmp_path / "packages/contracts/src/index.ts"
+    package_file = tmp_path / "packages/management-sdk/package.json"
+    source_file = tmp_path / "packages/management-sdk/src/types.ts"
+    admin_barrel = tmp_path / "apps/admin/src/types/api/index.ts"
+    for path in (contracts_file, package_file, source_file, admin_barrel):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    contracts_file.write_text("export type Legacy = {};\n", encoding="utf-8")
+    package_file.write_text('{"dependencies":{"@arclayer/contracts":"workspace:*"}}\n', encoding="utf-8")
+    source_file.write_text('import type { Legacy } from "@arclayer/contracts";\n', encoding="utf-8")
+    admin_barrel.write_text('export * from "@arclayer/openapi/admin-types";\n', encoding="utf-8")
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("hard-cut.openapi-single-source",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 4
+    assert {finding.rule_id for finding in report.findings} == {"hard-cut.openapi-single-source"}
+
+
+def test_openapi_single_source_allows_direct_generated_imports_and_ui_models(tmp_path) -> None:
+    admin_types = tmp_path / "apps/admin/src/types/api/projects.ts"
+    admin_types.parent.mkdir(parents=True, exist_ok=True)
+    admin_types.write_text(
+        "\n".join(
+            [
+                'import type { ProjectDetailOut } from "@arclayer/openapi/admin-types";',
+                "",
+                "export type ProjectListItemRow = {",
+                "  id: ProjectDetailOut['id'];",
+                "  statusLabel: string;",
+                "};",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("hard-cut.openapi-single-source",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_openapi_single_source_flags_generated_request_aliases_in_admin_types(tmp_path) -> None:
+    admin_types = tmp_path / "apps/admin/src/types/api/uploads.ts"
+    admin_types.parent.mkdir(parents=True, exist_ok=True)
+    admin_types.write_text(
+        "\n".join(
+            [
+                'import type { UploadInitRequest as OpenApiUploadInitRequest } from "@arclayer/openapi/admin-types";',
+                "",
+                "export type UploadInitRequest = OpenApiUploadInitRequest;",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("hard-cut.openapi-single-source",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "hard-cut.openapi-single-source"
+
+
+def test_openapi_single_source_allows_test_files_describing_removed_contract_import(tmp_path) -> None:
+    test_file = tmp_path / "apps/admin/src/pages/workspaces/assets/__tests__/hard-cut-contracts.test.ts"
+    test_file.parent.mkdir(parents=True, exist_ok=True)
+    test_file.write_text(
+        "\n".join(
+            [
+                'const forbiddenExample = \'import type { Legacy } from "@arclayer/contracts";\';',
+                "expect(forbiddenExample).toContain('@arclayer/contracts');",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("hard-cut.openapi-single-source",)),
         registry=DEFAULT_REGISTRY,
     )
 

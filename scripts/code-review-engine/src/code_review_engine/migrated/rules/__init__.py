@@ -43,7 +43,11 @@ from code_review_engine.migrated.rules.frontend import (
     FrontendPageStructureRule,
     FrontendRouteNoAPICalls,
 )
-from code_review_engine.migrated.rules.hard_cut import NoDualRepositoryPattern, NoShimFacadePattern
+from code_review_engine.migrated.rules.hard_cut import (
+    NoDualRepositoryPattern,
+    NoShimFacadePattern,
+    OpenApiSingleSourceRule,
+)
 from code_review_engine.migrated.rules.i18n import (
     InvalidI18nKeyFormat,
     InvalidI18nNamespace,
@@ -118,6 +122,7 @@ ALL_RULES: list[AuditRule] = [
     # ── Hard-Cut Enforcement ──
     NoDualRepositoryPattern(),
     NoShimFacadePattern(),
+    OpenApiSingleSourceRule(),
     # ── Plugin Architecture ──
     PluginMustRegisterLifecycle(),
     PluginMustHaveLocales(),

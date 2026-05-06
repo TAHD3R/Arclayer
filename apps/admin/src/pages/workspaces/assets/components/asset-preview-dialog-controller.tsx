@@ -9,7 +9,7 @@ import {
   listAssetTags,
   patchAsset,
 } from "@/api/assets";
-import type { AdminAssetTag, AdminAssetSummary, PageData } from "@/types/api";
+import type { AdminAssetTag, AdminAssetSummary, PageData } from "@arclayer/openapi/admin-types";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { usePreferencesStore } from "@/stores/use-preference-store";

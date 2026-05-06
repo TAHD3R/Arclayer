@@ -1,12 +1,12 @@
 import { api } from "@/lib/http";
 import { toQueryString } from "@/lib/api";
+import type { TokenPair } from "@arclayer/openapi/admin-types";
 import type {
-  TokenPair,
   InvitationPreviewResult,
   AcceptExistingInvitationResult,
   MyInvitation,
   PageData,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function previewInvitation(token: string): Promise<InvitationPreviewResult> {
   const query = toQueryString({ token });

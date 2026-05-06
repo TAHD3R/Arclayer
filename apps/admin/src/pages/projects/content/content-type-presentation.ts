@@ -1,6 +1,6 @@
 import { Blocks, FolderTree, LayoutTemplate, Newspaper, type LucideIcon } from "lucide-react";
 
-import type { AdminContentModel } from "@/types/api";
+import type { AdminContentModel } from "@arclayer/openapi/admin-types";
 
 type TranslateFn = (key: string) => string;
 export type ContentBootstrapVariant = "article" | "page" | "reusable-section" | "category";

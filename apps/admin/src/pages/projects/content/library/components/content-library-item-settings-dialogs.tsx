@@ -12,7 +12,8 @@ import type {
   AdminContentItemVisibility,
   AdminContentPresentation,
   AdminContentVersion,
-} from "@/types/api";
+  JsonValueOutput,
+} from "@arclayer/openapi/admin-types";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
@@ -109,7 +110,7 @@ function omitManagedPresentations(source: AdminContentPresentation[]) {
 function buildSeoPresentation(
   seo: ContentLibraryItemSettingsDraft["seo"],
 ): AdminContentPresentation | null {
-  const payload: Record<string, unknown> = {};
+  const payload: Record<string, JsonValueOutput> = {};
   if (seo.metaTitle.trim()) payload.metaTitle = seo.metaTitle.trim();
   if (seo.metaDescription.trim()) payload.metaDescription = seo.metaDescription.trim();
   if (seo.canonicalUrl.trim()) payload.canonicalUrl = seo.canonicalUrl.trim();

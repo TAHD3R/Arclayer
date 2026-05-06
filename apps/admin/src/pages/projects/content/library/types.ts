@@ -13,7 +13,7 @@ import type {
   AdminContentWorkbenchDerivedStatus,
   AdminContentWorkbenchLibraryGroup,
   AdminContentWorkbenchRuntime,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export type ContentLibraryDerivedStatus = AdminContentWorkbenchDerivedStatus;
 export type ContentLibraryRuntime = AdminContentWorkbenchRuntime;

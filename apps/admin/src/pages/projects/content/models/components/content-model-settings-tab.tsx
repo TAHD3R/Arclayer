@@ -3,7 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { ListChecks, Route, Settings2, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { AdminContentModel, PatchAdminContentModelPayload } from "@/types/api";
+import type {
+  AdminContentModel,
+  PatchAdminContentModelPayload,
+} from "@arclayer/openapi/admin-types";
 import { getContentModelImpactPreview, patchContentModel } from "@/api/content";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";

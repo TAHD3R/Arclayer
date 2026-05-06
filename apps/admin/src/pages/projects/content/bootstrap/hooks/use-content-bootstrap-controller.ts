@@ -16,7 +16,12 @@ import {
   projectContentModelsPath,
 } from "@/lib/routing/project-content-routing";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import type { AdminContentItem, AdminContentItemVisibility, AdminContentModel } from "@/types/api";
+import type {
+  AdminContentItem,
+  AdminContentItemVisibility,
+  AdminContentModel,
+  JsonValueInput,
+} from "@arclayer/openapi/admin-types";
 
 import { buildContentItemsQueryKey, buildContentModelsQueryKey } from "../../library/utils";
 import { resolveContentBootstrapVariant } from "../../content-type-presentation";
@@ -48,7 +53,7 @@ function buildInitialDraftPayload(params: {
   const normalizedSlug = params.slug.trim() || params.item.slug;
   const metaTitle = params.seo.metaTitle.trim();
   const metaDescription = params.seo.metaDescription.trim();
-  const seoPayload: Record<string, unknown> = {};
+  const seoPayload: Record<string, JsonValueInput> = {};
 
   if (variant === "page" && metaTitle) seoPayload.metaTitle = metaTitle;
   if (variant === "page" && metaDescription) seoPayload.metaDescription = metaDescription;

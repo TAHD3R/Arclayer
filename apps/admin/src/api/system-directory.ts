@@ -9,7 +9,7 @@ import type {
   SystemDirectoryUserPage,
   SystemDirectoryWorkspaceDetail,
   SystemDirectoryWorkspacePage,
-} from "@/types/api/system-directory";
+} from "@arclayer/openapi/admin-types";
 import type {
   UploadAbortOut,
   UploadCompleteOut,
@@ -18,7 +18,7 @@ import type {
   UploadPartCommitRequest,
   UploadPartPresignOut,
   UploadStatusOut,
-} from "@/types/api/uploads";
+} from "@arclayer/openapi/admin-types";
 
 type UpdateSystemDirectoryUserPayload = {
   email?: string | null;

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, Lock, Mail, UserCog, UserRound, XCircle } from "lucide-react";
 
-import type { TeamMember, UserStatus } from "@/types/api";
+import type { TeamMember, UserStatus } from "@arclayer/openapi/admin-types";
 
 import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
 

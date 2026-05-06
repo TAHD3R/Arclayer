@@ -3,7 +3,8 @@ import type {
   AdminContentModel,
   AdminContentModelKind,
   CreateAdminContentModelPayload,
-} from "@/types/api";
+  JsonValueInput,
+} from "@arclayer/openapi/admin-types";
 
 import type {
   ContentModelsFilters,
@@ -323,7 +324,7 @@ function toFieldContracts(model: AdminContentModel): CreateAdminContentModelPayl
     const scalar = asString(value?.scalar);
     const label = asString(value?.label);
     if (!scalar || !label) return [];
-    const config = asRecord(value?.config) ?? undefined;
+    const config = (asRecord(value?.config) as Record<string, JsonValueInput> | null) ?? undefined;
     return [
       {
         key,
@@ -347,7 +348,7 @@ function toRelationContracts(
     const relation = asString(value?.relation);
     const targetModelKey = asString(value?.targetModelKey ?? value?.target_model_key);
     if (!relation || !targetModelKey) return [];
-    const config = asRecord(value?.config) ?? undefined;
+    const config = (asRecord(value?.config) as Record<string, JsonValueInput> | null) ?? undefined;
     return [
       {
         key,
@@ -370,7 +371,7 @@ function toViewContracts(model: AdminContentModel): CreateAdminContentModelPaylo
     const label = asString(value?.label);
     const type = asString(value?.type);
     if (!key || !label || !type) return [];
-    const config = asRecord(value?.config) ?? undefined;
+    const config = (asRecord(value?.config) as Record<string, JsonValueInput> | null) ?? undefined;
     return [
       {
         key,
@@ -421,10 +422,14 @@ function toWorkflowContract(model: AdminContentModel): CreateAdminContentModelPa
   };
 }
 
-function readSeoPolicy(model: AdminContentModel): Record<string, unknown> | null {
+function asJsonInputRecord(value: unknown): Record<string, JsonValueInput> | null {
+  return asRecord(value) as Record<string, JsonValueInput> | null;
+}
+
+function readSeoPolicy(model: AdminContentModel): Record<string, JsonValueInput> | null {
   const contractRegistry = asRecord(model.contractRegistry);
   const deliveryPolicy = asRecord(contractRegistry?.deliveryPolicy);
-  return asRecord(deliveryPolicy?.seo);
+  return asJsonInputRecord(deliveryPolicy?.seo);
 }
 
 export function buildDuplicateContentModelPayload(params: {
@@ -451,15 +456,15 @@ export function buildDuplicateContentModelPayload(params: {
     routing: toRoutingContract(params.model),
     workflow: toWorkflowContract(params.model),
     views: toViewContracts(params.model),
-    ...(asRecord(params.model.presentationSchema)
-      ? { presentation: asRecord(params.model.presentationSchema) }
+    ...(asJsonInputRecord(params.model.presentationSchema)
+      ? { presentation: asJsonInputRecord(params.model.presentationSchema) }
       : {}),
     ...(readSeoPolicy(params.model) ? { seo: readSeoPolicy(params.model) } : {}),
-    ...(asRecord(params.model.starterPackPolicy)
-      ? { starterPackPolicy: asRecord(params.model.starterPackPolicy) }
+    ...(asJsonInputRecord(params.model.starterPackPolicy)
+      ? { starterPackPolicy: asJsonInputRecord(params.model.starterPackPolicy) }
       : {}),
-    ...(asRecord(params.model.surfacePolicy)
-      ? { surfacePolicy: asRecord(params.model.surfacePolicy) }
+    ...(asJsonInputRecord(params.model.surfacePolicy)
+      ? { surfacePolicy: asJsonInputRecord(params.model.surfacePolicy) }
       : {}),
   };
 }

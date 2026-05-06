@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { TeamMember } from "@/types/api";
+import type { TeamMember } from "@arclayer/openapi/admin-types";
 
 export function SummaryCard(props: { title: string; body: ReactNode; footer?: ReactNode }) {
   return (

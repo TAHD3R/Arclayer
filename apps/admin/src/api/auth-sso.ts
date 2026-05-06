@@ -1,6 +1,7 @@
 import { api } from "@/lib/http";
 import { toQueryString } from "@/lib/api";
-import type { TokenPair, AuthSSOProvidersOut, AuthSSOLinkStateOut } from "@/types/api";
+import type { TokenPair } from "@arclayer/openapi/admin-types";
+import type { AuthSSOProvidersOut, AuthSSOLinkStateOut } from "@arclayer/openapi/admin-types";
 
 export async function listSSOProviders(input?: {
   redirect?: string;

@@ -1,5 +1,5 @@
-import type { PageData } from "@/types/api";
-import type { OrganizationWorkspace } from "@/types/api";
+import type { PageData } from "@arclayer/openapi/admin-types";
+import type { OrganizationWorkspace } from "@arclayer/openapi/admin-types";
 
 export type UserCenterWorkspaceListItemMemberPreview = {
   userId: string;
@@ -37,13 +37,24 @@ export function mapOrganizationWorkspaceToListItem(
   return {
     ...workspace,
     projectId: workspace.projectId ?? null,
+    description: workspace.description ?? null,
+    createdAt: workspace.createdAt ?? null,
+    iconMode: workspace.iconMode ?? "initials",
+    iconColor: workspace.iconColor ?? "#337ea9",
+    iconGlyph: workspace.iconGlyph ?? null,
+    iconEmoji: workspace.iconEmoji ?? null,
+    iconUrl: workspace.iconUrl ?? null,
+    isArchived: workspace.isArchived ?? false,
+    archivedAt: workspace.archivedAt ?? null,
+    archivedByUserId: workspace.archivedByUserId ?? null,
+    enterable: workspace.enterable ?? true,
     kind: "team",
     membersPreview: workspace.membersPreview.map((member) => ({
       userId: member.userId,
       username: member.username,
-      displayName: member.displayName,
-      avatarUrl: member.avatarUrl,
-      email: member.email,
+      displayName: member.displayName ?? null,
+      avatarUrl: member.avatarUrl ?? null,
+      email: member.email ?? null,
     })),
   };
 }

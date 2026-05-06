@@ -27,7 +27,7 @@ import type {
   AdminContentVersion,
   PatchAdminContentVersionPayload,
   SaveAdminContentDraftVersionPayload,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 describe("api/content editor version wrappers", () => {
   beforeEach(() => {

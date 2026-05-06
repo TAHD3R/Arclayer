@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { ActivityEvent } from "@/types/api";
+import type { ActivityEvent } from "@arclayer/openapi/admin-types";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { resolveCatalogEntry } from "@/pages/workspaces/shared/activity/constants";

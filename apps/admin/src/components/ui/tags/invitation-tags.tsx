@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, Clock, Link2Off, Timer, UserCog } from "lucide-react";
 
-import type { OrganizationInvitation, TeamInvitation } from "@/types/api";
+import type { OrganizationInvitation, TeamInvitation } from "@arclayer/openapi/admin-types";
 
 import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
 

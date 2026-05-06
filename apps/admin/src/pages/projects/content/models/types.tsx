@@ -3,7 +3,7 @@ import type {
   AdminContentModelCategory,
   AdminContentModelKind,
   CreateAdminContentModelPayload,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export type ContentModelsTableRow = AdminContentModel;
 

@@ -1,6 +1,7 @@
 import type { PageData } from "@arclayer/ui/data-table";
 
-import type { AdminContentItem, AdminContentModel } from "@/types/api";
+import type { AdminContentItem } from "@arclayer/openapi/admin-types";
+import type { AdminContentModel } from "@arclayer/openapi/admin-types";
 import type {
   ContentLibraryDerivedStatus,
   ContentLibraryEditWith,

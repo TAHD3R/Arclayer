@@ -6,7 +6,7 @@ import {
   getContentTypeDescription,
   getContentTypeLabel,
 } from "@/pages/projects/content/content-type-presentation";
-import type { AdminContentItem } from "@/types/api";
+import type { AdminContentItem } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 

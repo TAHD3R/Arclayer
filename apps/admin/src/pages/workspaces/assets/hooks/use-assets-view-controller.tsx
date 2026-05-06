@@ -29,7 +29,7 @@ import {
   updateAssetFolder,
 } from "@/api/assets";
 import { type ViewMode as AssetsViewMode } from "@/components/common/view-mode-toggle";
-import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api";
+import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@arclayer/openapi/admin-types";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, type AssetSelectionState } from "@/lib/assets/asset-selection";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";

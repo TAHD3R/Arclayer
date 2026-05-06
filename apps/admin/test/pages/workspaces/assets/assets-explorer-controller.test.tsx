@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 
 import { useAssetsExplorerController } from "@/pages/workspaces/assets/components/explorer/use-assets-explorer-controller";
-import type { AdminAssetFolder, AdminAssetSummary, PageData } from "@/types/api";
+import type { AdminAssetFolder, AdminAssetSummary, PageData } from "@arclayer/openapi/admin-types";
 
 const mocked = vi.hoisted(() => ({
   listAssets: vi.fn(),

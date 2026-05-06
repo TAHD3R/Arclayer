@@ -46,7 +46,8 @@ import { ContentLibraryArticleEditorDateLocalizationProvider } from "./content-l
 import { ContentLibraryArticleEditorUpdatesPanel } from "./content-library-article-editor-updates-panel";
 import { ContentLibraryArticleEditorVersionHistorySurface } from "./content-library-article-editor-version-history-surface";
 import type { ContentLibraryArticleEditorRuntimeState } from "@/pages/projects/content/library/runtime";
-import type { AdminContentItemPublishReadiness, AdminContentWorkflowStage } from "@/types/api";
+import type { AdminContentItemPublishReadiness } from "@arclayer/openapi/admin-types";
+import type { AdminContentWorkflowStage } from "@arclayer/openapi/admin-types";
 
 const ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY = "content-library-article-editor:pending-panel";
 const WORKFLOW_TRANSITION_STAGES = ["in_review", "changes_requested", "approved"] as const;

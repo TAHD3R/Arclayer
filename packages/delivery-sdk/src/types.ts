@@ -1,17 +1,24 @@
-import type {
-  ApiRequestMetadata,
-  ApiResult,
-  DeliveryGlobalSetContract,
-  DeliveryMenuContract,
-  DeliveryPageResolveContract,
-  DeliveryRouteResolveContract,
-  DeliveryRuntimeConfigContract,
-  DeliverySectionContract,
-  DeliveryStyleContract,
-  MaybePromise,
-} from "@arclayer/contracts";
+export type MaybePromise<T> = T | Promise<T>;
 
-export type { ApiEnvelope, MaybePromise } from "@arclayer/contracts";
+export interface ApiEnvelope<T> {
+  data?: T | null;
+  error?: string | null;
+  message?: string;
+  meta?: Record<string, unknown> | null;
+  timestamp?: number;
+}
+
+export interface ApiRequestMetadata {
+  message: string;
+  meta?: Record<string, unknown> | null;
+  requestId: string | null;
+  status: number;
+  timestamp?: number;
+}
+
+export interface ApiResult<T> extends ApiRequestMetadata {
+  data: T;
+}
 
 export type DeliveryPerspective = "published" | "preview";
 export type GraphQLPerspective = "PUBLISHED" | "PREVIEW";
@@ -285,10 +292,10 @@ export interface CategoryEntriesQueryVariables extends GraphQLQueryVariables {
   } | null;
 }
 
-export type DeliveryPageResolveOut = DeliveryPageResolveContract;
-export type DeliveryRouteResolveOut = DeliveryRouteResolveContract;
-export type DeliveryRuntimeConfig = DeliveryRuntimeConfigContract;
-export type DeliverySection = DeliverySectionContract;
-export type DeliveryGlobalSet = DeliveryGlobalSetContract;
-export type DeliveryMenu = DeliveryMenuContract;
-export type DeliveryStyle = DeliveryStyleContract;
+export type DeliveryPageResolveOut = import("@arclayer/openapi").SiteRouteResolveOut;
+export type DeliveryRouteResolveOut = import("@arclayer/openapi").SiteRouteResolveOut;
+export type DeliveryRuntimeConfig = import("@arclayer/openapi").SiteRuntimeOut;
+export type DeliverySection = import("@arclayer/openapi").DeliverySectionOut;
+export type DeliveryGlobalSet = import("@arclayer/openapi").DeliveryGlobalSetOut;
+export type DeliveryMenu = import("@arclayer/openapi").DeliveryMenuOut;
+export type DeliveryStyle = import("@arclayer/openapi").DeliveryStyleOut;

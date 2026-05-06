@@ -11,6 +11,7 @@ import { Textarea } from "@arclayer/ui/textarea";
 
 import { SettingSwitchBlock } from "@/components/settings/setting-switch-block";
 import { isValidEmail } from "@/lib/settings/general/utils";
+import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import type {
   GeneralSettingsFormValues,
   GeneralSettingsTabBaseProps,
@@ -111,7 +112,10 @@ function LocalizedFieldEditor(props: LocalizedFieldProps) {
   );
 }
 
-function buildDefaultLocalePatch(nextLocale: string, initialLocale: string) {
+function buildDefaultLocalePatch(
+  nextLocale: string,
+  initialLocale: string,
+): Record<string, JsonValueInput> {
   if (!nextLocale || nextLocale === initialLocale) return {};
   return { site_localization: { default_locale: nextLocale, locale: nextLocale } };
 }

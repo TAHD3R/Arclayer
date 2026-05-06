@@ -1,6 +1,6 @@
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { ResolvedRecentAsset } from "@/lib/assets/assets-recent";
-import type { AdminAssetFolder } from "@/types/api";
+import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import { AssetsFolderRailFolderSection } from "./assets-folder-rail-folder-section";

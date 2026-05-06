@@ -6,7 +6,10 @@ import { useTranslation } from "react-i18next";
 
 import { listOrganizationWorkspaceMembers } from "@/api/organization-workspaces";
 import { UserAvatar } from "@/components/common/entity-avatar";
-import type { OrganizationWorkspace, OrganizationWorkspaceMember } from "@/types/api";
+import type {
+  OrganizationWorkspace,
+  OrganizationWorkspaceMember,
+} from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,

@@ -137,7 +137,8 @@ Use these only for code shared within the same page domain. If the code starts s
 Admin transport code is split across:
 
 - `src/api/*` for runtime request functions
-- `src/types/api/*` for contract types
+- `@arclayer/openapi` and `@arclayer/openapi/admin-types` for generated backend API boundary types
+- `src/types/api/*` for Admin UI-only view models and legacy Admin-local types that are not backend request/response shapes
 - `src/lib/api/*` for shared path/query helpers
 - `src/lib/http/*` for shared HTTP client concerns
 
@@ -146,7 +147,11 @@ Admin transport code is split across:
 - Keep transport code in `src/api/*`.
 - Keep reusable query-string and path construction in `src/lib/api/*`.
 - Keep app-level HTTP concerns in `src/lib/http/*`.
-- Keep request and response types in `src/types/api/*` when the shape is reused or part of the stable API surface.
+- Import backend request and response types directly from `@arclayer/openapi` or `@arclayer/openapi/admin-types`.
+- Keep `src/types/api/*` limited to Admin UI-only models such as `*ViewModel`, `*Row`, `*FormState`, `*UiState`, and feature-owned presentation projections.
+- Do not re-export generated OpenAPI types through `src/types/api/index.ts`.
+- Do not alias generated OpenAPI payload types in local Admin type files when the consumer can import them directly.
+- Do not define duplicated backend `*Request` or `*Response` shapes in Admin source.
 - Small non-exported helper types that only exist inside one API file are acceptable when they do not represent shared contract surface.
 
 ### 6.3 Data fetching rules
@@ -186,8 +191,8 @@ If a helper is reused across multiple page families, `src/lib` is usually the co
 
 ### 7.5 `src/types`
 
-- Keep Admin-only types in `src/types`.
-- Promote cross-app contracts into shared packages instead of duplicating local shapes.
+- Keep Admin-only UI and presentation types in `src/types`.
+- Backend API boundary contracts belong to `packages/openapi`; do not duplicate local request/response shapes.
 
 ## 8. Shared Package Promotion Rules
 
@@ -195,7 +200,7 @@ Promote code into `packages/*` when it is reused across apps or is clearly found
 
 Current package placement rules:
 
-- `packages/openapi`: generated API client and generated contract artifacts
+- `packages/openapi`: generated API client and the single generated backend API boundary type source
 - `packages/web`: runtime utilities and shared non-UI primitives
 - `packages/hooks`: reusable hooks that are not Admin-only
 - `packages/lib`: shared helpers used across multiple apps
@@ -204,6 +209,7 @@ Current package placement rules:
 Hard rule:
 
 - do not import source files directly from another app
+- do not import, depend on, or recreate `@arclayer/contracts` or `packages/contracts`
 
 ## 9. File Placement Decision Order
 

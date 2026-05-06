@@ -1,4 +1,8 @@
-import type { AdminContentModel, CreateAdminContentModelFieldPayload } from "@/types/api";
+import type {
+  AdminContentModel,
+  CreateAdminContentModelFieldPayload,
+  JsonValueInput,
+} from "@arclayer/openapi/admin-types";
 
 import type { ContentTypeIdentifierState } from "./types";
 import {
@@ -430,7 +434,7 @@ function buildFieldScalar(
 export function buildContentModelFieldPayload(
   draft: ContentModelFieldDraft,
 ): CreateAdminContentModelFieldPayload {
-  const config: Record<string, unknown> = {
+  const config: Record<string, JsonValueInput> = {
     kind: draft.typeId,
     localizable: draft.localizable,
   };

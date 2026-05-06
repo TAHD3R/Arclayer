@@ -7,7 +7,7 @@ It is normative: new backend and frontend API work must follow these rules unles
 
 - Keep HTTP contracts predictable, typed, and reviewable.
 - Prevent backend persistence details from leaking into public APIs.
-- Keep backend and frontend aligned on one schema-first truth.
+- Keep backend and frontend aligned on one schema-first truth generated through `packages/openapi`.
 - Make breaking changes explicit and deliberate instead of hiding them behind compatibility shells.
 
 ## 2. Scope
@@ -18,6 +18,10 @@ This guideline applies to:
 - backend request/response schemas in `apps/api/src/modules/**/schema.py`
 - shared backend HTTP primitives in `apps/api/src/core/http/*`
 - frontend consumers in `apps/admin/src/api/**`, `apps/portal/src/**`, and `packages/openapi/**`
+
+`packages/openapi` is the only generated backend API boundary type source for TypeScript clients.
+API type changes start in backend FastAPI/Pydantic schemas, then regenerate with
+`pnpm --filter @arclayer/openapi generate`.
 
 ## 3. Endpoint Contract Rules
 
@@ -143,6 +147,10 @@ Admin clients must read the `csrf_token` cookie and submit it as `X-CSRF-Token` 
 
 - Frontend code must consume typed API wrappers, not raw transport payloads.
 - API clients must return explicit typed values rather than `any`.
+- Frontend request/response types must come directly from `@arclayer/openapi` or helper exports owned by `packages/openapi`.
+- Admin local type files may define UI-only view models, rows, form state, and presentation projections, but must not duplicate backend request/response schemas or alias generated boundary types through local facade files.
+- `packages/contracts`, `@arclayer/contracts`, and Admin barrels or local alias modules that re-export generated backend boundary types are forbidden.
+- SDK-owned transport options, envelope/result wrappers, metadata, and pagination wrappers live in the owning SDK package; generated backend payload types still come directly from `@arclayer/openapi`.
 - Frontend code must not depend on internal UUID formats, raw DB table names, or backend-only state that is not part of the published schema.
 
 ## 9. PR Checklist
@@ -156,6 +164,7 @@ Admin clients must read the `csrf_token` cookie and submit it as `X-CSRF-Token` 
 - [ ] Router tags use the `domain/global/internal/external` dotted vocabulary.
 - [ ] Router/service/repository boundaries are preserved.
 - [ ] Breaking changes cut cleanly without fallback contract shells.
+- [ ] TypeScript clients use `packages/openapi` as the single backend API boundary type source.
 
 ## 10. Anti-Patterns
 
@@ -164,3 +173,4 @@ Admin clients must read the `csrf_token` cookie and submit it as `X-CSRF-Token` 
 - using title-cased router tags
 - leaving old and new contract surfaces alive in parallel without a clear owner
 - swallowing errors to preserve a fake compatible response
+- reintroducing `packages/contracts`, `@arclayer/contracts`, or local Admin API barrels / alias modules for generated backend types

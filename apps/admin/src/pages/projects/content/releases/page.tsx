@@ -15,7 +15,7 @@ import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-acc
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { buildContentLibraryItemsQueryKey } from "@/pages/projects/content/library/runtime";
-import type { AdminRelease } from "@/types/api";
+import type { AdminRelease } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { dateTimeLocalValueToIso } from "@arclayer/ui/date-time-range-field";

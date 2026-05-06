@@ -4,7 +4,7 @@ import { Archive, LogIn, Palette, Pencil, Settings2, Trash2, Undo2 } from "lucid
 
 import { getWorkspaceDangerCapabilities } from "@/api/workspaces";
 import { notifyError, notifyErrorText } from "@/lib/notifications";
-import type { WorkspaceDangerCapabilities } from "@/types/api";
+import type { WorkspaceDangerCapabilities } from "@arclayer/openapi/admin-types";
 
 import type {
   UserCenterWorkspaceListItem,

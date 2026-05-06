@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { projectContentLibraryItemPath } from "@/lib/routing/project-content-routing";
-import type { AdminContentItem } from "@/types/api";
+import type { AdminContentItem } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   Card,

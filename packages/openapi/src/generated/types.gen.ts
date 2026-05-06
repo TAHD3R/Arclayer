@@ -31590,6 +31590,10 @@ export type InternalSystemListActivityData = {
          */
         workspaceId?: string | null;
         /**
+         * Organizationid
+         */
+        organizationId?: string | null;
+        /**
          * Actoruserid
          */
         actorUserId?: string | null;
@@ -33660,6 +33664,10 @@ export type DomainWorkspacesListWorkspaceActivityData = {
          * Workspaceid
          */
         workspaceId?: string | null;
+        /**
+         * Organizationid
+         */
+        organizationId?: string | null;
         /**
          * Actoruserid
          */

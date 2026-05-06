@@ -21,6 +21,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
 import { normalizeOptionalString } from "@/lib/settings/general/utils";
+import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import { getFieldErrorMessage, validateFormFields } from "../form-helpers";
 
 type OverlayKey = "mailConfig";
@@ -108,7 +109,7 @@ export function MessagingSettingsTab({
         "mailSslTls",
       ]);
 
-      const patchValue: Record<string, unknown> = {
+      const patchValue: Record<string, JsonValueInput> = {
         server: String(values.mailServer || "").trim() || "localhost",
         port: Number(values.mailPort || 0),
         username: normalizeOptionalString(values.mailUsername),

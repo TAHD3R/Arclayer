@@ -1,6 +1,5 @@
-import type { UploadInitRequest } from "@/types/api";
+import type { UploadInitRequest, UploadPartCommitRequest } from "@arclayer/openapi/admin-types";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
-import type { UploadPartCommitRequest } from "@/types/api";
 import {
   abortOrganizationUpload,
   abortUpload,

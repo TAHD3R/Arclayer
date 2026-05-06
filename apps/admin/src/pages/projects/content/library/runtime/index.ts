@@ -23,7 +23,7 @@ import type {
   AdminContentWorkflowStage,
   ListAdminContentVersionsParams,
   PageData,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 import type { ContentLibraryTableRow } from "../types";
 
 export const CONTENT_LIBRARY_VERSION_HISTORY_PAGE_SIZE = 30;

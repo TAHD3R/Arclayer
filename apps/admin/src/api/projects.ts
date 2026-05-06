@@ -1,7 +1,6 @@
 import { projectPath, toQueryString } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
-  PageData,
   ProjectArchiveResult,
   ProjectCreateInput,
   ProjectDangerCapabilities,
@@ -10,7 +9,8 @@ import type {
   ProjectListItem,
   ProjectSlugAvailability,
   ProjectUpdateInput,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
+import type { PageData } from "@arclayer/openapi/admin-types";
 
 export async function getProjectDetail(projectId: string): Promise<ProjectDetail> {
   return api.get<ProjectDetail>(projectPath(projectId));

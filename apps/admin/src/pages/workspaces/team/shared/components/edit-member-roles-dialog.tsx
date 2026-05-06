@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import type { Role, TeamMember } from "@/types/api";
+import type { Role, TeamMember } from "@arclayer/openapi/admin-types";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 export function EditMemberRolesDialog(props: {

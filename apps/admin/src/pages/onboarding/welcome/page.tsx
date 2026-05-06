@@ -76,7 +76,7 @@ function buildInviteRows(defaultRoleCode: string): InviteDraftRow[] {
 }
 
 function getWorkspaceIdFromOnboarding(data: Awaited<ReturnType<typeof listMyWorkspaces>>) {
-  return data.onboarding?.workspaceId ?? data.onboarding?.workspace_id ?? null;
+  return data.onboarding?.workspaceId ?? null;
 }
 
 function buildRoleOptions(

@@ -1,4 +1,7 @@
-import type { AdminContentBootstrapPresetState, AdminContentCapabilityPackId } from "@/types/api";
+import type {
+  AdminContentBootstrapPresetState,
+  AdminContentCapabilityPackId,
+} from "@arclayer/openapi/admin-types";
 
 import { CONTENT_BOOTSTRAP_PRESET_MAP } from "./definitions";
 import type { ContentBootstrapPresetKey, ContentBootstrapShapeSelection } from "./types";

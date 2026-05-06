@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 
-import type { AdminContentBootstrapPresetState, AdminContentCapabilityPackId } from "@/types/api";
+import type { AdminContentBootstrapPresetState } from "@arclayer/openapi/admin-types";
+import type { AdminContentCapabilityPackId } from "@arclayer/openapi/admin-types";
 
 export type ContentBootstrapPresetKey =
   | "page"

@@ -1,46 +1,47 @@
 import { describe, expectTypeOf, it } from "vitest";
 
 import type {
-  ManagementResult,
-  ProjectSettingsDetailContract,
-  ProjectSettingsPatchContract,
-  PublishImpactContract,
-  PublishPreviewContract,
-  ReleaseDryRunContract,
-  ReleaseListContract,
-} from "../src";
+  ProjectSettingsDetail,
+  ProjectSettingsPatch,
+  PublishExportContractOut,
+  PublishReadinessOut,
+  ReleaseDryRunOut,
+  ReleaseListOut,
+} from "@arclayer/openapi";
+
+import type { ManagementResult } from "../src";
 import { createManagementSdk } from "../src";
 
 type ManagementSdkPublic = ReturnType<typeof createManagementSdk>;
 
-// @ts-expect-error management-sdk public surface must expose contract alias names.
-type RawProjectSettingsDetailExport = import("../src").ProjectSettingsDetail;
-// @ts-expect-error management-sdk public surface must expose contract alias names.
-type RawProjectSettingsPatchExport = import("../src").ProjectSettingsPatch;
-void (0 as RawProjectSettingsDetailExport | RawProjectSettingsPatchExport);
+// @ts-expect-error management-sdk must not re-export backend boundary type aliases.
+type RemovedProjectSettingsDetailAlias = import("../src").ProjectSettingsDetailContract;
+// @ts-expect-error management-sdk must not re-export backend boundary type aliases.
+type RemovedPublishPreviewAlias = import("../src").PublishPreviewContract;
+void (0 as RemovedProjectSettingsDetailAlias | RemovedPublishPreviewAlias);
 
 describe("management-sdk type boundary", () => {
-  it("keeps contract aliases on caller-facing methods", () => {
+  it("uses direct generated OpenAPI types on caller-facing methods", () => {
     expectTypeOf<
       Awaited<ReturnType<ManagementSdkPublic["site"]["getCoreSettings"]>>
-    >().toEqualTypeOf<ManagementResult<ProjectSettingsDetailContract>>();
+    >().toEqualTypeOf<ManagementResult<ProjectSettingsDetail>>();
     expectTypeOf<
       Parameters<ManagementSdkPublic["site"]["patchCoreSettings"]>[0]["body"]
-    >().toEqualTypeOf<ProjectSettingsPatchContract>();
+    >().toEqualTypeOf<ProjectSettingsPatch>();
     expectTypeOf<
       Awaited<ReturnType<ManagementSdkPublic["site"]["patchCoreSettings"]>>
-    >().toEqualTypeOf<ManagementResult<ProjectSettingsDetailContract>>();
+    >().toEqualTypeOf<ManagementResult<ProjectSettingsDetail>>();
     expectTypeOf<Awaited<ReturnType<ManagementSdkPublic["releases"]["list"]>>>().toEqualTypeOf<
-      ManagementResult<ReleaseListContract>
+      ManagementResult<ReleaseListOut>
     >();
     expectTypeOf<Awaited<ReturnType<ManagementSdkPublic["releases"]["dryRun"]>>>().toEqualTypeOf<
-      ManagementResult<ReleaseDryRunContract>
+      ManagementResult<ReleaseDryRunOut>
     >();
     expectTypeOf<
       Awaited<ReturnType<ManagementSdkPublic["releases"]["publishImpact"]>>
-    >().toEqualTypeOf<ManagementResult<PublishImpactContract>>();
+    >().toEqualTypeOf<ManagementResult<PublishReadinessOut>>();
     expectTypeOf<
       Awaited<ReturnType<ManagementSdkPublic["releases"]["publishPreviewContract"]>>
-    >().toEqualTypeOf<ManagementResult<PublishPreviewContract>>();
+    >().toEqualTypeOf<ManagementResult<PublishExportContractOut>>();
   });
 });

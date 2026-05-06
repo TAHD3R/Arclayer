@@ -1,4 +1,4 @@
-import type { TeamMember, UserStatus } from "@/types/api";
+import type { TeamMember, UserStatus } from "@arclayer/openapi/admin-types";
 
 export interface TeamMemberExtraQuery {
   status?: TeamMember["membershipStatus"];

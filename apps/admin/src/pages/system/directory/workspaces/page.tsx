@@ -26,7 +26,7 @@ import {
   type OperatorAwareFilterState,
 } from "@/components/common/reui-filter-state";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
-import type { SystemDirectoryWorkspace } from "@/types/api/system-directory";
+import type { SystemDirectoryWorkspace } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,

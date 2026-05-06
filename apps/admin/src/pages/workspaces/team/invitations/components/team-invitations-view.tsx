@@ -33,7 +33,7 @@ import { buildInvitationUserDetails } from "@/pages/workspaces/team/shared/compo
 import { SettingsTableRefreshSkeleton } from "@/pages/workspaces/team/shared/components/settings-table-refresh-skeleton";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { PageData, TeamInvitation, TeamInviteLink } from "@/types/api";
+import type { PageData, TeamInvitation, TeamInviteLink } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   ChromeTabs,

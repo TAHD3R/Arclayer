@@ -11,7 +11,7 @@ import { resolveCatalogEntry } from "@/pages/workspaces/shared/activity/constant
 import { WorkspaceMemberActivityTab } from "@/pages/workspaces/team/shared/components/member-inspect-activity-tab";
 import { MemberContextDialog } from "@/pages/workspaces/team/shared/components/member-context-dialog";
 import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
-import type { ActivityEvent, TeamMember } from "@/types/api";
+import type { ActivityEvent, TeamMember } from "@arclayer/openapi/admin-types";
 import {
   SummaryCard,
   workspaceMembershipLabel,

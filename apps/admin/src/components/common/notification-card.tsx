@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
-import type { NotificationCategory, NotificationItem } from "@/types/api";
+import type { NotificationCategory, NotificationItem } from "@arclayer/openapi/admin-types";
 import {
   Item,
   ItemContent,

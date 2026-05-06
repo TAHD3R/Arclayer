@@ -12,7 +12,7 @@ import {
   seedDemoNotifications,
 } from "@/api/notifications";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
-import type { NotificationItem } from "@/types/api";
+import type { NotificationItem } from "@arclayer/openapi/admin-types";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";

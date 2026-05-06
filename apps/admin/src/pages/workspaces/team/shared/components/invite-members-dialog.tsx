@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 
-import type { Role } from "@/types/api";
+import type { Role } from "@arclayer/openapi/admin-types";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
 import { EmailTagsField } from "@/components/ui/email-tags-field";
 import { Button } from "@arclayer/ui/button";

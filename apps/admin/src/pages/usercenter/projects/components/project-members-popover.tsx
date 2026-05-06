@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { listProjectMembers } from "@/api/project-members";
 import { UserAvatar } from "@/components/common/entity-avatar";
-import type { ProjectMember } from "@/types/api";
+import type { ProjectMember } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import { AvatarGroup, AvatarGroupCount } from "@arclayer/ui/avatar";
 import {

@@ -1,19 +1,21 @@
 import { api } from "@/lib/http";
 import { projectPath, workspacePath, toQueryString } from "@/lib/api";
 import type {
-  AuthzSnapshot,
   OrganizationAuthzSnapshot,
+  OnboardingWorkspaceCreatePayload,
+  OnboardingWorkspaceCreateResult,
+} from "@arclayer/openapi/admin-types";
+import type {
+  AuthzSnapshot,
   ProjectAuthzSnapshot,
   LeaveWorkspaceResult,
   MyWorkspaceListResult,
-  OnboardingWorkspaceCreatePayload,
-  OnboardingWorkspaceCreateResult,
   WorkspaceAssignRoleResult,
   WorkspaceDangerCapabilities,
   WorkspaceDeleteResult,
   WorkspaceDetail,
   WorkspaceRolePolicy,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function listMyWorkspaces(): Promise<MyWorkspaceListResult> {
   return api.get<MyWorkspaceListResult>("/me/workspaces");

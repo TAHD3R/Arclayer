@@ -1,4 +1,4 @@
-import type { MembershipStatus, UserStatus } from "@/types/api";
+import type { MembershipStatus, UserStatus } from "@arclayer/openapi/admin-types";
 
 export type { MembershipStatus, UserStatus };
 

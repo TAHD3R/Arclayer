@@ -52,7 +52,7 @@ import type {
   SystemDirectoryUser,
   SystemDirectoryWorkspaceDetail,
   SystemDirectoryWorkspace,
-} from "@/types/api/system-directory";
+} from "@arclayer/openapi/admin-types";
 
 const QUERY_OPTIONS = {
   staleTime: 30 * 1000,

@@ -7,13 +7,16 @@ import {
   listWorkspacePermissionActions,
 } from "@/api/rbac";
 import { getMyOrganizationAuthz, getMyProjectAuthz, getMyWorkspaceAuthz } from "@/api/workspaces";
+import type { OrganizationAuthzSnapshot } from "@arclayer/openapi/admin-types";
 import type {
   AuthzSnapshot,
-  OrganizationAuthzSnapshot,
   ProjectAuthzSnapshot,
   ProjectPermissionAction,
-} from "@/types/api";
-import type { OrganizationPermissionAction, WorkspacePermissionAction } from "@/types/api/rbac";
+} from "@arclayer/openapi/admin-types";
+import type {
+  OrganizationPermissionAction,
+  WorkspacePermissionAction,
+} from "@arclayer/openapi/admin-types";
 
 type PermissionActionLike = {
   code: string;

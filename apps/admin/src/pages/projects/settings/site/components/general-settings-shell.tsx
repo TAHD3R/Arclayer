@@ -14,6 +14,7 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@arclayer/ui/chrome-tabs";
+import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import { Form } from "@arclayer/ui/form";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
@@ -94,7 +95,7 @@ export function GeneralSettingsShell({
   }, [form, initialValues, projectCoreQuery.data]);
 
   const saveProjectMutation = useMutation({
-    mutationFn: async (patch: Record<string, unknown>) =>
+    mutationFn: async (patch: Record<string, JsonValueInput>) =>
       projectId
         ? patchProjectCoreSettings(String(projectId), patch)
         : Promise.reject(new Error("PROJECT_NOT_SELECTED")),
@@ -108,7 +109,7 @@ export function GeneralSettingsShell({
   });
 
   const patchProject: GeneralSettingsPatchFn = useCallback(
-    async (patchValue: Record<string, unknown>) => {
+    async (patchValue: Record<string, JsonValueInput>) => {
       await saveProjectMutation.mutateAsync(patchValue);
     },
     [saveProjectMutation],

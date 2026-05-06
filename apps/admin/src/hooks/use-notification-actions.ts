@@ -8,7 +8,7 @@ import { listMyWorkspaces } from "@/api/workspaces";
 import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
-import type { NotificationItem } from "@/types/api";
+import type { NotificationItem } from "@arclayer/openapi/admin-types";
 
 export function useNotificationActions() {
   const { t } = useTranslation("notifications");

@@ -23,7 +23,7 @@ import type {
   SystemDirectoryOrganization,
   SystemDirectoryProject,
   SystemDirectoryWorkspace,
-} from "@/types/api/system-directory";
+} from "@arclayer/openapi/admin-types";
 import {
   AlertDialog,
   AlertDialogContent,

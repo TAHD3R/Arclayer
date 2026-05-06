@@ -35,8 +35,8 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { TeamRolesDialogs } from "./roles-dialogs";
 import { includesText, normalizeNeedle, sortByName } from "../utils";
 import type { CreateRoleFormValues, EditRoleFormValues } from "../utils";
-import type { Role } from "@/types/api";
-import type { RolePermissionGrant } from "@/types/api/rbac";
+import type { Role } from "@arclayer/openapi/admin-types";
+import type { RolePermissionGrant } from "@arclayer/openapi/admin-types";
 
 type RoleWithPermissionGrants = Role & {
   permissionGrants?: RolePermissionGrant[];

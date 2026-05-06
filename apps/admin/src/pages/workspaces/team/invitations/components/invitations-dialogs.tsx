@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import type { TeamInvitation, TeamInviteLink } from "@/types/api";
+import type { TeamInvitation, TeamInviteLink } from "@arclayer/openapi/admin-types";
 import {
   AlertDialog,
   AlertDialogContent,

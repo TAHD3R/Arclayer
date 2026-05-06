@@ -33,7 +33,7 @@ import type {
   PatchAdminContentLibraryViewPayload,
   ReorderAdminContentModelFieldsPayload,
   SaveAdminContentDraftVersionPayload,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 const CONTENT_LIST_PAGE_SIZE = 200;
 

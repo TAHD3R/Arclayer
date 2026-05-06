@@ -456,6 +456,20 @@ DEFAULT_REGISTRY = RuleRegistry(
             symbol_driven=True,
         ),
         _legacy_rule(
+            rule_id="hard-cut.openapi-single-source",
+            title="OpenAPI is the single backend API type source",
+            category="hard-cut",
+            severity=Severity.BLOCKER,
+            supported_scopes=(AuditScope.FULL, AuditScope.FRONTEND, AuditScope.PACKAGE, AuditScope.CHANGED, AuditScope.RULES),
+            source=(
+                "docs/guidelines/backend-endpoint-contract.md",
+                "docs/guidelines/frontend-folder-architecture.md",
+            ),
+            owner="architecture",
+            dedupe_key="hard-cut-openapi-single-source",
+            symbol_driven=False,
+        ),
+        _legacy_rule(
             rule_id="plugin.must-register-lifecycle",
             title="Plugins extending lifecycle must register hooks",
             category="plugin",

@@ -86,7 +86,8 @@ describe("management-sdk", () => {
         body: {
           category: "content_library",
           defaultEditor: "form",
-          key: "article",
+          pluralKey: "articles",
+          singularKey: "article",
           name: "Article",
         },
         projectId: "project_123",

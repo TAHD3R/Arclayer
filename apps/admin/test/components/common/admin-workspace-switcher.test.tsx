@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MyWorkspace, MyWorkspaceListResult } from "@/types/api";
+import type { MyWorkspace, MyWorkspaceListResult } from "@arclayer/openapi/admin-types";
 import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import {

@@ -23,7 +23,7 @@ import {
   type OperatorAwareFilterState,
 } from "@/components/common/reui-filter-state";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
-import type { SystemDirectoryOrganization } from "@/types/api/system-directory";
+import type { SystemDirectoryOrganization } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,

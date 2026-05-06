@@ -8,6 +8,7 @@ import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import type { GeneralSettingsFormValues, WithSavingKeyFn } from "@/types/settings-general";
+import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import { formatSummaryText, normalizeOptionalString } from "./site-settings-tab-helpers";
 
 type AssetFieldName = "siteLogoAssetId" | "siteFaviconAssetId";
@@ -24,7 +25,7 @@ type SiteBrandAssetAccordionItemProps = {
   form: UseFormReturn<GeneralSettingsFormValues>;
   initialAssetId: string;
   initialUrl: string;
-  patch: (patch: Record<string, unknown>) => Promise<void>;
+  patch: (patch: Record<string, JsonValueInput>) => Promise<void>;
   patchField: "logo" | "favicon";
   removeAriaLabel: string;
   resetKey: string;

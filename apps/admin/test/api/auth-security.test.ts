@@ -26,7 +26,11 @@ import {
   revokeOtherSessions,
   setMyPassword,
 } from "@/api/auth";
-import type { AuthSessionRow, TwoFactorCapabilities, TwoFactorStatus } from "@/types/api";
+import type {
+  AuthSessionRow,
+  TwoFactorCapabilities,
+  TwoFactorStatus,
+} from "@arclayer/openapi/admin-types";
 
 describe("api/auth security wrappers", () => {
   beforeEach(() => {

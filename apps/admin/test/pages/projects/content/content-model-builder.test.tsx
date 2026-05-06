@@ -10,7 +10,7 @@ import {
   getContentModelFieldCount,
   toContentModelsTableQuery,
 } from "@/pages/projects/content/models/utils";
-import type { AdminContentModel } from "@/types/api";
+import type { AdminContentModel } from "@arclayer/openapi/admin-types";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const createContentModelMock = vi.fn();

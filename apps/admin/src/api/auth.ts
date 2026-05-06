@@ -25,7 +25,7 @@ import type {
   UpdateMyProfilePayload,
   UsernameCheckOut,
   UserProfile,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function emailCheck(payload: { email: string }): Promise<EmailCheckOut> {
   return api.post<EmailCheckOut>("/auth/email-check", payload, { auth: { skipRefresh: true } });

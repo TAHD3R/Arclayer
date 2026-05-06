@@ -4,7 +4,7 @@ import { Folder } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@arclayer/lib/utils";
 
-import type { AdminAssetFolder } from "@/types/api";
+import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
 
 export function AssetsExplorerFolderUpTile(props: {
   label: string;

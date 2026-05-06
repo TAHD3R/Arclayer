@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { AdminAssetFolder } from "@/types/api";
+import type { AdminAssetFolder } from "@arclayer/openapi/admin-types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 

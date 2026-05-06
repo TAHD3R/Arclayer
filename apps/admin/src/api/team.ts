@@ -15,7 +15,7 @@ import type {
   ListTeamInviteLinksParams,
   TeamInviteLinkParticipant,
   ListTeamInviteLinkParticipantsParams,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 export async function listTeamMembers(
   workspaceId: string,

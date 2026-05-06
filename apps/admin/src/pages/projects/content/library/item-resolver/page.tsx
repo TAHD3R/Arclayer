@@ -15,7 +15,7 @@ import type {
   AdminContentItem,
   AdminContentOpenIntent,
   AdminContentRecoveryAction,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   Card,

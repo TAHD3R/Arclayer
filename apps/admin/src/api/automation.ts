@@ -8,7 +8,7 @@ import type {
   AdminAutomationRunList,
   CreateAdminAutomationFlowPayload,
   PatchAdminAutomationFlowPayload,
-} from "@/types/api";
+} from "@arclayer/openapi/admin-types";
 
 const AUTOMATION_QUERY_KEY_PREFIX = ["content", "automation"] as const;
 

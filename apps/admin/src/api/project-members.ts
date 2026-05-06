@@ -1,6 +1,7 @@
 import { projectPath, toQueryString } from "@/lib/api";
 import { api } from "@/lib/http";
-import type { PageData, ProjectMember } from "@/types/api";
+import type { ProjectMember } from "@arclayer/openapi/admin-types";
+import type { PageData } from "@arclayer/openapi/admin-types";
 
 export async function listProjectMembers(
   projectId: string,

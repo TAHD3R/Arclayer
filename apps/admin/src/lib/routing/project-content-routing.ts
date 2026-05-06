@@ -1,4 +1,4 @@
-import type { AdminContentItem, AdminContentOpenIntent } from "@/types/api";
+import type { AdminContentItem, AdminContentOpenIntent } from "@arclayer/openapi/admin-types";
 
 function safeReturnTo(value: string | null | undefined): string | null {
   const raw = (value || "").trim();

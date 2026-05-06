@@ -17,7 +17,7 @@ import {
   UserMinus,
 } from "lucide-react";
 
-import type { SystemDirectoryUser } from "@/types/api/system-directory";
+import type { SystemDirectoryUser } from "@arclayer/openapi/admin-types";
 import {
   buildOperatorAwareFilterState,
   buildFiltersFromOperatorAwareState,

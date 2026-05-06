@@ -6,7 +6,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
 import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/components/user-notification-settings-view";
-import type { NotificationPreferences, NotificationPreferenceTopic } from "@/types/api";
+import type {
+  NotificationPreferences,
+  NotificationPreferenceTopic,
+} from "@arclayer/openapi/admin-types";
 
 vi.mock("@/api/notifications", () => ({
   getMyNotificationPreferences: vi.fn(),

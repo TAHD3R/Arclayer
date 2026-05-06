@@ -9,7 +9,8 @@ import { Textarea } from "@arclayer/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@arclayer/ui/toggle-group";
 import { cn } from "@arclayer/lib/utils";
 
-import type { AdminContentItemVisibility, AdminContentModel } from "@/types/api";
+import type { AdminContentItemVisibility } from "@arclayer/openapi/admin-types";
+import type { AdminContentModel } from "@arclayer/openapi/admin-types";
 
 import {
   getOfficialContentTypePresentation,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
-import type { NotificationItem } from "@/types/api";
+import type { NotificationItem } from "@arclayer/openapi/admin-types";
 
 function makeNotification(targetTo: string): NotificationItem {
   return {

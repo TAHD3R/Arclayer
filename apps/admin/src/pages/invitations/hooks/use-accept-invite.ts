@@ -199,7 +199,7 @@ export function useAcceptInvite(rawToken: string | null) {
       payload.projectId ??
       (await listMyWorkspaces().then(
         (result) =>
-          result.items.find((workspace) => workspace.workspaceId === payload.workspaceId)
+          (result.items ?? []).find((workspace) => workspace.workspaceId === payload.workspaceId)
             ?.projectId ?? null,
       ));
     if (projectId) {

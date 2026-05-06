@@ -9,8 +9,8 @@ vi.mock("@/lib/http", () => ({
 import { api } from "@/lib/http";
 import { listOrganizationPermissionActions } from "@/api/rbac";
 import { getMyOrganizationAuthz } from "@/api/workspaces";
-import type { OrganizationAuthzSnapshot } from "@/types/api";
-import type { OrganizationPermissionAction } from "@/types/api/rbac";
+import type { OrganizationAuthzSnapshot } from "@arclayer/openapi/admin-types";
+import type { OrganizationPermissionAction } from "@arclayer/openapi/admin-types";
 
 describe("api/organization governance contracts", () => {
   beforeEach(() => {

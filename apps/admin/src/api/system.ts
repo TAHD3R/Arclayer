@@ -1,5 +1,6 @@
 import { api } from "@/lib/http";
-import type { SystemBootstrapPayload, SystemRuntime, TokenPair } from "@/types/api";
+import type { SystemBootstrapPayload, TokenPair } from "@arclayer/openapi/admin-types";
+import type { SystemRuntime } from "@arclayer/openapi/admin-types";
 
 /**
  * Public runtime probe endpoint.

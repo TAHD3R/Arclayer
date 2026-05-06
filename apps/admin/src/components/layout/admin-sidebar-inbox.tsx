@@ -11,7 +11,7 @@ import { useSettingsScreen } from "@/components/layout/settings-screen-provider"
 import { useNotificationActions } from "@/hooks/use-notification-actions";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { buildNotificationsSourceSearch } from "@/lib/routing/notifications-source";
-import type { NotificationItem } from "@/types/api";
+import type { NotificationItem } from "@arclayer/openapi/admin-types";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
