@@ -3,12 +3,12 @@ from __future__ import annotations
 import enum
 import inspect
 import re
-from dataclasses import dataclass
 from typing import Any, cast
 from uuid import UUID
 
 import strawberry
 from graphql import GraphQLError
+from pydantic import BaseModel, ConfigDict
 from strawberry.scalars import JSON
 
 from src.common.types.json_types import JsonValue
@@ -154,8 +154,8 @@ class GraphQLSortDirection(enum.Enum):
     DESC = "desc"
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLModelRuntimeTypes:
+class GraphQLModelRuntimeTypes(BaseModel):
+    model_config = ConfigDict(frozen=True)
     entry_type: type[Any]
     filter_input_type: type[Any]
     sort_enum: type[enum.Enum]

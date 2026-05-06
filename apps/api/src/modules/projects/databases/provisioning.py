@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 from uuid import UUID, uuid4
 
 import asyncpg
+from pydantic import BaseModel
 
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
@@ -21,16 +21,14 @@ def _te(key: str, **kwargs: str | None) -> str:
     return t("errors", key, **kwargs)
 
 
-@dataclass(slots=True)
-class ProvisionedDatabaseInstance:
+class ProvisionedDatabaseInstance(BaseModel):
     host: str
     port: int
     database_name: str
     schema_name: str
 
 
-@dataclass(slots=True)
-class ProvisionedDatabaseCredential:
+class ProvisionedDatabaseCredential(BaseModel):
     role: ProjectDatabaseCredentialRole
     username: str
     secret_ref: str

@@ -20,6 +20,7 @@ from code_review_engine.migrated.rules.architecture import (
     RouterNoDirectRepository,
     WritePathViolation,
 )
+from code_review_engine.migrated.rules.backend_dataclass import BackendNoProductionDataclass
 from code_review_engine.migrated.rules.base import AuditRule
 from code_review_engine.migrated.rules.endpoint import (
     EndpointMissingDocstring,
@@ -27,7 +28,6 @@ from code_review_engine.migrated.rules.endpoint import (
 )
 from code_review_engine.migrated.rules.entity_manager import (
     EntityManagerNoAnyFields,
-    EntityManagerNoDataclassReturn,
     EntityManagerWriteMustUseEM,
 )
 from code_review_engine.migrated.rules.filesystem import ModuleStructureRule
@@ -83,8 +83,9 @@ ALL_RULES: list[AuditRule] = [
     # ── Backend: Repository — must use TortoiseORMRepository (new architecture) ──
     RepositoryMustExtendTortoiseORM(),
     RepositoryNoBusinessLogic(),
+    # ── Backend: Production dataclass ban ──
+    BackendNoProductionDataclass(),
     # ── Backend: EntityManager — universal write gateway ──
-    EntityManagerNoDataclassReturn(),
     EntityManagerNoAnyFields(),
     EntityManagerWriteMustUseEM(),
     # ── Backend: Lifecycle hooks — must dispatch on all writes ──

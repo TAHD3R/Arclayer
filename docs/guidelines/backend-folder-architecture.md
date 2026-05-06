@@ -199,6 +199,13 @@ Every Activity coverage rollout updates `docs/plans/architecture-hard-cut-2026-0
 
 ## 9. Model and Table Rules
 
+### 9.0 Production structured-data contract
+
+- Production structured backend data objects under `apps/api/src/**` must use Pydantic v2 models or another approved typed structure (for example `Protocol`, `Enum`, `Literal`, or explicit typed parameters).
+- `dataclasses` imports, `@dataclass` decorators, and `dataclass(...)` factory usage are banned under `apps/api/src/**`.
+- Immutable value objects should use frozen Pydantic models (`ConfigDict(frozen=True)`), and mutable defaults should use `Field(default_factory=...)`.
+- Code-review-engine rule `backend.no-production-dataclass` enforces this production boundary.
+
 ### 9.1 Table namespace contract
 
 - `Meta.table` is mandatory for authored models.

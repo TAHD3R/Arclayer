@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
+from pydantic import BaseModel, ConfigDict
 
 from src.core.logging import get_logger
 from src.core.plugin.lifecycle import PluginLifecycle, PluginLifecyclePhase
@@ -14,9 +14,10 @@ from src.core.plugin.manager import PluginManager
 logger = get_logger(__name__)
 
 
-@dataclass(frozen=True)
-class PluginRuntime:
+class PluginRuntime(BaseModel):
     """App-owned plugin startup state exposed through `app.state`."""
+
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     manager: PluginManager
     lifecycle: PluginLifecycle

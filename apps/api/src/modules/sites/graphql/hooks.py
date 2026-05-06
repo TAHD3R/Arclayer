@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Protocol
+
+from pydantic import BaseModel, ConfigDict
 
 from src.modules.sites.graphql.planner import GraphQLQueryPlan
 from src.modules.sites.graphql.registry import list_graphql_model_schemas
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLSchemaFieldHookDefinition:
+class GraphQLSchemaFieldHookDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     name: str
     phase: str
     model_keys: tuple[str, ...]
     description: str
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLQueryHookDefinition:
+class GraphQLQueryHookDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     name: str
     phase: str
     model_keys: tuple[str, ...]
@@ -29,8 +30,8 @@ class GraphQLQueryPostProcessorHook(Protocol):
     def process(self, *, plan: GraphQLQueryPlan, records: list[object]) -> list[object]: ...
 
 
-@dataclass(frozen=True, slots=True)
-class OfficialProtocolQueryPostProcessorHook:
+class OfficialProtocolQueryPostProcessorHook(BaseModel):
+    model_config = ConfigDict(frozen=True)
     definition: GraphQLQueryHookDefinition
 
     def process(self, *, plan: GraphQLQueryPlan, records: list[object]) -> list[object]:

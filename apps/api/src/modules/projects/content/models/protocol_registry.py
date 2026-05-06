@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Literal
 
+from pydantic import BaseModel, ConfigDict
 
-@dataclass(frozen=True)
-class OfficialModelFieldDefinition:
+
+class OfficialModelFieldDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     key: str
     label: str
     scalar: str
@@ -13,28 +14,28 @@ class OfficialModelFieldDefinition:
     config: dict[str, Any] | None = None
 
 
-@dataclass(frozen=True)
-class OfficialModelGraphQLSingleQuery:
+class OfficialModelGraphQLSingleQuery(BaseModel):
+    model_config = ConfigDict(frozen=True)
     name: str
     argument: str
     resolver: str
 
 
-@dataclass(frozen=True)
-class OfficialModelGraphQLFilterDefinition:
+class OfficialModelGraphQLFilterDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     public_name: str
     field_key: str
     operator: Literal["exact", "contains"]
 
 
-@dataclass(frozen=True)
-class OfficialModelGraphQLSortDefinition:
+class OfficialModelGraphQLSortDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     public_name: str
     field_key: str
 
 
-@dataclass(frozen=True)
-class OfficialModelGraphQLPolicy:
+class OfficialModelGraphQLPolicy(BaseModel):
+    model_config = ConfigDict(frozen=True)
     enabled: bool
     entry_type: str
     list_query: str
@@ -46,8 +47,8 @@ class OfficialModelGraphQLPolicy:
     query_post_processor: str = "official-protocol-query-contract"
 
 
-@dataclass(frozen=True)
-class OfficialModelProtocol:
+class OfficialModelProtocol(BaseModel):
+    model_config = ConfigDict(frozen=True)
     key: str
     singular_key: str
     plural_key: str
@@ -106,14 +107,18 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
                 resolver="get_record_by_slug",
             ),
             filters=(
-                OfficialModelGraphQLFilterDefinition("slug", "slug", "exact"),
-                OfficialModelGraphQLFilterDefinition("titleContains", "title", "contains"),
-                OfficialModelGraphQLFilterDefinition("revisionState", "revision_state", "exact"),
+                OfficialModelGraphQLFilterDefinition(public_name="slug", field_key="slug", operator="exact"),
+                OfficialModelGraphQLFilterDefinition(
+                    public_name="titleContains", field_key="title", operator="contains"
+                ),
+                OfficialModelGraphQLFilterDefinition(
+                    public_name="revisionState", field_key="revision_state", operator="exact"
+                ),
             ),
             sorts=(
-                OfficialModelGraphQLSortDefinition("TITLE", "title"),
-                OfficialModelGraphQLSortDefinition("SLUG", "slug"),
-                OfficialModelGraphQLSortDefinition("REVISION", "revision"),
+                OfficialModelGraphQLSortDefinition(public_name="TITLE", field_key="title"),
+                OfficialModelGraphQLSortDefinition(public_name="SLUG", field_key="slug"),
+                OfficialModelGraphQLSortDefinition(public_name="REVISION", field_key="revision"),
             ),
         ),
         system_fields=(
@@ -121,12 +126,7 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
             OfficialModelFieldDefinition(key="slug", label="Slug", scalar="text", required=True),
             OfficialModelFieldDefinition(key="summary", label="Summary", scalar="long_text", required=False),
             OfficialModelFieldDefinition(key="content", label="Content", scalar="long_text", required=False),
-            OfficialModelFieldDefinition(
-                key="published_at",
-                label="Published At",
-                scalar="date_time",
-                required=False,
-            ),
+            OfficialModelFieldDefinition(key="published_at", label="Published At", scalar="date_time", required=False),
         ),
     ),
     "page": OfficialModelProtocol(
@@ -165,14 +165,18 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
                 resolver="get_page_record_by_path",
             ),
             filters=(
-                OfficialModelGraphQLFilterDefinition("path", "path", "exact"),
-                OfficialModelGraphQLFilterDefinition("titleContains", "title", "contains"),
-                OfficialModelGraphQLFilterDefinition("revisionState", "revision_state", "exact"),
+                OfficialModelGraphQLFilterDefinition(public_name="path", field_key="path", operator="exact"),
+                OfficialModelGraphQLFilterDefinition(
+                    public_name="titleContains", field_key="title", operator="contains"
+                ),
+                OfficialModelGraphQLFilterDefinition(
+                    public_name="revisionState", field_key="revision_state", operator="exact"
+                ),
             ),
             sorts=(
-                OfficialModelGraphQLSortDefinition("TITLE", "title"),
-                OfficialModelGraphQLSortDefinition("PATH", "path"),
-                OfficialModelGraphQLSortDefinition("REVISION", "revision"),
+                OfficialModelGraphQLSortDefinition(public_name="TITLE", field_key="title"),
+                OfficialModelGraphQLSortDefinition(public_name="PATH", field_key="path"),
+                OfficialModelGraphQLSortDefinition(public_name="REVISION", field_key="revision"),
             ),
         ),
         system_fields=(
@@ -214,30 +218,26 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
                 resolver="get_reusable_section_record_by_alias",
             ),
             filters=(
-                OfficialModelGraphQLFilterDefinition("sectionKey", "section_key", "exact"),
-                OfficialModelGraphQLFilterDefinition("titleContains", "title", "contains"),
-                OfficialModelGraphQLFilterDefinition("revisionState", "revision_state", "exact"),
+                OfficialModelGraphQLFilterDefinition(
+                    public_name="sectionKey", field_key="section_key", operator="exact"
+                ),
+                OfficialModelGraphQLFilterDefinition(
+                    public_name="titleContains", field_key="title", operator="contains"
+                ),
+                OfficialModelGraphQLFilterDefinition(
+                    public_name="revisionState", field_key="revision_state", operator="exact"
+                ),
             ),
             sorts=(
-                OfficialModelGraphQLSortDefinition("TITLE", "title"),
-                OfficialModelGraphQLSortDefinition("SECTION_KEY", "section_key"),
-                OfficialModelGraphQLSortDefinition("REVISION", "revision"),
+                OfficialModelGraphQLSortDefinition(public_name="TITLE", field_key="title"),
+                OfficialModelGraphQLSortDefinition(public_name="SECTION_KEY", field_key="section_key"),
+                OfficialModelGraphQLSortDefinition(public_name="REVISION", field_key="revision"),
             ),
         ),
         system_fields=(
             OfficialModelFieldDefinition(key="title", label="Title", scalar="text", required=True),
-            OfficialModelFieldDefinition(
-                key="section_key",
-                label="Section Key",
-                scalar="text",
-                required=True,
-            ),
-            OfficialModelFieldDefinition(
-                key="props_defaults",
-                label="Props Defaults",
-                scalar="json",
-                required=False,
-            ),
+            OfficialModelFieldDefinition(key="section_key", label="Section Key", scalar="text", required=True),
+            OfficialModelFieldDefinition(key="props_defaults", label="Props Defaults", scalar="json", required=False),
         ),
     ),
     "category": OfficialModelProtocol(
@@ -268,14 +268,16 @@ _OFFICIAL_MODEL_PROTOCOLS: dict[str, OfficialModelProtocol] = {
                 resolver="get_record_by_slug",
             ),
             filters=(
-                OfficialModelGraphQLFilterDefinition("slug", "slug", "exact"),
-                OfficialModelGraphQLFilterDefinition("nameContains", "name", "contains"),
-                OfficialModelGraphQLFilterDefinition("revisionState", "revision_state", "exact"),
+                OfficialModelGraphQLFilterDefinition(public_name="slug", field_key="slug", operator="exact"),
+                OfficialModelGraphQLFilterDefinition(public_name="nameContains", field_key="name", operator="contains"),
+                OfficialModelGraphQLFilterDefinition(
+                    public_name="revisionState", field_key="revision_state", operator="exact"
+                ),
             ),
             sorts=(
-                OfficialModelGraphQLSortDefinition("NAME", "name"),
-                OfficialModelGraphQLSortDefinition("SLUG", "slug"),
-                OfficialModelGraphQLSortDefinition("REVISION", "revision"),
+                OfficialModelGraphQLSortDefinition(public_name="NAME", field_key="name"),
+                OfficialModelGraphQLSortDefinition(public_name="SLUG", field_key="slug"),
+                OfficialModelGraphQLSortDefinition(public_name="REVISION", field_key="revision"),
             ),
         ),
         system_fields=(

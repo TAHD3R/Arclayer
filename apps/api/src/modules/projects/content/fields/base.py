@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.models.content._enums import ContentModelFieldType
 
 
-@dataclass(frozen=True)
-class FieldConfig:
+class FieldConfig(BaseModel):
     """Normalized field configuration passed to field type methods."""
+
+    model_config = ConfigDict(frozen=True)
 
     key: str
     required: bool = False
@@ -18,7 +20,7 @@ class FieldConfig:
     hidden_in_editor: bool = False
     omit_from_api_response: bool = False
     default_value: Any = None
-    options: dict[str, Any] = field(default_factory=dict)
+    options: dict[str, Any] = Field(default_factory=dict)
 
     def get(self, key: str, default: Any = None) -> Any:
         return self.options.get(key, default)

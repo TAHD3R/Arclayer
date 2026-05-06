@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
 
 from src.modules.projects.content.models.protocol_registry import (
     OfficialModelProtocol,
@@ -20,8 +21,8 @@ _SCALAR_TO_GRAPHQL: dict[str, GraphQLFieldScalar] = {
 }
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLFieldDefinition:
+class GraphQLFieldDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     field_name: str
     source_key: str
     scalar: GraphQLFieldScalar
@@ -29,34 +30,34 @@ class GraphQLFieldDefinition:
     system: bool = True
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLQueryInputDefinition:
+class GraphQLQueryInputDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     input_name: str
     fields: tuple[str, ...]
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLQueryFilterDefinition:
+class GraphQLQueryFilterDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     public_name: str
     field_key: str
     operator: Literal["exact", "contains"]
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLQuerySortDefinition:
+class GraphQLQuerySortDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     public_name: str
     field_key: str
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLSingleQueryDefinition:
+class GraphQLSingleQueryDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     query_name: str
     argument: str
     resolver: str
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLModelSchemaDefinition:
+class GraphQLModelSchemaDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     model_key: str
     entry_type: str
     list_query_name: str

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
 from enum import StrEnum
 from functools import lru_cache
 from typing import Final
+
+from pydantic import BaseModel, ConfigDict
 
 from src.modules.projects.authz.schema import ProjectAuthzSnapshot
 from src.modules.projects.permissions.schema import (
@@ -28,8 +29,8 @@ class ApiKeyScope(StrEnum):
     SETTINGS_WRITE = "settings.write"
 
 
-@dataclass(frozen=True)
-class ApiKeyAccessProfile:
+class ApiKeyAccessProfile(BaseModel):
+    model_config = ConfigDict(frozen=True)
     scopes: tuple[ApiKeyScope, ...]
     management_permission_codes: frozenset[str]
     granted_actions: frozenset[str]

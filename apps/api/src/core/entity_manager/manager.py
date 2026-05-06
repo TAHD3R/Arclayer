@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
@@ -15,14 +15,14 @@ from src.core.lifecycles.specs import LifecycleAction, LifecycleEvent
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 
 
-@dataclass(frozen=True, slots=True)
-class EntityCreateResult:
+class EntityCreateResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
     item: Any
     version: Any
 
 
-@dataclass(frozen=True, slots=True)
-class EntityUpdateResult:
+class EntityUpdateResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
     version: Any
     previous_version_number: int
 

@@ -165,7 +165,7 @@ A rule can move to `blocking` when all items are complete:
 - `service.no-direct-in-transaction`
 - `repository.must-extend-tortoise-orm`
 - `repository.no-business-logic`
-- `entity-manager.no-dataclass-return`
+- `backend.no-production-dataclass`
 - `entity-manager.no-any-fields`
 - `entity-manager.write-must-use-em`
 - `schema.no-any-dict-fields`

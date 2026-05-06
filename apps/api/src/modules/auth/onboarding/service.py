@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from src.core.services import BaseService
 from src.models.system.setting import SettingRecord
@@ -18,8 +19,8 @@ class WorkspaceFirstOnboardingStatus(StrEnum):
     COMPLETED = "completed"
 
 
-@dataclass(frozen=True, slots=True)
-class WorkspaceFirstOnboardingState:
+class WorkspaceFirstOnboardingState(BaseModel):
+    model_config = ConfigDict(frozen=True)
     status: WorkspaceFirstOnboardingStatus
     workspace_id: UUID | None = None
 

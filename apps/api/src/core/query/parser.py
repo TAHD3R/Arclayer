@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.core.query.operators import FilterCondition, FilterOperator
 
 _SORT_DESC_PREFIX = "-"
 
 
-@dataclass(frozen=True, slots=True)
-class SortSpec:
+class SortSpec(BaseModel):
+    model_config = ConfigDict(frozen=True)
     field: str
     descending: bool = False
 
@@ -18,20 +19,18 @@ class SortSpec:
         return f"-{self.field}" if self.descending else self.field
 
 
-@dataclass
-class FilterGroup:
+class FilterGroup(BaseModel):
     operator: Literal["and", "or"]
     children: tuple[FilterCondition | FilterGroup, ...] = ()
 
 
-@dataclass
-class QueryPlan:
-    filters: list[FilterCondition] = field(default_factory=list)
+class QueryPlan(BaseModel):
+    filters: list[FilterCondition] = Field(default_factory=list)
     filter_expression: FilterCondition | FilterGroup | None = None
-    sorts: list[SortSpec] = field(default_factory=list)
+    sorts: list[SortSpec] = Field(default_factory=list)
     page: int = 1
     page_size: int = 25
-    populate: list[str] = field(default_factory=list)
+    populate: list[str] = Field(default_factory=list)
     fields: list[str] | None = None
     max_depth: int = 10
 

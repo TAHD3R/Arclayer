@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from src.core.exceptions import Conflict
 from src.core.i18n import t
@@ -10,8 +11,8 @@ from src.modules.auth.service import AuthService
 from src.modules.system.setup.service import InstanceSetupService, InstanceSetupStatus
 
 
-@dataclass(frozen=True, slots=True)
-class InstanceBootstrapResult:
+class InstanceBootstrapResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
     user_id: UUID
 
 

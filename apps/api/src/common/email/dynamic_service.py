@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from typing import cast
 
 from fastapi_mail import FastMail
+from pydantic import BaseModel, ConfigDict
 
 from src.common.email.helpers import pick_int, pick_str, raise_if_fatal
 from src.common.email.provider import EmailMessage, EmailProvider, SendResult
@@ -19,8 +19,8 @@ DEFAULT_RETRY_ATTEMPTS = 3
 DEFAULT_RETRY_BACKOFF_SECONDS = (1, 2, 4)
 
 
-@dataclass(frozen=True)
-class ProviderInfo:
+class ProviderInfo(BaseModel):
+    model_config = ConfigDict(frozen=True)
     provider_id: str
     label: str
     active: bool

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from src.core.exceptions import BadRequest
 from src.modules.sites.graphql.registry import get_graphql_model_schema, list_graphql_model_schemas
@@ -11,15 +12,15 @@ GraphQLPerspective = Literal["published", "preview"]
 GraphQLSortDirection = Literal["asc", "desc"]
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLQueryRule:
+class GraphQLQueryRule(BaseModel):
+    model_config = ConfigDict(frozen=True)
     exact_filter_fields: frozenset[str]
     contains_filter_fields: frozenset[str]
     sort_fields: frozenset[str]
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLQueryPlan:
+class GraphQLQueryPlan(BaseModel):
+    model_config = ConfigDict(frozen=True)
     site_id: UUID
     model_key: str
     perspective: GraphQLPerspective

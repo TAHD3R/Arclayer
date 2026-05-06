@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class PopulationConfig:
-    relations: list[str] = field(default_factory=list)
+class PopulationConfig(BaseModel):
+    relations: list[str] = Field(default_factory=list)
     max_depth: int = 3
 
     @property

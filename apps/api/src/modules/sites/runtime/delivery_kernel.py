@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from typing import Annotated, Literal, TypeVar
 from uuid import UUID
 
 from fastapi import Depends
+from pydantic import BaseModel, ConfigDict
 
 from src.core.exceptions import NotFound
 from src.core.logging import get_logger
@@ -29,8 +29,8 @@ _CACHE_PREVIEW = "no-store"
 _T = TypeVar("_T")
 
 
-@dataclass(frozen=True, slots=True)
-class RuntimeDeliveryTarget:
+class RuntimeDeliveryTarget(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     runtime_id: UUID
     site_id: UUID
     tenant_context: TenantContext

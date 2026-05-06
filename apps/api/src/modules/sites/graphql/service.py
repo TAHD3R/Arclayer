@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import Request
+from pydantic import BaseModel, ConfigDict
 from strawberry.fastapi import BaseContext
 from tortoise.backends.base.client import BaseDBAsyncClient
 
@@ -64,8 +64,8 @@ def _get_runtime_policy_evaluator() -> PolicyEvaluationService:
     return PolicyEvaluationService(registry=get_project_action_catalog())
 
 
-@dataclass(frozen=True, slots=True)
-class StructuredContentRecord:
+class StructuredContentRecord(BaseModel):
+    model_config = ConfigDict(frozen=True)
     item_id: UUID
     translation_group_id: UUID | None
     model_key: str
@@ -82,9 +82,9 @@ class StructuredContentRecord:
     route_contract: dict[str, Any] | None = None
 
 
-@dataclass(frozen=True, slots=True)
-class AuthenticatedDeliveryKey:
-    record: ApiKeyRecord
+class AuthenticatedDeliveryKey(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    record: object
     granted_actions: frozenset[str]
     graphql_read: bool
 
@@ -253,6 +253,7 @@ class SiteGraphQLService(BaseService):
             if api_key is None:
                 self._log_query_access(request=request, site_id=site_id, perspective=perspective, api_key=None)
                 return
+            record = cast(ApiKeyRecord, api_key.record)
             decision = evaluator.evaluate(
                 context=PermissionContext(
                     action="project:delivery:graphql:read",
@@ -263,12 +264,13 @@ class SiteGraphQLService(BaseService):
             )
             if not decision.allowed:
                 raise Forbidden("GraphQL scope required", error="GRAPHQL_SCOPE_REQUIRED")
-            if api_key.record.delivery_perspective != DeliveryKeyPerspective.PUBLISHED:
+            if record.delivery_perspective != DeliveryKeyPerspective.PUBLISHED:
                 raise Forbidden("Delivery key perspective forbidden", error="DELIVERY_KEY_PERSPECTIVE_FORBIDDEN")
             self._log_query_access(request=request, site_id=site_id, perspective=perspective, api_key=api_key)
             return
 
         if api_key is not None:
+            record = cast(ApiKeyRecord, api_key.record)
             decision = evaluator.evaluate(
                 context=PermissionContext(
                     action="project:delivery:graphql:read",
@@ -279,7 +281,7 @@ class SiteGraphQLService(BaseService):
             )
             if not decision.allowed:
                 raise Forbidden("GraphQL scope required", error="GRAPHQL_SCOPE_REQUIRED")
-            if api_key.record.delivery_perspective != DeliveryKeyPerspective.PREVIEW:
+            if record.delivery_perspective != DeliveryKeyPerspective.PREVIEW:
                 raise Forbidden("Delivery key perspective forbidden", error="DELIVERY_KEY_PERSPECTIVE_FORBIDDEN")
             self._log_query_access(request=request, site_id=site_id, perspective=perspective, api_key=api_key)
             return
@@ -300,13 +302,14 @@ class SiteGraphQLService(BaseService):
         if getattr(request.state, "graphql_access_logged", False):
             return
         request.state.graphql_access_logged = True
+        record = cast(ApiKeyRecord, api_key.record) if api_key is not None else None
         logger.info(
             "GraphQL query access granted",
             access_mode="api_key" if api_key is not None else ("preview_token" if preview_token else "public"),
-            delivery_key_id=str(api_key.record.id) if api_key is not None else None,
+            delivery_key_id=str(record.id) if record is not None else None,
             delivery_key_perspective=(
-                str(api_key.record.delivery_perspective)
-                if api_key is not None and api_key.record.delivery_perspective is not None
+                str(record.delivery_perspective)
+                if record is not None and record.delivery_perspective is not None
                 else None
             ),
             graphql_read=("project:delivery:graphql:read" in api_key.granted_actions) if api_key is not None else None,

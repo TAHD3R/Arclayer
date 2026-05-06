@@ -6,13 +6,12 @@ import hmac
 import json
 import re
 from collections.abc import Iterable
-from dataclasses import dataclass
 from datetime import datetime
 from hashlib import sha256
 from typing import cast
 from uuid import UUID
 
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.schemas import BaseSchema
@@ -189,16 +188,16 @@ CONTENT_MODEL_UPDATED_EVENT = "content.model.updated"
 CONTENT_MODEL_DELETED_EVENT = "content.model.deleted"
 
 
-@dataclass(frozen=True)
-class ContentModelMutationResult:
+class ContentModelMutationResult(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     record: ContentModelDefinitionRecord
     impact: ContentModelImpactOut
     preview: ContentModelImpactPreviewResult | None = None
     default_changes: dict[str, dict[str, JsonValue | None]] | None = None
 
 
-@dataclass(frozen=True)
-class ContentModelImpactPreviewResult:
+class ContentModelImpactPreviewResult(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     affected_items_count: int
     recovery_items_count: int
     reshape_items_count: int
@@ -208,30 +207,30 @@ class ContentModelImpactPreviewResult:
     change_plan: ContentModelSchemaChangePlanOut
 
 
-@dataclass(frozen=True)
-class _PreviewFieldRow:
+class _PreviewFieldRow(BaseModel):
+    model_config = ConfigDict(frozen=True)
     key: str
     field_type: str
     is_required: bool
     config: JsonObject | None = None
 
 
-@dataclass(frozen=True)
-class _PreviewRelationRow:
+class _PreviewRelationRow(BaseModel):
+    model_config = ConfigDict(frozen=True)
     key: str
     relation_type: str
     target_model_key: str
     is_required: bool
 
 
-@dataclass(frozen=True)
-class _PreviewModelRecord:
+class _PreviewModelRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     fields: tuple[ContentModelFieldRecord | _PreviewFieldRow, ...]
     relations: tuple[ContentModelRelationRecord | _PreviewRelationRow, ...]
 
 
-@dataclass(frozen=True)
-class _ModelUpdateContext:
+class _ModelUpdateContext(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     fields_to_update: JsonObject
     preview: ContentModelImpactPreviewResult
     default_changes: dict[str, dict[str, JsonValue | None]]

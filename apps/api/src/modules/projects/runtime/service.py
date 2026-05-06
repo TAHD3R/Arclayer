@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import cast
 from uuid import UUID
+
+from pydantic import BaseModel
 
 from src.common.protocols.tortoise import HasProjectId, HasWorkspaceId
 from src.config import Settings
@@ -17,8 +18,7 @@ from src.modules.tenancy.router_helpers import bind_project_tenant_context, bind
 from src.modules.tenancy.schema import TenantContext, TenantScope
 
 
-@dataclass(slots=True)
-class ProjectRuntimeContext:
+class ProjectRuntimeContext(BaseModel):
     runtime_id: UUID
     project_id: UUID
     workspace_id: UUID

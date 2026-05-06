@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import StrEnum
+
+from pydantic import BaseModel, ConfigDict
 
 
 class FilterOperator(StrEnum):
@@ -22,8 +23,8 @@ class FilterOperator(StrEnum):
     BETWEEN = "$between"
 
 
-@dataclass(frozen=True, slots=True)
-class FilterCondition:
+class FilterCondition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     field: str
     operator: FilterOperator
     value: object = None

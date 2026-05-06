@@ -4,7 +4,6 @@ import binascii
 import hmac
 import os
 import re
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Final, Protocol, cast
@@ -12,6 +11,7 @@ from urllib.parse import quote, urlencode
 from uuid import UUID
 
 from cryptography.exceptions import InvalidTag
+from pydantic import BaseModel, ConfigDict
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.constants.auth import REAUTH_MAX_AGE_SECONDS
@@ -47,8 +47,8 @@ def _build_backup_code() -> str:
     return f"{raw[:4]}-{raw[4:8]}-{raw[8:]}"
 
 
-@dataclass(frozen=True)
-class BackupCodeHash:
+class BackupCodeHash(BaseModel):
+    model_config = ConfigDict(frozen=True)
     salt: str
     code_hash: str
 

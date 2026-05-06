@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict
 
-@dataclass(frozen=True, slots=True)
-class PageInfo:
+
+class PageInfo(BaseModel):
+    model_config = ConfigDict(frozen=True)
     page: int
     page_size: int
     total: int
     total_pages: int
 
 
-@dataclass(frozen=True, slots=True)
-class PaginatedResult:
+class PaginatedResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
     items: list[Any]
     page_info: PageInfo
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from src.common.utils.public_ids import decode_public_id
 from src.core.exceptions import Conflict, Forbidden
@@ -25,20 +26,20 @@ DEFAULT_WORKFLOW_TRANSITIONS: frozenset[tuple[str, str]] = frozenset({
 })
 
 
-@dataclass(frozen=True, slots=True)
-class WorkflowActor:
+class WorkflowActor(BaseModel):
+    model_config = ConfigDict(frozen=True)
     user_id: UUID | None
     role_code: str | None
 
 
-@dataclass(frozen=True, slots=True)
-class WorkflowActorRule:
+class WorkflowActorRule(BaseModel):
+    model_config = ConfigDict(frozen=True)
     role_codes: frozenset[str]
     user_ids: frozenset[UUID]
 
 
-@dataclass(frozen=True, slots=True)
-class ResolvedWorkflowPolicy:
+class ResolvedWorkflowPolicy(BaseModel):
+    model_config = ConfigDict(frozen=True)
     stages: frozenset[str]
     publish_stage: str
     transitions: frozenset[tuple[str, str]]

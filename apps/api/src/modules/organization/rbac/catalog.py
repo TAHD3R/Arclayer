@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from functools import lru_cache
+
+from pydantic import BaseModel, ConfigDict
 
 from src.models.system.rbac import PermissionScope
 from src.modules.system.rbac.schema import PermissionTemplate
 
 
-@dataclass(frozen=True, slots=True)
-class OrganizationPermissionActionDefinition:
+class OrganizationPermissionActionDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     code: str
     module: str | None = None
     name: str | None = None

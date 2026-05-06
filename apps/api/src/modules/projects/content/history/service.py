@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict, Field
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.core.exceptions import NotFound
@@ -18,30 +18,30 @@ if TYPE_CHECKING:
     from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 
 
-@dataclass(frozen=True)
-class ContentPublishedReadModel:
+class ContentPublishedReadModel(BaseModel):
+    model_config = ConfigDict(frozen=True)
     current_version_number: int | None
     has_published_version: bool
 
 
-@dataclass(frozen=True)
-class ContentPreviewDiagnosticsReadModel:
+class ContentPreviewDiagnosticsReadModel(BaseModel):
+    model_config = ConfigDict(frozen=True)
     current_draft_version_number: int
     current_published_version_number: int | None
     has_unpublished_changes: bool
 
 
-@dataclass(frozen=True)
-class ContentVersionSystemObject:
-    version: ContentVersionRecord
-    presentations: list[tuple[ContentPresentationKind, dict[str, Any] | None]] = field(default_factory=list)
+class ContentVersionSystemObject(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    version: object
+    presentations: list[tuple[ContentPresentationKind, dict[str, Any] | None]] = Field(default_factory=list)
 
     def to_contract(self) -> ContentVersionOut:
-        return to_version_out(self.version, self.presentations)
+        return to_version_out(cast("ContentVersionRecord", self.version), self.presentations)
 
 
-@dataclass(frozen=True)
-class ContentVersionSystemObjectList:
+class ContentVersionSystemObjectList(BaseModel):
+    model_config = ConfigDict(frozen=True)
     items: list[ContentVersionSystemObject]
 
     def to_contract_page(self, *, params: PageParams) -> PageData[ContentVersionOut]:

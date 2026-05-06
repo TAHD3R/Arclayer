@@ -230,10 +230,10 @@ def test_schema_no_any_dict_fields_flags_unowned_any_fields(tmp_path) -> None:
     assert report.findings[0].rule_id == "schema.no-any-dict-fields"
 
 
-def test_entity_manager_dataclass_rule_is_scoped_to_entity_manager_contracts(tmp_path) -> None:
-    query_parser = tmp_path / "apps/api/src/core/query/parser.py"
-    query_parser.parent.mkdir(parents=True)
-    query_parser.write_text(
+def test_backend_dataclass_rule_flags_production_source_only(tmp_path) -> None:
+    production_file = tmp_path / "apps/api/src/core/query/parser.py"
+    production_file.parent.mkdir(parents=True)
+    production_file.write_text(
         "\n".join(
             [
                 "from dataclasses import dataclass",
@@ -246,16 +246,16 @@ def test_entity_manager_dataclass_rule_is_scoped_to_entity_manager_contracts(tmp
         ),
         encoding="utf-8",
     )
-    entity_manager = tmp_path / "apps/api/src/core/entity_manager/manager.py"
-    entity_manager.parent.mkdir(parents=True)
-    entity_manager.write_text(
+    test_file = tmp_path / "apps/api/tests/core/test_query_parser.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text(
         "\n".join(
             [
                 "from dataclasses import dataclass",
                 "",
                 "@dataclass",
-                "class EntityCreateResult:",
-                "    item: object",
+                "class QueryPlanFixture:",
+                "    limit: int",
                 "",
             ]
         ),
@@ -264,12 +264,65 @@ def test_entity_manager_dataclass_rule_is_scoped_to_entity_manager_contracts(tmp
 
     report = run_audit(
         repo_root=tmp_path,
-        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("entity-manager.no-dataclass-return",)),
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.no-production-dataclass",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) >= 2
+    assert all(finding.rule_id == "backend.no-production-dataclass" for finding in report.findings)
+    assert all(finding.file.startswith("apps/api/src/") for finding in report.findings)
+    assert all("dataclasses" in finding.evidence or "@dataclass" in finding.evidence for finding in report.findings)
+
+
+def test_backend_dataclass_rule_flags_aliases_and_factory_calls(tmp_path) -> None:
+    production_file = tmp_path / "apps/api/src/core/query/parser.py"
+    production_file.parent.mkdir(parents=True)
+    production_file.write_text(
+        "\n".join(
+            [
+                "import dataclasses as dc",
+                "from dataclasses import dataclass as dc_model",
+                "",
+                "@dc_model(frozen=True)",
+                "class QueryPlan:",
+                "    limit: int",
+                "",
+                "RuntimePlan = dc.dataclass(type('RuntimePlan', (), {'limit': 10}))",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.no-production-dataclass",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    evidence = "\n".join(finding.evidence for finding in report.findings)
+    assert len(report.findings) >= 4
+    assert "import dataclasses as dc" in evidence
+    assert "from dataclasses import dataclass as dc_model" in evidence
+    assert "@dc_model(frozen=True)" in evidence
+    assert "RuntimePlan = dc.dataclass" in evidence
+
+
+def test_backend_dataclass_rule_reports_unparseable_production_file(tmp_path) -> None:
+    production_file = tmp_path / "apps/api/src/core/query/parser.py"
+    production_file.parent.mkdir(parents=True)
+    production_file.write_text("def broken(:\n", encoding="utf-8")
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.no-production-dataclass",)),
         registry=DEFAULT_REGISTRY,
     )
 
     assert len(report.findings) == 1
-    assert report.findings[0].file == "apps/api/src/core/entity_manager/manager.py"
+    assert report.findings[0].rule_id == "backend.no-production-dataclass"
+    assert report.findings[0].file == "apps/api/src/core/query/parser.py"
+    assert "SyntaxError" in report.findings[0].evidence
 
 
 def test_repository_mixin_name_is_repository_layer_for_orm_leak_rule(tmp_path) -> None:

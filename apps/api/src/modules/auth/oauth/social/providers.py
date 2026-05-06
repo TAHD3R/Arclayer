@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
 
 OAuthProviderKind = Literal["google", "github", "microsoft", "discord"]
 
 
-@dataclass(frozen=True)
-class OAuthProviderDefinition:
+class OAuthProviderDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     key: OAuthProviderKind
     section_id: str
     title: str

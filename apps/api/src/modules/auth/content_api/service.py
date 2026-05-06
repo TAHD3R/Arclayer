@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict
 from starlette.requests import Request
 
 from src.config import Settings
 from src.core.exceptions import Forbidden, ServiceUnavailable
 from src.core.services import BaseService
-from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
+from src.models.projects.api_key import ApiKeyFamily, DeliveryKeyPerspective
 from src.modules.projects.api_keys.repository import ProjectApiKeysRepository
 from src.modules.projects.api_keys.scopes import build_api_key_access_profile
 from src.modules.projects.api_keys.security import split_api_key_token, verify_api_key_token
 from src.settings.crypto import ensure_master_key, master_key_exists
 
 
-@dataclass(frozen=True, slots=True)
-class ContentApiCredential:
-    record: ApiKeyRecord
+class ContentApiCredential(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    record: object
     granted_actions: frozenset[str]
     delivery_read: bool
     graphql_read: bool

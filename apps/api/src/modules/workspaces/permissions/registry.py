@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
 from functools import lru_cache
+
+from pydantic import BaseModel, ConfigDict
 
 from src.models.system.rbac import PermissionScope
 from src.modules.permissions import PermissionConditionTemplate
@@ -10,8 +11,8 @@ from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from src.modules.system.rbac.schema import PermissionTemplate
 
 
-@dataclass(frozen=True, slots=True)
-class PermissionActionDefinition:
+class PermissionActionDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     code: str
     module: str | None = None
     name: str | None = None

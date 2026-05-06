@@ -226,7 +226,7 @@ class ProjectContentCanonicalItemReadService(BaseService):
             item_id=item_id,
             version_number=version_number,
         )
-        return system_object.version
+        return cast(ContentVersionRecord, system_object.version)
 
     async def get_version(
         self,

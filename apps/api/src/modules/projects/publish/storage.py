@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
+
+from pydantic import BaseModel
 
 from src.core.exceptions import Conflict, NotFound
 from src.models.content._enums import PublishArtifactKind
@@ -20,8 +21,7 @@ from src.modules.tenancy.schema import TenantContext
 _JSON_ARTIFACT_KIND = "json"
 
 
-@dataclass(slots=True)
-class _PublishArtifactBundle:
+class _PublishArtifactBundle(BaseModel):
     item_id: UUID
     version_id: UUID
     locale: str

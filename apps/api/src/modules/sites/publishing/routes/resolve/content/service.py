@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Literal, cast
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from src.core.exceptions import Conflict, NotFound
 from src.core.exceptions.types import InternalServerError
@@ -25,8 +26,8 @@ from src.modules.sites.schema import (
 )
 
 
-@dataclass(frozen=True, slots=True)
-class _RouteBindingCandidate:
+class _RouteBindingCandidate(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     path: str
     route_contract: dict[str, Any] | None
     item: Any

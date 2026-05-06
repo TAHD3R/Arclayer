@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.common.schemas import BaseSchema
 
@@ -71,8 +70,8 @@ class PermissionConditionTemplate(BaseSchema):
     description: str = Field(..., description="Product-facing template description for Admin editors.")
 
 
-@dataclass(frozen=True, slots=True)
-class PermissionConditionEvaluationContext:
+class PermissionConditionEvaluationContext(BaseModel):
+    model_config = ConfigDict(frozen=True)
     user_id: object | None = None
     workspace_id: object | None = None
     project_id: object | None = None

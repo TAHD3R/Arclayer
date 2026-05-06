@@ -72,7 +72,7 @@ standard location is `reports/code-review-engine/`.
 - `service.no-direct-orm` `[BLOCKER]`
 - `repository.must-extend-tortoise-orm` `[BLOCKER]`
 - `repository.no-business-logic` `[MAJOR]`
-- `entity-manager.no-dataclass-return` `[BLOCKER]`
+- `backend.no-production-dataclass` `[BLOCKER]`
 - `entity-manager.no-any-fields` `[BLOCKER]`
 - `entity-manager.write-must-use-em` `[BLOCKER]`
 - `schema.no-any-dict-fields` `[MAJOR]`

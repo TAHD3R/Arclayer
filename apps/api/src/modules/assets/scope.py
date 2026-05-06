@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from typing import TypedDict
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from src.common.constants.assets import (
@@ -23,8 +23,8 @@ def _ts(key: str, default: str) -> str:
     return t("errors", key, default=default)
 
 
-@dataclass(frozen=True)
-class AssetScope:
+class AssetScope(BaseModel):
+    model_config = ConfigDict(frozen=True)
     type: str
     id: UUID
 

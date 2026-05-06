@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Literal, cast
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from src.models.system.notification import NotificationCategory
 from src.models.system.setting import SettingRecord
@@ -12,8 +13,8 @@ NotificationPreferenceChannel = Literal["in_app", "email"]
 NOTIFICATION_PREFERENCES_NAMESPACE = "notifications.me.preferences"
 
 
-@dataclass(frozen=True)
-class NotificationTopicDefinition:
+class NotificationTopicDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     key: str
     category: NotificationCategory
     title_i18n: str

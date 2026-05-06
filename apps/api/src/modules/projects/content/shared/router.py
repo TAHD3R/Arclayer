@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Query
+from pydantic import BaseModel
 
 from src.models.projects.environment import ProjectEnvironmentKey
 from src.modules.auth.http.service import get_current_user_id
@@ -19,8 +19,7 @@ from src.modules.projects.http.service import get_project_context
 from src.modules.projects.runtime.service import ProjectRuntimeContext, ProjectRuntimeService
 
 
-@dataclass(slots=True)
-class ProjectContentRouteContext:
+class ProjectContentRouteContext(BaseModel):
     project_ctx: ProjectRequestContext
     runtime_ctx: ProjectRuntimeContext
     project_id: UUID

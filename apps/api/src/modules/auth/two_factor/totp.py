@@ -4,10 +4,11 @@ import base64
 import hmac
 import os
 import struct
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha1
 from typing import Final
+
+from pydantic import BaseModel, ConfigDict
 
 _DEFAULT_DIGITS: Final[int] = 6
 _DEFAULT_PERIOD_SECONDS: Final[int] = 30
@@ -67,8 +68,8 @@ def _normalize_totp_code(code: str) -> str:
     return digits_only
 
 
-@dataclass(frozen=True)
-class TotpVerifyResult:
+class TotpVerifyResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
     ok: bool
     used_counter: int | None = None
 

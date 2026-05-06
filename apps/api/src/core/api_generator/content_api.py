@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Annotated, Any, Literal, Protocol
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi import Response as FastAPIResponse
+from pydantic import BaseModel, ConfigDict
 
 from src.common.types.public_uuid import PublicUUID
 from src.core.exceptions import BadRequest, NotFound
@@ -16,21 +16,21 @@ DeliveryPerspective = Literal["published", "preview"]
 SortDirection = Literal["asc", "desc"]
 
 
-@dataclass(frozen=True, slots=True)
-class ContentApiRoutePolicy:
+class ContentApiRoutePolicy(BaseModel):
+    model_config = ConfigDict(frozen=True)
     route_class: Literal["content_delivery_read", "content_management"]
     auth_policy: Literal["public_or_delivery_key", "delivery_preview_or_preview_token"]
     read_action: str = "project:delivery:read"
 
 
-@dataclass(frozen=True, slots=True)
-class ContentApiVisibilityPolicy:
+class ContentApiVisibilityPolicy(BaseModel):
+    model_config = ConfigDict(frozen=True)
     response_shape: Literal["delivery_safe_entry"]
     honors_omit_from_api_response: bool = True
 
 
-@dataclass(frozen=True, slots=True)
-class ContentApiRouteDefinition:
+class ContentApiRouteDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     model_key: str
     list_path: str
     detail_path: str
@@ -42,8 +42,8 @@ class ContentApiRouteDefinition:
     extension_points: tuple[str, ...]
 
 
-@dataclass(frozen=True, slots=True)
-class ContentApiListQuery:
+class ContentApiListQuery(BaseModel):
+    model_config = ConfigDict(frozen=True)
     perspective: DeliveryPerspective
     preview_token: str | None
     environment: str | None
@@ -57,8 +57,8 @@ class ContentApiListQuery:
     offset: int
 
 
-@dataclass(frozen=True, slots=True)
-class ContentApiGeneratorDependencies:
+class ContentApiGeneratorDependencies(BaseModel):
+    model_config = ConfigDict(frozen=True)
     runtime_context: Callable[..., Any]
     rate_limit: Callable[..., Any]
     query_service: Callable[..., Any]

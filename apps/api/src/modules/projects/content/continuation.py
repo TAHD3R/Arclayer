@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict
 
 from src.models.content._enums import (
     ContentContinuationPosture,
@@ -32,8 +33,8 @@ _WRITING_HINT_CAPABILITIES = frozenset({"rich_text_editable"})
 _STRUCTURED_HINT_CAPABILITIES = frozenset({"queryable", "has_relations"})
 
 
-@dataclass(frozen=True)
-class ContentModelContinuationDefaults:
+class ContentModelContinuationDefaults(BaseModel):
+    model_config = ConfigDict(frozen=True)
     default_role: str | None
     default_posture: str | None
     default_surface: str | None
@@ -41,8 +42,8 @@ class ContentModelContinuationDefaults:
     surface_policy: dict[str, Any] | None
 
 
-@dataclass(frozen=True)
-class ContentItemContinuationTruth:
+class ContentItemContinuationTruth(BaseModel):
+    model_config = ConfigDict(frozen=True)
     resolved_role: str | None
     resolved_posture: str | None
     resolved_surface: str | None

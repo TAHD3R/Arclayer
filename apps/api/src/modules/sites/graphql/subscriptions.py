@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 GraphQLSubscriptionEventName = Literal["publish.release", "preview.collaboration"]
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLSubscriptionEventDefinition:
+class GraphQLSubscriptionEventDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     name: GraphQLSubscriptionEventName
     topic: str
     payload_fields: tuple[str, ...]
     description: str
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLPublishReleaseEvent:
+class GraphQLPublishReleaseEvent(BaseModel):
+    model_config = ConfigDict(frozen=True)
     event: Literal["publish.release"]
     site_id: UUID
     workspace_id: UUID
@@ -24,8 +25,8 @@ class GraphQLPublishReleaseEvent:
     release_number: int
 
 
-@dataclass(frozen=True, slots=True)
-class GraphQLPreviewCollaborationEvent:
+class GraphQLPreviewCollaborationEvent(BaseModel):
+    model_config = ConfigDict(frozen=True)
     event: Literal["preview.collaboration"]
     site_id: UUID
     doc_key: str

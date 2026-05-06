@@ -49,9 +49,9 @@ def _schema_definition(**overrides: Any) -> GraphQLModelSchemaDefinition:
         ),
         "filter_input": GraphQLQueryInputDefinition(input_name="ArticleFilterInput", fields=("slug",)),
         "sort_input": GraphQLQueryInputDefinition(input_name="ArticleSortInput", fields=("TITLE",)),
-        "filters": (GraphQLQueryFilterDefinition("slug", "slug", "exact"),),
-        "sorts": (GraphQLQuerySortDefinition("TITLE", "title"),),
-        "system_fields": (GraphQLFieldDefinition("title", "title", "String"),),
+        "filters": (GraphQLQueryFilterDefinition(public_name="slug", field_key="slug", operator="exact"),),
+        "sorts": (GraphQLQuerySortDefinition(public_name="TITLE", field_key="title"),),
+        "system_fields": (GraphQLFieldDefinition(field_name="title", source_key="title", scalar="String"),),
         "custom_fields_container": "customFields",
         "schema_field_provider": "official-protocol-system-fields",
         "query_post_processor": "official-protocol-query-contract",
@@ -161,7 +161,7 @@ def test_graphql_schema_generation_rejects_invalid_entry_type_name() -> None:
 
 def test_graphql_schema_generation_rejects_invalid_filter_field_name() -> None:
     invalid_schema = _schema_definition(
-        filters=(GraphQLQueryFilterDefinition("title;drop", "title", "exact"),),
+        filters=(GraphQLQueryFilterDefinition(public_name="title;drop", field_key="title", operator="exact"),),
     )
 
     with pytest.raises(ValueError, match="Invalid GraphQL filter field name"):
@@ -172,15 +172,15 @@ def test_graphql_schema_generation_reflects_changed_model_fields() -> None:
     first_type = _build_entry_type(
         _schema_definition(
             entry_type="AuditEntryV1",
-            system_fields=(GraphQLFieldDefinition("title", "title", "String"),),
+            system_fields=(GraphQLFieldDefinition(field_name="title", source_key="title", scalar="String"),),
         )
     )
     second_type = _build_entry_type(
         _schema_definition(
             entry_type="AuditEntryV2",
             system_fields=(
-                GraphQLFieldDefinition("title", "title", "String"),
-                GraphQLFieldDefinition("publishedAt", "published_at", "String"),
+                GraphQLFieldDefinition(field_name="title", source_key="title", scalar="String"),
+                GraphQLFieldDefinition(field_name="publishedAt", source_key="published_at", scalar="String"),
             ),
         )
     )

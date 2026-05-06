@@ -1,25 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
-from pydantic import AnyHttpUrl, TypeAdapter, ValidationError
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, TypeAdapter, ValidationError
 
 from src.core.exceptions import BadRequest
 from src.core.i18n import t
 from src.models.automation.flow import AutomationOperationKind, AutomationTriggerKind
 
 
-@dataclass(frozen=True, slots=True)
-class AutomationTriggerDefinition:
+class AutomationTriggerDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     kind: AutomationTriggerKind
     event_name: str
     label: str
     description: str
 
 
-@dataclass(frozen=True, slots=True)
-class AutomationOperationDefinition:
+class AutomationOperationDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     kind: AutomationOperationKind
     label: str
     description: str

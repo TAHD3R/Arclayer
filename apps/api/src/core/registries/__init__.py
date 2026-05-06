@@ -7,9 +7,6 @@ from src.core.logging import get_logger
 logger = get_logger(__name__)
 
 
-from dataclasses import dataclass
-
-
 class Registry(dict):
     """Base registry — a typed dictionary with domain-specific accessors.
 
@@ -20,8 +17,7 @@ class Registry(dict):
     pass
 
 
-@dataclass
-class PluginRegistry:
+class PluginRegistry:  # noqa: B903 - mutable runtime registry container; dataclass is production-banned.
     """Composite registry passed to plugins during arclayer_register.
 
     Contains all sub-registries that plugins can populate with their
@@ -39,6 +35,31 @@ class PluginRegistry:
     components: ComponentRegistry
     validators: ValidatorRegistry
     sanitizers: SanitizerRegistry
+
+    def __init__(
+        self,
+        *,
+        services: ServiceRegistry,
+        controllers: ControllerRegistry,
+        content_types: ContentTypeRegistry,
+        middlewares: MiddlewareRegistry,
+        policies: PolicyRegistry,
+        custom_fields: CustomFieldRegistry,
+        providers: ProviderRegistry,
+        components: ComponentRegistry,
+        validators: ValidatorRegistry,
+        sanitizers: SanitizerRegistry,
+    ) -> None:
+        self.services = services
+        self.controllers = controllers
+        self.content_types = content_types
+        self.middlewares = middlewares
+        self.policies = policies
+        self.custom_fields = custom_fields
+        self.providers = providers
+        self.components = components
+        self.validators = validators
+        self.sanitizers = sanitizers
 
 
 class ServiceRegistry(Registry):

@@ -182,5 +182,17 @@ def test_entity_manager_filter_condition_rejects_not_contains_matches() -> None:
 def test_entity_manager_filter_condition_supports_numeric_comparisons() -> None:
     item = SimpleNamespace(fields_snapshot={"price": 10})
 
-    assert EntityManager._matches_filter_condition(item, FilterCondition("price", FilterOperator.GTE, 10)) is True
-    assert EntityManager._matches_filter_condition(item, FilterCondition("price", FilterOperator.LT, 10)) is False
+    assert (
+        EntityManager._matches_filter_condition(
+            item,
+            FilterCondition(field="price", operator=FilterOperator.GTE, value=10),
+        )
+        is True
+    )
+    assert (
+        EntityManager._matches_filter_condition(
+            item,
+            FilterCondition(field="price", operator=FilterOperator.LT, value=10),
+        )
+        is False
+    )

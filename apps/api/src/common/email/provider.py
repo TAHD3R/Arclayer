@@ -1,27 +1,28 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.common.types.json_types import JsonObject
 
 EmailProviderId = Literal["smtp", "resend", "cloudflare", "ses"]
 
 
-@dataclass(frozen=True)
-class EmailMessage:
+class EmailMessage(BaseModel):
+    model_config = ConfigDict(frozen=True)
     to: tuple[str, ...]
     subject: str
     html_body: str | None = None
     text_body: str | None = None
     template_id: str | None = None
-    template_vars: JsonObject = field(default_factory=dict)
+    template_vars: JsonObject = Field(default_factory=dict)
     html_template: str | None = None
     plain_template: str | None = None
     reply_to: str | None = None
     attachments: tuple[Any, ...] = ()
-    metadata: JsonObject = field(default_factory=dict)
+    metadata: JsonObject = Field(default_factory=dict)
 
     @classmethod
     def single(
@@ -50,8 +51,8 @@ class EmailMessage:
         )
 
 
-@dataclass(frozen=True)
-class SendResult:
+class SendResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
     success: bool
     provider_id: str
     message_id: str | None = None

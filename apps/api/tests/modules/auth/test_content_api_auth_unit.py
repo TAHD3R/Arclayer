@@ -16,6 +16,10 @@ from src.modules.projects.api_keys.security import mint_api_key
 from src.settings.crypto import ensure_master_key
 
 
+class _CredentialRecordLike:
+    id: object
+
+
 class _Repo:
     def __init__(self, record):
         self.record = record
@@ -75,7 +79,7 @@ async def test_content_api_auth_accepts_delivery_key_for_site(monkeypatch, tmp_p
     )
 
     assert credential is not None
-    assert credential.record.id == repo.record.id
+    assert cast(_CredentialRecordLike, credential.record).id == repo.record.id
     assert "project:delivery:read" in credential.granted_actions
     assert repo.updated_fields is not None
     assert set(repo.updated_fields) == {"last_used_at"}

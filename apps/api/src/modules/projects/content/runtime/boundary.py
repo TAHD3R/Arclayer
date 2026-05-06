@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.modules.projects.content.items.domain_helpers import (
     read_slug_field,
@@ -15,46 +16,46 @@ if TYPE_CHECKING:
     from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 
 
-@dataclass(frozen=True)
-class DocumentRuntimeItemFields:
+class DocumentRuntimeItemFields(BaseModel):
+    model_config = ConfigDict(frozen=True)
     title: str | None = None
     slug: str | None = None
     summary: str | None = None
     visibility: str | None = None
 
 
-@dataclass(frozen=True)
-class DocumentPublishedReadModel:
+class DocumentPublishedReadModel(BaseModel):
+    model_config = ConfigDict(frozen=True)
     current_version_number: int | None
     has_published_version: bool
 
 
-@dataclass(frozen=True)
-class DocumentPreviewDiagnosticsReadModel:
+class DocumentPreviewDiagnosticsReadModel(BaseModel):
+    model_config = ConfigDict(frozen=True)
     current_draft_version_number: int
     current_published_version_number: int | None
     has_unpublished_changes: bool
 
 
-@dataclass(frozen=True)
-class DocumentRuntimeMetadata:
+class DocumentRuntimeMetadata(BaseModel):
+    model_config = ConfigDict(frozen=True)
     route_path: str | None = None
     route_contract: dict[str, Any] | None = None
     binding_key: str | None = None
     protocol_key: str | None = None
 
 
-@dataclass(frozen=True)
-class DocumentQueryRecord:
+class DocumentQueryRecord(BaseModel):
+    model_config = ConfigDict(frozen=True)
     item: Any
     revision: int
     revision_state: str
     fields: dict[str, Any]
-    metadata: DocumentRuntimeMetadata = field(default_factory=DocumentRuntimeMetadata)
+    metadata: DocumentRuntimeMetadata = Field(default_factory=DocumentRuntimeMetadata)
 
 
-@dataclass(frozen=True)
-class DocumentQuery:
+class DocumentQuery(BaseModel):
+    model_config = ConfigDict(frozen=True)
     site_id: UUID
     model_key: str
     perspective: str
@@ -64,13 +65,12 @@ class DocumentQuery:
     binding_key: str | None = None
 
 
-@dataclass(frozen=True)
-class DocumentQueryResult:
+class DocumentQueryResult(BaseModel):
     records: list[DocumentQueryRecord]
 
 
-@dataclass(frozen=True)
-class DocumentQueryBoundary:
+class DocumentQueryBoundary(BaseModel):
+    model_config = ConfigDict(frozen=True)
     records: list[DocumentQueryRecord]
 
     def execute(self, query: DocumentQuery) -> DocumentQueryResult:
@@ -88,9 +88,11 @@ class DocumentQueryBoundary:
         return DocumentQueryResult(records=records)
 
 
-@dataclass(frozen=True)
 class DocumentReadContext:
     repo: ProjectContentItemsRepository
+
+    def __init__(self, *, repo: ProjectContentItemsRepository) -> None:
+        self.repo = repo
 
     async def resolve_active_item_fields(self, items: list[Any]) -> dict[UUID, DocumentRuntimeItemFields]:
         active_versions: dict[UUID, int] = {}
@@ -137,15 +139,20 @@ class DocumentReadContext:
         )
 
 
-@dataclass(frozen=True)
-class DocumentMutationContext:
+class DocumentMutationContext:  # noqa: B903 - runtime service context; dataclass is production-banned.
     repo: ProjectContentItemsRepository
 
+    def __init__(self, *, repo: ProjectContentItemsRepository) -> None:
+        self.repo = repo
 
-@dataclass(frozen=True)
+
 class DocumentRuntimeBoundary:
     reads: DocumentReadContext
     mutations: DocumentMutationContext
+
+    def __init__(self, *, reads: DocumentReadContext, mutations: DocumentMutationContext) -> None:
+        self.reads = reads
+        self.mutations = mutations
 
     @classmethod
     def for_items_repo(cls, repo: ProjectContentItemsRepository) -> DocumentRuntimeBoundary:

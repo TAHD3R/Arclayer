@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
+from pydantic import BaseModel
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
@@ -61,8 +60,7 @@ DO UPDATE SET checksum = EXCLUDED.checksum, applied_at = EXCLUDED.applied_at, st
     )
 
 
-@dataclass(slots=True)
-class TenantMigrationRunner:
+class TenantMigrationRunner(BaseModel):
     migrations: tuple[TenantMigration, ...] = TENANT_CONTROL_MIGRATIONS
 
     async def apply_all(self, schema_name: str) -> int:

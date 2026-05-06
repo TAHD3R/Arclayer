@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import StrEnum
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
@@ -11,8 +10,8 @@ from src.models.system.rbac import PermissionScope
 from src.modules.permissions import PermissionConditionSet
 
 
-@dataclass(frozen=True, slots=True)
-class PermissionActionDefinition:
+class PermissionActionDefinition(BaseModel):
+    model_config = ConfigDict(frozen=True)
     code: str
     module: str | None = None
     name: str | None = None

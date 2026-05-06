@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Literal
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 
@@ -25,8 +25,8 @@ from src.modules.tenancy.database import TenantDatabaseRouter
 from src.modules.tenancy.schema import TenantContext
 
 
-@dataclass(frozen=True, slots=True)
-class ParsedRoutePattern:
+class ParsedRoutePattern(BaseModel):
+    model_config = ConfigDict(frozen=True)
     path: str
     mode: Literal["static", "dynamic"]
     params: tuple[str, ...]
@@ -36,8 +36,8 @@ class ParsedRoutePattern:
     param_count: int
 
 
-@dataclass(frozen=True, slots=True)
-class RouteMatchResult:
+class RouteMatchResult(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     params: dict[str, str]
     binding: RouteBindingRecord
     pattern: ParsedRoutePattern

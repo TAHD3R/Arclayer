@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, cast
+
+from pydantic import BaseModel, ConfigDict
 
 from src.models.content._enums import ContentPresentationKind
 from src.models.content.content_item import ContentItemRecord
@@ -10,8 +11,8 @@ from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.seo_profile import SEOProfileRecord
 
 
-@dataclass(frozen=True, slots=True)
-class CanonicalContentSnapshot:
+class CanonicalContentSnapshot(BaseModel):
+    model_config = ConfigDict(frozen=True)
     fields: dict[str, Any]
     raw_page_blueprint: dict[str, Any] | None
     raw_slot_mapping: dict[str, Any] | None

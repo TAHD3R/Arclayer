@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
 from enum import StrEnum
 from hashlib import sha256
 from uuid import UUID
 
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.common.schemas.base import BaseSchema
 
@@ -38,8 +37,8 @@ class TenantIdentityOut(TenantIdentity):
     model_config = TenantIdentity.model_config | ConfigDict(frozen=True)
 
 
-@dataclass(frozen=True, slots=True)
-class TenantContext:
+class TenantContext(BaseModel):
+    model_config = ConfigDict(frozen=True)
     identity: TenantIdentity
     scope: TenantScope = TenantScope.WORKSPACE
 
@@ -105,7 +104,7 @@ class TenantContext:
         )
 
     def with_scope(self, scope: TenantScope) -> TenantContext:
-        return replace(self, scope=scope)
+        return self.model_copy(update={"scope": scope})
 
     def to_job_payload(self) -> TenantJobContextPayload:
         return TenantJobContextPayload(

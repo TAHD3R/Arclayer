@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from fastapi import Request
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True, slots=True)
-class AuthRequestContext:
+class AuthRequestContext(BaseModel):
+    model_config = ConfigDict(frozen=True)
     ip_address: str | None
     user_agent: str | None
 

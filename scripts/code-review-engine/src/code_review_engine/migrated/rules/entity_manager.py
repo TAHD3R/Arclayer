@@ -2,7 +2,6 @@
 
 Target architecture:
   - EntityManager is the universal write gateway for ALL modules.
-  - Return types must be Pydantic BaseModel (NOT @dataclass).
   - No Any/dict fields in return types.
   - Lifecycle hooks (before/after) must be dispatched for all write operations.
 """
@@ -20,54 +19,6 @@ from code_review_engine.migrated.indexer import (
     is_orm_call,
 )
 from code_review_engine.migrated.rules.base import AuditRule, v
-
-
-class EntityManagerNoDataclassReturn(AuditRule):
-    """EntityManager return types must be Pydantic BaseModel, never @dataclass.
-
-    Current violations: EntityCreateResult, EntityUpdateResult, LifecycleEvent
-    are all @dataclass — these must be migrated to Pydantic v2 BaseModel.
-    """
-
-    rule_id = "entity-manager.no-dataclass-return"
-    description = "EntityManager return types must be Pydantic BaseModel, never @dataclass."
-    ENTITY_MANAGER_DATACLASS_FILES = frozenset(
-        {
-            "apps/api/src/core/entity_manager/manager.py",
-            "apps/api/src/core/lifecycles/specs.py",
-        }
-    )
-
-    def check(self, symbols: list[dict]) -> list[Violation]:
-        violations: list[Violation] = []
-        for sym in symbols:
-            if sym["kind"] == "dataclass" and sym["file"] in self.ENTITY_MANAGER_DATACLASS_FILES:
-                violations.append(
-                    v(
-                        file=sym["file"],
-                        line=sym["line"],
-                        rule=self.rule_id,
-                        message=f"EntityManager-related type '{sym['name']}' is a @dataclass. Migrate to Pydantic v2 BaseModel.",
-                        severity=Severity.BLOCKER,
-                        evidence=f"@dataclass\nclass {sym['name']}",
-                    )
-                )
-            # Also check entity_manager symbols referencing dataclass types
-            if sym["kind"] == "entity_manager":
-                for ann_name, annotation in sym.get("type_annotations", {}).items():
-                    ann_type = annotation_type(annotation)
-                    if ann_type == "Any" or "dataclass" in ann_type.lower():
-                        violations.append(
-                            v(
-                                file=sym["file"],
-                                line=annotation_line(annotation, sym["line"]),
-                                rule=self.rule_id,
-                                message=f"EntityManager references untyped '{ann_type}' in '{ann_name}'. Use a Pydantic BaseModel.",
-                                severity=Severity.BLOCKER,
-                                evidence=annotation_evidence(ann_name, annotation),
-                            )
-                        )
-        return violations
 
 
 class EntityManagerNoAnyFields(AuditRule):

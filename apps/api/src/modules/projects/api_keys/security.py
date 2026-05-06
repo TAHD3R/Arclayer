@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import hmac
 import secrets
-from dataclasses import dataclass
 from hashlib import sha256
 from typing import Final
+
+from pydantic import BaseModel, ConfigDict
 
 from src.models.projects.api_key import ApiKeyFamily
 
@@ -19,8 +20,8 @@ _API_KEY_PREFIXES: Final[dict[ApiKeyFamily, str]] = {
 }
 
 
-@dataclass(frozen=True)
-class GeneratedApiKey:
+class GeneratedApiKey(BaseModel):
+    model_config = ConfigDict(frozen=True)
     family: ApiKeyFamily
     public_id: str
     token: str

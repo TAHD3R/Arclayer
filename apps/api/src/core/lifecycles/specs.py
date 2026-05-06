@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LifecycleAction(StrEnum):
@@ -18,17 +19,17 @@ class LifecycleAction(StrEnum):
     AFTER_PUBLISH = "after_publish"
 
 
-@dataclass(frozen=True, slots=True)
-class LifecycleEvent:
+class LifecycleEvent(BaseModel):
+    model_config = ConfigDict(frozen=True)
     action: LifecycleAction
     model_key: str
     workspace_id: UUID | None = None
     site_id: UUID | None = None
     item_id: UUID | None = None
-    data: dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
     result: Any = None
     actor_id: UUID | None = None
-    state: dict[str, Any] = field(default_factory=dict)
+    state: dict[str, Any] = Field(default_factory=dict)
 
 
 LifecycleSubscriber = Callable[[LifecycleEvent], Awaitable[None]]
