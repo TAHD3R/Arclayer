@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 from tortoise.backends.base.client import BaseDBAsyncClient
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.services import BaseService
@@ -34,7 +35,7 @@ class ContentPreviewDiagnosticsReadModel(BaseModel):
 class ContentVersionSystemObject(BaseModel):
     model_config = ConfigDict(frozen=True)
     version: object
-    presentations: list[tuple[ContentPresentationKind, dict[str, Any] | None]] = Field(default_factory=list)
+    presentations: list[tuple[ContentPresentationKind, JsonObject | None]] = Field(default_factory=list)
 
     def to_contract(self) -> ContentVersionOut:
         return to_version_out(cast("ContentVersionRecord", self.version), self.presentations)
@@ -121,7 +122,7 @@ class ContentHistoryService(BaseService):
             version = hydrated_version
         presentations = await self.repo.list_presentations(version_id=version.id, conn=conn)
         normalized = cast(
-            list[tuple[ContentPresentationKind, dict[str, Any] | None]],
+            list[tuple[ContentPresentationKind, JsonObject | None]],
             [
                 (
                     presentation.kind,

@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from strawberry.fastapi import BaseContext
 from tortoise.backends.base.client import BaseDBAsyncClient
 
+from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import APIError, Forbidden, ServiceUnavailable
 from src.core.logging import get_logger
@@ -76,10 +77,10 @@ class StructuredContentRecord(BaseModel):
     revision_state: Literal["draft", "published"]
     draft_revision: int
     published_revision: int | None
-    fields: dict[str, Any]
-    custom_fields: dict[str, Any]
+    fields: JsonObject
+    custom_fields: JsonObject
     route_path: str | None = None
-    route_contract: dict[str, Any] | None = None
+    route_contract: JsonObject | None = None
 
 
 class AuthenticatedDeliveryKey(BaseModel):

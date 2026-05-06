@@ -9,13 +9,10 @@ import pytest
 
 from src.core.events import Event
 from src.models.content._enums import ContentReleaseStatus
-from src.models.workspaces.workspace import WorkspaceKind
-from src.modules.projects.http.schema import ProjectRequestContext
-from src.modules.projects.releases.events import publish_project_release_event
-from src.modules.projects.releases.schema import ReleaseLineageOut, ReleaseOut
+from src.models.content.release import ContentReleaseRecord
+from src.modules.projects.releases.service import ProjectReleasesService
 from src.modules.tenancy.router_helpers import require_tenant_context_from_payload, tenant_context_from_payload
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
-from src.modules.workspaces.http.schema import WorkspaceAccessType
 from src.platform.jobs.assets_thumbnails import generate_asset_thumbnails
 
 
@@ -58,7 +55,7 @@ async def test_asset_thumbnail_job_requires_tenant_payload() -> None:
 
 
 @pytest.mark.asyncio
-async def test_publish_release_event_serializes_enriched_tenant_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_release_service_domain_event_serializes_enriched_tenant_payload() -> None:
     actor_user_id = uuid4()
     organization_id = uuid4()
     workspace_id = uuid4()
@@ -66,23 +63,13 @@ async def test_publish_release_event_serializes_enriched_tenant_payload(monkeypa
     runtime_id = uuid4()
     site_id = uuid4()
     release_id = uuid4()
-    published: dict[str, object] = {}
+    publisher = SimpleNamespace(events=[])
 
-    project_ctx = ProjectRequestContext(
-        project_id=project_id,
-        workspace_id=workspace_id,
-        organization_id=organization_id,
-        runtime_id=runtime_id,
-        workspace_kind=WorkspaceKind.TEAM,
-        access_type=WorkspaceAccessType.MEMBER,
-        org_membership_id=None,
-        is_org_owner=False,
-        workspace_membership_id=None,
-        visible_only=False,
-        is_creator_admin=False,
-    )
+    async def _publish(event: Event) -> None:
+        publisher.events.append(event)
+
     now = datetime(2026, 4, 25, 10, 0, tzinfo=UTC)
-    release = ReleaseOut(
+    release = ContentReleaseRecord(
         id=release_id,
         workspace_id=workspace_id,
         site_id=site_id,
@@ -92,44 +79,37 @@ async def test_publish_release_event_serializes_enriched_tenant_payload(monkeypa
         created_by_user_id=actor_user_id,
         activated_at=now,
         selection_count=4,
-        lineage=ReleaseLineageOut(),
         created_at=now,
         updated_at=now,
     )
-
-    async def _fake_publish_and_wait(event, timeout):  # type: ignore[no-untyped-def]
-        published["event"] = event
-        published["timeout"] = timeout
-
-    monkeypatch.setattr(
-        "src.modules.projects.releases.events.current_tenant_context_or_none",
-        lambda: TenantContext(
+    release.workspace_id = workspace_id
+    release.site_id = site_id
+    service = ProjectReleasesService(
+        TenantContext(
             identity=TenantIdentity(
                 organization_id=organization_id,
                 workspace_id=workspace_id,
                 project_id=project_id,
                 runtime_id=runtime_id,
-                site_id=None,
+                site_id=site_id,
                 schema_name="cms_ws_1234567890abcdefghij",
                 isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
             ),
-            scope=TenantScope.PROJECT,
-        ),
+            scope=TenantScope.RUNTIME,
+        )
     )
-    monkeypatch.setattr("src.modules.projects.releases.events.events.publish_and_wait", _fake_publish_and_wait)
+    service._event_publisher = SimpleNamespace(publish=_publish)
 
-    await publish_project_release_event(
+    await service._publish_release_domain_event(
         actor_user_id=actor_user_id,
-        project_ctx=project_ctx,
         event_name="release.published",
-        payload=release,
-        project_id=project_id,
+        release=release,
+        previous_active_release_id=None,
     )
 
-    event = cast(Event, published["event"])
+    event = cast(Event, publisher.events[0])
     payload = cast(dict[str, object], event.payload)
     tenant_payload = cast(dict[str, str | None], payload["tenant"])
-    assert published["timeout"] == 1.0
     assert tenant_payload["workspaceId"] == str(workspace_id)
     assert tenant_payload["projectId"] == str(project_id)
     assert tenant_payload["runtimeId"] == str(runtime_id)

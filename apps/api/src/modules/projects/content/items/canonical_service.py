@@ -75,6 +75,7 @@ from src.modules.projects.content.items.workflow_policy import (
     resolve_workflow_policy,
     validate_workflow_transition,
 )
+from src.modules.tenancy.router_helpers import tenant_payload_from_context
 
 CONTENT_ITEM_CREATED_EVENT = "content.item.created"
 CONTENT_ITEM_UPDATED_EVENT = "content.item.updated"
@@ -82,6 +83,15 @@ CONTENT_ITEM_DELETED_EVENT = "content.item.deleted"
 CONTENT_ITEM_PUBLISHED_EVENT = "content.item.published"
 CONTENT_ITEM_UNPUBLISHED_EVENT = "content.item.unpublished"
 CONTENT_ITEM_RESTORED_EVENT = "content.item.restored"
+
+CONTENT_RUNTIME_ITEM_ARCHIVED_EVENT = "project.content.item.archived"
+CONTENT_RUNTIME_ITEM_BOOTSTRAP_APPLIED_EVENT = "project.content.item.bootstrap.applied"
+CONTENT_RUNTIME_ITEM_DUPLICATED_EVENT = "project.content.item.duplicated"
+CONTENT_RUNTIME_ITEM_TRANSLATION_CREATED_EVENT = "project.content.item.translation.created"
+CONTENT_RUNTIME_ITEM_UNARCHIVED_EVENT = "project.content.item.unarchived"
+CONTENT_RUNTIME_ITEM_WORKFLOW_UPDATED_EVENT = "project.content.item.workflow.updated"
+CONTENT_RUNTIME_VERSION_ARCHIVED_EVENT = "project.content.version.archived"
+CONTENT_RUNTIME_VERSION_SCHEDULED_EVENT = "project.content.version.scheduled"
 
 
 def _compare_mapping(
@@ -156,6 +166,39 @@ class ProjectContentCanonicalItemsService(BaseService):
                 properties=payload,
             ),
             conn=conn,
+        )
+
+    async def _publish_content_runtime_event(
+        self,
+        *,
+        actor_user_id: UUID | None,
+        workspace_id: UUID,
+        site_id: UUID,
+        project_id: UUID | None,
+        runtime_id: UUID | None,
+        entity_id: UUID,
+        entity_type: str,
+        event_name: str,
+        properties: JsonObject | None = None,
+    ) -> None:
+        payload: JsonObject = {
+            "organization_id": str(self.organization_id) if self.organization_id is not None else None,
+            "workspace_id": str(workspace_id),
+            "activity_ingest": False,
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+            "tenant": tenant_payload_from_context(),
+            **(properties or {}),
+        }
+        if project_id is not None:
+            payload["project_id"] = str(project_id)
+        if runtime_id is not None:
+            payload["runtime_id"] = str(runtime_id)
+        payload["site_id"] = str(site_id)
+        await self.publish_optional_domain_event(
+            name=event_name,
+            payload=payload,
+            actor_user_id=actor_user_id,
         )
 
     async def _replace_presentations(
@@ -396,26 +439,22 @@ class ProjectContentCanonicalItemsService(BaseService):
                 meta={"title": payload.title, "locale": payload.locale},
             ) from exc
 
-        translations = (
-            await self.repo.list_translation_items(
+        created_translation_group_id = item.translation_group_id
+        if created_translation_group_id is not None:
+            translations = await self.repo.list_translation_items(
                 workspace_id=workspace_id,
                 site_id=site_id,
                 environment_id=environment_id,
-                translation_group_id=item.translation_group_id,
+                translation_group_id=created_translation_group_id,
             )
-            if getattr(item, "translation_group_id", None) is not None
-            else [item]
-        )
-        status = (
-            self._translation_status_from_items(
-                group_id=item.translation_group_id,
+            status = self._translation_status_from_items(
+                group_id=created_translation_group_id,
                 primary_item_id=item.id if translation_group_id is None else None,
                 primary_locale=item.locale,
                 items=translations,
             )
-            if getattr(item, "translation_group_id", None) is not None
-            else None
-        )
+        else:
+            status = None
         return to_item_out(item, model, translation_status=status)
 
     async def apply_bootstrap_shape(
@@ -423,6 +462,8 @@ class ProjectContentCanonicalItemsService(BaseService):
         *,
         workspace_id: UUID,
         site_id: UUID,
+        project_id: UUID | None = None,
+        runtime_id: UUID | None = None,
         environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
@@ -462,7 +503,22 @@ class ProjectContentCanonicalItemsService(BaseService):
                 },
                 conn=conn,
             )
-            return to_item_out(item, item.model_definition)
+            data = to_item_out(item, item.model_definition)
+        await self._publish_content_runtime_event(
+            actor_user_id=actor_user_id,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            entity_id=data.id,
+            entity_type="content_item",
+            event_name=CONTENT_RUNTIME_ITEM_BOOTSTRAP_APPLIED_EVENT,
+            properties={
+                "bootstrap_preset_key": data.bootstrap_preset_key,
+                "bootstrap_preset_state": str(data.bootstrap_preset_state),
+            },
+        )
+        return data
 
     async def patch_workflow(
         self,
@@ -470,6 +526,7 @@ class ProjectContentCanonicalItemsService(BaseService):
         project_id: UUID | None = None,
         workspace_id: UUID,
         site_id: UUID,
+        runtime_id: UUID | None = None,
         item_id: UUID,
         actor_user_id: UUID | None,
         payload: ContentItemWorkflowPatchIn,
@@ -502,13 +559,32 @@ class ProjectContentCanonicalItemsService(BaseService):
             if not fields:
                 return to_item_out(item, item.model_definition)
             item = await self.repo.update_item_fields(item, fields=fields, conn=conn)
-            return to_item_out(item, item.model_definition)
+            data = to_item_out(item, item.model_definition)
+        await self._publish_content_runtime_event(
+            actor_user_id=actor_user_id,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            entity_id=item_id,
+            entity_type="content_item",
+            event_name=CONTENT_RUNTIME_ITEM_WORKFLOW_UPDATED_EVENT,
+            properties={
+                "workflow_stage": str(data.workflow_stage),
+                "workflow_assignee_user_id": str(data.workflow_assignee_user_id)
+                if data.workflow_assignee_user_id is not None
+                else None,
+            },
+        )
+        return data
 
     async def duplicate_item(
         self,
         *,
         workspace_id: UUID,
         site_id: UUID,
+        project_id: UUID | None = None,
+        runtime_id: UUID | None = None,
         environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
@@ -581,7 +657,23 @@ class ProjectContentCanonicalItemsService(BaseService):
                     conn=conn,
                 )
 
-            return to_item_out(duplicated_item, source_item.model_definition)
+            data = to_item_out(duplicated_item, source_item.model_definition)
+        await self._publish_content_runtime_event(
+            actor_user_id=actor_user_id,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            entity_id=item_id,
+            entity_type="content_item",
+            event_name=CONTENT_RUNTIME_ITEM_DUPLICATED_EVENT,
+            properties={
+                "duplicated_item_id": str(data.id),
+                "duplicated_item_title": data.title,
+                "duplicated_item_slug": data.slug,
+            },
+        )
+        return data
 
     async def list_translations(
         self,
@@ -612,6 +704,8 @@ class ProjectContentCanonicalItemsService(BaseService):
         *,
         workspace_id: UUID,
         site_id: UUID,
+        project_id: UUID | None = None,
+        runtime_id: UUID | None = None,
         environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
@@ -710,7 +804,22 @@ class ProjectContentCanonicalItemsService(BaseService):
                 primary_locale=group.primary_locale,
                 items=translations,
             )
-            return to_item_out(translated_item, source_item.model_definition, translation_status=status)
+            data = to_item_out(translated_item, source_item.model_definition, translation_status=status)
+        await self._publish_content_runtime_event(
+            actor_user_id=actor_user_id,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            entity_id=item_id,
+            entity_type="content_item",
+            event_name=CONTENT_RUNTIME_ITEM_TRANSLATION_CREATED_EVENT,
+            properties={
+                "translated_item_id": str(data.id),
+                "target_locale": data.locale,
+            },
+        )
+        return data
 
     async def get_translation_group(
         self,
@@ -790,6 +899,8 @@ class ProjectContentCanonicalItemsService(BaseService):
         *,
         workspace_id: UUID,
         site_id: UUID,
+        project_id: UUID | None = None,
+        runtime_id: UUID | None = None,
         environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
@@ -830,17 +941,29 @@ class ProjectContentCanonicalItemsService(BaseService):
                     ),
                     conn=conn,
                 )
-                return to_item_out(item, item.model_definition)
-
-            item = await self.repo.update_item_fields(
-                item,
-                fields={
-                    "status": str(ContentItemStatus.ARCHIVED),
-                    "updated_by_user_id": actor_user_id,
-                },
-                conn=conn,
-            )
-            return to_item_out(item, item.model_definition)
+                data = to_item_out(item, item.model_definition)
+            else:
+                item = await self.repo.update_item_fields(
+                    item,
+                    fields={
+                        "status": str(ContentItemStatus.ARCHIVED),
+                        "updated_by_user_id": actor_user_id,
+                    },
+                    conn=conn,
+                )
+                data = to_item_out(item, item.model_definition)
+        await self._publish_content_runtime_event(
+            actor_user_id=actor_user_id,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            entity_id=data.id,
+            entity_type="content_item",
+            event_name=CONTENT_RUNTIME_ITEM_ARCHIVED_EVENT,
+            properties={"item_status": str(data.status)},
+        )
+        return data
 
     async def save_draft_version(
         self,
@@ -914,6 +1037,8 @@ class ProjectContentCanonicalItemsService(BaseService):
         *,
         workspace_id: UUID,
         site_id: UUID,
+        project_id: UUID | None = None,
+        runtime_id: UUID | None = None,
         environment_id: UUID | None,
         item_id: UUID,
         version_number: int,
@@ -1042,6 +1167,27 @@ class ProjectContentCanonicalItemsService(BaseService):
                 item_id=published_item_id,
                 result=result,
                 actor_id=actor_user_id,
+            )
+        if target_state in {ContentVersionState.SCHEDULED, ContentVersionState.ARCHIVED}:
+            runtime_event_name = (
+                CONTENT_RUNTIME_VERSION_SCHEDULED_EVENT
+                if target_state == ContentVersionState.SCHEDULED
+                else CONTENT_RUNTIME_VERSION_ARCHIVED_EVENT
+            )
+            await self._publish_content_runtime_event(
+                actor_user_id=actor_user_id,
+                workspace_id=workspace_id,
+                site_id=site_id,
+                project_id=project_id,
+                runtime_id=runtime_id,
+                entity_id=item_id,
+                entity_type="content_item",
+                event_name=runtime_event_name,
+                properties={
+                    "version_number": result.version_number,
+                    "version_state": str(result.state),
+                    "change_summary": result.change_summary,
+                },
             )
         return result
 
@@ -1251,6 +1397,8 @@ class ProjectContentCanonicalItemsService(BaseService):
         *,
         workspace_id: UUID,
         site_id: UUID,
+        project_id: UUID | None = None,
+        runtime_id: UUID | None = None,
         environment_id: UUID | None,
         item_id: UUID,
         actor_user_id: UUID | None,
@@ -1293,7 +1441,19 @@ class ProjectContentCanonicalItemsService(BaseService):
                 },
                 conn=conn,
             )
-            return to_item_out(item, item.model_definition)
+            data = to_item_out(item, item.model_definition)
+        await self._publish_content_runtime_event(
+            actor_user_id=actor_user_id,
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            entity_id=data.id,
+            entity_type="content_item",
+            event_name=CONTENT_RUNTIME_ITEM_UNARCHIVED_EVENT,
+            properties={"item_status": str(data.status)},
+        )
+        return data
 
     async def patch_version(
         self,

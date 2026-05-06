@@ -5,6 +5,7 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
+from src.common.types.json_types import JsonObject
 from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable
@@ -30,6 +31,37 @@ class ProjectApiKeysService(BaseService):
         super().__init__(settings)
         self.repo = ProjectApiKeysRepository()
 
+    async def _publish_api_key_domain_event(
+        self,
+        *,
+        actor_user_id: UUID,
+        event_name: str,
+        key: ApiKeyOut,
+        organization_id: UUID | None = None,
+        workspace_id: UUID | None = None,
+        project_id: UUID | None = None,
+        site_id: UUID | None = None,
+    ) -> None:
+        payload: JsonObject = {
+            "delivery_perspective": str(key.delivery_perspective) if key.delivery_perspective is not None else None,
+            "entity_id": str(key.id),
+            "entity_type": "api_key",
+            "key_family": str(key.family),
+            "key_name": key.name,
+            "scopes": [str(scope) for scope in key.scopes],
+            "site_id": str(site_id) if site_id is not None else None,
+            "workspace_id": str(workspace_id) if workspace_id is not None else None,
+        }
+        if organization_id is not None:
+            payload["organization_id"] = str(organization_id)
+        if project_id is not None:
+            payload["project_id"] = str(project_id)
+        await self.publish_optional_domain_event(
+            name=event_name,
+            payload=payload,
+            actor_user_id=actor_user_id,
+        )
+
     async def list_personal_keys_out(self, *, owner_user_id: UUID) -> ApiKeyListOut:
         rows = await self.repo.list_personal_keys(owner_user_id=owner_user_id)
         return ApiKeyListOut(items=[self._to_out(row) for row in rows])
@@ -38,6 +70,7 @@ class ProjectApiKeysService(BaseService):
         self,
         *,
         owner_user_id: UUID,
+        organization_id: UUID,
         payload: PersonalApiKeyCreateIn,
     ) -> ApiKeyCreateOut:
         scopes = self._normalize_scopes(payload.scopes)
@@ -65,13 +98,26 @@ class ProjectApiKeysService(BaseService):
             key_id=str(record.id),
             scopes=[scope.value for scope in scopes],
         )
-        return ApiKeyCreateOut(key=self._to_out(record), secret_token=generated.token)
+        key_out = ApiKeyCreateOut(key=self._to_out(record), secret_token=generated.token)
+        await self._publish_api_key_domain_event(
+            actor_user_id=owner_user_id,
+            event_name="me.api_key.created",
+            key=key_out.key,
+            organization_id=organization_id,
+        )
+        return key_out
 
     async def get_personal_key_out(self, *, owner_user_id: UUID, key_id: UUID) -> ApiKeyOut:
         record = await self.repo.get_personal_key(owner_user_id=owner_user_id, key_id=key_id)
         return self._to_out(self._require_record(record, error="API_KEY_NOT_FOUND"))
 
-    async def revoke_personal_key_out(self, *, owner_user_id: UUID, key_id: UUID) -> ApiKeyOut:
+    async def revoke_personal_key_out(
+        self,
+        *,
+        owner_user_id: UUID,
+        organization_id: UUID,
+        key_id: UUID,
+    ) -> ApiKeyOut:
         record = await self.repo.get_personal_key(owner_user_id=owner_user_id, key_id=key_id)
         row = self._require_record(record, error="API_KEY_NOT_FOUND")
         self._ensure_not_revoked(row)
@@ -82,9 +128,22 @@ class ProjectApiKeysService(BaseService):
             key_family=str(updated.key_family),
             key_id=str(updated.id),
         )
-        return self._to_out(updated)
+        key_out = self._to_out(updated)
+        await self._publish_api_key_domain_event(
+            actor_user_id=owner_user_id,
+            event_name="me.api_key.revoked",
+            key=key_out,
+            organization_id=organization_id,
+        )
+        return key_out
 
-    async def rotate_personal_key_out(self, *, owner_user_id: UUID, key_id: UUID) -> ApiKeyCreateOut:
+    async def rotate_personal_key_out(
+        self,
+        *,
+        owner_user_id: UUID,
+        organization_id: UUID,
+        key_id: UUID,
+    ) -> ApiKeyCreateOut:
         record = await self.repo.get_personal_key(owner_user_id=owner_user_id, key_id=key_id)
         row = self._require_record(record, error="API_KEY_NOT_FOUND")
         self._ensure_not_revoked(row)
@@ -105,7 +164,14 @@ class ProjectApiKeysService(BaseService):
             key_id=str(updated.id),
             new_token_public_id=updated.token_public_id,
         )
-        return ApiKeyCreateOut(key=self._to_out(updated), secret_token=generated.token)
+        key_out = ApiKeyCreateOut(key=self._to_out(updated), secret_token=generated.token)
+        await self._publish_api_key_domain_event(
+            actor_user_id=owner_user_id,
+            event_name="me.api_key.rotated",
+            key=key_out.key,
+            organization_id=organization_id,
+        )
+        return key_out
 
     async def list_project_site_keys_out(self, *, workspace_id: UUID, site_id: UUID) -> ApiKeyListOut:
         rows = await self.repo.list_project_site_keys(workspace_id=workspace_id, site_id=site_id)
@@ -174,7 +240,17 @@ class ProjectApiKeysService(BaseService):
             site_id=str(site_id),
             workspace_id=str(workspace_id),
         )
-        return ApiKeyCreateOut(key=self._to_out(record), secret_token=generated.token)
+        key_out = ApiKeyCreateOut(key=self._to_out(record), secret_token=generated.token)
+        await self._publish_api_key_domain_event(
+            actor_user_id=actor_user_id,
+            event_name="project.api_key.created",
+            key=key_out.key,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            site_id=site_id,
+        )
+        return key_out
 
     async def get_project_site_key_out(self, *, workspace_id: UUID, site_id: UUID, key_id: UUID) -> ApiKeyOut:
         record = await self.repo.get_project_site_key(workspace_id=workspace_id, site_id=site_id, key_id=key_id)
@@ -225,7 +301,17 @@ class ProjectApiKeysService(BaseService):
             site_id=str(site_id),
             workspace_id=str(workspace_id),
         )
-        return ApiKeyCreateOut(key=self._to_out(updated), secret_token=generated.token)
+        key_out = ApiKeyCreateOut(key=self._to_out(updated), secret_token=generated.token)
+        await self._publish_api_key_domain_event(
+            actor_user_id=actor_user_id,
+            event_name="project.api_key.rotated",
+            key=key_out.key,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            site_id=site_id,
+        )
+        return key_out
 
     async def revoke_project_site_key_out(
         self,
@@ -261,7 +347,17 @@ class ProjectApiKeysService(BaseService):
             site_id=str(site_id),
             workspace_id=str(workspace_id),
         )
-        return self._to_out(updated)
+        key_out = self._to_out(updated)
+        await self._publish_api_key_domain_event(
+            actor_user_id=actor_user_id,
+            event_name="project.api_key.revoked",
+            key=key_out,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            site_id=site_id,
+        )
+        return key_out
 
     async def _write_project_api_key_activity_event(
         self,

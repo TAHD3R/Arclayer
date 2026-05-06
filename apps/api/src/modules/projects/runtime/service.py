@@ -54,6 +54,29 @@ class ProjectRuntimeService(BaseService):
             actor_user_id=actor_user_id,
         )
 
+    async def publish_preview_token_created_event(
+        self,
+        *,
+        context: ProjectRuntimeContext,
+        actor_user_id: UUID,
+        expires_at_ms: int,
+        ttl_seconds: int,
+    ) -> None:
+        await self.publish_domain_event(
+            name="project.preview_token.created",
+            actor_user_id=actor_user_id,
+            payload={
+                "entity_id": str(context.site_id),
+                "entity_type": "preview_token",
+                "expires_at_ms": expires_at_ms,
+                "organization_id": str(context.tenant_context.organization_id),
+                "project_id": str(context.project_id),
+                "site_id": str(context.site_id),
+                "ttl_seconds": ttl_seconds,
+                "workspace_id": str(context.workspace_id),
+            },
+        )
+
     async def get_context_by_runtime(
         self,
         *,

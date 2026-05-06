@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Annotated, Literal
 from uuid import UUID
 
-from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Body, Depends, Query, Request, status
 from fastapi import Response as FastAPIResponse
 
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
-from src.core.events import Event, events
 from src.core.http.response import ApiResponse, ResponseModel
-from src.core.logging import get_logger
 from src.modules.auth.content_api.service import ContentApiAuthService, ContentApiCredential
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.projects.http.router_helpers import (
@@ -41,13 +37,6 @@ from src.modules.sites.runtime.delivery_kernel import (
 from src.modules.sites.schema import SitePreviewTokenOut, SiteRouteResolveOut, SiteRuntimeOut
 
 project_router = APIRouter(prefix="/projects/{project_id}", tags=["domain.projects.runtime"])
-logger = get_logger(__name__)
-_FATAL_PROJECT_EVENT_ERRORS = (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit)
-
-
-def _raise_if_fatal(exc: BaseException) -> None:
-    if isinstance(exc, _FATAL_PROJECT_EVENT_ERRORS):
-        raise exc
 
 
 async def get_runtime_context(
@@ -131,36 +120,12 @@ async def create_project_site_preview_token(
         target=_runtime_delivery_target(runtime_context),
         ttl_seconds=payload.ttl_seconds,
     )
-    try:
-        await events.publish_and_wait(
-            Event(
-                name="project.preview_token.created",
-                payload={
-                    "entity_id": str(runtime_context.site_id),
-                    "entity_type": "preview_token",
-                    "expires_at_ms": data.expires_at_ms,
-                    "organization_id": str(ctx.organization_id),
-                    "project_id": str(ctx.project_id),
-                    "site_id": str(runtime_context.site_id),
-                    "ttl_seconds": payload.ttl_seconds,
-                    "workspace_id": str(runtime_context.workspace_id),
-                },
-                source="api",
-                trace_id=correlation_id.get(None),
-                actor_user_id=str(actor_user_id),
-            ),
-            timeout=1.0,
-        )
-    except BaseException as exc:
-        _raise_if_fatal(exc)
-        logger.warning(
-            "Project preview token event publish failed",
-            actor_user_id=str(actor_user_id),
-            event_name="project.preview_token.created",
-            project_id=str(ctx.project_id),
-            site_id=str(runtime_context.site_id),
-            error=str(exc),
-        )
+    await runtime_service.publish_preview_token_created_event(
+        context=runtime_context,
+        actor_user_id=actor_user_id,
+        expires_at_ms=data.expires_at_ms,
+        ttl_seconds=payload.ttl_seconds,
+    )
     return ApiResponse.success(data=data)
 
 

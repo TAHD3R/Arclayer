@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.queryset import QuerySet
 
+from src.common.types.json_types import JsonValue
 from src.core.repository.implementations.tortoise import TortoiseORMRepository
 from src.models.analytics.audit_event import AuditEvent
 from src.models.organization.user import User
 from src.modules.analytics.schema import AuditEventListQuery
+
+SanitizedAuditEventRow = dict[str, JsonValue | UUID | datetime]
 
 
 class AuditEventRepository(TortoiseORMRepository):
@@ -68,7 +70,7 @@ class AuditEventRepository(TortoiseORMRepository):
     async def create_many(
         self,
         *,
-        rows: list[dict[str, Any]],
+        rows: list[SanitizedAuditEventRow],
         conn: BaseDBAsyncClient | None = None,
     ) -> None:
         if not rows:

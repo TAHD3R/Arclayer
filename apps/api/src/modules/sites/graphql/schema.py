@@ -156,10 +156,10 @@ class GraphQLSortDirection(enum.Enum):
 
 class GraphQLModelRuntimeTypes(BaseModel):
     model_config = ConfigDict(frozen=True)
-    entry_type: type[Any]
-    filter_input_type: type[Any]
+    entry_type: type[object]
+    filter_input_type: type[object]
     sort_enum: type[enum.Enum]
-    sort_input_type: type[Any]
+    sort_input_type: type[object]
 
 
 def _snake_case(value: str) -> str:
@@ -466,6 +466,7 @@ def _model_entry_field_value(model_key: str, field_key: str, record: StructuredC
 def _to_model_entry(model_key: str, record: StructuredContentRecord) -> Any:
     schema = _required_model_schema(model_key)
     runtime_types = _MODEL_RUNTIME_TYPES[model_key]
+    entry_type = cast(Any, runtime_types.entry_type)
     payload: dict[str, Any] = {
         "id": str(record.item_id),
         "locale": record.locale,
@@ -477,7 +478,7 @@ def _to_model_entry(model_key: str, record: StructuredContentRecord) -> Any:
     }
     for field in schema.system_fields:
         payload[_snake_case(field.field_name)] = _model_entry_field_value(model_key, field.source_key, record)
-    return runtime_types.entry_type(**payload)
+    return entry_type(**payload)
 
 
 async def _list_model_entries(
@@ -582,7 +583,7 @@ def _build_single_query_field(
 ) -> Any:
     function_name = f"_resolve_{schema.model_key.replace('-', '_')}_single"
     argument_name = _assert_graphql_field_name(schema.single_query_argument, label="single query argument")
-    entry_type = _MODEL_RUNTIME_TYPES[schema.model_key].entry_type
+    entry_type = cast(Any, _MODEL_RUNTIME_TYPES[schema.model_key].entry_type)
 
     async def resolver(
         self: object,
@@ -652,11 +653,13 @@ def _build_single_query_field(
 def _build_list_query_field(
     schema: GraphQLModelSchemaDefinition,
     *,
-    filter_input_type: type[Any],
-    sort_input_type: type[Any],
+    filter_input_type: type[object],
+    sort_input_type: type[object],
 ) -> Any:
     function_name = f"_resolve_{schema.model_key.replace('-', '_')}_list"
-    entry_type = _MODEL_RUNTIME_TYPES[schema.model_key].entry_type
+    entry_type = cast(Any, _MODEL_RUNTIME_TYPES[schema.model_key].entry_type)
+    filter_type = cast(Any, filter_input_type)
+    sort_type = cast(Any, sort_input_type)
 
     async def resolver(
         self: object,
@@ -688,8 +691,8 @@ def _build_list_query_field(
             "info": strawberry.Info[SiteGraphQLContext, None],
             "perspective": DeliveryPerspectiveEnum,
             "preview_token": str | None,
-            "filter": filter_input_type | None,
-            "sort": sort_input_type | None,
+            "filter": filter_type | None,
+            "sort": sort_type | None,
             "locale": str | None,
             "limit": int,
             "offset": int,
@@ -719,13 +722,13 @@ def _build_list_query_field(
                     "filter",
                     inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     default=None,
-                    annotation=filter_input_type | None,
+                    annotation=filter_type | None,
                 ),
                 inspect.Parameter(
                     "sort",
                     inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     default=None,
-                    annotation=sort_input_type | None,
+                    annotation=sort_type | None,
                 ),
                 inspect.Parameter(
                     "locale",

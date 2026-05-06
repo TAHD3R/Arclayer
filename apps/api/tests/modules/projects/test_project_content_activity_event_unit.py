@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-from typing import cast
 from uuid import uuid4
 
 import pytest
 
-from src.core.events import Event, EventBus
-from src.modules.projects.content.items.router_helpers import publish_content_runtime_event
-from src.modules.projects.http.schema import ProjectRequestContext
+from src.core.entity_manager.manager import EntityManager
+from src.core.events import Event
+from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
+from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 from src.modules.tenancy.context import reset_current_tenant_context, set_current_tenant_context
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
 
 
-class _FakeEventBus:
+class _FakeEventPublisher:
     def __init__(self) -> None:
         self.events: list[Event] = []
 
@@ -22,7 +21,7 @@ class _FakeEventBus:
 
 
 @pytest.mark.asyncio
-async def test_publish_content_runtime_event_includes_tenant_job_payload() -> None:
+async def test_content_runtime_event_uses_service_domain_event_contract() -> None:
     organization_id = uuid4()
     workspace_id = uuid4()
     project_id = uuid4()
@@ -41,29 +40,30 @@ async def test_publish_content_runtime_event_includes_tenant_job_payload() -> No
         scope=TenantScope.RUNTIME,
     )
     token = set_current_tenant_context(tenant_context)
-    event_bus = _FakeEventBus()
+    publisher = _FakeEventPublisher()
+    service = ProjectContentCanonicalItemsService(
+        repo=ProjectContentItemsRepository(tenant_context),
+        entity_manager=EntityManager(items_repo=ProjectContentItemsRepository(tenant_context)),
+        organization_id=organization_id,
+    )
+    service._event_publisher = publisher
 
     try:
-        await publish_content_runtime_event(
+        await service._publish_content_runtime_event(
             actor_user_id=uuid4(),
-            project_ctx=cast(
-                ProjectRequestContext,
-                SimpleNamespace(
-                    organization_id=organization_id,
-                    workspace_id=workspace_id,
-                ),
-            ),
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
             entity_id=uuid4(),
             entity_type="content_item",
-            event_bus=cast(EventBus, event_bus),
             event_name="project.content.item.workflow.updated",
-            properties={"site_id": str(site_id), "project_id": str(project_id), "runtime_id": str(runtime_id)},
         )
     finally:
         reset_current_tenant_context(token)
 
-    assert len(event_bus.events) == 1
-    payload = event_bus.events[0].payload
+    assert len(publisher.events) == 1
+    payload = publisher.events[0].payload
     assert payload["tenant"] == {
         "organizationId": str(organization_id),
         "workspaceId": str(workspace_id),
@@ -75,3 +75,8 @@ async def test_publish_content_runtime_event_includes_tenant_job_payload() -> No
         "scope": "runtime",
     }
     assert payload["activity_ingest"] is False
+    assert payload["organization_id"] == str(organization_id)
+    assert payload["workspace_id"] == str(workspace_id)
+    assert payload["project_id"] == str(project_id)
+    assert payload["runtime_id"] == str(runtime_id)
+    assert payload["site_id"] == str(site_id)

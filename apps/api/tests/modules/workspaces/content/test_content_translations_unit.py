@@ -9,10 +9,13 @@ import pytest
 from pydantic import ValidationError
 
 from src.core.entity_manager.manager import EntityManager
+from src.core.events import Event
 from src.models.content._enums import ContentWorkflowStage
 from src.modules.projects.content.items.canonical_service import ProjectContentCanonicalItemsService
 from src.modules.projects.content.items.input_schema import ContentItemCreateIn, ContentTranslationCreateIn
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
+from src.modules.tenancy.context import reset_current_tenant_context, set_current_tenant_context
+from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
 
 
 class _FakeTransaction:
@@ -24,6 +27,14 @@ class _FakeTransaction:
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         return None
+
+
+class _FakeEventPublisher:
+    def __init__(self) -> None:
+        self.events: list[Event] = []
+
+    async def publish(self, event: Event) -> None:
+        self.events.append(event)
 
 
 def _model_definition(*, model_id):
@@ -87,6 +98,8 @@ async def test_create_translation_links_new_locale_to_source_translation_group(m
     workspace_id = uuid4()
     site_id = uuid4()
     actor_user_id = uuid4()
+    project_id = uuid4()
+    runtime_id = uuid4()
     model = _model_definition(model_id=uuid4())
     group_id = uuid4()
     source_item = _content_item(
@@ -117,15 +130,36 @@ async def test_create_translation_links_new_locale_to_source_translation_group(m
         repo=cast(ProjectContentItemsRepository, repo),
         entity_manager=cast(EntityManager, SimpleNamespace()),
     )
+    publisher = _FakeEventPublisher()
+    service._event_publisher = publisher
     monkeypatch.setattr(service, "tx", lambda: _FakeTransaction(conn))
-    out = await service.create_translation(
-        workspace_id=workspace_id,
-        site_id=site_id,
-        environment_id=None,
-        item_id=source_item.id,
-        actor_user_id=actor_user_id,
-        payload=ContentTranslationCreateIn(target_locale=" fr-FR "),
+    token = set_current_tenant_context(
+        TenantContext(
+            identity=TenantIdentity(
+                organization_id=uuid4(),
+                workspace_id=workspace_id,
+                project_id=project_id,
+                runtime_id=runtime_id,
+                site_id=site_id,
+                schema_name="tenant_workspace",
+                isolation_mode=TenantIsolationMode.WORKSPACE_SCHEMA,
+            ),
+            scope=TenantScope.RUNTIME,
+        )
     )
+    try:
+        out = await service.create_translation(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            project_id=project_id,
+            runtime_id=runtime_id,
+            environment_id=None,
+            item_id=source_item.id,
+            actor_user_id=actor_user_id,
+            payload=ContentTranslationCreateIn(target_locale=" fr-FR "),
+        )
+    finally:
+        reset_current_tenant_context(token)
 
     repo.ensure_translation_group_for_item.assert_awaited_once_with(item=source_item, conn=conn)
     repo.get_translation_item_by_locale.assert_awaited_once_with(
@@ -147,6 +181,11 @@ async def test_create_translation_links_new_locale_to_source_translation_group(m
     assert out.translation_group_id == group_id
     assert out.translation_status is not None
     assert out.translation_status.locales == ["en-US", "fr-FR"]
+    assert len(publisher.events) == 1
+    assert publisher.events[0].name == "project.content.item.translation.created"
+    assert publisher.events[0].payload["project_id"] == str(project_id)
+    assert publisher.events[0].payload["runtime_id"] == str(runtime_id)
+    assert publisher.events[0].payload["translated_item_id"] == str(translated_item.id)
 
 
 def test_content_translation_payload_normalizes_locale_codes() -> None:

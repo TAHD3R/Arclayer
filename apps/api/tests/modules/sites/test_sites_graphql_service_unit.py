@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
 import pytest
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import APIError, BadRequest, Forbidden, ServiceUnavailable
+from src.models.content.content_item import ContentItemRecord
 from src.models.projects.api_key import ApiKeyFamily, ApiKeyRecord, DeliveryKeyPerspective
 from src.modules.projects.content.runtime import (
     DocumentQuery,
@@ -45,8 +47,12 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 RUNTIME_REPOSITORY = REPO_ROOT / "apps/api/src/modules/sites/runtime/repository.py"
 
 
-def _article_record(**overrides) -> StructuredContentRecord:
-    payload = {
+def _query_item(**attributes: Any) -> ContentItemRecord:
+    return cast(ContentItemRecord, SimpleNamespace(**attributes))
+
+
+def _article_record(**overrides: object) -> StructuredContentRecord:
+    payload: dict[str, object] = {
         "item_id": UUID("00000000-0000-0000-0000-000000000001"),
         "translation_group_id": None,
         "model_key": "article",
@@ -69,7 +75,22 @@ def _article_record(**overrides) -> StructuredContentRecord:
         "route_contract": None,
     }
     payload.update(overrides)
-    return StructuredContentRecord(**payload)
+    return StructuredContentRecord(
+        item_id=payload["item_id"],
+        translation_group_id=cast(UUID | None, payload["translation_group_id"]),
+        model_key=cast(str, payload["model_key"]),
+        locale=cast(str, payload["locale"]),
+        title=cast(str | None, payload["title"]),
+        slug=cast(str | None, payload["slug"]),
+        revision=cast(int, payload["revision"]),
+        revision_state=cast("Literal['draft', 'published']", payload["revision_state"]),
+        draft_revision=cast(int, payload["draft_revision"]),
+        published_revision=cast(int | None, payload["published_revision"]),
+        fields=cast(JsonObject, payload["fields"]),
+        custom_fields=cast(JsonObject, payload["custom_fields"]),
+        route_path=cast(str | None, payload["route_path"]),
+        route_contract=cast(JsonObject | None, payload["route_contract"]),
+    )
 
 
 def test_field_aliases_uses_article_body_alias() -> None:
@@ -262,14 +283,14 @@ async def test_list_records_uses_query_plan_for_filter_sort_and_pagination() -> 
     )
     records = [
         DocumentQueryRecord(
-            item=SimpleNamespace(id=UUID("00000000-0000-0000-0000-000000000002")),
+            item=_query_item(id=UUID("00000000-0000-0000-0000-000000000002")),
             revision=2,
             revision_state="published",
             fields={"title": "Zulu", "slug": "zulu"},
             metadata=DocumentRuntimeMetadata(),
         ),
         DocumentQueryRecord(
-            item=SimpleNamespace(id=UUID("00000000-0000-0000-0000-000000000001")),
+            item=_query_item(id=UUID("00000000-0000-0000-0000-000000000001")),
             revision=1,
             revision_state="published",
             fields={"title": "Alpha", "slug": "alpha"},
@@ -339,14 +360,14 @@ async def test_list_records_runs_graphql_query_post_processors(monkeypatch: pyte
     )
     records = [
         DocumentQueryRecord(
-            item=SimpleNamespace(id=UUID("00000000-0000-0000-0000-000000000002")),
+            item=_query_item(id=UUID("00000000-0000-0000-0000-000000000002")),
             revision=2,
             revision_state="published",
             fields={"title": "Zulu", "slug": "zulu"},
             metadata=DocumentRuntimeMetadata(),
         ),
         DocumentQueryRecord(
-            item=SimpleNamespace(id=UUID("00000000-0000-0000-0000-000000000001")),
+            item=_query_item(id=UUID("00000000-0000-0000-0000-000000000001")),
             revision=1,
             revision_state="published",
             fields={"title": "Alpha", "slug": "alpha"},
@@ -432,12 +453,12 @@ def test_assert_query_fields_allowed_rejects_unknown_filter_and_sort_fields() ->
 
 
 def test_document_query_boundary_filters_by_model_status_and_route_metadata() -> None:
-    article_item = SimpleNamespace(
+    article_item = _query_item(
         id=UUID("00000000-0000-0000-0000-000000000010"),
         site_id=UUID("00000000-0000-0000-0000-000000000111"),
         model_definition=SimpleNamespace(singular_key="article"),
     )
-    page_item = SimpleNamespace(
+    page_item = _query_item(
         id=UUID("00000000-0000-0000-0000-000000000020"),
         site_id=UUID("00000000-0000-0000-0000-000000000111"),
         model_definition=SimpleNamespace(singular_key="page"),

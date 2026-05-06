@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SkipValidation
 
+from src.common.types.json_types import JsonObject
+from src.models.content.content_item import ContentItemRecord
 from src.modules.projects.content.items.domain_helpers import (
     read_slug_field,
     read_summary_field,
@@ -40,17 +42,17 @@ class DocumentPreviewDiagnosticsReadModel(BaseModel):
 class DocumentRuntimeMetadata(BaseModel):
     model_config = ConfigDict(frozen=True)
     route_path: str | None = None
-    route_contract: dict[str, Any] | None = None
+    route_contract: JsonObject | None = None
     binding_key: str | None = None
     protocol_key: str | None = None
 
 
 class DocumentQueryRecord(BaseModel):
-    model_config = ConfigDict(frozen=True)
-    item: Any
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+    item: SkipValidation[ContentItemRecord]
     revision: int
     revision_state: str
-    fields: dict[str, Any]
+    fields: JsonObject
     metadata: DocumentRuntimeMetadata = Field(default_factory=DocumentRuntimeMetadata)
 
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from enum import StrEnum
-from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -26,10 +25,10 @@ class LifecycleEvent(BaseModel):
     workspace_id: UUID | None = None
     site_id: UUID | None = None
     item_id: UUID | None = None
-    data: dict[str, Any] = Field(default_factory=dict)
-    result: Any = None
+    data: dict[str, object] = Field(default_factory=dict)
+    result: object | None = None
     actor_id: UUID | None = None
-    state: dict[str, Any] = Field(default_factory=dict)
+    state: dict[str, object] = Field(default_factory=dict)
 
 
 LifecycleSubscriber = Callable[[LifecycleEvent], Awaitable[None]]

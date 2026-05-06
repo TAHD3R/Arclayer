@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.common.types.json_types import JsonObject
 from src.config import SearchSettings, Settings
 from src.core.exceptions import ServiceUnavailable
 from src.modules.sites.graphql.service import StructuredContentRecord
@@ -12,7 +13,9 @@ from src.modules.sites.search.service import ContentSearchService
 from tests.core.test_api_boundary_routes_unit import _runtime_context
 
 
-def _record(*, title: str, locale: str = "en-US", fields: dict | None = None) -> StructuredContentRecord:
+def _record(*, title: str, locale: str = "en-US", fields: JsonObject | None = None) -> StructuredContentRecord:
+    default_fields: JsonObject = {"title": title, "body": "Searchable public body"}
+    resolved_fields = fields if fields is not None else default_fields
     return StructuredContentRecord(
         item_id=uuid4(),
         translation_group_id=None,
@@ -24,8 +27,8 @@ def _record(*, title: str, locale: str = "en-US", fields: dict | None = None) ->
         revision_state="published",
         draft_revision=2,
         published_revision=2,
-        fields=fields or {"title": title, "body": "Searchable public body"},
-        custom_fields=fields or {"body": "Searchable public body"},
+        fields=resolved_fields,
+        custom_fields=resolved_fields,
         route_path=f"/blog/{title.lower().replace(' ', '-')}",
         route_contract={"modelKey": "article"},
     )

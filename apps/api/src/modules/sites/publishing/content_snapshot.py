@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
 from pydantic import BaseModel, ConfigDict
 
+from src.common.types.json_types import JsonObject
 from src.models.content._enums import ContentPresentationKind
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
@@ -13,27 +14,27 @@ from src.models.content.seo_profile import SEOProfileRecord
 
 class CanonicalContentSnapshot(BaseModel):
     model_config = ConfigDict(frozen=True)
-    fields: dict[str, Any]
-    raw_page_blueprint: dict[str, Any] | None
-    raw_slot_mapping: dict[str, Any] | None
-    meta: dict[str, Any] | None
+    fields: JsonObject
+    raw_page_blueprint: JsonObject | None
+    raw_slot_mapping: JsonObject | None
+    meta: JsonObject | None
     meta_title: str | None
     meta_description: str | None
 
 
-def _copy_dict(value: object) -> dict[str, Any] | None:
+def _copy_dict(value: object) -> JsonObject | None:
     if not isinstance(value, dict):
         return None
-    return dict(cast(dict[str, Any], value))
+    return dict(cast(JsonObject, value))
 
 
 def _presentation_map(
     presentations: list[PresentationDocumentRecord],
-) -> dict[str, dict[str, Any] | None]:
+) -> dict[str, JsonObject | None]:
     return {str(presentation.kind): _copy_dict(presentation.payload) for presentation in presentations}
 
 
-def _seo_meta(seo_profile: SEOProfileRecord | None) -> dict[str, Any] | None:
+def _seo_meta(seo_profile: SEOProfileRecord | None) -> JsonObject | None:
     if seo_profile is None:
         return None
     payload = _copy_dict(seo_profile.payload)

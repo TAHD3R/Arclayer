@@ -5,9 +5,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import Conflict, NotFound
 from src.core.exceptions.types import InternalServerError
 from src.core.services import BaseService
+from src.models.content.content_item import ContentItemRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.modules.projects.content.routing.service import match_route_binding, route_sort_key
 from src.modules.sites.design.schema import PageBlueprint
@@ -29,8 +31,8 @@ from src.modules.sites.schema import (
 class _RouteBindingCandidate(BaseModel):
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     path: str
-    route_contract: dict[str, Any] | None
-    item: Any
+    route_contract: JsonObject | None
+    item: ContentItemRecord
 
 
 def _resolve_json_path(value: Any, path: list[str]) -> Any:

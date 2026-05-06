@@ -15,7 +15,6 @@ from src.modules.projects.http.router_helpers import (
 )
 from src.modules.projects.http.schema import ProjectRequestContext
 from src.modules.projects.http.service import get_project_context
-from src.modules.projects.releases.events import publish_project_release_event
 from src.modules.projects.releases.router_helpers import get_project_releases_service
 from src.modules.projects.releases.schema import (
     ReleaseCancelScheduledOut,
@@ -131,14 +130,6 @@ async def publish_project_release(
         actor_user_id=actor_user_id,
         scheduled_at=payload.scheduled_at if payload is not None else None,
     )
-    if payload is None or payload.scheduled_at is None:
-        await publish_project_release_event(
-            actor_user_id=actor_user_id,
-            project_ctx=ctx,
-            event_name="release.published",
-            payload=data.release,
-            project_id=ctx.project_id,
-        )
     return ApiResponse.success(data=data)
 
 
@@ -194,15 +185,5 @@ async def rollback_project_release(
         site_id=runtime_context.site_id,
         release_id=release_id,
         actor_user_id=actor_user_id,
-    )
-    await publish_project_release_event(
-        actor_user_id=actor_user_id,
-        project_ctx=ctx,
-        event_name="release.rolled_back",
-        payload=data.release,
-        project_id=ctx.project_id,
-        previous_active_release_id=(
-            str(data.previous_active_release_id) if data.previous_active_release_id is not None else None
-        ),
     )
     return ApiResponse.success(data=data)

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import BaseModel, ConfigDict
 
 
@@ -15,7 +13,7 @@ class PageInfo(BaseModel):
 
 class PaginatedResult(BaseModel):
     model_config = ConfigDict(frozen=True)
-    items: list[Any]
+    items: list[object]
     page_info: PageInfo
 
 

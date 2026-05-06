@@ -11,14 +11,14 @@ class EnumerationFieldType(AbstractFieldType):
     display_name = "Enumeration"
 
     def get_pydantic_type(self, config: FieldConfig) -> type:
-        options = config.get("options", [])
-        if isinstance(options, list) and options:
+        options = _as_string_options(config.get("options", []))
+        if options:
             return _build_enum(options)
         return str
 
     def get_db_column_type(self, config: FieldConfig) -> str:
-        options = config.get("options", [])
-        if isinstance(options, list) and options:
+        options = _as_string_options(config.get("options", []))
+        if options:
             quoted = ",".join(f"'{opt}'" for opt in options)
             return f"VARCHAR(255) CHECK (value IN ({quoted}))"
         return "VARCHAR(255)"
@@ -30,14 +30,21 @@ class EnumerationFieldType(AbstractFieldType):
         return "enum-select"
 
     def validate_config(self, config: FieldConfig) -> None:
-        options = config.get("options")
-        if not isinstance(options, list) or not options:
+        raw_options = config.get("options")
+        options = _as_string_options(raw_options)
+        if not isinstance(raw_options, list) or not options:
             raise ValueError("Enumeration field requires at least one option")
-        if not all(isinstance(o, str) and o.strip() for o in options):
+        if len(options) != len(raw_options):
             raise ValueError("All enumeration options must be non-empty strings")
         normalized = [o.strip() for o in options]
         if len(set(normalized)) != len(normalized):
             raise ValueError("Enumeration options must be unique")
+
+
+def _as_string_options(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str) and item.strip()]
 
 
 def _build_enum(options: list[str]) -> type:

@@ -1,20 +1,17 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from src.common.protocols.tortoise import HasOrganizationId
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.models.organization.org_membership import OrgMembership
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.organization.http.service import get_current_org_membership
-from src.modules.projects.api_keys.events import (
-    organization_id_from_membership,
-    publish_api_key_event,
-)
 from src.modules.projects.api_keys.schema import (
     ApiKeyCreateOut,
     ApiKeyListOut,
@@ -28,6 +25,10 @@ me_api_keys_router = APIRouter(prefix="/me/api-keys", tags=["domain.me.api_keys"
 
 def get_api_keys_service(settings: Settings = Depends(get_settings)) -> ProjectApiKeysService:
     return ProjectApiKeysService(settings)
+
+
+def _organization_id_from_membership(orgm: OrgMembership) -> UUID:
+    return UUID(str(cast(HasOrganizationId, orgm).organization_id))
 
 
 @me_api_keys_router.get(
@@ -54,12 +55,10 @@ async def create_personal_api_key(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     service: Annotated[ProjectApiKeysService, Depends(get_api_keys_service)],
 ) -> ResponseModel[ApiKeyCreateOut]:
-    data = await service.create_personal_key_out(owner_user_id=user_id, payload=payload)
-    await publish_api_key_event(
-        actor_user_id=user_id,
-        event_name="me.api_key.created",
-        key=data.key,
-        organization_id=organization_id_from_membership(orgm),
+    data = await service.create_personal_key_out(
+        owner_user_id=user_id,
+        organization_id=_organization_id_from_membership(orgm),
+        payload=payload,
     )
     return ApiResponse.success(data=data)
 
@@ -89,12 +88,10 @@ async def revoke_personal_api_key(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     service: Annotated[ProjectApiKeysService, Depends(get_api_keys_service)],
 ) -> ResponseModel[ApiKeyOut]:
-    data = await service.revoke_personal_key_out(owner_user_id=user_id, key_id=key_id)
-    await publish_api_key_event(
-        actor_user_id=user_id,
-        event_name="me.api_key.revoked",
-        key=data,
-        organization_id=organization_id_from_membership(orgm),
+    data = await service.revoke_personal_key_out(
+        owner_user_id=user_id,
+        organization_id=_organization_id_from_membership(orgm),
+        key_id=key_id,
     )
     return ApiResponse.success(data=data)
 
@@ -110,11 +107,9 @@ async def rotate_personal_api_key(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     service: Annotated[ProjectApiKeysService, Depends(get_api_keys_service)],
 ) -> ResponseModel[ApiKeyCreateOut]:
-    data = await service.rotate_personal_key_out(owner_user_id=user_id, key_id=key_id)
-    await publish_api_key_event(
-        actor_user_id=user_id,
-        event_name="me.api_key.rotated",
-        key=data.key,
-        organization_id=organization_id_from_membership(orgm),
+    data = await service.rotate_personal_key_out(
+        owner_user_id=user_id,
+        organization_id=_organization_id_from_membership(orgm),
+        key_id=key_id,
     )
     return ApiResponse.success(data=data)

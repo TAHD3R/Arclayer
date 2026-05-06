@@ -21,6 +21,12 @@ from code_review_engine.migrated.rules.architecture import (
     WritePathViolation,
 )
 from code_review_engine.migrated.rules.backend_dataclass import BackendNoProductionDataclass
+from code_review_engine.migrated.rules.backend_infrastructure import (
+    BackendGraphQLNoRepositoryAccess,
+    BackendNoLocalQueryParsers,
+    BackendPluginTypedPayloads,
+    BackendSanitizeExternalSinks,
+)
 from code_review_engine.migrated.rules.base import AuditRule
 from code_review_engine.migrated.rules.endpoint import (
     EndpointMissingDocstring,
@@ -85,6 +91,10 @@ ALL_RULES: list[AuditRule] = [
     RepositoryNoBusinessLogic(),
     # ── Backend: Production dataclass ban ──
     BackendNoProductionDataclass(),
+    BackendNoLocalQueryParsers(),
+    BackendGraphQLNoRepositoryAccess(),
+    BackendSanitizeExternalSinks(),
+    BackendPluginTypedPayloads(),
     # ── Backend: EntityManager — universal write gateway ──
     EntityManagerNoAnyFields(),
     EntityManagerWriteMustUseEM(),

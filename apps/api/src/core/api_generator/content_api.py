@@ -59,13 +59,13 @@ class ContentApiListQuery(BaseModel):
 
 class ContentApiGeneratorDependencies(BaseModel):
     model_config = ConfigDict(frozen=True)
-    runtime_context: Callable[..., Any]
-    rate_limit: Callable[..., Any]
-    query_service: Callable[..., Any]
-    auth_service: Callable[..., Any]
-    site_service: Callable[..., Any]
-    list_response_model: Any
-    detail_response_model: Any
+    runtime_context: Callable[..., object]
+    rate_limit: Callable[..., object]
+    query_service: Callable[..., object]
+    auth_service: Callable[..., object]
+    site_service: Callable[..., object]
+    list_response_model: type[object]
+    detail_response_model: type[object]
 
 
 class ContentApiServiceBinding(Protocol):

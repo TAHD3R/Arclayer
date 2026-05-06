@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+from src.common.types.json_types import JsonObject
 
 
 class OfficialModelFieldDefinition(BaseModel):
@@ -11,7 +13,7 @@ class OfficialModelFieldDefinition(BaseModel):
     label: str
     scalar: str
     required: bool
-    config: dict[str, Any] | None = None
+    config: JsonObject | None = None
 
 
 class OfficialModelGraphQLSingleQuery(BaseModel):
@@ -60,12 +62,12 @@ class OfficialModelProtocol(BaseModel):
     default_posture: str
     default_surface: str
     capabilities: tuple[str, ...]
-    routing_policy: dict[str, Any] | None
-    presentation_policy: dict[str, Any] | None
-    seo_policy: dict[str, Any] | None
-    starter_pack_policy: dict[str, Any] | None
-    surface_policy: dict[str, Any] | None
-    workflow_policy: dict[str, Any] | None
+    routing_policy: JsonObject | None
+    presentation_policy: JsonObject | None
+    seo_policy: JsonObject | None
+    starter_pack_policy: JsonObject | None
+    surface_policy: JsonObject | None
+    workflow_policy: JsonObject | None
     graphql_policy: OfficialModelGraphQLPolicy
     system_fields: tuple[OfficialModelFieldDefinition, ...]
     protocol_version: int = 1

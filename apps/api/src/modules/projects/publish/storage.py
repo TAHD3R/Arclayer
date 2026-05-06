@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import Conflict, NotFound
 from src.models.content._enums import PublishArtifactKind
 from src.models.content.publish_artifact import PublishArtifactRecord
@@ -25,11 +25,11 @@ class _PublishArtifactBundle(BaseModel):
     item_id: UUID
     version_id: UUID
     locale: str
-    route: dict[str, Any] | None = None
-    render_hints: dict[str, Any] | None = None
-    components: dict[str, Any] | None = None
-    seo: dict[str, Any] | None = None
-    bindings: dict[str, Any] | None = None
+    route: JsonObject | None = None
+    render_hints: JsonObject | None = None
+    components: JsonObject | None = None
+    seo: JsonObject | None = None
+    bindings: JsonObject | None = None
     html: str | None = None
 
 
@@ -45,7 +45,7 @@ def _build_artifact_key(bundle: _PublishArtifactBundle) -> str:
     return f"{bundle.item_id}:{bundle.version_id}:{bundle.locale}"
 
 
-def _coerce_payload(row: PublishArtifactRecord) -> dict[str, Any] | None:
+def _coerce_payload(row: PublishArtifactRecord) -> JsonObject | None:
     if isinstance(row.payload, dict):
         return row.payload
     if row.payload is None:
@@ -84,9 +84,9 @@ def _assign_bundle_payload(bundle: _PublishArtifactBundle, row: PublishArtifactR
 def _require_payload(
     *,
     bundle: _PublishArtifactBundle,
-    payload: dict[str, Any] | None,
+    payload: JsonObject | None,
     artifact_kind: PublishArtifactKind,
-) -> dict[str, Any]:
+) -> JsonObject:
     if payload is not None:
         return payload
     raise Conflict(
@@ -130,7 +130,7 @@ def _to_route_pointer(
     )
 
 
-def _to_artifact_payload(bundle: _PublishArtifactBundle) -> dict[str, Any]:
+def _to_artifact_payload(bundle: _PublishArtifactBundle) -> JsonObject:
     return {
         "itemId": str(bundle.item_id),
         "versionId": str(bundle.version_id),

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.common.types.json_types import JsonObject, JsonValue
 from src.models.content._enums import ContentModelFieldType
 
 
@@ -19,10 +19,10 @@ class FieldConfig(BaseModel):
     localizable: bool = False
     hidden_in_editor: bool = False
     omit_from_api_response: bool = False
-    default_value: Any = None
-    options: dict[str, Any] = Field(default_factory=dict)
+    default_value: JsonValue = None
+    options: JsonObject = Field(default_factory=dict)
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: JsonValue = None) -> JsonValue:
         return self.options.get(key, default)
 
 

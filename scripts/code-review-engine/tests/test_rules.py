@@ -570,6 +570,300 @@ def test_service_event_publish_rule_accepts_base_service_publisher(tmp_path) -> 
     assert report.findings == ()
 
 
+def test_backend_local_query_parser_rule_flags_module_parser(tmp_path) -> None:
+    parser_file = tmp_path / "apps/api/src/modules/sites/content/query_helpers.py"
+    parser_file.parent.mkdir(parents=True)
+    parser_file.write_text(
+        "\n".join(
+            [
+                "def parse_sort(raw):",
+                "    return raw.split(',')",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.no-local-query-parsers",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "backend.no-local-query-parsers"
+
+
+def test_backend_local_query_parser_rule_accepts_core_query_import(tmp_path) -> None:
+    parser_file = tmp_path / "apps/api/src/modules/sites/content/query_helpers.py"
+    parser_file.parent.mkdir(parents=True)
+    parser_file.write_text(
+        "\n".join(
+            [
+                "from src.core.query import QueryParser",
+                "",
+                "def parse_sort(raw):",
+                "    return QueryParser.parse_sort(raw)",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.no-local-query-parsers",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_backend_graphql_repository_rule_flags_resolver_repository_import(tmp_path) -> None:
+    resolver = tmp_path / "apps/api/src/modules/sites/graphql/resolvers/content.py"
+    resolver.parent.mkdir(parents=True)
+    resolver.write_text(
+        "\n".join(
+            [
+                "from src.modules.sites.repository import SitesRepository",
+                "",
+                "async def resolve_site():",
+                "    return await SitesRepository().find_one()",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.graphql-no-repository-access",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert {finding.rule_id for finding in report.findings} == {"backend.graphql-no-repository-access"}
+
+
+def test_backend_graphql_repository_rule_accepts_service_module_repository(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/sites/graphql/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "from src.modules.sites.repository import SitesRepository",
+                "",
+                "class SiteGraphQLService:",
+                "    def __init__(self):",
+                "        self.repo = SitesRepository()",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.graphql-no-repository-access",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_backend_sanitize_external_sinks_rule_flags_unsanitized_activity_sink(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/analytics/ingest/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "async def ingest(payload):",
+                "    await write_required_activity_event(payload=payload)",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.sanitize-external-sinks",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "backend.sanitize-external-sinks"
+
+
+def test_backend_sanitize_external_sinks_rule_accepts_canonical_sanitizer(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/analytics/ingest/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "from src.core.sanitize import OutputSanitizer",
+                "",
+                "async def ingest(payload):",
+                "    cleaned = OutputSanitizer.sanitize_response(payload)",
+                "    await write_required_activity_event(payload=cleaned)",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.sanitize-external-sinks",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_backend_sanitize_external_sinks_rule_accepts_sanitized_row_payload(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/analytics/audit.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "async def ingest(payload):",
+                "    properties = sanitize_properties(payload)",
+                "    row = {'properties': properties}",
+                "    await AuditEvent.create(**row)",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.sanitize-external-sinks",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_backend_sanitize_external_sinks_rule_accepts_sanitized_list_comprehension(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/analytics/repository.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "SanitizedAuditEventRow = dict[str, object]",
+                "",
+                "async def create_many(rows: list[SanitizedAuditEventRow]):",
+                "    objs = [AuditEvent(**row) for row in rows]",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.sanitize-external-sinks",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
+def test_backend_sanitize_external_sinks_rule_rejects_sanitized_name_without_call(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/analytics/ingest/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text(
+        "\n".join(
+            [
+                "async def ingest(payload):",
+                "    SanitizedAuditEventRow = dict[str, object]",
+                "    await write_required_activity_event(payload=payload)",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.sanitize-external-sinks",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "backend.sanitize-external-sinks"
+
+
+def test_backend_sanitize_external_sinks_rule_reports_parse_failures(tmp_path) -> None:
+    service = tmp_path / "apps/api/src/modules/analytics/ingest/service.py"
+    service.parent.mkdir(parents=True)
+    service.write_text("async def broken(:\n", encoding="utf-8")
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.sanitize-external-sinks",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert len(report.findings) == 1
+    assert report.findings[0].rule_id == "backend.sanitize-external-sinks"
+    assert "could not parse" in report.findings[0].message
+
+
+def test_backend_plugin_typed_payload_rule_flags_untyped_payload_dict(tmp_path) -> None:
+    specs = tmp_path / "apps/api/src/core/plugin/specs.py"
+    specs.parent.mkdir(parents=True)
+    specs.write_text(
+        "\n".join(
+            [
+                "class ArclayerSpec:",
+                "    def arclayer_hook(self, payload: dict[str, object]) -> None:",
+                "        pass",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.plugin-typed-payloads",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert {finding.rule_id for finding in report.findings} == {"backend.plugin-typed-payloads"}
+
+
+def test_backend_plugin_typed_payload_rule_accepts_pydantic_payload_model(tmp_path) -> None:
+    specs = tmp_path / "apps/api/src/core/plugin/specs.py"
+    specs.parent.mkdir(parents=True)
+    specs.write_text(
+        "\n".join(
+            [
+                "from pydantic import BaseModel",
+                "",
+                "class HookPayload(BaseModel):",
+                "    plugin_name: str",
+                "",
+                "class ArclayerSpec:",
+                "    def arclayer_hook(self, payload: HookPayload) -> None:",
+                "        pass",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_audit(
+        repo_root=tmp_path,
+        selector=ScopeSelector(scope=AuditScope.RULES, selected_rules=("backend.plugin-typed-payloads",)),
+        registry=DEFAULT_REGISTRY,
+    )
+
+    assert report.findings == ()
+
+
 def test_service_optional_activity_publish_rule_flags_activity_event(tmp_path) -> None:
     service = tmp_path / "apps/api/src/modules/workspaces/team/service.py"
     service.parent.mkdir(parents=True)

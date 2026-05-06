@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from src.core.plugin.specs import arclayer_hookimpl
+from src.core.registries import PluginRegistry
 
 
 class CorePlugin:
@@ -11,7 +12,7 @@ class CorePlugin:
     """
 
     @arclayer_hookimpl
-    def arclayer_register(self, registry: object) -> None:
+    def arclayer_register(self, registry: PluginRegistry) -> None:
         """Register core services during the plugin register phase.
 
         Plugins receive the composite PluginRegistry and can populate

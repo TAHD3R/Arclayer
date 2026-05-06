@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from src.common.types.json_types import JsonObject
 from src.models.content._enums import (
     ContentContinuationPosture,
     ContentContinuationRole,
@@ -38,8 +39,8 @@ class ContentModelContinuationDefaults(BaseModel):
     default_role: str | None
     default_posture: str | None
     default_surface: str | None
-    starter_pack_policy: dict[str, Any] | None
-    surface_policy: dict[str, Any] | None
+    starter_pack_policy: JsonObject | None
+    surface_policy: JsonObject | None
 
 
 class ContentItemContinuationTruth(BaseModel):
@@ -49,7 +50,7 @@ class ContentItemContinuationTruth(BaseModel):
     resolved_surface: str | None
     shape_state: str
     shape_reason_code: str | None
-    shape_reason_meta: dict[str, Any] | None
+    shape_reason_meta: JsonObject | None
 
 
 def _normalize_string(value: str | None) -> str | None:
@@ -89,7 +90,7 @@ def _matches_tokens(*, values: list[str], candidates: tuple[str, ...]) -> bool:
     return any(candidate in value for value in values for candidate in candidates)
 
 
-def _normalize_policy(value: Any) -> dict[str, Any] | None:
+def _normalize_policy(value: Any) -> JsonObject | None:
     return value if isinstance(value, dict) else None
 
 

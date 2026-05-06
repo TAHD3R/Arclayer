@@ -5,25 +5,28 @@ from contextlib import asynccontextmanager
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SkipValidation
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
+from src.common.types.json_types import JsonObject
 from src.core.exceptions import NotFound
 from src.core.lifecycles.dispatcher import LifecycleDispatcher
 from src.core.lifecycles.specs import LifecycleAction, LifecycleEvent
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 
 
 class EntityCreateResult(BaseModel):
-    model_config = ConfigDict(frozen=True)
-    item: Any
-    version: Any
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+    item: SkipValidation[ContentItemRecord]
+    version: SkipValidation[ContentVersionRecord]
 
 
 class EntityUpdateResult(BaseModel):
-    model_config = ConfigDict(frozen=True)
-    version: Any
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+    version: SkipValidation[ContentVersionRecord]
     previous_version_number: int
 
 
@@ -61,7 +64,7 @@ class EntityManager:
         site_id: UUID,
         environment_id: UUID | None = None,
         model_key: str,
-        data: dict[str, Any],
+        data: JsonObject,
         slug: str,
         title: str | None = None,
         locale: str = "en-US",
@@ -71,12 +74,13 @@ class EntityManager:
         resolved_surface: str | None = None,
         shape_state: str = "unshaped",
         shape_reason_code: str | None = None,
-        shape_reason_meta: dict[str, Any] | None = None,
+        shape_reason_meta: JsonObject | None = None,
         bootstrap_preset_key: str | None = None,
         bootstrap_preset_state: str = "none",
         capability_pack_ids: list[str] | None = None,
         translation_group_id: UUID | None = None,
-        before_commit: Callable[[Any, Any, BaseDBAsyncClient], Awaitable[None]] | None = None,
+        before_commit: Callable[[ContentItemRecord, ContentVersionRecord, BaseDBAsyncClient], Awaitable[None]]
+        | None = None,
     ) -> EntityCreateResult:
         model = await self._items.get_model_definition_by_key(
             workspace_id=workspace_id,
@@ -156,7 +160,7 @@ class EntityManager:
         environment_id: UUID | None = None,
         model_key: str,
         item_id: UUID,
-        data: dict[str, Any],
+        data: JsonObject,
         actor_id: UUID | None = None,
     ) -> EntityUpdateResult:
         before_evt = await self._dispatch_before(

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pluggy import HookimplMarker, HookspecMarker
+
+from src.core.registries import PluginRegistry
 
 arclayer_hookspec = HookspecMarker("arclayer")
 arclayer_hookimpl = HookimplMarker("arclayer")
@@ -17,7 +17,7 @@ class ArclayerSpec:
     """
 
     @arclayer_hookspec
-    def arclayer_register(self, registry: Any) -> None:
+    def arclayer_register(self, registry: PluginRegistry) -> None:
         """Called when a plugin should register its resources.
 
         Plugins register services, controllers, content types, policies,
@@ -25,7 +25,7 @@ class ArclayerSpec:
         """
 
     @arclayer_hookspec
-    def arclayer_bootstrap(self, app: Any) -> None:
+    def arclayer_bootstrap(self, app: object) -> None:
         """Called after all plugins have registered.
 
         Plugins perform initialization that depends on other plugins'
@@ -33,7 +33,7 @@ class ArclayerSpec:
         """
 
     @arclayer_hookspec
-    def arclayer_ready(self, app: Any) -> None:
+    def arclayer_ready(self, app: object) -> None:
         """Called when the application is ready to serve requests."""
 
     @arclayer_hookspec

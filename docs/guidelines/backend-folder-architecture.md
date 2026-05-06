@@ -91,6 +91,39 @@ Hard prohibitions:
 - no circular imports across layers
 - no cross-domain orchestration hidden in repositories
 
+## 6.1 Canonical Backend Infrastructure Ownership
+
+Backend infrastructure has one owner per concern. Do not create local facades, duplicate parsers, hidden registries, or parallel event paths when a canonical owner already exists.
+
+| Concern | Canonical Owner | Consumers | Forbidden Pattern |
+| --- | --- | --- | --- |
+| entity writes with hooks | `src.core.entity_manager` | services | direct repository write where lifecycle/search/audit hooks are required |
+| lifecycle events | `src.core.lifecycles` | Activity, search, plugins, domain subscribers | module-local before/after hook lists |
+| domain events | `src.core.events` through `BaseService` | Activity, plugins, integrations | ad-hoc `event_bus.publish` in service methods |
+| plugin hooks | `src.core.plugin` | runtime modules and extensions | untyped hook dicts and hidden global registration |
+| query models | `src.core.query` | REST list endpoints, GraphQL planners, search adapters | module-local filter/sort/page/populate parser duplication |
+| sanitization | `src.core.sanitize` and approved redaction helpers | Activity, logs, external sinks, plugin outputs | inline redaction helpers per sink or unsanitized payload emission |
+| GraphQL planning | `src.modules.sites.graphql` using `src.core.query` | site delivery and admin preview | direct ORM/repository access from resolvers |
+
+Dependency direction stays explicit:
+
+- `core` defines primitives and contracts.
+- modules implement domain services and adapters.
+- runtime init composes infrastructure and module subscribers.
+- routers call services.
+- services call repositories or `EntityManager` and publish domain events through `BaseService`.
+- repositories perform persistence.
+
+Audit rules enforce the high-risk bypasses:
+
+- `architecture.router-no-direct-repository`: routers do not call repositories.
+- `entity-manager.write-must-use-em`: hook-required writes use `EntityManager`.
+- `service.no-direct-event-publish`: services use BaseService domain event helpers.
+- `backend.no-local-query-parsers`: modules do not duplicate filter/sort/page/populate parsing.
+- `backend.graphql-no-repository-access`: GraphQL resolver modules stay planner/service-backed.
+- `backend.sanitize-external-sinks`: Activity, search, and plugin payload sinks show canonical sanitizer evidence.
+- `backend.plugin-typed-payloads`: plugin hook payload and registry contracts are typed.
+
 ## 7. Repository Foundation Rules
 
 All ORM-backed repositories use one canonical foundation:

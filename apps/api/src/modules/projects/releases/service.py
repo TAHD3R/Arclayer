@@ -27,6 +27,7 @@ from src.modules.projects.releases.schema import (
     ReleasePublishOut,
     ReleaseRollbackOut,
 )
+from src.modules.tenancy.router_helpers import tenant_payload_from_context
 from src.modules.tenancy.schema import TenantContext
 
 logger = get_logger(__name__)
@@ -122,6 +123,12 @@ class ProjectReleasesService(BaseService):
             release_id=release.id,
             actor_user_id=actor_user_id,
         )
+        await self._publish_release_domain_event(
+            actor_user_id=actor_user_id,
+            event_name="release.published",
+            release=release,
+            previous_active_release_id=release.lineage_parent_release_id,
+        )
         return ReleasePublishOut(
             release=await self._to_out(release),
             job=None,
@@ -179,9 +186,43 @@ class ProjectReleasesService(BaseService):
             release_id=activated.id,
             actor_user_id=actor_user_id,
         )
+        await self._publish_release_domain_event(
+            actor_user_id=actor_user_id,
+            event_name="release.rolled_back",
+            release=activated,
+            previous_active_release_id=previous_active_release_id,
+        )
         return ReleaseRollbackOut(
             release=await self._to_out(activated),
             previous_active_release_id=previous_active_release_id,
+        )
+
+    async def _publish_release_domain_event(
+        self,
+        *,
+        actor_user_id: UUID,
+        event_name: str,
+        release: ContentReleaseRecord,
+        previous_active_release_id: UUID | None,
+    ) -> None:
+        project_id = self._tenant_context.project_id
+        await self.publish_domain_event(
+            name=event_name,
+            actor_user_id=actor_user_id,
+            payload={
+                "entity_id": str(release.id),
+                "entity_type": "release",
+                "is_active": bool(release.is_active),
+                "organization_id": str(self._tenant_context.organization_id),
+                "previous_active_release_id": (
+                    str(previous_active_release_id) if previous_active_release_id is not None else None
+                ),
+                "project_id": str(project_id) if project_id is not None else None,
+                "release_number": int(release.release_number),
+                "site_id": str(release.site_id),
+                "tenant": tenant_payload_from_context(self._tenant_context),
+                "workspace_id": str(release.workspace_id),
+            },
         )
 
     async def _write_published_activity_event(

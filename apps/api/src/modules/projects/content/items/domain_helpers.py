@@ -555,13 +555,11 @@ def validate_version_publish_contract(
                 seen_reasons.add(reason_key)
                 reasons.append({"code": "REQUIRED_SYSTEM_FIELD_MISSING", "fieldKey": field.key})
 
-    allowed_kinds = {
-        str(kind).strip()
-        for kind in (
-            (protocol.presentation_policy or {}).get("allowedKinds", []) if protocol.presentation_policy else []
-        )
-        if isinstance(kind, str) and kind.strip()
-    }
+    raw_allowed_kinds = (
+        (protocol.presentation_policy or {}).get("allowedKinds") if protocol.presentation_policy else None
+    )
+    allowed_kind_values = raw_allowed_kinds if isinstance(raw_allowed_kinds, list) else []
+    allowed_kinds = {str(kind).strip() for kind in allowed_kind_values if isinstance(kind, str) and kind.strip()}
     if allowed_kinds:
         for kind, _payload in presentations:
             normalized_kind = str(kind).strip()
