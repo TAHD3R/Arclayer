@@ -138,7 +138,7 @@ import { listMyOrganizations } from "@/api/me";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
-import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
+import { AdminScopeSwitcher } from "@/components/layout/admin-scope-switcher";
 import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -381,7 +381,7 @@ describe("floating panel animation config", () => {
     renderWithProviders(
       <>
         <AdminAccountMenu />
-        <AdminWorkspaceSwitcher />
+        <AdminScopeSwitcher />
       </>,
     );
 
@@ -394,7 +394,7 @@ describe("floating panel animation config", () => {
     });
 
     const workspaceTrigger = screen.getByRole("button", {
-      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+      name: "common:WORKSPACE_SWITCHER_SELECT_SCOPE",
     });
 
     expect(accountTrigger).not.toHaveAttribute("data-layout-id");

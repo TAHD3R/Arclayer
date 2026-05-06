@@ -56,8 +56,8 @@ vi.mock("@/components/layout/admin-logo", () => ({
   AdminLogo: () => <div data-testid="sidebar-brand-icon-logo" />,
 }));
 
-vi.mock("@/components/layout/admin-workspace-switcher", () => ({
-  AdminWorkspaceSwitcher: (props: { variant?: "sidebar" | "header" }) => (
+vi.mock("@/components/layout/admin-scope-switcher", () => ({
+  AdminScopeSwitcher: (props: { variant?: "sidebar" | "header" }) => (
     <div data-testid="sidebar-workspace-switcher" data-variant={props.variant} />
   ),
 }));
@@ -266,7 +266,7 @@ describe("AdminSidebarShell", () => {
     expect(screen.getByTestId("sidebar-command-trigger")).toBeInTheDocument();
   });
 
-  it("renders the active project identity inside the browse pill with a max width cap", () => {
+  it("keeps the browse pill fixed when an active project is present", () => {
     renderWithSidebar(
       <AdminSidebarShell
         showNavSkeleton={false}
@@ -295,11 +295,12 @@ describe("AdminSidebarShell", () => {
       />,
     );
 
-    const browseTab = screen.getByRole("tab", { name: "Project Alpha Project Alpha" });
+    const browseTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" });
 
-    expect(browseTab).toHaveTextContent("Project Alpha");
+    expect(browseTab).toHaveTextContent("common:SIDEBAR_TOP_TAB_BROWSE");
+    expect(browseTab).not.toHaveTextContent("Project Alpha");
     expect(browseTab.className).toContain("data-[state=active]:max-w-[7rem]");
-    expect(browseTab.querySelector('[aria-label="Project Alpha"]')).not.toBeNull();
+    expect(browseTab.querySelector('[aria-label="Project Alpha"]')).toBeNull();
   });
 
   it("wraps the active pill with button-style click affordance across browse, inbox, and chat", async () => {
@@ -368,7 +369,7 @@ describe("AdminSidebarShell", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
 
     const menu = screen.getByRole("menu");
 
@@ -388,7 +389,7 @@ describe("AdminSidebarShell", () => {
     expect(menuItems.indexOf(homeItem)).toBeGreaterThan(menuItems.indexOf(allProjectsItem));
   });
 
-  it("renders real project icons for both the active browse pill and dropdown items", async () => {
+  it("renders real project icons in dropdown items", async () => {
     const user = userEvent.setup();
 
     renderWithSidebar(
@@ -422,8 +423,8 @@ describe("AdminSidebarShell", () => {
       />,
     );
 
-    const browseTab = screen.getByRole("tab", { name: "Project Alpha Project Alpha" });
-    expect(browseTab.querySelector('img[alt="Project Alpha"]')).not.toBeNull();
+    const browseTab = screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" });
+    expect(browseTab.querySelector('img[alt="Project Alpha"]')).toBeNull();
 
     await user.click(browseTab);
 
@@ -464,17 +465,17 @@ describe("AdminSidebarShell", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
     await user.click(screen.getByRole("menuitem", { name: /Project Beta/ }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/projects/project-beta" });
 
-    await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
     await user.click(screen.getByRole("menuitem", { name: "nav:NAV_ALL_PROJECTS" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
 
-    await user.click(screen.getByRole("tab", { name: "Project Alpha Project Alpha" }));
+    await user.click(screen.getByRole("tab", { name: "common:SIDEBAR_TOP_TAB_BROWSE" }));
     await user.click(screen.getByRole("menuitem", { name: "nav:NAV_HOME" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/" });

@@ -39,8 +39,8 @@ vi.mock("@/components/layout/admin-logo", () => ({
   AdminLogo: () => <div data-testid="sidebar-brand-icon-logo" />,
 }));
 
-vi.mock("@/components/layout/admin-workspace-switcher", () => ({
-  AdminWorkspaceSwitcher: (props: { variant?: "sidebar" | "header" }) => (
+vi.mock("@/components/layout/admin-scope-switcher", () => ({
+  AdminScopeSwitcher: (props: { variant?: "sidebar" | "header" }) => (
     <div data-testid="sidebar-workspace-switcher" data-variant={props.variant} />
   ),
 }));

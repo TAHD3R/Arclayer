@@ -7,7 +7,6 @@ import { useNavigate } from "@tanstack/react-router";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
 import type { FavoriteDynamicLabelIndex } from "@/components/layout/admin-side-nav/favorite-nav-items";
-import { ProjectAvatar, projectAvatarPropsFromIdentity } from "@/components/common/project-avatar";
 import {
   ProjectBrowseMenuContent,
   type SidebarBrowseProject,
@@ -16,7 +15,7 @@ import { AdminSidebarInbox } from "@/components/layout/admin-sidebar-inbox";
 import { AdminFullLogo, AdminLogo } from "@/components/layout/admin-logo";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminSidebarMainMenuSkeleton } from "@/components/layout/admin-sidebar-skeleton";
-import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
+import { AdminScopeSwitcher } from "@/components/layout/admin-scope-switcher";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@arclayer/ui/dropdown-menu";
 import {
@@ -124,7 +123,7 @@ function AdminSidebarBranding() {
         </button>
       </div>
       <div className="px-2 pt-2">
-        <AdminWorkspaceSwitcher
+        <AdminScopeSwitcher
           variant="sidebar"
           showSidebarToggle={false}
           forceVisible
@@ -172,6 +171,12 @@ function AdminSidebarTopTabs(props: {
   const unreadInboxCount = props.showInboxBadge ? (props.unreadInboxCount ?? 0) : 0;
   const showUnreadInboxBadge = unreadInboxCount > 0;
   const unreadInboxCountLabel = unreadInboxCount > 99 ? "99+" : String(unreadInboxCount);
+  const activeBrowseProject =
+    props.activeBrowseProjectId != null
+      ? ((props.browseProjects ?? []).find(
+          (project) => project.projectId === props.activeBrowseProjectId,
+        ) ?? null)
+      : null;
   const inboxTabClassName = cn(
     "relative h-9 min-w-9 rounded-md border border-transparent bg-transparent text-callout font-semibold",
     "transition-[width,padding,color,background-color,border-color] duration-200 ease-out",
@@ -184,19 +189,11 @@ function AdminSidebarTopTabs(props: {
       : "data-[state=inactive]:w-9 data-[state=inactive]:justify-center data-[state=inactive]:px-0",
     "data-[state=inactive]:text-label-secondary",
   );
-  const activeBrowseProject =
-    props.activeBrowseProjectId != null
-      ? ((props.browseProjects ?? []).find(
-          (project) => project.projectId === props.activeBrowseProjectId,
-        ) ?? null)
-      : null;
-  const browseMenuProjects = useMemo(() => {
-    if (!activeBrowseProject) return props.browseProjects ?? [];
-    return (props.browseProjects ?? []).filter(
-      (project) => project.workspaceId === activeBrowseProject.workspaceId,
-    );
-  }, [activeBrowseProject, props.browseProjects]);
-  const browseTabDisplayLabel = activeBrowseProject?.name || browseLabel;
+  const browseMenuProjects = activeBrowseProject
+    ? (props.browseProjects ?? []).filter(
+        (project) => project.workspaceId === activeBrowseProject.workspaceId,
+      )
+    : (props.browseProjects ?? []);
   const isBrowseActive = props.value === "browse";
   const isInboxActive = props.value === "inbox";
   const isChatActive = props.value === "chat";
@@ -241,20 +238,11 @@ function AdminSidebarTopTabs(props: {
     <>
       <TooltipTrigger asChild focusTrigger={false}>
         <span className="inline-flex items-center justify-center">
-          {activeBrowseProject ? (
-            <ProjectAvatar
-              name={browseTabDisplayLabel}
-              size={18}
-              className="shrink-0 rounded-sm ring-0"
-              {...projectAvatarPropsFromIdentity(activeBrowseProject)}
-            />
-          ) : (
-            <PanelsTopLeft className="size-4 shrink-0" aria-hidden="true" />
-          )}
+          <PanelsTopLeft className="size-4 shrink-0" aria-hidden="true" />
         </span>
       </TooltipTrigger>
       <span className={cn("min-w-0 truncate", isBrowseActive ? "inline" : "hidden")}>
-        {browseTabDisplayLabel}
+        {browseLabel}
       </span>
     </>
   );
@@ -287,7 +275,7 @@ function AdminSidebarTopTabs(props: {
                       </TabsTrigger>,
                     )}
                   </DropdownMenuTrigger>
-                  <TooltipContent hidden={isBrowseActive}>{browseTabDisplayLabel}</TooltipContent>
+                  <TooltipContent hidden={isBrowseActive}>{browseLabel}</TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent
                   align="start"
@@ -312,7 +300,7 @@ function AdminSidebarTopTabs(props: {
                 <TabsTrigger value="browse" className={browseTabClassName}>
                   {browseTabContent}
                 </TabsTrigger>
-                <TooltipContent hidden={isBrowseActive}>{browseTabDisplayLabel}</TooltipContent>
+                <TooltipContent hidden={isBrowseActive}>{browseLabel}</TooltipContent>
               </Tooltip>
             )}
             <Tooltip>

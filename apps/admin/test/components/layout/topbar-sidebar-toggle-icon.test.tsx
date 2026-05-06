@@ -17,8 +17,8 @@ vi.mock("@/components/layout/admin-account-menu", () => ({
   AdminAccountMenu: () => <div data-testid="account-menu" />,
 }));
 
-vi.mock("@/components/layout/admin-workspace-switcher", () => ({
-  AdminWorkspaceSwitcher: () => <div data-testid="workspace-switcher" />,
+vi.mock("@/components/layout/admin-scope-switcher", () => ({
+  AdminScopeSwitcher: () => <div data-testid="workspace-switcher" />,
   headerTriggerButtonClassName: "group/panel-trigger hover:bg-accent/60",
 }));
 

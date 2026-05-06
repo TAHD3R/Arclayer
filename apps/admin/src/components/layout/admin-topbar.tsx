@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { ProjectAvatarIdentity } from "@/components/common/project-avatar";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
-import { headerTriggerButtonClassName } from "@/components/layout/admin-workspace-switcher";
+import { headerTriggerButtonClassName } from "@/components/layout/admin-scope-switcher";
 import {
   ProjectBrowseMenuContent,
   type SidebarBrowseProject,
