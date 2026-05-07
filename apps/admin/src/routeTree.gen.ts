@@ -20,17 +20,18 @@ import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as SystemTenantsIndexRouteImport } from './routes/system/tenants/index'
-import { Route as SystemStorageIndexRouteImport } from './routes/system/storage/index'
-import { Route as SystemOauthIndexRouteImport } from './routes/system/oauth/index'
-import { Route as SystemNotificationsIndexRouteImport } from './routes/system/notifications/index'
+import { Route as SystemSettingsIndexRouteImport } from './routes/system/settings/index'
 import { Route as SystemJobsIndexRouteImport } from './routes/system/jobs/index'
-import { Route as SystemEmailIndexRouteImport } from './routes/system/email/index'
-import { Route as SystemAccessIndexRouteImport } from './routes/system/access/index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as SystemTenantsWorkspacesIndexRouteImport } from './routes/system/tenants/workspaces/index'
 import { Route as SystemTenantsUsersIndexRouteImport } from './routes/system/tenants/users/index'
 import { Route as SystemTenantsProjectsIndexRouteImport } from './routes/system/tenants/projects/index'
 import { Route as SystemTenantsOrganizationsIndexRouteImport } from './routes/system/tenants/organizations/index'
+import { Route as SystemSettingsStorageIndexRouteImport } from './routes/system/settings/storage/index'
+import { Route as SystemSettingsOauthIndexRouteImport } from './routes/system/settings/oauth/index'
+import { Route as SystemSettingsNotificationsIndexRouteImport } from './routes/system/settings/notifications/index'
+import { Route as SystemSettingsEmailIndexRouteImport } from './routes/system/settings/email/index'
+import { Route as SystemSettingsAccessIndexRouteImport } from './routes/system/settings/access/index'
 import { Route as ProjectsProjectIdSettingsIndexRouteImport } from './routes/projects/$projectId/settings/index'
 import { Route as ProjectsProjectIdDeploymentsIndexRouteImport } from './routes/projects/$projectId/deployments/index'
 import { Route as ProjectsProjectIdAssetsIndexRouteImport } from './routes/projects/$projectId/assets/index'
@@ -118,35 +119,14 @@ const SystemTenantsIndexRoute = SystemTenantsIndexRouteImport.update({
   path: '/tenants/',
   getParentRoute: () => SystemRoute,
 } as any)
-const SystemStorageIndexRoute = SystemStorageIndexRouteImport.update({
-  id: '/storage/',
-  path: '/storage/',
+const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
   getParentRoute: () => SystemRoute,
 } as any)
-const SystemOauthIndexRoute = SystemOauthIndexRouteImport.update({
-  id: '/oauth/',
-  path: '/oauth/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemNotificationsIndexRoute =
-  SystemNotificationsIndexRouteImport.update({
-    id: '/notifications/',
-    path: '/notifications/',
-    getParentRoute: () => SystemRoute,
-  } as any)
 const SystemJobsIndexRoute = SystemJobsIndexRouteImport.update({
   id: '/jobs/',
   path: '/jobs/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemEmailIndexRoute = SystemEmailIndexRouteImport.update({
-  id: '/email/',
-  path: '/email/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemAccessIndexRoute = SystemAccessIndexRouteImport.update({
-  id: '/access/',
-  path: '/access/',
   getParentRoute: () => SystemRoute,
 } as any)
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
@@ -177,6 +157,36 @@ const SystemTenantsOrganizationsIndexRoute =
   SystemTenantsOrganizationsIndexRouteImport.update({
     id: '/tenants/organizations/',
     path: '/tenants/organizations/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemSettingsStorageIndexRoute =
+  SystemSettingsStorageIndexRouteImport.update({
+    id: '/settings/storage/',
+    path: '/settings/storage/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemSettingsOauthIndexRoute =
+  SystemSettingsOauthIndexRouteImport.update({
+    id: '/settings/oauth/',
+    path: '/settings/oauth/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemSettingsNotificationsIndexRoute =
+  SystemSettingsNotificationsIndexRouteImport.update({
+    id: '/settings/notifications/',
+    path: '/settings/notifications/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemSettingsEmailIndexRoute =
+  SystemSettingsEmailIndexRouteImport.update({
+    id: '/settings/email/',
+    path: '/settings/email/',
+    getParentRoute: () => SystemRoute,
+  } as any)
+const SystemSettingsAccessIndexRoute =
+  SystemSettingsAccessIndexRouteImport.update({
+    id: '/settings/access/',
+    path: '/settings/access/',
     getParentRoute: () => SystemRoute,
   } as any)
 const ProjectsProjectIdSettingsIndexRoute =
@@ -410,17 +420,18 @@ export interface FileRoutesByFullPath {
   '/system/': typeof SystemIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/system/access/': typeof SystemAccessIndexRoute
-  '/system/email/': typeof SystemEmailIndexRoute
   '/system/jobs/': typeof SystemJobsIndexRoute
-  '/system/notifications/': typeof SystemNotificationsIndexRoute
-  '/system/oauth/': typeof SystemOauthIndexRoute
-  '/system/storage/': typeof SystemStorageIndexRoute
+  '/system/settings/': typeof SystemSettingsIndexRoute
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
+  '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
+  '/system/settings/email/': typeof SystemSettingsEmailIndexRoute
+  '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
+  '/system/settings/oauth/': typeof SystemSettingsOauthIndexRoute
+  '/system/settings/storage/': typeof SystemSettingsStorageIndexRoute
   '/system/tenants/organizations/': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects/': typeof SystemTenantsProjectsIndexRoute
   '/system/tenants/users/': typeof SystemTenantsUsersIndexRoute
@@ -457,17 +468,18 @@ export interface FileRoutesByTo {
   '/system': typeof SystemIndexRoute
   '/welcome': typeof WelcomeIndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
-  '/system/access': typeof SystemAccessIndexRoute
-  '/system/email': typeof SystemEmailIndexRoute
   '/system/jobs': typeof SystemJobsIndexRoute
-  '/system/notifications': typeof SystemNotificationsIndexRoute
-  '/system/oauth': typeof SystemOauthIndexRoute
-  '/system/storage': typeof SystemStorageIndexRoute
+  '/system/settings': typeof SystemSettingsIndexRoute
   '/system/tenants': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/deployments': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/settings': typeof ProjectsProjectIdSettingsIndexRoute
+  '/system/settings/access': typeof SystemSettingsAccessIndexRoute
+  '/system/settings/email': typeof SystemSettingsEmailIndexRoute
+  '/system/settings/notifications': typeof SystemSettingsNotificationsIndexRoute
+  '/system/settings/oauth': typeof SystemSettingsOauthIndexRoute
+  '/system/settings/storage': typeof SystemSettingsStorageIndexRoute
   '/system/tenants/organizations': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects': typeof SystemTenantsProjectsIndexRoute
   '/system/tenants/users': typeof SystemTenantsUsersIndexRoute
@@ -507,17 +519,18 @@ export interface FileRoutesById {
   '/system/': typeof SystemIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/system/access/': typeof SystemAccessIndexRoute
-  '/system/email/': typeof SystemEmailIndexRoute
   '/system/jobs/': typeof SystemJobsIndexRoute
-  '/system/notifications/': typeof SystemNotificationsIndexRoute
-  '/system/oauth/': typeof SystemOauthIndexRoute
-  '/system/storage/': typeof SystemStorageIndexRoute
+  '/system/settings/': typeof SystemSettingsIndexRoute
   '/system/tenants/': typeof SystemTenantsIndexRoute
   '/projects/$projectId/activity/': typeof ProjectsProjectIdActivityIndexRoute
   '/projects/$projectId/assets/': typeof ProjectsProjectIdAssetsIndexRoute
   '/projects/$projectId/deployments/': typeof ProjectsProjectIdDeploymentsIndexRoute
   '/projects/$projectId/settings/': typeof ProjectsProjectIdSettingsIndexRoute
+  '/system/settings/access/': typeof SystemSettingsAccessIndexRoute
+  '/system/settings/email/': typeof SystemSettingsEmailIndexRoute
+  '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
+  '/system/settings/oauth/': typeof SystemSettingsOauthIndexRoute
+  '/system/settings/storage/': typeof SystemSettingsStorageIndexRoute
   '/system/tenants/organizations/': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects/': typeof SystemTenantsProjectsIndexRoute
   '/system/tenants/users/': typeof SystemTenantsUsersIndexRoute
@@ -558,17 +571,18 @@ export interface FileRouteTypes {
     | '/system/'
     | '/welcome/'
     | '/projects/$projectId/'
-    | '/system/access/'
-    | '/system/email/'
     | '/system/jobs/'
-    | '/system/notifications/'
-    | '/system/oauth/'
-    | '/system/storage/'
+    | '/system/settings/'
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
     | '/projects/$projectId/deployments/'
     | '/projects/$projectId/settings/'
+    | '/system/settings/access/'
+    | '/system/settings/email/'
+    | '/system/settings/notifications/'
+    | '/system/settings/oauth/'
+    | '/system/settings/storage/'
     | '/system/tenants/organizations/'
     | '/system/tenants/projects/'
     | '/system/tenants/users/'
@@ -605,17 +619,18 @@ export interface FileRouteTypes {
     | '/system'
     | '/welcome'
     | '/projects/$projectId'
-    | '/system/access'
-    | '/system/email'
     | '/system/jobs'
-    | '/system/notifications'
-    | '/system/oauth'
-    | '/system/storage'
+    | '/system/settings'
     | '/system/tenants'
     | '/projects/$projectId/activity'
     | '/projects/$projectId/assets'
     | '/projects/$projectId/deployments'
     | '/projects/$projectId/settings'
+    | '/system/settings/access'
+    | '/system/settings/email'
+    | '/system/settings/notifications'
+    | '/system/settings/oauth'
+    | '/system/settings/storage'
     | '/system/tenants/organizations'
     | '/system/tenants/projects'
     | '/system/tenants/users'
@@ -654,17 +669,18 @@ export interface FileRouteTypes {
     | '/system/'
     | '/welcome/'
     | '/projects/$projectId/'
-    | '/system/access/'
-    | '/system/email/'
     | '/system/jobs/'
-    | '/system/notifications/'
-    | '/system/oauth/'
-    | '/system/storage/'
+    | '/system/settings/'
     | '/system/tenants/'
     | '/projects/$projectId/activity/'
     | '/projects/$projectId/assets/'
     | '/projects/$projectId/deployments/'
     | '/projects/$projectId/settings/'
+    | '/system/settings/access/'
+    | '/system/settings/email/'
+    | '/system/settings/notifications/'
+    | '/system/settings/oauth/'
+    | '/system/settings/storage/'
     | '/system/tenants/organizations/'
     | '/system/tenants/projects/'
     | '/system/tenants/users/'
@@ -783,25 +799,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemTenantsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
-    '/system/storage/': {
-      id: '/system/storage/'
-      path: '/storage'
-      fullPath: '/system/storage/'
-      preLoaderRoute: typeof SystemStorageIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/oauth/': {
-      id: '/system/oauth/'
-      path: '/oauth'
-      fullPath: '/system/oauth/'
-      preLoaderRoute: typeof SystemOauthIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/notifications/': {
-      id: '/system/notifications/'
-      path: '/notifications'
-      fullPath: '/system/notifications/'
-      preLoaderRoute: typeof SystemNotificationsIndexRouteImport
+    '/system/settings/': {
+      id: '/system/settings/'
+      path: '/settings'
+      fullPath: '/system/settings/'
+      preLoaderRoute: typeof SystemSettingsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/system/jobs/': {
@@ -809,20 +811,6 @@ declare module '@tanstack/react-router' {
       path: '/jobs'
       fullPath: '/system/jobs/'
       preLoaderRoute: typeof SystemJobsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/email/': {
-      id: '/system/email/'
-      path: '/email'
-      fullPath: '/system/email/'
-      preLoaderRoute: typeof SystemEmailIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/access/': {
-      id: '/system/access/'
-      path: '/access'
-      fullPath: '/system/access/'
-      preLoaderRoute: typeof SystemAccessIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/projects/$projectId/': {
@@ -858,6 +846,41 @@ declare module '@tanstack/react-router' {
       path: '/tenants/organizations'
       fullPath: '/system/tenants/organizations/'
       preLoaderRoute: typeof SystemTenantsOrganizationsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/settings/storage/': {
+      id: '/system/settings/storage/'
+      path: '/settings/storage'
+      fullPath: '/system/settings/storage/'
+      preLoaderRoute: typeof SystemSettingsStorageIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/settings/oauth/': {
+      id: '/system/settings/oauth/'
+      path: '/settings/oauth'
+      fullPath: '/system/settings/oauth/'
+      preLoaderRoute: typeof SystemSettingsOauthIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/settings/notifications/': {
+      id: '/system/settings/notifications/'
+      path: '/settings/notifications'
+      fullPath: '/system/settings/notifications/'
+      preLoaderRoute: typeof SystemSettingsNotificationsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/settings/email/': {
+      id: '/system/settings/email/'
+      path: '/settings/email'
+      fullPath: '/system/settings/email/'
+      preLoaderRoute: typeof SystemSettingsEmailIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/settings/access/': {
+      id: '/system/settings/access/'
+      path: '/settings/access'
+      fullPath: '/system/settings/access/'
+      preLoaderRoute: typeof SystemSettingsAccessIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/projects/$projectId/settings/': {
@@ -1040,13 +1063,14 @@ declare module '@tanstack/react-router' {
 
 interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
-  SystemAccessIndexRoute: typeof SystemAccessIndexRoute
-  SystemEmailIndexRoute: typeof SystemEmailIndexRoute
   SystemJobsIndexRoute: typeof SystemJobsIndexRoute
-  SystemNotificationsIndexRoute: typeof SystemNotificationsIndexRoute
-  SystemOauthIndexRoute: typeof SystemOauthIndexRoute
-  SystemStorageIndexRoute: typeof SystemStorageIndexRoute
+  SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
   SystemTenantsIndexRoute: typeof SystemTenantsIndexRoute
+  SystemSettingsAccessIndexRoute: typeof SystemSettingsAccessIndexRoute
+  SystemSettingsEmailIndexRoute: typeof SystemSettingsEmailIndexRoute
+  SystemSettingsNotificationsIndexRoute: typeof SystemSettingsNotificationsIndexRoute
+  SystemSettingsOauthIndexRoute: typeof SystemSettingsOauthIndexRoute
+  SystemSettingsStorageIndexRoute: typeof SystemSettingsStorageIndexRoute
   SystemTenantsOrganizationsIndexRoute: typeof SystemTenantsOrganizationsIndexRoute
   SystemTenantsProjectsIndexRoute: typeof SystemTenantsProjectsIndexRoute
   SystemTenantsUsersIndexRoute: typeof SystemTenantsUsersIndexRoute
@@ -1055,13 +1079,14 @@ interface SystemRouteChildren {
 
 const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
-  SystemAccessIndexRoute: SystemAccessIndexRoute,
-  SystemEmailIndexRoute: SystemEmailIndexRoute,
   SystemJobsIndexRoute: SystemJobsIndexRoute,
-  SystemNotificationsIndexRoute: SystemNotificationsIndexRoute,
-  SystemOauthIndexRoute: SystemOauthIndexRoute,
-  SystemStorageIndexRoute: SystemStorageIndexRoute,
+  SystemSettingsIndexRoute: SystemSettingsIndexRoute,
   SystemTenantsIndexRoute: SystemTenantsIndexRoute,
+  SystemSettingsAccessIndexRoute: SystemSettingsAccessIndexRoute,
+  SystemSettingsEmailIndexRoute: SystemSettingsEmailIndexRoute,
+  SystemSettingsNotificationsIndexRoute: SystemSettingsNotificationsIndexRoute,
+  SystemSettingsOauthIndexRoute: SystemSettingsOauthIndexRoute,
+  SystemSettingsStorageIndexRoute: SystemSettingsStorageIndexRoute,
   SystemTenantsOrganizationsIndexRoute: SystemTenantsOrganizationsIndexRoute,
   SystemTenantsProjectsIndexRoute: SystemTenantsProjectsIndexRoute,
   SystemTenantsUsersIndexRoute: SystemTenantsUsersIndexRoute,

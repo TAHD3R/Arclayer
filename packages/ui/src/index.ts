@@ -91,6 +91,7 @@ export * from "./setting-action-item";
 export * from "./setting-card";
 export * from "./setting-dialog";
 export * from "./setting-dialog-field";
+export * from "./setting-item";
 export * from "./setting-overlay-footer";
 export * from "./setting-panel";
 export * from "./setting-sheet";

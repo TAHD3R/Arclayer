@@ -54,6 +54,7 @@ export function DefaultPage({
   className,
   contentClassName,
   contentContainerClassName,
+  headerBehavior,
   pageFrame = "contained",
   spacingPreset = "page",
 }: DefaultPageProps) {
@@ -81,6 +82,7 @@ export function DefaultPage({
           extra={hideHeader ? undefined : extra}
           contentClassName={contentClassName}
           contentContainerClassName={contentContainerClassName}
+          headerBehavior={headerBehavior}
         >
           {children}
         </PageMainRegion>

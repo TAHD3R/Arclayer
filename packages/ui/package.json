@@ -105,6 +105,7 @@
     "./setting-card": "./src/setting-card.tsx",
     "./setting-dialog": "./src/setting-dialog.tsx",
     "./setting-dialog-field": "./src/setting-dialog-field.tsx",
+    "./setting-item": "./src/setting-item.tsx",
     "./setting-overlay-footer": "./src/setting-overlay-footer.tsx",
     "./setting-panel": "./src/setting-panel.tsx",
     "./setting-sheet": "./src/setting-sheet.tsx",

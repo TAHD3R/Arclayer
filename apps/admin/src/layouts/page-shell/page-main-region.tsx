@@ -33,6 +33,7 @@ export type BasePageProps = {
   className?: string;
   contentClassName?: string;
   contentContainerClassName?: string;
+  headerBehavior?: "normal" | "sticky";
 };
 
 export type PagePaneToggle = {
@@ -175,6 +176,7 @@ export function PageMainRegion(props: {
   paneToggles?: PagePaneToggle[];
   onOpenPane?: (side: "left" | "right") => void;
   fillAvailableHeight?: boolean;
+  headerBehavior?: "normal" | "sticky";
   children?: ReactNode;
 }) {
   const paneToggles = props.paneToggles ?? [];
@@ -185,6 +187,7 @@ export function PageMainRegion(props: {
       <FavoriteToggle path={props.favoritePath} />
     ) : null;
   const afterFavorite = props.title && titleAdornment ? props.afterFavorite : null;
+  const stickyHeader = props.headerBehavior === "sticky";
 
   return (
     <div
@@ -208,7 +211,13 @@ export function PageMainRegion(props: {
         props.action ||
         props.extra ||
         paneToggles.length > 0 ? (
-          <header className="mb-4">
+          <header
+            className={clsx(
+              "mb-4",
+              stickyHeader &&
+                "sticky top-0 z-20 -mx-[var(--admin-route-gutter-x)] min-h-[var(--settings-page-sticky-header-height,6rem)] bg-background/95 px-[var(--admin-route-gutter-x)] py-2 backdrop-blur supports-[backdrop-filter]:bg-background/88",
+            )}
+          >
             {props.title || props.action || paneToggles.length > 0 ? (
               <div className="flex items-center justify-between gap-4">
                 <div className="my-2 flex min-w-0 flex-1 items-end gap-2">

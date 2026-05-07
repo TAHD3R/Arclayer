@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, PencilLine, PlugZap, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
@@ -16,14 +16,36 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { getFieldErrorMessage } from "@/lib/forms/rhf-form-helpers";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
+  SystemSettingField,
+  SystemSettingFooterActions,
+  SystemSettingItem,
+  SystemSettingStack,
+} from "@/pages/system/components/system-setting-item";
+import {
+  getSystemSettingsSection,
+  readNumberValue,
+  readStringValue,
+  usePatchSystemCoreSettings,
+  useSystemCoreSettings,
+} from "@/pages/system/hooks/use-system-core-settings";
+import {
   OverlayBooleanField,
   OverlayField,
   isValidHttpUrl,
   joinSummaryParts,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
+import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
 import { NumberInput } from "@arclayer/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
@@ -61,6 +83,17 @@ type StorageProfileFormValues = {
   isDefault: boolean;
 };
 
+type StorageLimitsFormValues = {
+  defaultProfileKey: string;
+  uploadChunkSizeMb: number;
+  uploadMaxFileSizeMb: number;
+  uploadMaxAvatarSizeMb: number;
+  uploadMaxSiteLogoSizeMb: number;
+  uploadMaxFaviconSizeMb: number;
+  uploadSessionTtlSeconds: number;
+  recycleBinRetentionDays: number;
+};
+
 type StorageProviderOption = {
   value: ObjectStorageProviderKind;
   labelKey: string;
@@ -77,6 +110,15 @@ type StorageProviderOption = {
 
 const STORAGE_PROFILE_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{1,127}$/;
 const ENV_DEFAULT_PROFILE_KEY = "env-default";
+const STORAGE_LIMIT_FIELDS = [
+  "uploadChunkSizeMb",
+  "uploadMaxFileSizeMb",
+  "uploadMaxAvatarSizeMb",
+  "uploadMaxSiteLogoSizeMb",
+  "uploadMaxFaviconSizeMb",
+  "uploadSessionTtlSeconds",
+  "recycleBinRetentionDays",
+] as const;
 const PROVIDER_OPTIONS: readonly StorageProviderOption[] = [
   {
     value: "local",
@@ -209,6 +251,22 @@ function buildFormValues(profile: StorageProfileOut): StorageProfileFormValues {
   };
 }
 
+function buildStorageLimitsInitialValues(
+  input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
+): StorageLimitsFormValues {
+  const storage = getSystemSettingsSection(input, "storage");
+  return {
+    defaultProfileKey: readStringValue(storage, "default_profile_key") ?? "",
+    uploadChunkSizeMb: readNumberValue(storage, "upload_chunk_size_mb") ?? 8,
+    uploadMaxFileSizeMb: readNumberValue(storage, "upload_max_file_size_mb") ?? 2048,
+    uploadMaxAvatarSizeMb: readNumberValue(storage, "upload_max_avatar_size_mb") ?? 10,
+    uploadMaxSiteLogoSizeMb: readNumberValue(storage, "upload_max_site_logo_size_mb") ?? 20,
+    uploadMaxFaviconSizeMb: readNumberValue(storage, "upload_max_favicon_size_mb") ?? 2,
+    uploadSessionTtlSeconds: readNumberValue(storage, "upload_session_ttl_seconds") ?? 3600,
+    recycleBinRetentionDays: readNumberValue(storage, "recycle_bin_retention_days") ?? 90,
+  };
+}
+
 function isReadOnlyProfile(profile: StorageProfileOut): boolean {
   return profile.profileKey === ENV_DEFAULT_PROFILE_KEY;
 }
@@ -273,13 +331,54 @@ function getPendingProfileKey(pendingAction: PendingAction): string | null {
   return pendingAction.profileKey;
 }
 
+function StorageMetric(props: { label: string; value: string | number | null | undefined }) {
+  return (
+    <div className="min-w-0 py-2">
+      <div className="text-caption text-label-secondary">{props.label}</div>
+      <div className="mt-1 truncate text-footnote font-medium text-label-primary">
+        {props.value || "-"}
+      </div>
+    </div>
+  );
+}
+
+function StorageLimitNumberField(props: {
+  label: string;
+  value: number;
+  min: number;
+  max?: number;
+  onValueChange: (value: number) => void;
+}) {
+  return (
+    <SystemSettingField label={props.label}>
+      <NumberInput
+        value={props.value}
+        min={props.min}
+        max={props.max}
+        onValueChange={(next) => props.onValueChange(next ?? props.min)}
+      />
+    </SystemSettingField>
+  );
+}
+
+function FormField(props: { label: string; description?: string; children: React.ReactNode }) {
+  return (
+    <SystemSettingField label={props.label} description={props.description}>
+      {props.children}
+    </SystemSettingField>
+  );
+}
+
 export function SystemSettingsStoragePage() {
   const { t } = useTranslation(["settings", "common"]);
   const queryClient = useQueryClient();
+  const { savingKey, withSavingKey } = useSavingKey();
   const [dialogMode, setDialogMode] = useState<StorageProfileDialogMode | null>(null);
   const [editingProfile, setEditingProfile] = useState<StorageProfileOut | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StorageProfileOut | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const coreSettingsQuery = useSystemCoreSettings();
+  const patchCoreSettings = usePatchSystemCoreSettings();
 
   const profilesQuery = useQuery({
     queryKey: SYSTEM_STORAGE_PROFILES_QUERY_KEY,
@@ -293,6 +392,15 @@ export function SystemSettingsStoragePage() {
     defaultValues: createDefaultFormValues(),
     mode: "onSubmit",
   });
+  const limitsInitialValues = useMemo(
+    () => buildStorageLimitsInitialValues(coreSettingsQuery.coreSettings),
+    [coreSettingsQuery.coreSettings],
+  );
+  const limitsForm = useForm<StorageLimitsFormValues>({
+    defaultValues: limitsInitialValues,
+    mode: "onSubmit",
+  });
+  const limitValues = limitsForm.watch();
 
   const createMutation = useMutation({
     mutationFn: createStorageProfile,
@@ -314,14 +422,29 @@ export function SystemSettingsStoragePage() {
   });
 
   const profiles = profilesQuery.data ?? [];
+  const defaultProfile =
+    profiles.find((profile) => profile.profileKey === limitsInitialValues.defaultProfileKey) ??
+    profiles.find((profile) => profile.isDefault) ??
+    profiles[0] ??
+    null;
   const selectedProvider = form.watch("provider");
   const selectedProviderOption = getProviderOption(selectedProvider);
   const isCreateDialogOpen = dialogMode !== null;
   const isEditing = dialogMode === "edit" && editingProfile !== null;
   const formHasSecret = Boolean(editingProfile?.secrets?.secretAccessKey);
   const formBusy = createMutation.isPending || updateMutation.isPending;
-  const pageEmpty = !profilesQuery.isLoading && !profilesQuery.isError && profiles.length === 0;
   const pendingProfileKey = getPendingProfileKey(pendingAction);
+  const limitsDirty = STORAGE_LIMIT_FIELDS.some(
+    (field) => limitValues[field] !== limitsInitialValues[field],
+  );
+  const defaultProfileDirty =
+    limitValues.defaultProfileKey !== limitsInitialValues.defaultProfileKey;
+
+  useEffect(() => {
+    if (!coreSettingsQuery.coreSettings) return;
+    if (limitsForm.formState.isDirty) return;
+    limitsForm.reset(limitsInitialValues);
+  }, [coreSettingsQuery.coreSettings, limitsForm, limitsInitialValues]);
 
   const closeDialog = () => {
     if (formBusy) return;
@@ -511,206 +634,405 @@ export function SystemSettingsStoragePage() {
     }
   };
 
-  const panelDescription = useMemo(() => t("settings:SETTINGS_SYSTEM_STORAGE_PAGE_DESC"), [t]);
+  const saveUploadLimits = () =>
+    withSavingKey("storage.limits", async () => {
+      const values = limitsForm.getValues();
+      await patchCoreSettings.mutateAsync({
+        storage: {
+          upload_chunk_size_mb: values.uploadChunkSizeMb,
+          upload_max_file_size_mb: values.uploadMaxFileSizeMb,
+          upload_max_avatar_size_mb: values.uploadMaxAvatarSizeMb,
+          upload_max_site_logo_size_mb: values.uploadMaxSiteLogoSizeMb,
+          upload_max_favicon_size_mb: values.uploadMaxFaviconSizeMb,
+          upload_session_ttl_seconds: values.uploadSessionTtlSeconds,
+          recycle_bin_retention_days: values.recycleBinRetentionDays,
+        },
+      });
+      limitsForm.reset(values);
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+    });
+
+  const saveDefaultProfile = () =>
+    withSavingKey("storage.defaultProfile", async () => {
+      const nextKey = limitsForm.getValues("defaultProfileKey").trim();
+      await patchCoreSettings.mutateAsync({
+        storage: {
+          default_profile_key: nextKey || null,
+        },
+      });
+      limitsForm.reset({
+        ...limitsForm.getValues(),
+        defaultProfileKey: nextKey,
+      });
+      await invalidateProfiles();
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+    });
 
   return (
     <>
       <ContentGuard
-        loading={profilesQuery.isLoading && !profilesQuery.data}
-        error={profilesQuery.error}
-        empty={pageEmpty}
-        onRetry={() => void profilesQuery.refetch()}
-        emptyTitle={t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE")}
-        emptyDescription={t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_DESC")}
-        emptyExtra={
-          <Button onClick={openCreateDialog}>
-            <Plus className="size-4" />
-            {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
-          </Button>
+        loading={
+          (profilesQuery.isLoading && !profilesQuery.data) ||
+          (coreSettingsQuery.isLoading && !coreSettingsQuery.coreSettings)
         }
+        error={profilesQuery.error ?? coreSettingsQuery.error}
+        onRetry={() => {
+          void profilesQuery.refetch();
+          void coreSettingsQuery.refetch();
+        }}
       >
-        <div className="grid gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-3xl space-y-1">
-              <h2 className="text-title-3 font-semibold text-label-primary">
-                {t("settings:SETTINGS_SYSTEM_STORAGE_PAGE_TITLE")}
-              </h2>
-              <p className="text-callout text-label-secondary">{panelDescription}</p>
-            </div>
-            <Button onClick={openCreateDialog} disabled={Boolean(pendingAction)}>
-              <Plus className="size-4" />
-              {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {profiles.map((profile) => {
-              const providerLabel = formatProviderLabel(profile.provider, t);
-              const isReadOnly = isReadOnlyProfile(profile);
-              const isTesting = testMutation.isPending && pendingProfileKey === profile.profileKey;
-              const isDeleting =
-                deleteMutation.isPending && pendingProfileKey === profile.profileKey;
-              const pending =
-                pendingProfileKey === profile.profileKey &&
-                (pendingAction?.type === "test" || pendingAction?.type === "delete");
-
-              const summary = joinSummaryParts(
-                [
-                  profile.config.bucket
-                    ? `${t("settings:SETTINGS_SYSTEM_STORAGE_BUCKET_SHORT")} ${profile.config.bucket}`
-                    : null,
-                  profile.config.publicBucket
-                    ? `${t("settings:SETTINGS_SYSTEM_STORAGE_PUBLIC_BUCKET_SHORT")} ${profile.config.publicBucket}`
-                    : null,
-                  profile.config.publicBaseUrl || null,
-                  formatDeliveryLabel(profile.config.publicDeliveryMode, t),
-                ],
-                t("settings:SETTINGS_SYSTEM_STORAGE_SUMMARY_EMPTY"),
-              );
-
-              const testDescription = profile.lastTestStatus
-                ? joinSummaryParts(
-                    [
-                      profile.lastTestStatus === "passed"
-                        ? t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_PASSED")
-                        : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_FAILED"),
-                      formatDateTime(profile.lastTestedAt),
-                    ],
-                    undefined,
-                  )
-                : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_IDLE");
-
-              return (
-                <div
-                  key={profile.id}
-                  className="col-span-1 flex min-h-[220px] flex-col rounded-lg border border-border bg-card p-4 transition-colors duration-200 hover:border-border/80 hover:bg-accent/50"
+        <SystemSettingStack>
+          <SystemSettingItem
+            id="default-profile"
+            title={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_LABEL")}
+            description={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_DESC")}
+            footer={
+              <SystemSettingFooterActions
+                dirty={defaultProfileDirty}
+                pending={savingKey === "storage.defaultProfile" || patchCoreSettings.isPending}
+                onReset={() =>
+                  limitsForm.reset({
+                    ...limitsForm.getValues(),
+                    defaultProfileKey: limitsInitialValues.defaultProfileKey,
+                  })
+                }
+                onSave={() => void saveDefaultProfile()}
+              />
+            }
+          >
+            <div className="grid gap-3">
+              <FormField label={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_LABEL")}>
+                <Select
+                  value={limitValues.defaultProfileKey || defaultProfile?.profileKey || ""}
+                  onValueChange={(next) =>
+                    limitsForm.setValue("defaultProfileKey", next, { shouldDirty: true })
+                  }
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-2">
-                      <div className="truncate text-headline font-semibold text-label-primary">
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="start">
+                    {profiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.profileKey}>
                         {profile.displayName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              {defaultProfile ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <StorageMetric
+                    label={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_LABEL")}
+                    value={defaultProfile.profileKey}
+                  />
+                  <StorageMetric
+                    label={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
+                    value={formatProviderLabel(defaultProfile.provider, t)}
+                  />
+                  <StorageMetric
+                    label={t("settings:SETTINGS_SYSTEM_STORAGE_LOCATION_LABEL")}
+                    value={joinSummaryParts(
+                      [
+                        defaultProfile.config.bucket,
+                        defaultProfile.config.publicBucket,
+                        defaultProfile.config.publicBaseUrl,
+                      ],
+                      t("settings:SETTINGS_SYSTEM_STORAGE_SUMMARY_EMPTY"),
+                    )}
+                  />
+                  <StorageMetric
+                    label={t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
+                    value={
+                      defaultProfile.lastTestStatus
+                        ? joinSummaryParts([
+                            defaultProfile.lastTestStatus === "passed"
+                              ? t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_PASSED")
+                              : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_FAILED"),
+                            formatDateTime(defaultProfile.lastTestedAt),
+                          ])
+                        : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_IDLE")
+                    }
+                  />
+                </div>
+              ) : (
+                <Empty className="border border-dashed border-border/70 p-6 md:p-8">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <CircleAlert className="size-5" />
+                    </EmptyMedia>
+                    <EmptyTitle className="text-title3">
+                      {t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE")}
+                    </EmptyTitle>
+                    <EmptyDescription className="text-footnote">
+                      {t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_DESC")}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button onClick={openCreateDialog} disabled={Boolean(pendingAction)}>
+                      <Plus className="size-4" />
+                      {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
+                    </Button>
+                  </EmptyContent>
+                </Empty>
+              )}
+            </div>
+          </SystemSettingItem>
+
+          <SystemSettingItem
+            id="profiles"
+            title={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILES_TITLE")}
+            description={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILES_DESC")}
+            headerAction={
+              <Button onClick={openCreateDialog} disabled={Boolean(pendingAction)}>
+                <Plus className="size-4" />
+                {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
+              </Button>
+            }
+          >
+            {profiles.length === 0 ? (
+              <Empty className="border border-dashed border-border/70 p-6 md:p-8">
+                <EmptyHeader>
+                  <EmptyTitle className="text-title3">
+                    {t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE")}
+                  </EmptyTitle>
+                  <EmptyDescription className="text-footnote">
+                    {t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_DESC")}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <div className="grid gap-3">
+                {profiles.map((profile) => {
+                  const providerLabel = formatProviderLabel(profile.provider, t);
+                  const isReadOnly = isReadOnlyProfile(profile);
+                  const isTesting =
+                    testMutation.isPending && pendingProfileKey === profile.profileKey;
+                  const isDeleting =
+                    deleteMutation.isPending && pendingProfileKey === profile.profileKey;
+                  const pending =
+                    pendingProfileKey === profile.profileKey &&
+                    (pendingAction?.type === "test" || pendingAction?.type === "delete");
+                  const summary = joinSummaryParts(
+                    [
+                      profile.config.bucket
+                        ? `${t("settings:SETTINGS_SYSTEM_STORAGE_BUCKET_SHORT")} ${profile.config.bucket}`
+                        : null,
+                      profile.config.publicBucket
+                        ? `${t("settings:SETTINGS_SYSTEM_STORAGE_PUBLIC_BUCKET_SHORT")} ${profile.config.publicBucket}`
+                        : null,
+                      profile.config.publicBaseUrl || null,
+                      formatDeliveryLabel(profile.config.publicDeliveryMode, t),
+                    ],
+                    t("settings:SETTINGS_SYSTEM_STORAGE_SUMMARY_EMPTY"),
+                  );
+                  const testDescription = profile.lastTestStatus
+                    ? joinSummaryParts([
+                        profile.lastTestStatus === "passed"
+                          ? t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_PASSED")
+                          : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_FAILED"),
+                        formatDateTime(profile.lastTestedAt),
+                      ])
+                    : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_IDLE");
+
+                  return (
+                    <div
+                      key={profile.id}
+                      className="grid gap-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto]"
+                    >
+                      <div className="min-w-0 space-y-3">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="min-w-0 truncate text-headline font-semibold text-label-primary">
+                            {profile.displayName}
+                          </span>
+                          <Badge variant="outline">{providerLabel}</Badge>
+                          {profile.isDefault ? (
+                            <Badge variant="secondary">
+                              {t("settings:SETTINGS_SYSTEM_STORAGE_BADGE_DEFAULT")}
+                            </Badge>
+                          ) : null}
+                          {!profile.isActive ? (
+                            <Badge variant="outline">
+                              {t("settings:SETTINGS_SYSTEM_STORAGE_BADGE_INACTIVE")}
+                            </Badge>
+                          ) : null}
+                          {isReadOnly ? (
+                            <Badge variant="outline">
+                              {t("settings:SETTINGS_SYSTEM_STORAGE_ROW_READ_ONLY")}
+                            </Badge>
+                          ) : null}
+                          {pending ? (
+                            <Badge variant="secondary">
+                              {t("settings:SETTINGS_SYSTEM_STORAGE_STATUS_PENDING")}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                          <StorageMetric
+                            label={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_LABEL")}
+                            value={profile.profileKey}
+                          />
+                          <StorageMetric
+                            label={t("settings:SETTINGS_SYSTEM_STORAGE_LOCATION_LABEL")}
+                            value={summary}
+                          />
+                          <StorageMetric
+                            label={t("settings:SETTINGS_SYSTEM_STORAGE_ENDPOINT_SHORT")}
+                            value={profile.config.endpointUrl}
+                          />
+                          <StorageMetric
+                            label={t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
+                            value={testDescription}
+                          />
+                        </div>
+                        <div className="grid gap-1 text-footnote text-label-secondary">
+                          <div>
+                            {profile.secrets?.secretAccessKey
+                              ? t("settings:SETTINGS_STORAGE_S3_SECRET_SET")
+                              : t("settings:SETTINGS_STORAGE_S3_SECRET_NOT_SET")}
+                          </div>
+                          {isReadOnly ? (
+                            <div>{t("settings:SETTINGS_SYSTEM_STORAGE_ENV_DEFAULT_DESC")}</div>
+                          ) : null}
+                          {profile.lastTestMessage ? (
+                            <div className="text-label-primary">{profile.lastTestMessage}</div>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <Badge variant="outline">{providerLabel}</Badge>
-                        {profile.isDefault ? (
-                          <Badge variant="secondary">
-                            {t("settings:SETTINGS_SYSTEM_STORAGE_BADGE_DEFAULT")}
-                          </Badge>
-                        ) : null}
-                        {!profile.isActive ? (
-                          <Badge variant="outline">
-                            {t("settings:SETTINGS_SYSTEM_STORAGE_BADGE_INACTIVE")}
-                          </Badge>
-                        ) : null}
-                        {isReadOnly ? (
-                          <Badge variant="outline">
-                            {t("settings:SETTINGS_SYSTEM_STORAGE_ROW_READ_ONLY")}
-                          </Badge>
-                        ) : null}
-                        {pending ? (
-                          <Badge variant="secondary">
-                            {t("settings:SETTINGS_SYSTEM_STORAGE_STATUS_PENDING")}
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_ACTION")}
-                        disabled={Boolean(pendingAction) || isReadOnly}
-                        onClick={(event) => {
-                          stopEvent(event);
-                          openEditDialog(profile);
-                        }}
-                      >
-                        <PencilLine className="size-4" />
-                        <span className="sr-only">
-                          {t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_ACTION")}
-                        </span>
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
-                        disabled={Boolean(pendingAction)}
-                        loading={isTesting}
-                        onClick={(event) => {
-                          stopEvent(event);
-                          void handleTestProfile(profile);
-                        }}
-                      >
-                        <PlugZap className="size-4" />
-                        <span className="sr-only">
-                          {t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
-                        </span>
-                      </Button>
-                      {!isReadOnly ? (
+                      <div className="flex shrink-0 items-center gap-2 lg:justify-end">
                         <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          aria-label={t("settings:SETTINGS_REMOVE")}
-                          disabled={Boolean(pendingAction)}
-                          loading={isDeleting}
+                          size="sm"
+                          variant="outline"
+                          disabled={Boolean(pendingAction) || isReadOnly}
                           onClick={(event) => {
                             stopEvent(event);
-                            setDeleteTarget(profile);
+                            openEditDialog(profile);
                           }}
                         >
-                          <Trash2 className="size-4" />
-                          <span className="sr-only">{t("settings:SETTINGS_REMOVE")}</span>
+                          <PencilLine className="size-4" />
+                          {t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_ACTION")}
                         </Button>
-                      ) : null}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={Boolean(pendingAction)}
+                          loading={isTesting}
+                          onClick={(event) => {
+                            stopEvent(event);
+                            void handleTestProfile(profile);
+                          }}
+                        >
+                          <PlugZap className="size-4" />
+                          {t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
+                        </Button>
+                        {!isReadOnly ? (
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            aria-label={t("settings:SETTINGS_REMOVE")}
+                            disabled={Boolean(pendingAction)}
+                            loading={isDeleting}
+                            onClick={(event) => {
+                              stopEvent(event);
+                              setDeleteTarget(profile);
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
+            )}
+          </SystemSettingItem>
 
-                  <div className="mt-4 grid gap-3 text-footnote">
-                    <div className="min-w-0">
-                      <div className="text-label-secondary">
-                        {t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_LABEL")}
-                      </div>
-                      <div className="truncate font-medium text-label-primary">
-                        {profile.profileKey}
-                      </div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-label-secondary">
-                        {t("settings:SETTINGS_SYSTEM_STORAGE_LOCATION_LABEL")}
-                      </div>
-                      <div className="truncate text-label-primary">{summary}</div>
-                    </div>
-                    {profile.config.endpointUrl ? (
-                      <div className="min-w-0">
-                        <div className="text-label-secondary">
-                          {t("settings:SETTINGS_SYSTEM_STORAGE_ENDPOINT_SHORT")}
-                        </div>
-                        <div className="truncate text-label-primary">
-                          {profile.config.endpointUrl}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
+          <SystemSettingItem
+            id="create-profile"
+            title={t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
+            description={t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_DESC")}
+            headerAction={
+              <Button onClick={openCreateDialog} disabled={Boolean(pendingAction)}>
+                <Plus className="size-4" />
+                {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
+              </Button>
+            }
+          />
 
-                  <div className="mt-auto grid gap-2 pt-4 text-footnote text-label-secondary">
-                    <div>{testDescription}</div>
-                    <div>
-                      {profile.secrets?.secretAccessKey
-                        ? t("settings:SETTINGS_STORAGE_S3_SECRET_SET")
-                        : t("settings:SETTINGS_STORAGE_S3_SECRET_NOT_SET")}
-                    </div>
-                    {isReadOnly ? (
-                      <div>{t("settings:SETTINGS_SYSTEM_STORAGE_ENV_DEFAULT_DESC")}</div>
-                    ) : null}
-                    {profile.lastTestMessage ? (
-                      <div className="text-label-primary">{profile.lastTestMessage}</div>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+          <SystemSettingItem
+            id="upload-limits"
+            title={t("settings:SETTINGS_SYSTEM_STORAGE_UPLOAD_LIMITS_TITLE")}
+            description={t("settings:SETTINGS_SYSTEM_STORAGE_UPLOAD_LIMITS_DESC")}
+            footer={
+              <SystemSettingFooterActions
+                dirty={limitsDirty}
+                pending={savingKey === "storage.limits" || patchCoreSettings.isPending}
+                onReset={() => limitsForm.reset(limitsInitialValues)}
+                onSave={() => void saveUploadLimits()}
+              />
+            }
+          >
+            <div className="grid gap-3 md:grid-cols-2">
+              <StorageLimitNumberField
+                label={t("settings:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
+                value={limitValues.uploadChunkSizeMb}
+                min={1}
+                onValueChange={(value) =>
+                  limitsForm.setValue("uploadChunkSizeMb", value, { shouldDirty: true })
+                }
+              />
+              <StorageLimitNumberField
+                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
+                value={limitValues.uploadMaxFileSizeMb}
+                min={1}
+                onValueChange={(value) =>
+                  limitsForm.setValue("uploadMaxFileSizeMb", value, { shouldDirty: true })
+                }
+              />
+              <StorageLimitNumberField
+                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_LABEL")}
+                value={limitValues.uploadMaxAvatarSizeMb}
+                min={1}
+                onValueChange={(value) =>
+                  limitsForm.setValue("uploadMaxAvatarSizeMb", value, { shouldDirty: true })
+                }
+              />
+              <StorageLimitNumberField
+                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_LABEL")}
+                value={limitValues.uploadMaxSiteLogoSizeMb}
+                min={1}
+                onValueChange={(value) =>
+                  limitsForm.setValue("uploadMaxSiteLogoSizeMb", value, { shouldDirty: true })
+                }
+              />
+              <StorageLimitNumberField
+                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_LABEL")}
+                value={limitValues.uploadMaxFaviconSizeMb}
+                min={1}
+                onValueChange={(value) =>
+                  limitsForm.setValue("uploadMaxFaviconSizeMb", value, { shouldDirty: true })
+                }
+              />
+              <StorageLimitNumberField
+                label={t("settings:SETTINGS_STORAGE_UPLOAD_SESSION_TTL_SECONDS_LABEL")}
+                value={limitValues.uploadSessionTtlSeconds}
+                min={60}
+                onValueChange={(value) =>
+                  limitsForm.setValue("uploadSessionTtlSeconds", value, { shouldDirty: true })
+                }
+              />
+              <StorageLimitNumberField
+                label={t("settings:SETTINGS_STORAGE_RECYCLE_BIN_RETENTION_DAYS_LABEL")}
+                value={limitValues.recycleBinRetentionDays}
+                min={0}
+                onValueChange={(value) =>
+                  limitsForm.setValue("recycleBinRetentionDays", value, { shouldDirty: true })
+                }
+              />
+            </div>
+          </SystemSettingItem>
+        </SystemSettingStack>
       </ContentGuard>
 
       <SettingDialog

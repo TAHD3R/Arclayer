@@ -1,41 +1,41 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+
+import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
+import { Checkbox } from "@arclayer/ui/checkbox";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
-import { SettingActionItem } from "@arclayer/ui/setting-action-item";
-import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
-import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Switch } from "@arclayer/ui/switch";
-import { Textarea } from "@arclayer/ui/textarea";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
-import { sendTestEmail } from "@/api/mail";
-import type { MailProviderId } from "@/api/mail";
+import { listMailProviders, sendTestEmail, switchMailProvider } from "@/api/mail";
+import type { MailProviderId, MailProviderInfo } from "@/api/mail";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
+import {
+  SystemSettingField,
+  SystemSettingFooterActions,
+  SystemSettingItem,
+  SystemSettingRow,
+  SystemSettingStack,
+} from "@/pages/system/components/system-setting-item";
 import {
   getSystemSettingsSection,
   getSystemSettingsSecrets,
   readBooleanValue,
   readNumberValue,
   readRecordValue,
+  readStringArrayValue,
   readStringValue,
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
 } from "@/pages/system/hooks/use-system-core-settings";
-import {
-  OverlayField,
-  OverlayBooleanField,
-  joinSummaryParts,
-  normalizeOptionalString,
-} from "@/pages/system/system-settings-form-utils";
+import { FieldMessage, normalizeOptionalString } from "@/pages/system/system-settings-form-utils";
 
 type EmailFormValues = {
   mailEnabled: boolean;
@@ -62,9 +62,8 @@ type EmailFormValues = {
   fallbackChain: string;
   retryMaxAttempts: string;
   retryBackoffSeconds: string;
+  mailEnabledTemplates: string[];
 };
-
-type EmailOverlayKey = "provider" | "smtp" | "resend" | "cloudflare" | "ses" | "delivery";
 
 const EMAIL_PROVIDER_OPTIONS: Array<{ value: MailProviderId; labelKey: string }> = [
   { value: "smtp", labelKey: "SETTINGS_MESSAGING_MAIL_PROVIDER_SMTP" },
@@ -72,6 +71,19 @@ const EMAIL_PROVIDER_OPTIONS: Array<{ value: MailProviderId; labelKey: string }>
   { value: "cloudflare", labelKey: "SETTINGS_MESSAGING_MAIL_PROVIDER_CLOUDFLARE" },
   { value: "ses", labelKey: "SETTINGS_MESSAGING_MAIL_PROVIDER_SES" },
 ];
+const MAIL_PROVIDER_QUERY_KEY = ["system", "mail", "providers"] as const;
+const TEMPLATE_OPTIONS = [
+  {
+    key: "registration_prompt",
+    titleKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE",
+    descriptionKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC",
+  },
+  {
+    key: "welcome_email",
+    titleKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE",
+    descriptionKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC",
+  },
+] as const;
 
 function normalizeProvider(value: string | null): MailProviderId {
   if (value === "resend" || value === "cloudflare" || value === "ses") return value;
@@ -88,6 +100,7 @@ function buildInitialValues(
   const cloudflare = readRecordValue(providers, "cloudflare");
   const ses = readRecordValue(providers, "ses");
   const retry = readRecordValue(mail, "retry");
+  const preferences = readRecordValue(mail, "preferences");
   const fallbackChain = mail.fallback_chain;
   const retryBackoff = retry.backoff_seconds;
 
@@ -130,62 +143,291 @@ function buildInitialValues(
     retryBackoffSeconds: Array.isArray(retryBackoff)
       ? retryBackoff.filter((item): item is number => typeof item === "number").join(", ")
       : "1, 2, 4",
+    mailEnabledTemplates: readStringArrayValue(preferences, "enabled_templates"),
   };
 }
 
-function formatTransportSummary(params: {
-  starttls: boolean;
-  sslTls: boolean;
-  t: (key: string) => string;
-}) {
-  const parts: string[] = [];
-  if (params.starttls) parts.push(params.t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS"));
-  if (params.sslTls) parts.push(params.t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS"));
-  return parts.length > 0
-    ? parts.join(" / ")
-    : params.t("settings:SETTINGS_SYSTEM_EMAIL_TRANSPORT_NONE");
-}
-
-function ProviderCredentialFields(props: {
-  form: UseFormReturn<EmailFormValues>;
-  apiKeyName: "resendApiKey" | "cloudflareApiToken";
-  mailFromName: "resendMailFrom" | "cloudflareMailFrom";
-  mailFromNameName: "resendMailFromName" | "cloudflareMailFromName";
-  apiKeyLabel: string;
-  apiKeyDescription: string;
-  mailFromLabel: string;
-  mailFromNameLabel: string;
+function FormField(props: {
+  label: string;
+  description?: string;
+  message?: string | null;
+  children: React.ReactNode;
 }) {
   return (
-    <SettingDialogFields>
+    <SystemSettingField
+      label={props.label}
+      description={props.description}
+      message={<FieldMessage message={props.message} />}
+    >
+      {props.children}
+    </SystemSettingField>
+  );
+}
+
+function ToggleField(props: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <SystemSettingRow
+      title={props.label}
+      description={props.description}
+      control={<Switch checked={props.checked} onCheckedChange={props.onCheckedChange} />}
+    />
+  );
+}
+
+function ProviderStatusList(props: {
+  providers: MailProviderInfo[];
+  activeProvider: MailProviderId;
+  t: (key: string) => string;
+}) {
+  if (props.providers.length === 0) return null;
+  return (
+    <div className="grid gap-2">
+      {props.providers.map((provider) => (
+        <div
+          key={provider.provider_id}
+          className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-2"
+        >
+          <div className="min-w-0">
+            <div className="text-headline font-semibold text-label-primary">{provider.label}</div>
+            {provider.error ? (
+              <div className="mt-1 text-callout text-destructive">{provider.error}</div>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {provider.active || provider.provider_id === props.activeProvider ? (
+              <Badge variant="secondary">
+                {props.t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_ACTIVE")}
+              </Badge>
+            ) : null}
+            <Badge variant={provider.configured ? "secondary" : "outline"}>
+              {provider.configured
+                ? props.t("settings:SETTINGS_SYSTEM_CONFIGURED")
+                : props.t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED")}
+            </Badge>
+            {!provider.available ? (
+              <Badge variant="outline">
+                {props.t("settings:SETTINGS_SYSTEM_EMAIL_PROVIDER_UNAVAILABLE")}
+              </Badge>
+            ) : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function buildSmtpPatch(values: EmailFormValues, t: (key: string) => string) {
+  const port = Number(values.mailPort || 0);
+  if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+    throw new Error(t("settings:SETTINGS_VALIDATION_PORT_INVALID"));
+  }
+  if (values.mailStarttls && values.mailSslTls) {
+    throw new Error(t("settings:MAIL_TRANSPORT_CONFLICT"));
+  }
+  const patchValue: Record<string, unknown> = {
+    server: String(values.mailServer || "").trim() || "localhost",
+    port,
+    username: normalizeOptionalString(values.mailUsername),
+    use_credentials: Boolean(values.mailUseCredentials),
+    mail_from: String(values.mailFrom || "").trim() || "noreply@example.com",
+    mail_from_name: String(values.mailFromName || "").trim() || "Arclayer",
+    starttls: Boolean(values.mailStarttls),
+    ssl_tls: Boolean(values.mailSslTls),
+  };
+  const password = String(values.mailPassword || "").trim();
+  if (password) {
+    patchValue.password = password;
+  }
+  return { patchValue, port };
+}
+
+function getSenderFieldNames(provider: MailProviderId): {
+  from: keyof EmailFormValues;
+  name: keyof EmailFormValues;
+} {
+  if (provider === "resend") return { from: "resendMailFrom", name: "resendMailFromName" };
+  if (provider === "cloudflare") {
+    return { from: "cloudflareMailFrom", name: "cloudflareMailFromName" };
+  }
+  if (provider === "ses") return { from: "sesMailFrom", name: "sesMailFromName" };
+  return { from: "mailFrom", name: "mailFromName" };
+}
+
+function ActiveProviderConfig(props: {
+  provider: MailProviderId;
+  form: UseFormReturn<EmailFormValues>;
+  hasMailPasswordSecret: boolean;
+  hasResendSecret: boolean;
+  hasCloudflareSecret: boolean;
+  t: (key: string) => string;
+}) {
+  const { form, t } = props;
+  if (props.provider === "smtp") {
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        <Controller
+          control={form.control}
+          name="mailServer"
+          render={({ field }) => (
+            <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_SERVER")}>
+              <Input {...field} placeholder="smtp.example.com" />
+            </FormField>
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="mailPort"
+          render={({ field }) => (
+            <FormField
+              label={t("settings:SETTINGS_MESSAGING_MAIL_PORT")}
+              message={getFieldErrorMessage(form, "mailPort")}
+            >
+              <Input {...field} type="number" inputMode="numeric" />
+            </FormField>
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="mailUsername"
+          render={({ field }) => (
+            <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_USERNAME")}>
+              <Input {...field} autoComplete="off" />
+            </FormField>
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="mailPassword"
+          render={({ field }) => (
+            <FormField
+              label={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD")}
+              description={
+                props.hasMailPasswordSecret
+                  ? t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_SECRET_SET")
+                  : t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_SECRET_NOT_SET")
+              }
+            >
+              <Input
+                {...field}
+                type="password"
+                autoComplete="new-password"
+                placeholder={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_PLACEHOLDER")}
+              />
+            </FormField>
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="mailUseCredentials"
+          render={({ field }) => (
+            <ToggleField
+              label={t("settings:SETTINGS_MESSAGING_MAIL_USE_CREDENTIALS")}
+              description={t("settings:SETTINGS_SYSTEM_EMAIL_USE_CREDENTIALS_HELP")}
+              checked={Boolean(field.value)}
+              onCheckedChange={field.onChange}
+            />
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="mailStarttls"
+          render={({ field }) => (
+            <ToggleField
+              label={t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS")}
+              description={t("settings:SETTINGS_SYSTEM_EMAIL_STARTTLS_HELP")}
+              checked={Boolean(field.value)}
+              onCheckedChange={field.onChange}
+            />
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="mailSslTls"
+          render={({ field }) => (
+            <ToggleField
+              label={t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS")}
+              description={t("settings:SETTINGS_SYSTEM_EMAIL_SSL_TLS_HELP")}
+              checked={Boolean(field.value)}
+              onCheckedChange={field.onChange}
+            />
+          )}
+        />
+      </div>
+    );
+  }
+
+  if (props.provider === "resend") {
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        <Controller
+          control={form.control}
+          name="resendApiKey"
+          render={({ field }) => (
+            <FormField
+              label={t("settings:SETTINGS_MESSAGING_MAIL_RESEND_API_KEY")}
+              description={
+                props.hasResendSecret
+                  ? t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_SET")
+                  : t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_NOT_SET")
+              }
+            >
+              <Input {...field} type="password" autoComplete="new-password" />
+            </FormField>
+          )}
+        />
+      </div>
+    );
+  }
+
+  if (props.provider === "cloudflare") {
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        <Controller
+          control={form.control}
+          name="cloudflareApiToken"
+          render={({ field }) => (
+            <FormField
+              label={t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_API_TOKEN")}
+              description={
+                props.hasCloudflareSecret
+                  ? t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_SET")
+                  : t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_NOT_SET")
+              }
+            >
+              <Input {...field} type="password" autoComplete="new-password" />
+            </FormField>
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="cloudflareApiUrl"
+          render={({ field }) => (
+            <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_API_URL")}>
+              <Input {...field} autoComplete="off" />
+            </FormField>
+          )}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
       <Controller
-        control={props.form.control}
-        name={props.apiKeyName}
+        control={form.control}
+        name="sesRegion"
         render={({ field }) => (
-          <OverlayField label={props.apiKeyLabel} description={props.apiKeyDescription}>
-            <Input {...field} type="password" autoComplete="new-password" />
-          </OverlayField>
+          <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_SES_REGION")}>
+            <Input {...field} placeholder="us-east-1" autoComplete="off" />
+          </FormField>
         )}
       />
-      <Controller
-        control={props.form.control}
-        name={props.mailFromName}
-        render={({ field }) => (
-          <OverlayField label={props.mailFromLabel}>
-            <Input {...field} autoComplete="off" />
-          </OverlayField>
-        )}
-      />
-      <Controller
-        control={props.form.control}
-        name={props.mailFromNameName}
-        render={({ field }) => (
-          <OverlayField label={props.mailFromNameLabel}>
-            <Input {...field} autoComplete="off" />
-          </OverlayField>
-        )}
-      />
-    </SettingDialogFields>
+    </div>
   );
 }
 
@@ -194,6 +436,12 @@ export function SystemSettingsEmailPage() {
   const { savingKey, withSavingKey } = useSavingKey();
   const coreSettingsQuery = useSystemCoreSettings();
   const patchMutation = usePatchSystemCoreSettings();
+  const providersQuery = useQuery({
+    queryKey: MAIL_PROVIDER_QUERY_KEY,
+    queryFn: listMailProviders,
+    retry: false,
+    meta: { silent: true },
+  });
   const secrets = getSystemSettingsSecrets(coreSettingsQuery.coreSettings);
   const hasMailPasswordSecret = Boolean(secrets["mail.password"]);
   const hasResendSecret = Boolean(secrets["mail.providers.resend.api_key"]);
@@ -210,6 +458,9 @@ export function SystemSettingsEmailPage() {
     defaultValues: initialValues,
     mode: "onSubmit",
   });
+  const values = form.watch();
+  const mailProvider = values.mailProvider;
+  const senderFields = getSenderFieldNames(mailProvider);
 
   useEffect(() => {
     if (!coreSettingsQuery.coreSettings) return;
@@ -225,131 +476,100 @@ export function SystemSettingsEmailPage() {
 
   const setMailEnabled = (next: boolean) =>
     withSavingKey("mail.enabled", async () => {
-      await persistPatch(
-        { mail: { enabled: next } },
-        {
-          ...form.getValues(),
-          mailEnabled: next,
-          mailPassword: "",
-        },
-      );
+      await persistPatch({ mail: { enabled: next } }, { ...form.getValues(), mailEnabled: next });
     });
 
   const saveProvider = () =>
     withSavingKey("mail.provider", async () => {
-      const values = await validateFormFields(form, ["mailProvider"]);
+      const next = await validateFormFields(form, ["mailProvider"]);
+      await switchMailProvider({ provider: next.mailProvider });
+      await providersQuery.refetch();
       await persistPatch(
-        { mail: { provider: values.mailProvider } },
-        {
-          ...form.getValues(),
-          mailProvider: values.mailProvider,
-        },
+        { mail: { provider: next.mailProvider } },
+        { ...form.getValues(), mailProvider: next.mailProvider },
       );
     });
 
-  const saveMailConfig = () =>
-    withSavingKey("mail.config", async () => {
-      const values = await validateFormFields(form, [
-        "mailServer",
-        "mailPort",
-        "mailUsername",
-        "mailPassword",
-        "mailUseCredentials",
-        "mailFrom",
-        "mailFromName",
-        "mailStarttls",
-        "mailSslTls",
-      ]);
-      const port = Number(values.mailPort || 0);
-      if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-        form.setError("mailPort", {
-          type: "validate",
-          message: t("settings:SETTINGS_VALIDATION_PORT_INVALID"),
-        });
-        throw new Error("FORM_VALIDATION_FAILED");
-      }
-      if (values.mailStarttls && values.mailSslTls) {
-        const message = t("settings:MAIL_TRANSPORT_CONFLICT");
-        form.setError("mailStarttls", { type: "validate", message });
-        form.setError("mailSslTls", { type: "validate", message });
-        throw new Error("FORM_VALIDATION_FAILED");
-      }
-
-      const patchValue: Record<string, unknown> = {
-        server: String(values.mailServer || "").trim() || "localhost",
-        port,
-        username: normalizeOptionalString(values.mailUsername),
-        use_credentials: Boolean(values.mailUseCredentials),
-        mail_from: String(values.mailFrom || "").trim() || "noreply@example.com",
-        mail_from_name: String(values.mailFromName || "").trim() || "Arclayer",
-        starttls: Boolean(values.mailStarttls),
-        ssl_tls: Boolean(values.mailSslTls),
-      };
-      const password = String(values.mailPassword || "").trim();
-      if (password) {
-        patchValue.password = password;
-      }
-
-      await persistPatch(
-        { mail: { providers: { smtp: patchValue }, ...patchValue } },
-        {
-          ...form.getValues(),
-          mailServer: String(values.mailServer || "").trim() || "localhost",
-          mailPort: String(port),
-          mailUsername: String(values.mailUsername || "").trim(),
-          mailPassword: "",
-          mailUseCredentials: Boolean(values.mailUseCredentials),
-          mailFrom: String(values.mailFrom || "").trim() || "noreply@example.com",
-          mailFromName: String(values.mailFromName || "").trim() || "Arclayer",
-          mailStarttls: Boolean(values.mailStarttls),
-          mailSslTls: Boolean(values.mailSslTls),
-        },
-      );
-    });
-
-  const saveProviderConfig = (provider: "resend" | "cloudflare" | "ses") =>
-    withSavingKey(`mail.${provider}`, async () => {
+  const saveActiveProviderConfig = () =>
+    withSavingKey(`mail.${mailProvider}.config`, async () => {
       const values = form.getValues();
+      if (mailProvider === "smtp") {
+        try {
+          const { patchValue, port } = buildSmtpPatch(values, t);
+          await persistPatch(
+            { mail: { providers: { smtp: patchValue }, ...patchValue } },
+            { ...values, mailPort: String(port), mailPassword: "" },
+          );
+        } catch (error) {
+          notifyError(error);
+          throw error;
+        }
+        return;
+      }
+
       const providerPatch: Record<string, unknown> = {};
-      if (provider === "resend") {
-        providerPatch.mail_from =
-          String(values.resendMailFrom || "").trim() || "noreply@example.com";
-        providerPatch.mail_from_name = String(values.resendMailFromName || "").trim() || "Arclayer";
-        const apiKey = String(values.resendApiKey || "").trim();
+      if (mailProvider === "resend") {
+        providerPatch.mail_from = values.resendMailFrom.trim() || "noreply@example.com";
+        providerPatch.mail_from_name = values.resendMailFromName.trim() || "Arclayer";
+        const apiKey = values.resendApiKey.trim();
         if (apiKey) providerPatch.api_key = apiKey;
       }
-      if (provider === "cloudflare") {
-        providerPatch.mail_from =
-          String(values.cloudflareMailFrom || "").trim() || "noreply@example.com";
-        providerPatch.mail_from_name =
-          String(values.cloudflareMailFromName || "").trim() || "Arclayer";
+      if (mailProvider === "cloudflare") {
+        providerPatch.mail_from = values.cloudflareMailFrom.trim() || "noreply@example.com";
+        providerPatch.mail_from_name = values.cloudflareMailFromName.trim() || "Arclayer";
         providerPatch.api_url =
-          String(values.cloudflareApiUrl || "").trim() || "https://api.mailchannels.net/tx/v1/send";
-        const apiToken = String(values.cloudflareApiToken || "").trim();
+          values.cloudflareApiUrl.trim() || "https://api.mailchannels.net/tx/v1/send";
+        const apiToken = values.cloudflareApiToken.trim();
         if (apiToken) providerPatch.api_token = apiToken;
       }
-      if (provider === "ses") {
-        providerPatch.region = String(values.sesRegion || "").trim();
-        providerPatch.mail_from = String(values.sesMailFrom || "").trim() || "noreply@example.com";
-        providerPatch.mail_from_name = String(values.sesMailFromName || "").trim() || "Arclayer";
+      if (mailProvider === "ses") {
+        providerPatch.region = values.sesRegion.trim();
+        providerPatch.mail_from = values.sesMailFrom.trim() || "noreply@example.com";
+        providerPatch.mail_from_name = values.sesMailFromName.trim() || "Arclayer";
       }
       await persistPatch(
-        { mail: { providers: { [provider]: providerPatch } } },
+        { mail: { providers: { [mailProvider]: providerPatch } } },
+        { ...values, resendApiKey: "", cloudflareApiToken: "" },
+      );
+    });
+
+  const saveSenderIdentity = () =>
+    withSavingKey("mail.sender", async () => {
+      const values = form.getValues();
+      const activePatch =
+        mailProvider === "smtp"
+          ? {
+              mail_from: values.mailFrom.trim() || "noreply@example.com",
+              mail_from_name: values.mailFromName.trim() || "Arclayer",
+            }
+          : mailProvider === "resend"
+            ? {
+                mail_from: values.resendMailFrom.trim() || "noreply@example.com",
+                mail_from_name: values.resendMailFromName.trim() || "Arclayer",
+              }
+            : mailProvider === "cloudflare"
+              ? {
+                  mail_from: values.cloudflareMailFrom.trim() || "noreply@example.com",
+                  mail_from_name: values.cloudflareMailFromName.trim() || "Arclayer",
+                }
+              : {
+                  mail_from: values.sesMailFrom.trim() || "noreply@example.com",
+                  mail_from_name: values.sesMailFromName.trim() || "Arclayer",
+                };
+      await persistPatch(
         {
-          ...values,
-          resendApiKey: "",
-          cloudflareApiToken: "",
+          mail: {
+            ...(mailProvider === "smtp" ? activePatch : {}),
+            providers: { [mailProvider]: activePatch },
+          },
         },
+        values,
       );
     });
 
   const saveDeliveryPolicy = () =>
     withSavingKey("mail.delivery", async () => {
-      const values = await validateFormFields(form, [
-        "fallbackChain",
-        "retryMaxAttempts",
-        "retryBackoffSeconds",
-      ]);
+      const values = form.getValues();
       const maxAttempts = Number(values.retryMaxAttempts || 0);
       if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10) {
         form.setError("retryMaxAttempts", {
@@ -358,11 +578,11 @@ export function SystemSettingsEmailPage() {
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      const fallbackChain = String(values.fallbackChain || "")
+      const fallbackChain = values.fallbackChain
         .split(/\r?\n|,/)
         .map((item) => item.trim())
         .filter(Boolean);
-      const backoffSeconds = String(values.retryBackoffSeconds || "")
+      const backoffSeconds = values.retryBackoffSeconds
         .split(",")
         .map((item) => Number(item.trim()))
         .filter((item) => Number.isInteger(item) && item >= 0);
@@ -374,7 +594,7 @@ export function SystemSettingsEmailPage() {
           },
         },
         {
-          ...form.getValues(),
+          ...values,
           fallbackChain: fallbackChain.join("\n"),
           retryMaxAttempts: String(maxAttempts),
           retryBackoffSeconds: backoffSeconds.join(", "),
@@ -382,38 +602,101 @@ export function SystemSettingsEmailPage() {
       );
     });
 
-  const overlayConfigs = useMemo<readonly SettingOverlayConfig<EmailOverlayKey>[]>(() => {
-    const mailServerError = getFieldErrorMessage(form, "mailServer");
-    const mailPortError = getFieldErrorMessage(form, "mailPort");
-    const mailFromError = getFieldErrorMessage(form, "mailFrom");
-    const mailFromNameError = getFieldErrorMessage(form, "mailFromName");
-    const mailUseCredentialsError = getFieldErrorMessage(form, "mailUseCredentials");
-    const mailStarttlsError = getFieldErrorMessage(form, "mailStarttls");
-    const mailSslTlsError = getFieldErrorMessage(form, "mailSslTls");
+  const saveTemplates = () =>
+    withSavingKey("mail.templates", async () => {
+      const nextTemplates = Array.from(new Set(form.getValues("mailEnabledTemplates") || []));
+      await persistPatch(
+        { mail: { preferences: { enabled_templates: nextTemplates } } },
+        { ...form.getValues(), mailEnabledTemplates: nextTemplates },
+      );
+    });
 
-    return [
-      {
-        key: "provider",
-        type: "sheet",
-        title: t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_TITLE"),
-        description: t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "mail.provider"}
-            disabled={patchMutation.isPending}
-            onSave={saveProvider}
+  const enabledDirty = values.mailEnabled !== initialValues.mailEnabled;
+  const providerDirty = values.mailProvider !== initialValues.mailProvider;
+  const activeConfigDirty =
+    mailProvider === "smtp"
+      ? [
+          "mailServer",
+          "mailPort",
+          "mailUsername",
+          "mailUseCredentials",
+          "mailStarttls",
+          "mailSslTls",
+        ].some(
+          (field) =>
+            values[field as keyof EmailFormValues] !==
+            initialValues[field as keyof EmailFormValues],
+        ) || Boolean(values.mailPassword.trim())
+      : mailProvider === "resend"
+        ? Boolean(values.resendApiKey.trim())
+        : mailProvider === "cloudflare"
+          ? values.cloudflareApiUrl !== initialValues.cloudflareApiUrl ||
+            Boolean(values.cloudflareApiToken.trim())
+          : values.sesRegion !== initialValues.sesRegion;
+  const senderDirty =
+    values[senderFields.from] !== initialValues[senderFields.from] ||
+    values[senderFields.name] !== initialValues[senderFields.name];
+  const deliveryDirty =
+    values.fallbackChain !== initialValues.fallbackChain ||
+    values.retryMaxAttempts !== initialValues.retryMaxAttempts ||
+    values.retryBackoffSeconds !== initialValues.retryBackoffSeconds;
+  const templatesDirty =
+    values.mailEnabledTemplates.slice().sort().join("|") !==
+    initialValues.mailEnabledTemplates.slice().sort().join("|");
+
+  return (
+    <ContentGuard
+      loading={coreSettingsQuery.isLoading && !coreSettingsQuery.coreSettings}
+      error={coreSettingsQuery.error}
+      onRetry={() => void coreSettingsQuery.refetch()}
+    >
+      <SystemSettingStack>
+        <SystemSettingItem
+          id="email-delivery"
+          title={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_TITLE")}
+          description={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_DESC")}
+          footer={
+            <SystemSettingFooterActions
+              dirty={enabledDirty}
+              pending={savingKey === "mail.enabled" || patchMutation.isPending}
+              onReset={() =>
+                form.reset({ ...form.getValues(), mailEnabled: initialValues.mailEnabled })
+              }
+              onSave={() => void setMailEnabled(values.mailEnabled)}
+            />
+          }
+        >
+          <ToggleField
+            label={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_TITLE")}
+            description={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_DESC")}
+            checked={values.mailEnabled}
+            onCheckedChange={(checked) =>
+              form.setValue("mailEnabled", checked, { shouldDirty: true })
+            }
           />
-        ),
-        content: () => (
-          <SettingDialogFields>
+        </SystemSettingItem>
+
+        <SystemSettingItem
+          id="active-provider"
+          title={t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_TITLE")}
+          description={t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_DESC")}
+          footer={
+            <SystemSettingFooterActions
+              dirty={providerDirty}
+              pending={savingKey === "mail.provider" || patchMutation.isPending}
+              onReset={() =>
+                form.reset({ ...form.getValues(), mailProvider: initialValues.mailProvider })
+              }
+              onSave={() => void saveProvider()}
+            />
+          }
+        >
+          <div className="grid gap-4">
             <Controller
               control={form.control}
               name="mailProvider"
               render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_ACTIVE")}>
+                <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_ACTIVE")}>
                   <Select
                     value={field.value}
                     onValueChange={(value) => field.onChange(normalizeProvider(value))}
@@ -429,479 +712,176 @@ export function SystemSettingsEmailPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                </OverlayField>
+                </FormField>
               )}
             />
-          </SettingDialogFields>
-        ),
-      },
-      {
-        key: "smtp",
-        type: "sheet",
-        title: t("settings:SETTINGS_MESSAGING_MAIL_CONFIG_TITLE"),
-        description: t("settings:SETTINGS_MESSAGING_MAIL_CONFIG_SHEET_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "mail.config"}
-            disabled={patchMutation.isPending}
-            onSave={saveMailConfig}
-          />
-        ),
-        content: () => (
-          <SettingDialogFields>
-            <Controller
-              control={form.control}
-              name="mailServer"
-              render={({ field }) => (
-                <OverlayField
-                  label={t("settings:SETTINGS_MESSAGING_MAIL_SERVER")}
-                  message={mailServerError}
-                >
-                  <Input {...field} placeholder="smtp.example.com" />
-                </OverlayField>
-              )}
+            <ProviderStatusList
+              providers={providersQuery.data ?? []}
+              activeProvider={mailProvider}
+              t={t}
             />
-            <Controller
-              control={form.control}
-              name="mailPort"
-              render={({ field }) => (
-                <OverlayField
-                  label={t("settings:SETTINGS_MESSAGING_MAIL_PORT")}
-                  message={mailPortError}
-                >
-                  <Input {...field} type="number" inputMode="numeric" />
-                </OverlayField>
-              )}
+          </div>
+        </SystemSettingItem>
+
+        <SystemSettingItem
+          id="active-provider-config"
+          title={t("settings:SETTINGS_SYSTEM_EMAIL_ACTIVE_PROVIDER_CONFIG_TITLE")}
+          description={t("settings:SETTINGS_SYSTEM_EMAIL_ACTIVE_PROVIDER_CONFIG_DESC")}
+          footer={
+            <SystemSettingFooterActions
+              dirty={activeConfigDirty}
+              pending={savingKey === `mail.${mailProvider}.config` || patchMutation.isPending}
+              onReset={() => form.reset(initialValues)}
+              onSave={() => void saveActiveProviderConfig()}
             />
-            <Controller
-              control={form.control}
-              name="mailUsername"
-              render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_USERNAME")}>
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="mailPassword"
-              render={({ field }) => (
-                <OverlayField
-                  label={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD")}
-                  description={
-                    hasMailPasswordSecret
-                      ? t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_SECRET_SET")
-                      : t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_SECRET_NOT_SET")
-                  }
-                >
-                  <Input
-                    {...field}
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_PLACEHOLDER")}
-                  />
-                </OverlayField>
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="mailUseCredentials"
-              render={({ field }) => (
-                <OverlayBooleanField
-                  label={t("settings:SETTINGS_MESSAGING_MAIL_USE_CREDENTIALS")}
-                  description={t("settings:SETTINGS_SYSTEM_EMAIL_USE_CREDENTIALS_HELP")}
-                  message={mailUseCredentialsError}
-                  checked={Boolean(field.value)}
-                  onCheckedChange={field.onChange}
-                  stateLabel={
-                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
-                  }
-                />
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="mailFrom"
-              render={({ field }) => (
-                <OverlayField
-                  label={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}
-                  message={mailFromError}
-                >
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="mailFromName"
-              render={({ field }) => (
-                <OverlayField
-                  label={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}
-                  message={mailFromNameError}
-                >
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
-              )}
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <Controller
-                control={form.control}
-                name="mailStarttls"
-                render={({ field }) => (
-                  <OverlayBooleanField
-                    label={t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS")}
-                    description={t("settings:SETTINGS_SYSTEM_EMAIL_STARTTLS_HELP")}
-                    message={mailStarttlsError}
-                    checked={Boolean(field.value)}
-                    onCheckedChange={field.onChange}
-                    stateLabel={
-                      field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
-                    }
-                  />
-                )}
-              />
-              <Controller
-                control={form.control}
-                name="mailSslTls"
-                render={({ field }) => (
-                  <OverlayBooleanField
-                    label={t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS")}
-                    description={t("settings:SETTINGS_SYSTEM_EMAIL_SSL_TLS_HELP")}
-                    message={mailSslTlsError}
-                    checked={Boolean(field.value)}
-                    onCheckedChange={field.onChange}
-                    stateLabel={
-                      field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
-                    }
-                  />
-                )}
-              />
-            </div>
-          </SettingDialogFields>
-        ),
-      },
-      {
-        key: "resend",
-        type: "sheet",
-        title: t("settings:SETTINGS_MESSAGING_MAIL_RESEND_TITLE"),
-        description: t("settings:SETTINGS_MESSAGING_MAIL_RESEND_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "mail.resend"}
-            disabled={patchMutation.isPending}
-            onSave={() => saveProviderConfig("resend")}
-          />
-        ),
-        content: () => (
-          <ProviderCredentialFields
+          }
+        >
+          <ActiveProviderConfig
+            provider={mailProvider}
             form={form}
-            apiKeyName="resendApiKey"
-            mailFromName="resendMailFrom"
-            mailFromNameName="resendMailFromName"
-            apiKeyLabel={t("settings:SETTINGS_MESSAGING_MAIL_RESEND_API_KEY")}
-            apiKeyDescription={
-              hasResendSecret
-                ? t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_SET")
-                : t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_NOT_SET")
-            }
-            mailFromLabel={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}
-            mailFromNameLabel={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}
+            hasMailPasswordSecret={hasMailPasswordSecret}
+            hasResendSecret={hasResendSecret}
+            hasCloudflareSecret={hasCloudflareSecret}
+            t={t}
           />
-        ),
-      },
-      {
-        key: "cloudflare",
-        type: "sheet",
-        title: t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_TITLE"),
-        description: t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "mail.cloudflare"}
-            disabled={patchMutation.isPending}
-            onSave={() => saveProviderConfig("cloudflare")}
-          />
-        ),
-        content: () => (
-          <SettingDialogFields>
+        </SystemSettingItem>
+
+        <SystemSettingItem
+          id="sender-identity"
+          title={t("settings:SETTINGS_SYSTEM_EMAIL_SENDER_IDENTITY_TITLE")}
+          description={t("settings:SETTINGS_SYSTEM_EMAIL_SENDER_IDENTITY_DESC")}
+          footer={
+            <SystemSettingFooterActions
+              dirty={senderDirty}
+              pending={savingKey === "mail.sender" || patchMutation.isPending}
+              onReset={() => form.reset(initialValues)}
+              onSave={() => void saveSenderIdentity()}
+            />
+          }
+        >
+          <div className="grid gap-3 md:grid-cols-2">
             <Controller
               control={form.control}
-              name="cloudflareApiToken"
+              name={senderFields.from}
               render={({ field }) => (
-                <OverlayField
-                  label={t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_API_TOKEN")}
-                  description={
-                    hasCloudflareSecret
-                      ? t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_SET")
-                      : t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SECRET_NOT_SET")
-                  }
-                >
-                  <Input {...field} type="password" autoComplete="new-password" />
-                </OverlayField>
+                <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}>
+                  <Input {...field} value={String(field.value)} autoComplete="off" />
+                </FormField>
               )}
             />
             <Controller
               control={form.control}
-              name="cloudflareMailFrom"
+              name={senderFields.name}
               render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}>
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
+                <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}>
+                  <Input {...field} value={String(field.value)} autoComplete="off" />
+                </FormField>
               )}
             />
-            <Controller
-              control={form.control}
-              name="cloudflareMailFromName"
-              render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}>
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
-              )}
+          </div>
+        </SystemSettingItem>
+
+        <SystemSettingItem
+          id="delivery-policy"
+          title={t("settings:SETTINGS_MESSAGING_MAIL_DELIVERY_POLICY_TITLE")}
+          description={t("settings:SETTINGS_MESSAGING_MAIL_DELIVERY_POLICY_DESC")}
+          footer={
+            <SystemSettingFooterActions
+              dirty={deliveryDirty}
+              pending={savingKey === "mail.delivery" || patchMutation.isPending}
+              onReset={() => form.reset(initialValues)}
+              onSave={() => void saveDeliveryPolicy()}
             />
-            <Controller
-              control={form.control}
-              name="cloudflareApiUrl"
-              render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_API_URL")}>
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
-              )}
-            />
-          </SettingDialogFields>
-        ),
-      },
-      {
-        key: "ses",
-        type: "sheet",
-        title: t("settings:SETTINGS_MESSAGING_MAIL_SES_TITLE"),
-        description: t("settings:SETTINGS_MESSAGING_MAIL_SES_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "mail.ses"}
-            disabled={patchMutation.isPending}
-            onSave={() => saveProviderConfig("ses")}
-          />
-        ),
-        content: () => (
-          <SettingDialogFields>
-            <Controller
-              control={form.control}
-              name="sesRegion"
-              render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_SES_REGION")}>
-                  <Input {...field} placeholder="us-east-1" autoComplete="off" />
-                </OverlayField>
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="sesMailFrom"
-              render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}>
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="sesMailFromName"
-              render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}>
-                  <Input {...field} autoComplete="off" />
-                </OverlayField>
-              )}
-            />
-          </SettingDialogFields>
-        ),
-      },
-      {
-        key: "delivery",
-        type: "sheet",
-        title: t("settings:SETTINGS_MESSAGING_MAIL_DELIVERY_POLICY_TITLE"),
-        description: t("settings:SETTINGS_MESSAGING_MAIL_DELIVERY_POLICY_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "mail.delivery"}
-            disabled={patchMutation.isPending}
-            onSave={saveDeliveryPolicy}
-          />
-        ),
-        content: () => (
-          <SettingDialogFields>
+          }
+        >
+          <div className="grid gap-3 md:grid-cols-3">
             <Controller
               control={form.control}
               name="fallbackChain"
               render={({ field }) => (
-                <OverlayField
+                <FormField
                   label={t("settings:SETTINGS_MESSAGING_MAIL_FALLBACK_CHAIN")}
                   description={t("settings:SETTINGS_MESSAGING_MAIL_FALLBACK_CHAIN_DESC")}
                 >
-                  <Textarea {...field} rows={4} />
-                </OverlayField>
+                  <Input {...field} autoComplete="off" />
+                </FormField>
               )}
             />
             <Controller
               control={form.control}
               name="retryMaxAttempts"
               render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_RETRY_MAX_ATTEMPTS")}>
+                <FormField label={t("settings:SETTINGS_MESSAGING_MAIL_RETRY_MAX_ATTEMPTS")}>
                   <Input {...field} type="number" inputMode="numeric" />
-                </OverlayField>
+                </FormField>
               )}
             />
             <Controller
               control={form.control}
               name="retryBackoffSeconds"
               render={({ field }) => (
-                <OverlayField
+                <FormField
                   label={t("settings:SETTINGS_MESSAGING_MAIL_RETRY_BACKOFF")}
                   description={t("settings:SETTINGS_MESSAGING_MAIL_RETRY_BACKOFF_DESC")}
                 >
                   <Input {...field} autoComplete="off" />
-                </OverlayField>
+                </FormField>
               )}
             />
-          </SettingDialogFields>
-        ),
-      },
-    ] as const;
-  }, [
-    form,
-    hasCloudflareSecret,
-    hasMailPasswordSecret,
-    hasResendSecret,
-    patchMutation.isPending,
-    saveDeliveryPolicy,
-    saveMailConfig,
-    saveProvider,
-    saveProviderConfig,
-    savingKey,
-    t,
-  ]);
+          </div>
+        </SystemSettingItem>
 
-  const overlays = useSettingOverlays(overlayConfigs);
-  const openOverlay = (key: EmailOverlayKey) => {
-    form.reset(initialValues);
-    overlays.open(key);
-  };
-  const mailEnabled = initialValues.mailEnabled;
-  const mailProvider = initialValues.mailProvider;
-  const mailServer = initialValues.mailServer;
-  const mailPort = initialValues.mailPort;
-  const mailFrom = initialValues.mailFrom;
-  const mailStarttls = initialValues.mailStarttls;
-  const mailSslTls = initialValues.mailSslTls;
-  const providerLabel = t(
-    `settings:${EMAIL_PROVIDER_OPTIONS.find((option) => option.value === mailProvider)?.labelKey ?? "SETTINGS_MESSAGING_MAIL_PROVIDER_SMTP"}`,
-  );
-
-  return (
-    <ContentGuard
-      loading={coreSettingsQuery.isLoading && !coreSettingsQuery.coreSettings}
-      error={coreSettingsQuery.error}
-      onRetry={() => void coreSettingsQuery.refetch()}
-    >
-      <div className="space-y-8">
-        <SettingPanel
-          title={t("settings:SETTINGS_SYSTEM_EMAIL_PAGE_TITLE")}
-          description={t("settings:SETTINGS_SYSTEM_EMAIL_PAGE_DESC")}
-          bordered={false}
+        <SystemSettingItem
+          id="template-preferences"
+          title={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_PREFERENCES_TITLE")}
+          description={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_PREFERENCES_DESC")}
+          footer={
+            <SystemSettingFooterActions
+              dirty={templatesDirty}
+              pending={savingKey === "mail.templates" || patchMutation.isPending}
+              onReset={() => form.reset(initialValues)}
+              onSave={() => void saveTemplates()}
+            />
+          }
         >
-          <SettingActionGroup>
-            <SettingActionItem
-              title={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_TITLE")}
-              summary={
-                mailEnabled ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
-              }
-              description={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_DESC")}
-              right={
-                <Switch
-                  checked={mailEnabled}
-                  disabled={patchMutation.isPending || savingKey === "mail.enabled"}
-                  onCheckedChange={(checked) => {
-                    void setMailEnabled(Boolean(checked));
-                  }}
+          <div className="grid gap-3 md:grid-cols-2">
+            {TEMPLATE_OPTIONS.map((template) => {
+              const checked = values.mailEnabledTemplates.includes(template.key);
+              return (
+                <SystemSettingRow
+                  key={template.key}
+                  title={t(template.titleKey)}
+                  description={t(template.descriptionKey)}
+                  className="justify-start"
+                  control={
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(next) => {
+                        const current = form.getValues("mailEnabledTemplates") || [];
+                        const nextTemplates = next
+                          ? [...current, template.key]
+                          : current.filter((item) => item !== template.key);
+                        form.setValue("mailEnabledTemplates", Array.from(new Set(nextTemplates)), {
+                          shouldDirty: true,
+                        });
+                      }}
+                    />
+                  }
                 />
-              }
-              showChevron={false}
-              as="div"
-            />
-            <SettingActionItem
-              title={t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_TITLE")}
-              summary={providerLabel}
-              description={t("settings:SETTINGS_MESSAGING_MAIL_PROVIDER_SUMMARY_DESC")}
-              onTrigger={() => openOverlay("provider")}
-            />
-            <SettingActionItem
-              title={t("settings:SETTINGS_MESSAGING_MAIL_CONFIG_TITLE")}
-              summary={`${mailServer}:${mailPort}`}
-              description={joinSummaryParts([
-                mailFrom,
-                formatTransportSummary({
-                  starttls: mailStarttls,
-                  sslTls: mailSslTls,
-                  t,
-                }),
-              ])}
-              onTrigger={() => openOverlay("smtp")}
-            />
-            <SettingActionItem
-              title={t("settings:SETTINGS_MESSAGING_MAIL_RESEND_TITLE")}
-              summary={initialValues.resendMailFrom}
-              description={t("settings:SETTINGS_MESSAGING_MAIL_RESEND_SUMMARY_DESC")}
-              onTrigger={() => openOverlay("resend")}
-            />
-            <SettingActionItem
-              title={t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_TITLE")}
-              summary={initialValues.cloudflareMailFrom}
-              description={t("settings:SETTINGS_MESSAGING_MAIL_CLOUDFLARE_SUMMARY_DESC")}
-              onTrigger={() => openOverlay("cloudflare")}
-            />
-            <SettingActionItem
-              title={t("settings:SETTINGS_MESSAGING_MAIL_SES_TITLE")}
-              summary={
-                initialValues.sesRegion || t("settings:SETTINGS_SYSTEM_EMAIL_NOT_CONFIGURED")
-              }
-              description={t("settings:SETTINGS_MESSAGING_MAIL_SES_SUMMARY_DESC")}
-              onTrigger={() => openOverlay("ses")}
-            />
-            <SettingActionItem
-              title={t("settings:SETTINGS_MESSAGING_MAIL_DELIVERY_POLICY_TITLE")}
-              summary={t("settings:SETTINGS_MESSAGING_MAIL_DELIVERY_POLICY_SUMMARY", {
-                count: Number(initialValues.retryMaxAttempts),
-              })}
-              description={t("settings:SETTINGS_MESSAGING_MAIL_DELIVERY_POLICY_SUMMARY_DESC")}
-              onTrigger={() => openOverlay("delivery")}
-            />
-          </SettingActionGroup>
-        </SettingPanel>
+              );
+            })}
+          </div>
+        </SystemSettingItem>
 
-        <section className="space-y-3">
-          <header className="space-y-1">
-            <h2 className="text-title2 font-bold">
-              {t("settings:SETTINGS_MESSAGING_MAIL_TEST_TITLE")}
-            </h2>
-            <p className="text-body text-label-secondary">
-              {mailEnabled
-                ? t("settings:SETTINGS_MESSAGING_MAIL_TEST_DESC")
-                : t("settings:SETTINGS_SYSTEM_EMAIL_TEST_DISABLED_HINT")}
-            </p>
-          </header>
-
+        <SystemSettingItem
+          id="test-email"
+          title={t("settings:SETTINGS_MESSAGING_MAIL_TEST_TITLE")}
+          description={
+            values.mailEnabled
+              ? t("settings:SETTINGS_MESSAGING_MAIL_TEST_DESC")
+              : t("settings:SETTINGS_SYSTEM_EMAIL_TEST_DISABLED_HINT")
+          }
+        >
           <div className="flex flex-col gap-3 md:flex-row">
             <Input
               value={testRecipient}
@@ -912,7 +892,7 @@ export function SystemSettingsEmailPage() {
             <Button
               type="button"
               loading={isTestingEmail}
-              disabled={!mailEnabled || !testRecipient.trim()}
+              disabled={!values.mailEnabled || !testRecipient.trim()}
               onClick={() => {
                 const recipient = testRecipient.trim();
                 if (!recipient) return;
@@ -926,10 +906,8 @@ export function SystemSettingsEmailPage() {
               {t("settings:SETTINGS_MESSAGING_MAIL_TEST_ACTION")}
             </Button>
           </div>
-        </section>
-
-        {overlays.renderOverlays()}
-      </div>
+        </SystemSettingItem>
+      </SystemSettingStack>
     </ContentGuard>
   );
 }

@@ -1,16 +1,22 @@
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
-import { SettingActionItem } from "@arclayer/ui/setting-action-item";
-import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
-import { SettingPanel } from "@arclayer/ui/setting-panel";
+
+import { Button } from "@arclayer/ui/button";
+import { Checkbox } from "@arclayer/ui/checkbox";
+import { Switch } from "@arclayer/ui/switch";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
+import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { notifySuccessText } from "@/lib/notifications";
-import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
+import {
+  SystemSettingFooterActions,
+  SystemSettingInlineNote,
+  SystemSettingItem,
+  SystemSettingRow,
+  SystemSettingStack,
+} from "@/pages/system/components/system-setting-item";
 import {
   getSystemSettingsSection,
   readBooleanValue,
@@ -19,14 +25,24 @@ import {
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
 } from "@/pages/system/hooks/use-system-core-settings";
-import { OverlayBooleanField, joinSummaryParts } from "@/pages/system/system-settings-form-utils";
 
 type NotificationsFormValues = {
   mailEnabledTemplates: string[];
   notificationInviteEnabled: boolean;
 };
 
-type NotificationsOverlayKey = "email" | "inApp";
+const TEMPLATE_OPTIONS = [
+  {
+    key: "registration_prompt",
+    titleKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE",
+    descriptionKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC",
+  },
+  {
+    key: "welcome_email",
+    titleKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE",
+    descriptionKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC",
+  },
+] as const;
 
 function buildInitialValues(
   input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
@@ -41,9 +57,14 @@ function buildInitialValues(
   };
 }
 
+function templateListChanged(left: readonly string[], right: readonly string[]): boolean {
+  return left.slice().sort().join("|") !== right.slice().sort().join("|");
+}
+
 export function SystemSettingsNotificationsPage() {
   const { t } = useTranslation(["settings"]);
   const { savingKey, withSavingKey } = useSavingKey();
+  const { openSettings } = useSettingsScreen();
   const coreSettingsQuery = useSystemCoreSettings();
   const patchMutation = usePatchSystemCoreSettings();
 
@@ -56,6 +77,12 @@ export function SystemSettingsNotificationsPage() {
     defaultValues: initialValues,
     mode: "onSubmit",
   });
+  const values = form.watch();
+  const inviteDirty = values.notificationInviteEnabled !== initialValues.notificationInviteEnabled;
+  const templatesDirty = templateListChanged(
+    values.mailEnabledTemplates,
+    initialValues.mailEnabledTemplates,
+  );
 
   useEffect(() => {
     if (!coreSettingsQuery.coreSettings) return;
@@ -72,8 +99,8 @@ export function SystemSettingsNotificationsPage() {
     notifySuccessText(t("settings:SETTINGS_SAVED"));
   };
 
-  const saveEmailDelivery = () =>
-    withSavingKey("notifications.email", async () => {
+  const saveEmailTemplates = () =>
+    withSavingKey("notifications.emailTemplates", async () => {
       const nextTemplates = Array.from(new Set(form.getValues("mailEnabledTemplates") || []));
       await persistPatch(
         {
@@ -90,8 +117,8 @@ export function SystemSettingsNotificationsPage() {
       );
     });
 
-  const saveInAppDelivery = () =>
-    withSavingKey("notifications.inApp", async () => {
+  const saveInvitePolicy = () =>
+    withSavingKey("notifications.invite", async () => {
       const inviteEnabled = Boolean(form.getValues("notificationInviteEnabled"));
       await persistPatch(
         {
@@ -106,153 +133,115 @@ export function SystemSettingsNotificationsPage() {
       );
     });
 
-  const overlayConfigs = useMemo<readonly SettingOverlayConfig<NotificationsOverlayKey>[]>(() => {
-    return [
-      {
-        key: "email",
-        type: "dialog",
-        title: t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_TITLE"),
-        description: t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "notifications.email"}
-            disabled={patchMutation.isPending}
-            onSave={saveEmailDelivery}
-          />
-        ),
-        content: () => (
-          <SettingDialogFields>
-            <OverlayBooleanField
-              variant="checkbox"
-              label={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
-              description={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
-              checked={Boolean(form.watch("mailEnabledTemplates")?.includes("registration_prompt"))}
-              onCheckedChange={(checked) => {
-                const current = form.getValues("mailEnabledTemplates") || [];
-                const next = checked
-                  ? [...current, "registration_prompt"]
-                  : current.filter((value) => value !== "registration_prompt");
-                form.setValue("mailEnabledTemplates", Array.from(new Set(next)), {
-                  shouldDirty: true,
-                });
-              }}
-              stateLabel={t(
-                form.watch("mailEnabledTemplates")?.includes("registration_prompt")
-                  ? "settings:SETTINGS_ENABLED"
-                  : "settings:SETTINGS_DISABLED",
-              )}
-            />
-            <OverlayBooleanField
-              variant="checkbox"
-              label={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
-              description={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
-              checked={Boolean(form.watch("mailEnabledTemplates")?.includes("welcome_email"))}
-              onCheckedChange={(checked) => {
-                const current = form.getValues("mailEnabledTemplates") || [];
-                const next = checked
-                  ? [...current, "welcome_email"]
-                  : current.filter((value) => value !== "welcome_email");
-                form.setValue("mailEnabledTemplates", Array.from(new Set(next)), {
-                  shouldDirty: true,
-                });
-              }}
-              stateLabel={t(
-                form.watch("mailEnabledTemplates")?.includes("welcome_email")
-                  ? "settings:SETTINGS_ENABLED"
-                  : "settings:SETTINGS_DISABLED",
-              )}
-            />
-          </SettingDialogFields>
-        ),
-      },
-      {
-        key: "inApp",
-        type: "dialog",
-        title: t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_TITLE"),
-        description: t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:CANCEL")}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "notifications.inApp"}
-            disabled={patchMutation.isPending}
-            onSave={saveInAppDelivery}
-          />
-        ),
-        content: () => (
-          <OverlayBooleanField
-            variant="checkbox"
-            label={t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
-            description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
-            checked={Boolean(form.watch("notificationInviteEnabled"))}
-            onCheckedChange={(checked) => {
-              form.setValue("notificationInviteEnabled", Boolean(checked), {
-                shouldDirty: true,
-              });
-            }}
-            stateLabel={t(
-              form.watch("notificationInviteEnabled")
-                ? "settings:SETTINGS_ENABLED"
-                : "settings:SETTINGS_DISABLED",
-            )}
-          />
-        ),
-      },
-    ] as const;
-  }, [form, patchMutation.isPending, saveEmailDelivery, saveInAppDelivery, savingKey, t]);
-
-  const overlays = useSettingOverlays(overlayConfigs);
-  const openOverlay = (key: NotificationsOverlayKey) => {
-    form.reset(initialValues);
-    overlays.open(key);
-  };
-  const mailEnabledTemplates = initialValues.mailEnabledTemplates;
-  const notificationInviteEnabled = initialValues.notificationInviteEnabled;
-  const emailSummary = joinSummaryParts(
-    [
-      mailEnabledTemplates.length > 0
-        ? t("settings:SETTINGS_MESSAGING_SELECTED_COUNT", { count: mailEnabledTemplates.length })
-        : null,
-    ],
-    t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_EMPTY"),
-  );
-
   return (
     <ContentGuard
       loading={coreSettingsQuery.isLoading && !coreSettingsQuery.coreSettings}
       error={coreSettingsQuery.error}
       onRetry={() => void coreSettingsQuery.refetch()}
     >
-      <SettingPanel
-        title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PAGE_TITLE")}
-        description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PAGE_DESC")}
-        bordered={false}
-      >
-        <SettingActionGroup>
-          <SettingActionItem
-            title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_TITLE")}
-            summary={emailSummary}
-            description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_DESC")}
-            onTrigger={() => openOverlay("email")}
-          />
-          <SettingActionItem
-            title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_TITLE")}
-            summary={
-              notificationInviteEnabled
-                ? t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")
-                : t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_EMPTY")
+      <SystemSettingStack>
+        <SystemSettingItem
+          id="notification-policy"
+          title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_TITLE")}
+          description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_DESC")}
+          footer={
+            <SystemSettingFooterActions
+              dirty={inviteDirty}
+              pending={savingKey === "notifications.invite" || patchMutation.isPending}
+              onReset={() =>
+                form.reset({
+                  ...form.getValues(),
+                  notificationInviteEnabled: initialValues.notificationInviteEnabled,
+                })
+              }
+              onSave={() => void saveInvitePolicy()}
+            />
+          }
+        >
+          <SystemSettingRow
+            title={t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
+            description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
+            control={
+              <Switch
+                checked={values.notificationInviteEnabled}
+                onCheckedChange={(checked) =>
+                  form.setValue("notificationInviteEnabled", checked, { shouldDirty: true })
+                }
+              />
             }
-            description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_DESC")}
-            onTrigger={() => openOverlay("inApp")}
           />
-        </SettingActionGroup>
-      </SettingPanel>
+        </SystemSettingItem>
 
-      {overlays.renderOverlays()}
+        <SystemSettingItem
+          id="notification-email-templates"
+          title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_TITLE")}
+          description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_DESC")}
+          footer={
+            <SystemSettingFooterActions
+              dirty={templatesDirty}
+              pending={savingKey === "notifications.emailTemplates" || patchMutation.isPending}
+              onReset={() =>
+                form.reset({
+                  ...form.getValues(),
+                  mailEnabledTemplates: initialValues.mailEnabledTemplates,
+                })
+              }
+              onSave={() => void saveEmailTemplates()}
+            />
+          }
+        >
+          <div className="grid gap-3 md:grid-cols-2">
+            {TEMPLATE_OPTIONS.map((template) => {
+              const checked = values.mailEnabledTemplates.includes(template.key);
+              return (
+                <SystemSettingRow
+                  key={template.key}
+                  title={t(template.titleKey)}
+                  description={t(template.descriptionKey)}
+                  className="justify-start"
+                  control={
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(next) => {
+                        const current = form.getValues("mailEnabledTemplates") || [];
+                        const nextTemplates = next
+                          ? [...current, template.key]
+                          : current.filter((item) => item !== template.key);
+                        form.setValue("mailEnabledTemplates", Array.from(new Set(nextTemplates)), {
+                          shouldDirty: true,
+                        });
+                      }}
+                    />
+                  }
+                />
+              );
+            })}
+          </div>
+        </SystemSettingItem>
+
+        <SystemSettingItem
+          id="personal-notifications"
+          title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_TITLE")}
+          description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_DESC")}
+          headerAction={
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                openSettings({
+                  screen: "personal.notifications",
+                })
+              }
+            >
+              {t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_ACTION")}
+            </Button>
+          }
+        >
+          <SystemSettingInlineNote>
+            {t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_NOTE")}
+          </SystemSettingInlineNote>
+        </SystemSettingItem>
+      </SystemSettingStack>
     </ContentGuard>
   );
 }

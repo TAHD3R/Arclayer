@@ -167,6 +167,7 @@ export function SettingsFrame(props: SettingsFrameProps) {
             action={props.action}
             pageFrame="full"
             spacingPreset="settings-dialog"
+            headerBehavior="sticky"
             className="min-h-full"
             contentClassName="min-h-full"
             contentContainerClassName="min-h-full"

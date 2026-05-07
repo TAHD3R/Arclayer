@@ -596,6 +596,12 @@ describe("AdminSiderNav collapsed groups", () => {
 
     await user.hover(screen.getByRole("button", { name: "Team" }));
     await waitFor(() => {
+      expect(document.querySelector('[data-slot="sidebar"]')).toHaveAttribute(
+        "data-hover-preview",
+        "true",
+      );
+    });
+    await waitFor(() => {
       expect(screen.queryByRole("menuitem", { name: "Members" })).not.toBeInTheDocument();
     });
 

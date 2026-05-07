@@ -7,13 +7,17 @@ import { SystemSettingsStoragePage } from "@/pages/system/storage/page";
 const {
   createStorageProfileMock,
   deleteStorageProfileMock,
+  getSystemCoreSettingsMock,
   listStorageProfilesMock,
   notifyErrorMock,
   notifySuccessTextMock,
+  patchSystemCoreSettingsMock,
   testStorageProfileMock,
   updateStorageProfileMock,
 } = vi.hoisted(() => ({
   listStorageProfilesMock: vi.fn(),
+  getSystemCoreSettingsMock: vi.fn(),
+  patchSystemCoreSettingsMock: vi.fn(),
   createStorageProfileMock: vi.fn(),
   updateStorageProfileMock: vi.fn(),
   testStorageProfileMock: vi.fn(),
@@ -36,6 +40,11 @@ vi.mock("@/api/storage-profiles", () => ({
   updateStorageProfile: (...args: unknown[]) => updateStorageProfileMock(...args),
   testStorageProfile: (...args: unknown[]) => testStorageProfileMock(...args),
   deleteStorageProfile: (...args: unknown[]) => deleteStorageProfileMock(...args),
+}));
+
+vi.mock("@/api/settings", () => ({
+  getSystemCoreSettings: () => getSystemCoreSettingsMock(),
+  patchSystemCoreSettings: (...args: unknown[]) => patchSystemCoreSettingsMock(...args),
 }));
 
 vi.mock("@/lib/notifications", () => ({
@@ -208,6 +217,14 @@ function buildProfile(overrides: Partial<Record<string, unknown>> = {}) {
 describe("SystemSettingsStoragePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getSystemCoreSettingsMock.mockResolvedValue({
+      value: { storage: {} },
+      secrets: {},
+    });
+    patchSystemCoreSettingsMock.mockResolvedValue({
+      value: { storage: {} },
+      secrets: {},
+    });
     createStorageProfileMock.mockResolvedValue(buildProfile());
     updateStorageProfileMock.mockResolvedValue(buildProfile());
     testStorageProfileMock.mockResolvedValue({
@@ -242,10 +259,12 @@ describe("SystemSettingsStoragePage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_DESC")).toBeInTheDocument();
-    expect(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")).toBeInTheDocument();
+      await screen.findAllByText("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE"),
+    ).not.toHaveLength(0);
+    expect(screen.getAllByText("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_DESC")).not.toHaveLength(0);
+    expect(screen.getAllByText("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")).not.toHaveLength(
+      0,
+    );
   });
 
   it("renders read-only state for the environment default profile", async () => {
@@ -271,7 +290,7 @@ describe("SystemSettingsStoragePage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("Environment Default")).toBeInTheDocument();
+    expect(await screen.findAllByText("Environment Default")).not.toHaveLength(0);
     expect(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_ROW_READ_ONLY")).toBeInTheDocument();
     expect(
       screen.getByText((content) =>
@@ -287,7 +306,7 @@ describe("SystemSettingsStoragePage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("Primary storage")).toBeInTheDocument();
+    expect(await screen.findAllByText("Primary storage")).not.toHaveLength(0);
     fireEvent.click(
       screen.getByRole("button", {
         name: "settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION",

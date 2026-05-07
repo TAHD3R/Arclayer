@@ -2,6 +2,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/system/")({
   beforeLoad: () => {
-    throw redirect({ to: "/system/access", replace: true });
+    throw redirect({ to: "/system/settings/access", replace: true });
   },
 });

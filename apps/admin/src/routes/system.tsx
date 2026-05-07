@@ -1,7 +1,7 @@
 import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 
 import { SystemDirectoryShell } from "@/pages/system/directory/system-directory-shell";
-import { SystemSettingsShell } from "@/pages/system/system-settings-shell";
+import { SystemSettingsLayout } from "@/pages/system/components/system-settings-layout";
 
 export const Route = createFileRoute("/system")({
   component: SystemRouteLayout,
@@ -9,11 +9,17 @@ export const Route = createFileRoute("/system")({
 
 function SystemRouteLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const Shell = pathname.startsWith("/system/tenants") ? SystemDirectoryShell : SystemSettingsShell;
+  const Shell = pathname.startsWith("/system/settings")
+    ? SystemSettingsLayout
+    : pathname.startsWith("/system/tenants")
+      ? SystemDirectoryShell
+      : undefined;
 
-  return (
+  return Shell ? (
     <Shell>
       <Outlet />
     </Shell>
+  ) : (
+    <Outlet />
   );
 }
