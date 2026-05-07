@@ -23,6 +23,7 @@ from src.modules.system.storage_profiles.schema import (
     StorageProfileUpdateRequest,
 )
 from src.platform.storage.factory import build_storage_provider
+from src.platform.storage.profile_schema import StorageProfileConfig
 from src.platform.storage.profiles import (
     ENV_DEFAULT_PROFILE_KEY,
     build_env_storage_profile_config,
@@ -44,7 +45,7 @@ class StorageProfilesService(BaseService):
             scope_id=SYSTEM_SCOPE_ID,
         ).order_by("-is_default", "display_name", "created_at")
         items = [self._to_out(record) for record in records]
-        if not items:
+        if not any(item.profile_key == ENV_DEFAULT_PROFILE_KEY for item in items):
             items.append(self._build_env_default_out())
         return StorageProfileListOut(items=items)
 
@@ -131,8 +132,34 @@ class StorageProfilesService(BaseService):
         if record is None:
             raise NotFound(message=_ts("STORAGE_PROFILE_NOT_FOUND"), error="STORAGE_PROFILE_NOT_FOUND")
 
+        return await self._test_record(record)
+
+    async def test_profile_by_key(self, *, profile_key: str) -> StorageProfileTestResultOut:
+        normalized_key = profile_key.strip().lower()
+        record = await StorageProfileRecord.get_or_none(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            profile_key=normalized_key,
+        )
+        if record is not None:
+            return await self._test_record(record)
+        if normalized_key != ENV_DEFAULT_PROFILE_KEY:
+            raise NotFound(message=_ts("STORAGE_PROFILE_NOT_FOUND"), error="STORAGE_PROFILE_NOT_FOUND")
+
+        config = build_env_storage_profile_config(self.settings)
+        return await self._test_config(config)
+
+    async def _test_record(self, record: StorageProfileRecord) -> StorageProfileTestResultOut:
+        result = await self._test_config(build_storage_profile_config_from_record(record, settings=self.settings))
+        record.last_test_status = result.status
+        record.last_test_message = result.message
+        record.last_tested_at = datetime.now(tz=UTC)
+        await record.save(update_fields=["last_test_status", "last_test_message", "last_tested_at", "updated_at"])
+        return result
+
+    async def _test_config(self, config: StorageProfileConfig) -> StorageProfileTestResultOut:
         try:
-            provider = build_storage_provider(build_storage_profile_config_from_record(record, settings=self.settings))
+            provider = build_storage_provider(config)
             if provider.capabilities.supports_bucket_create:
                 await provider.ensure_bucket()
             elif provider.provider == "local":
@@ -140,16 +167,8 @@ class StorageProfilesService(BaseService):
             else:
                 await provider.head_bucket()
         except Exception as exc:
-            record.last_test_status = "failed"
-            record.last_test_message = str(exc)
-            record.last_tested_at = datetime.now(tz=UTC)
-            await record.save(update_fields=["last_test_status", "last_test_message", "last_tested_at", "updated_at"])
             return StorageProfileTestResultOut(ok=False, status="failed", message=str(exc))
 
-        record.last_test_status = "passed"
-        record.last_test_message = "Connectivity check passed"
-        record.last_tested_at = datetime.now(tz=UTC)
-        await record.save(update_fields=["last_test_status", "last_test_message", "last_tested_at", "updated_at"])
         return StorageProfileTestResultOut(ok=True, status="passed", message="Connectivity check passed")
 
     async def delete_profile(self, *, profile_id: UUID, updated_by: UUID | None) -> StorageProfileDeleteOut:

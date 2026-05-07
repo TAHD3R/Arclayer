@@ -27,7 +27,7 @@ import {
 import type { DataTableColumnMenuLabels } from "./data-table-tools.types";
 
 function resolveHeaderContentClass(wrapHeaders: boolean): string {
-  return wrapHeaders ? "whitespace-normal break-words  py-2" : "truncate whitespace-nowrap";
+  return wrapHeaders ? "whitespace-normal break-words py-2" : "truncate whitespace-nowrap";
 }
 
 export type DataTableColumnHeaderFilterAction = {
@@ -93,7 +93,7 @@ export function DataTableColumnHeaderMenu<TData>(props: {
         </ButtonPrimitive>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" className="w-44">
+      <DropdownMenuContent align="start" className="w-44 text-footnote">
         {props.filterAction ? (
           <DropdownMenuItem
             className={props.filterAction.active ? "text-label-primary" : undefined}
@@ -148,7 +148,7 @@ export function DataTableColumnHeaderMenu<TData>(props: {
         {canHide ? (
           <DropdownMenuItem onClick={() => props.header.column.toggleVisibility(false)}>
             <EyeOff className="size-4" />
-            <span>{props.labels.hide}</span>
+            <span className="text-footnote">{props.labels.hide}</span>
           </DropdownMenuItem>
         ) : null}
 
@@ -158,7 +158,9 @@ export function DataTableColumnHeaderMenu<TData>(props: {
             onClick={() => props.onWrapContentChange(!props.wrapContent)}
           >
             {props.wrapContent ? <Rows3 className="size-4" /> : <WrapTextIcon className="size-4" />}
-            <span>{props.wrapContent ? props.labels.unwrapContent : props.labels.wrapContent}</span>
+            <span className="text-footnote">
+              {props.wrapContent ? props.labels.unwrapContent : props.labels.wrapContent}
+            </span>
           </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>

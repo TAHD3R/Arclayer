@@ -11,6 +11,7 @@ const {
   listStorageProfilesMock,
   notifyErrorMock,
   notifySuccessTextMock,
+  notifyWarningTextMock,
   patchSystemCoreSettingsMock,
   testStorageProfileMock,
   updateStorageProfileMock,
@@ -24,6 +25,7 @@ const {
   deleteStorageProfileMock: vi.fn(),
   notifyErrorMock: vi.fn(),
   notifySuccessTextMock: vi.fn(),
+  notifyWarningTextMock: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -50,6 +52,7 @@ vi.mock("@/api/settings", () => ({
 vi.mock("@/lib/notifications", () => ({
   notifyError: (...args: unknown[]) => notifyErrorMock(...args),
   notifySuccessText: (...args: unknown[]) => notifySuccessTextMock(...args),
+  notifyWarningText: (...args: unknown[]) => notifyWarningTextMock(...args),
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
@@ -132,22 +135,94 @@ vi.mock("@arclayer/ui/badge", () => ({
   Badge: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
 
+vi.mock("@/components/ui/tags", () => ({
+  BaseTag: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  lucideTagIcon: () => null,
+}));
+
 vi.mock("@arclayer/ui/button", () => ({
   Button: ({
     children,
     onClick,
     disabled,
     loading,
+    ...props
   }: {
     children?: React.ReactNode;
     onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
     disabled?: boolean;
     loading?: boolean;
-  }) => (
-    <button type="button" onClick={onClick} disabled={disabled}>
+  } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" onClick={onClick} disabled={disabled} {...props}>
       {loading ? "loading" : null}
       {children}
     </button>
+  ),
+}));
+
+vi.mock("@arclayer/ui/alert", () => ({
+  Alert: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  AlertTitle: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  AlertDescription: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock("@arclayer/ui/empty", () => ({
+  Empty: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  EmptyHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  EmptyTitle: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  EmptyDescription: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock("@arclayer/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuIconItem: ({
+    children,
+    disabled,
+    onSelect,
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    onSelect?: () => void;
+  }) => (
+    <button
+      type="button"
+      role="menuitem"
+      aria-disabled={disabled ? "true" : undefined}
+      disabled={disabled}
+      onClick={() => onSelect?.()}
+    >
+      {children}
+    </button>
+  ),
+  DropdownMenuItem: ({
+    children,
+    disabled,
+    onClick,
+    onSelect,
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    onClick?: () => void;
+    onSelect?: () => void;
+  }) => (
+    <button
+      type="button"
+      role="menuitem"
+      aria-disabled={disabled ? "true" : undefined}
+      disabled={disabled}
+      onClick={() => {
+        onClick?.();
+        onSelect?.();
+      }}
+    >
+      {children}
+    </button>
+  ),
+  DropdownMenuSeparator: () => <hr />,
+  DropdownMenuTrigger: ({ children }: { asChild?: boolean; children?: React.ReactNode }) => (
+    <>{children}</>
   ),
 }));
 
@@ -171,6 +246,154 @@ vi.mock("@arclayer/ui/setting-dialog", () => ({
       </div>
     ) : null,
 }));
+
+vi.mock("@arclayer/ui/setting-dialog-field", () => ({
+  SettingDialogFields: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  SettingDialogField: ({
+    title,
+    description,
+    children,
+  }: {
+    title: React.ReactNode;
+    description?: React.ReactNode;
+    children?: React.ReactNode;
+  }) => (
+    <div>
+      <div>{title}</div>
+      <div>{description}</div>
+      <div>{children}</div>
+    </div>
+  ),
+}));
+
+vi.mock("@arclayer/ui/drawer", () => ({
+  Drawer: ({
+    open,
+    children,
+  }: {
+    open: boolean;
+    onOpenChange?: (open: boolean) => void;
+    direction?: string;
+    children?: React.ReactNode;
+  }) => (open ? <div>{children}</div> : null),
+  DrawerContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DrawerHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DrawerTitle: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DrawerDescription: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DrawerBody: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DrawerFooter: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock("@arclayer/ui/input", () => ({
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+}));
+
+vi.mock("@arclayer/ui/number-input", () => ({
+  NumberInput: ({
+    value,
+    onValueChange,
+    ...props
+  }: {
+    value?: number;
+    onValueChange?: (value: number | null) => void;
+  } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) => (
+    <input
+      {...props}
+      type="number"
+      value={value ?? ""}
+      onChange={(event) => onValueChange?.(Number(event.currentTarget.value))}
+    />
+  ),
+}));
+
+vi.mock("@arclayer/ui/select", () => ({
+  Select: ({
+    value,
+    onValueChange,
+    children,
+  }: {
+    value?: string;
+    onValueChange?: (value: string) => void;
+    children?: React.ReactNode;
+  }) => (
+    <div data-value={value} data-testid="select-root">
+      <button type="button" onClick={() => onValueChange?.("aws_s3")}>
+        select-aws_s3
+      </button>
+      <button type="button" onClick={() => onValueChange?.("minio")}>
+        select-minio
+      </button>
+      {children}
+    </div>
+  ),
+  SelectTrigger: ({ children }: { children?: React.ReactNode }) => (
+    <button type="button">{children}</button>
+  ),
+  SelectValue: () => <span>select-value</span>,
+  SelectContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  SelectItem: ({ children, value }: { children?: React.ReactNode; value?: string }) => (
+    <div data-value={value}>{children}</div>
+  ),
+}));
+
+vi.mock("@arclayer/ui/switch", () => ({
+  Switch: ({
+    checked,
+    onCheckedChange,
+  }: {
+    checked?: boolean;
+    onCheckedChange?: (checked: boolean) => void;
+  }) => (
+    <button type="button" aria-pressed={checked} onClick={() => onCheckedChange?.(!checked)}>
+      switch
+    </button>
+  ),
+}));
+
+vi.mock("@arclayer/ui/data-table", async () => {
+  const actual =
+    await vi.importActual<typeof import("@arclayer/ui/data-table")>("@arclayer/ui/data-table");
+  return {
+    ...actual,
+    DataTablePresenter: ({
+      table,
+      columnMenuLabels,
+    }: {
+      table: ReturnType<typeof import("@tanstack/react-table").useReactTable>;
+      columnMenuLabels?: Record<string, string>;
+    }) => (
+      <table>
+        <thead>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <th key={header.id}>
+                  {typeof header.column.columnDef.header === "function"
+                    ? String(header.column.id)
+                    : header.column.columnDef.header}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {table.getRowModel().rows.map((row) => (
+            <tr key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <td key={cell.id}>
+                  {typeof cell.column.columnDef.cell === "function"
+                    ? cell.column.columnDef.cell(cell.getContext())
+                    : null}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        <caption>{columnMenuLabels?.wrapContent}</caption>
+      </table>
+    ),
+  };
+});
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -291,13 +514,72 @@ describe("SystemSettingsStoragePage", () => {
     renderPage();
 
     expect(await screen.findAllByText("Environment Default")).not.toHaveLength(0);
-    expect(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_ROW_READ_ONLY")).toBeInTheDocument();
     expect(
-      screen.getByText((content) =>
-        content.includes("settings:SETTINGS_SYSTEM_STORAGE_ENV_DEFAULT_DESC"),
-      ),
+      screen.queryByText("settings:SETTINGS_SYSTEM_STORAGE_BADGE_ENVIRONMENT"),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_SYSTEM_STORAGE_ACTIONS_LABEL",
+      }),
+    );
+    expect(
+      screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_EDIT_ACTION").closest('[role="menuitem"]'),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_DUPLICATE_ACTION"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("settings:SETTINGS_REMOVE")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("settings:SETTINGS_SYSTEM_STORAGE_DELETE_ACTION"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps environment default test success visible after testing", async () => {
+    listStorageProfilesMock.mockResolvedValue([
+      buildProfile({
+        id: "00000000-0000-0000-0000-000000000000",
+        profileKey: "env-default",
+        displayName: "Environment Default",
+        provider: "local",
+        lastTestStatus: null,
+        config: {
+          bucket: null,
+          publicBucket: null,
+          publicBaseUrl: null,
+          publicDeliveryMode: "auto",
+          endpointUrl: null,
+          region: null,
+          accessKeyId: null,
+          forcePathStyle: false,
+          presignExpiresSeconds: 900,
+        },
+      }),
+    ]);
+    testStorageProfileMock.mockResolvedValue({
+      ok: true,
+      status: "passed",
+      message: "Connectivity check passed",
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_IDLE"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_SYSTEM_STORAGE_ACTIONS_LABEL",
+      }),
+    );
+    fireEvent.click(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_PASSED"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_IDLE"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows pending state while testing a profile", async () => {
@@ -309,10 +591,141 @@ describe("SystemSettingsStoragePage", () => {
     expect(await screen.findAllByText("Primary storage")).not.toHaveLength(0);
     fireEvent.click(
       screen.getByRole("button", {
-        name: "settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION",
+        name: "settings:SETTINGS_SYSTEM_STORAGE_ACTIONS_LABEL",
       }),
     );
+    fireEvent.click(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION"));
 
     expect(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_STATUS_PENDING")).toBeInTheDocument();
+  });
+
+  it("shows failed connectivity in the status column without a separate connection column", async () => {
+    listStorageProfilesMock.mockResolvedValue([
+      buildProfile({
+        lastTestStatus: "failed",
+        lastTestMessage: "endpoint_url is required when provider=aws_s3",
+        lastTestedAt: "2026-04-25T10:30:00Z",
+      }),
+    ]);
+
+    renderPage();
+
+    expect(
+      await screen.findByText("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_FAILED"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("settings:SETTINGS_SYSTEM_STORAGE_TABLE_CONNECTION"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses warning semantics when an explicit connectivity test returns failed", async () => {
+    listStorageProfilesMock.mockResolvedValue([buildProfile()]);
+    testStorageProfileMock.mockResolvedValue({
+      ok: false,
+      status: "failed",
+      message: "endpoint_url is required when provider=aws_s3",
+    });
+
+    renderPage();
+
+    expect(await screen.findAllByText("Primary storage")).not.toHaveLength(0);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "settings:SETTINGS_SYSTEM_STORAGE_ACTIONS_LABEL",
+      }),
+    );
+    fireEvent.click(screen.getByText("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION"));
+
+    await waitFor(() => {
+      expect(notifyWarningTextMock).toHaveBeenCalledWith(
+        "endpoint_url is required when provider=aws_s3",
+      );
+    });
+    expect(notifySuccessTextMock).not.toHaveBeenCalledWith(
+      "endpoint_url is required when provider=aws_s3",
+    );
+  });
+
+  it("creates aws_s3 profiles with endpoint and tests the created profile once", async () => {
+    listStorageProfilesMock.mockResolvedValue([]);
+    createStorageProfileMock.mockResolvedValue(
+      buildProfile({
+        id: "created-profile",
+        profileKey: "rustfs-main",
+        displayName: "RustFS Main",
+        isDefault: false,
+      }),
+    );
+    testStorageProfileMock.mockResolvedValue({
+      ok: false,
+      status: "failed",
+      message: "connect ECONNREFUSED",
+    });
+
+    renderPage();
+
+    fireEvent.click(await screen.findByText("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION"));
+    fireEvent.change(
+      screen.getByPlaceholderText("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_PLACEHOLDER"),
+      {
+        target: { value: "rustfs-main" },
+      },
+    );
+    fireEvent.change(
+      screen.getByPlaceholderText("settings:SETTINGS_SYSTEM_STORAGE_DISPLAY_NAME_PLACEHOLDER"),
+      {
+        target: { value: "RustFS Main" },
+      },
+    );
+    fireEvent.click(screen.getAllByText("select-aws_s3")[0]);
+    fireEvent.change(
+      screen.getByPlaceholderText("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER"),
+      {
+        target: { value: "http://127.0.0.1:9000" },
+      },
+    );
+    fireEvent.change(screen.getByPlaceholderText("us-east-1"), {
+      target: { value: "us-east-1" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("assets-private"), {
+      target: { value: "assets-private" },
+    });
+    fireEvent.change(document.querySelector('input[name="accessKeyId"]') as HTMLInputElement, {
+      target: { value: "rustfs-access" },
+    });
+    fireEvent.change(
+      screen.getByPlaceholderText("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_PLACEHOLDER"),
+      {
+        target: { value: "rustfs-secret" },
+      },
+    );
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION" })[1],
+    );
+
+    await waitFor(() => {
+      expect(createStorageProfileMock).toHaveBeenCalled();
+    });
+    expect(createStorageProfileMock.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        profileKey: "rustfs-main",
+        provider: "aws_s3",
+        config: expect.objectContaining({
+          endpointUrl: "http://127.0.0.1:9000",
+          bucket: "assets-private",
+          accessKeyId: "rustfs-access",
+          secretAccessKey: "rustfs-secret",
+        }),
+      }),
+    );
+    await waitFor(() => {
+      expect(testStorageProfileMock).toHaveBeenCalled();
+    });
+    expect(testStorageProfileMock.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ profileKey: "rustfs-main" }),
+    );
+    expect(notifyWarningTextMock).toHaveBeenCalledWith(
+      "settings:SETTINGS_SYSTEM_STORAGE_CREATE_TEST_FAILED",
+    );
   });
 });

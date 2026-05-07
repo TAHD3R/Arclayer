@@ -70,6 +70,14 @@ export function notifyInfoText(text: string) {
   console.info(text);
 }
 
+export function notifyWarningText(text: string) {
+  message.warning({
+    title: i18n.t("TOAST_TITLE_WARNING", { ns: "common" }),
+    description: text,
+  });
+  console.warn(text);
+}
+
 export function notifySuccessText(text: string) {
   message.success({
     title: i18n.t("TOAST_TITLE_SUCCESS", { ns: "common" }),

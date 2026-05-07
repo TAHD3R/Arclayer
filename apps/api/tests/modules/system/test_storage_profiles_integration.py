@@ -58,6 +58,7 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         assert listed.status_code == 200
         items = listed.json()["data"]["items"]
         assert any(item["profileKey"] == "local-main" for item in items)
+        assert any(item["profileKey"] == "env-default" for item in items)
 
         patched = await client.patch(
             f"/api/v1/system/storage-profiles/{profile_id}",
@@ -79,6 +80,39 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         tested = await client.post(f"/api/v1/system/storage-profiles/{profile_id}/test")
         assert tested.status_code == 200
         assert tested.json()["data"]["ok"] is True
+
+        env_default_tested = await client.post("/api/v1/system/storage-profiles/by-key/env-default/test")
+        assert env_default_tested.status_code == 200
+        assert env_default_tested.json()["data"]["ok"] is True
+
+        invalid_id_tested = await client.post(
+            "/api/v1/system/storage-profiles/00000000-0000-0000-0000-000000000000/test"
+        )
+        assert invalid_id_tested.status_code == 400
+        assert invalid_id_tested.json()["error"] == "INVALID_STORAGE_PROFILE_ID"
+        assert "traceback" not in invalid_id_tested.text.lower()
+
+        s3_create = await client.post(
+            "/api/v1/system/storage-profiles",
+            json={
+                "profileKey": "rustfs-main",
+                "provider": "aws_s3",
+                "displayName": "RustFS Main",
+                "config": {
+                    "endpointUrl": "http://127.0.0.1:9000",
+                    "region": "us-east-1",
+                    "bucket": "assets-private",
+                    "publicDeliveryMode": "auto",
+                    "accessKeyId": "rustfs",
+                    "secretAccessKey": "rustfs-secret",
+                    "forcePathStyle": False,
+                },
+                "isActive": True,
+                "isDefault": False,
+            },
+        )
+        assert s3_create.status_code == 200
+        assert s3_create.json()["data"]["config"]["endpointUrl"] == "http://127.0.0.1:9000"
 
         blocked = await client.delete(f"/api/v1/system/storage-profiles/{profile_id}")
         assert blocked.status_code == 400

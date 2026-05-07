@@ -77,6 +77,7 @@ export function OverlayBooleanField(props: {
   message?: string | null;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
   variant?: "switch" | "checkbox";
   stateLabel?: ReactNode;
 }) {
@@ -86,10 +87,15 @@ export function OverlayBooleanField(props: {
     <OverlayField label={props.label} description={props.description} message={props.message}>
       <div className="flex w-full items-center gap-3">
         {variant === "switch" ? (
-          <Switch checked={props.checked} onCheckedChange={props.onCheckedChange} />
+          <Switch
+            checked={props.checked}
+            disabled={props.disabled}
+            onCheckedChange={props.onCheckedChange}
+          />
         ) : (
           <Checkbox
             checked={props.checked}
+            disabled={props.disabled}
             onCheckedChange={(checked) => props.onCheckedChange(Boolean(checked))}
           />
         )}

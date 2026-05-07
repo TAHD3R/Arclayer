@@ -1,6 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleAlert, PencilLine, PlugZap, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type ColumnDef, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+  CircleAlert,
+  CopyPlus,
+  MoreHorizontal,
+  PencilLine,
+  PlugZap,
+  Plus,
+  RadioTower,
+  Trash2,
+} from "lucide-react";
+import { type ComponentProps, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
@@ -12,17 +22,23 @@ import {
   testStorageProfile,
   updateStorageProfile,
 } from "@/api/storage-profiles";
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { getFieldErrorMessage } from "@/lib/forms/rhf-form-helpers";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { notifyError, notifySuccessText, notifyWarningText } from "@/lib/notifications";
 import {
-  SystemSettingField,
   SystemSettingFooterActions,
   SystemSettingItem,
+  SystemSettingRow,
   SystemSettingStack,
 } from "@/pages/system/components/system-setting-item";
 import {
   getSystemSettingsSection,
+  SYSTEM_CORE_SETTINGS_QUERY_KEY,
   readNumberValue,
   readStringValue,
   usePatchSystemCoreSettings,
@@ -32,26 +48,37 @@ import {
   OverlayBooleanField,
   OverlayField,
   isValidHttpUrl,
-  joinSummaryParts,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
-import { Badge } from "@arclayer/ui/badge";
+import { BaseTag, lucideTagIcon } from "@/components/ui/tags";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
+import { DataTablePresenter } from "@arclayer/ui/data-table";
 import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@arclayer/ui/empty";
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@arclayer/ui/drawer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuIconItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
 import { Input } from "@arclayer/ui/input";
 import { NumberInput } from "@arclayer/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
-import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { Switch } from "@arclayer/ui/switch";
 import type {
   ObjectStorageProviderKind,
   StorageProfileConfigPayloadInput,
@@ -64,6 +91,11 @@ type PendingAction =
   | { type: "test" | "delete"; profileKey: string }
   | null;
 type PublicDeliveryMode = "auto" | "direct" | "presign";
+type ProfileTestState = {
+  status: StorageProfileOut["lastTestStatus"];
+  message: string | null;
+  testedAt: string | null;
+};
 
 type StorageProfileFormValues = {
   profileKey: string;
@@ -79,7 +111,6 @@ type StorageProfileFormValues = {
   secretAccessKey: string;
   forcePathStyle: boolean;
   presignExpiresSeconds: number;
-  isActive: boolean;
   isDefault: boolean;
 };
 
@@ -106,6 +137,19 @@ type StorageProviderOption = {
   requiresEndpoint: boolean;
   supportsPublicBucket: boolean;
   supportsPathStyle: boolean;
+};
+
+type StorageProfileTableMeta = {
+  defaultProfileKey: string;
+  pendingAction: PendingAction;
+  pendingProfileKey: string | null;
+  testStateByProfileKey: Record<string, ProfileTestState>;
+  isTestingProfile: (profile: StorageProfileOut) => boolean;
+  onEditProfile: (profile: StorageProfileOut) => void;
+  onDuplicateProfile: (profile: StorageProfileOut) => void;
+  onTestProfile: (profile: StorageProfileOut) => void;
+  onDeleteProfile: (profile: StorageProfileOut) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
 };
 
 const STORAGE_PROFILE_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{1,127}$/;
@@ -142,7 +186,7 @@ const PROVIDER_OPTIONS: readonly StorageProviderOption[] = [
     defaultRegion: "us-east-1",
     defaultForcePathStyle: false,
     requiresRemoteConfig: true,
-    requiresEndpoint: false,
+    requiresEndpoint: true,
     supportsPublicBucket: true,
     supportsPathStyle: false,
   },
@@ -222,7 +266,6 @@ function createDefaultFormValues(
     secretAccessKey: "",
     forcePathStyle: option.defaultForcePathStyle,
     presignExpiresSeconds: 900,
-    isActive: true,
     isDefault: false,
   };
 }
@@ -246,7 +289,6 @@ function buildFormValues(profile: StorageProfileOut): StorageProfileFormValues {
     secretAccessKey: "",
     forcePathStyle: Boolean(profile.config.forcePathStyle),
     presignExpiresSeconds: profile.config.presignExpiresSeconds ?? 900,
-    isActive: profile.isActive,
     isDefault: profile.isDefault,
   };
 }
@@ -275,12 +317,16 @@ function buildStorageProfileConfigPayload(
   values: StorageProfileFormValues,
 ): StorageProfileConfigPayloadInput {
   const option = getProviderOption(values.provider);
+  const publicDeliveryMode = option.requiresRemoteConfig ? values.publicDeliveryMode : "auto";
+  const presignExpiresSeconds = option.requiresRemoteConfig ? values.presignExpiresSeconds : 900;
   return {
-    publicBaseUrl: normalizeOptionalString(values.publicBaseUrl),
-    publicDeliveryMode: values.publicDeliveryMode,
-    presignExpiresSeconds: values.presignExpiresSeconds,
+    publicBaseUrl: option.requiresRemoteConfig
+      ? normalizeOptionalString(values.publicBaseUrl)
+      : null,
+    publicDeliveryMode,
+    presignExpiresSeconds,
     forcePathStyle: option.supportsPathStyle ? values.forcePathStyle : false,
-    endpointUrl: option.requiresRemoteConfig ? normalizeOptionalString(values.endpointUrl) : null,
+    endpointUrl: option.requiresEndpoint ? normalizeOptionalString(values.endpointUrl) : null,
     region: option.requiresRemoteConfig ? normalizeOptionalString(values.region) : null,
     bucket: option.requiresRemoteConfig ? normalizeOptionalString(values.bucket) : null,
     publicBucket:
@@ -302,12 +348,6 @@ function formatProviderLabel(
   return t(getProviderOption(provider).labelKey);
 }
 
-function formatDeliveryLabel(mode: string | null | undefined, t: (key: string) => string): string {
-  if (mode === "direct") return t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_DIRECT");
-  if (mode === "presign") return t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_PRESIGN");
-  return t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_AUTO");
-}
-
 function formatDateTime(value: string | null | undefined): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -322,6 +362,31 @@ function formatDateTime(value: string | null | undefined): string | null {
   }
 }
 
+function formatProfileEndpoint(profile: StorageProfileOut, t: (key: string) => string): string {
+  if (profile.provider === "local") {
+    return t("settings:SETTINGS_SYSTEM_STORAGE_LOCATION_LOCAL");
+  }
+  return profile.config.endpointUrl || t("settings:SETTINGS_SYSTEM_STORAGE_SUMMARY_EMPTY");
+}
+
+function getTestStatusLabel(
+  status: StorageProfileOut["lastTestStatus"],
+  t: (key: string) => string,
+): string {
+  if (status === "passed") return t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_PASSED");
+  if (status === "failed") return t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_FAILED");
+  return t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_IDLE");
+}
+
+function getTestStatusTagColor(
+  status: StorageProfileOut["lastTestStatus"] | "pending",
+): ComponentProps<typeof BaseTag>["color"] {
+  if (status === "passed") return "green";
+  if (status === "failed") return "red";
+  if (status === "pending") return "blue";
+  return "default";
+}
+
 function stopEvent(event: { stopPropagation?: () => void }) {
   event.stopPropagation?.();
 }
@@ -331,42 +396,193 @@ function getPendingProfileKey(pendingAction: PendingAction): string | null {
   return pendingAction.profileKey;
 }
 
-function StorageMetric(props: { label: string; value: string | number | null | undefined }) {
+function getProfileTestState(
+  profile: StorageProfileOut,
+  meta: StorageProfileTableMeta,
+): ProfileTestState {
   return (
-    <div className="min-w-0 py-2">
-      <div className="text-caption text-label-secondary">{props.label}</div>
-      <div className="mt-1 truncate text-footnote font-medium text-label-primary">
-        {props.value || "-"}
-      </div>
-    </div>
+    meta.testStateByProfileKey[profile.profileKey] ?? {
+      status: profile.lastTestStatus,
+      message: profile.lastTestMessage ?? null,
+      testedAt: profile.lastTestedAt ?? null,
+    }
   );
 }
 
 function StorageLimitNumberField(props: {
   label: string;
+  description?: string;
   value: number;
   min: number;
   max?: number;
   onValueChange: (value: number) => void;
 }) {
   return (
-    <SystemSettingField label={props.label}>
-      <NumberInput
-        value={props.value}
-        min={props.min}
-        max={props.max}
-        onValueChange={(next) => props.onValueChange(next ?? props.min)}
-      />
-    </SystemSettingField>
+    <SystemSettingRow
+      title={props.label}
+      description={props.description}
+      control={
+        <NumberInput
+          className="w-40"
+          value={props.value}
+          min={props.min}
+          max={props.max}
+          onValueChange={(next) => props.onValueChange(next ?? props.min)}
+        />
+      }
+    />
   );
 }
 
-function FormField(props: { label: string; description?: string; children: React.ReactNode }) {
-  return (
-    <SystemSettingField label={props.label} description={props.description}>
-      {props.children}
-    </SystemSettingField>
-  );
+function buildStorageProfileColumns(meta: StorageProfileTableMeta): ColumnDef<StorageProfileOut>[] {
+  return [
+    {
+      id: "name",
+      size: 260,
+      minSize: 220,
+      header: meta.t("settings:SETTINGS_SYSTEM_STORAGE_TABLE_NAME"),
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-callout font-semibold text-label-primary">
+              {row.original.displayName}
+            </span>
+            {row.original.profileKey === meta.defaultProfileKey || row.original.isDefault ? (
+              <BaseTag color="blue" icon={lucideTagIcon(RadioTower)} textStyle="footnote">
+                {meta.t("settings:SETTINGS_SYSTEM_STORAGE_BADGE_CURRENT")}
+              </BaseTag>
+            ) : null}
+          </div>
+        </div>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_STORAGE_TABLE_NAME") },
+    },
+    {
+      id: "provider",
+      size: 150,
+      minSize: 100,
+      header: meta.t("settings:SETTINGS_STORAGE_PROVIDER_LABEL"),
+      cell: ({ row }) => (
+        <BaseTag color="default" textStyle="footnote">
+          {formatProviderLabel(row.original.provider, meta.t)}
+        </BaseTag>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_STORAGE_PROVIDER_LABEL") },
+    },
+    {
+      id: "endpoint",
+      size: 240,
+      minSize: 180,
+      header: meta.t("settings:SETTINGS_SYSTEM_STORAGE_ENDPOINT_SHORT"),
+      cell: ({ row }) => (
+        <span className="line-clamp-2">{formatProfileEndpoint(row.original, meta.t)}</span>
+      ),
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_STORAGE_ENDPOINT_SHORT") },
+    },
+    {
+      id: "status",
+      size: 210,
+      minSize: 170,
+      header: meta.t("settings:SETTINGS_SYSTEM_STORAGE_TABLE_STATUS"),
+      cell: ({ row }) => {
+        const profile = row.original;
+        const testState = getProfileTestState(profile, meta);
+        const pending =
+          meta.pendingProfileKey === profile.profileKey && meta.pendingAction?.type === "test";
+        const statusLabel = pending
+          ? meta.t("settings:SETTINGS_SYSTEM_STORAGE_STATUS_PENDING")
+          : getTestStatusLabel(testState.status, meta.t);
+        const checkedAt = formatDateTime(testState.testedAt);
+        const testStatus = pending ? "pending" : testState.status;
+        return (
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap gap-1">
+              <BaseTag color={getTestStatusTagColor(testStatus)} textStyle="footnote">
+                {statusLabel}
+              </BaseTag>
+              {!profile.isActive ? (
+                <BaseTag color="gold" textStyle="footnote">
+                  {meta.t("settings:SETTINGS_SYSTEM_STORAGE_BADGE_INACTIVE")}
+                </BaseTag>
+              ) : null}
+            </div>
+            {checkedAt ? (
+              <div className="mt-1 truncate text-footnote text-label-secondary">{checkedAt}</div>
+            ) : null}
+          </div>
+        );
+      },
+      meta: { title: meta.t("settings:SETTINGS_SYSTEM_STORAGE_TABLE_STATUS") },
+    },
+    {
+      id: "actions",
+      size: 48,
+      minSize: 48,
+      maxSize: 48,
+      header: "",
+      cell: ({ row }) => {
+        const profile = row.original;
+        const readOnly = isReadOnlyProfile(profile);
+        return (
+          <DataTableActionsCell>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={meta.t("settings:SETTINGS_SYSTEM_STORAGE_ACTIONS_LABEL")}
+                  disabled={Boolean(meta.pendingAction)}
+                  loading={meta.isTestingProfile(profile)}
+                  onClick={stopEvent}
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={stopEvent}>
+                <DropdownMenuGroup>
+                  <DropdownMenuIconItem
+                    icon={<PencilLine className="size-4" />}
+                    disabled={readOnly || Boolean(meta.pendingAction)}
+                    onSelect={() => meta.onEditProfile(profile)}
+                  >
+                    {meta.t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_ACTION")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuIconItem
+                    icon={<CopyPlus className="size-4" />}
+                    disabled={Boolean(meta.pendingAction)}
+                    onSelect={() => meta.onDuplicateProfile(profile)}
+                  >
+                    {meta.t("settings:SETTINGS_SYSTEM_STORAGE_DUPLICATE_ACTION")}
+                  </DropdownMenuIconItem>
+                  <DropdownMenuIconItem
+                    icon={<PlugZap className="size-4" />}
+                    disabled={Boolean(meta.pendingAction)}
+                    onSelect={() => meta.onTestProfile(profile)}
+                  >
+                    {meta.t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
+                  </DropdownMenuIconItem>
+                </DropdownMenuGroup>
+                {!readOnly ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuIconItem
+                      icon={<Trash2 className="size-4" />}
+                      variant="destructive"
+                      disabled={Boolean(meta.pendingAction)}
+                      onSelect={() => meta.onDeleteProfile(profile)}
+                    >
+                      {meta.t("settings:SETTINGS_SYSTEM_STORAGE_DELETE_ACTION")}
+                    </DropdownMenuIconItem>
+                  </>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </DataTableActionsCell>
+        );
+      },
+      meta: buildDataTableActionsColumnMeta("right", "right"),
+    },
+  ];
 }
 
 export function SystemSettingsStoragePage() {
@@ -377,6 +593,9 @@ export function SystemSettingsStoragePage() {
   const [editingProfile, setEditingProfile] = useState<StorageProfileOut | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StorageProfileOut | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [testStateByProfileKey, setTestStateByProfileKey] = useState<
+    Record<string, ProfileTestState>
+  >({});
   const coreSettingsQuery = useSystemCoreSettings();
   const patchCoreSettings = usePatchSystemCoreSettings();
 
@@ -429,7 +648,7 @@ export function SystemSettingsStoragePage() {
     null;
   const selectedProvider = form.watch("provider");
   const selectedProviderOption = getProviderOption(selectedProvider);
-  const isCreateDialogOpen = dialogMode !== null;
+  const isProfileDrawerOpen = dialogMode !== null;
   const isEditing = dialogMode === "edit" && editingProfile !== null;
   const formHasSecret = Boolean(editingProfile?.secrets?.secretAccessKey);
   const formBusy = createMutation.isPending || updateMutation.isPending;
@@ -446,7 +665,47 @@ export function SystemSettingsStoragePage() {
     limitsForm.reset(limitsInitialValues);
   }, [coreSettingsQuery.coreSettings, limitsForm, limitsInitialValues]);
 
-  const closeDialog = () => {
+  useEffect(() => {
+    if (!profilesQuery.data) return;
+    setTestStateByProfileKey((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const profile of profiles) {
+        if (!profile.lastTestStatus) continue;
+        const currentState = current[profile.profileKey];
+        if (
+          currentState?.status === profile.lastTestStatus &&
+          currentState.message === (profile.lastTestMessage ?? null) &&
+          currentState.testedAt === (profile.lastTestedAt ?? null)
+        ) {
+          continue;
+        }
+        next[profile.profileKey] = {
+          status: profile.lastTestStatus,
+          message: profile.lastTestMessage ?? null,
+          testedAt: profile.lastTestedAt ?? null,
+        };
+        changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [profiles, profilesQuery.data]);
+
+  const rememberProfileTestState = (
+    profileKey: string,
+    result: { status: StorageProfileOut["lastTestStatus"]; message: string | null },
+  ) => {
+    setTestStateByProfileKey((current) => ({
+      ...current,
+      [profileKey]: {
+        status: result.status,
+        message: result.message,
+        testedAt: new Date().toISOString(),
+      },
+    }));
+  };
+
+  const closeProfileDrawer = () => {
     if (formBusy) return;
     setDialogMode(null);
     setEditingProfile(null);
@@ -454,22 +713,41 @@ export function SystemSettingsStoragePage() {
   };
 
   const invalidateProfiles = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: SYSTEM_STORAGE_PROFILES_QUERY_KEY,
-    });
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: SYSTEM_STORAGE_PROFILES_QUERY_KEY,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: SYSTEM_CORE_SETTINGS_QUERY_KEY,
+      }),
+    ]);
   };
 
-  const openCreateDialog = () => {
+  const openCreateDrawer = () => {
     setDialogMode("create");
     setEditingProfile(null);
     form.reset(createDefaultFormValues());
   };
 
-  const openEditDialog = (profile: StorageProfileOut) => {
-    if (isReadOnlyProfile(profile)) return;
+  const openEditDrawer = (profile: StorageProfileOut) => {
     setDialogMode("edit");
     setEditingProfile(profile);
     form.reset(buildFormValues(profile));
+  };
+
+  const openDuplicateDrawer = (profile: StorageProfileOut) => {
+    const values = buildFormValues(profile);
+    setDialogMode("create");
+    setEditingProfile(null);
+    form.reset({
+      ...values,
+      profileKey: "",
+      displayName: t("settings:SETTINGS_SYSTEM_STORAGE_DUPLICATE_NAME", {
+        name: profile.displayName,
+      }),
+      secretAccessKey: "",
+      isDefault: false,
+    });
   };
 
   const applyCreateProviderPreset = (provider: ObjectStorageProviderKind) => {
@@ -541,9 +819,10 @@ export function SystemSettingsStoragePage() {
     }
 
     if (
-      !Number.isFinite(values.presignExpiresSeconds) ||
-      values.presignExpiresSeconds < 60 ||
-      values.presignExpiresSeconds > 24 * 3600
+      option.requiresRemoteConfig &&
+      (!Number.isFinite(values.presignExpiresSeconds) ||
+        values.presignExpiresSeconds < 60 ||
+        values.presignExpiresSeconds > 24 * 3600)
     ) {
       setError("presignExpiresSeconds", t("settings:SETTINGS_VALIDATION_REQUIRED"));
     }
@@ -569,6 +848,7 @@ export function SystemSettingsStoragePage() {
   const handleSaveProfile = async () => {
     const nextValues = validateProfileForm();
     const config = buildStorageProfileConfigPayload(nextValues);
+    let createdProfile: StorageProfileOut | null = null;
 
     setPendingAction(isEditing ? { type: "update" } : { type: "create" });
     try {
@@ -578,23 +858,23 @@ export function SystemSettingsStoragePage() {
           payload: {
             displayName: nextValues.displayName,
             config,
-            isActive: nextValues.isActive,
+            isActive: true,
             isDefault: nextValues.isDefault,
           },
         });
       } else {
-        await createMutation.mutateAsync({
+        createdProfile = await createMutation.mutateAsync({
           profileKey: nextValues.profileKey,
           provider: nextValues.provider,
           displayName: nextValues.displayName,
           config,
-          isActive: nextValues.isActive,
+          isActive: true,
           isDefault: nextValues.isDefault,
         });
       }
       await invalidateProfiles();
       notifySuccessText(t("settings:SETTINGS_SAVED"));
-      closeDialog();
+      closeProfileDrawer();
     } catch (error) {
       if ((error as Error).message !== "FORM_VALIDATION_FAILED") {
         notifyError(error);
@@ -603,14 +883,45 @@ export function SystemSettingsStoragePage() {
     } finally {
       setPendingAction(null);
     }
+
+    if (!createdProfile) return;
+
+    setPendingAction({ type: "test", profileKey: createdProfile.profileKey });
+    try {
+      const testResult = await testMutation.mutateAsync(createdProfile);
+      rememberProfileTestState(createdProfile.profileKey, {
+        status: testResult.status,
+        message: testResult.message,
+      });
+      await invalidateProfiles();
+      if (!testResult.ok) {
+        notifyWarningText(
+          t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_TEST_FAILED", {
+            message: testResult.message,
+          }),
+        );
+      }
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   const handleTestProfile = async (profile: StorageProfileOut) => {
     setPendingAction({ type: "test", profileKey: profile.profileKey });
     try {
-      const result = await testMutation.mutateAsync(profile.id);
+      const result = await testMutation.mutateAsync(profile);
+      rememberProfileTestState(profile.profileKey, {
+        status: result.status,
+        message: result.message,
+      });
       await invalidateProfiles();
-      notifySuccessText(result.message);
+      if (result.ok) {
+        notifySuccessText(result.message);
+      } else {
+        notifyWarningText(result.message);
+      }
     } catch (error) {
       notifyError(error);
     } finally {
@@ -668,6 +979,45 @@ export function SystemSettingsStoragePage() {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
     });
 
+  const profileColumns = useMemo(
+    () =>
+      buildStorageProfileColumns({
+        defaultProfileKey: limitValues.defaultProfileKey || defaultProfile?.profileKey || "",
+        pendingAction,
+        pendingProfileKey,
+        testStateByProfileKey,
+        isTestingProfile: (profile) =>
+          testMutation.isPending && pendingProfileKey === profile.profileKey,
+        onEditProfile: openEditDrawer,
+        onDuplicateProfile: openDuplicateDrawer,
+        onTestProfile: (profile) => void handleTestProfile(profile),
+        onDeleteProfile: setDeleteTarget,
+        t,
+      }),
+    [
+      defaultProfile?.profileKey,
+      limitValues.defaultProfileKey,
+      pendingAction,
+      pendingProfileKey,
+      t,
+      testStateByProfileKey,
+      testMutation.isPending,
+    ],
+  );
+  const profileTable = useReactTable({
+    data: profiles,
+    columns: profileColumns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    enableColumnPinning: true,
+    state: {
+      columnPinning: {
+        right: ["actions"],
+      },
+    },
+  });
+  const profileColumnMenuLabels = useMemo(() => buildDataTableToolsLabels(t), [t]);
+
   return (
     <>
       <ContentGuard
@@ -683,9 +1033,15 @@ export function SystemSettingsStoragePage() {
       >
         <SystemSettingStack>
           <SystemSettingItem
-            id="default-profile"
-            title={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_LABEL")}
-            description={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_DESC")}
+            id="profiles"
+            title={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILES_TITLE")}
+            description={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILES_DESC")}
+            headerAction={
+              <Button onClick={openCreateDrawer} disabled={Boolean(pendingAction)}>
+                <Plus className="size-4" />
+                {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
+              </Button>
+            }
             footer={
               <SystemSettingFooterActions
                 dirty={defaultProfileDirty}
@@ -700,96 +1056,6 @@ export function SystemSettingsStoragePage() {
               />
             }
           >
-            <div className="grid gap-3">
-              <FormField label={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_LABEL")}>
-                <Select
-                  value={limitValues.defaultProfileKey || defaultProfile?.profileKey || ""}
-                  onValueChange={(next) =>
-                    limitsForm.setValue("defaultProfileKey", next, { shouldDirty: true })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent position="popper" align="start">
-                    {profiles.map((profile) => (
-                      <SelectItem key={profile.id} value={profile.profileKey}>
-                        {profile.displayName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-              {defaultProfile ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <StorageMetric
-                    label={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_LABEL")}
-                    value={defaultProfile.profileKey}
-                  />
-                  <StorageMetric
-                    label={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
-                    value={formatProviderLabel(defaultProfile.provider, t)}
-                  />
-                  <StorageMetric
-                    label={t("settings:SETTINGS_SYSTEM_STORAGE_LOCATION_LABEL")}
-                    value={joinSummaryParts(
-                      [
-                        defaultProfile.config.bucket,
-                        defaultProfile.config.publicBucket,
-                        defaultProfile.config.publicBaseUrl,
-                      ],
-                      t("settings:SETTINGS_SYSTEM_STORAGE_SUMMARY_EMPTY"),
-                    )}
-                  />
-                  <StorageMetric
-                    label={t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
-                    value={
-                      defaultProfile.lastTestStatus
-                        ? joinSummaryParts([
-                            defaultProfile.lastTestStatus === "passed"
-                              ? t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_PASSED")
-                              : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_FAILED"),
-                            formatDateTime(defaultProfile.lastTestedAt),
-                          ])
-                        : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_IDLE")
-                    }
-                  />
-                </div>
-              ) : (
-                <Empty className="border border-dashed border-border/70 p-6 md:p-8">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <CircleAlert className="size-5" />
-                    </EmptyMedia>
-                    <EmptyTitle className="text-title3">
-                      {t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE")}
-                    </EmptyTitle>
-                    <EmptyDescription className="text-footnote">
-                      {t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_DESC")}
-                    </EmptyDescription>
-                  </EmptyHeader>
-                  <EmptyContent>
-                    <Button onClick={openCreateDialog} disabled={Boolean(pendingAction)}>
-                      <Plus className="size-4" />
-                      {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
-                    </Button>
-                  </EmptyContent>
-                </Empty>
-              )}
-            </div>
-          </SystemSettingItem>
-
-          <SystemSettingItem
-            id="profiles"
-            title={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILES_TITLE")}
-            description={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILES_DESC")}
-            headerAction={
-              <Button onClick={openCreateDialog} disabled={Boolean(pendingAction)}>
-                <Plus className="size-4" />
-                {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
-              </Button>
-            }
-          >
             {profiles.length === 0 ? (
               <Empty className="border border-dashed border-border/70 p-6 md:p-8">
                 <EmptyHeader>
@@ -802,168 +1068,47 @@ export function SystemSettingsStoragePage() {
                 </EmptyHeader>
               </Empty>
             ) : (
-              <div className="grid gap-3">
-                {profiles.map((profile) => {
-                  const providerLabel = formatProviderLabel(profile.provider, t);
-                  const isReadOnly = isReadOnlyProfile(profile);
-                  const isTesting =
-                    testMutation.isPending && pendingProfileKey === profile.profileKey;
-                  const isDeleting =
-                    deleteMutation.isPending && pendingProfileKey === profile.profileKey;
-                  const pending =
-                    pendingProfileKey === profile.profileKey &&
-                    (pendingAction?.type === "test" || pendingAction?.type === "delete");
-                  const summary = joinSummaryParts(
-                    [
-                      profile.config.bucket
-                        ? `${t("settings:SETTINGS_SYSTEM_STORAGE_BUCKET_SHORT")} ${profile.config.bucket}`
-                        : null,
-                      profile.config.publicBucket
-                        ? `${t("settings:SETTINGS_SYSTEM_STORAGE_PUBLIC_BUCKET_SHORT")} ${profile.config.publicBucket}`
-                        : null,
-                      profile.config.publicBaseUrl || null,
-                      formatDeliveryLabel(profile.config.publicDeliveryMode, t),
-                    ],
-                    t("settings:SETTINGS_SYSTEM_STORAGE_SUMMARY_EMPTY"),
-                  );
-                  const testDescription = profile.lastTestStatus
-                    ? joinSummaryParts([
-                        profile.lastTestStatus === "passed"
-                          ? t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_PASSED")
-                          : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_FAILED"),
-                        formatDateTime(profile.lastTestedAt),
-                      ])
-                    : t("settings:SETTINGS_SYSTEM_STORAGE_TEST_STATUS_IDLE");
-
-                  return (
-                    <div
-                      key={profile.id}
-                      className="grid gap-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto]"
+              <div className="grid min-w-0 max-w-full gap-4 overflow-hidden">
+                <DataTablePresenter
+                  table={profileTable}
+                  emptyText={t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE")}
+                  className="min-w-0 max-w-full overflow-hidden"
+                  surface="embedded"
+                  rowHeight="tall"
+                  wrapContent
+                  columnMenuLabels={profileColumnMenuLabels}
+                />
+                <SystemSettingRow
+                  className="max-w-full flex-wrap"
+                  title={t("settings:SETTINGS_SYSTEM_STORAGE_CURRENT_PROFILE_TITLE")}
+                  control={
+                    <Select
+                      value={limitValues.defaultProfileKey || defaultProfile?.profileKey || ""}
+                      onValueChange={(next) =>
+                        limitsForm.setValue("defaultProfileKey", next, { shouldDirty: true })
+                      }
                     >
-                      <div className="min-w-0 space-y-3">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="min-w-0 truncate text-headline font-semibold text-label-primary">
+                      <SelectTrigger className="w-72 max-w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent position="popper" align="end">
+                        {profiles.map((profile) => (
+                          <SelectItem key={profile.id} value={profile.profileKey}>
                             {profile.displayName}
-                          </span>
-                          <Badge variant="outline">{providerLabel}</Badge>
-                          {profile.isDefault ? (
-                            <Badge variant="secondary">
-                              {t("settings:SETTINGS_SYSTEM_STORAGE_BADGE_DEFAULT")}
-                            </Badge>
-                          ) : null}
-                          {!profile.isActive ? (
-                            <Badge variant="outline">
-                              {t("settings:SETTINGS_SYSTEM_STORAGE_BADGE_INACTIVE")}
-                            </Badge>
-                          ) : null}
-                          {isReadOnly ? (
-                            <Badge variant="outline">
-                              {t("settings:SETTINGS_SYSTEM_STORAGE_ROW_READ_ONLY")}
-                            </Badge>
-                          ) : null}
-                          {pending ? (
-                            <Badge variant="secondary">
-                              {t("settings:SETTINGS_SYSTEM_STORAGE_STATUS_PENDING")}
-                            </Badge>
-                          ) : null}
-                        </div>
-                        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-                          <StorageMetric
-                            label={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_LABEL")}
-                            value={profile.profileKey}
-                          />
-                          <StorageMetric
-                            label={t("settings:SETTINGS_SYSTEM_STORAGE_LOCATION_LABEL")}
-                            value={summary}
-                          />
-                          <StorageMetric
-                            label={t("settings:SETTINGS_SYSTEM_STORAGE_ENDPOINT_SHORT")}
-                            value={profile.config.endpointUrl}
-                          />
-                          <StorageMetric
-                            label={t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
-                            value={testDescription}
-                          />
-                        </div>
-                        <div className="grid gap-1 text-footnote text-label-secondary">
-                          <div>
-                            {profile.secrets?.secretAccessKey
-                              ? t("settings:SETTINGS_STORAGE_S3_SECRET_SET")
-                              : t("settings:SETTINGS_STORAGE_S3_SECRET_NOT_SET")}
-                          </div>
-                          {isReadOnly ? (
-                            <div>{t("settings:SETTINGS_SYSTEM_STORAGE_ENV_DEFAULT_DESC")}</div>
-                          ) : null}
-                          {profile.lastTestMessage ? (
-                            <div className="text-label-primary">{profile.lastTestMessage}</div>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2 lg:justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={Boolean(pendingAction) || isReadOnly}
-                          onClick={(event) => {
-                            stopEvent(event);
-                            openEditDialog(profile);
-                          }}
-                        >
-                          <PencilLine className="size-4" />
-                          {t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_ACTION")}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={Boolean(pendingAction)}
-                          loading={isTesting}
-                          onClick={(event) => {
-                            stopEvent(event);
-                            void handleTestProfile(profile);
-                          }}
-                        >
-                          <PlugZap className="size-4" />
-                          {t("settings:SETTINGS_SYSTEM_STORAGE_TEST_ACTION")}
-                        </Button>
-                        {!isReadOnly ? (
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            aria-label={t("settings:SETTINGS_REMOVE")}
-                            disabled={Boolean(pendingAction)}
-                            loading={isDeleting}
-                            onClick={(event) => {
-                              stopEvent(event);
-                              setDeleteTarget(profile);
-                            }}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  }
+                />
               </div>
             )}
           </SystemSettingItem>
 
           <SystemSettingItem
-            id="create-profile"
-            title={t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
-            description={t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_DESC")}
-            headerAction={
-              <Button onClick={openCreateDialog} disabled={Boolean(pendingAction)}>
-                <Plus className="size-4" />
-                {t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
-              </Button>
-            }
-          />
-
-          <SystemSettingItem
             id="upload-limits"
-            title={t("settings:SETTINGS_SYSTEM_STORAGE_UPLOAD_LIMITS_TITLE")}
-            description={t("settings:SETTINGS_SYSTEM_STORAGE_UPLOAD_LIMITS_DESC")}
+            title={t("settings:SETTINGS_SYSTEM_STORAGE_UPLOAD_POLICY_TITLE")}
+            description={t("settings:SETTINGS_SYSTEM_STORAGE_UPLOAD_POLICY_DESC")}
             footer={
               <SystemSettingFooterActions
                 dirty={limitsDirty}
@@ -973,9 +1118,10 @@ export function SystemSettingsStoragePage() {
               />
             }
           >
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2">
               <StorageLimitNumberField
                 label={t("settings:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
+                description={t("settings:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_DESC")}
                 value={limitValues.uploadChunkSizeMb}
                 min={1}
                 onValueChange={(value) =>
@@ -984,6 +1130,7 @@ export function SystemSettingsStoragePage() {
               />
               <StorageLimitNumberField
                 label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
+                description={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_DESC")}
                 value={limitValues.uploadMaxFileSizeMb}
                 min={1}
                 onValueChange={(value) =>
@@ -992,6 +1139,7 @@ export function SystemSettingsStoragePage() {
               />
               <StorageLimitNumberField
                 label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_LABEL")}
+                description={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_DESC")}
                 value={limitValues.uploadMaxAvatarSizeMb}
                 min={1}
                 onValueChange={(value) =>
@@ -1000,6 +1148,7 @@ export function SystemSettingsStoragePage() {
               />
               <StorageLimitNumberField
                 label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_LABEL")}
+                description={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_DESC")}
                 value={limitValues.uploadMaxSiteLogoSizeMb}
                 min={1}
                 onValueChange={(value) =>
@@ -1008,6 +1157,7 @@ export function SystemSettingsStoragePage() {
               />
               <StorageLimitNumberField
                 label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_LABEL")}
+                description={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_DESC")}
                 value={limitValues.uploadMaxFaviconSizeMb}
                 min={1}
                 onValueChange={(value) =>
@@ -1016,6 +1166,7 @@ export function SystemSettingsStoragePage() {
               />
               <StorageLimitNumberField
                 label={t("settings:SETTINGS_STORAGE_UPLOAD_SESSION_TTL_SECONDS_LABEL")}
+                description={t("settings:SETTINGS_STORAGE_UPLOAD_SESSION_TTL_SECONDS_DESC")}
                 value={limitValues.uploadSessionTtlSeconds}
                 min={60}
                 onValueChange={(value) =>
@@ -1024,6 +1175,7 @@ export function SystemSettingsStoragePage() {
               />
               <StorageLimitNumberField
                 label={t("settings:SETTINGS_STORAGE_RECYCLE_BIN_RETENTION_DAYS_LABEL")}
+                description={t("settings:SETTINGS_STORAGE_RECYCLE_BIN_RETENTION_DAYS_DESC")}
                 value={limitValues.recycleBinRetentionDays}
                 min={0}
                 onValueChange={(value) =>
@@ -1035,115 +1187,41 @@ export function SystemSettingsStoragePage() {
         </SystemSettingStack>
       </ContentGuard>
 
-      <SettingDialog
-        open={isCreateDialogOpen}
+      <Drawer
+        open={isProfileDrawerOpen}
         onOpenChange={(open) => {
-          if (!open) closeDialog();
+          if (!open) closeProfileDrawer();
         }}
-        title={
-          isEditing
-            ? t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_DIALOG_TITLE")
-            : t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_DIALOG_TITLE")
-        }
-        description={
-          isEditing
-            ? t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_DIALOG_DESC")
-            : t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_DIALOG_DESC")
-        }
-        footer={
-          <SettingOverlayFooter
-            close={closeDialog}
-            backText={t("common:CANCEL")}
-            saveText={
-              isEditing
-                ? t("settings:SETTINGS_SAVE")
-                : t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")
-            }
-            saveLoading={formBusy}
-            disabled={formBusy}
-            onSave={handleSaveProfile}
-          />
-        }
+        direction="right"
       >
-        <SettingDialogFields>
-          <Controller
-            control={form.control}
-            name="profileKey"
-            render={({ field }) => (
-              <OverlayField
-                label={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_LABEL")}
-                description={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_DESC")}
-                message={getFieldErrorMessage(form, "profileKey")}
-              >
-                <Input
-                  {...field}
-                  disabled={isEditing}
-                  placeholder={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_PLACEHOLDER")}
-                />
-              </OverlayField>
-            )}
-          />
-
-          <Controller
-            control={form.control}
-            name="displayName"
-            render={({ field }) => (
-              <OverlayField
-                label={t("settings:SETTINGS_SYSTEM_STORAGE_DISPLAY_NAME_LABEL")}
-                message={getFieldErrorMessage(form, "displayName")}
-              >
-                <Input
-                  {...field}
-                  placeholder={t("settings:SETTINGS_SYSTEM_STORAGE_DISPLAY_NAME_PLACEHOLDER")}
-                />
-              </OverlayField>
-            )}
-          />
-
-          <Controller
-            control={form.control}
-            name="provider"
-            render={({ field }) => (
-              <OverlayField
-                label={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
-                description={t(getProviderOption(field.value).descriptionKey)}
-              >
-                <Select
-                  value={field.value}
-                  onValueChange={(next) => {
-                    if (isEditing) return;
-                    applyCreateProviderPreset(next as ObjectStorageProviderKind);
-                  }}
-                  disabled={isEditing}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent position="popper" align="start">
-                    {PROVIDER_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {t(option.labelKey)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </OverlayField>
-            )}
-          />
-
-          {selectedProviderOption.requiresRemoteConfig ? (
-            <>
+        <DrawerContent className="w-full sm:max-w-xl">
+          <DrawerHeader className="min-w-0 rounded-none px-6 py-5 pr-14 text-left md:max-w-none">
+            <DrawerTitle className="text-title3 font-semibold text-label-primary">
+              {isEditing
+                ? t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_DIALOG_TITLE")
+                : t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_DIALOG_TITLE")}
+            </DrawerTitle>
+            <DrawerDescription className="mb-0 text-body text-label-secondary">
+              {isEditing
+                ? t("settings:SETTINGS_SYSTEM_STORAGE_EDIT_DIALOG_DESC")
+                : t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_DIALOG_DESC")}
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerBody className="min-h-0 flex-1 overflow-auto md:max-w-none">
+            <SettingDialogFields>
               <Controller
                 control={form.control}
-                name="endpointUrl"
+                name="profileKey"
                 render={({ field }) => (
                   <OverlayField
-                    label={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
-                    message={getFieldErrorMessage(form, "endpointUrl")}
+                    label={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_LABEL")}
+                    description={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_DESC")}
+                    message={getFieldErrorMessage(form, "profileKey")}
                   >
                     <Input
                       {...field}
-                      placeholder={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
+                      disabled={isEditing}
+                      placeholder={t("settings:SETTINGS_SYSTEM_STORAGE_PROFILE_KEY_PLACEHOLDER")}
                     />
                   </OverlayField>
                 )}
@@ -1151,193 +1229,270 @@ export function SystemSettingsStoragePage() {
 
               <Controller
                 control={form.control}
-                name="region"
+                name="displayName"
                 render={({ field }) => (
                   <OverlayField
-                    label={t("settings:SETTINGS_STORAGE_S3_REGION_LABEL")}
-                    message={getFieldErrorMessage(form, "region")}
+                    label={t("settings:SETTINGS_SYSTEM_STORAGE_DISPLAY_NAME_LABEL")}
+                    message={getFieldErrorMessage(form, "displayName")}
                   >
-                    <Input {...field} placeholder="us-east-1" />
+                    <Input
+                      {...field}
+                      placeholder={t("settings:SETTINGS_SYSTEM_STORAGE_DISPLAY_NAME_PLACEHOLDER")}
+                    />
                   </OverlayField>
                 )}
               />
 
               <Controller
                 control={form.control}
-                name="bucket"
+                name="provider"
                 render={({ field }) => (
                   <OverlayField
-                    label={t("settings:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
-                    message={getFieldErrorMessage(form, "bucket")}
+                    label={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
+                    description={t(getProviderOption(field.value).descriptionKey)}
                   >
-                    <Input {...field} placeholder="assets-private" />
-                  </OverlayField>
-                )}
-              />
-
-              {selectedProviderOption.supportsPublicBucket ? (
-                <Controller
-                  control={form.control}
-                  name="publicBucket"
-                  render={({ field }) => (
-                    <OverlayField
-                      label={t("settings:SETTINGS_STORAGE_S3_PUBLIC_BUCKET_LABEL")}
-                      description={t("settings:SETTINGS_STORAGE_S3_PUBLIC_BUCKET_HELP")}
-                      message={getFieldErrorMessage(form, "publicBucket")}
+                    <Select
+                      value={field.value}
+                      onValueChange={(next) => {
+                        if (isEditing) return;
+                        applyCreateProviderPreset(next as ObjectStorageProviderKind);
+                      }}
+                      disabled={isEditing}
                     >
-                      <Input {...field} placeholder="assets-public" />
-                    </OverlayField>
-                  )}
-                />
-              ) : null}
-
-              <Controller
-                control={form.control}
-                name="accessKeyId"
-                render={({ field }) => (
-                  <OverlayField
-                    label={t("settings:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
-                    message={getFieldErrorMessage(form, "accessKeyId")}
-                  >
-                    <Input {...field} autoComplete="off" />
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent position="popper" align="start">
+                        {PROVIDER_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {t(option.labelKey)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </OverlayField>
                 )}
               />
 
+              {selectedProviderOption.requiresRemoteConfig ? (
+                <>
+                  {selectedProviderOption.requiresEndpoint ? (
+                    <Controller
+                      control={form.control}
+                      name="endpointUrl"
+                      render={({ field }) => (
+                        <OverlayField
+                          label={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
+                          message={getFieldErrorMessage(form, "endpointUrl")}
+                        >
+                          <Input
+                            {...field}
+                            placeholder={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
+                          />
+                        </OverlayField>
+                      )}
+                    />
+                  ) : null}
+
+                  <Controller
+                    control={form.control}
+                    name="region"
+                    render={({ field }) => (
+                      <OverlayField
+                        label={t("settings:SETTINGS_STORAGE_S3_REGION_LABEL")}
+                        message={getFieldErrorMessage(form, "region")}
+                      >
+                        <Input {...field} placeholder="us-east-1" />
+                      </OverlayField>
+                    )}
+                  />
+
+                  <Controller
+                    control={form.control}
+                    name="bucket"
+                    render={({ field }) => (
+                      <OverlayField
+                        label={t("settings:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
+                        message={getFieldErrorMessage(form, "bucket")}
+                      >
+                        <Input {...field} placeholder="assets-private" />
+                      </OverlayField>
+                    )}
+                  />
+
+                  {selectedProviderOption.supportsPublicBucket ? (
+                    <Controller
+                      control={form.control}
+                      name="publicBucket"
+                      render={({ field }) => (
+                        <OverlayField
+                          label={t("settings:SETTINGS_STORAGE_S3_PUBLIC_BUCKET_LABEL")}
+                          description={t("settings:SETTINGS_STORAGE_S3_PUBLIC_BUCKET_HELP")}
+                          message={getFieldErrorMessage(form, "publicBucket")}
+                        >
+                          <Input {...field} placeholder="assets-public" />
+                        </OverlayField>
+                      )}
+                    />
+                  ) : null}
+
+                  <Controller
+                    control={form.control}
+                    name="accessKeyId"
+                    render={({ field }) => (
+                      <OverlayField
+                        label={t("settings:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
+                        message={getFieldErrorMessage(form, "accessKeyId")}
+                      >
+                        <Input {...field} autoComplete="off" />
+                      </OverlayField>
+                    )}
+                  />
+
+                  <Controller
+                    control={form.control}
+                    name="secretAccessKey"
+                    render={({ field }) => (
+                      <OverlayField
+                        label={t("settings:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
+                        description={
+                          formHasSecret
+                            ? t("settings:SETTINGS_SYSTEM_STORAGE_SECRET_SET_HINT")
+                            : t("settings:SETTINGS_SYSTEM_STORAGE_SECRET_EMPTY_HINT")
+                        }
+                        message={getFieldErrorMessage(form, "secretAccessKey")}
+                      >
+                        <Input
+                          {...field}
+                          type="password"
+                          autoComplete="new-password"
+                          placeholder={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_PLACEHOLDER")}
+                        />
+                      </OverlayField>
+                    )}
+                  />
+
+                  {selectedProviderOption.supportsPathStyle ? (
+                    <Controller
+                      control={form.control}
+                      name="forcePathStyle"
+                      render={({ field }) => (
+                        <OverlayBooleanField
+                          label={t("settings:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
+                          description={t("settings:SETTINGS_SYSTEM_STORAGE_FORCE_PATH_STYLE_HELP")}
+                          checked={Boolean(field.value)}
+                          onCheckedChange={field.onChange}
+                          variant="checkbox"
+                        />
+                      )}
+                    />
+                  ) : null}
+
+                  <Controller
+                    control={form.control}
+                    name="publicBaseUrl"
+                    render={({ field }) => (
+                      <OverlayField
+                        label={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
+                        description={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DESC")}
+                        message={getFieldErrorMessage(form, "publicBaseUrl")}
+                      >
+                        <Input
+                          {...field}
+                          placeholder={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_PLACEHOLDER")}
+                        />
+                      </OverlayField>
+                    )}
+                  />
+
+                  <Controller
+                    control={form.control}
+                    name="publicDeliveryMode"
+                    render={({ field }) => (
+                      <OverlayField
+                        label={t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_LABEL")}
+                      >
+                        <Select
+                          value={field.value}
+                          onValueChange={(next) => field.onChange(next as PublicDeliveryMode)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent position="popper" align="start">
+                            <SelectItem value="auto">
+                              {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_AUTO")}
+                            </SelectItem>
+                            <SelectItem value="direct">
+                              {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_DIRECT")}
+                            </SelectItem>
+                            <SelectItem value="presign">
+                              {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_PRESIGN")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </OverlayField>
+                    )}
+                  />
+
+                  <Controller
+                    control={form.control}
+                    name="presignExpiresSeconds"
+                    render={({ field }) => (
+                      <OverlayField
+                        label={t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
+                        description={t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_HELP")}
+                        message={getFieldErrorMessage(form, "presignExpiresSeconds")}
+                      >
+                        <NumberInput
+                          value={field.value}
+                          min={60}
+                          max={24 * 3600}
+                          onValueChange={(next) => field.onChange(next ?? 900)}
+                        />
+                      </OverlayField>
+                    )}
+                  />
+                </>
+              ) : null}
+
               <Controller
                 control={form.control}
-                name="secretAccessKey"
+                name="isDefault"
                 render={({ field }) => (
-                  <OverlayField
-                    label={t("settings:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
-                    description={
-                      formHasSecret
-                        ? t("settings:SETTINGS_SYSTEM_STORAGE_SECRET_SET_HINT")
-                        : t("settings:SETTINGS_SYSTEM_STORAGE_SECRET_EMPTY_HINT")
-                    }
-                    message={getFieldErrorMessage(form, "secretAccessKey")}
+                  <SettingDialogField
+                    title={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_LABEL")}
+                    description={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_DESC")}
+                    className="grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1"
+                    headerClassName="col-start-1"
+                    controlClassName="col-start-2 row-start-1 w-auto pt-0.5"
                   >
-                    <Input
-                      {...field}
-                      type="password"
-                      autoComplete="new-password"
-                      placeholder={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_PLACEHOLDER")}
-                    />
-                  </OverlayField>
+                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
+                  </SettingDialogField>
                 )}
               />
-
-              {selectedProviderOption.supportsPathStyle ? (
-                <Controller
-                  control={form.control}
-                  name="forcePathStyle"
-                  render={({ field }) => (
-                    <OverlayBooleanField
-                      label={t("settings:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
-                      description={t("settings:SETTINGS_SYSTEM_STORAGE_FORCE_PATH_STYLE_HELP")}
-                      checked={Boolean(field.value)}
-                      onCheckedChange={field.onChange}
-                      variant="checkbox"
-                    />
-                  )}
-                />
-              ) : null}
-            </>
-          ) : null}
-
-          <Controller
-            control={form.control}
-            name="publicBaseUrl"
-            render={({ field }) => (
-              <OverlayField
-                label={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
-                description={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DESC")}
-                message={getFieldErrorMessage(form, "publicBaseUrl")}
+            </SettingDialogFields>
+          </DrawerBody>
+          <DrawerFooter className="md:max-w-none">
+            <div className="flex w-full items-center justify-end gap-2">
+              <Button variant="outline" disabled={formBusy} onClick={closeProfileDrawer}>
+                {t("common:CANCEL")}
+              </Button>
+              <Button
+                loading={formBusy}
+                disabled={formBusy}
+                onClick={() => {
+                  void handleSaveProfile();
+                }}
               >
-                <Input
-                  {...field}
-                  placeholder={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_PLACEHOLDER")}
-                />
-              </OverlayField>
-            )}
-          />
-
-          <Controller
-            control={form.control}
-            name="publicDeliveryMode"
-            render={({ field }) => (
-              <OverlayField label={t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_LABEL")}>
-                <Select
-                  value={field.value}
-                  onValueChange={(next) => field.onChange(next as PublicDeliveryMode)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent position="popper" align="start">
-                    <SelectItem value="auto">
-                      {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_AUTO")}
-                    </SelectItem>
-                    <SelectItem value="direct">
-                      {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_DIRECT")}
-                    </SelectItem>
-                    <SelectItem value="presign">
-                      {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_PRESIGN")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </OverlayField>
-            )}
-          />
-
-          <Controller
-            control={form.control}
-            name="presignExpiresSeconds"
-            render={({ field }) => (
-              <OverlayField
-                label={t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
-                description={t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_HELP")}
-                message={getFieldErrorMessage(form, "presignExpiresSeconds")}
-              >
-                <NumberInput
-                  value={field.value}
-                  min={60}
-                  max={24 * 3600}
-                  onValueChange={(next) => field.onChange(next ?? 900)}
-                />
-              </OverlayField>
-            )}
-          />
-
-          <Controller
-            control={form.control}
-            name="isActive"
-            render={({ field }) => (
-              <OverlayBooleanField
-                label={t("settings:SETTINGS_SYSTEM_STORAGE_ACTIVE_LABEL")}
-                description={t("settings:SETTINGS_SYSTEM_STORAGE_ACTIVE_DESC")}
-                checked={Boolean(field.value)}
-                onCheckedChange={field.onChange}
-                variant="checkbox"
-              />
-            )}
-          />
-
-          <Controller
-            control={form.control}
-            name="isDefault"
-            render={({ field }) => (
-              <OverlayBooleanField
-                label={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_LABEL")}
-                description={t("settings:SETTINGS_SYSTEM_STORAGE_DEFAULT_DESC")}
-                checked={Boolean(field.value)}
-                onCheckedChange={field.onChange}
-                variant="checkbox"
-              />
-            )}
-          />
-        </SettingDialogFields>
-      </SettingDialog>
+                {isEditing
+                  ? t("settings:SETTINGS_SAVE")
+                  : t("settings:SETTINGS_SYSTEM_STORAGE_CREATE_ACTION")}
+              </Button>
+            </div>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       <SettingDialog
         open={deleteTarget !== null}
@@ -1372,15 +1527,11 @@ export function SystemSettingsStoragePage() {
           </div>
         }
       >
-        <div className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3">
-          <CircleAlert className="mt-0.5 size-4 shrink-0 text-label-secondary" />
-          <div className="grid gap-1 text-sm">
-            <div className="font-medium text-label-primary">{deleteTarget?.displayName ?? "-"}</div>
-            <div className="text-label-secondary">
-              {t("settings:SETTINGS_SYSTEM_STORAGE_DELETE_HINT")}
-            </div>
-          </div>
-        </div>
+        <Alert>
+          <CircleAlert />
+          <AlertTitle>{deleteTarget?.displayName ?? "-"}</AlertTitle>
+          <AlertDescription>{t("settings:SETTINGS_SYSTEM_STORAGE_DELETE_HINT")}</AlertDescription>
+        </Alert>
       </SettingDialog>
     </>
   );

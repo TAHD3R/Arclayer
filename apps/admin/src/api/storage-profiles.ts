@@ -31,9 +31,17 @@ export async function updateStorageProfile(
   );
 }
 
-export async function testStorageProfile(profileId: string): Promise<StorageProfileTestResultOut> {
+export async function testStorageProfile(profile: {
+  id: string;
+  profileKey: string;
+}): Promise<StorageProfileTestResultOut> {
+  if (profile.profileKey === "env-default") {
+    return api.post<StorageProfileTestResultOut>(
+      `/system/storage-profiles/by-key/${encodeURIComponent(profile.profileKey)}/test`,
+    );
+  }
   return api.post<StorageProfileTestResultOut>(
-    `/system/storage-profiles/${encodeURIComponent(profileId)}/test`,
+    `/system/storage-profiles/${encodeURIComponent(profile.id)}/test`,
   );
 }
 

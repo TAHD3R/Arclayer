@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from src.common.utils.public_ids import decode_public_id
+from src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
 from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.system.storage_profiles.schema import (
@@ -26,6 +27,13 @@ def get_storage_profiles_service(
     settings: Settings = Depends(get_settings),
 ) -> StorageProfilesService:
     return StorageProfilesService(settings)
+
+
+def decode_storage_profile_id(profile_id: str):
+    try:
+        return decode_public_id(profile_id)
+    except PublicIdDecodeError as exc:
+        raise BadRequest(message="BAD_REQUEST", error="INVALID_STORAGE_PROFILE_ID") from exc
 
 
 @router.get("", response_model=ResponseModel[StorageProfileListOut], summary="List storage profiles")
@@ -58,7 +66,7 @@ async def update_storage_profile(
 ) -> ResponseModel[StorageProfileOut]:
     return ApiResponse.success(
         data=await service.update_profile(
-            profile_id=decode_public_id(profile_id),
+            profile_id=decode_storage_profile_id(profile_id),
             payload=payload,
             updated_by=getattr(user, "id", None),
         )
@@ -75,7 +83,20 @@ async def test_storage_profile(
     service: StorageProfilesService = Depends(get_storage_profiles_service),
     _user=Depends(get_current_user),
 ) -> ResponseModel[StorageProfileTestResultOut]:
-    return ApiResponse.success(data=await service.test_profile(profile_id=decode_public_id(profile_id)))
+    return ApiResponse.success(data=await service.test_profile(profile_id=decode_storage_profile_id(profile_id)))
+
+
+@router.post(
+    "/by-key/{profile_key}/test",
+    response_model=ResponseModel[StorageProfileTestResultOut],
+    summary="Test storage profile by key",
+)
+async def test_storage_profile_by_key(
+    profile_key: str,
+    service: StorageProfilesService = Depends(get_storage_profiles_service),
+    _user=Depends(get_current_user),
+) -> ResponseModel[StorageProfileTestResultOut]:
+    return ApiResponse.success(data=await service.test_profile_by_key(profile_key=profile_key))
 
 
 @router.delete(
@@ -90,7 +111,7 @@ async def delete_storage_profile(
 ) -> ResponseModel[StorageProfileDeleteOut]:
     return ApiResponse.success(
         data=await service.delete_profile(
-            profile_id=decode_public_id(profile_id),
+            profile_id=decode_storage_profile_id(profile_id),
             updated_by=getattr(user, "id", None),
         )
     )
