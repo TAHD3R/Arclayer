@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react";
 
 import { cn } from "@arclayer/lib/utils";
 
+import { Badge } from "../badge";
 import { Button } from "../button";
 
 type ComboboxChipProps = ComboboxPrimitive.Chip.Props & {
@@ -32,8 +33,9 @@ function ComboboxChip({ className, children, showRemove = true, ...props }: Comb
   return (
     <ComboboxPrimitive.Chip
       data-slot="combobox-chip"
+      render={<Badge variant="secondary" />}
       className={cn(
-        "flex h-[calc(--spacing(5.5))] w-fit items-center justify-center gap-1 rounded-sm bg-muted px-1.5 text-caption font-medium whitespace-nowrap text-label-primary has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-50 has-data-[slot=combobox-chip-remove]:pr-0",
+        "h-[calc(--spacing(5.5))] rounded-sm pr-1 has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-50",
         className,
       )}
       {...props}
@@ -42,9 +44,9 @@ function ComboboxChip({ className, children, showRemove = true, ...props }: Comb
       {showRemove && (
         <ComboboxPrimitive.ChipRemove
           render={
-            <Button variant="ghost" className="size-6 rounded-[calc(var(--radius)-5px)] p-0" />
+            <Button variant="ghost" className="size-5 rounded-[calc(var(--radius)-5px)] p-0" />
           }
-          className="-ml-1 opacity-50 hover:opacity-100"
+          className="-mr-0.5 opacity-50 hover:opacity-100"
           data-slot="combobox-chip-remove"
         >
           <XIcon className="pointer-events-none" />
@@ -54,13 +56,28 @@ function ComboboxChip({ className, children, showRemove = true, ...props }: Comb
   );
 }
 
-function ComboboxChipsInput({ className, ...props }: ComboboxPrimitive.Input.Props) {
+type ComboboxChipsInputProps = ComboboxPrimitive.Input.Props & {
+  showClear?: boolean;
+};
+
+function ComboboxChipsInput({ className, showClear = false, ...props }: ComboboxChipsInputProps) {
   return (
-    <ComboboxPrimitive.Input
-      data-slot="combobox-chip-input"
-      className={cn("min-w-16 flex-1 outline-none", className)}
-      {...props}
-    />
+    <div className="flex min-w-16 flex-1 items-center gap-1">
+      <ComboboxPrimitive.Input
+        data-slot="combobox-chip-input"
+        className={cn("min-w-0 flex-1 outline-none", className)}
+        {...props}
+      />
+      {showClear ? (
+        <ComboboxPrimitive.Clear
+          disabled={props.disabled}
+          render={<Button variant="ghost" size="icon-xs" />}
+          className="shrink-0"
+        >
+          <XIcon className="pointer-events-none" />
+        </ComboboxPrimitive.Clear>
+      ) : null}
+    </div>
   );
 }
 

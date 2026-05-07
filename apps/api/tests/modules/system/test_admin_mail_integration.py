@@ -111,7 +111,16 @@ async def test_admin_mail_test_endpoint_respects_core_mail_enabled(
             assert resp.status_code == 200
             out = resp.json()["data"]
             assert out["ok"] is True
+            assert out["provider"] == "smtp"
             assert sent == ["to@example.com"]
+
+            providers_resp = await client.get("/api/v1/system/mail/providers")
+            assert providers_resp.status_code == 200
+            providers = providers_resp.json()["data"]
+            smtp = next(item for item in providers if item["providerId"] == "smtp")
+            assert smtp["lastTestStatus"] == "passed"
+            assert smtp["lastTestMessage"] is None
+            assert isinstance(smtp["lastTestedAt"], str)
 
 
 async def test_email_service_template_gating_works(

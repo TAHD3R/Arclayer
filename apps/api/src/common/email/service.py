@@ -7,7 +7,7 @@ from fastapi_mail import ConnectionConfig, FastMail
 from src.common.email.dynamic_service import DynamicMailService
 from src.common.email.errors import raise_mail_delivery_error
 from src.common.email.helpers import raise_if_fatal, valid_recipient
-from src.common.email.provider import EmailMessage
+from src.common.email.provider import EmailMessage, SendResult
 from src.common.email.providers.smtp import SmtpEmailProvider
 from src.common.utils.ids import uuid7
 from src.config import Settings
@@ -90,9 +90,9 @@ class EmailService:
             smtp_fast_mail_factory=self._get_fast_mail,
         )
 
-    async def _send(self, message: EmailMessage) -> None:
+    async def _send(self, message: EmailMessage) -> SendResult:
         service = await self._get_dynamic_mail_service()
-        await service.send(message)
+        return await service.send(message)
 
     async def send_reset_password(
         self,
@@ -897,7 +897,7 @@ class EmailService:
         *,
         recipient: str,
         locale: str | None = None,
-    ) -> None:
+    ) -> SendResult:
         if not await self._enabled():
             raise RuntimeError("MAIL_DISABLED")
         if not valid_recipient(recipient):
@@ -916,4 +916,4 @@ class EmailService:
             text_body=plain_body,
             template_id="test",
         )
-        await self._send(message)
+        return await self._send(message)

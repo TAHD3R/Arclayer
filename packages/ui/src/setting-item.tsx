@@ -48,7 +48,7 @@ const SettingItemDescription = React.forwardRef<
   <div
     ref={ref}
     data-slot="setting-item-description"
-    className={cn("text-callout text-label-secondary max-w-xl", className)}
+    className={cn("text-callout! text-label-secondary", className)}
     {...props}
   />
 ));

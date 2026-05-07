@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 from typing import cast
 
 from fastapi_mail import FastMail
@@ -27,6 +28,9 @@ class ProviderInfo(BaseModel):
     configured: bool
     available: bool
     error: str | None = None
+    last_test_status: str | None = None
+    last_test_message: str | None = None
+    last_tested_at: datetime | None = None
 
 
 class DynamicMailService:

@@ -33414,6 +33414,36 @@ export type InternalSystemCreateStorageProfileResponses = {
 
 export type InternalSystemCreateStorageProfileResponse = InternalSystemCreateStorageProfileResponses[keyof InternalSystemCreateStorageProfileResponses];
 
+export type InternalSystemTestStorageProfileByKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Profile Key
+         */
+        profile_key: string;
+    };
+    query?: never;
+    url: '/api/v1/system/storage-profiles/by-key/{profile_key}/test';
+};
+
+export type InternalSystemTestStorageProfileByKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InternalSystemTestStorageProfileByKeyError = InternalSystemTestStorageProfileByKeyErrors[keyof InternalSystemTestStorageProfileByKeyErrors];
+
+export type InternalSystemTestStorageProfileByKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelStorageProfileTestResultOut;
+};
+
+export type InternalSystemTestStorageProfileByKeyResponse = InternalSystemTestStorageProfileByKeyResponses[keyof InternalSystemTestStorageProfileByKeyResponses];
+
 export type InternalSystemDeleteStorageProfileData = {
     body?: never;
     path: {

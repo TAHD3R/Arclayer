@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Literal
+
 from pydantic import EmailStr, Field
 
 from src.common.schemas import BaseSchema
@@ -25,3 +28,9 @@ class MailProviderInfo(BaseSchema):
     configured: bool = Field(..., description="Whether required provider configuration is present.")
     available: bool = Field(..., description="Whether provider validation succeeds.")
     error: str | None = Field(default=None, description="Validation error when unavailable.")
+    last_test_status: Literal["passed", "failed"] | None = Field(
+        default=None,
+        description="Last provider send-test status.",
+    )
+    last_test_message: str | None = Field(default=None, description="Last provider send-test message.")
+    last_tested_at: datetime | None = Field(default=None, description="Last provider send-test timestamp.")

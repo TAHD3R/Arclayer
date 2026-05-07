@@ -32,6 +32,19 @@ class _ConfigOverrideEmailService(EmailService):
         return self._config
 
 
+class _NoopMailService(AdminMailService):
+    async def _remember_provider_test(
+        self,
+        *,
+        provider: str,
+        status: str,
+        message: str | None,
+    ) -> None:
+        _ = provider
+        _ = status
+        _ = message
+
+
 @pytest.mark.asyncio
 async def test_email_service_build_connection_config_uses_core_use_credentials_override() -> None:
     service = _ConfigOverrideEmailService(
@@ -118,7 +131,7 @@ async def test_admin_mail_service_maps_known_fastapi_mail_config_errors_to_bad_r
     message: str,
     expected_error: str,
 ) -> None:
-    service = AdminMailService(Settings())
+    service = _NoopMailService(Settings())
     service.email_service = cast(EmailService, _RaisingEmailService(ConnectionErrors(message)))
 
     with pytest.raises(BadRequest) as exc:
@@ -129,7 +142,7 @@ async def test_admin_mail_service_maps_known_fastapi_mail_config_errors_to_bad_r
 
 @pytest.mark.asyncio
 async def test_admin_mail_service_maps_unknown_fastapi_mail_errors_to_service_unavailable() -> None:
-    service = AdminMailService(Settings())
+    service = _NoopMailService(Settings())
     service.email_service = cast(
         EmailService,
         _RaisingEmailService(
