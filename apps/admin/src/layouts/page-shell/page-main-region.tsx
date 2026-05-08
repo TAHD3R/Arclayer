@@ -188,12 +188,13 @@ export function PageMainRegion(props: {
     ) : null;
   const afterFavorite = props.title && titleAdornment ? props.afterFavorite : null;
   const stickyHeader = props.headerBehavior === "sticky";
+  const shouldFillAvailableHeight = fillAvailableHeight && !stickyHeader;
 
   return (
     <div
       className={clsx(
         "flex min-h-0 min-w-0 w-full flex-col",
-        fillAvailableHeight && "flex-1",
+        shouldFillAvailableHeight && "flex-1",
         props.contentClassName,
       )}
       data-slot="page-main-region"
@@ -201,7 +202,7 @@ export function PageMainRegion(props: {
       <div
         className={clsx(
           "flex min-h-0 min-w-0 w-full flex-col",
-          fillAvailableHeight && "flex-1",
+          shouldFillAvailableHeight && "flex-1",
           props.contentContainerClassName,
         )}
         data-slot="page-main-container"
@@ -212,10 +213,11 @@ export function PageMainRegion(props: {
         props.extra ||
         paneToggles.length > 0 ? (
           <header
+            data-slot="page-main-header"
             className={clsx(
               "mb-4",
               stickyHeader &&
-                "sticky top-0 z-20 -mx-[var(--admin-route-gutter-x)] min-h-[var(--settings-page-sticky-header-height,6rem)] bg-background/95 px-[var(--admin-route-gutter-x)] py-2 backdrop-blur supports-[backdrop-filter]:bg-background/88",
+                "sticky top-0 z-20 -mx-[var(--admin-route-gutter-x)] min-h-[var(--page-sticky-header-height,6rem)] bg-background/95 px-[var(--admin-route-gutter-x)] py-2 backdrop-blur supports-[backdrop-filter]:bg-background/88",
             )}
           >
             {props.title || props.action || paneToggles.length > 0 ? (

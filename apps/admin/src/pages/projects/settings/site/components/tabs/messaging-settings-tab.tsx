@@ -70,17 +70,12 @@ export function MessagingSettingsTab({
   const mailEnabledTemplates =
     useWatch({ control: form.control, name: "mailEnabledTemplates" }) ??
     initialValues.mailEnabledTemplates;
-  const inviteNotificationsEnabled =
-    useWatch({ control: form.control, name: "notificationInviteEnabled" }) ??
-    initialValues.notificationInviteEnabled;
 
   const isTogglingMailEnabled = savingKey === "mail.enabled";
   const isSavingMailConfig = savingKey === "mail.config";
   const isResettingMailConfig = savingKey === "reset:mail.config";
   const isSavingMailTemplates = savingKey === "mail.templates";
   const isResettingMailTemplates = savingKey === "reset:mail.templates";
-  const isSavingNotificationTypes = savingKey === "notifications.types";
-  const isResettingNotificationTypes = savingKey === "reset:notifications.types";
 
   const hasMailPasswordSecret = Boolean(coreSecrets?.["mail.password"]);
   const mailConfigSummary = buildMailConfigSummary({
@@ -180,27 +175,6 @@ export function MessagingSettingsTab({
           preferences: {
             enabled_templates: initialValues.mailEnabledTemplates,
           },
-        },
-      });
-    });
-
-  const saveNotificationTypes = () =>
-    withSavingKey("notifications.types", async () => {
-      await patch({
-        notifications: {
-          invite_enabled: Boolean(form.getValues("notificationInviteEnabled")),
-        },
-      });
-    });
-
-  const resetNotificationTypes = () =>
-    withSavingKey("reset:notifications.types", async () => {
-      form.setValue("notificationInviteEnabled", initialValues.notificationInviteEnabled, {
-        shouldDirty: false,
-      });
-      await patch({
-        notifications: {
-          invite_enabled: Boolean(initialValues.notificationInviteEnabled),
         },
       });
     });
@@ -433,10 +407,6 @@ export function MessagingSettingsTab({
   const mailTemplatesSummary = t("settings:SETTINGS_MESSAGING_SELECTED_COUNT", {
     count: mailEnabledTemplates.length,
   });
-  const notificationSummary = inviteNotificationsEnabled
-    ? t("settings:SETTINGS_MESSAGING_ENABLED")
-    : t("settings:SETTINGS_MESSAGING_DISABLED");
-
   return (
     <div className="space-y-6">
       <SettingPanel
@@ -545,55 +515,6 @@ export function MessagingSettingsTab({
           ) : null}
         </SettingActionGroup>
       </SettingPanel>
-
-      <SettingPanel
-        title={t("settings:SETTINGS_MESSAGING_NOTIFICATION_PANEL_TITLE")}
-        description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_PANEL_DESC")}
-        bordered={false}
-      >
-        <SettingActionGroup>
-          <Accordion type="single" collapsible className="px-0">
-            <SettingAccordionItem
-              value="notificationTypes"
-              title={t("settings:SETTINGS_MESSAGING_NOTIFICATION_TYPES_TITLE")}
-              description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_TYPES_DESC")}
-              variant="action"
-              showSummary
-              summary={notificationSummary}
-              itemClassName="border-0"
-              contentClassName="px-4"
-              confirmText={t("settings:SETTINGS_SAVE")}
-              onConfirm={saveNotificationTypes}
-              confirmLoading={isSavingNotificationTypes}
-              onReset={resetNotificationTypes}
-              resetText={t("settings:SETTINGS_RESET")}
-              resetLoading={isResettingNotificationTypes}
-              disabled={disabled}
-            >
-              <label className="flex cursor-pointer items-start gap-3">
-                <Checkbox
-                  checked={Boolean(inviteNotificationsEnabled)}
-                  onCheckedChange={(value) =>
-                    form.setValue("notificationInviteEnabled", Boolean(value), {
-                      shouldDirty: true,
-                    })
-                  }
-                  className="mt-0.5"
-                />
-                <div className="flex flex-col">
-                  <div className="font-medium">
-                    {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
-                  </div>
-                  <div className="text-label-secondary">
-                    {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
-                  </div>
-                </div>
-              </label>
-            </SettingAccordionItem>
-          </Accordion>
-        </SettingActionGroup>
-      </SettingPanel>
-
       {overlays.renderOverlays()}
     </div>
   );

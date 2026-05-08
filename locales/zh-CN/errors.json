@@ -298,6 +298,7 @@
   "SSO_PROVIDER_INVALID": "SSO提供方不合法",
   "SSO_UNAVAILABLE": "SSO不可用",
   "STORAGE_PROFILE_IN_USE": "当前存储方案仍被运行时或资源引用",
+  "INVALID_STORAGE_PROFILE_ID": "存储方案 ID 无效",
   "STORAGE_PROFILE_KEY_EXISTS": "存储方案标识已存在",
   "STORAGE_PROFILE_KEY_INVALID": "存储方案标识只能使用字母、数字、连字符或下划线",
   "STORAGE_PROFILE_NOT_FOUND": "存储方案不存在",

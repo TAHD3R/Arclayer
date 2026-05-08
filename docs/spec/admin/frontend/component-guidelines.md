@@ -33,6 +33,10 @@ This code-spec defines Admin component composition, visual language, accessibili
 - Design-sensitive components must use existing tokens, semantic typography, radius, borders, motion, and state vocabulary from `DESIGN.md`; do not introduce one-off color scales, decorative cards, or new visual grammar.
 - Data-driven pages must define loading, empty, and error states.
 - Form overlays should use `SettingDialog` unless the workflow cannot fit the settings/dialog contract.
+- Sticky `DefaultPage` headers must stay inside the route scroll container and must not be wrapped in a flex-stretching or flex-shrinking page-shell chain; use `--page-sticky-header-height` for related offsets instead of page-specific sticky variables.
+- Settings pages must compose existing settings and `packages/ui` primitives before introducing local visual structure.
+- Settings pages must not create nested card-like boxes or hand-authored border-on-border sections inside existing settings items.
+- Checkbox-based setting rows should put the checkbox before the label/content so the control reads as the row's primary affordance.
 - Antd `Button` usage must set `autoInsertSpace={false}`.
 - Do not introduce new Antd `Spin` usage in Admin feature UI; use shared `Spinner` or `SpinnerOverlay`.
 - Tag-like UI must use the semantic tag system; do not import Antd `Tag` directly in feature code.
@@ -51,6 +55,9 @@ This code-spec defines Admin component composition, visual language, accessibili
 | Component is needed outside Admin | Promote to `packages/ui` with package-level exports and tests |
 | Data fetch pending/error/empty states exist | Express them through shared state patterns |
 | Form-oriented overlay | Use `SettingDialog` with title and description |
+| Page shell uses `headerBehavior="sticky"` | Keep the header anchored to the route scroll container; the route frame must not shrink to viewport height, and the page-main chain must not add `flex-1`/height forcing |
+| Setting section needs grouped rows | Use existing setting item/row primitives or unboxed layout; do not add nested cards with local borders |
+| Setting row uses a checkbox | Put the checkbox before the row text unless an existing shared component defines a different accessible pattern |
 | Antd `Button` added | Include `autoInsertSpace={false}` |
 | Tag-like status added | Use or extend semantic tag components |
 | New icon added | Prefer `lucide-react` or existing shared icon |
@@ -59,11 +66,15 @@ This code-spec defines Admin component composition, visual language, accessibili
 ### 5. Good/Base/Bad Cases
 
 - Good: settings page composes `DefaultPage`, `ChromeTabs`, `SettingPanel`, and local form sections.
+- Good: a system settings shell uses `DefaultPage headerBehavior="sticky"` and offsets its side navigation with `--page-sticky-header-height`.
+- Good: a system settings item renders checkbox rows as plain leading-control labels inside the existing settings item surface.
 - Good: table row status uses a semantic tag component with accessible text.
 - Good: a product-specific workspace picker remains in Admin, while a generic dropdown primitive lives in `packages/ui`.
 - Good: a complex panel exposes typed callbacks such as `onSubmit(values)` and receives loading/error props from its parent hook.
 - Base: a compact feature-local component stays under `pages/<domain>/<feature>/components`.
 - Bad: a page creates a custom floating card shell and oversized hero copy.
+- Bad: a settings route invents a page-specific sticky header variable, lets the route frame shrink to viewport height, or stretches the page-main region until sticky positioning no longer tracks the route scroll container.
+- Bad: a settings item contains another bordered card or locally styled border box for each row.
 - Bad: a feature imports Antd `Tag` and styles a one-off pill.
 - Bad: a shared primitive imports Admin route APIs, Admin stores, or page-local constants.
 

@@ -23,6 +23,7 @@ Shared frontend/backend contracts live under `docs/spec/shared/` and should be l
 | [Lifecycles](./lifecycles.md) | Lifecycle action/event signatures, subscriber semantics, and blocking vs non-blocking failure boundaries | Active |
 | [Entity Manager](./entity-manager.md) | Unified content write orchestration, lifecycle dispatch, and versioned snapshot contracts | Active |
 | [Plugins](./plugins.md) | Plugin discovery, lifecycle phases, hook specs, registry ownership, and startup failure contracts | Active |
+| [Notifications](./notifications.md) | Notification source catalog, system group policy, user preference gate, and producer entrypoint contracts | Active |
 | [Domain Design](./domain-design.md) | API surface taxonomy, module boundaries, PublicUUID policy, tag vocabulary, and hard-cut evolution rules | Active |
 | [Services and Repositories](./services-repositories.md) | BaseService and Tortoise repository interaction boundaries, tx propagation, and event publication contracts | Active |
 | [Content Delivery API](./content-delivery-api.md) | `/content-api/v1` delivery route contracts | Active |

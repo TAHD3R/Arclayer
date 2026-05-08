@@ -60,7 +60,7 @@ export type GeneralSettingsFormValues = {
 
   mailEnabledTemplates: string[];
 
-  notificationInviteEnabled: boolean;
+  notificationGroups: Record<string, { enabled: boolean }>;
 };
 
 export type GeneralSettingsFormController = UseFormReturn<GeneralSettingsFormValues>;

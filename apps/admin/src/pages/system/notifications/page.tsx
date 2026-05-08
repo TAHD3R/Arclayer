@@ -2,24 +2,18 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
-import { Switch } from "@arclayer/ui/switch";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
-import { useSettingsScreen } from "@/components/layout/settings-screen-provider";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { notifySuccessText } from "@/lib/notifications";
 import {
   SystemSettingFooterActions,
-  SystemSettingInlineNote,
   SystemSettingItem,
-  SystemSettingRow,
   SystemSettingStack,
 } from "@/pages/system/components/system-setting-item";
 import {
   getSystemSettingsSection,
-  readBooleanValue,
   readRecordValue,
   readStringArrayValue,
   usePatchSystemCoreSettings,
@@ -28,7 +22,7 @@ import {
 
 type NotificationsFormValues = {
   mailEnabledTemplates: string[];
-  notificationInviteEnabled: boolean;
+  notificationGroups: Record<string, { enabled: boolean }>;
 };
 
 const TEMPLATE_OPTIONS = [
@@ -44,6 +38,67 @@ const TEMPLATE_OPTIONS = [
   },
 ] as const;
 
+const NOTIFICATION_GROUP_OPTIONS = [
+  {
+    key: "team",
+    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_TEAM_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_TEAM_DESC",
+  },
+  {
+    key: "security",
+    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_SECURITY_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_SECURITY_DESC",
+  },
+  {
+    key: "content",
+    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_CONTENT_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_CONTENT_DESC",
+  },
+  {
+    key: "automation",
+    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_AUTOMATION_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_AUTOMATION_DESC",
+  },
+  {
+    key: "system",
+    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_SYSTEM_TITLE",
+    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_GROUP_SYSTEM_DESC",
+  },
+] as const;
+
+function normalizeNotificationGroups(
+  input: Record<string, { enabled?: boolean }> | null | undefined,
+): Record<string, { enabled: boolean }> {
+  const fallback: Record<string, { enabled: boolean }> = {
+    team: { enabled: true },
+    security: { enabled: true },
+    content: { enabled: true },
+    automation: { enabled: true },
+    system: { enabled: false },
+  };
+  const next = { ...fallback };
+  for (const group of NOTIFICATION_GROUP_OPTIONS) {
+    const rawEnabled = input?.[group.key]?.enabled;
+    if (typeof rawEnabled === "boolean") {
+      next[group.key] = { enabled: rawEnabled };
+    }
+  }
+  return next;
+}
+
+function notificationGroupsChanged(
+  left: Record<string, { enabled: boolean }>,
+  right: Record<string, { enabled: boolean }>,
+): boolean {
+  return NOTIFICATION_GROUP_OPTIONS.some(
+    (group) => Boolean(left[group.key]?.enabled) !== Boolean(right[group.key]?.enabled),
+  );
+}
+
+function templateListChanged(left: readonly string[], right: readonly string[]): boolean {
+  return left.slice().sort().join("|") !== right.slice().sort().join("|");
+}
+
 function buildInitialValues(
   input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
 ): NotificationsFormValues {
@@ -53,18 +108,15 @@ function buildInitialValues(
 
   return {
     mailEnabledTemplates: readStringArrayValue(preferences, "enabled_templates"),
-    notificationInviteEnabled: Boolean(readBooleanValue(notifications, "invite_enabled")),
+    notificationGroups: normalizeNotificationGroups(
+      readRecordValue(notifications, "groups") as Record<string, { enabled?: boolean }> | null,
+    ),
   };
-}
-
-function templateListChanged(left: readonly string[], right: readonly string[]): boolean {
-  return left.slice().sort().join("|") !== right.slice().sort().join("|");
 }
 
 export function SystemSettingsNotificationsPage() {
   const { t } = useTranslation(["settings"]);
   const { savingKey, withSavingKey } = useSavingKey();
-  const { openSettings } = useSettingsScreen();
   const coreSettingsQuery = useSystemCoreSettings();
   const patchMutation = usePatchSystemCoreSettings();
 
@@ -78,10 +130,13 @@ export function SystemSettingsNotificationsPage() {
     mode: "onSubmit",
   });
   const values = form.watch();
-  const inviteDirty = values.notificationInviteEnabled !== initialValues.notificationInviteEnabled;
   const templatesDirty = templateListChanged(
     values.mailEnabledTemplates,
     initialValues.mailEnabledTemplates,
+  );
+  const notificationGroupsDirty = notificationGroupsChanged(
+    values.notificationGroups,
+    initialValues.notificationGroups,
   );
 
   useEffect(() => {
@@ -117,18 +172,18 @@ export function SystemSettingsNotificationsPage() {
       );
     });
 
-  const saveInvitePolicy = () =>
-    withSavingKey("notifications.invite", async () => {
-      const inviteEnabled = Boolean(form.getValues("notificationInviteEnabled"));
+  const saveNotificationGroups = () =>
+    withSavingKey("notifications.groups", async () => {
+      const nextGroups = normalizeNotificationGroups(form.getValues("notificationGroups"));
       await persistPatch(
         {
           notifications: {
-            invite_enabled: inviteEnabled,
+            groups: nextGroups,
           },
         },
         {
           ...form.getValues(),
-          notificationInviteEnabled: inviteEnabled,
+          notificationGroups: nextGroups,
         },
       );
     });
@@ -146,30 +201,55 @@ export function SystemSettingsNotificationsPage() {
           description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_DESC")}
           footer={
             <SystemSettingFooterActions
-              dirty={inviteDirty}
-              pending={savingKey === "notifications.invite" || patchMutation.isPending}
+              dirty={notificationGroupsDirty}
+              pending={savingKey === "notifications.groups" || patchMutation.isPending}
               onReset={() =>
                 form.reset({
                   ...form.getValues(),
-                  notificationInviteEnabled: initialValues.notificationInviteEnabled,
+                  notificationGroups: initialValues.notificationGroups,
                 })
               }
-              onSave={() => void saveInvitePolicy()}
+              onSave={() => void saveNotificationGroups()}
             />
           }
         >
-          <SystemSettingRow
-            title={t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
-            description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
-            control={
-              <Switch
-                checked={values.notificationInviteEnabled}
-                onCheckedChange={(checked) =>
-                  form.setValue("notificationInviteEnabled", checked, { shouldDirty: true })
-                }
-              />
-            }
-          />
+          <div className="grid gap-3 md:grid-cols-2">
+            {NOTIFICATION_GROUP_OPTIONS.map((group) => {
+              const checked = Boolean(values.notificationGroups[group.key]?.enabled);
+              return (
+                <label
+                  key={group.key}
+                  className="flex min-w-0 cursor-pointer items-start gap-3 px-0 py-2"
+                >
+                  <Checkbox
+                    checked={checked}
+                    className="mt-0.5"
+                    onCheckedChange={(next) => {
+                      const current = normalizeNotificationGroups(
+                        form.getValues("notificationGroups"),
+                      );
+                      form.setValue(
+                        "notificationGroups",
+                        {
+                          ...current,
+                          [group.key]: { enabled: Boolean(next) },
+                        },
+                        { shouldDirty: true },
+                      );
+                    }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-headline font-semibold text-label-primary">
+                      {t(group.titleKey)}
+                    </div>
+                    <div className="mt-1 text-callout text-label-secondary">
+                      {t(group.descriptionKey)}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
         </SystemSettingItem>
 
         <SystemSettingItem
@@ -194,52 +274,35 @@ export function SystemSettingsNotificationsPage() {
             {TEMPLATE_OPTIONS.map((template) => {
               const checked = values.mailEnabledTemplates.includes(template.key);
               return (
-                <SystemSettingRow
+                <label
                   key={template.key}
-                  title={t(template.titleKey)}
-                  description={t(template.descriptionKey)}
-                  className="justify-start"
-                  control={
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(next) => {
-                        const current = form.getValues("mailEnabledTemplates") || [];
-                        const nextTemplates = next
-                          ? [...current, template.key]
-                          : current.filter((item) => item !== template.key);
-                        form.setValue("mailEnabledTemplates", Array.from(new Set(nextTemplates)), {
-                          shouldDirty: true,
-                        });
-                      }}
-                    />
-                  }
-                />
+                  className="flex min-w-0 cursor-pointer items-start gap-3 px-0 py-2"
+                >
+                  <Checkbox
+                    checked={checked}
+                    className="mt-0.5"
+                    onCheckedChange={(next) => {
+                      const current = form.getValues("mailEnabledTemplates") || [];
+                      const nextTemplates = next
+                        ? [...current, template.key]
+                        : current.filter((item) => item !== template.key);
+                      form.setValue("mailEnabledTemplates", Array.from(new Set(nextTemplates)), {
+                        shouldDirty: true,
+                      });
+                    }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-headline font-semibold text-label-primary">
+                      {t(template.titleKey)}
+                    </div>
+                    <div className="mt-1 text-callout text-label-secondary">
+                      {t(template.descriptionKey)}
+                    </div>
+                  </div>
+                </label>
               );
             })}
           </div>
-        </SystemSettingItem>
-
-        <SystemSettingItem
-          id="personal-notifications"
-          title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_TITLE")}
-          description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_DESC")}
-          headerAction={
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                openSettings({
-                  screen: "personal.notifications",
-                })
-              }
-            >
-              {t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_ACTION")}
-            </Button>
-          }
-        >
-          <SystemSettingInlineNote>
-            {t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_NOTE")}
-          </SystemSettingInlineNote>
         </SystemSettingItem>
       </SystemSettingStack>
     </ContentGuard>

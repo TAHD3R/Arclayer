@@ -60,12 +60,14 @@ export function DefaultPage({
 }: DefaultPageProps) {
   const hideHeader = headerVisibility === "always" ? false : shouldHidePageHeader(children);
   const resolvedTitleTooltip = titleTooltip ?? getPageTitleTooltipLabel(title);
+  const stickyHeader = headerBehavior === "sticky";
 
   return (
     <AdminRouteContainer
       pageFrame={pageFrame}
       className={clsx("min-h-full min-w-0", className)}
       innerClassName={clsx(
+        stickyHeader && "shrink-0",
         spacingPreset === "settings-dialog" && SETTINGS_DIALOG_ROUTE_FRAME_CLASSNAME,
       )}
     >

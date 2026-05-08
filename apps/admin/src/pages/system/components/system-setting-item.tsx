@@ -176,7 +176,7 @@ export function SystemSettingRow(props: {
       <div className="min-w-0 flex-1">
         <div className="text-headline font-semibold text-label-primary">{props.title}</div>
         {props.description ? (
-          <div className="mt-1 text-callout text-label-secondary">{props.description}</div>
+          <div className="mt-1 text-label-secondary">{props.description}</div>
         ) : null}
         {props.children ? <div className="mt-3">{props.children}</div> : null}
       </div>

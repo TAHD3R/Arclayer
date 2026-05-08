@@ -17,11 +17,9 @@ export type SystemSettingsItemId =
   | "active-provider-config"
   | "sender-identity"
   | "delivery-policy"
-  | "template-preferences"
   | "test-email"
   | "notification-policy"
   | "notification-email-templates"
-  | "personal-notifications"
   | "google"
   | "github"
   | "microsoft"
@@ -166,13 +164,6 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
     keywords: ["retry", "fallback"],
   },
   {
-    id: "template-preferences",
-    page: "email",
-    titleKey: "settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_PREFERENCES_TITLE",
-    descriptionKey: "settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_PREFERENCES_DESC",
-    keywords: ["templates", "welcome", "registration"],
-  },
-  {
     id: "test-email",
     page: "email",
     titleKey: "settings:SETTINGS_MESSAGING_MAIL_TEST_TITLE",
@@ -192,13 +183,6 @@ export const SYSTEM_SETTINGS_ITEMS: readonly SystemSettingsSearchItem[] = [
     titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_TITLE",
     descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_DESC",
     keywords: ["email", "templates"],
-  },
-  {
-    id: "personal-notifications",
-    page: "notifications",
-    titleKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_TITLE",
-    descriptionKey: "settings:SETTINGS_SYSTEM_NOTIFICATIONS_PERSONAL_DESC",
-    keywords: ["personal", "preferences", "topics"],
   },
   {
     id: "google",

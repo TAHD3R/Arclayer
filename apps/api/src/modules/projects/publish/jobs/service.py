@@ -16,13 +16,14 @@ from src.models.content._enums import ContentReleaseStatus, PublishJobStatus, Pu
 from src.models.content.publish_job import PublishJobRecord
 from src.models.content.release import ContentReleaseRecord
 from src.models.sites.site import SiteRecord
-from src.models.system.notification import NotificationCategory, NotificationRecord
+from src.models.system.notification import NotificationCategory
 from src.models.tenancy.workspace_tenant import WorkspaceTenantRecord
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.projects.publish.schema import PublishArtifactsOut
 from src.modules.projects.publish.service import ProjectPublishService
 from src.modules.projects.releases.repository import ProjectReleasesRepository
+from src.modules.system.admin.notifications.catalog import create_notification_record
 from src.modules.tenancy.database import TenantDatabaseRouter
 from src.modules.tenancy.schema import TenantContext, TenantIdentity, TenantIsolationMode, TenantScope
 
@@ -279,8 +280,8 @@ class PublishJobService(BaseService):
         site = await SiteRecord.get_or_none(id=site_id)
         return site.project_id if site is not None else None
 
-    @staticmethod
     async def _notify_publish_result(
+        self,
         *,
         job: PublishJobRecord,
         release: ContentReleaseRecord,
@@ -295,7 +296,8 @@ class PublishJobService(BaseService):
             else f"Release #{release.release_number} failed: {job.error_message or 'Unknown error'}"
         )
         target_to = "/content/releases"
-        await NotificationRecord.create(
+        await create_notification_record(
+            settings=self.settings,
             workspace_id=release.workspace_id,
             recipient_user_id=release.created_by_user_id,
             actor_user_id=None,

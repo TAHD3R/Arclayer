@@ -83,6 +83,46 @@ const TOPIC_I18N_FALLBACK: Record<string, { title: string; description: string }
     title: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_PASSWORD_RESET_TITLE",
     description: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_PASSWORD_RESET_DESC",
   },
+  "project.api_key.rotated": {
+    title: "account:ME_NOTIFY_TOPIC_PROJECT_API_KEY_ROTATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_PROJECT_API_KEY_ROTATED_DESC",
+  },
+  "project.api_key.revoked": {
+    title: "account:ME_NOTIFY_TOPIC_PROJECT_API_KEY_REVOKED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_PROJECT_API_KEY_REVOKED_DESC",
+  },
+  "project.preview_token.created": {
+    title: "account:ME_NOTIFY_TOPIC_PROJECT_PREVIEW_TOKEN_CREATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_PROJECT_PREVIEW_TOKEN_CREATED_DESC",
+  },
+  "project.content.item.workflow.updated": {
+    title: "account:ME_NOTIFY_TOPIC_PROJECT_CONTENT_WORKFLOW_UPDATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_PROJECT_CONTENT_WORKFLOW_UPDATED_DESC",
+  },
+  "project.release.scheduled_publish.completed": {
+    title: "account:ME_NOTIFY_TOPIC_PROJECT_RELEASE_SCHEDULED_PUBLISH_COMPLETED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_PROJECT_RELEASE_SCHEDULED_PUBLISH_COMPLETED_DESC",
+  },
+  "project.release.scheduled_publish.failed": {
+    title: "account:ME_NOTIFY_TOPIC_PROJECT_RELEASE_SCHEDULED_PUBLISH_FAILED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_PROJECT_RELEASE_SCHEDULED_PUBLISH_FAILED_DESC",
+  },
+  "automation.notification": {
+    title: "account:ME_NOTIFY_TOPIC_AUTOMATION_NOTIFICATION_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_AUTOMATION_NOTIFICATION_DESC",
+  },
+  "system.mail.updated": {
+    title: "account:ME_NOTIFY_TOPIC_SYSTEM_MAIL_UPDATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_SYSTEM_MAIL_UPDATED_DESC",
+  },
+  "system.storage.updated": {
+    title: "account:ME_NOTIFY_TOPIC_SYSTEM_STORAGE_UPDATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_SYSTEM_STORAGE_UPDATED_DESC",
+  },
+  "system.settings.feature_flags.updated": {
+    title: "account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_DESC",
+  },
 };
 
 function buildChannelColumns(t: (key: string, options?: Record<string, unknown>) => string) {

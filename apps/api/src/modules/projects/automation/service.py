@@ -26,7 +26,7 @@ from src.models.automation.flow import (
     AutomationRunStatus,
     AutomationTriggerKind,
 )
-from src.models.system.notification import NotificationCategory, NotificationRecord
+from src.models.system.notification import NotificationCategory
 from src.modules.projects.automation.catalog import (
     list_global_automation_operation_kinds,
     list_global_automation_triggers,
@@ -55,6 +55,7 @@ from src.modules.projects.content.items.input_schema import ContentItemWorkflowP
 from src.modules.projects.content.items.read_service import ProjectContentCanonicalItemReadService
 from src.modules.projects.content.items.repository import ProjectContentItemsRepository
 from src.modules.projects.releases.service import ProjectReleasesService
+from src.modules.system.admin.notifications.catalog import create_notification_record
 from src.modules.tenancy.router_helpers import bind_tenant_context, require_tenant_context_from_payload
 from src.modules.tenancy.schema import TenantContext
 
@@ -623,7 +624,8 @@ class ProjectAutomationService(BaseService):
             raise BadRequest(
                 "Notification requires recipientUserId and title.", error="AUTOMATION_NOTIFICATION_INVALID"
             )
-        record = await NotificationRecord.create(
+        record = await create_notification_record(
+            settings=self.settings,
             workspace_id=workspace_id,
             recipient_user_id=recipient_user_id,
             category=NotificationCategory.TASK,
@@ -632,10 +634,12 @@ class ProjectAutomationService(BaseService):
             target_to=str(config.get("targetTo") or "/notifications"),
             target_meta={"event": event.name, "payload": event.payload},
             actor_user_id=self._uuid_or_none(event.actor_user_id),
-            event_name=event.name,
+            event_name="automation.notification",
             dedupe_key=None,
         )
-        return {"notificationId": str(record.id)}
+        if record is None:
+            return {"notificationId": None, "delivered": False}
+        return {"notificationId": str(record.id), "delivered": True}
 
     @staticmethod
     def _workspace_id_from_payload(payload: dict[str, Any]) -> UUID | None:

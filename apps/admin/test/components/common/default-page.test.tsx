@@ -227,6 +227,40 @@ describe("DefaultPage", () => {
     );
   });
 
+  it("keeps sticky headers anchored to the route scroll container without stretching page content", () => {
+    render(
+      <DefaultPage
+        title="System settings"
+        description="Manage instance settings"
+        headerBehavior="sticky"
+        contentContainerClassName="[--page-sticky-header-height:6rem]"
+      >
+        <div>Body</div>
+      </DefaultPage>,
+    );
+
+    const mainRegion = document.querySelector('[data-slot="page-main-region"]');
+    const contentContainer = document.querySelector('[data-slot="page-main-container"]');
+    const header = document.querySelector('[data-slot="page-main-header"]');
+    const routeFrame = document.querySelector('[data-slot="admin-route-frame"]');
+
+    expect(routeFrame).toHaveClass("shrink-0");
+    expect(mainRegion).toHaveClass("flex", "min-h-0", "min-w-0", "w-full", "flex-col");
+    expect(mainRegion).not.toHaveClass("flex-1");
+    expect(contentContainer).toHaveClass("flex", "min-h-0", "min-w-0", "w-full", "flex-col");
+    expect(contentContainer).not.toHaveClass("flex-1");
+    expect(header).toHaveClass(
+      "sticky",
+      "top-0",
+      "z-20",
+      "-mx-[var(--admin-route-gutter-x)]",
+      "min-h-[var(--page-sticky-header-height,6rem)]",
+      "bg-background/95",
+      "px-[var(--admin-route-gutter-x)]",
+      "py-2",
+    );
+  });
+
   it("supports a tighter top spacing preset for contained settings dialogs", () => {
     render(
       <DefaultPage title="Settings" spacingPreset="settings-dialog">

@@ -27,7 +27,7 @@ export function SettingCardHeader({
     <div className={cn("flex items-center justify-between gap-4 py-4", className)}>
       <div className="min-w-0 flex-1">
         <div className="text-headline text-label-primary">{title}</div>
-        {description && <div className="mt-1 text-callout text-label-secondary">{description}</div>}
+        {description && <div className="mt-1 text-label-secondary">{description}</div>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>

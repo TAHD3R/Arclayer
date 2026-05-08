@@ -6,6 +6,7 @@ from src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.i18n import t
 from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.system.storage_profiles.schema import (
     StorageProfileCreateRequest,
@@ -33,7 +34,7 @@ def decode_storage_profile_id(profile_id: str):
     try:
         return decode_public_id(profile_id)
     except PublicIdDecodeError as exc:
-        raise BadRequest(message="BAD_REQUEST", error="INVALID_STORAGE_PROFILE_ID") from exc
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_STORAGE_PROFILE_ID") from exc
 
 
 @router.get("", response_model=ResponseModel[StorageProfileListOut], summary="List storage profiles")

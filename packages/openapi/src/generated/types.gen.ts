@@ -6722,6 +6722,24 @@ export type MailProviderInfo = {
      */
     label: string;
     /**
+     * Lasttestmessage
+     *
+     * Last provider send-test message.
+     */
+    lastTestMessage?: string | null;
+    /**
+     * Lastteststatus
+     *
+     * Last provider send-test status.
+     */
+    lastTestStatus?: 'passed' | 'failed' | null;
+    /**
+     * Lasttestedat
+     *
+     * Last provider send-test timestamp.
+     */
+    lastTestedAt?: string | null;
+    /**
      * Providerid
      *
      * Provider id.

@@ -113,8 +113,9 @@ export function buildGeneralSettingsInitialValues(params: {
     "enabled_templates",
   ]) ?? ["registration_prompt", "welcome_email"];
 
-  const notificationInviteEnabled =
-    pickBool(systemValue, ["notifications", "invite_enabled"]) ?? true;
+  const notificationGroups = parseNotificationGroups(
+    pickUnknown(systemValue, ["notifications", "groups"]),
+  );
 
   return {
     siteName,
@@ -169,8 +170,28 @@ export function buildGeneralSettingsInitialValues(params: {
 
     mailEnabledTemplates,
 
-    notificationInviteEnabled,
+    notificationGroups,
   };
+}
+
+function parseNotificationGroups(input: unknown): Record<string, { enabled: boolean }> {
+  const fallback: Record<string, { enabled: boolean }> = {
+    team: { enabled: true },
+    security: { enabled: true },
+    content: { enabled: true },
+    automation: { enabled: true },
+    system: { enabled: false },
+  };
+  if (!input || typeof input !== "object" || Array.isArray(input)) return fallback;
+
+  const record = input as Record<string, unknown>;
+  const next: Record<string, { enabled: boolean }> = { ...fallback };
+  for (const [group, value] of Object.entries(record)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const enabled = pickBool(value, ["enabled"]);
+    next[group] = { enabled: enabled ?? next[group]?.enabled ?? false };
+  }
+  return next;
 }
 
 function pickUnknown(obj: unknown, path: readonly string[]): unknown {

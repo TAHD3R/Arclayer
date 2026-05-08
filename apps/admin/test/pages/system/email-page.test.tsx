@@ -640,22 +640,21 @@ describe("SystemSettingsEmailPage", () => {
     ).toHaveLength(2);
   });
 
-  it("uses switches for template delivery and keeps save/reset semantics", async () => {
+  it("does not own mail template delivery preferences", async () => {
     renderPage();
 
     expect(
-      await screen.findByText("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_PREFERENCES_TITLE"),
+      await screen.findByText("settings:SETTINGS_SYSTEM_EMAIL_PROVIDERS_TITLE"),
     ).toBeInTheDocument();
-    const templateSwitches = screen.getAllByRole("button", { name: "switch" });
-    fireEvent.click(templateSwitches[1]);
 
-    expect(patchSystemCoreSettingsMock).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
-
-    await waitFor(() => {
-      expect(patchSystemCoreSettingsMock).toHaveBeenCalledWith({
-        mail: { preferences: { enabled_templates: ["welcome_email", "registration_prompt"] } },
-      });
-    });
+    expect(
+      screen.queryByText("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_PREFERENCES_TITLE"),
+    ).toBeNull();
+    expect(
+      screen.queryByText("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE"),
+    ).toBeNull();
+    expect(
+      screen.queryByText("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE"),
+    ).toBeNull();
   });
 });

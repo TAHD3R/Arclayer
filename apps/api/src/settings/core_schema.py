@@ -396,10 +396,16 @@ def build_core_settings_schema() -> ConfigSchema:
                 title="Notifications",
                 fields=[
                     ConfigField(
-                        key="invite_enabled",
-                        type="bool",
-                        default=True,
-                        label="Invitation notifications",
+                        key="groups",
+                        type="dict",
+                        default={
+                            "team": {"enabled": True},
+                            "security": {"enabled": True},
+                            "content": {"enabled": True},
+                            "automation": {"enabled": True},
+                            "system": {"enabled": False},
+                        },
+                        label="Notification groups",
                     ),
                 ],
             ),

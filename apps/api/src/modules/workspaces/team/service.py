@@ -16,7 +16,7 @@ from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.organization.user import User
-from src.models.system.notification import NotificationCategory, NotificationRecord
+from src.models.system.notification import NotificationCategory
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipRole, WorkspaceMembershipStatus
 from src.modules.analytics.audit import (
@@ -26,9 +26,7 @@ from src.modules.analytics.audit import (
 )
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
-from src.modules.system.admin.notifications.preferences import (
-    is_notification_channel_enabled_for_event,
-)
+from src.modules.system.admin.notifications.catalog import create_notification_record
 from src.modules.workspaces.team.invites.service import WorkspaceTeamInviteMixin
 from src.modules.workspaces.team.repository import WorkspaceTeamRepository
 from src.modules.workspaces.team.schema import (
@@ -133,19 +131,11 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         event_name: str,
         dedupe_key: str | None,
     ) -> None:
-        in_app_enabled = await is_notification_channel_enabled_for_event(
-            user_id=recipient_user_id,
-            event_name=event_name,
-            channel="in_app",
-        )
-        if not in_app_enabled:
-            return
-
         try:
-            await NotificationRecord.create(
+            await create_notification_record(
+                settings=self.settings,
                 workspace_id=workspace_id,
                 recipient_user_id=recipient_user_id,
-                actor_user_id=actor_user_id,
                 category=category,
                 title=title,
                 body=body,
@@ -153,9 +143,8 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
                 target_meta=None,
                 event_name=event_name,
                 dedupe_key=dedupe_key,
+                actor_user_id=actor_user_id,
             )
-        except IntegrityError:
-            return
         except BaseException as exc:
             _raise_if_fatal(exc)
             self.logger.warning(

@@ -74,6 +74,66 @@ TOPIC_DEFINITIONS: tuple[NotificationTopicDefinition, ...] = (
         title_i18n="account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_PASSWORD_RESET_TITLE",
         description_i18n="account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_PASSWORD_RESET_DESC",
     ),
+    NotificationTopicDefinition(
+        key="project.api_key.rotated",
+        category=NotificationCategory.SECURITY,
+        title_i18n="account:ME_NOTIFY_TOPIC_PROJECT_API_KEY_ROTATED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_PROJECT_API_KEY_ROTATED_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="project.api_key.revoked",
+        category=NotificationCategory.SECURITY,
+        title_i18n="account:ME_NOTIFY_TOPIC_PROJECT_API_KEY_REVOKED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_PROJECT_API_KEY_REVOKED_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="project.preview_token.created",
+        category=NotificationCategory.SECURITY,
+        title_i18n="account:ME_NOTIFY_TOPIC_PROJECT_PREVIEW_TOKEN_CREATED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_PROJECT_PREVIEW_TOKEN_CREATED_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="project.content.item.workflow.updated",
+        category=NotificationCategory.TASK,
+        title_i18n="account:ME_NOTIFY_TOPIC_PROJECT_CONTENT_WORKFLOW_UPDATED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_PROJECT_CONTENT_WORKFLOW_UPDATED_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="project.release.scheduled_publish.completed",
+        category=NotificationCategory.TASK,
+        title_i18n="account:ME_NOTIFY_TOPIC_PROJECT_RELEASE_SCHEDULED_PUBLISH_COMPLETED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_PROJECT_RELEASE_SCHEDULED_PUBLISH_COMPLETED_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="project.release.scheduled_publish.failed",
+        category=NotificationCategory.TASK,
+        title_i18n="account:ME_NOTIFY_TOPIC_PROJECT_RELEASE_SCHEDULED_PUBLISH_FAILED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_PROJECT_RELEASE_SCHEDULED_PUBLISH_FAILED_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="automation.notification",
+        category=NotificationCategory.TASK,
+        title_i18n="account:ME_NOTIFY_TOPIC_AUTOMATION_NOTIFICATION_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_AUTOMATION_NOTIFICATION_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="system.mail.updated",
+        category=NotificationCategory.SECURITY,
+        title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_MAIL_UPDATED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_MAIL_UPDATED_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="system.storage.updated",
+        category=NotificationCategory.SECURITY,
+        title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_STORAGE_UPDATED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_STORAGE_UPDATED_DESC",
+    ),
+    NotificationTopicDefinition(
+        key="system.settings.feature_flags.updated",
+        category=NotificationCategory.SECURITY,
+        title_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_TITLE",
+        description_i18n="account:ME_NOTIFY_TOPIC_SYSTEM_FEATURE_FLAGS_UPDATED_DESC",
+    ),
 )
 
 TOPIC_BY_KEY = {topic.key: topic for topic in TOPIC_DEFINITIONS}
@@ -88,6 +148,16 @@ EVENT_TO_TOPIC_KEY: dict[str, str] = {
     "workspace.member.status.updated": "workspace.member.status.updated",
     "workspace.member.roles.updated": "workspace.member.roles.updated",
     "workspace.member.password.reset": "workspace.member.password.reset",
+    "project.api_key.rotated": "project.api_key.rotated",
+    "project.api_key.revoked": "project.api_key.revoked",
+    "project.preview_token.created": "project.preview_token.created",
+    "project.content.item.workflow.updated": "project.content.item.workflow.updated",
+    "project.release.scheduled_publish.completed": "project.release.scheduled_publish.completed",
+    "project.release.scheduled_publish.failed": "project.release.scheduled_publish.failed",
+    "automation.notification": "automation.notification",
+    "system.mail.updated": "system.mail.updated",
+    "system.storage.updated": "system.storage.updated",
+    "system.settings.feature_flags.updated": "system.settings.feature_flags.updated",
 }
 
 

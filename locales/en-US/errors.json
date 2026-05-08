@@ -298,6 +298,7 @@
   "SSO_PROVIDER_INVALID": "SSO Provider Invalid",
   "SSO_UNAVAILABLE": "SSO Unavailable",
   "STORAGE_PROFILE_IN_USE": "Storage profile is referenced by runtime or assets",
+  "INVALID_STORAGE_PROFILE_ID": "Invalid storage profile id",
   "STORAGE_PROFILE_KEY_EXISTS": "Storage profile key already exists",
   "STORAGE_PROFILE_KEY_INVALID": "Storage profile key can only use letters, numbers, hyphen, or underscore",
   "STORAGE_PROFILE_NOT_FOUND": "Storage profile not found",

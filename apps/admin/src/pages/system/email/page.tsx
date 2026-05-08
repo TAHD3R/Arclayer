@@ -65,7 +65,6 @@ import {
   readBooleanValue,
   readNumberValue,
   readRecordValue,
-  readStringArrayValue,
   readStringValue,
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
@@ -102,7 +101,6 @@ type EmailFormValues = {
   fallbackChain: string;
   retryMaxAttempts: string;
   retryBackoffSeconds: string;
-  mailEnabledTemplates: string[];
 };
 
 type ProviderTestState = {
@@ -134,19 +132,6 @@ const EMAIL_PROVIDER_OPTIONS: Array<{ value: MailProviderId; labelKey: string }>
 ];
 const MAIL_PROVIDER_QUERY_KEY = ["system", "mail", "providers"] as const;
 const PROVIDER_FIELD_WIDTH_CLASSNAME = "w-72 max-w-full";
-const TEMPLATE_OPTIONS = [
-  {
-    key: "registration_prompt",
-    titleKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE",
-    descriptionKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC",
-  },
-  {
-    key: "welcome_email",
-    titleKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE",
-    descriptionKey: "settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC",
-  },
-] as const;
-
 const PROVIDER_CONFIG_FIELDS: Record<MailProviderId, readonly (keyof EmailFormValues)[]> = {
   smtp: [
     "mailServer",
@@ -205,7 +190,6 @@ function buildInitialValues(
   const cloudflare = readRecordValue(providers, "cloudflare");
   const ses = readRecordValue(providers, "ses");
   const retry = readRecordValue(mail, "retry");
-  const preferences = readRecordValue(mail, "preferences");
   const fallbackChain = mail.fallback_chain;
   const retryBackoff = retry.backoff_seconds;
 
@@ -248,7 +232,6 @@ function buildInitialValues(
     retryBackoffSeconds: Array.isArray(retryBackoff)
       ? retryBackoff.filter((item): item is number => typeof item === "number").join(", ")
       : "1, 2, 4",
-    mailEnabledTemplates: readStringArrayValue(preferences, "enabled_templates"),
   };
 }
 
@@ -1020,15 +1003,6 @@ export function SystemSettingsEmailPage() {
       );
     });
 
-  const saveTemplates = () =>
-    withSavingKey("mail.templates", async () => {
-      const nextTemplates = Array.from(new Set(form.getValues("mailEnabledTemplates") || []));
-      await persistPatch(
-        { mail: { preferences: { enabled_templates: nextTemplates } } },
-        { ...form.getValues(), mailEnabledTemplates: nextTemplates },
-      );
-    });
-
   const enabledDirty = values.mailEnabled !== initialValues.mailEnabled;
   const providerConfigDirty = editingProvider
     ? isProviderConfigDirty(editingProvider, values, initialValues)
@@ -1037,9 +1011,6 @@ export function SystemSettingsEmailPage() {
     values.fallbackChain !== initialValues.fallbackChain ||
     values.retryMaxAttempts !== initialValues.retryMaxAttempts ||
     values.retryBackoffSeconds !== initialValues.retryBackoffSeconds;
-  const templatesDirty =
-    values.mailEnabledTemplates.slice().sort().join("|") !==
-    initialValues.mailEnabledTemplates.slice().sort().join("|");
   const pendingProvider =
     savingKey?.startsWith("mail.provider.") && savingKey !== "mail.provider"
       ? (savingKey.replace("mail.provider.", "") as MailProviderId)
@@ -1254,49 +1225,6 @@ export function SystemSettingsEmailPage() {
                       />
                     )}
                   />
-                </div>
-              </SystemSettingItem>
-
-              <SystemSettingItem
-                id="template-preferences"
-                title={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_PREFERENCES_TITLE")}
-                description={t("settings:SETTINGS_SYSTEM_EMAIL_TEMPLATE_PREFERENCES_DESC")}
-                footer={
-                  <SystemSettingFooterActions
-                    dirty={templatesDirty}
-                    pending={savingKey === "mail.templates" || patchMutation.isPending}
-                    onReset={() => form.reset(initialValues)}
-                    onSave={() => void saveTemplates()}
-                  />
-                }
-              >
-                <div className="grid gap-2">
-                  {TEMPLATE_OPTIONS.map((template) => {
-                    const checked = values.mailEnabledTemplates.includes(template.key);
-                    return (
-                      <SystemSettingRow
-                        key={template.key}
-                        title={t(template.titleKey)}
-                        description={t(template.descriptionKey)}
-                        control={
-                          <Switch
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              const current = form.getValues("mailEnabledTemplates") || [];
-                              const nextTemplates = next
-                                ? [...current, template.key]
-                                : current.filter((item) => item !== template.key);
-                              form.setValue(
-                                "mailEnabledTemplates",
-                                Array.from(new Set(nextTemplates)),
-                                { shouldDirty: true },
-                              );
-                            }}
-                          />
-                        }
-                      />
-                    );
-                  })}
                 </div>
               </SystemSettingItem>
             </>
