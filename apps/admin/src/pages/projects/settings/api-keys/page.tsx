@@ -93,7 +93,7 @@ function SecretRevealPanel(props: { reveal: SecretReveal | null; onDismiss: () =
             <ShieldCheck size={16} className="text-sky-600 dark:text-sky-400" />
             {t("account:SETTINGS_PROJECT_API_KEYS_SECRET_TITLE")}
           </div>
-          <div className="mt-1 text-sm leading-6 text-muted-foreground">
+          <div className="mt-1 text-sm text-muted-foreground">
             {t("account:SETTINGS_PROJECT_API_KEYS_SECRET_DESC")}
           </div>
         </div>
@@ -103,7 +103,7 @@ function SecretRevealPanel(props: { reveal: SecretReveal | null; onDismiss: () =
       </div>
 
       <div className="mt-4 rounded-2xl border border-border/60 bg-background/90 px-4 py-3">
-        <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <div className="text-xs font-medium text-muted-foreground">
           {t("account:SETTINGS_PROJECT_API_KEYS_SECRET_VALUE")}
         </div>
         <code className="mt-2 block break-all text-sm font-medium text-foreground">
@@ -185,27 +185,19 @@ function ApiKeyRow(props: {
 
       <div className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2 xl:grid-cols-4">
         <div>
-          <div className="text-xs font-medium uppercase tracking-[0.14em]">
-            {t("SETTINGS_PROJECT_API_KEYS_MASK")}
-          </div>
+          <div className="text-xs font-medium">{t("SETTINGS_PROJECT_API_KEYS_MASK")}</div>
           <div className="mt-1 break-all text-foreground">{props.item.tokenMask}</div>
         </div>
         <div>
-          <div className="text-xs font-medium uppercase tracking-[0.14em]">
-            {t("SETTINGS_PROJECT_API_KEYS_CREATED_AT")}
-          </div>
+          <div className="text-xs font-medium">{t("SETTINGS_PROJECT_API_KEYS_CREATED_AT")}</div>
           <div className="mt-1 text-foreground">{createdAt}</div>
         </div>
         <div>
-          <div className="text-xs font-medium uppercase tracking-[0.14em]">
-            {t("SETTINGS_PROJECT_API_KEYS_LAST_USED")}
-          </div>
+          <div className="text-xs font-medium">{t("SETTINGS_PROJECT_API_KEYS_LAST_USED")}</div>
           <div className="mt-1 text-foreground">{lastUsedAt}</div>
         </div>
         <div>
-          <div className="text-xs font-medium uppercase tracking-[0.14em]">
-            {t("SETTINGS_PROJECT_API_KEYS_EXPIRES_AT")}
-          </div>
+          <div className="text-xs font-medium">{t("SETTINGS_PROJECT_API_KEYS_EXPIRES_AT")}</div>
           <div className="mt-1 text-foreground">{expiresAt}</div>
         </div>
       </div>
@@ -217,7 +209,7 @@ function ApiKeyRow(props: {
       ) : null}
 
       <div className="mt-4">
-        <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <div className="text-xs font-medium text-muted-foreground">
           {t("SETTINGS_PROJECT_API_KEYS_SCOPES")}
         </div>
         <div className="mt-2">
@@ -227,7 +219,7 @@ function ApiKeyRow(props: {
 
       {revealMatches ? (
         <div className="mt-4 rounded-2xl border border-border/60 bg-muted/20 px-4 py-3">
-          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="text-xs font-medium text-muted-foreground">
             {t("SETTINGS_PROJECT_API_KEYS_SECRET_INLINE")}
           </div>
           <code className="mt-2 block break-all text-sm text-foreground">
@@ -338,7 +330,7 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
             <div className="text-sm font-semibold text-foreground">
               {t("account:SETTINGS_NAV_PROJECT_API_KEYS")}
             </div>
-            <div className="mt-1 text-sm leading-6 text-muted-foreground">
+            <div className="mt-1 text-sm text-muted-foreground">
               {t("account:SETTINGS_PROJECT_API_KEYS_DESC")}
             </div>
           </div>
@@ -370,7 +362,7 @@ export function ProjectApiKeysSettingsPage(props: { projectId: string; embedded?
                 <div className="text-sm font-semibold text-foreground">
                   {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_TITLE")}
                 </div>
-                <div className="mt-1 text-sm leading-6 text-muted-foreground">
+                <div className="mt-1 text-sm text-muted-foreground">
                   {t("account:SETTINGS_PROJECT_API_KEYS_CREATE_DESC")}
                 </div>
               </div>

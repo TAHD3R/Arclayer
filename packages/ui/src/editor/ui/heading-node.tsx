@@ -9,11 +9,11 @@ const headingVariants = cva("relative mb-1", {
   variants: {
     variant: {
       h1: "mt-[1.6em] pb-1 font-bold font-heading text-largetitle",
-      h2: "mt-[1.4em] pb-px font-heading font-semibold text-title tracking-tight",
-      h3: "mt-[1em] pb-px font-heading font-semibold text-title2 tracking-tight",
-      h4: "mt-[0.75em] font-heading font-semibold text-title3 tracking-tight",
-      h5: "mt-[0.75em] font-semibold text-headline tracking-tight",
-      h6: "mt-[0.75em] font-semibold text-body tracking-tight",
+      h2: "mt-[1.4em] pb-px font-heading font-semibold text-title",
+      h3: "mt-[1em] pb-px font-heading font-semibold text-title2",
+      h4: "mt-[0.75em] font-heading font-semibold text-title3",
+      h5: "mt-[0.75em] font-semibold text-headline",
+      h6: "mt-[0.75em] font-semibold text-body",
     },
   },
 });

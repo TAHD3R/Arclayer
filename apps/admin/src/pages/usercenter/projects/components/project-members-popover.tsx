@@ -117,9 +117,7 @@ export function ProjectMembersPopover({
               ) : null}
             </AvatarGroup>
           ) : null}
-          <span className="leading-none">
-            {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: memberCount })}
-          </span>
+          <span>{t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: memberCount })}</span>
         </Button>
       </PopoverTrigger>
 

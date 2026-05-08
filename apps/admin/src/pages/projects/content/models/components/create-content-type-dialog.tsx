@@ -75,7 +75,7 @@ function ModelKindOption(props: {
       onClick={props.onClick}
     >
       <span className="text-headline">{props.title}</span>
-      <span className="text-caption leading-snug">{props.description}</span>
+      <span className="text-caption">{props.description}</span>
     </button>
   );
 }

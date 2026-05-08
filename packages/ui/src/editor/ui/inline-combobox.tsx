@@ -230,7 +230,7 @@ const InlineComboboxInput = ({
   return (
     <>
       {showTrigger ? (
-        <span className="inline-flex min-h-[1lh] items-center align-baseline leading-none text-label-primary">
+        <span className="inline-flex min-h-[1lh] items-center align-baseline text-label-primary">
           {trigger}
         </span>
       ) : null}

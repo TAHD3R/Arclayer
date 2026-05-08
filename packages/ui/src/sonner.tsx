@@ -25,8 +25,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toast:
         "rounded-md border border-border/70 bg-popover text-popover-foreground !items-start !gap-3 !px-4 !py-3 !shadow-none [&_[data-content]]:pr-7",
       content: "grid flex-1 gap-0.5",
-      title: "!text-headline !font-semibold !leading-5 !text-label-primary",
-      description: "!text-callout !leading-5 !text-label-secondary",
+      title: "!text-headline !font-semibold !text-label-primary",
+      description: "!text-callout !text-label-secondary",
       icon: "mt-0.5 shrink-0 self-start text-current [&_svg]:size-4",
       closeButton: cn(
         buttonVariants({ variant: "ghost", size: "icon-xs" }),

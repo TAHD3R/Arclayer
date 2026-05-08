@@ -79,25 +79,25 @@ function DatabaseRow(props: {
           </div>
           <div className="grid gap-2 text-sm text-label-secondary md:grid-cols-2 xl:grid-cols-4">
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_DATABASES_HOST")}
               </div>
               <div className="mt-1 truncate text-label-primary">{props.database.host}</div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_DATABASES_DATABASE_NAME")}
               </div>
               <div className="mt-1 truncate text-label-primary">{props.database.databaseName}</div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_DATABASES_SCHEMA_NAME")}
               </div>
               <div className="mt-1 truncate text-label-primary">{props.database.schemaName}</div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_DATABASES_CONNECTION")}
               </div>
               <div className="mt-1 truncate text-label-primary">{maskedConnectionString}</div>

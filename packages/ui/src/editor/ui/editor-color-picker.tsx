@@ -155,7 +155,7 @@ export function EditorColorPicker(props: {
                 />
               ) : null}
             </span>
-            <span className="uppercase">{color}</span>
+            <span>{color}</span>
           </DropdownMenuItem>
         );
       })}
@@ -186,7 +186,7 @@ export function EditorColorPicker(props: {
             value={draftColor}
             aria-label={props.valueLabel}
             placeholder="#337EA9"
-            className="h-6 min-w-0 flex-1 bg-transparent text-footnote uppercase outline-none placeholder:text-label-secondary"
+            className="h-6 min-w-0 flex-1 bg-transparent text-footnote outline-none placeholder:text-label-secondary"
             onChange={(event) => {
               setDraftColor(event.target.value);
             }}

@@ -297,7 +297,7 @@ export function EditAccountDialog(props: {
                   disabled={avatarBusy}
                   loading={avatarUploading}
                   src={avatarPreviewUrl}
-                  fallback={<span className="text-title3 uppercase">{avatarFallback}</span>}
+                  fallback={<span className="text-title3">{avatarFallback}</span>}
                   uploadAriaLabel={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_AVATAR_PICK")}
                   removeAriaLabel={t(
                     "settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ACCOUNT_AVATAR_REMOVE",

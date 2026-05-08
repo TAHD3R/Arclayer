@@ -80,14 +80,14 @@ function EnvironmentRow(props: {
           </div>
           <div className="grid gap-2 text-sm text-label-secondary md:grid-cols-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-caption uppercase text-label-secondary">
+              <div className="flex items-center gap-2 text-caption text-label-secondary">
                 <Rocket size={14} />
                 {t("account:SETTINGS_PROJECT_ENVIRONMENTS_ACTIVE_DEPLOYMENT")}
               </div>
               <div className="mt-1 truncate text-label-primary">{deploymentLabel}</div>
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-caption uppercase text-label-secondary">
+              <div className="flex items-center gap-2 text-caption text-label-secondary">
                 <Globe size={14} />
                 {t("account:SETTINGS_PROJECT_ENVIRONMENTS_PRIMARY_DOMAIN")}
               </div>
@@ -96,7 +96,7 @@ function EnvironmentRow(props: {
               </div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_ENVIRONMENTS_IDENTITY")}
               </div>
               <div className="mt-1 truncate text-label-primary">{props.environment.id}</div>

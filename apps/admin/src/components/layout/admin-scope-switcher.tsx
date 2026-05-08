@@ -435,9 +435,7 @@ function PickerEmptyState(props: { text: string }) {
 function ScopeSectionHeader(props: { title: string; onCreate: () => void; createLabel: string }) {
   return (
     <div className="flex items-center justify-between px-3 pb-1 pt-2">
-      <span className="text-caption font-semibold uppercase tracking-[0.08em] text-label-secondary">
-        {props.title}
-      </span>
+      <span className="text-caption font-semibold text-label-secondary">{props.title}</span>
       <Button
         type="button"
         variant="ghost"

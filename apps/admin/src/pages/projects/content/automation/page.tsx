@@ -187,9 +187,7 @@ function RunsPanel(props: { runs: AdminAutomationRun[] }) {
       <div className="text-sm font-semibold text-foreground">
         {t("CONTENT_AUTOMATION_RUNS_TITLE")}
       </div>
-      <div className="mt-1 text-sm leading-6 text-muted-foreground">
-        {t("CONTENT_AUTOMATION_RUNS_DESC")}
-      </div>
+      <div className="mt-1 text-sm text-muted-foreground">{t("CONTENT_AUTOMATION_RUNS_DESC")}</div>
 
       <div className="mt-5 grid gap-3">
         {props.runs.length > 0 ? (
@@ -217,7 +215,7 @@ function RunsPanel(props: { runs: AdminAutomationRun[] }) {
 
       {latestRun?.logs?.length ? (
         <div className="mt-5 border-t border-border/60 pt-4">
-          <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="text-xs font-medium text-muted-foreground">
             {t("CONTENT_AUTOMATION_RUN_LOGS_TITLE")}
           </div>
           <div className="mt-3 grid gap-2">
@@ -273,7 +271,7 @@ function FlowEditor(props: {
               ? t("CONTENT_AUTOMATION_EDITOR_EDIT_TITLE")
               : t("CONTENT_AUTOMATION_EDITOR_CREATE_TITLE")}
           </div>
-          <div className="mt-1 text-sm leading-6 text-muted-foreground">
+          <div className="mt-1 text-sm text-muted-foreground">
             {t("CONTENT_AUTOMATION_EDITOR_DESC")}
           </div>
         </div>
@@ -290,7 +288,7 @@ function FlowEditor(props: {
 
       <div className="mt-5 grid gap-4">
         <label className="grid gap-2">
-          <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("CONTENT_AUTOMATION_FIELD_NAME")}
           </span>
           <Input
@@ -301,7 +299,7 @@ function FlowEditor(props: {
         </label>
 
         <label className="grid gap-2">
-          <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("CONTENT_AUTOMATION_FIELD_DESCRIPTION")}
           </span>
           <Textarea
@@ -314,7 +312,7 @@ function FlowEditor(props: {
         </label>
 
         <label className="grid gap-2">
-          <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("CONTENT_AUTOMATION_FIELD_TRIGGER")}
           </span>
           <select
@@ -346,7 +344,7 @@ function FlowEditor(props: {
             </div>
           </div>
           <label className="grid gap-2">
-            <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {t("CONTENT_AUTOMATION_FIELD_OPERATION_KIND")}
             </span>
             <select
@@ -368,7 +366,7 @@ function FlowEditor(props: {
             </select>
           </label>
           <label className="grid gap-2">
-            <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {t("CONTENT_AUTOMATION_FIELD_OPERATION_NAME")}
             </span>
             <Input
@@ -380,7 +378,7 @@ function FlowEditor(props: {
             />
           </label>
           <label className="grid gap-2">
-            <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {t("CONTENT_AUTOMATION_FIELD_OPERATION_URL")}
             </span>
             <Input
@@ -395,7 +393,7 @@ function FlowEditor(props: {
         </div>
 
         <label className="grid gap-2">
-          <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("CONTENT_AUTOMATION_FIELD_STATUS")}
           </span>
           <select
@@ -543,13 +541,13 @@ export function ContentAutomationPage(props: { projectId: string }) {
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="text-xs font-medium text-muted-foreground">
                   {t("CONTENT_AUTOMATION_CANVAS_EYEBROW")}
                 </div>
                 <h2 className="text-2xl font-semibold text-foreground">
                   {t("CONTENT_AUTOMATION_CANVAS_TITLE")}
                 </h2>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                <p className="max-w-2xl text-sm text-muted-foreground">
                   {t("CONTENT_AUTOMATION_CANVAS_DESC")}
                 </p>
               </div>
@@ -562,13 +560,13 @@ export function ContentAutomationPage(props: { projectId: string }) {
 
             <div className="mt-6 grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-border/60 bg-background/80 px-4 py-4">
-                <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t("CONTENT_AUTOMATION_METRIC_ACTIVE_FLOWS")}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-foreground">{activeFlows}</div>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/80 px-4 py-4">
-                <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t("CONTENT_AUTOMATION_METRIC_TRIGGERS")}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-foreground">
@@ -576,7 +574,7 @@ export function ContentAutomationPage(props: { projectId: string }) {
                 </div>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/80 px-4 py-4">
-                <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t("CONTENT_AUTOMATION_METRIC_RECENT_RUNS")}
                 </div>
                 <div className="mt-2 text-2xl font-semibold text-foreground">{runs.length}</div>
@@ -590,7 +588,7 @@ export function ContentAutomationPage(props: { projectId: string }) {
                 <div className="text-sm font-semibold text-foreground">
                   {t("CONTENT_AUTOMATION_FLOWS_TITLE")}
                 </div>
-                <div className="mt-1 text-sm leading-6 text-muted-foreground">
+                <div className="mt-1 text-sm text-muted-foreground">
                   {t("CONTENT_AUTOMATION_FLOWS_DESC")}
                 </div>
               </div>

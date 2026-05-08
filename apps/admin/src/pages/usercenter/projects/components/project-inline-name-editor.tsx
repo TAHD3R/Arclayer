@@ -102,7 +102,7 @@ export function ProjectInlineNameEditor(props: ProjectInlineNameEditorProps) {
           {showSuffixCounter ? (
             <span
               className={cn(
-                "pointer-events-none absolute inset-y-0 right-2 inline-flex items-center text-[11px] leading-none text-label-secondary",
+                "pointer-events-none absolute inset-y-0 right-2 inline-flex items-center text-[11px] text-label-secondary",
                 props.counterClassName,
               )}
             >

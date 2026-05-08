@@ -203,7 +203,7 @@ export function CodeBlockElement(props: PlateElementProps<TCodeBlockElement>) {
       <div className="bg-[#171717]">
         <pre
           className={cn(
-            "overflow-x-auto px-5 py-5 text-[13px] leading-6 [tab-size:2]",
+            "overflow-x-auto px-5 py-5 text-[13px] [tab-size:2]",
             CODE_BLOCK_SYNTAX_CLASSNAME,
           )}
         >

@@ -65,7 +65,7 @@ function JobRow(props: {
           </div>
           <div className="grid gap-2 text-sm text-label-secondary md:grid-cols-2 xl:grid-cols-4">
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("SETTINGS_SYSTEM_JOBS_SCHEDULED_AT")}
               </div>
               <div className="mt-1 truncate text-label-primary">
@@ -73,7 +73,7 @@ function JobRow(props: {
               </div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("SETTINGS_SYSTEM_JOBS_STARTED_AT")}
               </div>
               <div className="mt-1 truncate text-label-primary">
@@ -81,7 +81,7 @@ function JobRow(props: {
               </div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("SETTINGS_SYSTEM_JOBS_COMPLETED_AT")}
               </div>
               <div className="mt-1 truncate text-label-primary">
@@ -89,7 +89,7 @@ function JobRow(props: {
               </div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("SETTINGS_SYSTEM_JOBS_CREATED_AT")}
               </div>
               <div className="mt-1 truncate text-label-primary">

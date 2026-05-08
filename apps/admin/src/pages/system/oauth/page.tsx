@@ -24,11 +24,7 @@ import {
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
 } from "@/pages/system/hooks/use-system-core-settings";
-import {
-  FieldMessage,
-  formatSummaryText,
-  normalizeOptionalString,
-} from "@/pages/system/system-settings-form-utils";
+import { FieldMessage, normalizeOptionalString } from "@/pages/system/system-settings-form-utils";
 
 const OAUTH_PROVIDERS = [
   {
@@ -287,12 +283,6 @@ export function SystemSettingsOAuthPage() {
                     </ProviderField>
                   )}
                 />
-                <div className="text-footnote text-label-secondary">
-                  {formatSummaryText(
-                    providerValues.clientId,
-                    t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED"),
-                  )}
-                </div>
               </div>
             </SystemSettingItem>
           );

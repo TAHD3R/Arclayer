@@ -38,7 +38,7 @@ function ReadinessMetric(props: {
 }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-background/80 px-4 py-4">
-      <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{props.label}</div>
+      <div className="text-xs text-muted-foreground">{props.label}</div>
       <div
         className={
           props.tone === "green"
@@ -341,13 +341,13 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="text-xs font-medium text-muted-foreground">
                   {t("CONTENT_RELEASE_DRY_RUN_TITLE")}
                 </div>
                 <h2 className="text-2xl font-semibold text-foreground">
                   {ready ? t("CONTENT_RELEASE_READY") : t("CONTENT_RELEASE_BLOCKED")}
                 </h2>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                <p className="max-w-2xl text-sm text-muted-foreground">
                   {t("CONTENT_RELEASE_DRY_RUN_DESC")}
                 </p>
               </div>
@@ -374,7 +374,7 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
             <div className="text-sm font-semibold text-foreground">
               {t("CONTENT_RELEASE_BLOCKERS_TITLE")}
             </div>
-            <div className="mt-1 text-sm leading-6 text-muted-foreground">
+            <div className="mt-1 text-sm text-muted-foreground">
               {t("CONTENT_RELEASE_DRY_RUN_DESC")}
             </div>
 
@@ -430,9 +430,7 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
             <div className="text-sm font-semibold text-foreground">
               {t("CONTENT_RELEASE_HISTORY_TITLE")}
             </div>
-            <div className="mt-1 text-sm leading-6 text-muted-foreground">
-              {t("CONTENT_RELEASE_DESC")}
-            </div>
+            <div className="mt-1 text-sm text-muted-foreground">{t("CONTENT_RELEASE_DESC")}</div>
 
             <div className="mt-5 grid gap-3">
               {releases.length > 0 ? (
@@ -461,9 +459,7 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
             <div className="text-sm font-semibold text-foreground">
               {t("CONTENT_RELEASE_HISTORY_TITLE")}
             </div>
-            <div className="mt-1 text-sm leading-6 text-muted-foreground">
-              {t("CONTENT_RELEASE_DESC")}
-            </div>
+            <div className="mt-1 text-sm text-muted-foreground">{t("CONTENT_RELEASE_DESC")}</div>
 
             <div className="mt-4 grid gap-3">
               <ReadinessMetric
@@ -471,7 +467,7 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
                 value={activeRelease?.selectionCount ?? 0}
               />
               <div className="rounded-2xl border border-border/60 bg-background/80 px-4 py-4">
-                <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t("CONTENT_RELEASE_LINEAGE_PARENT", {
                     releaseNumber: activeRelease?.lineage?.parentReleaseNumber ?? "-",
                   })}
@@ -491,7 +487,7 @@ export function ContentReleaseCenterPage(props: { projectId: string }) {
             <div className="text-sm font-semibold text-foreground">
               {t("CONTENT_RELEASE_DRY_RUN_TITLE")}
             </div>
-            <div className="mt-1 text-sm leading-6 text-muted-foreground">
+            <div className="mt-1 text-sm text-muted-foreground">
               {ready ? t("CONTENT_RELEASE_READY") : t("CONTENT_RELEASE_BLOCKED")}
             </div>
             <div className="mt-4 flex flex-wrap gap-2">

@@ -316,7 +316,7 @@ function AdminSidebarTopTabs(props: {
                       props.value === "inbox" ? (
                         <span
                           data-testid="sidebar-inbox-count-badge"
-                          className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white"
+                          className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white"
                           aria-hidden="true"
                         >
                           {unreadInboxCountLabel}
@@ -345,7 +345,7 @@ function AdminSidebarTopTabs(props: {
                     isInboxActive ? (
                       <span
                         data-testid="sidebar-inbox-count-badge"
-                        className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold leading-none text-white"
+                        className="absolute right-2 top-1.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white"
                         aria-hidden="true"
                       >
                         {unreadInboxCountLabel}
@@ -491,7 +491,7 @@ function AdminSidebarContentArea(props: {
             <span>{t("common:SIDEBAR_CHAT_EMPTY_TITLE")}</span>
           </EmptyTitle>
         </h3>
-        <EmptyDescription className="mt-2 text-footnote leading-6">
+        <EmptyDescription className="mt-2 text-footnote">
           {t("common:SIDEBAR_CHAT_EMPTY_DESC")}
         </EmptyDescription>
       </EmptyHeader>

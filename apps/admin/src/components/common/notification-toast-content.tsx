@@ -51,9 +51,7 @@ export function NotificationToastContent({
           </span>
         </button>
       ) : null}
-      {item.body ? (
-        <p className="text-callout leading-5 text-label-secondary">{item.body}</p>
-      ) : null}
+      {item.body ? <p className="text-callout text-label-secondary">{item.body}</p> : null}
       <div className="flex items-center justify-between gap-3">
         <span className="min-w-0 truncate text-footnote text-label-secondary">{timeText}</span>
         <div className="flex shrink-0 items-center gap-1">

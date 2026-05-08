@@ -104,7 +104,7 @@ function DeploymentRow(props: {
           </div>
           <div className="grid gap-2 text-sm text-label-secondary md:grid-cols-2 xl:grid-cols-4">
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_DEPLOYMENTS_ENVIRONMENT")}
               </div>
               <div className="mt-1 truncate text-label-primary">
@@ -112,19 +112,19 @@ function DeploymentRow(props: {
               </div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_DEPLOYMENTS_ARTIFACT")}
               </div>
               <div className="mt-1 truncate text-label-primary">{props.deployment.artifactKey}</div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_DEPLOYMENTS_SOURCE_REF")}
               </div>
               <div className="mt-1 truncate text-label-primary">{props.deployment.sourceRef}</div>
             </div>
             <div className="min-w-0">
-              <div className="text-caption uppercase text-label-secondary">
+              <div className="text-caption text-label-secondary">
                 {t("account:SETTINGS_PROJECT_DEPLOYMENTS_CREATED")}
               </div>
               <div className="mt-1 truncate text-label-primary">

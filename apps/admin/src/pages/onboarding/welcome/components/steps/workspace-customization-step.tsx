@@ -79,8 +79,8 @@ export function WorkspaceCustomizationStep(props: {
               type="button"
               className={
                 active
-                  ? "min-h-14 rounded-lg border border-primary bg-primary-highlighted px-4 py-2.5 text-left text-callout font-semibold leading-snug text-label-primary"
-                  : "min-h-14 rounded-lg border border-border px-4 py-2.5 text-left text-callout font-semibold leading-snug text-label-primary transition-colors hover:bg-muted"
+                  ? "min-h-14 rounded-lg border border-primary bg-primary-highlighted px-4 py-2.5 text-left text-callout font-semibold text-label-primary"
+                  : "min-h-14 rounded-lg border border-border px-4 py-2.5 text-left text-callout font-semibold text-label-primary transition-colors hover:bg-muted"
               }
               onClick={() => onSelect(option.value)}
             >

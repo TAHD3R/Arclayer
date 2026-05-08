@@ -150,7 +150,7 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
       {kind === "image" && canRenderImage ? (
         <img src={src} alt={label} className="size-full object-cover" onError={markImageFailed} />
       ) : kind === "emoji" && emoji ? (
-        <span className="leading-none">{emoji}</span>
+        <span>{emoji}</span>
       ) : kind === "glyph" && GlyphIcon ? (
         <GlyphIcon className="size-[58%]" aria-hidden="true" strokeWidth={2.2} />
       ) : (

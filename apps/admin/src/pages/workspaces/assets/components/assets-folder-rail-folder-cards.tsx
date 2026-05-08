@@ -188,7 +188,7 @@ export function FolderAddCard(props: {
                   "font-semibold text-label-primary",
                   props.layoutMode === "single"
                     ? "truncate pr-10 text-headline xl:pr-11"
-                    : "max-w-full pr-7 text-body leading-5 line-clamp-3",
+                    : "max-w-full pr-7 text-body line-clamp-3",
                 )}
               >
                 {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
@@ -276,7 +276,7 @@ export function FolderCard(props: {
                     "font-semibold text-label-primary",
                     props.layoutMode === "single"
                       ? "truncate pr-10 text-headline xl:pr-11"
-                      : "max-w-full pr-7 text-body leading-5 line-clamp-3",
+                      : "max-w-full pr-7 text-body line-clamp-3",
                   )}
                   title={props.folder.name}
                 >

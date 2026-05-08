@@ -182,7 +182,7 @@ export function ColorPicker({
             className="size-4 shrink-0 rounded-full border border-black/10 shadow-inner"
             style={{ backgroundColor: normalizedDraftColor }}
           />
-          <span className="truncate uppercase">{normalizedDraftColor}</span>
+          <span className="truncate">{normalizedDraftColor}</span>
         </span>
         <ChevronDown className="size-4 text-label-secondary" />
       </Button>
@@ -252,7 +252,7 @@ export function ColorPicker({
               value={draftColor}
               aria-label={textInputLabel || ariaLabel}
               placeholder="#337EA9"
-              className="h-9 flex-1 uppercase"
+              className="h-9 flex-1"
               onChange={(event) => {
                 const nextValue = event.target.value;
                 setDraftColor(nextValue);

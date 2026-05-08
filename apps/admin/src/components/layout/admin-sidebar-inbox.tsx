@@ -301,7 +301,7 @@ export function AdminSidebarInbox() {
                     {emptyTitle}
                   </EmptyTitle>
                 </h3>
-                <EmptyDescription className="mt-2 text-footnote leading-6">
+                <EmptyDescription className="mt-2 text-footnote">
                   {emptyDescription}
                 </EmptyDescription>
                 <SelectTrigger asChild aria-label={t("NOTIFICATIONS_EDIT_FILTER")}>
