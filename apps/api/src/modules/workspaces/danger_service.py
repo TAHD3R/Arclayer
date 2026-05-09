@@ -31,7 +31,6 @@ class WorkspaceDangerService(BaseService):
         )
         return WorkspaceDangerCapabilitiesOut(
             workspace_id=workspace_id,
-            organization_id=organization_id,
             confirm_delete_name=str(workspace.name),
             leave_action=WorkspaceDangerActionOut(
                 enabled=leave_blocked_reason is None,

@@ -25,12 +25,6 @@ export type AcceptExistingInvitationRequest = {
  */
 export type AcceptExistingInvitationResult = {
     /**
-     * Organizationid
-     *
-     * Organization id that the user joined.
-     */
-    organizationId: string;
-    /**
      * Projectid
      *
      * Primary project id for the joined workspace.
@@ -45,7 +39,7 @@ export type AcceptExistingInvitationResult = {
     /**
      * Workspaceid
      *
-     * Workspace id that the user joined (nullable for organization-only invitations).
+     * Workspace id that the user joined.
      */
     workspaceId?: string | null;
 };
@@ -341,12 +335,6 @@ export type AdminAssetDetailOut = {
      */
     mime?: string | null;
     /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId?: string | null;
-    /**
      * Originalfilename
      *
      * Original file name.
@@ -638,12 +626,6 @@ export type AdminAssetSummaryOut = {
      * MIME type.
      */
     mime?: string | null;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId?: string | null;
     /**
      * Originalfilename
      *
@@ -1115,12 +1097,6 @@ export type AuditEventOut = {
      * Event time (UTC).
      */
     occurredAt: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId?: string | null;
     /**
      * Properties
      *
@@ -4754,24 +4730,6 @@ export type ContentWorkflowTransitionContract = {
 };
 
 /**
- * CreateMyOrganizationRequest
- */
-export type CreateMyOrganizationRequest = {
-    /**
-     * Name
-     *
-     * Organization display name.
-     */
-    name: string;
-    /**
-     * Slug
-     *
-     * Organization slug (optional, unique).
-     */
-    slug?: string | null;
-};
-
-/**
  * DeleteMyAccountCapabilityOut
  *
  * Delete-account capabilities for the current user.
@@ -4851,24 +4809,6 @@ export type DeleteMyAccountRequest = {
      * Current password.
      */
     password?: string | null;
-};
-
-/**
- * DeleteOrganizationResult
- */
-export type DeleteOrganizationResult = {
-    /**
-     * Deleted
-     *
-     * Whether organization was deleted.
-     */
-    deleted?: boolean;
-    /**
-     * Organizationid
-     *
-     * Deleted organization id.
-     */
-    organizationId: string;
 };
 
 /**
@@ -5099,166 +5039,6 @@ export type DirectoryDeleteRequest = {
 };
 
 /**
- * DirectoryOrganizationDetailOut
- */
-export type DirectoryOrganizationDetailOut = {
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Isactive
-     *
-     * Whether the organization is active.
-     */
-    isActive?: boolean;
-    /**
-     * Organization kind.
-     */
-    kind: OrganizationKind;
-    /**
-     * Logourl
-     *
-     * Organization logo URL.
-     */
-    logoUrl?: string | null;
-    /**
-     * Membercount
-     *
-     * Active member count.
-     */
-    memberCount?: number;
-    /**
-     * Name
-     *
-     * Organization name.
-     */
-    name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Owner summary.
-     */
-    owner?: DirectoryActorSummaryOut | null;
-    /**
-     * Projectcount
-     *
-     * Project count.
-     */
-    projectCount?: number;
-    /**
-     * Slug
-     *
-     * Organization slug.
-     */
-    slug: string;
-    /**
-     * Updatedat
-     *
-     * Last update time.
-     */
-    updatedAt: string;
-    /**
-     * Workspacecount
-     *
-     * Workspace count.
-     */
-    workspaceCount?: number;
-};
-
-/**
- * DirectoryOrganizationListItemOut
- */
-export type DirectoryOrganizationListItemOut = {
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Isactive
-     *
-     * Whether the organization is active.
-     */
-    isActive?: boolean;
-    /**
-     * Organization kind.
-     */
-    kind: OrganizationKind;
-    /**
-     * Membercount
-     *
-     * Active member count.
-     */
-    memberCount?: number;
-    /**
-     * Name
-     *
-     * Organization name.
-     */
-    name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Owner summary.
-     */
-    owner?: DirectoryActorSummaryOut | null;
-    /**
-     * Projectcount
-     *
-     * Project count.
-     */
-    projectCount?: number;
-    /**
-     * Slug
-     *
-     * Organization slug.
-     */
-    slug: string;
-    /**
-     * Workspacecount
-     *
-     * Workspace count.
-     */
-    workspaceCount?: number;
-};
-
-/**
- * DirectoryOrganizationUpdateRequest
- */
-export type DirectoryOrganizationUpdateRequest = {
-    /**
-     * Name
-     *
-     * Organization name.
-     */
-    name?: string | null;
-    /**
-     * Owneruserid
-     *
-     * Organization owner user id.
-     */
-    ownerUserId?: string | null;
-    /**
-     * Slug
-     *
-     * Organization slug.
-     */
-    slug?: string | null;
-};
-
-/**
  * DirectoryProjectDetailOut
  */
 export type DirectoryProjectDetailOut = {
@@ -5322,18 +5102,6 @@ export type DirectoryProjectDetailOut = {
      * Project name.
      */
     name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Organizationname
-     *
-     * Organization name.
-     */
-    organizationName: string;
     /**
      * Owner summary.
      */
@@ -5432,18 +5200,6 @@ export type DirectoryProjectListItemOut = {
      * Project name.
      */
     name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Organizationname
-     *
-     * Organization name.
-     */
-    organizationName: string;
     /**
      * Owner summary.
      */
@@ -5579,18 +5335,6 @@ export type DirectoryUserDetailOut = {
      */
     linkedOauthProviders?: Array<string>;
     /**
-     * Organizationmembershipcount
-     *
-     * Active organization memberships for the user.
-     */
-    organizationMembershipCount?: number;
-    /**
-     * Ownedorganizationscount
-     *
-     * Organizations owned by the user.
-     */
-    ownedOrganizationsCount?: number;
-    /**
      * Projectmembershipcount
      *
      * Project memberships for the user.
@@ -5681,18 +5425,6 @@ export type DirectoryUserListItemOut = {
      * Linked OAuth providers for the account.
      */
     linkedOauthProviders?: Array<string>;
-    /**
-     * Organizationmembershipcount
-     *
-     * Active organization memberships for the user.
-     */
-    organizationMembershipCount?: number;
-    /**
-     * Ownedorganizationscount
-     *
-     * Organizations owned by the user.
-     */
-    ownedOrganizationsCount?: number;
     /**
      * Projectmembershipcount
      *
@@ -5839,18 +5571,6 @@ export type DirectoryWorkspaceDetailOut = {
      */
     name: string;
     /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Organizationname
-     *
-     * Organization name.
-     */
-    organizationName: string;
-    /**
      * Owner summary.
      */
     owner?: DirectoryActorSummaryOut | null;
@@ -5942,18 +5662,6 @@ export type DirectoryWorkspaceListItemOut = {
      * Workspace name.
      */
     name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Organizationname
-     *
-     * Organization name.
-     */
-    organizationName: string;
     /**
      * Owner summary.
      */
@@ -6411,38 +6119,6 @@ export type InvitationPreviewInviterOut = {
 };
 
 /**
- * InvitationPreviewOrganizationOut
- *
- * Organization info for invitation preview.
- */
-export type InvitationPreviewOrganizationOut = {
-    /**
-     * Id
-     *
-     * Organization id.
-     */
-    id: string;
-    /**
-     * Logourl
-     *
-     * Organization logo url.
-     */
-    logoUrl?: string | null;
-    /**
-     * Name
-     *
-     * Organization name.
-     */
-    name: string;
-    /**
-     * Slug
-     *
-     * Organization slug.
-     */
-    slug: string;
-};
-
-/**
  * InvitationPreviewResult
  *
  * Invitation preview response used by the accept-invite wizard.
@@ -6453,7 +6129,6 @@ export type InvitationPreviewResult = {
      * Inviter info (nullable).
      */
     inviter?: InvitationPreviewInviterOut | null;
-    organization: InvitationPreviewOrganizationOut;
     /**
      * Role semantic info (nullable).
      */
@@ -6465,9 +6140,9 @@ export type InvitationPreviewResult = {
      */
     userExists?: boolean;
     /**
-     * Target workspace (nullable for organization-only invitations).
+     * Target workspace for the invitation.
      */
-    workspace?: InvitationPreviewWorkspaceOut | null;
+    workspace: InvitationPreviewWorkspaceOut;
 };
 
 /**
@@ -6509,6 +6184,12 @@ export type InvitationPreviewWorkspaceOut = {
      */
     id: string;
     /**
+     * Logourl
+     *
+     * Workspace logo url.
+     */
+    logoUrl?: string | null;
+    /**
      * Name
      *
      * Workspace name.
@@ -6528,42 +6209,6 @@ export type JsonValueInput = string | number | number | boolean | Array<JsonValu
 export type JsonValueOutput = string | number | number | boolean | Array<JsonValueOutput> | {
     [key: string]: JsonValueOutput;
 } | null;
-
-/**
- * LeaveOrganizationRequest
- */
-export type LeaveOrganizationRequest = {
-    /**
-     * Confirmtext
-     *
-     * Confirmation text, must be LEAVE.
-     */
-    confirmText: string;
-};
-
-/**
- * LeaveOrganizationResult
- */
-export type LeaveOrganizationResult = {
-    /**
-     * Left
-     *
-     * Whether current user left the organization.
-     */
-    left?: boolean;
-    /**
-     * Membershipid
-     *
-     * Deleted organization membership id.
-     */
-    membershipId: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-};
 
 /**
  * LeaveWorkspaceRequest
@@ -6828,38 +6473,6 @@ export type MyInvitationInviterOut = {
 };
 
 /**
- * MyInvitationOrganizationOut
- *
- * Organization info for 'my invitations' listing.
- */
-export type MyInvitationOrganizationOut = {
-    /**
-     * Id
-     *
-     * Organization id.
-     */
-    id: string;
-    /**
-     * Logourl
-     *
-     * Organization logo url.
-     */
-    logoUrl?: string | null;
-    /**
-     * Name
-     *
-     * Organization name.
-     */
-    name: string;
-    /**
-     * Slug
-     *
-     * Organization slug.
-     */
-    slug: string;
-};
-
-/**
  * MyInvitationOut
  *
  * Invitation record visible to the current user (bound by email).
@@ -6900,10 +6513,6 @@ export type MyInvitationOut = {
      */
     inviter?: MyInvitationInviterOut | null;
     /**
-     * Target organization.
-     */
-    organization: MyInvitationOrganizationOut;
-    /**
      * Rolecode
      *
      * Role code assigned when accepted.
@@ -6922,9 +6531,9 @@ export type MyInvitationOut = {
      */
     updatedAt: string;
     /**
-     * Target workspace (nullable for organization-only invitations).
+     * Target workspace for the invitation.
      */
-    workspace?: MyInvitationWorkspaceOut | null;
+    workspace: MyInvitationWorkspaceOut;
 };
 
 /**
@@ -6940,55 +6549,17 @@ export type MyInvitationWorkspaceOut = {
      */
     id: string;
     /**
+     * Logourl
+     *
+     * Workspace logo url.
+     */
+    logoUrl?: string | null;
+    /**
      * Name
      *
      * Workspace name.
      */
     name: string;
-};
-
-/**
- * MyOrganizationListOut
- */
-export type MyOrganizationListOut = {
-    /**
-     * Items
-     *
-     * Organizations accessible to current user.
-     */
-    items?: Array<MyOrganizationOut>;
-    /**
-     * Total
-     *
-     * Total organizations for current user.
-     */
-    total?: number;
-};
-
-/**
- * MyOrganizationOut
- */
-export type MyOrganizationOut = {
-    /**
-     * Membercount
-     *
-     * Active organization member count.
-     */
-    memberCount?: number;
-    /**
-     * Memberspreview
-     *
-     * Preview of active organization members.
-     */
-    membersPreview?: Array<OrganizationMemberPreviewOut>;
-    /**
-     * Current user organization membership.
-     */
-    membership: OrganizationMembershipOut;
-    /**
-     * Current user organization.
-     */
-    organization: OrganizationBriefOut;
 };
 
 /**
@@ -7158,12 +6729,6 @@ export type MyWorkspaceOut = {
      * Workspace name.
      */
     name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
     /**
      * Projectid
      *
@@ -7613,1474 +7178,6 @@ export type OnboardingWorkspaceCreateRequest = {
 };
 
 /**
- * OrgRole
- *
- * Organization-level role.
- */
-export type OrgRole = 'owner' | 'admin' | 'member';
-
-/**
- * OrganizationAssignDefaultRoleRequest
- */
-export type OrganizationAssignDefaultRoleRequest = {
-    /**
-     * Confirmname
-     *
-     * Organization name confirmation.
-     */
-    confirmName: string;
-    /**
-     * Rolecode
-     *
-     * Role code applied to target members.
-     */
-    roleCode: string;
-};
-
-/**
- * OrganizationAssignDefaultRoleResult
- */
-export type OrganizationAssignDefaultRoleResult = {
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Rolecode
-     *
-     * Applied role code.
-     */
-    roleCode: string;
-    /**
-     * Updatedcount
-     *
-     * How many members were updated.
-     */
-    updatedCount?: number;
-};
-
-/**
- * OrganizationAuthzSnapshot
- */
-export type OrganizationAuthzSnapshot = {
-    /**
-     * Issuperuser
-     *
-     * Whether user is a superuser for this scope.
-     */
-    isSuperuser?: boolean;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Permissioncodes
-     *
-     * Effective permission codes.
-     */
-    permissionCodes?: Array<string>;
-    /**
-     * Rolecodes
-     *
-     * Effective role codes.
-     */
-    roleCodes?: Array<string>;
-    /**
-     * Scope
-     *
-     * Authorization scope.
-     */
-    scope?: 'organization';
-    /**
-     * Userid
-     *
-     * Current user id.
-     */
-    userId: string;
-};
-
-/**
- * OrganizationBriefOut
- */
-export type OrganizationBriefOut = {
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Logourl
-     *
-     * Organization logo url (optional).
-     */
-    logoUrl?: string | null;
-    /**
-     * Name
-     *
-     * Organization name.
-     */
-    name: string;
-    /**
-     * Slug
-     *
-     * Organization slug (unique).
-     */
-    slug: string;
-};
-
-/**
- * OrganizationDangerActionOut
- */
-export type OrganizationDangerActionOut = {
-    /**
-     * Blockedreason
-     *
-     * Explicit blocking reason code when disabled.
-     */
-    blockedReason?: string | null;
-    /**
-     * Enabled
-     *
-     * Whether the destructive action is currently allowed.
-     */
-    enabled?: boolean;
-};
-
-/**
- * OrganizationDangerCapabilitiesOut
- */
-export type OrganizationDangerCapabilitiesOut = {
-    /**
-     * Confirmdeletename
-     *
-     * Exact organization name required for delete confirmation.
-     */
-    confirmDeleteName: string;
-    /**
-     * Confirmleavetext
-     *
-     * Exact confirmation text required for leave.
-     */
-    confirmLeaveText?: string;
-    /**
-     * Capability for deleting the organization.
-     */
-    deleteAction: OrganizationDangerActionOut;
-    /**
-     * Capability for leaving the organization.
-     */
-    leaveAction: OrganizationDangerActionOut;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Rolecode
-     *
-     * Resolved organization role code for current user.
-     */
-    roleCode: string;
-};
-
-/**
- * OrganizationInvitationOut
- */
-export type OrganizationInvitationOut = {
-    /**
-     * Acceptedat
-     *
-     * Accepted datetime (UTC).
-     */
-    acceptedAt?: string | null;
-    /**
-     * Accepted by user summary.
-     */
-    acceptedBy?: OrganizationInvitationUserRefOut | null;
-    /**
-     * Acceptedbyuserid
-     *
-     * Accepted by user id.
-     */
-    acceptedByUserId?: string | null;
-    /**
-     * Createdat
-     *
-     * Created datetime (UTC).
-     */
-    createdAt: string;
-    /**
-     * Inviter user summary.
-     */
-    createdBy?: OrganizationInvitationUserRefOut | null;
-    /**
-     * Createdbyuserid
-     *
-     * Inviter user id.
-     */
-    createdByUserId?: string | null;
-    /**
-     * Displaycode
-     *
-     * Display code (link invite only).
-     */
-    displayCode?: string | null;
-    /**
-     * Email
-     *
-     * Invitee email (email invite only).
-     */
-    email?: string | null;
-    /**
-     * Expiresat
-     *
-     * Expiration datetime (UTC).
-     */
-    expiresAt?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Invitationtype
-     *
-     * Invitation type: email|link.
-     */
-    invitationType: string;
-    /**
-     * Revokedat
-     *
-     * Revoked datetime (UTC).
-     */
-    revokedAt?: string | null;
-    /**
-     * Revoked by user summary.
-     */
-    revokedBy?: OrganizationInvitationUserRefOut | null;
-    /**
-     * Revokedbyuserid
-     *
-     * Revoked by user id.
-     */
-    revokedByUserId?: string | null;
-    /**
-     * Rolecode
-     *
-     * Requested organization role code.
-     */
-    roleCode: string;
-    /**
-     * Status
-     *
-     * Invitation status.
-     */
-    status: string;
-    /**
-     * Updatedat
-     *
-     * Updated datetime (UTC).
-     */
-    updatedAt: string;
-};
-
-/**
- * OrganizationInvitationRenewRequest
- */
-export type OrganizationInvitationRenewRequest = {
-    /**
-     * Expiresinseconds
-     *
-     * New invitation TTL in seconds.
-     */
-    expiresInSeconds?: number | null;
-};
-
-/**
- * OrganizationInvitationRenewResult
- */
-export type OrganizationInvitationRenewResult = {
-    /**
-     * Renewed invitation.
-     */
-    invitation: OrganizationInvitationOut;
-    /**
-     * Inviteurl
-     *
-     * Accept invite URL.
-     */
-    inviteUrl?: string | null;
-    /**
-     * Token
-     *
-     * Signed invite token.
-     */
-    token: string;
-};
-
-/**
- * OrganizationInvitationRevokeResult
- */
-export type OrganizationInvitationRevokeResult = {
-    /**
-     * Invitationid
-     *
-     * Revoked invitation id.
-     */
-    invitationId: string;
-    /**
-     * Revoked
-     *
-     * Whether invitation is revoked.
-     */
-    revoked?: boolean;
-};
-
-/**
- * OrganizationInvitationUserRefOut
- */
-export type OrganizationInvitationUserRefOut = {
-    /**
-     * Avatarurl
-     *
-     * Avatar URL.
-     */
-    avatarUrl?: string | null;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Email
-     *
-     * Email address.
-     */
-    email?: string | null;
-    /**
-     * Userid
-     *
-     * User id.
-     */
-    userId: string;
-    /**
-     * Username
-     *
-     * Username.
-     */
-    username: string;
-};
-
-/**
- * OrganizationInviteLinkCreateRequest
- */
-export type OrganizationInviteLinkCreateRequest = {
-    /**
-     * Allowedemaildomain
-     *
-     * Restrict acceptance email domain.
-     */
-    allowedEmailDomain?: string | null;
-    /**
-     * Expiresinseconds
-     *
-     * Link TTL in seconds.
-     */
-    expiresInSeconds?: number | null;
-    /**
-     * Maxuses
-     *
-     * Max allowed uses.
-     */
-    maxUses?: number | null;
-    /**
-     * Rolecode
-     *
-     * Role code for this link.
-     */
-    roleCode?: string | null;
-};
-
-/**
- * OrganizationInviteLinkCreateResult
- */
-export type OrganizationInviteLinkCreateResult = {
-    /**
-     * Inviteurl
-     *
-     * Accept invite URL.
-     */
-    inviteUrl?: string | null;
-    /**
-     * Created link.
-     */
-    link: OrganizationInviteLinkOut;
-    /**
-     * Token
-     *
-     * Signed invite token.
-     */
-    token: string;
-};
-
-/**
- * OrganizationInviteLinkOut
- */
-export type OrganizationInviteLinkOut = {
-    /**
-     * Allowedemaildomain
-     *
-     * Allowed email domain.
-     */
-    allowedEmailDomain?: string | null;
-    /**
-     * Createdat
-     *
-     * Created datetime (UTC).
-     */
-    createdAt: string;
-    /**
-     * Creator summary.
-     */
-    createdBy?: OrganizationInvitationUserRefOut | null;
-    /**
-     * Createdbyuserid
-     *
-     * Creator user id.
-     */
-    createdByUserId?: string | null;
-    /**
-     * Disabledat
-     *
-     * Disabled datetime (UTC).
-     */
-    disabledAt?: string | null;
-    /**
-     * Displaycode
-     *
-     * UI-safe short code.
-     */
-    displayCode: string;
-    /**
-     * Expiresat
-     *
-     * Expiration datetime (UTC).
-     */
-    expiresAt?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Inviteurl
-     *
-     * Accept invite URL.
-     */
-    inviteUrl?: string | null;
-    /**
-     * Lastusedat
-     *
-     * Last used datetime.
-     */
-    lastUsedAt?: string | null;
-    /**
-     * Last participant summary.
-     */
-    lastUsedBy?: OrganizationInvitationUserRefOut | null;
-    /**
-     * Lastusedbyuserid
-     *
-     * Last participant user id.
-     */
-    lastUsedByUserId?: string | null;
-    /**
-     * Maxuses
-     *
-     * Max uses; null means unlimited.
-     */
-    maxUses?: number | null;
-    /**
-     * Rolecode
-     *
-     * Assigned role code.
-     */
-    roleCode: string;
-    /**
-     * Token
-     *
-     * Signed invite token.
-     */
-    token: string;
-    /**
-     * Updatedat
-     *
-     * Updated datetime (UTC).
-     */
-    updatedAt: string;
-    /**
-     * Usescount
-     *
-     * Times this link has been used.
-     */
-    usesCount?: number;
-};
-
-/**
- * OrganizationInviteLinkParticipantOut
- */
-export type OrganizationInviteLinkParticipantOut = {
-    /**
-     * Usedat
-     *
-     * Used datetime (UTC).
-     */
-    usedAt: string;
-    /**
-     * Participant user summary.
-     */
-    user: OrganizationInvitationUserRefOut;
-};
-
-/**
- * OrganizationInviteLinkRenewResult
- */
-export type OrganizationInviteLinkRenewResult = {
-    /**
-     * Inviteurl
-     *
-     * Accept invite URL.
-     */
-    inviteUrl?: string | null;
-    /**
-     * Renewed link.
-     */
-    link: OrganizationInviteLinkOut;
-    /**
-     * Token
-     *
-     * Signed invite token.
-     */
-    token: string;
-};
-
-/**
- * OrganizationKind
- *
- * Organization identity kind.
- */
-export type OrganizationKind = 'personal' | 'team';
-
-/**
- * OrganizationLocalizationOut
- */
-export type OrganizationLocalizationOut = {
-    /**
-     * Dateformat
-     *
-     * Default date format for organization-level admin surfaces.
-     */
-    dateFormat: string;
-    /**
-     * Locale
-     *
-     * Default language for organization-level admin surfaces.
-     */
-    locale: string;
-    /**
-     * Timezone
-     *
-     * Default timezone for organization-level admin surfaces.
-     */
-    timezone: string;
-    /**
-     * Usebrowsertimezone
-     *
-     * Whether to use browser timezone by default.
-     */
-    useBrowserTimezone?: boolean;
-    /**
-     * Userelativedatetime
-     *
-     * Whether to display relative datetime by default.
-     */
-    useRelativeDatetime?: boolean;
-};
-
-/**
- * OrganizationLocalizationPatch
- */
-export type OrganizationLocalizationPatch = {
-    /**
-     * Dateformat
-     *
-     * Date format token.
-     */
-    dateFormat?: string | null;
-    /**
-     * Locale
-     *
-     * Language code.
-     */
-    locale?: string | null;
-    /**
-     * Timezone
-     *
-     * Timezone name.
-     */
-    timezone?: string | null;
-    /**
-     * Usebrowsertimezone
-     *
-     * Use browser timezone by default.
-     */
-    useBrowserTimezone?: boolean | null;
-    /**
-     * Userelativedatetime
-     *
-     * Use relative datetime by default.
-     */
-    useRelativeDatetime?: boolean | null;
-};
-
-/**
- * OrganizationMemberDeleteResult
- */
-export type OrganizationMemberDeleteResult = {
-    /**
-     * Membershipid
-     *
-     * Deleted membership id.
-     */
-    membershipId: string;
-    /**
-     * Removed
-     *
-     * Whether the member was removed.
-     */
-    removed?: boolean;
-};
-
-/**
- * OrganizationMemberInviteRequest
- */
-export type OrganizationMemberInviteRequest = {
-    /**
-     * Email
-     *
-     * Invitee email address.
-     */
-    email: string;
-    /**
-     * Expiresinseconds
-     *
-     * Invite TTL in seconds.
-     */
-    expiresInSeconds?: number | null;
-    /**
-     * Built-in role fallback.
-     */
-    role?: OrgRole | null;
-    /**
-     * Rolecode
-     *
-     * Requested role code.
-     */
-    roleCode?: string | null;
-};
-
-/**
- * OrganizationMemberInviteResult
- */
-export type OrganizationMemberInviteResult = {
-    /**
-     * Email
-     *
-     * Invitee email.
-     */
-    email: string;
-    /**
-     * Invitationid
-     *
-     * Underlying invitation id.
-     */
-    invitationId: string;
-    /**
-     * Inviteurl
-     *
-     * Accept invite URL.
-     */
-    inviteUrl?: string | null;
-    /**
-     * Rolecode
-     *
-     * Requested organization role code.
-     */
-    roleCode: string;
-    /**
-     * Token
-     *
-     * Signed invite token.
-     */
-    token: string;
-};
-
-/**
- * OrganizationMemberOut
- */
-export type OrganizationMemberOut = {
-    /**
-     * Avatarurl
-     *
-     * Avatar URL.
-     */
-    avatarUrl?: string | null;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Email
-     *
-     * Email address.
-     */
-    email?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Joinedat
-     *
-     * Organization join timestamp.
-     */
-    joinedAt: string;
-    /**
-     * Lastloginat
-     *
-     * Last login timestamp.
-     */
-    lastLoginAt?: string | null;
-    /**
-     * Membershipid
-     *
-     * Organization membership id.
-     */
-    membershipId: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Built-in organization role for compatibility guards.
-     */
-    role: OrgRole;
-    /**
-     * Rolecode
-     *
-     * Effective organization role code.
-     */
-    roleCode: string;
-    /**
-     * Status
-     *
-     * Organization membership status.
-     */
-    status: string;
-    /**
-     * Userid
-     *
-     * User id.
-     */
-    userId: string;
-    /**
-     * User account status.
-     */
-    userStatus: UserStatus;
-    /**
-     * Username
-     *
-     * Username.
-     */
-    username: string;
-    /**
-     * Workspacecount
-     *
-     * Associated workspace count.
-     */
-    workspaceCount?: number;
-    /**
-     * Workspaces
-     *
-     * Associated workspace summaries.
-     */
-    workspaces?: Array<OrganizationMemberWorkspaceOut>;
-};
-
-/**
- * OrganizationMemberPreviewOut
- */
-export type OrganizationMemberPreviewOut = {
-    /**
-     * Avatarurl
-     *
-     * Avatar URL.
-     */
-    avatarUrl?: string | null;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Userid
-     *
-     * Member user id.
-     */
-    userId: string;
-    /**
-     * Username
-     *
-     * Username.
-     */
-    username: string;
-};
-
-/**
- * OrganizationMemberRoleUpdateRequest
- */
-export type OrganizationMemberRoleUpdateRequest = {
-    /**
-     * Built-in role fallback.
-     */
-    role?: OrgRole | null;
-    /**
-     * Rolecode
-     *
-     * Target role code.
-     */
-    roleCode?: string | null;
-};
-
-/**
- * OrganizationMemberWorkspaceOut
- */
-export type OrganizationMemberWorkspaceOut = {
-    /**
-     * Iconurl
-     *
-     * Workspace icon URL.
-     */
-    iconUrl?: string | null;
-    /**
-     * Joinedat
-     *
-     * Workspace membership created time.
-     */
-    joinedAt: string;
-    /**
-     * Membershipstatus
-     *
-     * Workspace membership status.
-     */
-    membershipStatus: string;
-    /**
-     * Rolecodes
-     *
-     * Workspace role codes for this member.
-     */
-    roleCodes?: Array<string>;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-    /**
-     * Workspacename
-     *
-     * Workspace name.
-     */
-    workspaceName: string;
-};
-
-/**
- * OrganizationMembershipOut
- */
-export type OrganizationMembershipOut = {
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Organization role.
-     */
-    role: OrgRole;
-    /**
-     * Status
-     *
-     * Membership status.
-     */
-    status: string;
-};
-
-/**
- * OrganizationPermissionActionOut
- */
-export type OrganizationPermissionActionOut = {
-    /**
-     * Code
-     *
-     * Canonical organization action code.
-     */
-    code: string;
-    /**
-     * Description
-     *
-     * Action description.
-     */
-    description?: string | null;
-    /**
-     * Permissioncodes
-     *
-     * Backing permission codes.
-     */
-    permissionCodes?: Array<string>;
-    /**
-     * Subjectkinds
-     *
-     * Supported subject kinds.
-     */
-    subjectKinds?: Array<string>;
-};
-
-/**
- * OrganizationPermissionOut
- */
-export type OrganizationPermissionOut = {
-    /**
-     * Code
-     *
-     * Permission code.
-     */
-    code: string;
-    /**
-     * Description
-     *
-     * Permission description.
-     */
-    description?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Module
-     *
-     * Permission module key.
-     */
-    module: string;
-    /**
-     * Name
-     *
-     * Permission display name.
-     */
-    name: string;
-};
-
-/**
- * OrganizationPermissionRoleSetRequest
- */
-export type OrganizationPermissionRoleSetRequest = {
-    /**
-     * Rolecodes
-     *
-     * Custom role codes.
-     */
-    roleCodes?: Array<string>;
-};
-
-/**
- * OrganizationRoleCreateFromTemplateRequest
- */
-export type OrganizationRoleCreateFromTemplateRequest = {
-    /**
-     * Code
-     *
-     * New role code (optional).
-     */
-    code?: string | null;
-    /**
-     * Description
-     *
-     * Role description.
-     */
-    description?: string | null;
-    /**
-     * Name
-     *
-     * Role name.
-     */
-    name?: string | null;
-    /**
-     * Templaterolecode
-     *
-     * Template role code to clone (optional).
-     */
-    templateRoleCode?: string | null;
-};
-
-/**
- * OrganizationRoleOut
- */
-export type OrganizationRoleOut = {
-    /**
-     * Code
-     *
-     * Role code (unique within organization).
-     */
-    code: string;
-    /**
-     * Description
-     *
-     * Role description.
-     */
-    description?: string | null;
-    /**
-     * Descriptioni18N
-     *
-     * Optional i18n key for system role description.
-     */
-    descriptionI18N?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Isbuiltin
-     *
-     * Whether this role is built-in.
-     */
-    isBuiltin?: boolean;
-    /**
-     * Issystem
-     *
-     * Whether this role is immutable.
-     */
-    isSystem?: boolean;
-    /**
-     * Name
-     *
-     * Role name.
-     */
-    name: string;
-    /**
-     * Namei18N
-     *
-     * Optional i18n key for system role name.
-     */
-    nameI18N?: string | null;
-};
-
-/**
- * OrganizationRolePermissionSetRequest
- */
-export type OrganizationRolePermissionSetRequest = {
-    /**
-     * Permissioncodes
-     *
-     * Permission codes.
-     */
-    permissionCodes?: Array<string>;
-};
-
-/**
- * OrganizationSettingsCoreOut
- */
-export type OrganizationSettingsCoreOut = {
-    /**
-     * Defaultrolecode
-     *
-     * Default role code assigned to newly joined members.
-     */
-    defaultRoleCode: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Organization default localization preferences.
-     */
-    organizationLocalization: OrganizationLocalizationOut;
-    /**
-     * Organizationlogoassetaligned
-     *
-     * Whether the logo asset was auto-aligned (purpose/visibility/indexable) in this response.
-     */
-    organizationLogoAssetAligned?: boolean;
-    /**
-     * Organizationlogourl
-     *
-     * Organization logo URL (optional).
-     */
-    organizationLogoUrl?: string | null;
-    /**
-     * Organizationname
-     *
-     * Organization display name.
-     */
-    organizationName: string;
-};
-
-/**
- * OrganizationSettingsCorePatch
- */
-export type OrganizationSettingsCorePatch = {
-    /**
-     * Defaultrolecode
-     *
-     * Default organization role code.
-     */
-    defaultRoleCode?: string | null;
-    /**
-     * Organization localization merge patch.
-     */
-    organizationLocalization?: OrganizationLocalizationPatch | null;
-    /**
-     * Organizationlogourl
-     *
-     * Organization logo URL.
-     */
-    organizationLogoUrl?: string | null;
-    /**
-     * Organizationname
-     *
-     * Organization name.
-     */
-    organizationName?: string | null;
-};
-
-/**
- * OrganizationWorkspaceArchiveResult
- */
-export type OrganizationWorkspaceArchiveResult = {
-    /**
-     * Archivedat
-     *
-     * Archived timestamp.
-     */
-    archivedAt?: string | null;
-    /**
-     * Archivedbyuserid
-     *
-     * Archived by user id.
-     */
-    archivedByUserId?: string | null;
-    /**
-     * Isarchived
-     *
-     * Whether workspace is archived.
-     */
-    isArchived: boolean;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-};
-
-/**
- * OrganizationWorkspaceCreateRequest
- */
-export type OrganizationWorkspaceCreateRequest = {
-    /**
-     * Dateformat
-     *
-     * Default date format (optional).
-     */
-    dateFormat?: string | null;
-    /**
-     * Description
-     *
-     * Workspace description.
-     */
-    description?: string | null;
-    /**
-     * Locale
-     *
-     * Default locale (optional).
-     */
-    locale?: string | null;
-    /**
-     * Name
-     *
-     * Workspace name.
-     */
-    name: string;
-    /**
-     * Workspace bootstrap template.
-     */
-    template?: OrganizationWorkspaceTemplate;
-    /**
-     * Timezone
-     *
-     * Default timezone (optional).
-     */
-    timezone?: string | null;
-};
-
-/**
- * OrganizationWorkspaceDeleteResult
- */
-export type OrganizationWorkspaceDeleteResult = {
-    /**
-     * Deleted
-     *
-     * Whether workspace was deleted.
-     */
-    deleted?: boolean;
-    /**
-     * Workspaceid
-     *
-     * Deleted workspace id.
-     */
-    workspaceId: string;
-};
-
-/**
- * OrganizationWorkspaceMemberOut
- */
-export type OrganizationWorkspaceMemberOut = {
-    /**
-     * Avatarurl
-     *
-     * Avatar URL.
-     */
-    avatarUrl?: string | null;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Email
-     *
-     * Email address.
-     */
-    email?: string | null;
-    /**
-     * Joinedat
-     *
-     * Membership joined time.
-     */
-    joinedAt: string;
-    /**
-     * Membershipid
-     *
-     * Workspace membership id.
-     */
-    membershipId: string;
-    /**
-     * Userid
-     *
-     * Member user id.
-     */
-    userId: string;
-    /**
-     * Username
-     *
-     * Username.
-     */
-    username: string;
-};
-
-/**
- * OrganizationWorkspaceMemberPreviewOut
- */
-export type OrganizationWorkspaceMemberPreviewOut = {
-    /**
-     * Avatarurl
-     *
-     * Avatar URL.
-     */
-    avatarUrl?: string | null;
-    /**
-     * Displayname
-     *
-     * Display name.
-     */
-    displayName?: string | null;
-    /**
-     * Email
-     *
-     * Email address.
-     */
-    email?: string | null;
-    /**
-     * Userid
-     *
-     * Member user id.
-     */
-    userId: string;
-    /**
-     * Username
-     *
-     * Username.
-     */
-    username: string;
-};
-
-/**
- * OrganizationWorkspaceOut
- */
-export type OrganizationWorkspaceOut = {
-    /**
-     * Archivedat
-     *
-     * Archived timestamp.
-     */
-    archivedAt?: string | null;
-    /**
-     * Archivedbyuserid
-     *
-     * Archived by user id.
-     */
-    archivedByUserId?: string | null;
-    /**
-     * Createdat
-     *
-     * Workspace creation time.
-     */
-    createdAt: string;
-    /**
-     * Description
-     *
-     * Workspace description.
-     */
-    description?: string | null;
-    /**
-     * Enterable
-     *
-     * Whether current user can enter this workspace admin scope.
-     */
-    enterable?: boolean;
-    /**
-     * Iconcolor
-     *
-     * Workspace icon background color.
-     */
-    iconColor?: string;
-    /**
-     * Iconemoji
-     *
-     * Workspace icon emoji.
-     */
-    iconEmoji?: string | null;
-    /**
-     * Iconglyph
-     *
-     * Workspace icon glyph id.
-     */
-    iconGlyph?: string | null;
-    iconMode?: WorkspaceIconMode;
-    /**
-     * Iconurl
-     *
-     * Workspace icon URL.
-     */
-    iconUrl?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Isarchived
-     *
-     * Whether workspace is archived.
-     */
-    isArchived?: boolean;
-    /**
-     * Membercount
-     *
-     * Active member count.
-     */
-    memberCount?: number;
-    /**
-     * Memberspreview
-     *
-     * Preview members for avatar group rendering.
-     */
-    membersPreview?: Array<OrganizationWorkspaceMemberPreviewOut>;
-    /**
-     * Name
-     *
-     * Workspace name.
-     */
-    name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
-     * Primary project binding for this workspace when available.
-     */
-    project?: WorkspacePrimaryProjectOut | null;
-    /**
-     * Projectid
-     *
-     * Primary project id when available.
-     */
-    projectId?: string | null;
-    /**
-     * Workspaceid
-     *
-     * Workspace id.
-     */
-    workspaceId: string;
-};
-
-/**
- * OrganizationWorkspaceTemplate
- */
-export type OrganizationWorkspaceTemplate = 'blog' | 'website' | 'blank';
-
-/**
  * PageData[AdminAssetFolderOut]
  */
 export type PageDataAdminAssetFolderOut = {
@@ -9465,54 +7562,6 @@ export type PageDataContentVersionOut = {
 };
 
 /**
- * PageData[DirectoryOrganizationListItemOut]
- */
-export type PageDataDirectoryOrganizationListItemOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<DirectoryOrganizationListItemOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
  * PageData[DirectoryProjectListItemOut]
  */
 export type PageDataDirectoryProjectListItemOut = {
@@ -9762,390 +7811,6 @@ export type PageDataNotificationOut = {
      * Current page items.
      */
     items?: Array<NotificationOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[OrganizationInvitationOut]
- */
-export type PageDataOrganizationInvitationOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<OrganizationInvitationOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[OrganizationInviteLinkOut]
- */
-export type PageDataOrganizationInviteLinkOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<OrganizationInviteLinkOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[OrganizationInviteLinkParticipantOut]
- */
-export type PageDataOrganizationInviteLinkParticipantOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<OrganizationInviteLinkParticipantOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[OrganizationMemberOut]
- */
-export type PageDataOrganizationMemberOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<OrganizationMemberOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[OrganizationPermissionOut]
- */
-export type PageDataOrganizationPermissionOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<OrganizationPermissionOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[OrganizationRoleOut]
- */
-export type PageDataOrganizationRoleOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<OrganizationRoleOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[OrganizationWorkspaceMemberOut]
- */
-export type PageDataOrganizationWorkspaceMemberOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<OrganizationWorkspaceMemberOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[OrganizationWorkspaceOut]
- */
-export type PageDataOrganizationWorkspaceOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<OrganizationWorkspaceOut>;
     /**
      * Next
      *
@@ -10482,6 +8147,54 @@ export type PageDataWorkspaceInviteLinkParticipantOut = {
      * Current page items.
      */
     items?: Array<WorkspaceInviteLinkParticipantOut>;
+    /**
+     * Next
+     *
+     * Next page number.
+     */
+    next?: number | null;
+    /**
+     * Page
+     *
+     * Current page number (1-based).
+     */
+    page: number;
+    /**
+     * Pages
+     *
+     * Total pages.
+     */
+    pages: number;
+    /**
+     * Prev
+     *
+     * Previous page number.
+     */
+    prev?: number | null;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size: number;
+    /**
+     * Total
+     *
+     * Total item count.
+     */
+    total: number;
+};
+
+/**
+ * PageData[WorkspaceManageListItemOut]
+ */
+export type PageDataWorkspaceManageListItemOut = {
+    /**
+     * Items
+     *
+     * Current page items.
+     */
+    items?: Array<WorkspaceManageListItemOut>;
     /**
      * Next
      *
@@ -11026,12 +8739,6 @@ export type ProjectDangerCapabilitiesOut = {
      * Capability for deleting the project.
      */
     deleteAction: ProjectDangerActionOut;
-    /**
-     * Organizationid
-     *
-     * Organization id for the project workspace.
-     */
-    organizationId: string;
     /**
      * Projectid
      *
@@ -11947,12 +9654,6 @@ export type ProjectListItemOut = {
      */
     name: string;
     /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
      * Primary runtime detail.
      */
     primaryRuntime?: ProjectRuntimeOut | null;
@@ -12186,12 +9887,6 @@ export type ProjectOut = {
      * Project name.
      */
     name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
     /**
      * Slug
      *
@@ -14213,31 +11908,6 @@ export type ResponseModelDeleteMyAccountCapabilityOut = {
 };
 
 /**
- * ResponseModel[DeleteOrganizationResult]
- */
-export type ResponseModelDeleteOrganizationResult = {
-    data?: DeleteOrganizationResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[DeliveryGlobalSetOut]
  */
 export type ResponseModelDeliveryGlobalSetOut = {
@@ -14317,31 +11987,6 @@ export type ResponseModelDeliverySectionOut = {
  */
 export type ResponseModelDeliveryStyleOut = {
     data?: DeliveryStyleOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[DirectoryOrganizationDetailOut]
- */
-export type ResponseModelDirectoryOrganizationDetailOut = {
-    data?: DirectoryOrganizationDetailOut | null;
     /**
      * Error
      */
@@ -14613,31 +12258,6 @@ export type ResponseModelInvitationPreviewResult = {
 };
 
 /**
- * ResponseModel[LeaveOrganizationResult]
- */
-export type ResponseModelLeaveOrganizationResult = {
-    data?: LeaveOrganizationResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[LeaveWorkspaceResult]
  */
 export type ResponseModelLeaveWorkspaceResult = {
@@ -14692,56 +12312,6 @@ export type ResponseModelLoginEmailCodeRequestOut = {
  */
 export type ResponseModelMailTestResult = {
     data?: MailTestResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[MyOrganizationListOut]
- */
-export type ResponseModelMyOrganizationListOut = {
-    data?: MyOrganizationListOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[MyOrganizationOut]
- */
-export type ResponseModelMyOrganizationOut = {
-    data?: MyOrganizationOut | null;
     /**
      * Error
      */
@@ -15091,381 +12661,6 @@ export type ResponseModelOnboardingWorkspaceCreateOut = {
 };
 
 /**
- * ResponseModel[OrganizationAssignDefaultRoleResult]
- */
-export type ResponseModelOrganizationAssignDefaultRoleResult = {
-    data?: OrganizationAssignDefaultRoleResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationAuthzSnapshot]
- */
-export type ResponseModelOrganizationAuthzSnapshot = {
-    data?: OrganizationAuthzSnapshot | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationDangerCapabilitiesOut]
- */
-export type ResponseModelOrganizationDangerCapabilitiesOut = {
-    data?: OrganizationDangerCapabilitiesOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationInvitationRenewResult]
- */
-export type ResponseModelOrganizationInvitationRenewResult = {
-    data?: OrganizationInvitationRenewResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationInvitationRevokeResult]
- */
-export type ResponseModelOrganizationInvitationRevokeResult = {
-    data?: OrganizationInvitationRevokeResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationInviteLinkCreateResult]
- */
-export type ResponseModelOrganizationInviteLinkCreateResult = {
-    data?: OrganizationInviteLinkCreateResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationInviteLinkRenewResult]
- */
-export type ResponseModelOrganizationInviteLinkRenewResult = {
-    data?: OrganizationInviteLinkRenewResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationMemberDeleteResult]
- */
-export type ResponseModelOrganizationMemberDeleteResult = {
-    data?: OrganizationMemberDeleteResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationMemberInviteResult]
- */
-export type ResponseModelOrganizationMemberInviteResult = {
-    data?: OrganizationMemberInviteResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationMemberOut]
- */
-export type ResponseModelOrganizationMemberOut = {
-    data?: OrganizationMemberOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationRoleOut]
- */
-export type ResponseModelOrganizationRoleOut = {
-    data?: OrganizationRoleOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationSettingsCoreOut]
- */
-export type ResponseModelOrganizationSettingsCoreOut = {
-    data?: OrganizationSettingsCoreOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationWorkspaceArchiveResult]
- */
-export type ResponseModelOrganizationWorkspaceArchiveResult = {
-    data?: OrganizationWorkspaceArchiveResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationWorkspaceDeleteResult]
- */
-export type ResponseModelOrganizationWorkspaceDeleteResult = {
-    data?: OrganizationWorkspaceDeleteResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[OrganizationWorkspaceOut]
- */
-export type ResponseModelOrganizationWorkspaceOut = {
-    data?: OrganizationWorkspaceOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[AdminAssetFolderOut]]
  */
 export type ResponseModelPageDataAdminAssetFolderOut = {
@@ -15666,31 +12861,6 @@ export type ResponseModelPageDataContentVersionOut = {
 };
 
 /**
- * ResponseModel[PageData[DirectoryOrganizationListItemOut]]
- */
-export type ResponseModelPageDataDirectoryOrganizationListItemOut = {
-    data?: PageDataDirectoryOrganizationListItemOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[DirectoryProjectListItemOut]]
  */
 export type ResponseModelPageDataDirectoryProjectListItemOut = {
@@ -15820,206 +12990,6 @@ export type ResponseModelPageDataMyInvitationOut = {
  */
 export type ResponseModelPageDataNotificationOut = {
     data?: PageDataNotificationOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[OrganizationInvitationOut]]
- */
-export type ResponseModelPageDataOrganizationInvitationOut = {
-    data?: PageDataOrganizationInvitationOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[OrganizationInviteLinkOut]]
- */
-export type ResponseModelPageDataOrganizationInviteLinkOut = {
-    data?: PageDataOrganizationInviteLinkOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[OrganizationInviteLinkParticipantOut]]
- */
-export type ResponseModelPageDataOrganizationInviteLinkParticipantOut = {
-    data?: PageDataOrganizationInviteLinkParticipantOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[OrganizationMemberOut]]
- */
-export type ResponseModelPageDataOrganizationMemberOut = {
-    data?: PageDataOrganizationMemberOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[OrganizationPermissionOut]]
- */
-export type ResponseModelPageDataOrganizationPermissionOut = {
-    data?: PageDataOrganizationPermissionOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[OrganizationRoleOut]]
- */
-export type ResponseModelPageDataOrganizationRoleOut = {
-    data?: PageDataOrganizationRoleOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[OrganizationWorkspaceMemberOut]]
- */
-export type ResponseModelPageDataOrganizationWorkspaceMemberOut = {
-    data?: PageDataOrganizationWorkspaceMemberOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[OrganizationWorkspaceOut]]
- */
-export type ResponseModelPageDataOrganizationWorkspaceOut = {
-    data?: PageDataOrganizationWorkspaceOut | null;
     /**
      * Error
      */
@@ -16195,6 +13165,31 @@ export type ResponseModelPageDataWorkspaceInviteLinkOut = {
  */
 export type ResponseModelPageDataWorkspaceInviteLinkParticipantOut = {
     data?: PageDataWorkspaceInviteLinkParticipantOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[PageData[WorkspaceManageListItemOut]]
+ */
+export type ResponseModelPageDataWorkspaceManageListItemOut = {
+    data?: PageDataWorkspaceManageListItemOut | null;
     /**
      * Error
      */
@@ -18041,6 +15036,56 @@ export type ResponseModelWorkspaceInviteLinkCreateResult = {
 };
 
 /**
+ * ResponseModel[WorkspaceManageArchiveResult]
+ */
+export type ResponseModelWorkspaceManageArchiveResult = {
+    data?: WorkspaceManageArchiveResult | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[WorkspaceManageListItemOut]
+ */
+export type ResponseModelWorkspaceManageListItemOut = {
+    data?: WorkspaceManageListItemOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[WorkspaceRoleOut]
  */
 export type ResponseModelWorkspaceRoleOut = {
@@ -18166,34 +15211,6 @@ export type ResponseModelWorkspaceTeamMemberStatusResult = {
 };
 
 /**
- * ResponseModel[list[DirectoryActorSummaryOut]]
- */
-export type ResponseModelListDirectoryActorSummaryOut = {
-    /**
-     * Data
-     */
-    data?: Array<DirectoryActorSummaryOut> | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[list[HierarchyNodeOut]]
  */
 export type ResponseModelListHierarchyNodeOut = {
@@ -18229,34 +15246,6 @@ export type ResponseModelListMailProviderInfo = {
      * Data
      */
     data?: Array<MailProviderInfo> | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[list[OrganizationPermissionActionOut]]
- */
-export type ResponseModelListOrganizationPermissionActionOut = {
-    /**
-     * Data
-     */
-    data?: Array<OrganizationPermissionActionOut> | null;
     /**
      * Error
      */
@@ -19892,12 +16881,6 @@ export type TenantIdentityOut = {
      */
     isolationMode: TenantIsolationMode;
     /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
-    /**
      * Projectid
      *
      * Project id.
@@ -20700,12 +17683,6 @@ export type WorkspaceDangerCapabilitiesOut = {
      */
     leaveAction: WorkspaceDangerActionOut;
     /**
-     * Organizationid
-     *
-     * Organization id for the workspace.
-     */
-    organizationId: string;
-    /**
      * Workspaceid
      *
      * Workspace id.
@@ -20790,12 +17767,6 @@ export type WorkspaceDetailOut = {
      * Workspace name.
      */
     name: string;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId: string;
     /**
      * Primary project binding for this workspace when available.
      */
@@ -21163,6 +18134,222 @@ export type WorkspaceInviteLinkRenewRequest = {
  * Workspace identity kind.
  */
 export type WorkspaceKind = 'team';
+
+/**
+ * WorkspaceManageArchiveResult
+ */
+export type WorkspaceManageArchiveResult = {
+    /**
+     * Archivedat
+     *
+     * Archived timestamp.
+     */
+    archivedAt?: string | null;
+    /**
+     * Archivedbyuserid
+     *
+     * Archived by user id.
+     */
+    archivedByUserId?: string | null;
+    /**
+     * Isarchived
+     *
+     * Whether workspace is archived.
+     */
+    isArchived: boolean;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * WorkspaceManageCreateRequest
+ */
+export type WorkspaceManageCreateRequest = {
+    /**
+     * Dateformat
+     *
+     * Default date format (optional).
+     */
+    dateFormat?: string | null;
+    /**
+     * Description
+     *
+     * Workspace description.
+     */
+    description?: string | null;
+    /**
+     * Locale
+     *
+     * Default locale (optional).
+     */
+    locale?: string | null;
+    /**
+     * Name
+     *
+     * Workspace name.
+     */
+    name: string;
+    /**
+     * Workspace bootstrap template.
+     */
+    template?: WorkspaceManageTemplate;
+    /**
+     * Timezone
+     *
+     * Default timezone (optional).
+     */
+    timezone?: string | null;
+};
+
+/**
+ * WorkspaceManageListItemOut
+ */
+export type WorkspaceManageListItemOut = {
+    /**
+     * Archivedat
+     *
+     * Archived timestamp.
+     */
+    archivedAt?: string | null;
+    /**
+     * Archivedbyuserid
+     *
+     * Archived by user id.
+     */
+    archivedByUserId?: string | null;
+    /**
+     * Createdat
+     *
+     * Workspace creation time.
+     */
+    createdAt: string;
+    /**
+     * Description
+     *
+     * Workspace description.
+     */
+    description?: string | null;
+    /**
+     * Enterable
+     *
+     * Whether current user can enter this workspace admin scope.
+     */
+    enterable?: boolean;
+    /**
+     * Iconcolor
+     *
+     * Workspace icon background color.
+     */
+    iconColor?: string;
+    /**
+     * Iconemoji
+     *
+     * Workspace icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Workspace icon glyph id.
+     */
+    iconGlyph?: string | null;
+    iconMode?: WorkspaceIconMode;
+    /**
+     * Iconurl
+     *
+     * Workspace icon URL.
+     */
+    iconUrl?: string | null;
+    /**
+     * Id
+     *
+     * ID
+     */
+    id: string;
+    /**
+     * Isarchived
+     *
+     * Whether workspace is archived.
+     */
+    isArchived?: boolean;
+    /**
+     * Workspace kind.
+     */
+    kind?: WorkspaceKind;
+    /**
+     * Membercount
+     *
+     * Active member count.
+     */
+    memberCount?: number;
+    /**
+     * Memberspreview
+     *
+     * Preview members for avatar group rendering.
+     */
+    membersPreview?: Array<WorkspaceManageMemberPreviewOut>;
+    /**
+     * Name
+     *
+     * Workspace name.
+     */
+    name: string;
+    /**
+     * Primary project binding for this workspace when available.
+     */
+    project?: WorkspacePrimaryProjectOut | null;
+    /**
+     * Projectid
+     *
+     * Primary project id when available.
+     */
+    projectId?: string | null;
+    /**
+     * Workspaceid
+     *
+     * Workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * WorkspaceManageMemberPreviewOut
+ */
+export type WorkspaceManageMemberPreviewOut = {
+    /**
+     * Avatarurl
+     *
+     * Avatar URL.
+     */
+    avatarUrl?: string | null;
+    /**
+     * Displayname
+     *
+     * Display name.
+     */
+    displayName?: string | null;
+    /**
+     * Userid
+     *
+     * Member user id.
+     */
+    userId: string;
+    /**
+     * Username
+     *
+     * Username.
+     */
+    username: string;
+};
+
+/**
+ * WorkspaceManageTemplate
+ */
+export type WorkspaceManageTemplate = 'blog' | 'website' | 'blank';
 
 /**
  * WorkspaceMembershipStatus
@@ -21747,12 +18934,6 @@ export type AdminAssetDetailOutWritable = {
      */
     mime?: string | null;
     /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId?: string | null;
-    /**
      * Originalfilename
      *
      * Original file name.
@@ -21890,12 +19071,6 @@ export type AdminAssetSummaryOutWritable = {
      * MIME type.
      */
     mime?: string | null;
-    /**
-     * Organizationid
-     *
-     * Organization id.
-     */
-    organizationId?: string | null;
     /**
      * Originalfilename
      *
@@ -23811,63 +20986,6 @@ export type DomainWorkspacesMarkMyNotificationReadResponses = {
 
 export type DomainWorkspacesMarkMyNotificationReadResponse = DomainWorkspacesMarkMyNotificationReadResponses[keyof DomainWorkspacesMarkMyNotificationReadResponses];
 
-export type DomainOrganizationGetMyOrganizationData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/me/organization';
-};
-
-export type DomainOrganizationGetMyOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMyOrganizationOut;
-};
-
-export type DomainOrganizationGetMyOrganizationResponse = DomainOrganizationGetMyOrganizationResponses[keyof DomainOrganizationGetMyOrganizationResponses];
-
-export type DomainOrganizationListMyOrganizationsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/me/organizations';
-};
-
-export type DomainOrganizationListMyOrganizationsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMyOrganizationListOut;
-};
-
-export type DomainOrganizationListMyOrganizationsResponse = DomainOrganizationListMyOrganizationsResponses[keyof DomainOrganizationListMyOrganizationsResponses];
-
-export type DomainOrganizationCreateMyOrganizationData = {
-    body: CreateMyOrganizationRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/me/organizations';
-};
-
-export type DomainOrganizationCreateMyOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCreateMyOrganizationError = DomainOrganizationCreateMyOrganizationErrors[keyof DomainOrganizationCreateMyOrganizationErrors];
-
-export type DomainOrganizationCreateMyOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMyOrganizationOut;
-};
-
-export type DomainOrganizationCreateMyOrganizationResponse = DomainOrganizationCreateMyOrganizationResponses[keyof DomainOrganizationCreateMyOrganizationResponses];
-
 export type DomainWorkspacesListMyWorkspacesData = {
     body?: never;
     path?: never;
@@ -23908,2119 +21026,6 @@ export type DomainWorkspacesCreateMyOnboardingWorkspaceResponses = {
 };
 
 export type DomainWorkspacesCreateMyOnboardingWorkspaceResponse = DomainWorkspacesCreateMyOnboardingWorkspaceResponses[keyof DomainWorkspacesCreateMyOnboardingWorkspaceResponses];
-
-export type DomainOrganizationDeleteOrganizationData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Confirmname
-         *
-         * Organization name confirmation for destructive delete.
-         */
-        confirmName?: string | null;
-    };
-    url: '/api/v1/organizations/me';
-};
-
-export type DomainOrganizationDeleteOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDeleteOrganizationError = DomainOrganizationDeleteOrganizationErrors[keyof DomainOrganizationDeleteOrganizationErrors];
-
-export type DomainOrganizationDeleteOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeleteOrganizationResult;
-};
-
-export type DomainOrganizationDeleteOrganizationResponse = DomainOrganizationDeleteOrganizationResponses[keyof DomainOrganizationDeleteOrganizationResponses];
-
-export type DomainOrganizationListMyOrganizationActionsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/actions';
-};
-
-export type DomainOrganizationListMyOrganizationActionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelListOrganizationPermissionActionOut;
-};
-
-export type DomainOrganizationListMyOrganizationActionsResponse = DomainOrganizationListMyOrganizationActionsResponses[keyof DomainOrganizationListMyOrganizationActionsResponses];
-
-export type DomainOrganizationGetMyOrganizationAuthzData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/authz';
-};
-
-export type DomainOrganizationGetMyOrganizationAuthzResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationAuthzSnapshot;
-};
-
-export type DomainOrganizationGetMyOrganizationAuthzResponse = DomainOrganizationGetMyOrganizationAuthzResponses[keyof DomainOrganizationGetMyOrganizationAuthzResponses];
-
-export type DomainOrganizationListOrganizationInvitationsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search query by email/role.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, e.g. -created_at, email.
-         */
-        ordering?: string | null;
-        /**
-         * Status
-         *
-         * Filter by invitation status.
-         */
-        status?: string | null;
-        /**
-         * Mine
-         *
-         * If true, only invitations created by me.
-         */
-        mine?: boolean | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/me/invitations';
-};
-
-export type DomainOrganizationListOrganizationInvitationsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrganizationInvitationsError = DomainOrganizationListOrganizationInvitationsErrors[keyof DomainOrganizationListOrganizationInvitationsErrors];
-
-export type DomainOrganizationListOrganizationInvitationsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationInvitationOut;
-};
-
-export type DomainOrganizationListOrganizationInvitationsResponse = DomainOrganizationListOrganizationInvitationsResponses[keyof DomainOrganizationListOrganizationInvitationsResponses];
-
-export type DomainOrganizationInviteOrganizationMemberData = {
-    body: OrganizationMemberInviteRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/invitations';
-};
-
-export type DomainOrganizationInviteOrganizationMemberErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationInviteOrganizationMemberError = DomainOrganizationInviteOrganizationMemberErrors[keyof DomainOrganizationInviteOrganizationMemberErrors];
-
-export type DomainOrganizationInviteOrganizationMemberResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationMemberInviteResult;
-};
-
-export type DomainOrganizationInviteOrganizationMemberResponse = DomainOrganizationInviteOrganizationMemberResponses[keyof DomainOrganizationInviteOrganizationMemberResponses];
-
-export type DomainOrganizationListOrganizationInviteLinksData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search query by code/domain/role.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, e.g. -created_at, display_code.
-         */
-        ordering?: string | null;
-        /**
-         * Mine
-         *
-         * If true, only links created by me.
-         */
-        mine?: boolean | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/me/invitations/links';
-};
-
-export type DomainOrganizationListOrganizationInviteLinksErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrganizationInviteLinksError = DomainOrganizationListOrganizationInviteLinksErrors[keyof DomainOrganizationListOrganizationInviteLinksErrors];
-
-export type DomainOrganizationListOrganizationInviteLinksResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationInviteLinkOut;
-};
-
-export type DomainOrganizationListOrganizationInviteLinksResponse = DomainOrganizationListOrganizationInviteLinksResponses[keyof DomainOrganizationListOrganizationInviteLinksResponses];
-
-export type DomainOrganizationCreateOrganizationInviteLinkData = {
-    body: OrganizationInviteLinkCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/invitations/links';
-};
-
-export type DomainOrganizationCreateOrganizationInviteLinkErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCreateOrganizationInviteLinkError = DomainOrganizationCreateOrganizationInviteLinkErrors[keyof DomainOrganizationCreateOrganizationInviteLinkErrors];
-
-export type DomainOrganizationCreateOrganizationInviteLinkResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationInviteLinkCreateResult;
-};
-
-export type DomainOrganizationCreateOrganizationInviteLinkResponse = DomainOrganizationCreateOrganizationInviteLinkResponses[keyof DomainOrganizationCreateOrganizationInviteLinkResponses];
-
-export type DomainOrganizationDisableOrganizationInviteLinkData = {
-    body?: never;
-    path: {
-        /**
-         * Link Id
-         */
-        link_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/invitations/links/{link_id}/disable';
-};
-
-export type DomainOrganizationDisableOrganizationInviteLinkErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDisableOrganizationInviteLinkError = DomainOrganizationDisableOrganizationInviteLinkErrors[keyof DomainOrganizationDisableOrganizationInviteLinkErrors];
-
-export type DomainOrganizationDisableOrganizationInviteLinkResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationInvitationRevokeResult;
-};
-
-export type DomainOrganizationDisableOrganizationInviteLinkResponse = DomainOrganizationDisableOrganizationInviteLinkResponses[keyof DomainOrganizationDisableOrganizationInviteLinkResponses];
-
-export type DomainOrganizationListOrganizationInviteLinkParticipantsData = {
-    body?: never;
-    path: {
-        /**
-         * Link Id
-         */
-        link_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/me/invitations/links/{link_id}/participants';
-};
-
-export type DomainOrganizationListOrganizationInviteLinkParticipantsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrganizationInviteLinkParticipantsError = DomainOrganizationListOrganizationInviteLinkParticipantsErrors[keyof DomainOrganizationListOrganizationInviteLinkParticipantsErrors];
-
-export type DomainOrganizationListOrganizationInviteLinkParticipantsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationInviteLinkParticipantOut;
-};
-
-export type DomainOrganizationListOrganizationInviteLinkParticipantsResponse = DomainOrganizationListOrganizationInviteLinkParticipantsResponses[keyof DomainOrganizationListOrganizationInviteLinkParticipantsResponses];
-
-export type DomainOrganizationRenewOrganizationInviteLinkData = {
-    body: OrganizationInvitationRenewRequest;
-    path: {
-        /**
-         * Link Id
-         */
-        link_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/invitations/links/{link_id}/renew';
-};
-
-export type DomainOrganizationRenewOrganizationInviteLinkErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationRenewOrganizationInviteLinkError = DomainOrganizationRenewOrganizationInviteLinkErrors[keyof DomainOrganizationRenewOrganizationInviteLinkErrors];
-
-export type DomainOrganizationRenewOrganizationInviteLinkResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationInviteLinkRenewResult;
-};
-
-export type DomainOrganizationRenewOrganizationInviteLinkResponse = DomainOrganizationRenewOrganizationInviteLinkResponses[keyof DomainOrganizationRenewOrganizationInviteLinkResponses];
-
-export type DomainOrganizationRenewOrganizationInvitationData = {
-    body: OrganizationInvitationRenewRequest;
-    path: {
-        /**
-         * Invitation Id
-         */
-        invitation_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/invitations/{invitation_id}/renew';
-};
-
-export type DomainOrganizationRenewOrganizationInvitationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationRenewOrganizationInvitationError = DomainOrganizationRenewOrganizationInvitationErrors[keyof DomainOrganizationRenewOrganizationInvitationErrors];
-
-export type DomainOrganizationRenewOrganizationInvitationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationInvitationRenewResult;
-};
-
-export type DomainOrganizationRenewOrganizationInvitationResponse = DomainOrganizationRenewOrganizationInvitationResponses[keyof DomainOrganizationRenewOrganizationInvitationResponses];
-
-export type DomainOrganizationRevokeOrganizationInvitationData = {
-    body?: never;
-    path: {
-        /**
-         * Invitation Id
-         */
-        invitation_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/invitations/{invitation_id}/revoke';
-};
-
-export type DomainOrganizationRevokeOrganizationInvitationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationRevokeOrganizationInvitationError = DomainOrganizationRevokeOrganizationInvitationErrors[keyof DomainOrganizationRevokeOrganizationInvitationErrors];
-
-export type DomainOrganizationRevokeOrganizationInvitationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationInvitationRevokeResult;
-};
-
-export type DomainOrganizationRevokeOrganizationInvitationResponse = DomainOrganizationRevokeOrganizationInvitationResponses[keyof DomainOrganizationRevokeOrganizationInvitationResponses];
-
-export type DomainOrganizationLeaveOrganizationData = {
-    body: LeaveOrganizationRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/leave';
-};
-
-export type DomainOrganizationLeaveOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationLeaveOrganizationError = DomainOrganizationLeaveOrganizationErrors[keyof DomainOrganizationLeaveOrganizationErrors];
-
-export type DomainOrganizationLeaveOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelLeaveOrganizationResult;
-};
-
-export type DomainOrganizationLeaveOrganizationResponse = DomainOrganizationLeaveOrganizationResponses[keyof DomainOrganizationLeaveOrganizationResponses];
-
-export type DomainOrganizationListOrganizationMembersData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search query by username/email/display name.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, e.g. -joined_at, email.
-         */
-        ordering?: string | null;
-        /**
-         * Role
-         *
-         * Filter by organization role.
-         */
-        role?: OrgRole | null;
-        /**
-         * Rolecode
-         *
-         * Filter by effective organization role code.
-         */
-        roleCode?: string | null;
-        /**
-         * Membershipstatus
-         *
-         * Filter by organization membership status.
-         */
-        membershipStatus?: string | null;
-        /**
-         * Userstatus
-         *
-         * Filter by user account status.
-         */
-        userStatus?: UserStatus | null;
-        /**
-         * Hasworkspace
-         *
-         * Filter by whether user is associated with workspaces.
-         */
-        hasWorkspace?: boolean | null;
-        /**
-         * Joinedfrom
-         *
-         * Filter members joined at or after this ISO datetime.
-         */
-        joinedFrom?: string | null;
-        /**
-         * Joinedto
-         *
-         * Filter members joined at or before this ISO datetime.
-         */
-        joinedTo?: string | null;
-        /**
-         * Lastloginfrom
-         *
-         * Filter members with last login at or after this ISO datetime.
-         */
-        lastLoginFrom?: string | null;
-        /**
-         * Lastloginto
-         *
-         * Filter members with last login at or before this ISO datetime.
-         */
-        lastLoginTo?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/me/members';
-};
-
-export type DomainOrganizationListOrganizationMembersErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrganizationMembersError = DomainOrganizationListOrganizationMembersErrors[keyof DomainOrganizationListOrganizationMembersErrors];
-
-export type DomainOrganizationListOrganizationMembersResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationMemberOut;
-};
-
-export type DomainOrganizationListOrganizationMembersResponse = DomainOrganizationListOrganizationMembersResponses[keyof DomainOrganizationListOrganizationMembersResponses];
-
-export type DomainOrganizationDeleteOrganizationMemberData = {
-    body?: never;
-    path: {
-        /**
-         * Membership Id
-         */
-        membership_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/members/{membership_id}';
-};
-
-export type DomainOrganizationDeleteOrganizationMemberErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDeleteOrganizationMemberError = DomainOrganizationDeleteOrganizationMemberErrors[keyof DomainOrganizationDeleteOrganizationMemberErrors];
-
-export type DomainOrganizationDeleteOrganizationMemberResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationMemberDeleteResult;
-};
-
-export type DomainOrganizationDeleteOrganizationMemberResponse = DomainOrganizationDeleteOrganizationMemberResponses[keyof DomainOrganizationDeleteOrganizationMemberResponses];
-
-export type DomainOrganizationPatchOrganizationMemberRoleData = {
-    body: OrganizationMemberRoleUpdateRequest;
-    path: {
-        /**
-         * Membership Id
-         */
-        membership_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/members/{membership_id}/role';
-};
-
-export type DomainOrganizationPatchOrganizationMemberRoleErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationPatchOrganizationMemberRoleError = DomainOrganizationPatchOrganizationMemberRoleErrors[keyof DomainOrganizationPatchOrganizationMemberRoleErrors];
-
-export type DomainOrganizationPatchOrganizationMemberRoleResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationMemberOut;
-};
-
-export type DomainOrganizationPatchOrganizationMemberRoleResponse = DomainOrganizationPatchOrganizationMemberRoleResponses[keyof DomainOrganizationPatchOrganizationMemberRoleResponses];
-
-export type DomainOrganizationListPermissionsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/me/rbac/permissions';
-};
-
-export type DomainOrganizationListPermissionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListPermissionsError = DomainOrganizationListPermissionsErrors[keyof DomainOrganizationListPermissionsErrors];
-
-export type DomainOrganizationListPermissionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationPermissionOut;
-};
-
-export type DomainOrganizationListPermissionsResponse = DomainOrganizationListPermissionsResponses[keyof DomainOrganizationListPermissionsResponses];
-
-export type DomainOrganizationSetPermissionRolesData = {
-    body: OrganizationPermissionRoleSetRequest;
-    path: {
-        /**
-         * Permission Code
-         */
-        permission_code: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/rbac/permissions/{permission_code}/roles';
-};
-
-export type DomainOrganizationSetPermissionRolesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationSetPermissionRolesError = DomainOrganizationSetPermissionRolesErrors[keyof DomainOrganizationSetPermissionRolesErrors];
-
-export type DomainOrganizationSetPermissionRolesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainOrganizationSetPermissionRolesResponse = DomainOrganizationSetPermissionRolesResponses[keyof DomainOrganizationSetPermissionRolesResponses];
-
-export type DomainOrganizationListRolesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/me/rbac/roles';
-};
-
-export type DomainOrganizationListRolesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListRolesError = DomainOrganizationListRolesErrors[keyof DomainOrganizationListRolesErrors];
-
-export type DomainOrganizationListRolesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationRoleOut;
-};
-
-export type DomainOrganizationListRolesResponse = DomainOrganizationListRolesResponses[keyof DomainOrganizationListRolesResponses];
-
-export type DomainOrganizationCreateRoleData = {
-    body: OrganizationRoleCreateFromTemplateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/rbac/roles';
-};
-
-export type DomainOrganizationCreateRoleErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCreateRoleError = DomainOrganizationCreateRoleErrors[keyof DomainOrganizationCreateRoleErrors];
-
-export type DomainOrganizationCreateRoleResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationRoleOut;
-};
-
-export type DomainOrganizationCreateRoleResponse = DomainOrganizationCreateRoleResponses[keyof DomainOrganizationCreateRoleResponses];
-
-export type DomainOrganizationDeleteRoleData = {
-    body?: never;
-    path: {
-        /**
-         * Role Code
-         */
-        role_code: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/rbac/roles/{role_code}';
-};
-
-export type DomainOrganizationDeleteRoleErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDeleteRoleError = DomainOrganizationDeleteRoleErrors[keyof DomainOrganizationDeleteRoleErrors];
-
-export type DomainOrganizationDeleteRoleResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainOrganizationDeleteRoleResponse = DomainOrganizationDeleteRoleResponses[keyof DomainOrganizationDeleteRoleResponses];
-
-export type DomainOrganizationSetRolePermissionsData = {
-    body: OrganizationRolePermissionSetRequest;
-    path: {
-        /**
-         * Role Code
-         */
-        role_code: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/rbac/roles/{role_code}/permissions';
-};
-
-export type DomainOrganizationSetRolePermissionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationSetRolePermissionsError = DomainOrganizationSetRolePermissionsErrors[keyof DomainOrganizationSetRolePermissionsErrors];
-
-export type DomainOrganizationSetRolePermissionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainOrganizationSetRolePermissionsResponse = DomainOrganizationSetRolePermissionsResponses[keyof DomainOrganizationSetRolePermissionsResponses];
-
-export type DomainOrganizationGetOrganizationCoreSettingsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/settings/core';
-};
-
-export type DomainOrganizationGetOrganizationCoreSettingsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationSettingsCoreOut;
-};
-
-export type DomainOrganizationGetOrganizationCoreSettingsResponse = DomainOrganizationGetOrganizationCoreSettingsResponses[keyof DomainOrganizationGetOrganizationCoreSettingsResponses];
-
-export type DomainOrganizationPatchOrganizationCoreSettingsData = {
-    body: OrganizationSettingsCorePatch;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/settings/core';
-};
-
-export type DomainOrganizationPatchOrganizationCoreSettingsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationPatchOrganizationCoreSettingsError = DomainOrganizationPatchOrganizationCoreSettingsErrors[keyof DomainOrganizationPatchOrganizationCoreSettingsErrors];
-
-export type DomainOrganizationPatchOrganizationCoreSettingsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationSettingsCoreOut;
-};
-
-export type DomainOrganizationPatchOrganizationCoreSettingsResponse = DomainOrganizationPatchOrganizationCoreSettingsResponses[keyof DomainOrganizationPatchOrganizationCoreSettingsResponses];
-
-export type DomainOrganizationAssignOrganizationDefaultRoleToAllUsersData = {
-    body: OrganizationAssignDefaultRoleRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/settings/default-role/assign-all';
-};
-
-export type DomainOrganizationAssignOrganizationDefaultRoleToAllUsersErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationAssignOrganizationDefaultRoleToAllUsersError = DomainOrganizationAssignOrganizationDefaultRoleToAllUsersErrors[keyof DomainOrganizationAssignOrganizationDefaultRoleToAllUsersErrors];
-
-export type DomainOrganizationAssignOrganizationDefaultRoleToAllUsersResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationAssignDefaultRoleResult;
-};
-
-export type DomainOrganizationAssignOrganizationDefaultRoleToAllUsersResponse = DomainOrganizationAssignOrganizationDefaultRoleToAllUsersResponses[keyof DomainOrganizationAssignOrganizationDefaultRoleToAllUsersResponses];
-
-export type DomainOrganizationListOrganizationWorkspacesMeData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search query by workspace name.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, e.g. -created_at, name.
-         */
-        ordering?: string | null;
-        /**
-         * Archived
-         *
-         * Filter archived status when provided.
-         */
-        archived?: boolean | null;
-        /**
-         * Enterable Only
-         *
-         * Only include enterable workspaces.
-         */
-        enterable_only?: boolean;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/me/workspaces';
-};
-
-export type DomainOrganizationListOrganizationWorkspacesMeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrganizationWorkspacesMeError = DomainOrganizationListOrganizationWorkspacesMeErrors[keyof DomainOrganizationListOrganizationWorkspacesMeErrors];
-
-export type DomainOrganizationListOrganizationWorkspacesMeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationWorkspaceOut;
-};
-
-export type DomainOrganizationListOrganizationWorkspacesMeResponse = DomainOrganizationListOrganizationWorkspacesMeResponses[keyof DomainOrganizationListOrganizationWorkspacesMeResponses];
-
-export type DomainOrganizationCreateOrganizationWorkspaceMeData = {
-    body: OrganizationWorkspaceCreateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/organizations/me/workspaces';
-};
-
-export type DomainOrganizationCreateOrganizationWorkspaceMeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCreateOrganizationWorkspaceMeError = DomainOrganizationCreateOrganizationWorkspaceMeErrors[keyof DomainOrganizationCreateOrganizationWorkspaceMeErrors];
-
-export type DomainOrganizationCreateOrganizationWorkspaceMeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceOut;
-};
-
-export type DomainOrganizationCreateOrganizationWorkspaceMeResponse = DomainOrganizationCreateOrganizationWorkspaceMeResponses[keyof DomainOrganizationCreateOrganizationWorkspaceMeResponses];
-
-export type DomainOrganizationDeleteOrganizationWorkspaceMeData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Confirmname
-         *
-         * Workspace name confirmation for destructive delete.
-         */
-        confirmName?: string | null;
-    };
-    url: '/api/v1/organizations/me/workspaces/{workspace_id}';
-};
-
-export type DomainOrganizationDeleteOrganizationWorkspaceMeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDeleteOrganizationWorkspaceMeError = DomainOrganizationDeleteOrganizationWorkspaceMeErrors[keyof DomainOrganizationDeleteOrganizationWorkspaceMeErrors];
-
-export type DomainOrganizationDeleteOrganizationWorkspaceMeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceDeleteResult;
-};
-
-export type DomainOrganizationDeleteOrganizationWorkspaceMeResponse = DomainOrganizationDeleteOrganizationWorkspaceMeResponses[keyof DomainOrganizationDeleteOrganizationWorkspaceMeResponses];
-
-export type DomainOrganizationArchiveOrganizationWorkspaceMeData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/workspaces/{workspace_id}/archive';
-};
-
-export type DomainOrganizationArchiveOrganizationWorkspaceMeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationArchiveOrganizationWorkspaceMeError = DomainOrganizationArchiveOrganizationWorkspaceMeErrors[keyof DomainOrganizationArchiveOrganizationWorkspaceMeErrors];
-
-export type DomainOrganizationArchiveOrganizationWorkspaceMeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceArchiveResult;
-};
-
-export type DomainOrganizationArchiveOrganizationWorkspaceMeResponse = DomainOrganizationArchiveOrganizationWorkspaceMeResponses[keyof DomainOrganizationArchiveOrganizationWorkspaceMeResponses];
-
-export type DomainOrganizationListOrganizationWorkspaceMembersMeData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Q
-         *
-         * Search query by name or email.
-         */
-        q?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/me/workspaces/{workspace_id}/members';
-};
-
-export type DomainOrganizationListOrganizationWorkspaceMembersMeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrganizationWorkspaceMembersMeError = DomainOrganizationListOrganizationWorkspaceMembersMeErrors[keyof DomainOrganizationListOrganizationWorkspaceMembersMeErrors];
-
-export type DomainOrganizationListOrganizationWorkspaceMembersMeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationWorkspaceMemberOut;
-};
-
-export type DomainOrganizationListOrganizationWorkspaceMembersMeResponse = DomainOrganizationListOrganizationWorkspaceMembersMeResponses[keyof DomainOrganizationListOrganizationWorkspaceMembersMeResponses];
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceMeData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/me/workspaces/{workspace_id}/unarchive';
-};
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceMeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceMeError = DomainOrganizationUnarchiveOrganizationWorkspaceMeErrors[keyof DomainOrganizationUnarchiveOrganizationWorkspaceMeErrors];
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceMeResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceArchiveResult;
-};
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceMeResponse = DomainOrganizationUnarchiveOrganizationWorkspaceMeResponses[keyof DomainOrganizationUnarchiveOrganizationWorkspaceMeResponses];
-
-export type DomainOrganizationDeleteScopedOrganizationData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Confirmname
-         *
-         * Organization name confirmation for destructive delete.
-         */
-        confirmName?: string | null;
-    };
-    url: '/api/v1/organizations/{organization_id}';
-};
-
-export type DomainOrganizationDeleteScopedOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDeleteScopedOrganizationError = DomainOrganizationDeleteScopedOrganizationErrors[keyof DomainOrganizationDeleteScopedOrganizationErrors];
-
-export type DomainOrganizationDeleteScopedOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDeleteOrganizationResult;
-};
-
-export type DomainOrganizationDeleteScopedOrganizationResponse = DomainOrganizationDeleteScopedOrganizationResponses[keyof DomainOrganizationDeleteScopedOrganizationResponses];
-
-export type DomainOrganizationListAssetFoldersData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/{organization_id}/asset-folders';
-};
-
-export type DomainOrganizationListAssetFoldersErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListAssetFoldersError = DomainOrganizationListAssetFoldersErrors[keyof DomainOrganizationListAssetFoldersErrors];
-
-export type DomainOrganizationListAssetFoldersResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAdminAssetFolderOut;
-};
-
-export type DomainOrganizationListAssetFoldersResponse = DomainOrganizationListAssetFoldersResponses[keyof DomainOrganizationListAssetFoldersResponses];
-
-export type DomainOrganizationListAssetTagsData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/{organization_id}/asset-tags';
-};
-
-export type DomainOrganizationListAssetTagsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListAssetTagsError = DomainOrganizationListAssetTagsErrors[keyof DomainOrganizationListAssetTagsErrors];
-
-export type DomainOrganizationListAssetTagsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAdminAssetTagOut;
-};
-
-export type DomainOrganizationListAssetTagsResponse = DomainOrganizationListAssetTagsResponses[keyof DomainOrganizationListAssetTagsResponses];
-
-export type DomainOrganizationCreateAssetTagData = {
-    body: AdminAssetTagCreateRequest;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/asset-tags';
-};
-
-export type DomainOrganizationCreateAssetTagErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCreateAssetTagError = DomainOrganizationCreateAssetTagErrors[keyof DomainOrganizationCreateAssetTagErrors];
-
-export type DomainOrganizationCreateAssetTagResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetTagOut;
-};
-
-export type DomainOrganizationCreateAssetTagResponse = DomainOrganizationCreateAssetTagResponses[keyof DomainOrganizationCreateAssetTagResponses];
-
-export type DomainOrganizationDeleteAssetUsageByRefDeleteData = {
-    body: AdminAssetUsageDeleteRequest;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/asset-usages';
-};
-
-export type DomainOrganizationDeleteAssetUsageByRefDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDeleteAssetUsageByRefDeleteError = DomainOrganizationDeleteAssetUsageByRefDeleteErrors[keyof DomainOrganizationDeleteAssetUsageByRefDeleteErrors];
-
-export type DomainOrganizationDeleteAssetUsageByRefDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetUsageDeleteOut;
-};
-
-export type DomainOrganizationDeleteAssetUsageByRefDeleteResponse = DomainOrganizationDeleteAssetUsageByRefDeleteResponses[keyof DomainOrganizationDeleteAssetUsageByRefDeleteResponses];
-
-export type DomainOrganizationUpsertAssetUsageData = {
-    body: AdminAssetUsageUpsertRequest;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/asset-usages';
-};
-
-export type DomainOrganizationUpsertAssetUsageErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationUpsertAssetUsageError = DomainOrganizationUpsertAssetUsageErrors[keyof DomainOrganizationUpsertAssetUsageErrors];
-
-export type DomainOrganizationUpsertAssetUsageResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetUsageOut;
-};
-
-export type DomainOrganizationUpsertAssetUsageResponse = DomainOrganizationUpsertAssetUsageResponses[keyof DomainOrganizationUpsertAssetUsageResponses];
-
-export type DomainOrganizationDeleteAssetUsageByRefData = {
-    body: AdminAssetUsageDeleteRequest;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/asset-usages/delete';
-};
-
-export type DomainOrganizationDeleteAssetUsageByRefErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDeleteAssetUsageByRefError = DomainOrganizationDeleteAssetUsageByRefErrors[keyof DomainOrganizationDeleteAssetUsageByRefErrors];
-
-export type DomainOrganizationDeleteAssetUsageByRefResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetUsageDeleteOut;
-};
-
-export type DomainOrganizationDeleteAssetUsageByRefResponse = DomainOrganizationDeleteAssetUsageByRefResponses[keyof DomainOrganizationDeleteAssetUsageByRefResponses];
-
-export type DomainOrganizationListAssetsData = {
-    /**
-     * Tagids
-     */
-    body?: Array<string> | null;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Purpose
-         */
-        purpose?: string | null;
-        /**
-         * Visibility
-         */
-        visibility?: string | null;
-        /**
-         * Indexable
-         */
-        indexable?: boolean | null;
-        /**
-         * Folderid
-         */
-        folderId?: string | null;
-        /**
-         * Folderisnull
-         */
-        folderIsNull?: boolean | null;
-        /**
-         * Includechildren
-         */
-        includeChildren?: boolean;
-        /**
-         * Mimeprefix
-         */
-        mimePrefix?: string | null;
-        /**
-         * Createdfrom
-         */
-        createdFrom?: string | null;
-        /**
-         * Createdto
-         */
-        createdTo?: string | null;
-        /**
-         * Ordering
-         */
-        ordering?: string | null;
-    };
-    url: '/api/v1/organizations/{organization_id}/assets';
-};
-
-export type DomainOrganizationListAssetsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListAssetsError = DomainOrganizationListAssetsErrors[keyof DomainOrganizationListAssetsErrors];
-
-export type DomainOrganizationListAssetsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAdminAssetSummaryOut;
-};
-
-export type DomainOrganizationListAssetsResponse = DomainOrganizationListAssetsResponses[keyof DomainOrganizationListAssetsResponses];
-
-export type DomainOrganizationGetAssetDetailData = {
-    body?: never;
-    path: {
-        /**
-         * Asset Id
-         */
-        asset_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/assets/{asset_id}';
-};
-
-export type DomainOrganizationGetAssetDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationGetAssetDetailError = DomainOrganizationGetAssetDetailErrors[keyof DomainOrganizationGetAssetDetailErrors];
-
-export type DomainOrganizationGetAssetDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelAdminAssetDetailOut;
-};
-
-export type DomainOrganizationGetAssetDetailResponse = DomainOrganizationGetAssetDetailResponses[keyof DomainOrganizationGetAssetDetailResponses];
-
-export type DomainOrganizationListAssetUsagesData = {
-    body?: never;
-    path: {
-        /**
-         * Asset Id
-         */
-        asset_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/{organization_id}/assets/{asset_id}/usages';
-};
-
-export type DomainOrganizationListAssetUsagesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListAssetUsagesError = DomainOrganizationListAssetUsagesErrors[keyof DomainOrganizationListAssetUsagesErrors];
-
-export type DomainOrganizationListAssetUsagesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataAdminAssetUsageOut;
-};
-
-export type DomainOrganizationListAssetUsagesResponse = DomainOrganizationListAssetUsagesResponses[keyof DomainOrganizationListAssetUsagesResponses];
-
-export type DomainOrganizationLeaveScopedOrganizationData = {
-    body: LeaveOrganizationRequest;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/leave';
-};
-
-export type DomainOrganizationLeaveScopedOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationLeaveScopedOrganizationError = DomainOrganizationLeaveScopedOrganizationErrors[keyof DomainOrganizationLeaveScopedOrganizationErrors];
-
-export type DomainOrganizationLeaveScopedOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelLeaveOrganizationResult;
-};
-
-export type DomainOrganizationLeaveScopedOrganizationResponse = DomainOrganizationLeaveScopedOrganizationResponses[keyof DomainOrganizationLeaveScopedOrganizationResponses];
-
-export type DomainOrganizationGetOrganizationDangerCapabilitiesData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/settings/danger-capabilities';
-};
-
-export type DomainOrganizationGetOrganizationDangerCapabilitiesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationGetOrganizationDangerCapabilitiesError = DomainOrganizationGetOrganizationDangerCapabilitiesErrors[keyof DomainOrganizationGetOrganizationDangerCapabilitiesErrors];
-
-export type DomainOrganizationGetOrganizationDangerCapabilitiesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationDangerCapabilitiesOut;
-};
-
-export type DomainOrganizationGetOrganizationDangerCapabilitiesResponse = DomainOrganizationGetOrganizationDangerCapabilitiesResponses[keyof DomainOrganizationGetOrganizationDangerCapabilitiesResponses];
-
-export type DomainOrganizationInitUploadData = {
-    body: UploadInitRequest;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/uploads/init';
-};
-
-export type DomainOrganizationInitUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationInitUploadError = DomainOrganizationInitUploadErrors[keyof DomainOrganizationInitUploadErrors];
-
-export type DomainOrganizationInitUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadInitOut;
-};
-
-export type DomainOrganizationInitUploadResponse = DomainOrganizationInitUploadResponses[keyof DomainOrganizationInitUploadResponses];
-
-export type DomainOrganizationGetUploadStatusData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/uploads/{upload_id}';
-};
-
-export type DomainOrganizationGetUploadStatusErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationGetUploadStatusError = DomainOrganizationGetUploadStatusErrors[keyof DomainOrganizationGetUploadStatusErrors];
-
-export type DomainOrganizationGetUploadStatusResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadStatusOut;
-};
-
-export type DomainOrganizationGetUploadStatusResponse = DomainOrganizationGetUploadStatusResponses[keyof DomainOrganizationGetUploadStatusResponses];
-
-export type DomainOrganizationAbortUploadData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/uploads/{upload_id}/abort';
-};
-
-export type DomainOrganizationAbortUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationAbortUploadError = DomainOrganizationAbortUploadErrors[keyof DomainOrganizationAbortUploadErrors];
-
-export type DomainOrganizationAbortUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadAbortOut;
-};
-
-export type DomainOrganizationAbortUploadResponse = DomainOrganizationAbortUploadResponses[keyof DomainOrganizationAbortUploadResponses];
-
-export type DomainOrganizationCompleteUploadData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/uploads/{upload_id}/complete';
-};
-
-export type DomainOrganizationCompleteUploadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCompleteUploadError = DomainOrganizationCompleteUploadErrors[keyof DomainOrganizationCompleteUploadErrors];
-
-export type DomainOrganizationCompleteUploadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadCompleteOut;
-};
-
-export type DomainOrganizationCompleteUploadResponse = DomainOrganizationCompleteUploadResponses[keyof DomainOrganizationCompleteUploadResponses];
-
-export type DomainOrganizationUploadPartData = {
-    body?: never;
-    headers?: {
-        /**
-         * Content-Length
-         */
-        'Content-Length'?: number | null;
-    };
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/uploads/{upload_id}/parts/{part_number}';
-};
-
-export type DomainOrganizationUploadPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationUploadPartError = DomainOrganizationUploadPartErrors[keyof DomainOrganizationUploadPartErrors];
-
-export type DomainOrganizationUploadPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainOrganizationUploadPartResponse = DomainOrganizationUploadPartResponses[keyof DomainOrganizationUploadPartResponses];
-
-export type DomainOrganizationCommitUploadPartData = {
-    body: UploadPartCommitRequest;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/uploads/{upload_id}/parts/{part_number}/commit';
-};
-
-export type DomainOrganizationCommitUploadPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCommitUploadPartError = DomainOrganizationCommitUploadPartErrors[keyof DomainOrganizationCommitUploadPartErrors];
-
-export type DomainOrganizationCommitUploadPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type DomainOrganizationCommitUploadPartResponse = DomainOrganizationCommitUploadPartResponses[keyof DomainOrganizationCommitUploadPartResponses];
-
-export type DomainOrganizationPresignUploadPartData = {
-    body?: never;
-    path: {
-        /**
-         * Upload Id
-         */
-        upload_id: string;
-        /**
-         * Part Number
-         */
-        part_number: number;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/uploads/{upload_id}/parts/{part_number}/presign';
-};
-
-export type DomainOrganizationPresignUploadPartErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationPresignUploadPartError = DomainOrganizationPresignUploadPartErrors[keyof DomainOrganizationPresignUploadPartErrors];
-
-export type DomainOrganizationPresignUploadPartResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelUploadPartPresignOut;
-};
-
-export type DomainOrganizationPresignUploadPartResponse = DomainOrganizationPresignUploadPartResponses[keyof DomainOrganizationPresignUploadPartResponses];
-
-export type DomainOrganizationListOrganizationWorkspacesByOrgData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Q
-         *
-         * Search query by workspace name.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, e.g. -created_at, name.
-         */
-        ordering?: string | null;
-        /**
-         * Archived
-         *
-         * Filter archived status when provided.
-         */
-        archived?: boolean | null;
-        /**
-         * Enterable Only
-         *
-         * Only include enterable workspaces.
-         */
-        enterable_only?: boolean;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/{organization_id}/workspaces';
-};
-
-export type DomainOrganizationListOrganizationWorkspacesByOrgErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrganizationWorkspacesByOrgError = DomainOrganizationListOrganizationWorkspacesByOrgErrors[keyof DomainOrganizationListOrganizationWorkspacesByOrgErrors];
-
-export type DomainOrganizationListOrganizationWorkspacesByOrgResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationWorkspaceOut;
-};
-
-export type DomainOrganizationListOrganizationWorkspacesByOrgResponse = DomainOrganizationListOrganizationWorkspacesByOrgResponses[keyof DomainOrganizationListOrganizationWorkspacesByOrgResponses];
-
-export type DomainOrganizationCreateOrganizationWorkspaceByOrgData = {
-    body: OrganizationWorkspaceCreateRequest;
-    path: {
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/workspaces';
-};
-
-export type DomainOrganizationCreateOrganizationWorkspaceByOrgErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationCreateOrganizationWorkspaceByOrgError = DomainOrganizationCreateOrganizationWorkspaceByOrgErrors[keyof DomainOrganizationCreateOrganizationWorkspaceByOrgErrors];
-
-export type DomainOrganizationCreateOrganizationWorkspaceByOrgResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceOut;
-};
-
-export type DomainOrganizationCreateOrganizationWorkspaceByOrgResponse = DomainOrganizationCreateOrganizationWorkspaceByOrgResponses[keyof DomainOrganizationCreateOrganizationWorkspaceByOrgResponses];
-
-export type DomainOrganizationDeleteOrganizationWorkspaceByOrgData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Confirmname
-         *
-         * Workspace name confirmation for destructive delete.
-         */
-        confirmName?: string | null;
-    };
-    url: '/api/v1/organizations/{organization_id}/workspaces/{workspace_id}';
-};
-
-export type DomainOrganizationDeleteOrganizationWorkspaceByOrgErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationDeleteOrganizationWorkspaceByOrgError = DomainOrganizationDeleteOrganizationWorkspaceByOrgErrors[keyof DomainOrganizationDeleteOrganizationWorkspaceByOrgErrors];
-
-export type DomainOrganizationDeleteOrganizationWorkspaceByOrgResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceDeleteResult;
-};
-
-export type DomainOrganizationDeleteOrganizationWorkspaceByOrgResponse = DomainOrganizationDeleteOrganizationWorkspaceByOrgResponses[keyof DomainOrganizationDeleteOrganizationWorkspaceByOrgResponses];
-
-export type DomainOrganizationArchiveOrganizationWorkspaceByOrgData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/workspaces/{workspace_id}/archive';
-};
-
-export type DomainOrganizationArchiveOrganizationWorkspaceByOrgErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationArchiveOrganizationWorkspaceByOrgError = DomainOrganizationArchiveOrganizationWorkspaceByOrgErrors[keyof DomainOrganizationArchiveOrganizationWorkspaceByOrgErrors];
-
-export type DomainOrganizationArchiveOrganizationWorkspaceByOrgResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceArchiveResult;
-};
-
-export type DomainOrganizationArchiveOrganizationWorkspaceByOrgResponse = DomainOrganizationArchiveOrganizationWorkspaceByOrgResponses[keyof DomainOrganizationArchiveOrganizationWorkspaceByOrgResponses];
-
-export type DomainOrganizationListOrganizationWorkspaceMembersByOrgData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Q
-         *
-         * Search query by name or email.
-         */
-        q?: string | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/organizations/{organization_id}/workspaces/{workspace_id}/members';
-};
-
-export type DomainOrganizationListOrganizationWorkspaceMembersByOrgErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationListOrganizationWorkspaceMembersByOrgError = DomainOrganizationListOrganizationWorkspaceMembersByOrgErrors[keyof DomainOrganizationListOrganizationWorkspaceMembersByOrgErrors];
-
-export type DomainOrganizationListOrganizationWorkspaceMembersByOrgResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataOrganizationWorkspaceMemberOut;
-};
-
-export type DomainOrganizationListOrganizationWorkspaceMembersByOrgResponse = DomainOrganizationListOrganizationWorkspaceMembersByOrgResponses[keyof DomainOrganizationListOrganizationWorkspaceMembersByOrgResponses];
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         */
-        workspace_id: string;
-        /**
-         * Organization Id
-         *
-         * Organization ID.
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{organization_id}/workspaces/{workspace_id}/unarchive';
-};
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgError = DomainOrganizationUnarchiveOrganizationWorkspaceByOrgErrors[keyof DomainOrganizationUnarchiveOrganizationWorkspaceByOrgErrors];
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelOrganizationWorkspaceArchiveResult;
-};
-
-export type DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponse = DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses[keyof DomainOrganizationUnarchiveOrganizationWorkspaceByOrgResponses];
 
 export type InternalPermissionsListConditionTemplatesData = {
     body?: never;
@@ -31608,10 +26613,6 @@ export type InternalSystemListActivityData = {
          */
         workspaceId?: string | null;
         /**
-         * Organizationid
-         */
-        organizationId?: string | null;
-        /**
          * Actoruserid
          */
         actorUserId?: string | null;
@@ -31691,255 +26692,6 @@ export type InternalSystemGetActivityDetailResponses = {
 
 export type InternalSystemGetActivityDetailResponse = InternalSystemGetActivityDetailResponses[keyof InternalSystemGetActivityDetailResponses];
 
-export type InternalSystemListOrganizationsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         *
-         * Search organizations by name or slug.
-         */
-        q?: string | null;
-        /**
-         * Ordering
-         *
-         * Ordering fields, for example -created_at or name.
-         */
-        ordering?: string | null;
-        /**
-         * Kind
-         *
-         * Filter by organization kind.
-         */
-        kind?: OrganizationKind | null;
-        /**
-         * Is Active
-         *
-         * Filter by active state.
-         */
-        is_active?: boolean | null;
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/system/directory/organizations';
-};
-
-export type InternalSystemListOrganizationsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListOrganizationsError = InternalSystemListOrganizationsErrors[keyof InternalSystemListOrganizationsErrors];
-
-export type InternalSystemListOrganizationsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataDirectoryOrganizationListItemOut;
-};
-
-export type InternalSystemListOrganizationsResponse = InternalSystemListOrganizationsResponses[keyof InternalSystemListOrganizationsResponses];
-
-export type InternalSystemDeleteOrganizationData = {
-    body: DirectoryDeleteRequest;
-    path: {
-        /**
-         * Organization Id
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/organizations/{organization_id}';
-};
-
-export type InternalSystemDeleteOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDeleteOrganizationError = InternalSystemDeleteOrganizationErrors[keyof InternalSystemDeleteOrganizationErrors];
-
-export type InternalSystemDeleteOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNoneType;
-};
-
-export type InternalSystemDeleteOrganizationResponse = InternalSystemDeleteOrganizationResponses[keyof InternalSystemDeleteOrganizationResponses];
-
-export type InternalSystemGetOrganizationDetailData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/organizations/{organization_id}';
-};
-
-export type InternalSystemGetOrganizationDetailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemGetOrganizationDetailError = InternalSystemGetOrganizationDetailErrors[keyof InternalSystemGetOrganizationDetailErrors];
-
-export type InternalSystemGetOrganizationDetailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryOrganizationDetailOut;
-};
-
-export type InternalSystemGetOrganizationDetailResponse = InternalSystemGetOrganizationDetailResponses[keyof InternalSystemGetOrganizationDetailResponses];
-
-export type InternalSystemUpdateOrganizationData = {
-    body: DirectoryOrganizationUpdateRequest;
-    path: {
-        /**
-         * Organization Id
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/organizations/{organization_id}';
-};
-
-export type InternalSystemUpdateOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemUpdateOrganizationError = InternalSystemUpdateOrganizationErrors[keyof InternalSystemUpdateOrganizationErrors];
-
-export type InternalSystemUpdateOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryOrganizationDetailOut;
-};
-
-export type InternalSystemUpdateOrganizationResponse = InternalSystemUpdateOrganizationResponses[keyof InternalSystemUpdateOrganizationResponses];
-
-export type InternalSystemDisableOrganizationData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/organizations/{organization_id}/disable';
-};
-
-export type InternalSystemDisableOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemDisableOrganizationError = InternalSystemDisableOrganizationErrors[keyof InternalSystemDisableOrganizationErrors];
-
-export type InternalSystemDisableOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryOrganizationDetailOut;
-};
-
-export type InternalSystemDisableOrganizationResponse = InternalSystemDisableOrganizationResponses[keyof InternalSystemDisableOrganizationResponses];
-
-export type InternalSystemEnableOrganizationData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         */
-        organization_id: string;
-    };
-    query?: never;
-    url: '/api/v1/system/directory/organizations/{organization_id}/enable';
-};
-
-export type InternalSystemEnableOrganizationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemEnableOrganizationError = InternalSystemEnableOrganizationErrors[keyof InternalSystemEnableOrganizationErrors];
-
-export type InternalSystemEnableOrganizationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelDirectoryOrganizationDetailOut;
-};
-
-export type InternalSystemEnableOrganizationResponse = InternalSystemEnableOrganizationResponses[keyof InternalSystemEnableOrganizationResponses];
-
-export type InternalSystemListOrganizationOwnerCandidatesData = {
-    body?: never;
-    path: {
-        /**
-         * Organization Id
-         */
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Q
-         *
-         * Search active organization members by username, email, or display name.
-         */
-        q?: string | null;
-    };
-    url: '/api/v1/system/directory/organizations/{organization_id}/owner-candidates';
-};
-
-export type InternalSystemListOrganizationOwnerCandidatesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSystemListOrganizationOwnerCandidatesError = InternalSystemListOrganizationOwnerCandidatesErrors[keyof InternalSystemListOrganizationOwnerCandidatesErrors];
-
-export type InternalSystemListOrganizationOwnerCandidatesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelListDirectoryActorSummaryOut;
-};
-
-export type InternalSystemListOrganizationOwnerCandidatesResponse = InternalSystemListOrganizationOwnerCandidatesResponses[keyof InternalSystemListOrganizationOwnerCandidatesResponses];
-
 export type InternalSystemListProjectsData = {
     body?: never;
     path?: never;
@@ -31956,12 +26708,6 @@ export type InternalSystemListProjectsData = {
          * Ordering fields, for example -created_at or name.
          */
         ordering?: string | null;
-        /**
-         * Organization Id
-         *
-         * Filter by organization id.
-         */
-        organization_id?: string | null;
         /**
          * Workspace Id
          *
@@ -32811,12 +27557,6 @@ export type InternalSystemListWorkspacesData = {
          */
         ordering?: string | null;
         /**
-         * Organization Id
-         *
-         * Filter by organization id.
-         */
-        organization_id?: string | null;
-        /**
          * Is Archived
          *
          * Filter by archive state.
@@ -33582,6 +28322,93 @@ export type InternalTenancyGetWorkspaceTenantResponses = {
 
 export type InternalTenancyGetWorkspaceTenantResponse = InternalTenancyGetWorkspaceTenantResponses[keyof InternalTenancyGetWorkspaceTenantResponses];
 
+export type DomainWorkspacesListWorkspacesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * Search query by workspace name.
+         */
+        q?: string | null;
+        /**
+         * Ordering
+         *
+         * Ordering fields, e.g. -created_at, name.
+         */
+        ordering?: string | null;
+        /**
+         * Archived
+         *
+         * Filter archived status when provided.
+         */
+        archived?: boolean | null;
+        /**
+         * Enterable Only
+         *
+         * Only include enterable workspaces.
+         */
+        enterable_only?: boolean;
+        /**
+         * Page
+         *
+         * Page number (1-based).
+         */
+        page?: number;
+        /**
+         * Size
+         *
+         * Page size.
+         */
+        size?: number;
+    };
+    url: '/api/v1/workspaces';
+};
+
+export type DomainWorkspacesListWorkspacesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesListWorkspacesError = DomainWorkspacesListWorkspacesErrors[keyof DomainWorkspacesListWorkspacesErrors];
+
+export type DomainWorkspacesListWorkspacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelPageDataWorkspaceManageListItemOut;
+};
+
+export type DomainWorkspacesListWorkspacesResponse = DomainWorkspacesListWorkspacesResponses[keyof DomainWorkspacesListWorkspacesResponses];
+
+export type DomainWorkspacesCreateWorkspaceData = {
+    body: WorkspaceManageCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces';
+};
+
+export type DomainWorkspacesCreateWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateWorkspaceError = DomainWorkspacesCreateWorkspaceErrors[keyof DomainWorkspacesCreateWorkspaceErrors];
+
+export type DomainWorkspacesCreateWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceManageListItemOut;
+};
+
+export type DomainWorkspacesCreateWorkspaceResponse = DomainWorkspacesCreateWorkspaceResponses[keyof DomainWorkspacesCreateWorkspaceResponses];
+
 export type DomainWorkspacesDeleteWorkspaceData = {
     body?: never;
     path: {
@@ -33713,10 +28540,6 @@ export type DomainWorkspacesListWorkspaceActivityData = {
          */
         workspaceId?: string | null;
         /**
-         * Organizationid
-         */
-        organizationId?: string | null;
-        /**
          * Actoruserid
          */
         actorUserId?: string | null;
@@ -33765,6 +28588,36 @@ export type DomainWorkspacesListWorkspaceActivityResponses = {
 };
 
 export type DomainWorkspacesListWorkspaceActivityResponse = DomainWorkspacesListWorkspaceActivityResponses[keyof DomainWorkspacesListWorkspaceActivityResponses];
+
+export type DomainWorkspacesArchiveWorkspaceData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/archive';
+};
+
+export type DomainWorkspacesArchiveWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesArchiveWorkspaceError = DomainWorkspacesArchiveWorkspaceErrors[keyof DomainWorkspacesArchiveWorkspaceErrors];
+
+export type DomainWorkspacesArchiveWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceManageArchiveResult;
+};
+
+export type DomainWorkspacesArchiveWorkspaceResponse = DomainWorkspacesArchiveWorkspaceResponses[keyof DomainWorkspacesArchiveWorkspaceResponses];
 
 export type DomainWorkspacesGetWorkspaceDangerCapabilitiesData = {
     body?: never;
@@ -35175,6 +30028,302 @@ export type DomainWorkspacesListUserOptionsResponses = {
 };
 
 export type DomainWorkspacesListUserOptionsResponse = DomainWorkspacesListUserOptionsResponses[keyof DomainWorkspacesListUserOptionsResponses];
+
+export type DomainWorkspacesUnarchiveWorkspaceData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/unarchive';
+};
+
+export type DomainWorkspacesUnarchiveWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesUnarchiveWorkspaceError = DomainWorkspacesUnarchiveWorkspaceErrors[keyof DomainWorkspacesUnarchiveWorkspaceErrors];
+
+export type DomainWorkspacesUnarchiveWorkspaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelWorkspaceManageArchiveResult;
+};
+
+export type DomainWorkspacesUnarchiveWorkspaceResponse = DomainWorkspacesUnarchiveWorkspaceResponses[keyof DomainWorkspacesUnarchiveWorkspaceResponses];
+
+export type DomainWorkspacesInitUploadData = {
+    body: UploadInitRequest;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/uploads/init';
+};
+
+export type DomainWorkspacesInitUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesInitUploadError = DomainWorkspacesInitUploadErrors[keyof DomainWorkspacesInitUploadErrors];
+
+export type DomainWorkspacesInitUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadInitOut;
+};
+
+export type DomainWorkspacesInitUploadResponse = DomainWorkspacesInitUploadResponses[keyof DomainWorkspacesInitUploadResponses];
+
+export type DomainWorkspacesGetUploadStatusData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}';
+};
+
+export type DomainWorkspacesGetUploadStatusErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetUploadStatusError = DomainWorkspacesGetUploadStatusErrors[keyof DomainWorkspacesGetUploadStatusErrors];
+
+export type DomainWorkspacesGetUploadStatusResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadStatusOut;
+};
+
+export type DomainWorkspacesGetUploadStatusResponse = DomainWorkspacesGetUploadStatusResponses[keyof DomainWorkspacesGetUploadStatusResponses];
+
+export type DomainWorkspacesAbortUploadData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/abort';
+};
+
+export type DomainWorkspacesAbortUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesAbortUploadError = DomainWorkspacesAbortUploadErrors[keyof DomainWorkspacesAbortUploadErrors];
+
+export type DomainWorkspacesAbortUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadAbortOut;
+};
+
+export type DomainWorkspacesAbortUploadResponse = DomainWorkspacesAbortUploadResponses[keyof DomainWorkspacesAbortUploadResponses];
+
+export type DomainWorkspacesCompleteUploadData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/complete';
+};
+
+export type DomainWorkspacesCompleteUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCompleteUploadError = DomainWorkspacesCompleteUploadErrors[keyof DomainWorkspacesCompleteUploadErrors];
+
+export type DomainWorkspacesCompleteUploadResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadCompleteOut;
+};
+
+export type DomainWorkspacesCompleteUploadResponse = DomainWorkspacesCompleteUploadResponses[keyof DomainWorkspacesCompleteUploadResponses];
+
+export type DomainWorkspacesUploadPartData = {
+    body?: never;
+    headers?: {
+        /**
+         * Content-Length
+         */
+        'Content-Length'?: number | null;
+    };
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/parts/{part_number}';
+};
+
+export type DomainWorkspacesUploadPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesUploadPartError = DomainWorkspacesUploadPartErrors[keyof DomainWorkspacesUploadPartErrors];
+
+export type DomainWorkspacesUploadPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainWorkspacesUploadPartResponse = DomainWorkspacesUploadPartResponses[keyof DomainWorkspacesUploadPartResponses];
+
+export type DomainWorkspacesCommitUploadPartData = {
+    body: UploadPartCommitRequest;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/parts/{part_number}/commit';
+};
+
+export type DomainWorkspacesCommitUploadPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCommitUploadPartError = DomainWorkspacesCommitUploadPartErrors[keyof DomainWorkspacesCommitUploadPartErrors];
+
+export type DomainWorkspacesCommitUploadPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type DomainWorkspacesCommitUploadPartResponse = DomainWorkspacesCommitUploadPartResponses[keyof DomainWorkspacesCommitUploadPartResponses];
+
+export type DomainWorkspacesPresignUploadPartData = {
+    body?: never;
+    path: {
+        /**
+         * Upload Id
+         */
+        upload_id: string;
+        /**
+         * Part Number
+         */
+        part_number: number;
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/uploads/{upload_id}/parts/{part_number}/presign';
+};
+
+export type DomainWorkspacesPresignUploadPartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesPresignUploadPartError = DomainWorkspacesPresignUploadPartErrors[keyof DomainWorkspacesPresignUploadPartErrors];
+
+export type DomainWorkspacesPresignUploadPartResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadPartPresignOut;
+};
+
+export type DomainWorkspacesPresignUploadPartResponse = DomainWorkspacesPresignUploadPartResponses[keyof DomainWorkspacesPresignUploadPartResponses];
 
 export type ExternalContentApiSitesListArticleContentEntriesData = {
     body?: never;

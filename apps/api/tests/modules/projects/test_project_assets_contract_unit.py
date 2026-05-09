@@ -86,5 +86,17 @@ def test_workspace_router_excludes_asset_management_routes() -> None:
     assert "/workspaces/{workspace_id}/assets" not in paths
     assert "/workspaces/{workspace_id}/asset-folders" not in paths
     assert "/workspaces/{workspace_id}/asset-tags" not in paths
-    assert "/workspaces/{workspace_id}/uploads/init" not in paths
     assert "/workspaces/{workspace_id}/asset-usages" not in paths
+
+
+def test_workspace_router_exposes_workspace_icon_upload_surface() -> None:
+    from src.modules.workspaces.router import router
+
+    paths = {route.path for route in router.routes if isinstance(route, APIRoute)}
+
+    assert "/workspaces/{workspace_id}/uploads/init" in paths
+    assert "/workspaces/{workspace_id}/uploads/{upload_id}" in paths
+    assert "/workspaces/{workspace_id}/uploads/{upload_id}/complete" in paths
+    assert _route_permissions(router, path="/workspaces/{workspace_id}/uploads/init", method="POST") == {
+        "system:settings:manage"
+    }

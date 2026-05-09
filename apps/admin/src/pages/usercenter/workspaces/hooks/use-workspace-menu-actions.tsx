@@ -28,7 +28,6 @@ type WorkspaceDangerCapabilityState =
   | { status: "ready"; data: WorkspaceDangerCapabilities };
 
 type UseWorkspaceMenuActionsOptions = {
-  organizationId?: string;
   t: UserCenterWorkspacesTranslateFn;
   onEnterWorkspace: (workspace: UserCenterWorkspaceListItem) => void;
   onManageWorkspace: (workspace: UserCenterWorkspaceListItem) => void;
@@ -72,7 +71,6 @@ function buildWorkspaceIconPatch(values: WorkspaceIconDialogValues) {
 }
 
 export function useWorkspaceMenuActions({
-  organizationId,
   t,
   onEnterWorkspace,
   onManageWorkspace,
@@ -106,7 +104,6 @@ export function useWorkspaceMenuActions({
   const editNavigationTimerRef = useRef<number | null>(null);
 
   const mutations = useUserCenterWorkspacesMutations({
-    organizationId,
     t,
     onCreateSuccess: () => undefined,
     onArchiveSuccess: () => {

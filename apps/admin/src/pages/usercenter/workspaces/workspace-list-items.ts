@@ -1,5 +1,5 @@
 import type { PageData } from "@arclayer/openapi/admin-types";
-import type { OrganizationWorkspace } from "@arclayer/openapi/admin-types";
+import type { WorkspaceManageListItem } from "@arclayer/openapi/admin-types";
 
 export type UserCenterWorkspaceListItemMemberPreview = {
   userId: string;
@@ -13,7 +13,6 @@ export type UserCenterWorkspaceListItem = {
   id: string;
   workspaceId: string;
   projectId: string | null;
-  organizationId: string;
   name: string;
   kind: "team";
   description: string | null;
@@ -31,9 +30,10 @@ export type UserCenterWorkspaceListItem = {
   enterable: boolean;
 };
 
-export function mapOrganizationWorkspaceToListItem(
-  workspace: OrganizationWorkspace,
+export function mapWorkspaceManageListItemToListItem(
+  workspace: WorkspaceManageListItem,
 ): UserCenterWorkspaceListItem {
+  const membersPreview = workspace.membersPreview ?? [];
   return {
     ...workspace,
     projectId: workspace.projectId ?? null,
@@ -47,14 +47,15 @@ export function mapOrganizationWorkspaceToListItem(
     isArchived: workspace.isArchived ?? false,
     archivedAt: workspace.archivedAt ?? null,
     archivedByUserId: workspace.archivedByUserId ?? null,
+    memberCount: workspace.memberCount ?? 0,
     enterable: workspace.enterable ?? true,
     kind: "team",
-    membersPreview: workspace.membersPreview.map((member) => ({
+    membersPreview: membersPreview.map((member) => ({
       userId: member.userId,
       username: member.username,
       displayName: member.displayName ?? null,
       avatarUrl: member.avatarUrl ?? null,
-      email: member.email ?? null,
+      email: null,
     })),
   };
 }

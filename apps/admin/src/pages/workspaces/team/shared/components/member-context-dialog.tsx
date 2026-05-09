@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import { Building2, FolderKanban, X } from "lucide-react";
+import { FolderKanban, X } from "lucide-react";
 
 import { Button } from "@arclayer/ui/button";
 import {
@@ -35,7 +35,6 @@ export type MemberContextDialogProps = {
   dialogDescription?: ReactNode;
   member: MemberIdentity | null;
   scopeLabel: string;
-  scopeVariant?: "organization" | "workspace";
   summary?: ReactNode;
   badges?: ReactNode;
   actionButtons?: readonly MemberContextDialogAction[];
@@ -58,12 +57,11 @@ function getSecondaryLabel(member: MemberIdentity | null): string {
   return member.email || member.username || "";
 }
 
-function HeaderScopeTag(props: { label: string; variant?: "organization" | "workspace" }) {
-  const Icon = props.variant === "workspace" ? FolderKanban : Building2;
+function HeaderScopeTag(props: { label: string }) {
   return (
     <BaseTag
       classNames={HEADER_SCOPE_TAG_CLASSNAMES}
-      icon={lucideTagIcon(Icon)}
+      icon={lucideTagIcon(FolderKanban)}
       className="!bg-muted/70"
     >
       <span className="truncate">{props.label}</span>
@@ -172,7 +170,7 @@ export function MemberContextDialog(props: MemberContextDialogProps) {
                       <div className="truncate text-callout text-label-secondary">{secondary}</div>
                     ) : null}
                     <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 [&>*]:max-w-full">
-                      <HeaderScopeTag label={props.scopeLabel} variant={props.scopeVariant} />
+                      <HeaderScopeTag label={props.scopeLabel} />
                       {props.badges}
                     </div>
                   </div>

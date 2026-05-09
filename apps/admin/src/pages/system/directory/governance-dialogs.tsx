@@ -3,7 +3,6 @@
 import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { z } from "zod";
 
 import { ProjectAvatar } from "@/components/common/project-avatar";
 import { WorkspaceAvatar } from "@/components/common/entity-avatar";
@@ -12,15 +11,8 @@ import { WORKSPACE_ICON_GLYPH_IDS } from "@/components/common/workspace-icon-gly
 import { useImageFallback } from "@/components/common/use-image-fallback";
 import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
 import { getFieldErrorMessage } from "@/lib/forms/rhf-form-helpers";
-import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import {
-  DebounceSelect,
-  type DebounceSelectOption,
-} from "@/pages/workspaces/shared/activity/components/debounce-select";
 import type {
-  DirectoryActorSummary,
-  SystemDirectoryOrganization,
   SystemDirectoryProject,
   SystemDirectoryWorkspace,
 } from "@arclayer/openapi/admin-types";
@@ -53,14 +45,6 @@ export type DirectoryIconValues = {
   iconUrl: string | null;
 };
 
-type EditOrganizationValues = {
-  name: string;
-};
-
-type AssignOwnerValues = {
-  ownerUserId: string;
-};
-
 type EditWorkspaceValues = {
   name: string;
   description: string;
@@ -71,31 +55,6 @@ type WorkspaceRoleValues = {
   assignRoleCode: string;
   confirmName: string;
 };
-
-type OwnerSelectOption = DebounceSelectOption & {
-  user: DirectoryActorSummary;
-};
-
-function resolveUserDisplayName(user: DirectoryActorSummary): string {
-  return user.displayName || user.username || user.email || user.userId;
-}
-
-function createOwnerSelectOption(user: DirectoryActorSummary): OwnerSelectOption {
-  const primary = resolveUserDisplayName(user);
-  return {
-    value: user.userId,
-    avatarUrl: user.avatarUrl ?? user.avatar_url,
-    user,
-    label: (
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate text-sm font-medium text-foreground">{primary}</span>
-        {user.email ? (
-          <span className="truncate text-xs text-muted-foreground">{user.email}</span>
-        ) : null}
-      </span>
-    ),
-  };
-}
 
 type EditProjectValues = {
   name: string;
@@ -195,161 +154,6 @@ function ColorSwatch(props: { color: string; selected: boolean; onClick: () => v
       ].join(" ")}
       style={{ backgroundColor: props.color }}
     />
-  );
-}
-
-export function EditOrganizationDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  organization: SystemDirectoryOrganization | null;
-  pending: boolean;
-  onSubmit: (values: { name: string }) => Promise<void>;
-}) {
-  const { t } = useTranslation(["settings", "common"]);
-  const schema = React.useMemo(
-    () =>
-      z.object({
-        name: z.string().trim().min(1).max(128),
-      }),
-    [],
-  );
-  const form = useForm<EditOrganizationValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { name: "" },
-  });
-
-  React.useEffect(() => {
-    if (!props.open) return;
-    form.reset({
-      name: props.organization?.name ?? "",
-    });
-  }, [form, props.open, props.organization]);
-
-  const onSubmit = form.handleSubmit(async (values) => {
-    await props.onSubmit({
-      name: normalizeRequiredString(values.name),
-    });
-    props.onOpenChange(false);
-  });
-
-  return (
-    <SettingDialog
-      open={props.open}
-      onOpenChange={(open) => {
-        if (!props.pending) props.onOpenChange(open);
-      }}
-      title={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ORGANIZATION_TITLE")}
-      description={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ORGANIZATION_DESC")}
-      footer={
-        <div className="flex w-full justify-end gap-2">
-          <Button
-            variant="outline"
-            disabled={props.pending}
-            onClick={() => props.onOpenChange(false)}
-          >
-            {t("common:CANCEL")}
-          </Button>
-          <Button loading={props.pending} onClick={() => void onSubmit()}>
-            {t("common:CONFIRM")}
-          </Button>
-        </div>
-      }
-    >
-      <form onSubmit={onSubmit}>
-        <SettingDialogFields>
-          <SettingDialogField
-            title={t("settings:SETTINGS_SYSTEM_DIRECTORY_EDIT_ORGANIZATION_NAME")}
-            error={form.formState.errors.name?.message?.toString()}
-          >
-            <Input disabled={props.pending} {...form.register("name")} />
-          </SettingDialogField>
-        </SettingDialogFields>
-      </form>
-    </SettingDialog>
-  );
-}
-
-export function AssignOrganizationOwnerDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  organization: SystemDirectoryOrganization | null;
-  fetchUsers: (search: string) => Promise<DirectoryActorSummary[]>;
-  pending: boolean;
-  onSubmit: (values: { ownerUserId: string }) => Promise<void>;
-}) {
-  const { t } = useTranslation(["settings", "common"]);
-  const form = useForm<AssignOwnerValues>({ defaultValues: { ownerUserId: "" } });
-  const [selectedOwner, setSelectedOwner] = React.useState<OwnerSelectOption | undefined>();
-
-  React.useEffect(() => {
-    if (!props.open) return;
-    form.reset({ ownerUserId: props.organization?.owner?.userId ?? "" });
-    const owner = props.organization?.owner;
-    setSelectedOwner(owner ? createOwnerSelectOption(owner) : undefined);
-  }, [form, props.open, props.organization]);
-
-  const onSubmit = form.handleSubmit(async (values) => {
-    const ownerUserId = normalizeRequiredString(values.ownerUserId);
-    if (!ownerUserId) return;
-    await props.onSubmit({ ownerUserId });
-    props.onOpenChange(false);
-  });
-
-  return (
-    <SettingDialog
-      open={props.open}
-      onOpenChange={(open) => {
-        if (!props.pending) props.onOpenChange(open);
-      }}
-      title={t("settings:SETTINGS_SYSTEM_DIRECTORY_ASSIGN_OWNER_TITLE")}
-      description={t("settings:SETTINGS_SYSTEM_DIRECTORY_ASSIGN_OWNER_DESC")}
-      footer={
-        <div className="flex w-full justify-end gap-2">
-          <Button
-            variant="outline"
-            disabled={props.pending}
-            onClick={() => props.onOpenChange(false)}
-          >
-            {t("common:CANCEL")}
-          </Button>
-          <Button loading={props.pending} onClick={() => void onSubmit()}>
-            {t("common:CONFIRM")}
-          </Button>
-        </div>
-      }
-    >
-      <form onSubmit={onSubmit}>
-        <SettingDialogFields>
-          <SettingDialogField
-            title={t("settings:SETTINGS_SYSTEM_DIRECTORY_ASSIGN_OWNER_FIELD")}
-            description={t("settings:SETTINGS_SYSTEM_DIRECTORY_ASSIGN_OWNER_HELP")}
-          >
-            <Controller
-              control={form.control}
-              name="ownerUserId"
-              render={({ field }) => (
-                <DebounceSelect<OwnerSelectOption>
-                  value={selectedOwner}
-                  disabled={props.pending}
-                  allowClear
-                  className="h-auto min-h-14 items-start py-2"
-                  placeholder={t("settings:SETTINGS_SYSTEM_DIRECTORY_ASSIGN_OWNER_SEARCH")}
-                  emptyText={t("settings:SETTINGS_SYSTEM_DIRECTORY_ASSIGN_OWNER_EMPTY")}
-                  fetchOptions={async (search) => {
-                    const users = await props.fetchUsers(search);
-                    return users.map(createOwnerSelectOption);
-                  }}
-                  onChange={(next) => {
-                    setSelectedOwner(next);
-                    field.onChange(next ? String(next.value) : "");
-                  }}
-                />
-              )}
-            />
-          </SettingDialogField>
-        </SettingDialogFields>
-      </form>
-    </SettingDialog>
   );
 }
 
@@ -750,7 +554,7 @@ export function DirectoryIconDialog(props: DirectoryIconDialogProps) {
       scope:
         props.kind === "project"
           ? { type: "project", id: props.entity.projectId }
-          : { type: "organization", id: props.entity.organizationId },
+          : { type: "workspace", id: props.entity.workspaceId },
       purpose: "workspace_icon",
       file,
       t,

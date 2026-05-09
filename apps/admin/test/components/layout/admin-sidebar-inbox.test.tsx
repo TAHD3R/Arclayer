@@ -162,7 +162,6 @@ describe("AdminSidebarInbox", () => {
         {
           workspaceId: "ws-1",
           projectId: "project-alpha",
-          organizationId: "org-1",
           name: "Workspace Alpha",
           kind: "team",
         },

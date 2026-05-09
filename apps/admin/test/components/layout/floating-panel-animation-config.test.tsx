@@ -109,12 +109,8 @@ vi.mock("@/api/auth", () => ({
   me: vi.fn(),
 }));
 
-vi.mock("@/api/me", () => ({
-  listMyOrganizations: vi.fn(),
-}));
-
-vi.mock("@/api/organization-workspaces", () => ({
-  listOrganizationWorkspaces: vi.fn(),
+vi.mock("@/api/workspace-management", () => ({
+  listWorkspaces: vi.fn(),
 }));
 
 vi.mock("@/api/workspaces", () => ({
@@ -134,8 +130,7 @@ import {
 } from "@arclayer/ui/floating-panel";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 import * as authApi from "@/api/auth";
-import { listMyOrganizations } from "@/api/me";
-import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
+import { listWorkspaces } from "@/api/workspace-management";
 import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminScopeSwitcher } from "@/components/layout/admin-scope-switcher";
@@ -228,35 +223,13 @@ beforeEach(() => {
     email: "tester@example.com",
     displayName: "Tester",
   } as never);
-  vi.mocked(listMyOrganizations).mockResolvedValue({
-    items: [
-      {
-        organization: {
-          id: "org-1",
-          name: "Org Alpha",
-          slug: "org-alpha",
-          logoUrl: null,
-        },
-        membership: {
-          id: "membership-1",
-          organizationId: "org-1",
-          role: "owner",
-          status: "active",
-        },
-        memberCount: 3,
-        membersPreview: [],
-      },
-    ],
-    total: 1,
-  });
-  vi.mocked(listOrganizationWorkspaces).mockResolvedValue({
+  vi.mocked(listWorkspaces).mockResolvedValue({
     items: [
       {
         id: "workspace-link-1",
         workspaceId: "ws-alpha",
         projectId: "project-alpha",
         project: { projectId: "project-alpha" },
-        organizationId: "org-1",
         name: "Workspace Alpha",
         description: null,
         iconMode: "initials",
@@ -283,7 +256,6 @@ beforeEach(() => {
   vi.mocked(getWorkspaceDetail).mockResolvedValue({
     id: "ws-alpha",
     project: { projectId: "project-alpha" },
-    organizationId: "org-1",
     name: "Workspace Alpha",
     kind: "team",
     iconMode: "initials",

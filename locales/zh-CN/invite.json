@@ -1,13 +1,11 @@
 {
   "INVITE_ACTION_ACCEPT_JOIN": "同意邀请并加入",
-  "INVITE_ACTION_ACCEPT_JOIN_ORG": "接受邀请并加入组织",
   "INVITE_ACTION_BACK": "返回",
   "INVITE_ACTION_BACK_TO_LOGIN": "返回登录",
   "INVITE_ACTION_ENTER_TOKEN": "手动输入 Token",
   "INVITE_ACTION_GO_TO_LOGIN": "前往登录页",
   "INVITE_ACTION_JOIN": "加入工作空间并进入后台",
   "INVITE_ACTION_JOIN_ANYWAY": "仍要用账号加入",
-  "INVITE_ACTION_JOIN_ORG": "加入组织并进入后台",
   "INVITE_ACTION_LOGIN_JOIN": "登录并加入工作空间",
   "INVITE_ACTION_LOGOUT_SWITCH": "退出并切换账号",
   "INVITE_ACTION_REGISTER_JOIN": "创建账号并加入工作空间",
@@ -46,13 +44,11 @@
   "INVITE_REPAIR_REQUIRED_DESC": "该实例当前需要修复。修复完成前，邀请流程无法继续。",
   "INVITE_REPAIR_REQUIRED_TITLE": "当前暂时无法接受邀请",
   "INVITE_ROLE_UNKNOWN": "未知角色",
-  "INVITE_SCOPE_ORGANIZATION": "组织邀请",
   "INVITE_SCOPE_WORKSPACE": "工作空间邀请",
   "INVITE_SETUP_REQUIRED_ACTION": "前往初始化",
   "INVITE_SETUP_REQUIRED_DESC": "当前实例尚未完成初始化。先创建首个管理员，再返回继续接受邀请。",
   "INVITE_SETUP_REQUIRED_TITLE": "请先完成系统初始化",
   "INVITE_STEP2_TITLE": "加入工作空间",
-  "INVITE_STEP2_TITLE_ORG": "加入组织",
   "INVITE_TOKEN_INPUT_CONFIRM": "继续",
   "INVITE_TOKEN_INPUT_DESC": "如果邮件里的按钮无法使用，你可以复制邮件中提供的 Token 并粘贴到此处。",
   "INVITE_TOKEN_INPUT_FIELD_HELP": "粘贴邮件中的完整 Token，系统会校验后继续下一步。",
@@ -61,5 +57,5 @@
   "INVITE_TOKEN_INPUT_TITLE": "手动输入邀请 Token",
   "INVITE_TOKEN_MISSING": "缺少邀请 Token，请检查链接是否完整。",
   "INVITE_TOKEN_MISSING_DESC": "你可以从邮件中复制 Token 并手动输入。",
-  "INVITE_WORKSPACE_FALLBACK": "组织"
+  "INVITE_WORKSPACE_FALLBACK": "工作空间"
 }

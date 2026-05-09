@@ -40,7 +40,6 @@ class AdminAssetListQuery(BaseSchema):
 class AdminAssetSummaryOut(BaseOut):
     workspace_id: PublicUUID | None = Field(default=None, description="Workspace id.")
     project_id: PublicUUID | None = Field(default=None, description="Project id.")
-    organization_id: PublicUUID | None = Field(default=None, description="Organization id.")
     user_id: PublicUUID | None = Field(default=None, description="User id.")
     owner_user_id: PublicUUID | None = Field(default=None, description="Uploader (owner) user id.")
     uploader_name: str | None = Field(default=None, description="Uploader display name (best-effort).")

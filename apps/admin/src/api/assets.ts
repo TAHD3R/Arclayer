@@ -1,5 +1,5 @@
 import { api } from "@/lib/http";
-import { organizationPath, projectPath, toQueryString } from "@/lib/api";
+import { projectPath, toQueryString } from "@/lib/api";
 import type {
   PageData,
   AdminAssetSummary,
@@ -45,29 +45,6 @@ export async function listAssets(
   return api.get<PageData<AdminAssetSummary>>(projectPath(projectId, `/assets${query}`));
 }
 
-export async function listOrganizationAssets(
-  organizationId: string,
-  params: ListAdminAssetsParams = {},
-): Promise<PageData<AdminAssetSummary>> {
-  const query = toQueryString({
-    page: params.page ?? 1,
-    size: params.size ?? 24,
-    q: params.q,
-    purpose: params.purpose,
-    visibility: params.visibility,
-    indexable: params.indexable,
-    folderId: params.folderId,
-    folderIsNull: params.folderIsNull,
-    includeChildren: params.includeChildren,
-    mimePrefix: params.mimePrefix,
-    createdFrom: params.createdFrom,
-    createdTo: params.createdTo,
-    tagIds: params.tagIds,
-    ordering: params.ordering,
-  });
-  return api.get<PageData<AdminAssetSummary>>(organizationPath(organizationId, `/assets${query}`));
-}
-
 export async function listAssetFolders(
   projectId: string,
   params: { page?: number; size?: number } = {},
@@ -77,19 +54,6 @@ export async function listAssetFolders(
     size: params.size ?? 200,
   });
   return api.get<PageData<AdminAssetFolder>>(projectPath(projectId, `/asset-folders${query}`));
-}
-
-export async function listOrganizationAssetFolders(
-  organizationId: string,
-  params: { page?: number; size?: number } = {},
-): Promise<PageData<AdminAssetFolder>> {
-  const query = toQueryString({
-    page: params.page ?? 1,
-    size: params.size ?? 200,
-  });
-  return api.get<PageData<AdminAssetFolder>>(
-    organizationPath(organizationId, `/asset-folders${query}`),
-  );
 }
 
 export async function createAssetFolder(
@@ -150,22 +114,6 @@ export async function listAssetTags(
   return api.get<PageData<AdminAssetTag>>(projectPath(projectId, `/asset-tags${query}`));
 }
 
-export async function listOrganizationAssetTags(
-  organizationId: string,
-  params: {
-    q?: string;
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<PageData<AdminAssetTag>> {
-  const query = toQueryString({
-    q: params.q,
-    page: params.page ?? 1,
-    size: params.size ?? 200,
-  });
-  return api.get<PageData<AdminAssetTag>>(organizationPath(organizationId, `/asset-tags${query}`));
-}
-
 export async function createAssetTag(
   projectId: string,
   payload: { name: string },
@@ -173,25 +121,11 @@ export async function createAssetTag(
   return api.post<AdminAssetTag>(projectPath(projectId, "/asset-tags"), payload);
 }
 
-export async function createOrganizationAssetTag(
-  organizationId: string,
-  payload: { name: string },
-): Promise<AdminAssetTag> {
-  return api.post<AdminAssetTag>(organizationPath(organizationId, "/asset-tags"), payload);
-}
-
 export async function getAssetDetail(
   projectId: string,
   assetId: string,
 ): Promise<AdminAssetDetail> {
   return api.get<AdminAssetDetail>(projectPath(projectId, `/assets/${assetId}`));
-}
-
-export async function getOrganizationAssetDetail(
-  organizationId: string,
-  assetId: string,
-): Promise<AdminAssetDetail> {
-  return api.get<AdminAssetDetail>(organizationPath(organizationId, `/assets/${assetId}`));
 }
 
 export async function patchAsset(

@@ -705,6 +705,7 @@ export function TeamRolesView(
                           role as RoleWithPermissionGrants,
                           perm.code,
                         );
+                        const hasConditionalGrant = conditionSetCount > 0;
                         return (
                           <TableCell key={key} className="px-2 py-2 text-center">
                             <div className="flex flex-col items-center justify-center gap-1.5">
@@ -712,10 +713,12 @@ export function TeamRolesView(
                                 checked={granted}
                                 disabled={
                                   role.isSystem ||
+                                  hasConditionalGrant ||
                                   !canManageRoles ||
                                   savePermissionsMutation.isPending
                                 }
                                 onCheckedChange={(checked) => {
+                                  if (hasConditionalGrant) return;
                                   setDraftPermissionCodesByRole((current) => {
                                     const nextPermissionCodes = new Set(
                                       current[role.code] ??
@@ -734,7 +737,7 @@ export function TeamRolesView(
                                   });
                                 }}
                               />
-                              {conditionSetCount > 0 ? (
+                              {hasConditionalGrant ? (
                                 <BaseTag color="blue" textStyle="caption">
                                   {t("team:TEAM_ROLES_CONDITION_SET_COUNT", {
                                     count: conditionSetCount,

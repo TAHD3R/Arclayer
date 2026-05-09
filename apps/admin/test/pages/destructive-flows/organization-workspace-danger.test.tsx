@@ -109,7 +109,6 @@ describe("workspace destructive flows", () => {
     mockPathname = "/w/ws-1/settings/workspace/danger";
     getWorkspaceDangerCapabilitiesMock.mockResolvedValue({
       workspaceId: "ws-1",
-      organizationId: "org-1",
       confirmLeaveText: "LEAVE",
       confirmDeleteName: "Workspace Alpha",
       leaveAction: { enabled: true, blockedReason: null },
@@ -121,7 +120,6 @@ describe("workspace destructive flows", () => {
         {
           workspaceId: "ws-2",
           projectId: "project-2",
-          organizationId: "org-2",
           slug: "beta",
           name: "Beta",
           kind: "team",
@@ -134,7 +132,6 @@ describe("workspace destructive flows", () => {
           {
             workspaceId: "ws-2",
             projectId: "project-2",
-            organizationId: "org-2",
             slug: "beta",
             name: "Beta",
             kind: "team",
@@ -177,7 +174,6 @@ describe("workspace destructive flows", () => {
     const user = userEvent.setup();
     getWorkspaceDangerCapabilitiesMock.mockResolvedValue({
       workspaceId: "ws-1",
-      organizationId: "org-1",
       confirmLeaveText: "LEAVE",
       confirmDeleteName: "Workspace Alpha",
       leaveAction: { enabled: true, blockedReason: null },

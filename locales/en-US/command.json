@@ -6,7 +6,7 @@
   "COMMAND_ACTION_SWITCH_PROJECT": "Switch project",
   "COMMAND_ACTION_SWITCH_PROJECT_DESC": "Open projects and switch the current workspace context.",
   "COMMAND_ACTION_SWITCH_WORKSPACE": "Switch workspace",
-  "COMMAND_ACTION_SWITCH_WORKSPACE_DESC": "Open the workspace switcher for this organization.",
+  "COMMAND_ACTION_SWITCH_WORKSPACE_DESC": "Open the workspace switcher for this account.",
   "COMMAND_DIALOG_DESCRIPTION": "Search actions, pages, people, and assets across the admin workspace.",
   "COMMAND_DIALOG_SHORTCUT_HINT_PREFIX": "Press",
   "COMMAND_DIALOG_SHORTCUT_HINT_SUFFIX": "any time to search",

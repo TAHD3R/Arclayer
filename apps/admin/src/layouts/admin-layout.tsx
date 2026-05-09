@@ -237,7 +237,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
         pathname,
         workspaceId: null,
         projectId: null,
-        organizationId: null,
       } as const;
     }
 
@@ -246,15 +245,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
       pathname,
       workspaceId: effectiveWorkspaceId ? String(effectiveWorkspaceId) : null,
       projectId: effectiveProjectId ? String(effectiveProjectId) : null,
-      organizationId: workspaceDetailQuery.data?.organizationId ?? null,
     } as const;
-  }, [
-    effectiveProjectId,
-    effectiveWorkspaceId,
-    isWorkspaceScopeRoute,
-    pathname,
-    workspaceDetailQuery.data?.organizationId,
-  ]);
+  }, [effectiveProjectId, effectiveWorkspaceId, isWorkspaceScopeRoute, pathname]);
 
   const routeContent = (
     <SidebarProvider

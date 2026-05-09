@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { SettingsSectionTarget } from "@/lib/settings/settings-screen";
 
-export type CommandScopeKind = "workspace" | "organization" | "me" | "none";
+export type CommandScopeKind = "workspace" | "me" | "none";
 export type CommandEntryKind = "page" | "action" | "user" | "asset";
 export type CommandSectionId = "recent" | "favorites" | "actions" | "pages" | "users" | "assets";
 export type CommandAvatarShape = "circle" | "square";
@@ -78,5 +78,4 @@ export type CommandScope = {
   pathname: string;
   workspaceId: string | null;
   projectId: string | null;
-  organizationId: string | null;
 };

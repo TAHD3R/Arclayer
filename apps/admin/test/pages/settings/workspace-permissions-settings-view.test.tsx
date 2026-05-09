@@ -5,8 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkspacePermissionsSettingsView } from "@/pages/workspaces/settings/workspace/permissions/components/workspace-permissions-settings-view";
 
-const { listWorkspacePermissionActionsMock, teamRolesPageMock } = vi.hoisted(() => ({
-  listWorkspacePermissionActionsMock: vi.fn(),
+const { teamRolesPageMock } = vi.hoisted(() => ({
   teamRolesPageMock: vi.fn(),
 }));
 
@@ -14,11 +13,6 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
-}));
-
-vi.mock("@/api/rbac", () => ({
-  listWorkspacePermissionActions: (...args: unknown[]) =>
-    listWorkspacePermissionActionsMock(...args),
 }));
 
 vi.mock("@/pages/workspaces/team/roles/page", () => ({
@@ -39,23 +33,9 @@ vi.mock("@/layouts/page-shell/content-guard", () => ({
 describe("WorkspacePermissionsSettingsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    listWorkspacePermissionActionsMock.mockResolvedValue([
-      {
-        code: "content:items:write",
-        description: "Mutate content items",
-        subjectKinds: ["workspace_member"],
-        permissionCodes: ["system:content:manage"],
-      },
-      {
-        code: "delivery:graphql:read",
-        description: "Read GraphQL delivery",
-        subjectKinds: ["delivery_api_key"],
-        permissionCodes: [],
-      },
-    ]);
   });
 
-  it("renders the workspace action catalog and embeds the roles surface directly", async () => {
+  it("renders the workspace permission matrix and embeds the roles surface directly", async () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -68,7 +48,9 @@ describe("WorkspacePermissionsSettingsView", () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByText("content:items:write")).toBeInTheDocument();
+    expect(
+      await screen.findByText("settings:SETTINGS_WORKSPACE_PERMISSIONS_MATRIX_TITLE"),
+    ).toBeInTheDocument();
     expect(await screen.findByTestId("team-roles-page")).toBeInTheDocument();
     expect(teamRolesPageMock).toHaveBeenCalledWith(
       expect.objectContaining({

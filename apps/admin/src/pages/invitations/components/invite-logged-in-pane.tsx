@@ -2,16 +2,15 @@ import { motion, type Variants } from "motion/react";
 
 import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
-import { OrganizationAvatar } from "@/components/common/entity-avatar";
+import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 
 type InviteLoggedInPaneProps = {
   t: (key: string, params?: Record<string, unknown>) => string;
   data: {
-    organization: { name: string; logoUrl?: string | null };
+    workspace?: { name?: string; logoUrl?: string | null } | null;
     invitation: { email?: string | null; maskedEmail?: string | null };
   };
   meEmail: string | null | undefined;
-  isOrgOnlyInvite: boolean | undefined;
   targetName: string;
   roleResolved: { name: string; description: string | null };
   hasBoundEmail: boolean;
@@ -27,7 +26,6 @@ export function InviteLoggedInPane({
   t,
   data,
   meEmail,
-  isOrgOnlyInvite,
   targetName,
   roleResolved,
   hasBoundEmail,
@@ -46,16 +44,16 @@ export function InviteLoggedInPane({
       variants={staggerContainer}
     >
       <motion.div variants={v}>
-        <OrganizationAvatar
-          name={data.organization.name || targetName}
-          assetRef={data.organization.logoUrl}
+        <WorkspaceAvatar
+          name={data.workspace?.name || targetName}
+          assetRef={data.workspace?.logoUrl}
           size={80}
         />
       </motion.div>
 
       <motion.div variants={v}>
         <h1 className="mt-3 text-largetitle text-label-primary">
-          {t(isOrgOnlyInvite ? "invite:INVITE_STEP2_TITLE_ORG" : "invite:INVITE_STEP2_TITLE")}
+          {t("invite:INVITE_STEP2_TITLE")}
         </h1>
       </motion.div>
 
@@ -99,7 +97,7 @@ export function InviteLoggedInPane({
         >
           {hasBoundEmail && !emailMatches
             ? t("invite:INVITE_ACTION_JOIN_ANYWAY")
-            : t(isOrgOnlyInvite ? "invite:INVITE_ACTION_JOIN_ORG" : "invite:INVITE_ACTION_JOIN")}
+            : t("invite:INVITE_ACTION_JOIN")}
         </Button>
       </motion.div>
 

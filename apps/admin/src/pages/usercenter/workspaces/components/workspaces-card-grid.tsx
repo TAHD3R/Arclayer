@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
+import { listWorkspaces } from "@/api/workspace-management";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Spinner } from "@arclayer/ui/spinner";
 
@@ -13,11 +13,10 @@ import type {
   WorkspaceMenuItem,
 } from "../types";
 import type { WorkspaceEditingField } from "../hooks/use-workspace-menu-actions";
-import { mapOrganizationWorkspaceToListItem } from "../workspace-list-items";
+import { mapWorkspaceManageListItemToListItem } from "../workspace-list-items";
 import { WorkspaceCard } from "./workspace-card";
 
 interface WorkspacesCardGridProps {
-  organizationId?: string;
   archived: boolean;
   searchInput: string;
   buildMenuItems: (ws: UserCenterWorkspaceListItem) => WorkspaceMenuItem[];
@@ -46,7 +45,6 @@ const PAGE_SIZE = 12;
 
 export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
   const {
-    organizationId,
     archived,
     searchInput,
     buildMenuItems,
@@ -68,14 +66,12 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
     t,
   } = props;
 
-  const scope = organizationId ?? "me";
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const query = useInfiniteQuery({
-    queryKey: ["organization-workspaces-cards", scope, archived, searchInput],
+    queryKey: ["workspace-management-cards", archived, searchInput],
     queryFn: async ({ pageParam }) =>
-      listOrganizationWorkspaces({
-        organizationId,
+      listWorkspaces({
         page: typeof pageParam === "number" ? pageParam : 1,
         size: PAGE_SIZE,
         q: searchInput || undefined,
@@ -91,7 +87,7 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
     () =>
       (query.data?.pages ?? [])
         .flatMap((page) => page.items ?? [])
-        .map(mapOrganizationWorkspaceToListItem),
+        .map(mapWorkspaceManageListItemToListItem),
     [query.data?.pages],
   );
 

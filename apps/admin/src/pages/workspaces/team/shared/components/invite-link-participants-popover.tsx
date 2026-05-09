@@ -4,12 +4,7 @@ import { Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { listTeamInviteLinkParticipants } from "@/api/team";
-import { listOrganizationInviteLinkParticipants } from "@/api/organization-members";
-import type {
-  OrganizationInviteLinkParticipant,
-  TeamInviteLinkParticipant,
-  TeamUserRef,
-} from "@arclayer/openapi/admin-types";
+import type { TeamInviteLinkParticipant, TeamUserRef } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,
@@ -32,11 +27,10 @@ function normalizeQuery(input: string): string {
 }
 
 export function InviteLinkParticipantsPopover(props: {
-  scope?: "workspace" | "organization";
   workspaceId?: string;
   linkId: string;
   usesCount: number;
-  primaryUser: TeamUserRef | OrganizationInviteLinkParticipant["user"] | null;
+  primaryUser: TeamUserRef | null;
   lastUsedAt?: string | null;
 }) {
   const { t } = useTranslation(["team", "common"]);
@@ -56,23 +50,11 @@ export function InviteLinkParticipantsPopover(props: {
     setPage(1);
   }, [open, q]);
 
-  const isOrg = props.scope === "organization";
-  const enabled = open && Boolean(props.linkId) && (isOrg || Boolean(props.workspaceId));
+  const enabled = open && Boolean(props.linkId) && Boolean(props.workspaceId);
   const query = useQuery({
-    queryKey: [
-      "team",
-      "invite-link-participants",
-      props.scope ?? "workspace",
-      props.workspaceId ?? "",
-      props.linkId,
-      page,
-      q,
-    ],
+    queryKey: ["team", "invite-link-participants", props.workspaceId ?? "", props.linkId, page, q],
     enabled,
     queryFn: async () => {
-      if (isOrg) {
-        return listOrganizationInviteLinkParticipants(props.linkId, { page, size: 10, q });
-      }
       return listTeamInviteLinkParticipants(props.workspaceId!, props.linkId, {
         page,
         size: 10,
@@ -140,31 +122,29 @@ export function InviteLinkParticipantsPopover(props: {
           <>
             {(query.data?.items?.length ?? 0) > 0 ? (
               <ul>
-                {(query.data?.items ?? []).map(
-                  (item: TeamInviteLinkParticipant | OrganizationInviteLinkParticipant) => (
-                    <li
-                      key={`${item.user?.username || item.user?.email || "user"}:${item.usedAt}`}
-                      className="py-2"
-                    >
-                      <div className="flex items-center justify-between gap-3 w-full min-w-0">
-                        <div className="min-w-0">
-                          <InvitationUserLabel
-                            user={item.user}
-                            details={buildInvitationUserDetails({
-                              t,
-                              dateTime,
-                              lastUsedAt: item.usedAt,
-                              lastUsedAtLabel: t("team:TEAM_INVITE_LINKS_COL_LAST_USED"),
-                            })}
-                          />
-                        </div>
-                        <div className="text-caption text-label-secondary whitespace-nowrap">
-                          {dateTime.formatDateTime(item.usedAt, { emptyValue: "-" })}
-                        </div>
+                {(query.data?.items ?? []).map((item: TeamInviteLinkParticipant) => (
+                  <li
+                    key={`${item.user?.username || item.user?.email || "user"}:${item.usedAt}`}
+                    className="py-2"
+                  >
+                    <div className="flex items-center justify-between gap-3 w-full min-w-0">
+                      <div className="min-w-0">
+                        <InvitationUserLabel
+                          user={item.user}
+                          details={buildInvitationUserDetails({
+                            t,
+                            dateTime,
+                            lastUsedAt: item.usedAt,
+                            lastUsedAtLabel: t("team:TEAM_INVITE_LINKS_COL_LAST_USED"),
+                          })}
+                        />
                       </div>
-                    </li>
-                  ),
-                )}
+                      <div className="text-caption text-label-secondary whitespace-nowrap">
+                        {dateTime.formatDateTime(item.usedAt, { emptyValue: "-" })}
+                      </div>
+                    </div>
+                  </li>
+                ))}
               </ul>
             ) : (
               <div className="rounded-md border border-dashed p-4 text-center text-label-secondary">

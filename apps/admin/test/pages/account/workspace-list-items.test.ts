@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { mapOrganizationWorkspaceToListItem } from "@/pages/usercenter/workspaces/workspace-list-items";
+import { mapWorkspaceManageListItemToListItem } from "@/pages/usercenter/workspaces/workspace-list-items";
 
 describe("workspace-list-items", () => {
-  it("maps organization workspace metadata through the shared list-item shape", () => {
-    const item = mapOrganizationWorkspaceToListItem({
+  it("maps workspace metadata through the shared list-item shape", () => {
+    const item = mapWorkspaceManageListItemToListItem({
       id: "ws-team",
       workspaceId: "ws-team",
       projectId: null,
       project: null,
-      organizationId: "org-1",
       name: "Team Space",
       description: null,
       iconMode: "glyph",

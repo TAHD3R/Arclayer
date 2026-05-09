@@ -160,11 +160,10 @@ export function InvitationsView(props: { token: string | null }) {
               {state.step === 0
                 ? renderGuarded(
                     state.previewQuery.isLoading,
-                    state.previewQuery.data ? (
+                    state.previewQuery.data?.workspace ? (
                       <InvitePreviewPane
                         t={state.t}
                         data={state.previewQuery.data}
-                        isOrgOnlyInvite={state.isOrgOnlyInvite}
                         targetName={state.targetName}
                         roleResolved={state.roleResolved}
                         inviterLabel={state.inviterLabel}
@@ -180,12 +179,11 @@ export function InvitationsView(props: { token: string | null }) {
                 : state.isLoggedIn
                   ? renderGuarded(
                       joinLoading,
-                      state.previewQuery.data ? (
+                      state.previewQuery.data?.workspace ? (
                         <InviteLoggedInPane
                           t={state.t}
                           data={state.previewQuery.data}
                           meEmail={state.meQuery.data?.email}
-                          isOrgOnlyInvite={state.isOrgOnlyInvite}
                           targetName={state.targetName}
                           roleResolved={state.roleResolved}
                           hasBoundEmail={state.hasBoundEmail}
@@ -200,7 +198,7 @@ export function InvitationsView(props: { token: string | null }) {
                     )
                   : renderGuarded(
                       state.previewQuery.isLoading,
-                      state.previewQuery.data ? (
+                      state.previewQuery.data?.workspace ? (
                         <InviteGuestJoinPane
                           t={state.t}
                           mode={state.mode}
@@ -208,7 +206,6 @@ export function InvitationsView(props: { token: string | null }) {
                           onBack={() => state.setStep(0)}
                           reducedMotion={reducedMotion}
                           previewData={state.previewQuery.data}
-                          isOrgOnlyInvite={state.isOrgOnlyInvite}
                           hasBoundEmail={state.hasBoundEmail}
                           keepSession={state.keepSession}
                           loginLoading={

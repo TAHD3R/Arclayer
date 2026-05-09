@@ -20,7 +20,6 @@ class ProjectMemberPreviewOut(BaseSchema):
 
 
 class ProjectOut(BaseOut):
-    organization_id: PublicUUID = Field(..., description="Organization id.")
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     slug: str = Field(..., description="Project slug.")
     name: str = Field(..., description="Project name.")
@@ -99,7 +98,6 @@ class ProjectDangerActionOut(BaseSchema):
 class ProjectDangerCapabilitiesOut(BaseSchema):
     project_id: PublicUUID = Field(..., description="Project id.")
     workspace_id: PublicUUID = Field(..., description="Workspace id that owns the project.")
-    organization_id: PublicUUID = Field(..., description="Organization id for the project workspace.")
     confirm_delete_name: str = Field(..., description="Exact project name required for delete confirmation.")
     archive_action: ProjectDangerActionOut = Field(..., description="Capability for archiving the project.")
     delete_action: ProjectDangerActionOut = Field(..., description="Capability for deleting the project.")

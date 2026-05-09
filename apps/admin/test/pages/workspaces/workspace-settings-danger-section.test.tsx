@@ -68,7 +68,6 @@ describe("WorkspaceSettingsDangerSection", () => {
     const user = userEvent.setup();
     getWorkspaceDangerCapabilitiesMock.mockResolvedValue({
       workspaceId: "ws-1",
-      organizationId: "org-1",
       confirmLeaveText: "LEAVE",
       confirmDeleteName: "Workspace Alpha",
       leaveAction: { enabled: true, blockedReason: null },
@@ -80,7 +79,6 @@ describe("WorkspaceSettingsDangerSection", () => {
         {
           workspaceId: "ws-2",
           projectId: "project-2",
-          organizationId: "org-2",
           slug: "beta",
           name: "Beta",
           kind: "team",
@@ -93,7 +91,6 @@ describe("WorkspaceSettingsDangerSection", () => {
           {
             workspaceId: "ws-2",
             projectId: "project-2",
-            organizationId: "org-2",
             slug: "beta",
             name: "Beta",
             kind: "team",
@@ -134,7 +131,6 @@ describe("WorkspaceSettingsDangerSection", () => {
   it("disables delete when danger capabilities block the action", async () => {
     getWorkspaceDangerCapabilitiesMock.mockResolvedValue({
       workspaceId: "ws-1",
-      organizationId: "org-1",
       confirmLeaveText: "LEAVE",
       confirmDeleteName: "Workspace Alpha",
       leaveAction: { enabled: true, blockedReason: null },

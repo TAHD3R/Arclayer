@@ -210,7 +210,7 @@ describe("context settings pages", () => {
     );
   });
 
-  it("renders workspace permissions governance view with action catalog and role matrix", async () => {
+  it("renders workspace permissions governance view with the repo-backed role matrix", async () => {
     renderWithQueryClient(<WorkspaceRolesSettingsPage workspaceId="ws-1" />);
 
     expect(screen.getByTestId("team-roles-page")).toHaveAttribute("data-workspace-id", "ws-1");
@@ -220,13 +220,10 @@ describe("context settings pages", () => {
 
     const permissionsView = await screen.findByTestId("workspace-permissions-settings-view");
     expect(
-      within(permissionsView).getByText("settings:SETTINGS_WORKSPACE_PERMISSIONS_CATALOG_TITLE"),
+      within(permissionsView).getByText("settings:SETTINGS_WORKSPACE_PERMISSIONS_MATRIX_TITLE"),
     ).toBeInTheDocument();
-    expect((await within(permissionsView).findAllByText("system:content:read")).length).toBe(2);
     expect(
-      within(permissionsView).getByText("delivery:graphql:read", {
-        selector: "div",
-      }),
+      within(permissionsView).getByText("settings:SETTINGS_WORKSPACE_PERMISSIONS_MATRIX_DESC"),
     ).toBeInTheDocument();
   });
 });

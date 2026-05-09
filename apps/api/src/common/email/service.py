@@ -585,25 +585,25 @@ class EmailService:
         cid = uuid7().hex
         token_hint = f"{invite_token[:6]}...{invite_token[-4:]}" if len(invite_token) >= 10 else invite_token
         try:
-            org_display = (organization_name or "organization").strip() or "organization"
+            org_display = (organization_name or "workspace").strip() or "workspace"
             subject = t(
                 "auth",
                 "INVITE_EMAIL_SUBJECT",
-                default="邀请加入 {organization_name}",
+                default="邀请加入工作空间 {workspace_name}",
                 locale=locale,
-                organization_name=org_display,
+                workspace_name=org_display,
             )
             title = t(
                 "auth",
                 "INVITE_EMAIL_TITLE",
-                default="你已被邀请加入 {organization_name}",
+                default="你已被邀请加入工作空间 {workspace_name}",
                 locale=locale,
-                organization_name=org_display,
+                workspace_name=org_display,
             )
             intro = t(
                 "auth",
                 "INVITE_EMAIL_INTRO",
-                default="请使用下方链接完成账号创建并加入组织。",
+                default="请使用下方链接完成账号创建并加入工作空间。",
                 locale=locale,
             )
             cta = t(
@@ -646,9 +646,9 @@ class EmailService:
                 plain_body = t(
                     "auth",
                     "INVITE_EMAIL_PLAIN_WITH_LINK",
-                    default="组织：{organization_name}\n邀请链接：{invite_url}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
+                    default="工作空间：{workspace_name}\n邀请链接：{invite_url}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
                     locale=locale,
-                    organization_name=org_display,
+                    workspace_name=org_display,
                     invite_url=invite_url,
                     invite_token=invite_token,
                     expires_notice=expires_notice,
@@ -658,9 +658,9 @@ class EmailService:
                 plain_body = t(
                     "auth",
                     "INVITE_EMAIL_PLAIN",
-                    default="组织：{organization_name}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
+                    default="工作空间：{workspace_name}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
                     locale=locale,
-                    organization_name=org_display,
+                    workspace_name=org_display,
                     invite_token=invite_token,
                     expires_notice=expires_notice,
                     ignore_notice=ignore_notice,
@@ -680,7 +680,7 @@ class EmailService:
                     "ignore_notice": ignore_notice,
                     "invite_url": invite_url,
                     "invite_token": invite_token,
-                    "organization_name": org_display,
+                    "workspace_name": org_display,
                 },
                 html_template="invitation.html",
                 plain_template="invitation.txt",

@@ -28,60 +28,6 @@ export function projectPath(projectId: string, path?: string): string {
   return `/projects/${id}${suffix}`;
 }
 
-/** Build an organization-scoped API path: `/organizations/{id}{path}`. */
-export function organizationPath(organizationId: string, path?: string): string {
-  const id = encodeURIComponent(String(organizationId));
-  const raw = String(path ?? "");
-  if (!raw) return `/organizations/${id}`;
-  const suffix = raw.startsWith("/") ? raw : `/${raw}`;
-  return `/organizations/${id}${suffix}`;
-}
-
-/** Build the base path for organization-workspace endpoints. */
-export function organizationWorkspacesBasePath(organizationId?: string): string {
-  if (!organizationId) return "/organizations/me/workspaces";
-  const id = encodeURIComponent(String(organizationId));
-  return `/organizations/${id}/workspaces`;
-}
-
-/** Build path for a specific workspace under organization-workspaces. */
-export function organizationWorkspacePath(
-  organizationId: string | undefined,
-  workspaceId: string,
-  path?: string,
-): string {
-  return buildResourcePath(organizationWorkspacesBasePath(organizationId), workspaceId, path);
-}
-
-// ---------------------------------------------------------------------------
-// Organization-scoped resource paths
-// ---------------------------------------------------------------------------
-
-/** `/organizations/me/invitations/{id}{path}` */
-export function orgInvitationPath(invitationId: string, path?: string): string {
-  return buildResourcePath("/organizations/me/invitations", invitationId, path);
-}
-
-/** `/organizations/me/invitations/links/{id}{path}` */
-export function orgInviteLinkPath(linkId: string, path?: string): string {
-  return buildResourcePath("/organizations/me/invitations/links", linkId, path);
-}
-
-/** `/organizations/me/members/{id}{path}` */
-export function orgMemberPath(membershipId: string, path?: string): string {
-  return buildResourcePath("/organizations/me/members", membershipId, path);
-}
-
-/** `/organizations/me/rbac/roles/{code}{path}` */
-export function orgRbacRolePath(roleCode: string, path?: string): string {
-  return buildResourcePath("/organizations/me/rbac/roles", roleCode, path);
-}
-
-/** `/organizations/me/rbac/permissions/{code}{path}` */
-export function orgRbacPermissionPath(permissionCode: string, path?: string): string {
-  return buildResourcePath("/organizations/me/rbac/permissions", permissionCode, path);
-}
-
 // ---------------------------------------------------------------------------
 // Site & system paths
 // ---------------------------------------------------------------------------

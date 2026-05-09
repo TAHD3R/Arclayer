@@ -350,7 +350,6 @@ export function TeamMembersView(props: {
                           <MemberIdentityCell
                             member={member}
                             scopeLabel={t("team:TEAM_MEMBER_CONTEXT_SCOPE")}
-                            scopeVariant="workspace"
                             badges={
                               <>
                                 <TeamRoleTag

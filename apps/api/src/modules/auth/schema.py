@@ -475,20 +475,12 @@ class InvitationPreviewInvitationOut(BaseSchema):
     expires_at: datetime | None = Field(default=None, description="Invitation expiry datetime (UTC).")
 
 
-class InvitationPreviewOrganizationOut(BaseSchema):
-    """Organization info for invitation preview."""
-
-    id: PublicUUID = Field(..., description="Organization id.")
-    name: str = Field(..., description="Organization name.")
-    slug: str = Field(..., description="Organization slug.")
-    logo_url: str | None = Field(default=None, description="Organization logo url.")
-
-
 class InvitationPreviewWorkspaceOut(BaseSchema):
     """Workspace info for invitation preview (v2)."""
 
     id: PublicUUID = Field(..., description="Workspace id.")
     name: str = Field(..., description="Workspace name.")
+    logo_url: str | None = Field(default=None, description="Workspace logo url.")
 
 
 class InvitationPreviewInviterOut(BaseSchema):
@@ -512,23 +504,10 @@ class InvitationPreviewResult(BaseSchema):
     """Invitation preview response used by the accept-invite wizard."""
 
     invitation: InvitationPreviewInvitationOut
-    organization: InvitationPreviewOrganizationOut
-    workspace: InvitationPreviewWorkspaceOut | None = Field(
-        default=None,
-        description="Target workspace (nullable for organization-only invitations).",
-    )
+    workspace: InvitationPreviewWorkspaceOut = Field(..., description="Target workspace for the invitation.")
     inviter: InvitationPreviewInviterOut | None = Field(default=None, description="Inviter info (nullable).")
     role: InvitationPreviewRoleOut | None = Field(default=None, description="Role semantic info (nullable).")
     user_exists: bool = Field(default=False, description="Whether the invited email already has an account.")
-
-
-class MyInvitationOrganizationOut(BaseSchema):
-    """Organization info for 'my invitations' listing."""
-
-    id: PublicUUID = Field(..., description="Organization id.")
-    name: str = Field(..., description="Organization name.")
-    slug: str = Field(..., description="Organization slug.")
-    logo_url: str | None = Field(default=None, description="Organization logo url.")
 
 
 class MyInvitationWorkspaceOut(BaseSchema):
@@ -536,6 +515,7 @@ class MyInvitationWorkspaceOut(BaseSchema):
 
     id: PublicUUID = Field(..., description="Workspace id.")
     name: str = Field(..., description="Workspace name.")
+    logo_url: str | None = Field(default=None, description="Workspace logo url.")
 
 
 class MyInvitationInviterOut(BaseSchema):
@@ -555,11 +535,7 @@ class MyInvitationOut(BaseOut):
     role_code: str | None = Field(default=None, description="Role code assigned when accepted.")
     expires_at: datetime | None = Field(default=None, description="Expiration datetime (UTC).")
 
-    organization: MyInvitationOrganizationOut = Field(..., description="Target organization.")
-    workspace: MyInvitationWorkspaceOut | None = Field(
-        default=None,
-        description="Target workspace (nullable for organization-only invitations).",
-    )
+    workspace: MyInvitationWorkspaceOut = Field(..., description="Target workspace for the invitation.")
     inviter: MyInvitationInviterOut | None = Field(default=None, description="Inviter summary (if available).")
 
     status: str = Field(..., description="Invitation status: pending/accepted.")
@@ -570,7 +546,7 @@ class MyInvitationOut(BaseOut):
 
 
 class MyInvitationListQuery(BaseSchema):
-    q: str | None = Field(default=None, description="Search query (workspace/organization/role).")
+    q: str | None = Field(default=None, description="Search query (workspace/role).")
     status: str | None = Field(default=None, description="Filter by status: pending/accepted.")
 
 
@@ -585,10 +561,9 @@ class AcceptExistingInvitationRequest(BaseSchema):
 class AcceptExistingInvitationResult(BaseSchema):
     """Result for accepting an invitation with an existing account."""
 
-    organization_id: PublicUUID = Field(..., description="Organization id that the user joined.")
     workspace_id: PublicUUID | None = Field(
         default=None,
-        description="Workspace id that the user joined (nullable for organization-only invitations).",
+        description="Workspace id that the user joined.",
     )
     project_id: PublicUUID | None = Field(
         default=None,

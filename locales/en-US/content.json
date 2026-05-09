@@ -147,7 +147,7 @@
   "CONTENT_BOOTSTRAP_PRESET_STATE_CUSTOMIZED": "Customized",
   "CONTENT_BOOTSTRAP_PRESET_STATE_NONE": "None",
   "CONTENT_BOOTSTRAP_PRESET_STATE_SELECTED": "Selected",
-  "CONTENT_BOOTSTRAP_PRESET_TAXONOMY_ITEM_DESC": "Best for categories, tags, and other content used for organization.",
+  "CONTENT_BOOTSTRAP_PRESET_TAXONOMY_ITEM_DESC": "Best for categories, tags, and other content used for classification.",
   "CONTENT_BOOTSTRAP_PRESET_TAXONOMY_ITEM_NAME": "Taxonomy item",
   "CONTENT_BOOTSTRAP_PRESET_TAXONOMY_ITEM_USE_CASE": "this content is primarily used to classify or organize other content.",
   "CONTENT_BOOTSTRAP_PRESET_USE_CASE_LABEL": "Recommended when",

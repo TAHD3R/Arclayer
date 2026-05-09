@@ -175,7 +175,6 @@ describe("ProjectSettingsPage permission consumption", () => {
       project: {
         id: "project-1",
         workspaceId: "workspace-1",
-        organizationId: "organization-1",
         slug: "launch-site",
         name: "Launch site",
         description: "Primary project",

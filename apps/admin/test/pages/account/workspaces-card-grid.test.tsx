@@ -83,7 +83,7 @@ describe("WorkspacesCardGrid", () => {
     expect(screen.getByTestId("content-guard-empty-extra")).toHaveTextContent("Create workspace");
   });
 
-  it("renders only the organization workspace cards in the active list", () => {
+  it("renders only the workspace cards in the active list", () => {
     useInfiniteQueryMock.mockReturnValue({
       isLoading: false,
       error: null,
@@ -95,7 +95,6 @@ describe("WorkspacesCardGrid", () => {
               {
                 id: "team-1",
                 workspaceId: "team-1",
-                organizationId: "org-1",
                 slug: "alpha",
                 name: "Workspace Alpha",
                 description: null,
@@ -164,7 +163,6 @@ describe("WorkspacesCardGrid", () => {
               {
                 id: "team-1",
                 workspaceId: "team-1",
-                organizationId: "org-1",
                 slug: "alpha",
                 name: "Workspace Alpha",
                 description: "Primary workspace",
@@ -233,7 +231,6 @@ describe("WorkspacesCardGrid", () => {
               {
                 id: "team-1",
                 workspaceId: "team-1",
-                organizationId: "org-1",
                 slug: "alpha",
                 name: "Workspace Alpha",
                 description: "Primary workspace",

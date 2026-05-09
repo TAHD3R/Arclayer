@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { SpinnerOverlay } from "@arclayer/ui/spinner";
-import { OrganizationAvatar } from "./entity-avatar";
+import { WorkspaceAvatar } from "./entity-avatar";
 
 export type AvatarUploadSlotProps = {
   src?: string | null;
@@ -47,7 +47,7 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
         )}
       >
         {props.src ? (
-          <OrganizationAvatar assetRef={props.src} size={size} className={shellClassName} />
+          <WorkspaceAvatar assetRef={props.src} size={size} className={shellClassName} />
         ) : (
           <div className={cn(shellClassName, "font-medium")} style={{ width: size, height: size }}>
             {props.fallback}

@@ -88,8 +88,9 @@ describe("SystemDirectoryShell", () => {
     expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TITLE")).toBeInTheDocument();
     expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_USERS")).toBeInTheDocument();
     expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_ORGANIZATIONS"),
+      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_WORKSPACES"),
     ).toBeInTheDocument();
+    expect(screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_TAB_PROJECTS")).toBeInTheDocument();
     expect(screen.getByText("directory body")).toBeInTheDocument();
   });
 });

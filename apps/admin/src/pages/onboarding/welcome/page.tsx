@@ -455,12 +455,8 @@ export function WelcomeOnboardingPage() {
 
     let nextIconUrl = workspaceDraft.iconUrl;
     if (workspaceIconFile) {
-      const workspaceDetail =
-        workspaceDetailQuery.data?.id === workspaceId
-          ? workspaceDetailQuery.data
-          : await getWorkspaceDetail(workspaceId);
       const assetId = await uploadSingleAssetFromFile({
-        scope: { type: "organization", id: workspaceDetail.organizationId },
+        scope: { type: "workspace", id: workspaceId },
         purpose: "workspace_icon",
         file: workspaceIconFile,
         t,

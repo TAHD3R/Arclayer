@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { getOrganizationCoreSettings } from "@/api/organization-settings";
 import { getCoreSettings } from "@/api/settings";
 import { getProjectCoreSettings } from "@/api/settings";
 import type { AppLocale } from "@/lib/i18n";
@@ -34,15 +33,6 @@ type LocalizationCandidate = {
   useRelativeDateTime?: boolean;
 };
 
-function hasCompleteLocalization(candidate: LocalizationCandidate): boolean {
-  return Boolean(
-    candidate.dateFormat &&
-    candidate.useBrowserTimeZone !== undefined &&
-    candidate.useRelativeDateTime !== undefined &&
-    (candidate.useBrowserTimeZone || candidate.timeZone),
-  );
-}
-
 export type AdminLocalizationSnapshot = {
   locale: AppLocale;
   timeZone: string;
@@ -59,7 +49,6 @@ export type FormatDateTimeOptions = {
 
 export type ResolveAdminLocalizationSnapshotParams = {
   workspaceLocalization: LocalizationCandidate;
-  organizationLocalization: LocalizationCandidate;
   preferencesLocale: AppLocale;
   preferencesTimeZone: string | null;
   browserTimeZone: string;
@@ -138,14 +127,8 @@ export function formatAdminDateTimeValue(params: {
 export function resolveAdminLocalizationSnapshot(
   params: ResolveAdminLocalizationSnapshotParams,
 ): AdminLocalizationSnapshot {
-  const useBrowserTimeZone =
-    params.workspaceLocalization.useBrowserTimeZone ??
-    params.organizationLocalization.useBrowserTimeZone ??
-    true;
-  const fallbackTimeZone =
-    params.workspaceLocalization.timeZone ??
-    params.organizationLocalization.timeZone ??
-    params.browserTimeZone;
+  const useBrowserTimeZone = params.workspaceLocalization.useBrowserTimeZone ?? true;
+  const fallbackTimeZone = params.workspaceLocalization.timeZone ?? params.browserTimeZone;
 
   return {
     locale: params.preferencesLocale,
@@ -153,13 +136,9 @@ export function resolveAdminLocalizationSnapshot(
       params.preferencesTimeZone ??
       (useBrowserTimeZone ? params.browserTimeZone : fallbackTimeZone) ??
       params.browserTimeZone,
-    dateFormat:
-      params.workspaceLocalization.dateFormat ?? params.organizationLocalization.dateFormat,
+    dateFormat: params.workspaceLocalization.dateFormat,
     useBrowserTimeZone,
-    useRelativeDateTime:
-      params.workspaceLocalization.useRelativeDateTime ??
-      params.organizationLocalization.useRelativeDateTime ??
-      true,
+    useRelativeDateTime: params.workspaceLocalization.useRelativeDateTime ?? true,
   };
 }
 
@@ -192,60 +171,14 @@ export function useAdminDateTimeFormatter(params?: AdminDateTimeFormatterParams)
     );
   }, [contextQuery.data?.value, projectId]);
 
-  const shouldFetchOrganizationLocalization = useMemo(() => {
-    if (!contextId) return true;
-    if (contextQuery.isLoading) return false;
-    if (contextQuery.isError) return true;
-    return !hasCompleteLocalization(contextLocalization);
-  }, [
-    contextId,
-    contextLocalization.dateFormat,
-    contextLocalization.locale,
-    contextLocalization.timeZone,
-    contextLocalization.useBrowserTimeZone,
-    contextLocalization.useRelativeDateTime,
-    contextQuery.isError,
-    contextQuery.isLoading,
-  ]);
-
-  const organizationQuery = useQuery({
-    queryKey: ["organization", "settings", "core"],
-    enabled: shouldFetchOrganizationLocalization,
-    queryFn: async () => getOrganizationCoreSettings(),
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const organizationLocalization = useMemo<LocalizationCandidate>(() => {
-    const value = organizationQuery.data?.organizationLocalization;
-    const rawLocale = typeof value?.locale === "string" ? value.locale : undefined;
-    const locale = rawLocale ? (rawLocale as AppLocale) : undefined;
-    const timeZone = typeof value?.timezone === "string" ? value.timezone : undefined;
-    const dateFormat = typeof value?.dateFormat === "string" ? value.dateFormat : undefined;
-    const useBrowserTimeZone =
-      typeof (value as { useBrowserTimeZone?: unknown } | undefined)?.useBrowserTimeZone ===
-      "boolean"
-        ? Boolean((value as { useBrowserTimeZone?: boolean }).useBrowserTimeZone)
-        : undefined;
-    const useRelativeDateTime =
-      typeof (value as { useRelativeDateTime?: unknown } | undefined)?.useRelativeDateTime ===
-      "boolean"
-        ? Boolean((value as { useRelativeDateTime?: boolean }).useRelativeDateTime)
-        : undefined;
-
-    return { locale, timeZone, dateFormat, useBrowserTimeZone, useRelativeDateTime };
-  }, [organizationQuery.data?.organizationLocalization]);
-
   const localization = useMemo(() => {
     return resolveAdminLocalizationSnapshot({
       workspaceLocalization: contextLocalization,
-      organizationLocalization,
       preferencesLocale,
       preferencesTimeZone,
       browserTimeZone: getBrowserTimeZone(),
     });
-  }, [contextLocalization, organizationLocalization, preferencesLocale, preferencesTimeZone]);
+  }, [contextLocalization, preferencesLocale, preferencesTimeZone]);
 
   const formatFromDate = useCallback(
     (date: Date | null, options: FormatDateTimeOptions = {}): string => {
@@ -287,15 +220,11 @@ export function useAdminDateTimeFormatter(params?: AdminDateTimeFormatterParams)
     [formatFromDate],
   );
 
-  const isLoading = contextQuery.isLoading || organizationQuery.isLoading;
-  const isFetching = contextQuery.isFetching || organizationQuery.isFetching;
-  const isError = shouldFetchOrganizationLocalization
-    ? organizationQuery.isError && (!contextId || contextQuery.isError)
-    : contextQuery.isError;
-  const error = isError ? (organizationQuery.error ?? contextQuery.error) : null;
-  const refetch = shouldFetchOrganizationLocalization
-    ? organizationQuery.refetch
-    : contextQuery.refetch;
+  const isLoading = contextQuery.isLoading;
+  const isFetching = contextQuery.isFetching;
+  const isError = contextQuery.isError;
+  const error = isError ? contextQuery.error : null;
+  const refetch = contextQuery.refetch;
 
   return {
     projectId,

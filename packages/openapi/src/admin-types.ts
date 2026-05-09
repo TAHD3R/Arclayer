@@ -253,9 +253,6 @@ export type SysConfigTestResult = {
 export type ListSysConfigNamespacesOut = PageData<SysConfigNamespaceSummary>;
 export type ListSysConfigRevisionsOut = PageData<SysConfigRevisionOut>;
 
-export type MyOrganization = Generated.MyOrganizationOut;
-export type MyOrganizationListResult = Generated.MyOrganizationListOut;
-export type CreateMyOrganizationInput = Generated.CreateMyOrganizationRequest;
 export type MyWorkspace = Omit<
   Generated.MyWorkspaceOut,
   "id" | "memberCount" | "membersPreview"
@@ -276,7 +273,6 @@ export type MyWorkspaceListResult = Omit<
 };
 export type AuthzSnapshot = Generated.AuthzSnapshot;
 export type ProjectAuthzSnapshot = Generated.ProjectAuthzSnapshot;
-export type OrganizationAuthzSnapshot = Generated.OrganizationAuthzSnapshot;
 export type WorkspaceDetail = Generated.WorkspaceDetailOut;
 export type WorkspaceRolePolicy = Generated.WorkspaceRolePolicyOut;
 export type WorkspaceAssignRoleResult = Generated.WorkspaceAssignRoleToMembersResult;
@@ -359,51 +355,12 @@ export type ProjectDetail = Omit<Generated.ProjectDetailOut, "primaryRuntime" | 
 export type ProjectMember = Generated.ProjectMemberOut;
 export type ProjectMemberRole = Generated.ProjectMemberRole;
 
-export type OrganizationSettingsCore = Generated.OrganizationSettingsCoreOut;
-export type OrganizationAssignDefaultRoleResult = Generated.OrganizationAssignDefaultRoleResult;
-export type OrganizationDangerCapabilities = Generated.OrganizationDangerCapabilitiesOut;
-export type DeleteOrganizationResult = Generated.DeleteOrganizationResult;
-export type LeaveOrganizationResult = Generated.LeaveOrganizationResult;
-export type OrgRole = Generated.OrgRole;
-export type OrgMembershipStatus = Generated.OrganizationMemberOut["status"];
 export type OrgUserStatus = Generated.UserStatus;
-export type OrganizationWorkspace = Omit<
-  Generated.OrganizationWorkspaceOut,
-  "memberCount" | "membersPreview"
-> & {
-  memberCount: number;
-  membersPreview: Generated.OrganizationWorkspaceMemberPreviewOut[];
-};
-export type OrganizationWorkspaceArchiveResult = Generated.OrganizationWorkspaceArchiveResult;
-export type OrganizationWorkspaceCreateInput = Generated.OrganizationWorkspaceCreateRequest;
-export type OrganizationWorkspaceMember = Generated.OrganizationWorkspaceMemberOut;
-export type OrganizationInvitation = Generated.OrganizationInvitationOut;
-export type OrganizationInvitationListParams =
-  QueryOf<Generated.DomainOrganizationListOrganizationInvitationsData>;
-export type OrganizationInviteLink = Generated.OrganizationInviteLinkOut;
-type OrganizationUserRef = RequiredPresent<
-  Generated.OrganizationInvitationUserRefOut,
-  "avatarUrl" | "displayName" | "email"
->;
-export type OrganizationInviteLinkParticipant = Omit<
-  Generated.OrganizationInviteLinkParticipantOut,
-  "user"
-> & {
-  user: OrganizationUserRef;
-};
-export type OrganizationInviteResult = Generated.OrganizationMemberInviteResult;
-export type OrganizationMember = Generated.OrganizationMemberOut;
-export type OrganizationMemberListParams =
-  QueryOf<Generated.DomainOrganizationListOrganizationMembersData>;
-export type OrganizationPermission = Generated.OrganizationPermissionOut;
-export type OrganizationRole = Generated.OrganizationRoleOut;
-export type OrganizationPermissionAction = Omit<
-  Generated.OrganizationPermissionActionOut,
-  "permissionCodes" | "subjectKinds"
-> & {
-  permissionCodes: string[];
-  subjectKinds: string[];
-};
+export type WorkspaceManageListItem = Generated.WorkspaceManageListItemOut;
+export type WorkspaceManageCreateInput = Generated.WorkspaceManageCreateRequest;
+export type WorkspaceManageArchiveResult = Generated.WorkspaceManageArchiveResult;
+export type WorkspaceManageMember = TeamMember;
+export type WorkspaceManageTemplate = Generated.WorkspaceManageTemplate;
 export type ProjectPermissionAction = Generated.ProjectPermissionActionOut;
 export type ProjectSettingsDetail = Generated.ProjectSettingsDetail;
 export type ProjectSettingsPatch = Generated.ProjectSettingsPatch;
@@ -427,8 +384,6 @@ export type DirectoryActorSummary = DirectoryActorSummaryBase & {
 type DirectoryUserListItemBase = Generated.DirectoryUserListItemOut;
 type DirectoryUserDetailBase = Generated.DirectoryUserDetailOut;
 export type SystemDirectoryUser = DirectoryUserListItemBase & {
-  organizationMembershipCount: number;
-  ownedOrganizationsCount: number;
   projectMembershipCount: number;
   workspaceMembershipCount: number;
   user_id?: string;
@@ -440,25 +395,8 @@ export type SystemDirectoryUser = DirectoryUserListItemBase & {
   linked_oauth_providers?: string[];
   last_login_at?: string | null;
   created_at?: string;
-  owned_organizations_count?: number;
-  organization_membership_count?: number;
   workspace_membership_count?: number;
   project_membership_count?: number;
-};
-export type SystemDirectoryOrganization = Omit<
-  Generated.DirectoryOrganizationListItemOut,
-  "isActive" | "memberCount" | "projectCount" | "workspaceCount"
-> & {
-  isActive: boolean;
-  memberCount: number;
-  projectCount: number;
-  workspaceCount: number;
-  organization_id?: string;
-  is_active?: boolean;
-  created_at?: string;
-  member_count?: number;
-  workspace_count?: number;
-  project_count?: number;
 };
 export type SystemDirectoryWorkspace = Omit<
   Generated.DirectoryWorkspaceListItemOut,
@@ -469,8 +407,6 @@ export type SystemDirectoryWorkspace = Omit<
   memberCount: number;
   projectCount: number;
   workspace_id?: string;
-  organization_id?: string;
-  organization_name?: string;
   icon_mode?: WorkspaceIconMode | null;
   icon_color?: string | null;
   icon_glyph?: string | null;
@@ -491,8 +427,6 @@ export type SystemDirectoryProject = Omit<
   project_id?: string;
   workspace_id?: string;
   workspace_name?: string;
-  organization_id?: string;
-  organization_name?: string;
   icon_mode?: WorkspaceIconMode | null;
   icon_color?: string | null;
   icon_glyph?: string | null;
@@ -506,11 +440,6 @@ export type SystemDirectoryUserDetail = DirectoryUserDetailBase &
   SystemDirectoryUser & {
     updated_at?: string;
   };
-export type SystemDirectoryOrganizationDetail = Generated.DirectoryOrganizationDetailOut &
-  SystemDirectoryOrganization & {
-    updated_at?: string;
-    logo_url?: string | null;
-  };
 export type SystemDirectoryWorkspaceDetail = Generated.DirectoryWorkspaceDetailOut &
   SystemDirectoryWorkspace & {
     updated_at?: string;
@@ -520,7 +449,6 @@ export type SystemDirectoryProjectDetail = Generated.DirectoryProjectDetailOut &
     updated_at?: string;
   };
 export type SystemDirectoryUserPage = PageData<SystemDirectoryUser>;
-export type SystemDirectoryOrganizationPage = PageData<SystemDirectoryOrganization>;
 export type SystemDirectoryWorkspacePage = PageData<SystemDirectoryWorkspace>;
 export type SystemDirectoryProjectPage = PageData<SystemDirectoryProject>;
 

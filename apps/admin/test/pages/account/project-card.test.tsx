@@ -37,7 +37,6 @@ describe("ProjectCard", () => {
         project={{
           id: "project-1",
           projectId: "project-1",
-          organizationId: "org-1",
           workspaceId: "workspace-1",
           slug: "launchpad",
           name: "Launchpad",

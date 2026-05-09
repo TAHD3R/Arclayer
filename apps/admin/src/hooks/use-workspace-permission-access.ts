@@ -1,22 +1,14 @@
 import { useMemo } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 
-import {
-  listOrganizationPermissionActions,
-  listProjectPermissionActions,
-  listWorkspacePermissionActions,
-} from "@/api/rbac";
-import { getMyOrganizationAuthz, getMyProjectAuthz, getMyWorkspaceAuthz } from "@/api/workspaces";
-import type { OrganizationAuthzSnapshot } from "@arclayer/openapi/admin-types";
+import { listProjectPermissionActions, listWorkspacePermissionActions } from "@/api/rbac";
+import { getMyProjectAuthz, getMyWorkspaceAuthz } from "@/api/workspaces";
 import type {
   AuthzSnapshot,
   ProjectAuthzSnapshot,
   ProjectPermissionAction,
 } from "@arclayer/openapi/admin-types";
-import type {
-  OrganizationPermissionAction,
-  WorkspacePermissionAction,
-} from "@arclayer/openapi/admin-types";
+import type { WorkspacePermissionAction } from "@arclayer/openapi/admin-types";
 
 type PermissionActionLike = {
   code: string;
@@ -61,63 +53,6 @@ export function useWorkspacePermissionAccess(
       if (!workspaceId) throw new Error("workspaceId is required");
       return listWorkspacePermissionActions(workspaceId);
     },
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const permissionCodes = authzQuery.data?.permissionCodes ?? [];
-  const isSuperuser = Boolean(authzQuery.data?.isSuperuser);
-  const permissionCodeSet = useMemo(() => new Set(permissionCodes), [permissionCodes]);
-  const actionCatalog = actionsQuery.data ?? [];
-  const actionPermissionMap = useMemo(
-    () =>
-      new Map(
-        actionCatalog.map((action) => [
-          action.code,
-          (action.permissionCodes ?? []).filter(
-            (code: string) => String(code || "").trim().length > 0,
-          ),
-        ]),
-      ),
-    [actionCatalog],
-  );
-
-  const hasPermission = (permissionCode: string) =>
-    isSuperuser || permissionCodeSet.has(String(permissionCode || "").trim());
-
-  const hasAction = (actionCode: string) => {
-    if (isSuperuser) return true;
-    const mappedPermissions = actionPermissionMap.get(String(actionCode || "").trim()) ?? [];
-    return mappedPermissions.some((permissionCode) => permissionCodeSet.has(permissionCode));
-  };
-
-  return {
-    authzQuery,
-    actionsQuery,
-    permissionCodes,
-    actionCatalog,
-    isSuperuser,
-    hasPermission,
-    hasAction,
-  };
-}
-
-export function useOrganizationPermissionAccess(): UsePermissionAccessResult<
-  OrganizationPermissionAction,
-  OrganizationAuthzSnapshot
-> {
-  const authzQuery = useQuery<OrganizationAuthzSnapshot, Error>({
-    queryKey: ["organization", "authz"],
-    queryFn: getMyOrganizationAuthz,
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const actionsQuery = useQuery<OrganizationPermissionAction[], Error>({
-    queryKey: ["organization", "permission-actions"],
-    queryFn: listOrganizationPermissionActions,
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },

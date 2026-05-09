@@ -2,7 +2,7 @@
   "ACTIVITY_ACTION_IMPORT_EXPORT": "Import / Export",
   "ACTIVITY_DAY_TODAY": "Today",
   "ACTIVITY_DAY_YESTERDAY": "Yesterday",
-  "ACTIVITY_DESC_ORG": "Review organization-level activity for investigation and troubleshooting.",
+  "ACTIVITY_DESC_ORG": "Review workspace-level activity for investigation and troubleshooting.",
   "ACTIVITY_DESC_WORKSPACE": "Review workspace-level activity for investigation and troubleshooting.",
   "ACTIVITY_DETAIL_TITLE": "Activity Detail",
   "ACTIVITY_EMPTY_DESC": "Try adjusting the time range or filters.",

@@ -109,16 +109,11 @@ export function useAcceptInvite(rawToken: string | null) {
 
   // --- Computed values ---
 
-  const isOrgOnlyInvite = previewQuery.data?.workspace === null;
-
   const targetName = useMemo(() => {
     if (!previewQuery.data) return "";
-    return isOrgOnlyInvite
-      ? previewQuery.data.organization.name
-      : previewQuery.data.workspace?.name ||
-          previewQuery.data.organization.name ||
-          t("invite:INVITE_WORKSPACE_FALLBACK");
-  }, [previewQuery.data, isOrgOnlyInvite, t]);
+    const workspace = previewQuery.data.workspace;
+    return workspace?.name || t("invite:INVITE_WORKSPACE_FALLBACK");
+  }, [previewQuery.data, t]);
 
   const inviteBusinessFailure = useMemo(() => {
     if (!previewQuery.isError) return null;
@@ -186,7 +181,6 @@ export function useAcceptInvite(rawToken: string | null) {
 
   const applyJoinedWorkspace = async (payload: {
     workspaceId: string | null | undefined;
-    organizationId: string | null | undefined;
     projectId?: string | null | undefined;
   }) => {
     if (!payload.workspaceId) {
@@ -219,7 +213,6 @@ export function useAcceptInvite(rawToken: string | null) {
       const accepted = await acceptExistingMutation.mutateAsync();
       setConfirmOpen(false);
       await applyJoinedWorkspace({
-        organizationId: accepted.organizationId || previewQuery.data?.organization.id,
         workspaceId: accepted.workspaceId,
         projectId: accepted.projectId,
       });
@@ -246,7 +239,6 @@ export function useAcceptInvite(rawToken: string | null) {
       queryClient.clear();
       const accepted = await acceptExistingMutation.mutateAsync();
       await applyJoinedWorkspace({
-        organizationId: accepted.organizationId || previewQuery.data?.organization.id,
         workspaceId: accepted.workspaceId,
         projectId: accepted.projectId,
       });
@@ -272,9 +264,9 @@ export function useAcceptInvite(rawToken: string | null) {
       applyLogin(tokens, { keepSession: true });
       void queryClient.cancelQueries();
       queryClient.clear();
+      if (!previewQuery.data.workspace) return;
       await applyJoinedWorkspace({
-        organizationId: previewQuery.data.organization.id,
-        workspaceId: previewQuery.data.workspace?.id,
+        workspaceId: previewQuery.data.workspace.id,
       });
     } catch (err) {
       if (err instanceof ApiError && err.error === "EMAIL_EXISTS") {
@@ -320,7 +312,6 @@ export function useAcceptInvite(rawToken: string | null) {
     registerAcceptMutation,
     loginMutation,
     forgotPasswordMutation,
-    isOrgOnlyInvite,
     targetName,
     inviteBusinessFailure,
     inviterLabel,

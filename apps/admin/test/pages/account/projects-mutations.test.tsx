@@ -39,7 +39,6 @@ describe("useUserCenterProjectsMutations", () => {
     vi.mocked(createProject).mockResolvedValue({
       id: "project-1",
       workspaceId: "ws-1",
-      organizationId: "org-1",
       slug: "project-alpha",
       name: "Project Alpha",
       description: null,

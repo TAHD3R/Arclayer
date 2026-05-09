@@ -1,8 +1,5 @@
 import { api, apiRequest } from "@/lib/http";
 import type {
-  DirectoryActorSummary,
-  SystemDirectoryOrganizationDetail,
-  SystemDirectoryOrganizationPage,
   SystemDirectoryProjectDetail,
   SystemDirectoryProjectPage,
   SystemDirectoryUserDetail,
@@ -28,12 +25,6 @@ type UpdateSystemDirectoryUserPayload = {
 
 type ResetSystemDirectoryUserPasswordPayload = {
   newPassword: string;
-};
-
-type UpdateSystemDirectoryOrganizationPayload = {
-  name?: string | null;
-  slug?: string | null;
-  ownerUserId?: string | null;
 };
 
 type UpdateSystemDirectoryWorkspacePayload = {
@@ -69,7 +60,6 @@ type SystemDirectoryListParams = {
   oauthProvider?: string;
   kind?: string;
   isActive?: boolean;
-  organizationId?: string;
   workspaceId?: string;
   isArchived?: boolean;
 };
@@ -99,7 +89,6 @@ function buildQuery(params: SystemDirectoryListParams) {
   if (typeof params.isActive === "boolean") {
     query.set("is_active", String(params.isActive));
   }
-  if (params.organizationId?.trim()) query.set("organization_id", params.organizationId.trim());
   if (params.workspaceId?.trim()) query.set("workspace_id", params.workspaceId.trim());
   if (typeof params.isArchived === "boolean") {
     query.set("is_archived", String(params.isArchived));
@@ -112,14 +101,6 @@ export async function listSystemDirectoryUsers(
   params: SystemDirectoryListParams = {},
 ): Promise<SystemDirectoryUserPage> {
   return api.get<SystemDirectoryUserPage>(`/system/directory/users${buildQuery(params)}`);
-}
-
-export async function listSystemDirectoryOrganizations(
-  params: SystemDirectoryListParams = {},
-): Promise<SystemDirectoryOrganizationPage> {
-  return api.get<SystemDirectoryOrganizationPage>(
-    `/system/directory/organizations${buildQuery(params)}`,
-  );
 }
 
 export async function listSystemDirectoryWorkspaces(
@@ -283,63 +264,6 @@ export async function enableSystemDirectoryUser(
 
 export async function deleteSystemDirectoryUser(userId: string): Promise<void> {
   await api.delete<unknown>(`/system/directory/users/${userId}`);
-}
-
-export async function getSystemDirectoryOrganizationDetail(
-  organizationId: string,
-): Promise<SystemDirectoryOrganizationDetail> {
-  return api.get<SystemDirectoryOrganizationDetail>(
-    `/system/directory/organizations/${organizationId}`,
-  );
-}
-
-export async function listSystemDirectoryOrganizationOwnerCandidates(
-  organizationId: string,
-  params: Pick<SystemDirectoryListParams, "q" | "page" | "size"> = {},
-): Promise<DirectoryActorSummary[]> {
-  return api.get<DirectoryActorSummary[]>(
-    `/system/directory/organizations/${organizationId}/owner-candidates${buildQuery(params)}`,
-  );
-}
-
-export async function updateSystemDirectoryOrganization(
-  organizationId: string,
-  payload: UpdateSystemDirectoryOrganizationPayload,
-): Promise<SystemDirectoryOrganizationDetail> {
-  return api.patch<SystemDirectoryOrganizationDetail>(
-    `/system/directory/organizations/${organizationId}`,
-    {
-      name: payload.name,
-      slug: payload.slug,
-      ownerUserId: payload.ownerUserId,
-    },
-  );
-}
-
-export async function disableSystemDirectoryOrganization(
-  organizationId: string,
-): Promise<SystemDirectoryOrganizationDetail> {
-  return api.post<SystemDirectoryOrganizationDetail>(
-    `/system/directory/organizations/${organizationId}/disable`,
-  );
-}
-
-export async function enableSystemDirectoryOrganization(
-  organizationId: string,
-): Promise<SystemDirectoryOrganizationDetail> {
-  return api.post<SystemDirectoryOrganizationDetail>(
-    `/system/directory/organizations/${organizationId}/enable`,
-  );
-}
-
-export async function deleteSystemDirectoryOrganization(
-  organizationId: string,
-  payload: { confirmName: string },
-): Promise<void> {
-  await apiRequest<unknown>(`/system/directory/organizations/${organizationId}`, {
-    method: "DELETE",
-    body: payload,
-  });
 }
 
 export async function getSystemDirectoryWorkspaceDetail(

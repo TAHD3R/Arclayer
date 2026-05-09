@@ -115,7 +115,6 @@ function createController() {
       data: {
         id: "ws-1",
         project: null,
-        organizationId: "org-1",
         name: "Workspace Alpha",
         description: "Brand system and marketing operations.",
         kind: "team",

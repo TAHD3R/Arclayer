@@ -25,7 +25,6 @@ interface WorkspacesContentSectionProps {
   t: UserCenterWorkspacesTranslateFn;
   rowHeight: DataTableRowHeight;
   wrapHeaders: boolean;
-  organizationId?: string;
   archived: boolean;
   searchInput: string;
   buildMenuItems: (ws: UserCenterWorkspaceListItem) => WorkspaceMenuItem[];
@@ -51,7 +50,6 @@ export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
   if (props.viewMode === "card") {
     return (
       <WorkspacesCardGrid
-        organizationId={props.organizationId}
         archived={props.archived}
         searchInput={props.searchInput}
         buildMenuItems={props.buildMenuItems}

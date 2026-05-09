@@ -1,14 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  listAssetFolders,
-  listAssetTags,
-  listAssets,
-  listOrganizationAssetFolders,
-  listOrganizationAssetTags,
-  listOrganizationAssets,
-} from "@/api/assets";
+import { listAssetFolders, listAssetTags, listAssets } from "@/api/assets";
 import type { AdminAssetFolder, AdminAssetSummary } from "@arclayer/openapi/admin-types";
 import { filterFoldersByContentCheck } from "@/lib/assets/folder-visibility";
 import { isExplicitAssetsFilterActive } from "@/lib/assets/assets-filtering";
@@ -77,7 +70,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
   const scopeId = scope?.id ? String(scope.id) : null;
   const scopeKey = scope ? assetScopeKey(scope) : null;
   const maxFolderMatchChecks = opts.maxFolderMatchChecks ?? 40;
-  const scopeSupported = scope?.type === "project" || scope?.type === "organization";
+  const scopeSupported = scope?.type === "project";
   const hasScope = Boolean(scope && scopeId);
 
   // Search / filters / ordering
@@ -123,8 +116,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     enabled: Boolean(scopeId) && scopeSupported,
     queryFn: async () => {
       if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
-      if (scope.type === "organization")
-        return listOrganizationAssetFolders(scopeId, { size: 200 });
       if (scope.type === "project") return listAssetFolders(scopeId, { size: 200 });
       throw new Error("ASSET_SCOPE_UNSUPPORTED");
     },
@@ -136,7 +127,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     enabled: Boolean(scopeId) && scopeSupported,
     queryFn: async () => {
       if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
-      if (scope.type === "organization") return listOrganizationAssetTags(scopeId);
       if (scope.type === "project") return listAssetTags(scopeId);
       throw new Error("ASSET_SCOPE_UNSUPPORTED");
     },
@@ -156,8 +146,8 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     enabled: Boolean(scopeId) && scopeSupported,
     queryFn: async () => {
       if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
-      const listFn = scope.type === "organization" ? listOrganizationAssets : listAssets;
-      return listFn(String(scopeId), {
+      if (scope.type !== "project") throw new Error("ASSET_SCOPE_UNSUPPORTED");
+      return listAssets(String(scopeId), {
         page: 1,
         size: 1,
         purpose: opts.purpose,
@@ -203,7 +193,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     queryKey: assetsListQueryKey,
     queryFn: async ({ pageParam }) =>
       scopeId && scope && scopeSupported
-        ? (scope.type === "organization" ? listOrganizationAssets : listAssets)(String(scopeId), {
+        ? listAssets(String(scopeId), {
             page: typeof pageParam === "number" ? pageParam : 1,
             size: 24,
             purpose: opts.purpose,
@@ -275,7 +265,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     enabled: Boolean(scopeId) && scopeSupported && opts.pagination === "paged",
     queryFn: async () =>
       scopeId && scope && scopeSupported
-        ? (scope.type === "organization" ? listOrganizationAssets : listAssets)(String(scopeId), {
+        ? listAssets(String(scopeId), {
             page,
             size: pageSize,
             purpose: opts.purpose,
@@ -361,8 +351,8 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
       queryFn: async () => {
         if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
         // Cheap existence check: fetch 1 item only.
-        const listFn = scope.type === "organization" ? listOrganizationAssets : listAssets;
-        return listFn(String(scopeId), {
+        if (scope.type !== "project") throw new Error("ASSET_SCOPE_UNSUPPORTED");
+        return listAssets(String(scopeId), {
           page: 1,
           size: 1,
           purpose: opts.purpose,

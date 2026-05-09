@@ -25,7 +25,6 @@ const GLOBAL_COMMAND_SCOPE = {
   pathname: "/",
   workspaceId: null,
   projectId: null,
-  organizationId: null,
 } as const;
 
 export function GlobalLayout() {

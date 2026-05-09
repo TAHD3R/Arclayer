@@ -8,16 +8,12 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 
-type DirectoryTabKey = "users" | "organizations" | "workspaces" | "projects";
+type DirectoryTabKey = "users" | "workspaces" | "projects";
 
 type DirectoryTabRoute = {
   key: DirectoryTabKey;
   labelKey: string;
-  to:
-    | "/system/tenants/users"
-    | "/system/tenants/organizations"
-    | "/system/tenants/workspaces"
-    | "/system/tenants/projects";
+  to: "/system/tenants/users" | "/system/tenants/workspaces" | "/system/tenants/projects";
 };
 
 const DIRECTORY_TAB_ROUTES: readonly DirectoryTabRoute[] = [
@@ -25,11 +21,6 @@ const DIRECTORY_TAB_ROUTES: readonly DirectoryTabRoute[] = [
     key: "users",
     labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_TAB_USERS",
     to: "/system/tenants/users",
-  },
-  {
-    key: "organizations",
-    labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_TAB_ORGANIZATIONS",
-    to: "/system/tenants/organizations",
   },
   {
     key: "workspaces",
@@ -44,7 +35,6 @@ const DIRECTORY_TAB_ROUTES: readonly DirectoryTabRoute[] = [
 ] as const;
 
 function resolveDirectoryTab(pathname: string): DirectoryTabKey {
-  if (pathname.startsWith("/system/tenants/organizations")) return "organizations";
   if (pathname.startsWith("/system/tenants/workspaces")) return "workspaces";
   if (pathname.startsWith("/system/tenants/projects")) return "projects";
   return "users";

@@ -16,14 +16,9 @@ from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import get_current_locale, t
 from src.core.services import BaseService
-from src.models.organization.org_invitation import OrganizationEmailInvite, OrganizationInviteLink
-from src.models.organization.org_rbac import OrganizationRole
-from src.models.organization.organization import Organization
 from src.models.organization.user import User
 from src.models.system.rbac import Permission, Role
-from src.models.workspaces.workspace import (
-    Workspace,
-)
+from src.models.workspaces.workspace import Workspace
 from src.models.workspaces.workspace_invite import (
     WorkspaceEmailInvite,
     WorkspaceInviteLink,
@@ -36,18 +31,15 @@ from src.modules.auth.schema import (
     AcceptInvitationRequest,
     InvitationPreviewInvitationOut,
     InvitationPreviewInviterOut,
-    InvitationPreviewOrganizationOut,
     InvitationPreviewResult,
     InvitationPreviewRoleOut,
     InvitationPreviewWorkspaceOut,
     MyInvitationInviterOut,
     MyInvitationListQuery,
-    MyInvitationOrganizationOut,
     MyInvitationOut,
     MyInvitationWorkspaceOut,
     TokenPair,
 )
-from src.modules.organization.rbac.service import OrganizationRBACService
 from src.modules.system.rbac.service import RBACService
 
 
@@ -59,13 +51,11 @@ class AuthInvitationService(BaseService):
         acceptance_service: AuthInvitationAcceptanceService | None = None,
         user_repo: UserRepository | None = None,
         rbac_service: RBACService | None = None,
-        organization_rbac_service: OrganizationRBACService | None = None,
     ) -> None:
         super().__init__(settings)
         self.acceptance_service = acceptance_service or AuthInvitationAcceptanceService(settings)
         self.user_repo = user_repo or UserRepository()
         self.rbac_service = rbac_service or RBACService(settings)
-        self.organization_rbac_service = organization_rbac_service or OrganizationRBACService(settings)
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -147,45 +137,27 @@ class AuthInvitationService(BaseService):
 
         status = (filters.status or "").strip().lower() if filters.status else ""
 
-        ws_qs = WorkspaceEmailInvite.filter(email=email).select_related("organization", "workspace")
-        org_qs = OrganizationEmailInvite.filter(email=email).select_related("organization")
+        ws_qs = WorkspaceEmailInvite.filter(email=email).select_related("workspace")
 
         if status == "accepted":
             ws_qs = ws_qs.filter(accepted_by_user_id=user.id, accepted_at__not_isnull=True)
-            org_qs = org_qs.filter(accepted_by_user_id=user.id, accepted_at__not_isnull=True)
         else:
             # Default to pending.
             ws_qs = ws_qs.filter(accepted_at=None, revoked_at=None).filter(
-                Q(expires_at__isnull=True) | Q(expires_at__gt=now)
-            )
-            org_qs = org_qs.filter(accepted_at=None, revoked_at=None).filter(
                 Q(expires_at__isnull=True) | Q(expires_at__gt=now)
             )
 
         if filters.q:
             needle = filters.q.strip()
             if needle:
-                ws_qs = ws_qs.filter(
-                    Q(role_code__icontains=needle)
-                    | Q(organization__name__icontains=needle)
-                    | Q(workspace__name__icontains=needle)
-                )
-                org_qs = org_qs.filter(
-                    Q(role_code__icontains=needle)
-                    | Q(organization__name__icontains=needle)
-                    | Q(email__icontains=needle)
-                )
+                ws_qs = ws_qs.filter(Q(role_code__icontains=needle) | Q(workspace__name__icontains=needle))
 
         ws_rows = await ws_qs.all()
-        org_rows = await org_qs.all()
 
-        merged: list[tuple[datetime, str, WorkspaceEmailInvite | OrganizationEmailInvite]] = []
+        merged: list[tuple[datetime, WorkspaceEmailInvite]] = []
         for row in ws_rows:
             order_ts = row.accepted_at if status == "accepted" else row.created_at
-            merged.append((order_ts, "workspace", row))
-        for row in org_rows:
-            order_ts = row.accepted_at if status == "accepted" else row.created_at
-            merged.append((order_ts, "organization", row))
+            merged.append((order_ts, row))
 
         merged.sort(key=lambda item: item[0], reverse=True)
 
@@ -194,7 +166,7 @@ class AuthInvitationService(BaseService):
         page_rows = merged[params.offset : params.offset + params.limit]
 
         inviter_ids: set[UUID] = set()
-        for _, _, inv in page_rows:
+        for _, inv in page_rows:
             if inv.created_by_user_id is not None:
                 inviter_ids.add(UUID(str(inv.created_by_user_id)))
 
@@ -211,16 +183,9 @@ class AuthInvitationService(BaseService):
                 )
 
         items: list[MyInvitationOut] = []
-        for _order_ts, scope, inv in page_rows:
-            org = inv.organization
-            org_out = MyInvitationOrganizationOut(id=org.id, name=org.name, slug=org.slug, logo_url=org.logo_url)
-
-            ws_out: MyInvitationWorkspaceOut | None = None
-            if scope == "workspace":
-                ws_inv = inv
-                if isinstance(ws_inv, WorkspaceEmailInvite):
-                    ws = ws_inv.workspace
-                    ws_out = MyInvitationWorkspaceOut(id=ws.id, name=ws.name)
+        for _order_ts, inv in page_rows:
+            ws = inv.workspace
+            ws_out = MyInvitationWorkspaceOut(id=ws.id, name=ws.name, logo_url=ws.logo_url)
 
             inviter = inviter_map.get(UUID(str(inv.created_by_user_id))) if inv.created_by_user_id is not None else None
 
@@ -233,7 +198,6 @@ class AuthInvitationService(BaseService):
                     email=inv.email,
                     role_code=inv.role_code,
                     expires_at=inv.expires_at,
-                    organization=org_out,
                     workspace=ws_out,
                     inviter=inviter,
                     status=out_status,
@@ -291,9 +255,7 @@ class AuthInvitationService(BaseService):
         expires_at: datetime | None = None
         invitation_email: str | None = None
 
-        org: Organization | None = None
         ws: Workspace | None = None
-        is_org_scope = False
 
         if is_workspace_invite_link_code(code):
             link = await WorkspaceInviteLink.get_or_none(code=code).select_related("organization", "workspace")
@@ -309,14 +271,13 @@ class AuthInvitationService(BaseService):
                     error="INVITE_MAX_USES_REACHED",
                 )
 
-            org = link.organization
             ws = link.workspace
             role_code = link.role_code
             inviter_user_id = link.created_by_user_id
             expires_at = link.expires_at
             invitation_email = None
         elif is_workspace_email_invite_code(code):
-            inv = await WorkspaceEmailInvite.get_or_none(code=code).select_related("organization", "workspace")
+            inv = await WorkspaceEmailInvite.get_or_none(code=code).select_related("workspace")
             if inv is None:
                 raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
             if inv.revoked_at is not None:
@@ -329,58 +290,15 @@ class AuthInvitationService(BaseService):
             if inv.expires_at is not None and inv.expires_at <= now:
                 raise Forbidden(message=self._ta("INVITE_EXPIRED", "邀请已过期"), error="INVITE_EXPIRED")
 
-            org = inv.organization
             ws = inv.workspace
             role_code = inv.role_code
             inviter_user_id = inv.created_by_user_id
             expires_at = inv.expires_at
             invitation_email = inv.email
-        elif code.startswith("ol_"):
-            link = await OrganizationInviteLink.get_or_none(code=code).select_related("organization")
-            if link is None:
-                raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
-            if link.disabled_at is not None:
-                raise Forbidden(message=self._ta("INVITE_REVOKED", "邀请已被撤销"), error="INVITE_REVOKED")
-            if link.expires_at is not None and link.expires_at <= now:
-                raise Forbidden(message=self._ta("INVITE_EXPIRED", "邀请已过期"), error="INVITE_EXPIRED")
-            if link.max_uses is not None and int(link.uses_count or 0) >= int(link.max_uses):
-                raise Forbidden(
-                    message=self._ta("INVITE_REVOKED", "邀请不可用"),
-                    error="INVITE_MAX_USES_REACHED",
-                )
-
-            org = link.organization
-            role_code = link.role_code
-            inviter_user_id = link.created_by_user_id
-            expires_at = link.expires_at
-            invitation_email = None
-            is_org_scope = True
-        elif code.startswith("oi_"):
-            inv = await OrganizationEmailInvite.get_or_none(code=code).select_related("organization")
-            if inv is None:
-                raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
-            if inv.revoked_at is not None:
-                raise Forbidden(message=self._ta("INVITE_REVOKED", "邀请已被撤销"), error="INVITE_REVOKED")
-            if inv.accepted_at is not None:
-                raise Conflict(
-                    message=self._ta("INVITE_REVOKED", "邀请不可用"),
-                    error="INVITE_ALREADY_ACCEPTED",
-                )
-            if inv.expires_at is not None and inv.expires_at <= now:
-                raise Forbidden(message=self._ta("INVITE_EXPIRED", "邀请已过期"), error="INVITE_EXPIRED")
-
-            org = inv.organization
-            role_code = inv.role_code
-            inviter_user_id = inv.created_by_user_id
-            expires_at = inv.expires_at
-            invitation_email = inv.email
-            is_org_scope = True
         else:
             raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
 
-        if org is None or not org.is_active:
-            raise Forbidden(message=self._ta("ORG_INACTIVE", "组织不可用"), error="ORG_INACTIVE")
-        if not is_org_scope and (ws is None or not ws.is_active or ws.archived_at is not None):
+        if ws is None or not ws.is_active or ws.archived_at is not None:
             raise Forbidden(message=t("errors", "NOT_FOUND"), error="WORKSPACE_INACTIVE")
 
         inviter: InvitationPreviewInviterOut | None = None
@@ -412,20 +330,6 @@ class AuthInvitationService(BaseService):
                     name=str(localized.get("name") or role_obj.code),
                     description=str(localized_desc) if isinstance(localized_desc, str) and localized_desc else None,
                 )
-        else:
-            await self.organization_rbac_service.ensure_defaults(organization_id=org.id)
-            org_role: OrganizationRole | None = None
-            if role_code:
-                org_role = await OrganizationRole.get_or_none(organization_id=org.id, code=role_code)
-            if org_role is None:
-                org_role = await OrganizationRole.get_or_none(organization_id=org.id, code="member")
-            if org_role is not None:
-                role_out = InvitationPreviewRoleOut(
-                    code=org_role.code,
-                    name=org_role.name,
-                    description=org_role.description,
-                )
-
         user_exists = bool(invitation_email) and await self.user_repo.exists_email(invitation_email)
 
         return InvitationPreviewResult(
@@ -435,19 +339,10 @@ class AuthInvitationService(BaseService):
                 role_code=role_code,
                 expires_at=expires_at,
             ),
-            organization=InvitationPreviewOrganizationOut(
-                id=org.id,
-                name=org.name,
-                slug=org.slug,
-                logo_url=org.logo_url,
-            ),
-            workspace=(
-                InvitationPreviewWorkspaceOut(
-                    id=ws.id,
-                    name=ws.name,
-                )
-                if ws is not None
-                else None
+            workspace=InvitationPreviewWorkspaceOut(
+                id=ws.id,
+                name=ws.name,
+                logo_url=ws.logo_url,
             ),
             inviter=inviter,
             role=role_out,

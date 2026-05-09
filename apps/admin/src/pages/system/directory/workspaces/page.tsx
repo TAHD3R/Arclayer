@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { type ColumnDef, type Header, type SortingState } from "@tanstack/react-table";
 import {
   Archive,
-  FolderKanban,
   FunnelX,
   LayoutTemplate,
   ListFilter,
@@ -59,21 +58,18 @@ import {
   useSystemDirectoryDateTimeFormatter,
 } from "../system-directory-table";
 import {
-  useSystemDirectoryOrganizationOptions,
   useSystemDirectoryWorkspaceGovernance,
   useSystemDirectoryWorkspaceRoleOptions,
   useSystemDirectoryWorkspacesTable,
 } from "../hooks";
 
-type WorkspaceFilterField = "organizationId" | "isArchived" | "isActive";
+type WorkspaceFilterField = "isArchived" | "isActive";
 type WorkspaceFilterValue = string;
 type WorkspaceSortValue =
   | "-created_at"
   | "created_at"
   | "name"
   | "-name"
-  | "organization_name"
-  | "-organization_name"
   | "member_count"
   | "-member_count"
   | "project_count"
@@ -87,10 +83,6 @@ const WORKSPACE_SORT_OPTIONS: ReadonlyArray<{ value: WorkspaceSortValue; labelKe
   { value: "created_at", labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_SORT_OLDEST" },
   { value: "name", labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_SORT_NAME_AZ" },
   { value: "-name", labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_WORKSPACES_SORT_NAME_ZA" },
-  {
-    value: "organization_name",
-    labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_SORT_ORGANIZATION_AZ",
-  },
   { value: "-member_count", labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_SORT_MEMBERS_HIGH" },
   { value: "member_count", labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_SORT_MEMBERS_LOW" },
   { value: "-project_count", labelKey: "settings:SETTINGS_SYSTEM_DIRECTORY_SORT_PROJECTS_HIGH" },
@@ -100,7 +92,6 @@ function toWorkspaceSortValue(sorting: SortingState): WorkspaceSortValue | null 
   const [first] = sorting;
   if (!first) return null;
   if (first.id === "workspace") return first.desc ? "-name" : "name";
-  if (first.id === "organization") return first.desc ? "-organization_name" : "organization_name";
   if (first.id === "members") return first.desc ? "-member_count" : "member_count";
   if (first.id === "projects") return first.desc ? "-project_count" : "project_count";
   if (first.id === "createdAt") return first.desc ? "-created_at" : "created_at";
@@ -111,8 +102,6 @@ function toTableSorting(value: WorkspaceSortValue): SortingState {
   if (value === "created_at") return [{ id: "createdAt", desc: false }];
   if (value === "name") return [{ id: "workspace", desc: false }];
   if (value === "-name") return [{ id: "workspace", desc: true }];
-  if (value === "organization_name") return [{ id: "organization", desc: false }];
-  if (value === "-organization_name") return [{ id: "organization", desc: true }];
   if (value === "member_count") return [{ id: "members", desc: false }];
   if (value === "-member_count") return [{ id: "members", desc: true }];
   if (value === "project_count") return [{ id: "projects", desc: false }];
@@ -157,7 +146,6 @@ export function SystemDirectoryWorkspacesPage() {
   const { t } = useTranslation(["common", "settings"]);
   const dateTime = useSystemDirectoryDateTimeFormatter();
   const governance = useSystemDirectoryWorkspaceGovernance();
-  const organizationOptions = useSystemDirectoryOrganizationOptions();
   const [filters, setFilters] = useState<
     OperatorAwareFilterState<WorkspaceFilterField, WorkspaceFilterValue>
   >({});
@@ -172,13 +160,6 @@ export function SystemDirectoryWorkspacesPage() {
 
   const resolveFilterLabel = useCallback(
     (field: WorkspaceFilterField, value: string) => {
-      if (field === "organizationId") {
-        return (
-          organizationOptions.organizations.find(
-            (organization) => organization.organizationId === value,
-          )?.name ?? value
-        );
-      }
       if (field === "isArchived") {
         if (value === "true") return t("settings:SETTINGS_SYSTEM_DIRECTORY_ARCHIVED");
         if (value === "false") return t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTIVE");
@@ -189,7 +170,7 @@ export function SystemDirectoryWorkspacesPage() {
       }
       return value;
     },
-    [organizationOptions.organizations, t],
+    [t],
   );
 
   const columns = useMemo<Array<ColumnDef<SystemDirectoryWorkspace, unknown>>>(
@@ -217,16 +198,6 @@ export function SystemDirectoryWorkspacesPage() {
           </div>
         ),
         { id: "workspace", sortKey: "name", kind: "primary", size: 320, minSize: 280 },
-      ),
-      createCustomColumn<SystemDirectoryWorkspace>(
-        t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATION"),
-        (row) =>
-          renderTagWithTooltip(row.organizationName, {
-            tone: "default",
-            icon: FolderKanban,
-            textClassName: "max-w-[12rem]",
-          }),
-        { id: "organization", sortKey: "organization_name", size: 280, minSize: 240 },
       ),
       createTruncatedTextColumn<SystemDirectoryWorkspace>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_DESCRIPTION"),
@@ -352,7 +323,6 @@ export function SystemDirectoryWorkspacesPage() {
 
   const extraQuery = useMemo(
     () => ({
-      organizationId: firstFilterValue(filters, "organizationId"),
       isArchived: booleanFilterValue(firstFilterValue(filters, "isArchived")),
       isActive: booleanFilterValue(firstFilterValue(filters, "isActive")),
     }),
@@ -367,21 +337,6 @@ export function SystemDirectoryWorkspacesPage() {
   );
   const filterFields = useMemo<FilterFieldConfig<WorkspaceFilterValue>[]>(
     () => [
-      {
-        key: "organizationId",
-        label: t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_ORGANIZATION"),
-        type: "select",
-        icon: <FolderKanban className="size-4" />,
-        searchable: true,
-        operators: FILTER_OPERATORS.map((operator) => ({
-          value: operator.value,
-          label: t(operator.labelKey),
-        })),
-        options: organizationOptions.organizations.map((org) => ({
-          value: org.organizationId,
-          label: org.name,
-        })),
-      },
       {
         key: "isArchived",
         label: t("settings:SETTINGS_SYSTEM_DIRECTORY_FILTER_FIELD_ARCHIVE_STATE"),
@@ -413,20 +368,11 @@ export function SystemDirectoryWorkspacesPage() {
         ],
       },
     ],
-    [organizationOptions.organizations, t],
+    [t],
   );
 
   const resolveColumnFilterAction = useCallback(
     (header: Header<SystemDirectoryWorkspace, unknown>) => {
-      if (header.column.id === "organization") {
-        return {
-          active: Boolean(filters.organizationId),
-          summary: summarizeWorkspaceFilter(filters, "organizationId", (value) =>
-            resolveFilterLabel("organizationId", value),
-          ),
-          onSelect: () => void 0,
-        };
-      }
       if (header.column.id === "state") {
         if (filters.isArchived) {
           return {
@@ -479,7 +425,7 @@ export function SystemDirectoryWorkspacesPage() {
           shortcutKey="f"
           shortcutLabel="F"
           trigger={
-            <Button variant="outline" disabled={organizationOptions.isLoading}>
+            <Button variant="outline" disabled={tableHook.isLoading}>
               <ListFilter className="size-4" />
             </Button>
           }
@@ -498,16 +444,7 @@ export function SystemDirectoryWorkspacesPage() {
         ) : null}
       </>
     ),
-    [
-      activeSort,
-      filterFields,
-      filterItems,
-      hasOverrides,
-      organizationOptions.isLoading,
-      reuiI18n,
-      t,
-      tableHook,
-    ],
+    [activeSort, filterFields, filterItems, hasOverrides, reuiI18n, t, tableHook],
   );
 
   const selectedWorkspaces = tableHook.table.getSelectedRowModel().rows.map((row) => row.original);

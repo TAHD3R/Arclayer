@@ -157,7 +157,6 @@ function AdminSidebarTopTabs(props: {
         pathname: "/",
         workspaceId: null,
         projectId: null,
-        organizationId: null,
       } as const),
   });
   const handleTabChange = (next: string) => {

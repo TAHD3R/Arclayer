@@ -159,7 +159,3 @@ export function WorkspaceAvatar(props: WorkspaceAvatarProps) {
     </div>
   );
 }
-
-export function OrganizationAvatar(props: PublicEntityAvatarProps) {
-  return <EntityAvatar {...props} fallbackLabel="组织" shape="square" />;
-}

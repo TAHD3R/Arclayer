@@ -8,7 +8,6 @@ from pydantic import EmailStr, Field, field_validator
 from src.common.constants.auth import PASSWORD_REGEX
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
-from src.models.organization.organization import OrganizationKind
 from src.models.organization.user import UserStatus
 from src.models.workspaces.workspace import WorkspaceIconMode
 
@@ -37,12 +36,6 @@ class DirectoryUserListItemOut(BaseSchema):
     )
     last_login_at: datetime | None = Field(default=None, description="Last login time.")
     created_at: datetime = Field(..., description="Created at.")
-    owned_organizations_count: int = Field(default=0, ge=0, description="Organizations owned by the user.")
-    organization_membership_count: int = Field(
-        default=0,
-        ge=0,
-        description="Active organization memberships for the user.",
-    )
     workspace_membership_count: int = Field(
         default=0,
         ge=0,
@@ -55,23 +48,8 @@ class DirectoryUserListItemOut(BaseSchema):
     )
 
 
-class DirectoryOrganizationListItemOut(BaseSchema):
-    organization_id: PublicUUID = Field(..., description="Organization id.")
-    name: str = Field(..., description="Organization name.")
-    slug: str = Field(..., description="Organization slug.")
-    kind: OrganizationKind = Field(..., description="Organization kind.")
-    is_active: bool = Field(default=True, description="Whether the organization is active.")
-    created_at: datetime = Field(..., description="Created at.")
-    owner: DirectoryActorSummaryOut | None = Field(default=None, description="Owner summary.")
-    member_count: int = Field(default=0, ge=0, description="Active member count.")
-    workspace_count: int = Field(default=0, ge=0, description="Workspace count.")
-    project_count: int = Field(default=0, ge=0, description="Project count.")
-
-
 class DirectoryWorkspaceListItemOut(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
-    organization_id: PublicUUID = Field(..., description="Organization id.")
-    organization_name: str = Field(..., description="Organization name.")
     name: str = Field(..., description="Workspace name.")
     description: str | None = Field(default=None, description="Workspace description.")
     icon_mode: WorkspaceIconMode | None = Field(default=None, description="Workspace icon mode.")
@@ -91,8 +69,6 @@ class DirectoryProjectListItemOut(BaseSchema):
     project_id: PublicUUID = Field(..., description="Project id.")
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     workspace_name: str = Field(..., description="Workspace name.")
-    organization_id: PublicUUID = Field(..., description="Organization id.")
-    organization_name: str = Field(..., description="Organization name.")
     name: str = Field(..., description="Project name.")
     slug: str = Field(..., description="Project slug.")
     description: str | None = Field(default=None, description="Project description.")
@@ -109,11 +85,6 @@ class DirectoryProjectListItemOut(BaseSchema):
 
 class DirectoryUserDetailOut(DirectoryUserListItemOut):
     updated_at: datetime = Field(..., description="Last update time.")
-
-
-class DirectoryOrganizationDetailOut(DirectoryOrganizationListItemOut):
-    updated_at: datetime = Field(..., description="Last update time.")
-    logo_url: str | None = Field(default=None, description="Organization logo URL.")
 
 
 class DirectoryWorkspaceDetailOut(DirectoryWorkspaceListItemOut):
@@ -180,37 +151,14 @@ class DirectoryUserListFilters(BaseSchema):
         return normalized or None
 
 
-class DirectoryOrganizationListFilters(BaseSchema):
-    kind: OrganizationKind | None = Field(default=None, description="Organization kind filter.")
-    is_active: bool | None = Field(default=None, description="Organization active state filter.")
-
-
 class DirectoryWorkspaceListFilters(BaseSchema):
-    organization_id: PublicUUID | None = Field(default=None, description="Organization id filter.")
     is_archived: bool | None = Field(default=None, description="Workspace archive state filter.")
     is_active: bool | None = Field(default=None, description="Workspace active state filter.")
 
 
 class DirectoryProjectListFilters(BaseSchema):
-    organization_id: PublicUUID | None = Field(default=None, description="Organization id filter.")
     workspace_id: PublicUUID | None = Field(default=None, description="Workspace id filter.")
     is_active: bool | None = Field(default=None, description="Project active state filter.")
-
-
-class DirectoryOrganizationUpdateRequest(BaseSchema):
-    name: str | None = Field(default=None, min_length=1, max_length=128, description="Organization name.")
-    slug: str | None = Field(default=None, min_length=1, max_length=64, description="Organization slug.")
-    owner_user_id: PublicUUID | None = Field(default=None, description="Organization owner user id.")
-
-    @field_validator("name", "slug")
-    @classmethod
-    def normalize_required_optional_string(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("Value is required.")
-        return normalized
 
 
 class DirectoryWorkspaceUpdateRequest(BaseSchema):

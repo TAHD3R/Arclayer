@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, Clock, Link2Off, Timer, UserCog } from "lucide-react";
 
-import type { OrganizationInvitation, TeamInvitation } from "@arclayer/openapi/admin-types";
+import type { TeamInvitation } from "@arclayer/openapi/admin-types";
 
 import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
 
@@ -22,10 +22,9 @@ export function InvitationRoleTag(props: SharedProps) {
   );
 }
 
-type OrganizationInvitationStatus = OrganizationInvitation["status"];
 type TeamInvitationStatus = TeamInvitation["status"];
 
-function statusToProps(status: OrganizationInvitationStatus | TeamInvitationStatus) {
+function statusToProps(status: TeamInvitationStatus) {
   if (status === "accepted") {
     return { color: "green" as const, icon: lucideTagIcon(CheckCircle2) };
   }
@@ -38,9 +37,7 @@ function statusToProps(status: OrganizationInvitationStatus | TeamInvitationStat
   return { color: "blue" as const, icon: lucideTagIcon(Timer) };
 }
 
-export function InvitationStatusTag(
-  props: SharedProps & { status: OrganizationInvitationStatus | TeamInvitationStatus },
-) {
+export function InvitationStatusTag(props: SharedProps & { status: TeamInvitationStatus }) {
   const { color, icon } = statusToProps(props.status);
   return (
     <BaseTag color={color} icon={icon} className={props.className} textStyle={props.textStyle}>

@@ -11,6 +11,7 @@ from src.common.constants.assets import (
     ASSET_SCOPE_ORGANIZATION,
     ASSET_SCOPE_PROJECT,
     ASSET_SCOPE_USER,
+    ASSET_SCOPE_WORKSPACE,
     ASSET_UPLOADED_EVENT,
 )
 from src.common.types.json_types import JsonObject
@@ -157,6 +158,8 @@ class UploadsService(BaseService):
 
     @staticmethod
     def _upload_tmp_dir_key(*, scope: AssetScope, upload_id: UUID) -> str:
+        if scope.type == ASSET_SCOPE_WORKSPACE:
+            return f"workspaces/{scope.id}/uploads/{upload_id}"
         if scope.type == ASSET_SCOPE_PROJECT:
             return f"projects/{scope.id}/uploads/{upload_id}"
         if scope.type == ASSET_SCOPE_ORGANIZATION:
@@ -572,7 +575,11 @@ class UploadsService(BaseService):
                     "visibility": str(session.visibility),
                     "indexable": bool(session.indexable),
                 }
-                if scope.type == ASSET_SCOPE_PROJECT:
+                if scope.type == ASSET_SCOPE_WORKSPACE:
+                    payload["workspace_id"] = str(scope.id)
+                    organization_id = None
+                    workspace_id = scope.id
+                elif scope.type == ASSET_SCOPE_PROJECT:
                     payload["project_id"] = str(scope.id)
                     tenant_context = self._tenant_context or current_tenant_context_or_none()
                     payload["tenant"] = tenant_payload_from_context(tenant_context)

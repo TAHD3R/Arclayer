@@ -56,7 +56,6 @@ function mapProjectDetailToListItem(detail: ProjectDetail): UserCenterProjectLis
     id: detail.project.id,
     projectId: detail.project.id,
     workspaceId: detail.project.workspaceId,
-    organizationId: detail.project.organizationId,
     slug: detail.project.slug,
     name: detail.project.name,
     description: detail.project.description,

@@ -36,7 +36,7 @@ function renderCell(onOpenDetails = vi.fn()) {
         avatarUrl: "/avatars/ada.png",
       }}
       description="Can manage members and content"
-      scopeLabel="Organization"
+      scopeLabel="Workspace"
       roleLabel="Administrator"
       statusLabel="Active"
       onOpenDetails={onOpenDetails}
@@ -55,7 +55,7 @@ describe("MemberIdentityCell", () => {
     expect(screen.queryByText("ada@example.com")).toBeNull();
     expect(screen.queryByText("Administrator")).toBeNull();
     expect(screen.queryByText("Active")).toBeNull();
-    expect(screen.queryByText("Organization")).toBeNull();
+    expect(screen.queryByText("Workspace")).toBeNull();
     expect(screen.queryByText("Can manage members and content")).toBeNull();
 
     await user.click(trigger);

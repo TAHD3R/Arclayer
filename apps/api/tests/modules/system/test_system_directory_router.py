@@ -227,22 +227,18 @@ async def test_system_directory_lists_all_entities() -> None:
 
     async with asgi_client(app) as client:
         users_res = await client.get("/api/v1/system/directory/users")
-        orgs_res = await client.get("/api/v1/system/directory/organizations")
         workspaces_res = await client.get("/api/v1/system/directory/workspaces")
         projects_res = await client.get("/api/v1/system/directory/projects")
 
     assert users_res.status_code == 200
-    assert orgs_res.status_code == 200
     assert workspaces_res.status_code == 200
     assert projects_res.status_code == 200
 
     user_items = users_res.json()["data"]["items"]
-    org_items = orgs_res.json()["data"]["items"]
     workspace_items = workspaces_res.json()["data"]["items"]
     project_items = projects_res.json()["data"]["items"]
 
-    assert any(item["username"] == "owner" and item["ownedOrganizationsCount"] == 1 for item in user_items)
-    assert any(item["name"] == "Alpha Org" and item["memberCount"] == 2 for item in org_items)
+    assert any(item["username"] == "owner" and item["workspaceMembershipCount"] == 1 for item in user_items)
     assert any(item["name"] == "Alpha Workspace" and item["projectCount"] == 1 for item in workspace_items)
     assert any(item["name"] == "Alpha Project" and item["memberCount"] == 1 for item in project_items)
 
@@ -369,12 +365,9 @@ async def test_system_directory_supports_search() -> None:
 
     async with asgi_client(app) as client:
         users_res = await client.get("/api/v1/system/directory/users", params={"q": "tenant-owner"})
-        orgs_res = await client.get("/api/v1/system/directory/organizations", params={"q": "Searchable"})
 
     assert users_res.status_code == 200
-    assert orgs_res.status_code == 200
     assert [item["username"] for item in users_res.json()["data"]["items"]] == ["tenant-owner"]
-    assert [item["name"] for item in orgs_res.json()["data"]["items"]] == ["Searchable Org"]
 
 
 @pytest.mark.usefixtures("db")
@@ -521,17 +514,14 @@ async def test_system_directory_returns_entity_details() -> None:
 
     async with asgi_client(app) as client:
         user_res = await client.get(f"/api/v1/system/directory/users/{owner.id}")
-        org_res = await client.get(f"/api/v1/system/directory/organizations/{organization.id}")
         workspace_res = await client.get(f"/api/v1/system/directory/workspaces/{workspace.id}")
         project_res = await client.get(f"/api/v1/system/directory/projects/{project.id}")
 
     assert user_res.status_code == 200
-    assert org_res.status_code == 200
     assert workspace_res.status_code == 200
     assert project_res.status_code == 200
 
     assert user_res.json()["data"]["avatarUrl"] == "/assets/detail-owner-avatar"
-    assert org_res.json()["data"]["logoUrl"] == "/assets/detail-org-logo"
     assert workspace_res.json()["data"]["iconUrl"] == "/assets/detail-workspace-icon"
     assert project_res.json()["data"]["iconUrl"] == "/assets/detail-project-icon"
     assert workspace_res.json()["data"]["owner"]["avatarUrl"] == "/assets/detail-owner-avatar"
@@ -1012,7 +1002,7 @@ async def test_system_directory_rejects_self_delete() -> None:
 
 
 @pytest.mark.usefixtures("db")
-async def test_system_directory_filters_and_governs_organizations_workspaces_and_projects() -> None:
+async def test_system_directory_filters_and_governs_workspaces_and_projects() -> None:
     acting_admin = await User.create(
         username="directory-admin",
         email="directory-admin@example.com",
@@ -1026,12 +1016,6 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
         display_name="Directory Owner",
         status=UserStatus.ACTIVE,
     )
-    replacement_owner = await User.create(
-        username="replacement-owner",
-        email="replacement-owner@example.com",
-        display_name="Replacement Owner",
-        status=UserStatus.ACTIVE,
-    )
     organization = await Organization.create(
         name="Bravo Org",
         slug="bravo-org",
@@ -1039,25 +1023,11 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
         owner_user_id=owner.id,
         is_active=True,
     )
-    personal_organization = await Organization.create(
-        name="Personal Org",
-        slug="personal-org",
-        kind=OrganizationKind.PERSONAL,
-        owner_user_id=owner.id,
-        is_active=False,
-    )
     await OrgMembership.create(
         organization_id=organization.id,
         user_id=owner.id,
         role=OrgRole.OWNER,
         role_code=OrgRole.OWNER.value,
-        status="active",
-    )
-    await OrgMembership.create(
-        organization_id=organization.id,
-        user_id=replacement_owner.id,
-        role=OrgRole.MEMBER,
-        role_code=OrgRole.MEMBER.value,
         status="active",
     )
     workspace = await Workspace.create(
@@ -1099,24 +1069,12 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
         user_id=owner.id,
         status=WorkspaceMembershipStatus.ACTIVE,
     )
-    await WorkspaceMembership.create(
-        workspace_id=workspace.id,
-        user_id=replacement_owner.id,
-        status=WorkspaceMembershipStatus.ACTIVE,
-    )
     await ProjectMembership.create(
         project_id=project.id,
         user_id=owner.id,
         role=ProjectMemberRole.OWNER,
         created_by_user_id=owner.id,
     )
-    await ProjectMembership.create(
-        project_id=project.id,
-        user_id=replacement_owner.id,
-        role=ProjectMemberRole.EDITOR,
-        created_by_user_id=owner.id,
-    )
-
     app = await _build_app()
 
     async def _super_admin_override() -> User:
@@ -1126,18 +1084,9 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
     app.dependency_overrides[require_super_admin] = _super_admin_override
 
     async with asgi_client(app) as client:
-        org_kind_res = await client.get("/api/v1/system/directory/organizations", params={"kind": "team"})
-        org_inactive_res = await client.get(
-            "/api/v1/system/directory/organizations",
-            params={"is_active": False},
-        )
         workspace_archived_res = await client.get(
             "/api/v1/system/directory/workspaces",
             params={"is_archived": True},
-        )
-        workspace_org_res = await client.get(
-            "/api/v1/system/directory/workspaces",
-            params={"organization_id": str(organization.id)},
         )
         project_workspace_res = await client.get(
             "/api/v1/system/directory/projects",
@@ -1147,17 +1096,6 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
             "/api/v1/system/directory/projects",
             params={"is_active": False},
         )
-
-        update_org_res = await client.patch(
-            f"/api/v1/system/directory/organizations/{organization.id}",
-            json={
-                "name": "Alpha Org",
-                "slug": "alpha-org",
-                "ownerUserId": str(replacement_owner.id),
-            },
-        )
-        disable_org_res = await client.post(f"/api/v1/system/directory/organizations/{organization.id}/disable")
-        enable_org_res = await client.post(f"/api/v1/system/directory/organizations/{organization.id}/enable")
 
         update_workspace_res = await client.patch(
             f"/api/v1/system/directory/workspaces/{workspace.id}",
@@ -1193,18 +1131,8 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
             json={"confirmName": "Disabled Project"},
         )
 
-    assert org_kind_res.status_code == 200
-    assert [item["name"] for item in org_kind_res.json()["data"]["items"]] == ["Bravo Org"]
-    assert org_inactive_res.status_code == 200
-    assert [item["name"] for item in org_inactive_res.json()["data"]["items"]] == ["Personal Org"]
-
     assert workspace_archived_res.status_code == 200
     assert [item["name"] for item in workspace_archived_res.json()["data"]["items"]] == ["Archived Workspace"]
-    assert workspace_org_res.status_code == 200
-    assert {item["name"] for item in workspace_org_res.json()["data"]["items"]} == {
-        "Zulu Workspace",
-        "Archived Workspace",
-    }
 
     assert project_workspace_res.status_code == 200
     assert {item["name"] for item in project_workspace_res.json()["data"]["items"]} == {
@@ -1213,15 +1141,6 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
     }
     assert project_inactive_res.status_code == 200
     assert [item["name"] for item in project_inactive_res.json()["data"]["items"]] == ["Disabled Project"]
-
-    assert update_org_res.status_code == 200
-    assert update_org_res.json()["data"]["name"] == "Alpha Org"
-    assert update_org_res.json()["data"]["slug"] == "alpha-org"
-    assert update_org_res.json()["data"]["owner"]["username"] == "replacement-owner"
-    assert disable_org_res.status_code == 200
-    assert disable_org_res.json()["data"]["isActive"] is False
-    assert enable_org_res.status_code == 200
-    assert enable_org_res.json()["data"]["isActive"] is True
 
     assert update_workspace_res.status_code == 200
     assert update_workspace_res.json()["data"]["name"] == "Alpha Workspace"
@@ -1247,110 +1166,11 @@ async def test_system_directory_filters_and_governs_organizations_workspaces_and
     assert delete_project_res.status_code == 200
     assert delete_project_res.json()["data"] is None
 
-    refreshed_org = await Organization.get(id=organization.id)
     refreshed_workspace = await Workspace.get(id=workspace.id)
     refreshed_project = await ProjectRecord.get(id=project.id)
-    assert refreshed_org.owner_user_id == replacement_owner.id
-    replacement_membership = await OrgMembership.get(
-        organization_id=organization.id,
-        user_id=replacement_owner.id,
-    )
-    previous_owner_membership = await OrgMembership.get(
-        organization_id=organization.id,
-        user_id=owner.id,
-    )
-    assert replacement_membership.role == OrgRole.OWNER
-    assert previous_owner_membership.role == OrgRole.ADMIN
     assert refreshed_workspace.name == "Alpha Workspace"
     assert refreshed_workspace.icon_emoji == "🚀"
     assert refreshed_project.name == "Alpha Project"
     assert refreshed_project.slug == "alpha-project"
     assert refreshed_project.icon_glyph == "rocket"
     assert await ProjectRecord.filter(id=disabled_project.id).count() == 0
-
-
-@pytest.mark.usefixtures("db")
-async def test_system_directory_lists_owner_candidates_from_active_org_members_only() -> None:
-    acting_admin = await User.create(
-        username="owner-candidate-admin",
-        email="owner-candidate-admin@example.com",
-        display_name="Owner Candidate Admin",
-        status=UserStatus.ACTIVE,
-        is_super_admin=True,
-    )
-    current_owner = await User.create(
-        username="owner-candidate-owner",
-        email="owner-candidate-owner@example.com",
-        display_name="Current Owner",
-        status=UserStatus.ACTIVE,
-    )
-    member = await User.create(
-        username="owner-candidate-member",
-        email="owner-candidate-member@example.com",
-        display_name="Candidate Member",
-        status=UserStatus.ACTIVE,
-    )
-    disabled_member = await User.create(
-        username="owner-candidate-disabled",
-        email="owner-candidate-disabled@example.com",
-        display_name="Disabled Member",
-        status=UserStatus.ACTIVE,
-    )
-    outsider = await User.create(
-        username="owner-candidate-outsider",
-        email="owner-candidate-outsider@example.com",
-        display_name="Outsider",
-        status=UserStatus.ACTIVE,
-    )
-    organization = await Organization.create(
-        name="Candidates Org",
-        slug="candidates-org",
-        kind=OrganizationKind.TEAM,
-        owner_user_id=current_owner.id,
-    )
-    await OrgMembership.create(
-        organization_id=organization.id,
-        user_id=current_owner.id,
-        role=OrgRole.OWNER,
-        role_code=OrgRole.OWNER.value,
-        status="active",
-    )
-    await OrgMembership.create(
-        organization_id=organization.id,
-        user_id=member.id,
-        role=OrgRole.MEMBER,
-        role_code=OrgRole.MEMBER.value,
-        status="active",
-    )
-    await OrgMembership.create(
-        organization_id=organization.id,
-        user_id=disabled_member.id,
-        role=OrgRole.ADMIN,
-        role_code=OrgRole.ADMIN.value,
-        status="disabled",
-    )
-
-    app = await _build_app()
-
-    async def _super_admin_override() -> User:
-        return acting_admin
-
-    app.dependency_overrides[get_current_user] = _super_admin_override
-    app.dependency_overrides[require_super_admin] = _super_admin_override
-
-    async with asgi_client(app) as client:
-        candidates_res = await client.get(
-            f"/api/v1/system/directory/organizations/{organization.id}/owner-candidates",
-        )
-        invalid_owner_res = await client.patch(
-            f"/api/v1/system/directory/organizations/{organization.id}",
-            json={"ownerUserId": str(outsider.id)},
-        )
-
-    assert candidates_res.status_code == 200
-    assert {item["username"] for item in candidates_res.json()["data"]} == {
-        "owner-candidate-owner",
-        "owner-candidate-member",
-    }
-    assert invalid_owner_res.status_code == 400
-    assert invalid_owner_res.json()["error"] == "ORGANIZATION_OWNER_MEMBER_REQUIRED"

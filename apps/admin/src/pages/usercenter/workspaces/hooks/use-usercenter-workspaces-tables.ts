@@ -1,16 +1,15 @@
 import { type ColumnDef } from "@tanstack/react-table";
 
-import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
+import { listAllWorkspaces } from "@/api/workspace-management";
 import { useDataTable, type UseDataTableResult } from "@arclayer/ui/data-table";
 
 import {
-  mapOrganizationWorkspaceToListItem,
+  mapWorkspaceManageListItemToListItem,
   paginateWorkspaceList,
   type UserCenterWorkspaceListItem,
 } from "../workspace-list-items";
 
 interface UseUserCenterWorkspacesTablesOptions {
-  organizationId?: string;
   columns: Array<ColumnDef<UserCenterWorkspaceListItem, unknown>>;
 }
 
@@ -20,23 +19,21 @@ export type UserCenterWorkspaceTableHook = UseDataTableResult<
 >;
 
 export function useUserCenterWorkspacesTables(options: UseUserCenterWorkspacesTablesOptions) {
-  const { organizationId, columns } = options;
-  const tableScope = organizationId ? `org:${organizationId}` : "org:me";
-  const activeTableId = `organization-workspaces-active:${tableScope}`;
-  const archivedTableId = `organization-workspaces-archived:${tableScope}`;
+  const { columns } = options;
+  const activeTableId = "workspace-management-active";
+  const archivedTableId = "workspace-management-archived";
 
   const activeTableHook = useDataTable<UserCenterWorkspaceListItem>({
     tableId: activeTableId,
     columns,
     initialState: { pageSize: 10 },
     fetcher: async (params) => {
-      const organizationItems = await listAllOrganizationWorkspaces({
-        organizationId,
+      const workspaceItems = await listAllWorkspaces({
         q: params.q,
         ordering: params.ordering,
         archived: false,
       });
-      const teamItems = organizationItems.map(mapOrganizationWorkspaceToListItem);
+      const teamItems = workspaceItems.map(mapWorkspaceManageListItemToListItem);
 
       return paginateWorkspaceList(teamItems, params.page, params.size);
     },
@@ -52,15 +49,14 @@ export function useUserCenterWorkspacesTables(options: UseUserCenterWorkspacesTa
     columns,
     initialState: { pageSize: 10 },
     fetcher: async (params) => {
-      const organizationItems = await listAllOrganizationWorkspaces({
-        organizationId,
+      const workspaceItems = await listAllWorkspaces({
         q: params.q,
         ordering: params.ordering,
         archived: true,
       });
 
       return paginateWorkspaceList(
-        organizationItems.map(mapOrganizationWorkspaceToListItem),
+        workspaceItems.map(mapWorkspaceManageListItemToListItem),
         params.page,
         params.size,
       );

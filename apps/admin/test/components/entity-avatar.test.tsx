@@ -6,7 +6,7 @@ vi.mock("@/lib/assets/asset-urls", () => ({
     ref ? `resolved:${ref}` : undefined,
 }));
 
-import { OrganizationAvatar, UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
+import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 
 describe("entity-avatar", () => {
   test("renders user avatar image with resolved source", () => {
@@ -71,14 +71,5 @@ describe("entity-avatar", () => {
     );
 
     expect(screen.getByLabelText("Delight Team")).toHaveTextContent("🌞");
-  });
-
-  test("falls back to default organization label when name is missing", () => {
-    render(<OrganizationAvatar name="" assetRef={null} size={40} />);
-
-    const avatar = screen.getByLabelText("组织");
-
-    expect(avatar).toHaveClass("rounded-md");
-    expect(avatar).toHaveTextContent("组");
   });
 });

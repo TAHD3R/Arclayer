@@ -13,7 +13,6 @@ export type UserCenterProjectListItem = {
   id: string;
   projectId: string;
   workspaceId: string;
-  organizationId: string;
   slug: string;
   name: string;
   description: string | null;
@@ -37,7 +36,6 @@ export function mapProjectToListItem(project: ProjectListItem): UserCenterProjec
     id: project.id,
     projectId: project.id,
     workspaceId: project.workspaceId,
-    organizationId: project.organizationId,
     slug: project.slug,
     name: project.name,
     description: project.description,

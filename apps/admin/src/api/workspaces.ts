@@ -1,7 +1,6 @@
 import { api } from "@/lib/http";
 import { projectPath, workspacePath, toQueryString } from "@/lib/api";
 import type {
-  OrganizationAuthzSnapshot,
   OnboardingWorkspaceCreatePayload,
   OnboardingWorkspaceCreateResult,
 } from "@arclayer/openapi/admin-types";
@@ -29,10 +28,6 @@ export async function createMyOnboardingWorkspace(
 
 export async function getMyWorkspaceAuthz(workspaceId: string): Promise<AuthzSnapshot> {
   return api.get<AuthzSnapshot>(workspacePath(workspaceId, "/me/authz"));
-}
-
-export async function getMyOrganizationAuthz(): Promise<OrganizationAuthzSnapshot> {
-  return api.get<OrganizationAuthzSnapshot>("/organizations/me/authz");
 }
 
 export async function getMyProjectAuthz(projectId: string): Promise<ProjectAuthzSnapshot> {

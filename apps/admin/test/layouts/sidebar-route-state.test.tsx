@@ -192,7 +192,6 @@ describe("sidebar route state wiring", () => {
       project: {
         id: "ws-1",
         workspaceId: "workspace-1",
-        organizationId: "org-1",
         slug: "ws-1",
         name: "Project ws-1",
         description: null,
@@ -207,7 +206,16 @@ describe("sidebar route state wiring", () => {
     });
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "workspace-1",
-      organizationId: "org-1",
+      project: null,
+      name: "Workspace One",
+      description: null,
+      kind: "team",
+      iconMode: "initials",
+      iconColor: "#337ea9",
+      iconGlyph: null,
+      iconEmoji: null,
+      iconUrl: null,
+      iconAssetAligned: false,
     } as Awaited<ReturnType<typeof getWorkspaceDetail>>);
     vi.mocked(listAllContentModels).mockResolvedValue([]);
   });
@@ -299,7 +307,6 @@ describe("sidebar route state wiring", () => {
       project: {
         id: "project-alpha",
         workspaceId: "workspace-alpha",
-        organizationId: "org-alpha",
         slug: "project-alpha",
         name: "Project Alpha",
         description: null,

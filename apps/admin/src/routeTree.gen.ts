@@ -26,7 +26,6 @@ import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$p
 import { Route as SystemTenantsWorkspacesIndexRouteImport } from './routes/system/tenants/workspaces/index'
 import { Route as SystemTenantsUsersIndexRouteImport } from './routes/system/tenants/users/index'
 import { Route as SystemTenantsProjectsIndexRouteImport } from './routes/system/tenants/projects/index'
-import { Route as SystemTenantsOrganizationsIndexRouteImport } from './routes/system/tenants/organizations/index'
 import { Route as SystemSettingsStorageIndexRouteImport } from './routes/system/settings/storage/index'
 import { Route as SystemSettingsOauthIndexRouteImport } from './routes/system/settings/oauth/index'
 import { Route as SystemSettingsNotificationsIndexRouteImport } from './routes/system/settings/notifications/index'
@@ -150,12 +149,6 @@ const SystemTenantsProjectsIndexRoute =
   SystemTenantsProjectsIndexRouteImport.update({
     id: '/tenants/projects/',
     path: '/tenants/projects/',
-    getParentRoute: () => SystemRoute,
-  } as any)
-const SystemTenantsOrganizationsIndexRoute =
-  SystemTenantsOrganizationsIndexRouteImport.update({
-    id: '/tenants/organizations/',
-    path: '/tenants/organizations/',
     getParentRoute: () => SystemRoute,
   } as any)
 const SystemSettingsStorageIndexRoute =
@@ -421,7 +414,6 @@ export interface FileRoutesByFullPath {
   '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
   '/system/settings/oauth/': typeof SystemSettingsOauthIndexRoute
   '/system/settings/storage/': typeof SystemSettingsStorageIndexRoute
-  '/system/tenants/organizations/': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects/': typeof SystemTenantsProjectsIndexRoute
   '/system/tenants/users/': typeof SystemTenantsUsersIndexRoute
   '/system/tenants/workspaces/': typeof SystemTenantsWorkspacesIndexRoute
@@ -468,7 +460,6 @@ export interface FileRoutesByTo {
   '/system/settings/notifications': typeof SystemSettingsNotificationsIndexRoute
   '/system/settings/oauth': typeof SystemSettingsOauthIndexRoute
   '/system/settings/storage': typeof SystemSettingsStorageIndexRoute
-  '/system/tenants/organizations': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects': typeof SystemTenantsProjectsIndexRoute
   '/system/tenants/users': typeof SystemTenantsUsersIndexRoute
   '/system/tenants/workspaces': typeof SystemTenantsWorkspacesIndexRoute
@@ -518,7 +509,6 @@ export interface FileRoutesById {
   '/system/settings/notifications/': typeof SystemSettingsNotificationsIndexRoute
   '/system/settings/oauth/': typeof SystemSettingsOauthIndexRoute
   '/system/settings/storage/': typeof SystemSettingsStorageIndexRoute
-  '/system/tenants/organizations/': typeof SystemTenantsOrganizationsIndexRoute
   '/system/tenants/projects/': typeof SystemTenantsProjectsIndexRoute
   '/system/tenants/users/': typeof SystemTenantsUsersIndexRoute
   '/system/tenants/workspaces/': typeof SystemTenantsWorkspacesIndexRoute
@@ -569,7 +559,6 @@ export interface FileRouteTypes {
     | '/system/settings/notifications/'
     | '/system/settings/oauth/'
     | '/system/settings/storage/'
-    | '/system/tenants/organizations/'
     | '/system/tenants/projects/'
     | '/system/tenants/users/'
     | '/system/tenants/workspaces/'
@@ -616,7 +605,6 @@ export interface FileRouteTypes {
     | '/system/settings/notifications'
     | '/system/settings/oauth'
     | '/system/settings/storage'
-    | '/system/tenants/organizations'
     | '/system/tenants/projects'
     | '/system/tenants/users'
     | '/system/tenants/workspaces'
@@ -665,7 +653,6 @@ export interface FileRouteTypes {
     | '/system/settings/notifications/'
     | '/system/settings/oauth/'
     | '/system/settings/storage/'
-    | '/system/tenants/organizations/'
     | '/system/tenants/projects/'
     | '/system/tenants/users/'
     | '/system/tenants/workspaces/'
@@ -822,13 +809,6 @@ declare module '@tanstack/react-router' {
       path: '/tenants/projects'
       fullPath: '/system/tenants/projects/'
       preLoaderRoute: typeof SystemTenantsProjectsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/system/tenants/organizations/': {
-      id: '/system/tenants/organizations/'
-      path: '/tenants/organizations'
-      fullPath: '/system/tenants/organizations/'
-      preLoaderRoute: typeof SystemTenantsOrganizationsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
     '/system/settings/storage/': {
@@ -1047,7 +1027,6 @@ interface SystemRouteChildren {
   SystemSettingsNotificationsIndexRoute: typeof SystemSettingsNotificationsIndexRoute
   SystemSettingsOauthIndexRoute: typeof SystemSettingsOauthIndexRoute
   SystemSettingsStorageIndexRoute: typeof SystemSettingsStorageIndexRoute
-  SystemTenantsOrganizationsIndexRoute: typeof SystemTenantsOrganizationsIndexRoute
   SystemTenantsProjectsIndexRoute: typeof SystemTenantsProjectsIndexRoute
   SystemTenantsUsersIndexRoute: typeof SystemTenantsUsersIndexRoute
   SystemTenantsWorkspacesIndexRoute: typeof SystemTenantsWorkspacesIndexRoute
@@ -1063,7 +1042,6 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemSettingsNotificationsIndexRoute: SystemSettingsNotificationsIndexRoute,
   SystemSettingsOauthIndexRoute: SystemSettingsOauthIndexRoute,
   SystemSettingsStorageIndexRoute: SystemSettingsStorageIndexRoute,
-  SystemTenantsOrganizationsIndexRoute: SystemTenantsOrganizationsIndexRoute,
   SystemTenantsProjectsIndexRoute: SystemTenantsProjectsIndexRoute,
   SystemTenantsUsersIndexRoute: SystemTenantsUsersIndexRoute,
   SystemTenantsWorkspacesIndexRoute: SystemTenantsWorkspacesIndexRoute,

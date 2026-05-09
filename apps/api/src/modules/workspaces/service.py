@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TypedDict, cast
+from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
+from src.common.constants.assets import ASSET_SCOPE_WORKSPACE
 from src.common.protocols.tortoise import HasOrganizationId, HasUserId, HasWorkspaceId
 from src.common.types.json_types import JsonObject
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden, NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.assets.asset import AssetPurpose
@@ -43,9 +44,14 @@ from src.modules.workspaces.schema import (
     MyWorkspaceOut,
     OnboardingWorkspaceCreateOut,
     OnboardingWorkspaceCreateRequest,
+    WorkspaceDeleteResult,
     WorkspaceDetailOut,
     WorkspaceFirstOnboardingOut,
     WorkspaceFirstOnboardingStatus,
+    WorkspaceManageArchiveResult,
+    WorkspaceManageCreateRequest,
+    WorkspaceManageListItemOut,
+    WorkspaceManageMemberPreviewOut,
     WorkspaceSwitcherOut,
     WorkspaceUpdateRequest,
 )
@@ -84,6 +90,31 @@ def _normalize_optional_workspace_icon_value(
     return normalized
 
 
+_WORKSPACE_MANAGE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "created_at", "archived_at"})
+
+
+def _normalize_workspace_ordering(value: str | None) -> list[str]:
+    fields: list[str] = []
+    for part in str(value or "").split(","):
+        raw = part.strip()
+        if not raw:
+            continue
+        desc = raw.startswith("-")
+        name = raw[1:] if desc else raw
+        if name not in _WORKSPACE_MANAGE_ALLOWED_ORDER_FIELDS:
+            continue
+        fields.append(f"-{name}" if desc else name)
+    return fields
+
+
+def _normalize_sort_value(value: Any) -> tuple[int, Any]:
+    if value is None:
+        return (1, "")
+    if isinstance(value, str):
+        return (0, value.lower())
+    return (0, value)
+
+
 def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorkspaceOut]:
     """
     Build workspace list for users without any org memberships.
@@ -99,7 +130,6 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
                 id=ws.id,
                 workspace_id=ws.id,
                 project_id=None,
-                organization_id=_resolve_organization_id(ws),
                 name=ws.name,
                 kind=ws.kind,
                 description=ws.description,
@@ -176,7 +206,6 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                     id=ws.id,
                     workspace_id=ws.id,
                     project_id=None,
-                    organization_id=org_id,
                     name=ws.name,
                     kind=ws.kind,
                     description=ws.description,
@@ -374,6 +403,97 @@ class WorkspaceService(BaseService):
             items=items,
         )
 
+    def _map_manage_member_preview(
+        self, members_preview: list[MyWorkspaceMemberPreviewOut]
+    ) -> list[WorkspaceManageMemberPreviewOut]:
+        return [
+            WorkspaceManageMemberPreviewOut(
+                user_id=member.user_id,
+                username=member.username,
+                display_name=member.display_name,
+                avatar_url=member.avatar_url,
+            )
+            for member in members_preview
+        ]
+
+    def _map_manage_list_item(self, item: MyWorkspaceOut) -> WorkspaceManageListItemOut:
+        created_at = item.created_at
+        if created_at is None:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_CREATED_AT_REQUIRED")
+        return WorkspaceManageListItemOut(
+            id=item.id,
+            workspace_id=item.workspace_id,
+            project_id=item.project_id,
+            name=item.name,
+            kind=item.kind,
+            description=item.description,
+            icon_mode=item.icon_mode,
+            icon_color=item.icon_color,
+            icon_glyph=item.icon_glyph,
+            icon_emoji=item.icon_emoji,
+            icon_url=item.icon_url,
+            is_archived=False,
+            archived_at=None,
+            archived_by_user_id=None,
+            member_count=item.member_count,
+            members_preview=self._map_manage_member_preview(item.members_preview),
+            created_at=created_at,
+            enterable=not item.visible_only,
+            project=WorkspacePrimaryProjectOut(project_id=item.project_id) if item.project_id is not None else None,
+        )
+
+    async def list_manage_workspaces(
+        self,
+        *,
+        user_id: UUID,
+        params: PageParams,
+        q: str | None,
+        ordering: str | None,
+        archived: bool | None,
+        enterable_only: bool,
+    ) -> PageData[WorkspaceManageListItemOut]:
+        result = await self.list_my_workspaces(user_id=user_id)
+        workspace_ids = [UUID(str(item.workspace_id)) for item in result.items]
+        visible_workspaces = await self.repo.list_non_deleted_by_ids(workspace_ids=workspace_ids)
+        workspace_by_id = {UUID(str(workspace.id)): workspace for workspace in visible_workspaces}
+
+        items: list[WorkspaceManageListItemOut] = []
+        for item in result.items:
+            workspace = workspace_by_id.get(UUID(str(item.workspace_id)))
+            if workspace is None:
+                continue
+            manage_item = self._map_manage_workspace_out(item)
+            created_at = item.created_at
+            if created_at is None:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_CREATED_AT_REQUIRED")
+            manage_item.is_archived = workspace.archived_at is not None
+            manage_item.archived_at = workspace.archived_at
+            manage_item.archived_by_user_id = workspace.archived_by_user_id
+            if archived is True and not manage_item.is_archived:
+                continue
+            if archived is False and manage_item.is_archived:
+                continue
+            if enterable_only and not manage_item.enterable:
+                continue
+            if q:
+                needle = str(q).strip().lower()
+                if (
+                    needle
+                    and needle not in str(manage_item.name or "").lower()
+                    and needle not in str(manage_item.description or "").lower()
+                ):
+                    continue
+            manage_item.created_at = created_at
+            items.append(manage_item)
+
+        normalized_ordering = _normalize_workspace_ordering(ordering)
+        if normalized_ordering:
+            items = self._sort_manage_workspaces(rows=items, ordering=normalized_ordering)
+        else:
+            items = self._sort_manage_workspaces_default(rows=items, archived=archived)
+
+        return paginate_items(items, params=params)
+
     async def create_onboarding_workspace(
         self,
         *,
@@ -421,6 +541,35 @@ class WorkspaceService(BaseService):
             workspace_id=UUID(str(created_workspace.workspace_id)),
         )
 
+    async def create_manage_workspace(
+        self,
+        *,
+        user_id: UUID,
+        payload: WorkspaceManageCreateRequest,
+    ) -> WorkspaceManageListItemOut:
+        workspace_name = str(payload.name or "").strip()
+        if not workspace_name:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
+
+        organization = await self._ensure_onboarding_team_organization(
+            user_id=user_id,
+            organization_name=workspace_name,
+        )
+        created_workspace = await self.organization_workspace_service.create_workspace(
+            organization_id=UUID(str(organization.id)),
+            user_id=user_id,
+            org_role=OrgRole.OWNER,
+            payload=OrganizationWorkspaceCreateRequest(
+                name=workspace_name,
+                description=payload.description,
+                template=OrganizationWorkspaceTemplate(payload.template.value),
+                locale=payload.locale,
+                timezone=payload.timezone,
+                date_format=payload.date_format,
+            ),
+        )
+        return self._map_manage_workspace_out(created_workspace)
+
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:
         ws = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if ws is None:
@@ -429,7 +578,6 @@ class WorkspaceService(BaseService):
         return WorkspaceDetailOut(
             id=ws.id,
             project=WorkspacePrimaryProjectOut(project_id=UUID(str(project.id))) if project is not None else None,
-            organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             kind=ws.kind,
             name=ws.name,
             description=ws.description,
@@ -553,7 +701,7 @@ class WorkspaceService(BaseService):
                 if asset_uuid is not None:
                     icon_asset_aligned = await align_asset_for_binding(
                         self.settings,
-                        scope=AssetScope(type=ASSET_SCOPE_ORGANIZATION, id=organization_id),
+                        scope=AssetScope(type=ASSET_SCOPE_WORKSPACE, id=workspace_id),
                         asset_id=asset_uuid,
                         purpose=AssetPurpose.WORKSPACE_ICON,
                     )
@@ -606,7 +754,6 @@ class WorkspaceService(BaseService):
 
         return WorkspaceDetailOut(
             id=ws.id,
-            organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
             kind=ws.kind,
             name=ws.name,
             description=ws.description,
@@ -617,6 +764,53 @@ class WorkspaceService(BaseService):
             icon_url=ws.icon_url,
             icon_asset_aligned=icon_asset_aligned,
         )
+
+    async def archive_manage_workspace(self, *, user_id: UUID, workspace_id: UUID) -> WorkspaceManageArchiveResult:
+        orgm = await self._get_manage_org_membership(user_id=user_id)
+        out = await self.organization_workspace_service.archive_workspace(
+            organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+            workspace_id=workspace_id,
+            user_id=user_id,
+            org_role=orgm.role,
+        )
+        return WorkspaceManageArchiveResult(
+            workspace_id=UUID(str(out.workspace_id)),
+            is_archived=out.is_archived,
+            archived_at=out.archived_at,
+            archived_by_user_id=out.archived_by_user_id,
+        )
+
+    async def unarchive_manage_workspace(self, *, user_id: UUID, workspace_id: UUID) -> WorkspaceManageArchiveResult:
+        orgm = await self._get_manage_org_membership(user_id=user_id)
+        out = await self.organization_workspace_service.unarchive_workspace(
+            organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+            workspace_id=workspace_id,
+            user_id=user_id,
+            org_role=orgm.role,
+        )
+        return WorkspaceManageArchiveResult(
+            workspace_id=UUID(str(out.workspace_id)),
+            is_archived=out.is_archived,
+            archived_at=out.archived_at,
+            archived_by_user_id=out.archived_by_user_id,
+        )
+
+    async def delete_manage_workspace(
+        self,
+        *,
+        user_id: UUID,
+        workspace_id: UUID,
+        confirm_name: str,
+    ) -> WorkspaceDeleteResult:
+        orgm = await self._get_manage_org_membership(user_id=user_id)
+        out = await self.organization_workspace_service.delete_workspace(
+            organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
+            workspace_id=workspace_id,
+            user_id=user_id,
+            org_role=orgm.role,
+            confirm_name=confirm_name,
+        )
+        return WorkspaceDeleteResult(workspace_id=UUID(str(out.workspace_id)), deleted=out.deleted)
 
     async def leave_workspace(
         self,
@@ -678,3 +872,74 @@ class WorkspaceService(BaseService):
             for membership in memberships
             if (user_id := cast(HasUserId, membership).user_id) is not None
         ]
+
+    async def _get_manage_org_membership(self, *, user_id: UUID) -> OrgMembership:
+        orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
+        if orgm is None:
+            raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="ORG_MEMBERSHIP_REQUIRED")
+        return orgm
+
+    def _map_manage_workspace_out(self, workspace: Any):
+        created_at = workspace.created_at
+        if created_at is None:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_CREATED_AT_REQUIRED")
+        return WorkspaceManageListItemOut(
+            id=workspace.id,
+            workspace_id=workspace.workspace_id,
+            project_id=workspace.project_id,
+            name=workspace.name,
+            kind=workspace.kind,
+            description=workspace.description,
+            icon_mode=workspace.icon_mode,
+            icon_color=workspace.icon_color,
+            icon_glyph=workspace.icon_glyph,
+            icon_emoji=workspace.icon_emoji,
+            icon_url=workspace.icon_url,
+            is_archived=getattr(workspace, "is_archived", False),
+            archived_at=getattr(workspace, "archived_at", None),
+            archived_by_user_id=getattr(workspace, "archived_by_user_id", None),
+            member_count=getattr(workspace, "member_count", 0),
+            members_preview=self._map_manage_member_preview(
+                getattr(workspace, "members_preview", [])
+                if isinstance(getattr(workspace, "members_preview", []), list)
+                else []
+            ),
+            created_at=created_at,
+            enterable=getattr(workspace, "enterable", True),
+            project=workspace.project,
+        )
+
+    def _sort_manage_workspaces_default(
+        self,
+        *,
+        rows: list[WorkspaceManageListItemOut],
+        archived: bool | None,
+    ) -> list[WorkspaceManageListItemOut]:
+        if archived is True:
+            return sorted(rows, key=lambda ws: ws.created_at)
+        if archived is False:
+            return sorted(rows, key=lambda ws: ws.created_at)
+        return sorted(rows, key=lambda ws: (ws.is_archived, ws.created_at))
+
+    def _sort_manage_workspaces(
+        self,
+        *,
+        rows: list[WorkspaceManageListItemOut],
+        ordering: list[str],
+    ) -> list[WorkspaceManageListItemOut]:
+        out = list(rows)
+        for raw in reversed(ordering):
+            desc = raw.startswith("-")
+            name = raw[1:] if desc else raw
+            out.sort(
+                key=lambda ws, field=name: self._workspace_manage_sort_key(workspace=ws, field=field),
+                reverse=desc,
+            )
+        return out
+
+    def _workspace_manage_sort_key(self, *, workspace: WorkspaceManageListItemOut, field: str) -> tuple[int, Any]:
+        if field == "name":
+            return _normalize_sort_value(workspace.name)
+        if field == "archived_at":
+            return _normalize_sort_value(workspace.archived_at)
+        return _normalize_sort_value(workspace.created_at)

@@ -4,11 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { InviteLinkParticipantsPopover } from "@/pages/workspaces/team/shared/components/invite-link-participants-popover";
-import { listOrganizationInviteLinkParticipants } from "@/api/organization-members";
-
-vi.mock("@/api/organization-members", () => ({
-  listOrganizationInviteLinkParticipants: vi.fn(),
-}));
+import { listTeamInviteLinkParticipants } from "@/api/team";
 
 vi.mock("@/api/team", () => ({
   listTeamInviteLinkParticipants: vi.fn(),
@@ -36,8 +32,8 @@ function createQueryClient() {
 }
 
 describe("InviteLinkParticipantsPopover", () => {
-  it("passes debounced search query to organization participant API", async () => {
-    vi.mocked(listOrganizationInviteLinkParticipants).mockResolvedValue({
+  it("passes debounced search query to workspace participant API", async () => {
+    vi.mocked(listTeamInviteLinkParticipants).mockResolvedValue({
       items: [
         {
           usedAt: "2026-04-22T00:00:00.000Z",
@@ -64,7 +60,7 @@ describe("InviteLinkParticipantsPopover", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <InviteLinkParticipantsPopover
-          scope="organization"
+          workspaceId="workspace-1"
           linkId="link-1"
           usesCount={1}
           primaryUser={{
@@ -86,7 +82,7 @@ describe("InviteLinkParticipantsPopover", () => {
     );
 
     await waitFor(() => {
-      expect(listOrganizationInviteLinkParticipants).toHaveBeenCalledWith("link-1", {
+      expect(listTeamInviteLinkParticipants).toHaveBeenCalledWith("workspace-1", "link-1", {
         page: 1,
         size: 10,
         q: "",
@@ -100,7 +96,7 @@ describe("InviteLinkParticipantsPopover", () => {
 
     await waitFor(
       () => {
-        expect(listOrganizationInviteLinkParticipants).toHaveBeenLastCalledWith("link-1", {
+        expect(listTeamInviteLinkParticipants).toHaveBeenLastCalledWith("workspace-1", "link-1", {
           page: 1,
           size: 10,
           q: "ada",

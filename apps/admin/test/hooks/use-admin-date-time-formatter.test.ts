@@ -64,13 +64,6 @@ describe("resolveAdminLocalizationSnapshot", () => {
         useBrowserTimeZone: false,
         useRelativeDateTime: true,
       },
-      organizationLocalization: {
-        locale: "en-US",
-        timeZone: "America/New_York",
-        dateFormat: "MM/DD/YYYY",
-        useBrowserTimeZone: true,
-        useRelativeDateTime: false,
-      },
       preferencesLocale: "en-US",
       preferencesTimeZone: null,
       browserTimeZone: "America/Los_Angeles",
@@ -94,13 +87,6 @@ describe("resolveAdminLocalizationSnapshot", () => {
         useBrowserTimeZone: false,
         useRelativeDateTime: true,
       },
-      organizationLocalization: {
-        locale: "zh-CN",
-        timeZone: "Asia/Tokyo",
-        dateFormat: "YYYY-MM-DD",
-        useBrowserTimeZone: false,
-        useRelativeDateTime: false,
-      },
       preferencesLocale: "en-US",
       preferencesTimeZone: null,
       browserTimeZone: "America/Los_Angeles",
@@ -115,16 +101,9 @@ describe("resolveAdminLocalizationSnapshot", () => {
     });
   });
 
-  it("uses current UI locale while falling back to organization date settings", () => {
+  it("uses browser defaults when workspace date settings are absent", () => {
     const resolved = resolveAdminLocalizationSnapshot({
       workspaceLocalization: {},
-      organizationLocalization: {
-        locale: "en-US",
-        timeZone: "Europe/Berlin",
-        dateFormat: "DD/MM/YYYY",
-        useBrowserTimeZone: true,
-        useRelativeDateTime: true,
-      },
       preferencesLocale: "zh-CN",
       preferencesTimeZone: null,
       browserTimeZone: "Asia/Tokyo",
@@ -133,23 +112,16 @@ describe("resolveAdminLocalizationSnapshot", () => {
     expect(resolved).toEqual({
       locale: "zh-CN",
       timeZone: "Asia/Tokyo",
-      dateFormat: "DD/MM/YYYY",
+      dateFormat: undefined,
       useBrowserTimeZone: true,
       useRelativeDateTime: true,
     });
   });
 
-  it("supports per-field fallback for non-locale date settings", () => {
+  it("supports per-field defaults for non-locale date settings", () => {
     const resolved = resolveAdminLocalizationSnapshot({
       workspaceLocalization: {
         locale: "zh-CN",
-      },
-      organizationLocalization: {
-        locale: "en-US",
-        timeZone: "Europe/London",
-        dateFormat: "YYYY-MM-DD",
-        useBrowserTimeZone: false,
-        useRelativeDateTime: true,
       },
       preferencesLocale: "en-US",
       preferencesTimeZone: null,
@@ -158,9 +130,9 @@ describe("resolveAdminLocalizationSnapshot", () => {
 
     expect(resolved).toEqual({
       locale: "en-US",
-      timeZone: "Europe/London",
-      dateFormat: "YYYY-MM-DD",
-      useBrowserTimeZone: false,
+      timeZone: "America/Chicago",
+      dateFormat: undefined,
+      useBrowserTimeZone: true,
       useRelativeDateTime: true,
     });
   });
@@ -168,7 +140,6 @@ describe("resolveAdminLocalizationSnapshot", () => {
   it("falls back to user preference and browser defaults when org/workspace are absent", () => {
     const resolved = resolveAdminLocalizationSnapshot({
       workspaceLocalization: {},
-      organizationLocalization: {},
       preferencesLocale: "en-US",
       preferencesTimeZone: null,
       browserTimeZone: "America/Denver",
@@ -189,12 +160,6 @@ describe("resolveAdminLocalizationSnapshot", () => {
         locale: "zh-CN",
         timeZone: "Asia/Shanghai",
         dateFormat: "YYYY-MM-DD",
-        useBrowserTimeZone: true,
-      },
-      organizationLocalization: {
-        locale: "en-US",
-        timeZone: "Europe/London",
-        dateFormat: "DD/MM/YYYY",
         useBrowserTimeZone: true,
       },
       preferencesLocale: "en-US",

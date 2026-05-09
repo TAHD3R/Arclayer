@@ -14,29 +14,6 @@ function settingsTarget(target: SettingsSectionTarget): NotificationTarget {
   return { type: "settings", target };
 }
 
-function resolveLegacyOrganizationTarget(
-  targetTo: string,
-  workspaceId: string,
-): NotificationTarget {
-  if (/^\/o\/[^/]+\/workspaces\/?$/.test(targetTo)) return navigateTarget("/projects");
-  if (/^\/o\/[^/]+\/billing\/?$/.test(targetTo))
-    return settingsTarget({ screen: "personal.profile" });
-  if (/^\/o\/[^/]+\/usage\/?$/.test(targetTo))
-    return settingsTarget({ screen: "personal.profile" });
-  if (/^\/o\/[^/]+\/settings\/danger\/?$/.test(targetTo))
-    return settingsTarget({ screen: "personal.profile", section: "danger" });
-  if (/^\/o\/[^/]+\/team\/members\/?$/.test(targetTo))
-    return settingsTarget({ screen: "workspace.members", section: "members-table" });
-  if (/^\/o\/[^/]+\/team\/invitations\/?$/.test(targetTo))
-    return settingsTarget({ screen: "workspace.invitations", section: "pending-invitations" });
-  if (/^\/o\/[^/]+\/team\/roles\/?$/.test(targetTo))
-    return settingsTarget({ screen: "workspace.roles", section: "roles-table" });
-  if (/^\/o\/[^/]+\/(?:activity|settings\/activity)\/?$/.test(targetTo)) {
-    return navigateTarget(`/projects/${workspaceId}/activity`);
-  }
-  return navigateTarget("/projects");
-}
-
 function resolveWorkspaceSettingsTarget(targetTo: string): NotificationTarget | null {
   const normalized = targetTo.replace(/\/+$/, "");
   if (normalized === "/settings/workspace/general") {
@@ -80,7 +57,7 @@ export function resolveNotificationTarget(item: NotificationItem): NotificationT
     }
     return navigateTarget(normalizeLegacyProjectSettingsPath(projectPath));
   }
-  if (targetTo.startsWith("/o/")) return resolveLegacyOrganizationTarget(targetTo, workspaceId);
+  if (targetTo.startsWith("/o/")) return null;
 
   return navigateTarget(
     `/projects/${workspaceId}${targetTo.startsWith("/") ? targetTo : `/${targetTo}`}`,

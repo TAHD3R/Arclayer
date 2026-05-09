@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, PrivateAttr
 
 from src.common.schemas import BaseOut, BaseSchema, TimestampMixin
 from src.common.types.json_types import JsonObject
@@ -25,10 +25,11 @@ class ActivityUserSummaryOut(BaseSchema):
 
 
 class AuditEventOut(BaseOut, TimestampMixin):
+    _organization_id: PublicUUID | None = PrivateAttr(default=None)
+
     occurred_at: datetime = Field(..., description="Event time (UTC).")
     event_name: str = Field(..., description="Event name.")
 
-    organization_id: PublicUUID | None = Field(default=None, description="Organization id.")
     workspace_id: PublicUUID | None = Field(default=None, description="Workspace id.")
 
     actor_user_id: PublicUUID | None = Field(default=None, description="Actor user id.")
@@ -70,12 +71,6 @@ class AuditEventListQuery(BaseSchema):
         alias="workspaceId",
         description="Filter: workspace id.",
         validation_alias=AliasChoices("workspaceId", "workspace_id"),
-    )
-    organization_id: PublicUUID | None = Field(
-        default=None,
-        alias="organizationId",
-        description="Filter: organization id.",
-        validation_alias=AliasChoices("organizationId", "organization_id"),
     )
     actor_user_id: PublicUUID | None = Field(
         default=None,

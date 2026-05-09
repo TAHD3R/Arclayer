@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Building2, FolderKanban } from "lucide-react";
+import { FolderKanban } from "lucide-react";
 
 import { BaseTag, lucideTagIcon } from "@/components/ui/tags/tag-base";
 import { UserIdentityInline, type UserIdentity } from "./user-identity";
@@ -9,7 +9,6 @@ export type MemberIdentity = Pick<UserIdentity, "displayName" | "username" | "em
 export type MemberIdentityCellProps = {
   member: MemberIdentity | null;
   scopeLabel?: string;
-  scopeVariant?: "organization" | "workspace";
   roleLabel?: string;
   statusLabel?: string;
   description?: string;
@@ -23,10 +22,13 @@ const HOVER_TAG_CLASSNAMES = {
   content: "!min-w-0 !max-w-full overflow-hidden",
 } as const;
 
-function ScopeTag(props: { label: string; variant?: "organization" | "workspace" }) {
-  const Icon = props.variant === "workspace" ? FolderKanban : Building2;
+function ScopeTag(props: { label: string }) {
   return (
-    <BaseTag classNames={HOVER_TAG_CLASSNAMES} icon={lucideTagIcon(Icon)} className="!bg-muted/70">
+    <BaseTag
+      classNames={HOVER_TAG_CLASSNAMES}
+      icon={lucideTagIcon(FolderKanban)}
+      className="!bg-muted/70"
+    >
       <span className="truncate">{props.label}</span>
     </BaseTag>
   );
@@ -42,9 +44,7 @@ function FallbackTag(props: { label: string }) {
 
 export function MemberIdentityCell(props: MemberIdentityCellProps) {
   const renderedBadges = props.badges ?? [
-    props.scopeLabel ? (
-      <ScopeTag key="scope" label={props.scopeLabel} variant={props.scopeVariant} />
-    ) : null,
+    props.scopeLabel ? <ScopeTag key="scope" label={props.scopeLabel} /> : null,
     props.roleLabel ? <FallbackTag key="role" label={props.roleLabel} /> : null,
     props.statusLabel ? <FallbackTag key="status" label={props.statusLabel} /> : null,
   ];

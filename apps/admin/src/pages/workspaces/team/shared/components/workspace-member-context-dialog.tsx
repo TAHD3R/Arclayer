@@ -142,7 +142,6 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
         dialogDescription={t("team:TEAM_MEMBER_CONTEXT_DESC")}
         member={activeMember}
         scopeLabel={t("team:TEAM_MEMBER_CONTEXT_SCOPE")}
-        scopeVariant="workspace"
         badges={
           <>
             <TeamRoleTag

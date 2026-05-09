@@ -5,24 +5,19 @@ import { type ColumnDef } from "@tanstack/react-table";
 
 import {
   archiveSystemDirectoryWorkspace,
-  deleteSystemDirectoryOrganization,
   deleteSystemDirectoryWorkspace,
   deleteSystemDirectoryUser,
   deleteSystemDirectoryProject,
-  disableSystemDirectoryOrganization,
   disableSystemDirectoryProject,
   disableSystemDirectoryUser,
   disableSystemDirectoryUserTwoFactor,
   disableSystemDirectoryWorkspace,
-  enableSystemDirectoryOrganization,
   enableSystemDirectoryProject,
   enableSystemDirectoryUser,
   enableSystemDirectoryWorkspace,
-  getSystemDirectoryOrganizationDetail,
   getSystemDirectoryProjectDetail,
   getSystemDirectoryUserDetail,
   getSystemDirectoryWorkspaceDetail,
-  listSystemDirectoryOrganizations,
   listSystemDirectoryProjects,
   listSystemDirectoryUsers,
   listSystemDirectoryWorkspaces,
@@ -31,7 +26,6 @@ import {
   revokeSystemDirectoryUserSessions,
   sendSystemDirectoryUserResetPasswordEmail,
   unlinkSystemDirectoryUserOAuthIdentity,
-  updateSystemDirectoryOrganization,
   updateSystemDirectoryProject,
   updateSystemDirectoryUser,
   updateSystemDirectoryWorkspace,
@@ -44,8 +38,6 @@ import {
 } from "@/api/workspaces";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import type {
-  SystemDirectoryOrganizationDetail,
-  SystemDirectoryOrganization,
   SystemDirectoryProjectDetail,
   SystemDirectoryProject,
   SystemDirectoryUserDetail,
@@ -74,13 +66,6 @@ function invalidateSystemDirectoryUsers(queryClient: ReturnType<typeof useQueryC
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: ["dataTable", "system-directory-users"] }),
     queryClient.invalidateQueries({ queryKey: ["system-directory", "users"] }),
-  ]);
-}
-
-function invalidateSystemDirectoryOrganizations(queryClient: ReturnType<typeof useQueryClient>) {
-  return Promise.all([
-    queryClient.invalidateQueries({ queryKey: ["dataTable", "system-directory-organizations"] }),
-    queryClient.invalidateQueries({ queryKey: ["system-directory", "organizations"] }),
   ]);
 }
 
@@ -125,34 +110,9 @@ export function useSystemDirectoryUsersTable(
   return { tableId, ...tableHook } as const;
 }
 
-export function useSystemDirectoryOrganizationsTable(
-  columns: Array<ColumnDef<SystemDirectoryOrganization, unknown>>,
-  extraQuery?: {
-    kind?: string;
-    isActive?: boolean;
-  },
-) {
-  const tableId = "system-directory-organizations";
-  const tableHook = useDataTable<SystemDirectoryOrganization>({
-    tableId,
-    columns,
-    initialState: { pageSize: 20 },
-    fetcher: async (params) => listSystemDirectoryOrganizations(params),
-    extraQuery,
-    rowSelection: {
-      enabled: true,
-      getRowId: (row) => row.organizationId,
-    },
-    queryOptions: QUERY_OPTIONS,
-  });
-
-  return { tableId, ...tableHook } as const;
-}
-
 export function useSystemDirectoryWorkspacesTable(
   columns: Array<ColumnDef<SystemDirectoryWorkspace, unknown>>,
   extraQuery?: {
-    organizationId?: string;
     isArchived?: boolean;
     isActive?: boolean;
   },
@@ -177,7 +137,6 @@ export function useSystemDirectoryWorkspacesTable(
 export function useSystemDirectoryProjectsTable(
   columns: Array<ColumnDef<SystemDirectoryProject, unknown>>,
   extraQuery?: {
-    organizationId?: string;
     workspaceId?: string;
     isActive?: boolean;
   },
@@ -365,46 +324,10 @@ export function useSystemDirectoryUserGovernance() {
   } as const;
 }
 
-export function useSystemDirectoryOrganizationDetail(organizationId: string | null) {
+export function useSystemDirectoryWorkspaceOptions() {
   const query = useQuery({
-    queryKey: ["system-directory", "organizations", organizationId],
-    queryFn: async () => {
-      if (!organizationId) throw new Error("ORGANIZATION_ID_REQUIRED");
-      return getSystemDirectoryOrganizationDetail(organizationId);
-    },
-    enabled: Boolean(organizationId),
-    ...DETAIL_QUERY_OPTIONS,
-  });
-
-  return {
-    ...query,
-    detail: (query.data ?? null) as SystemDirectoryOrganizationDetail | null,
-  } as const;
-}
-
-export function useSystemDirectoryOrganizationOptions() {
-  const query = useQuery({
-    queryKey: ["system-directory", "organizations", "options"],
-    queryFn: async () => listSystemDirectoryOrganizations({ page: 1, size: 200, ordering: "name" }),
-    ...DETAIL_QUERY_OPTIONS,
-  });
-
-  return {
-    ...query,
-    organizations: query.data?.items ?? [],
-  } as const;
-}
-
-export function useSystemDirectoryWorkspaceOptions(extraQuery?: { organizationId?: string }) {
-  const query = useQuery({
-    queryKey: ["system-directory", "workspaces", "options", extraQuery?.organizationId ?? "all"],
-    queryFn: async () =>
-      listSystemDirectoryWorkspaces({
-        page: 1,
-        size: 200,
-        ordering: "name",
-        organizationId: extraQuery?.organizationId,
-      }),
+    queryKey: ["system-directory", "workspaces", "options"],
+    queryFn: async () => listSystemDirectoryWorkspaces({ page: 1, size: 200, ordering: "name" }),
     ...DETAIL_QUERY_OPTIONS,
   });
 
@@ -478,87 +401,6 @@ export function useSystemDirectoryProjectDetail(projectId: string | null) {
   return {
     ...query,
     detail: (query.data ?? null) as SystemDirectoryProjectDetail | null,
-  } as const;
-}
-
-export function useSystemDirectoryOrganizationGovernance() {
-  const { t } = useTranslation(["settings"]);
-  const queryClient = useQueryClient();
-
-  const updateOrganizationMutation = useMutation({
-    mutationFn: async (params: {
-      organizationId: string;
-      name?: string | null;
-      slug?: string | null;
-      ownerUserId?: string | null;
-    }) =>
-      updateSystemDirectoryOrganization(params.organizationId, {
-        name: params.name,
-        slug: params.slug,
-        ownerUserId: params.ownerUserId,
-      }),
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await invalidateSystemDirectoryOrganizations(queryClient);
-    },
-    onError: (error) => notifyError(error),
-  });
-
-  const disableOrganizationsMutation = useMutation({
-    mutationFn: async (params: { organizationIds: string[] }) =>
-      Promise.all(params.organizationIds.map((id) => disableSystemDirectoryOrganization(id))),
-    onSuccess: async (_data, variables) => {
-      notifySuccessText(
-        variables.organizationIds.length > 1
-          ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_ORGANIZATION_SUCCESS_MANY")
-          : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DISABLE_ORGANIZATION_SUCCESS_ONE"),
-      );
-      await invalidateSystemDirectoryOrganizations(queryClient);
-    },
-    onError: (error) => notifyError(error),
-  });
-
-  const enableOrganizationsMutation = useMutation({
-    mutationFn: async (params: { organizationIds: string[] }) =>
-      Promise.all(params.organizationIds.map((id) => enableSystemDirectoryOrganization(id))),
-    onSuccess: async (_data, variables) => {
-      notifySuccessText(
-        variables.organizationIds.length > 1
-          ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_ORGANIZATION_SUCCESS_MANY")
-          : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_ENABLE_ORGANIZATION_SUCCESS_ONE"),
-      );
-      await invalidateSystemDirectoryOrganizations(queryClient);
-    },
-    onError: (error) => notifyError(error),
-  });
-
-  const deleteOrganizationsMutation = useMutation({
-    mutationFn: async (params: {
-      organizations: Array<{ organizationId: string; confirmName: string }>;
-    }) =>
-      Promise.all(
-        params.organizations.map((organization) =>
-          deleteSystemDirectoryOrganization(organization.organizationId, {
-            confirmName: organization.confirmName,
-          }),
-        ),
-      ),
-    onSuccess: async (_data, variables) => {
-      notifySuccessText(
-        variables.organizations.length > 1
-          ? t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_ORGANIZATION_SUCCESS_MANY")
-          : t("settings:SETTINGS_SYSTEM_DIRECTORY_ACTION_DELETE_ORGANIZATION_SUCCESS"),
-      );
-      await invalidateSystemDirectoryOrganizations(queryClient);
-    },
-    onError: (error) => notifyError(error),
-  });
-
-  return {
-    updateOrganizationMutation,
-    disableOrganizationsMutation,
-    enableOrganizationsMutation,
-    deleteOrganizationsMutation,
   } as const;
 }
 

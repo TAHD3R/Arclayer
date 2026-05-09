@@ -13,7 +13,6 @@ type InviteGuestJoinPaneProps = {
   onBack: () => void;
   reducedMotion: boolean;
   previewData: { invitation: { email?: string | null } };
-  isOrgOnlyInvite: boolean | undefined;
   hasBoundEmail: boolean;
   keepSession: boolean;
   loginLoading: boolean;
@@ -41,7 +40,6 @@ export function InviteGuestJoinPane({
   onBack,
   reducedMotion,
   previewData,
-  isOrgOnlyInvite,
   hasBoundEmail,
   keepSession,
   loginLoading,
@@ -78,7 +76,6 @@ export function InviteGuestJoinPane({
           <LoginModeContent
             t={t}
             previewData={previewData}
-            isOrgOnlyInvite={isOrgOnlyInvite}
             hasBoundEmail={hasBoundEmail}
             keepSession={keepSession}
             loginLoading={loginLoading}
@@ -93,7 +90,6 @@ export function InviteGuestJoinPane({
         ) : (
           <RegisterModeContent
             t={t}
-            isOrgOnlyInvite={isOrgOnlyInvite}
             hasBoundEmail={hasBoundEmail}
             previewData={previewData}
             registerLoading={registerLoading}
@@ -113,7 +109,6 @@ export function InviteGuestJoinPane({
 function LoginModeContent({
   t,
   previewData,
-  isOrgOnlyInvite,
   hasBoundEmail,
   keepSession,
   loginLoading,
@@ -127,7 +122,6 @@ function LoginModeContent({
 }: {
   t: (key: string, params?: Record<string, unknown>) => string;
   previewData: { invitation: { email?: string | null } };
-  isOrgOnlyInvite: boolean | undefined;
   hasBoundEmail: boolean;
   keepSession: boolean;
   loginLoading: boolean;
@@ -142,9 +136,7 @@ function LoginModeContent({
   return (
     <>
       <motion.div variants={v} className="text-center">
-        <h1 className="text-largetitle text-label-primary">
-          {t(isOrgOnlyInvite ? "invite:INVITE_STEP2_TITLE_ORG" : "invite:INVITE_STEP2_TITLE")}
-        </h1>
+        <h1 className="text-largetitle text-label-primary">{t("invite:INVITE_STEP2_TITLE")}</h1>
         <p className="mt-1 mb-5 text-headline text-label-secondary">
           {t("invite:INVITE_MODE_LOGIN_DESC")}
         </p>
@@ -192,7 +184,6 @@ function LoginModeContent({
 
 function RegisterModeContent({
   t,
-  isOrgOnlyInvite,
   hasBoundEmail,
   previewData,
   registerLoading,
@@ -202,7 +193,6 @@ function RegisterModeContent({
   v,
 }: {
   t: (key: string, params?: Record<string, unknown>) => string;
-  isOrgOnlyInvite: boolean | undefined;
   hasBoundEmail: boolean;
   previewData: { invitation: { email?: string | null } };
   registerLoading: boolean;
@@ -220,9 +210,7 @@ function RegisterModeContent({
   return (
     <>
       <motion.div variants={v} className="text-center">
-        <h1 className="text-largetitle text-label-primary">
-          {t(isOrgOnlyInvite ? "invite:INVITE_STEP2_TITLE_ORG" : "invite:INVITE_STEP2_TITLE")}
-        </h1>
+        <h1 className="text-largetitle text-label-primary">{t("invite:INVITE_STEP2_TITLE")}</h1>
         <p className="mt-1 mb-5 text-headline text-label-secondary">
           {t("invite:INVITE_MODE_REGISTER_DESC")}
         </p>

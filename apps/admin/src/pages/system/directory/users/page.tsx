@@ -302,11 +302,6 @@ export function SystemDirectoryUsersPage() {
         { id: "superAdmin", sortKey: "is_super_admin", size: 170, minSize: 150 },
       ),
       createCustomColumn<SystemDirectoryUser>(
-        t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_ORGANIZATIONS"),
-        (row) => renderCountTag(row.organizationMembershipCount),
-        { id: "organizations" },
-      ),
-      createCustomColumn<SystemDirectoryUser>(
         t("settings:SETTINGS_SYSTEM_DIRECTORY_COLUMN_WORKSPACES"),
         (row) => renderCountTag(row.workspaceMembershipCount),
         { id: "workspaces" },

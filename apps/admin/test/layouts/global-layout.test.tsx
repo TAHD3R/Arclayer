@@ -332,7 +332,6 @@ describe("GlobalLayout", () => {
         {
           id: "project-alpha",
           workspaceId: "workspace-alpha",
-          organizationId: "org-alpha",
           slug: "project-alpha",
           name: "Project Alpha",
           description: null,
@@ -396,7 +395,6 @@ describe("GlobalLayout", () => {
             {
               id: "project-alpha",
               workspaceId: "workspace-alpha",
-              organizationId: "org-alpha",
               slug: "project-alpha",
               name: "Project Alpha",
               description: null,

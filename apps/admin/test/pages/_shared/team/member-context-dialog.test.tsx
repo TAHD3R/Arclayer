@@ -37,7 +37,7 @@ function renderDialog() {
           email: "ada@example.com",
           avatarUrl: "/avatars/ada.png",
         }}
-        scopeLabel="Organization"
+        scopeLabel="Workspace"
         badges={<span>Administrator</span>}
         actionButtons={[
           {
@@ -61,7 +61,7 @@ describe("MemberContextDialog", () => {
     renderDialog();
 
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
-    expect(screen.getByText("Organization")).toBeInTheDocument();
+    expect(screen.getByText("Workspace")).toBeInTheDocument();
     expect(screen.getByText("Administrator")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Change role" })).toBeInTheDocument();
     expect(screen.getByText("Overview panel")).toBeInTheDocument();

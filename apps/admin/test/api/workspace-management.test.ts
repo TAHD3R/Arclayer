@@ -4,22 +4,23 @@ vi.mock("@/lib/http", () => ({
   api: {
     get: vi.fn(),
     post: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
 import { api } from "@/lib/http";
-import { createOrganizationWorkspace } from "@/api/organization-workspaces";
+import { createWorkspace } from "@/api/workspace-management";
 
-describe("api/organization-workspaces", () => {
+describe("api/workspace-management", () => {
   beforeEach(() => {
     vi.mocked(api.get).mockReset();
     vi.mocked(api.post).mockReset();
+    vi.mocked(api.delete).mockReset();
   });
 
-  it("posts workspace creation payloads without slug fields", async () => {
+  it("posts workspace creation payloads without legacy scope fields", async () => {
     vi.mocked(api.post).mockResolvedValueOnce({
       workspaceId: "ws-1",
-      organizationId: "org-1",
       name: "Blog Team",
       description: "Publishing workspace",
       iconMode: "initials",
@@ -34,13 +35,13 @@ describe("api/organization-workspaces", () => {
       enterable: true,
     });
 
-    await createOrganizationWorkspace(undefined, {
+    await createWorkspace({
       name: "Blog Team",
       description: "Publishing workspace",
       template: "blank",
-    });
+    } as never);
 
-    expect(api.post).toHaveBeenCalledWith("/organizations/me/workspaces", {
+    expect(api.post).toHaveBeenCalledWith("/workspaces", {
       name: "Blog Team",
       description: "Publishing workspace",
       template: "blank",

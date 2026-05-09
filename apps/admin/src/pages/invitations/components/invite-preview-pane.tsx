@@ -2,16 +2,14 @@ import { motion, type Variants } from "motion/react";
 
 import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
-import { OrganizationAvatar } from "@/components/common/entity-avatar";
+import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 
 type InvitePreviewPaneProps = {
   t: (key: string, params?: Record<string, unknown>) => string;
   data: {
-    organization: { name: string; logoUrl?: string | null };
-    workspace?: { name?: string } | null;
+    workspace?: { name?: string; logoUrl?: string | null } | null;
     userExists?: boolean;
   };
-  isOrgOnlyInvite: boolean | undefined;
   targetName: string;
   roleResolved: { name: string; description: string | null };
   inviterLabel: string | null;
@@ -26,7 +24,6 @@ type InvitePreviewPaneProps = {
 export function InvitePreviewPane({
   t,
   data,
-  isOrgOnlyInvite,
   targetName,
   roleResolved,
   inviterLabel,
@@ -45,9 +42,9 @@ export function InvitePreviewPane({
       variants={staggerContainer}
     >
       <motion.div variants={v}>
-        <OrganizationAvatar
-          name={data.organization.name || targetName}
-          assetRef={data.organization.logoUrl}
+        <WorkspaceAvatar
+          name={data.workspace?.name || targetName}
+          assetRef={data.workspace?.logoUrl}
           size={80}
         />
       </motion.div>
@@ -55,12 +52,6 @@ export function InvitePreviewPane({
       <motion.div variants={v} className="mt-4 text-largetitle font-semibold text-label-primary">
         {targetName}
       </motion.div>
-
-      {!isOrgOnlyInvite && (
-        <motion.div variants={v} className="mt-1 text-headline text-label-secondary">
-          {data.organization.name}
-        </motion.div>
-      )}
 
       <motion.div variants={v} className="mt-2 text-center">
         <div className="text-headline text-label-secondary">{roleResolved.name}</div>
@@ -81,11 +72,7 @@ export function InvitePreviewPane({
 
       <motion.div variants={v} className="mt-6">
         <Button className="rounded-full px-8" size="lg" onClick={onContinue}>
-          {t(
-            isOrgOnlyInvite
-              ? "invite:INVITE_ACTION_ACCEPT_JOIN_ORG"
-              : "invite:INVITE_ACTION_ACCEPT_JOIN",
-          )}
+          {t("invite:INVITE_ACTION_ACCEPT_JOIN")}
         </Button>
       </motion.div>
 
@@ -98,7 +85,7 @@ export function InvitePreviewPane({
       )}
 
       <motion.div variants={v} className="mt-4 text-callout text-label-tertiary">
-        {t(isOrgOnlyInvite ? "invite:INVITE_SCOPE_ORGANIZATION" : "invite:INVITE_SCOPE_WORKSPACE")}
+        {t("invite:INVITE_SCOPE_WORKSPACE")}
       </motion.div>
     </motion.div>
   );

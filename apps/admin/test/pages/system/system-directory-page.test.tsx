@@ -2,7 +2,6 @@ import { render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SystemDirectoryOrganizationsPage } from "@/pages/system/directory/organizations/page";
 import { SystemDirectoryProjectsPage } from "@/pages/system/directory/projects/page";
 import { SystemDirectoryUsersPage } from "@/pages/system/directory/users/page";
 import { SystemDirectoryWorkspacesPage } from "@/pages/system/directory/workspaces/page";
@@ -26,9 +25,6 @@ vi.mock("@/api/system-directory", () => ({
   listSystemDirectoryUsers: vi
     .fn()
     .mockResolvedValue({ items: [], total: 0, page: 1, size: 20, pages: 0 }),
-  listSystemDirectoryOrganizations: vi
-    .fn()
-    .mockResolvedValue({ items: [], total: 0, page: 1, size: 20, pages: 0 }),
   listSystemDirectoryWorkspaces: vi
     .fn()
     .mockResolvedValue({ items: [], total: 0, page: 1, size: 20, pages: 0 }),
@@ -45,11 +41,6 @@ vi.mock("@/api/system-directory", () => ({
   disableSystemDirectoryUser: vi.fn(),
   enableSystemDirectoryUser: vi.fn(),
   deleteSystemDirectoryUser: vi.fn(),
-  getSystemDirectoryOrganizationDetail: vi.fn(),
-  listSystemDirectoryOrganizationOwnerCandidates: vi.fn().mockResolvedValue([]),
-  updateSystemDirectoryOrganization: vi.fn(),
-  disableSystemDirectoryOrganization: vi.fn(),
-  enableSystemDirectoryOrganization: vi.fn(),
   getSystemDirectoryWorkspaceDetail: vi.fn(),
   updateSystemDirectoryWorkspace: vi.fn(),
   archiveSystemDirectoryWorkspace: vi.fn(),
@@ -266,17 +257,6 @@ describe("SystemDirectoryUsersPage", () => {
 describe("System directory remaining tabs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("renders the organizations page shell", () => {
-    renderWithQueryClient(<SystemDirectoryOrganizationsPage />);
-
-    expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_EMPTY_TITLE"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("settings:SETTINGS_SYSTEM_DIRECTORY_ORGANIZATIONS_SEARCH"),
-    ).toBeInTheDocument();
   });
 
   it("renders the workspaces page shell", () => {

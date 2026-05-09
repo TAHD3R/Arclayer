@@ -15,7 +15,7 @@ describe("post-auth-routing", () => {
     mocked.listMyWorkspaces.mockReset();
   });
 
-  test("lands on organization overview when no workspace is available", async () => {
+  test("lands on project overview when no workspace is available", async () => {
     mocked.listMyWorkspaces.mockResolvedValue({
       items: [],
       switcher: {
@@ -35,7 +35,6 @@ describe("post-auth-routing", () => {
     const workspace = {
       workspaceId: "w-a",
       projectId: "project-a",
-      organizationId: "org-a",
       slug: "a",
       name: "A",
       kind: "team" as const,
@@ -63,7 +62,6 @@ describe("post-auth-routing", () => {
     const firstWorkspace = {
       workspaceId: "w-a",
       projectId: "project-a",
-      organizationId: "org-a",
       slug: "alpha",
       name: "Alpha",
       kind: "team" as const,
@@ -73,7 +71,6 @@ describe("post-auth-routing", () => {
     const secondWorkspace = {
       workspaceId: "w-team",
       projectId: "project-team",
-      organizationId: "org-team",
       slug: "team-space",
       name: "Team Space",
       kind: "team" as const,
@@ -116,7 +113,6 @@ describe("post-auth-routing", () => {
     const workspace = {
       workspaceId: "w-a",
       projectId: "project-a",
-      organizationId: "org-a",
       slug: "a",
       name: "A",
       kind: "team" as const,

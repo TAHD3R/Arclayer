@@ -33,8 +33,15 @@ class TenantIdentity(BaseSchema):
     isolation_mode: TenantIsolationMode = Field(..., description="Isolation mode for tenant-owned data.")
 
 
-class TenantIdentityOut(TenantIdentity):
-    model_config = TenantIdentity.model_config | ConfigDict(frozen=True)
+class TenantIdentityOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(frozen=True)
+
+    workspace_id: UUID = Field(..., description="Workspace id.")
+    project_id: UUID | None = Field(default=None, description="Project id.")
+    runtime_id: UUID | None = Field(default=None, description="Runtime id.")
+    site_id: UUID | None = Field(default=None, description="Site id.")
+    schema_name: str = Field(..., min_length=1, description="Tenant PostgreSQL schema name.")
+    isolation_mode: TenantIsolationMode = Field(..., description="Isolation mode for tenant-owned data.")
 
 
 class TenantContext(BaseModel):

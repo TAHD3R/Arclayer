@@ -36,7 +36,6 @@ interface UserCenterWorkspacesDialogsProps {
   t: UserCenterWorkspacesTranslateFn;
   createDialog: {
     open: boolean;
-    organizationId?: string;
     setOpen: Dispatch<SetStateAction<boolean>>;
     values: CreateWorkspaceFormValues;
     setValues: Dispatch<SetStateAction<CreateWorkspaceFormValues>>;

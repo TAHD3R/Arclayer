@@ -71,10 +71,10 @@ class ProjectService(BaseService):
         )
 
     async def get_project_detail(self, *, project_id: UUID) -> ProjectDetailOut:
-        project, workspace = await self.repo.get_project_with_workspace(project_id=project_id)
+        project, _workspace = await self.repo.get_project_with_workspace(project_id=project_id)
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
         return ProjectDetailOut(
-            project=self._build_project_out(project=project, workspace=workspace),
+            project=self._build_project_out(project=project),
             primary_runtime=ProjectRuntimeOut.model_validate(runtime) if runtime is not None else None,
         )
 
@@ -117,7 +117,7 @@ class ProjectService(BaseService):
             runtime = await self.repo.get_primary_runtime(project_id=project.id)
             items.append(
                 ProjectListItemOut(
-                    **self._build_project_out(project=project, workspace=workspace).model_dump(),
+                    **self._build_project_out(project=project).model_dump(),
                     primary_runtime=ProjectRuntimeOut.model_validate(runtime) if runtime is not None else None,
                     member_count=member_count_by_project.get(UUID(str(project.id)), 0),
                     members_preview=members_preview_by_project.get(UUID(str(project.id)), []),
@@ -179,14 +179,14 @@ class ProjectService(BaseService):
                 },
                 conn=conn,
             )
-        workspace = await self._get_active_workspace(workspace_id=workspace_id)
+        await self._get_active_workspace(workspace_id=workspace_id)
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
         if runtime is None:
             raise NotFound("Project runtime not found", error="PROJECT_RUNTIME_NOT_FOUND")
         memberships = await self.repo.list_project_memberships(project_ids=[UUID(str(project.id))])
         members_preview = [self._build_member_preview(user=membership.user) for membership in memberships[:3]]
         return ProjectListItemOut(
-            **self._build_project_out(project=project, workspace=workspace).model_dump(),
+            **self._build_project_out(project=project).model_dump(),
             primary_runtime=ProjectRuntimeOut.model_validate(runtime),
             member_count=len(memberships),
             members_preview=members_preview,
@@ -265,7 +265,7 @@ class ProjectService(BaseService):
         workspace = await self._get_active_workspace(workspace_id=UUID(str(project.workspace_id)))
         runtime = await self.repo.get_primary_runtime(project_id=project.id)
         return ProjectDetailOut(
-            project=self._build_project_out(project=project, workspace=workspace),
+            project=self._build_project_out(project=project),
             primary_runtime=ProjectRuntimeOut.model_validate(runtime) if runtime is not None else None,
         )
 
@@ -312,13 +312,12 @@ class ProjectService(BaseService):
         project_id: UUID,
         can_manage_settings: bool,
     ) -> ProjectDangerCapabilitiesOut:
-        project, workspace = await self.repo.get_project_with_workspace(project_id=project_id)
+        project, _workspace = await self.repo.get_project_with_workspace(project_id=project_id)
         archive_blocked_reason = self._get_archive_blocked_reason(can_manage_settings=can_manage_settings)
         delete_blocked_reason = self._get_delete_blocked_reason(can_manage_settings=can_manage_settings)
         return ProjectDangerCapabilitiesOut(
             project_id=project.id,
             workspace_id=project.workspace_id,
-            organization_id=workspace.organization_id,
             confirm_delete_name=project.name,
             archive_action=ProjectDangerActionOut(
                 enabled=archive_blocked_reason is None,
@@ -368,10 +367,9 @@ class ProjectService(BaseService):
             raise BadRequest("Project slug is required", error="PROJECT_SLUG_REQUIRED")
         return normalized
 
-    def _build_project_out(self, *, project, workspace: Workspace) -> ProjectOut:
+    def _build_project_out(self, *, project) -> ProjectOut:
         return ProjectOut(
             id=project.id,
-            organization_id=workspace.organization_id,
             workspace_id=project.workspace_id,
             slug=project.slug,
             name=project.name,

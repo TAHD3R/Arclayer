@@ -237,6 +237,7 @@ class UploadsRepository(TortoiseORMRepository):
         conn: BaseDBAsyncClient | None = None,
     ) -> AssetRecord:
         scope_kwargs = scope_filter_kwargs(scope)
+        workspace_id = scope_kwargs.get("workspace_id")
         project_id = scope_kwargs.get("project_id")
         organization_id = scope_kwargs.get("organization_id")
         user_id = scope_kwargs.get("user_id")
@@ -262,6 +263,7 @@ class UploadsRepository(TortoiseORMRepository):
                 variants=variants,
                 meta=meta,
                 deleted_at=deleted_at,
+                workspace_id=workspace_id,
                 project_id=project_id,
                 organization_id=organization_id,
                 user_id=user_id,
@@ -288,6 +290,7 @@ class UploadsRepository(TortoiseORMRepository):
             variants=variants,
             meta=meta,
             deleted_at=deleted_at,
+            workspace_id=workspace_id,
             project_id=project_id,
             organization_id=organization_id,
             user_id=user_id,

@@ -43,7 +43,7 @@
   "ASSET_DELETE_SUCCESS": "Deleted",
   "ASSET_DIALOG_LOCATION": "Location",
   "ASSET_DIALOG_NOTES": "Notes",
-  "ASSET_DIALOG_ORGANIZATION": "Organization",
+  "ASSET_DIALOG_ORGANIZATION": "Workspace",
   "ASSET_DIALOG_OVERVIEW": "Overview",
   "ASSET_DIALOG_SHARE": "Share",
   "ASSET_DOWNLOAD_FAILED": "Download failed. Please try again.",

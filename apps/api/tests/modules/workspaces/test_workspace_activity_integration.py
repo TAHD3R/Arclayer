@@ -41,7 +41,6 @@ class _AllowWorkspaceDangerService(WorkspaceDangerService):
     ):  # type: ignore[no-untyped-def]
         return WorkspaceDangerCapabilitiesOut(
             workspace_id=workspace_id,
-            organization_id=organization_id,
             confirm_delete_name="",
             leave_action=WorkspaceDangerActionOut(enabled=True),
             delete_action=WorkspaceDangerActionOut(enabled=True),

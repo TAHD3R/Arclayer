@@ -3,17 +3,11 @@ import { useTranslation } from "react-i18next";
 
 import {
   abortUpload,
-  abortOrganizationUpload,
   commitUploadPart,
-  commitOrganizationUploadPart,
   completeUpload,
-  completeOrganizationUpload,
   initUpload,
-  initOrganizationUpload,
   presignUploadPart,
-  presignOrganizationUploadPart,
   uploadPart,
-  uploadOrganizationPart,
 } from "@/api/uploads";
 import { Button } from "@arclayer/ui/button";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
@@ -71,23 +65,6 @@ function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
         await commitUploadPart({ ...params, projectId: rawId });
       },
       complete: (uploadId) => completeUpload(rawId, uploadId),
-    };
-  }
-
-  if (scope.type === "organization") {
-    return {
-      init: (payload) => initOrganizationUpload(rawId, payload),
-      abort: async (uploadId) => {
-        await abortOrganizationUpload(rawId, uploadId);
-      },
-      uploadPart: async (params) => {
-        await uploadOrganizationPart({ ...params, organizationId: rawId });
-      },
-      presignPart: (params) => presignOrganizationUploadPart({ ...params, organizationId: rawId }),
-      commitPart: async (params) => {
-        await commitOrganizationUploadPart({ ...params, organizationId: rawId });
-      },
-      complete: (uploadId) => completeOrganizationUpload(rawId, uploadId),
     };
   }
 

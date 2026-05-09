@@ -9,7 +9,6 @@ from src.core.exceptions import BadRequest
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
-from src.models.organization.organization import OrganizationKind
 from src.models.organization.user import User, UserStatus
 from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
@@ -25,12 +24,7 @@ from src.modules.assets.admin.uploads.service import UploadsService
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.http.service import require_super_admin
 from src.modules.system.directory.schema import (
-    DirectoryActorSummaryOut,
     DirectoryDeleteRequest,
-    DirectoryOrganizationDetailOut,
-    DirectoryOrganizationListFilters,
-    DirectoryOrganizationListItemOut,
-    DirectoryOrganizationUpdateRequest,
     DirectoryProjectDetailOut,
     DirectoryProjectListFilters,
     DirectoryProjectListItemOut,
@@ -379,113 +373,6 @@ async def delete_user_account(
 
 
 @router.get(
-    "/organizations",
-    response_model=ResponseModel[PageData[DirectoryOrganizationListItemOut]],
-    summary="List organizations in the system directory",
-)
-async def list_organizations(
-    service: SystemDirectoryService = Depends(get_directory_service),
-    params: PageParams = Depends(get_page_params),
-    q: str | None = Query(default=None, description="Search organizations by name or slug."),
-    ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
-    kind: OrganizationKind | None = Query(default=None, description="Filter by organization kind."),
-    is_active: bool | None = Query(default=None, description="Filter by active state."),
-) -> ResponseModel[PageData[DirectoryOrganizationListItemOut]]:
-    filters = DirectoryOrganizationListFilters(
-        kind=kind,
-        is_active=is_active,
-    )
-    page = await service.list_organizations(params=params, q=q, ordering=ordering, filters=filters)
-    return ApiResponse.success(data=page)
-
-
-@router.get(
-    "/organizations/{organization_id}/owner-candidates",
-    response_model=ResponseModel[list[DirectoryActorSummaryOut]],
-    summary="List organization owner candidates in the system directory",
-)
-async def list_organization_owner_candidates(
-    organization_id: PublicUUID,
-    service: SystemDirectoryService = Depends(get_directory_service),
-    q: str | None = Query(
-        default=None, description="Search active organization members by username, email, or display name."
-    ),
-) -> ResponseModel[list[DirectoryActorSummaryOut]]:
-    candidates = await service.list_organization_owner_candidates(
-        organization_id=organization_id,
-        q=q,
-    )
-    return ApiResponse.success(data=candidates)
-
-
-@router.get(
-    "/organizations/{organization_id}",
-    response_model=ResponseModel[DirectoryOrganizationDetailOut],
-    summary="Get organization detail in the system directory",
-)
-async def get_organization_detail(
-    organization_id: PublicUUID,
-    service: SystemDirectoryService = Depends(get_directory_service),
-) -> ResponseModel[DirectoryOrganizationDetailOut]:
-    detail = await service.get_organization_detail(organization_id=organization_id)
-    return ApiResponse.success(data=detail)
-
-
-@router.patch(
-    "/organizations/{organization_id}",
-    response_model=ResponseModel[DirectoryOrganizationDetailOut],
-    summary="Update organization metadata in the system directory",
-)
-async def update_organization(
-    organization_id: PublicUUID,
-    payload: DirectoryOrganizationUpdateRequest,
-    service: SystemDirectoryService = Depends(get_directory_service),
-) -> ResponseModel[DirectoryOrganizationDetailOut]:
-    detail = await service.update_organization(organization_id=organization_id, payload=payload)
-    return ApiResponse.success(data=detail)
-
-
-@router.post(
-    "/organizations/{organization_id}/disable",
-    response_model=ResponseModel[DirectoryOrganizationDetailOut],
-    summary="Disable organization in the system directory",
-)
-async def disable_organization(
-    organization_id: PublicUUID,
-    service: SystemDirectoryService = Depends(get_directory_service),
-) -> ResponseModel[DirectoryOrganizationDetailOut]:
-    detail = await service.set_organization_enabled(organization_id=organization_id, enabled=False)
-    return ApiResponse.success(data=detail)
-
-
-@router.post(
-    "/organizations/{organization_id}/enable",
-    response_model=ResponseModel[DirectoryOrganizationDetailOut],
-    summary="Enable organization in the system directory",
-)
-async def enable_organization(
-    organization_id: PublicUUID,
-    service: SystemDirectoryService = Depends(get_directory_service),
-) -> ResponseModel[DirectoryOrganizationDetailOut]:
-    detail = await service.set_organization_enabled(organization_id=organization_id, enabled=True)
-    return ApiResponse.success(data=detail)
-
-
-@router.delete(
-    "/organizations/{organization_id}",
-    response_model=ResponseModel[None],
-    summary="Delete organization in the system directory",
-)
-async def delete_organization(
-    organization_id: PublicUUID,
-    payload: DirectoryDeleteRequest,
-    service: SystemDirectoryService = Depends(get_directory_service),
-) -> ResponseModel[None]:
-    await service.delete_organization(organization_id=organization_id, payload=payload)
-    return ApiResponse.success(data=None)
-
-
-@router.get(
     "/workspaces",
     response_model=ResponseModel[PageData[DirectoryWorkspaceListItemOut]],
     summary="List workspaces in the system directory",
@@ -495,12 +382,10 @@ async def list_workspaces(
     params: PageParams = Depends(get_page_params),
     q: str | None = Query(default=None, description="Search workspaces by name or description."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
-    organization_id: PublicUUID | None = Query(default=None, description="Filter by organization id."),
     is_archived: bool | None = Query(default=None, description="Filter by archive state."),
     is_active: bool | None = Query(default=None, description="Filter by active state."),
 ) -> ResponseModel[PageData[DirectoryWorkspaceListItemOut]]:
     filters = DirectoryWorkspaceListFilters(
-        organization_id=organization_id,
         is_archived=is_archived,
         is_active=is_active,
     )
@@ -623,12 +508,10 @@ async def list_projects(
     params: PageParams = Depends(get_page_params),
     q: str | None = Query(default=None, description="Search projects by name, slug, or description."),
     ordering: str | None = Query(default=None, description="Ordering fields, for example -created_at or name."),
-    organization_id: PublicUUID | None = Query(default=None, description="Filter by organization id."),
     workspace_id: PublicUUID | None = Query(default=None, description="Filter by workspace id."),
     is_active: bool | None = Query(default=None, description="Filter by active state."),
 ) -> ResponseModel[PageData[DirectoryProjectListItemOut]]:
     filters = DirectoryProjectListFilters(
-        organization_id=organization_id,
         workspace_id=workspace_id,
         is_active=is_active,
     )

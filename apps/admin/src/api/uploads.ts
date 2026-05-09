@@ -1,5 +1,5 @@
 import { api, apiRequest } from "@/lib/http";
-import { organizationPath, projectPath } from "@/lib/api";
+import { projectPath, workspacePath } from "@/lib/api";
 import type {
   UploadInitRequest,
   UploadInitOut,
@@ -77,35 +77,32 @@ export async function abortUpload(projectId: string, uploadId: string): Promise<
 }
 
 // ---------------------------------------------------------------------------
-// Organization-scoped uploads
+// Workspace-scoped uploads
 // ---------------------------------------------------------------------------
 
-export async function initOrganizationUpload(
-  organizationId: string,
+export async function initWorkspaceUpload(
+  workspaceId: string,
   payload: UploadInitRequest,
 ): Promise<UploadInitOut> {
-  return api.post<UploadInitOut>(organizationPath(organizationId, "/uploads/init"), payload);
+  return api.post<UploadInitOut>(workspacePath(workspaceId, "/uploads/init"), payload);
 }
 
-export async function getOrganizationUploadStatus(
-  organizationId: string,
+export async function getWorkspaceUploadStatus(
+  workspaceId: string,
   uploadId: string,
 ): Promise<UploadStatusOut> {
-  return api.get<UploadStatusOut>(organizationPath(organizationId, `/uploads/${uploadId}`));
+  return api.get<UploadStatusOut>(workspacePath(workspaceId, `/uploads/${uploadId}`));
 }
 
-export async function uploadOrganizationPart(params: {
-  organizationId: string;
+export async function uploadWorkspacePart(params: {
+  workspaceId: string;
   uploadId: string;
   partNumber: number;
   chunk: Blob;
   signal?: AbortSignal;
 }): Promise<void> {
   await apiRequest<unknown>(
-    organizationPath(
-      params.organizationId,
-      `/uploads/${params.uploadId}/parts/${params.partNumber}`,
-    ),
+    workspacePath(params.workspaceId, `/uploads/${params.uploadId}/parts/${params.partNumber}`),
     {
       method: "PUT",
       body: params.chunk,
@@ -114,48 +111,46 @@ export async function uploadOrganizationPart(params: {
   );
 }
 
-export async function presignOrganizationUploadPart(params: {
-  organizationId: string;
+export async function presignWorkspaceUploadPart(params: {
+  workspaceId: string;
   uploadId: string;
   partNumber: number;
 }): Promise<UploadPartPresignOut> {
   return api.post<UploadPartPresignOut>(
-    organizationPath(
-      params.organizationId,
+    workspacePath(
+      params.workspaceId,
       `/uploads/${params.uploadId}/parts/${params.partNumber}/presign`,
     ),
   );
 }
 
-export async function commitOrganizationUploadPart(params: {
-  organizationId: string;
+export async function commitWorkspaceUploadPart(params: {
+  workspaceId: string;
   uploadId: string;
   partNumber: number;
   payload: UploadPartCommitRequest;
 }): Promise<void> {
   await api.post<unknown>(
-    organizationPath(
-      params.organizationId,
+    workspacePath(
+      params.workspaceId,
       `/uploads/${params.uploadId}/parts/${params.partNumber}/commit`,
     ),
     params.payload,
   );
 }
 
-export async function completeOrganizationUpload(
-  organizationId: string,
+export async function completeWorkspaceUpload(
+  workspaceId: string,
   uploadId: string,
 ): Promise<UploadCompleteOut> {
-  return api.post<UploadCompleteOut>(
-    organizationPath(organizationId, `/uploads/${uploadId}/complete`),
-  );
+  return api.post<UploadCompleteOut>(workspacePath(workspaceId, `/uploads/${uploadId}/complete`));
 }
 
-export async function abortOrganizationUpload(
-  organizationId: string,
+export async function abortWorkspaceUpload(
+  workspaceId: string,
   uploadId: string,
 ): Promise<UploadAbortOut> {
-  return api.post<UploadAbortOut>(organizationPath(organizationId, `/uploads/${uploadId}/abort`));
+  return api.post<UploadAbortOut>(workspacePath(workspaceId, `/uploads/${uploadId}/abort`));
 }
 
 // ---------------------------------------------------------------------------

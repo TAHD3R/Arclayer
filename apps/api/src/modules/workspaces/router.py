@@ -5,12 +5,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
+from src.core.http.pagination import DependsPagination, PageData, PageParams
 from src.core.http.response import ApiResponse, ResponseModel
-from src.models.organization.org_membership import OrgMembership
 from src.modules.analytics.workspaces.router import router as workspace_activity_router
 from src.modules.auth.http.service import get_current_user_id
-from src.modules.organization.http.service import get_current_org_membership
-from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.system.admin.router import router as workspace_admin_router
 from src.modules.workspaces.api_keys.router import me_api_keys_router
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -28,11 +26,15 @@ from src.modules.workspaces.schema import (
     WorkspaceDangerCapabilitiesOut,
     WorkspaceDeleteResult,
     WorkspaceDetailOut,
+    WorkspaceManageArchiveResult,
+    WorkspaceManageCreateRequest,
+    WorkspaceManageListItemOut,
     WorkspaceUpdateRequest,
 )
 from src.modules.workspaces.service import WorkspaceService
 from src.modules.workspaces.settings.router import router as workspace_settings_router
 from src.modules.workspaces.team.router import router as workspace_team_router
+from src.modules.workspaces.uploads_router import router as workspace_uploads_router
 
 router = APIRouter(tags=["domain.workspaces"])
 router.include_router(me_api_keys_router)
@@ -40,8 +42,52 @@ router.include_router(workspace_team_router)
 router.include_router(workspace_settings_router)
 router.include_router(workspace_authz_router)
 router.include_router(workspace_rbac_router)
+router.include_router(workspace_uploads_router)
 router.include_router(workspace_admin_router)
 router.include_router(workspace_activity_router)
+
+
+@router.get(
+    "/workspaces",
+    response_model=ResponseModel[PageData[WorkspaceManageListItemOut]],
+    summary="List workspaces in the current governance scope",
+)
+async def list_workspaces(
+    user_id: UUID = Depends(get_current_user_id),
+    params: PageParams = DependsPagination,
+    q: str | None = Query(default=None, description="Search query by workspace name."),
+    ordering: str | None = Query(default=None, description="Ordering fields, e.g. -created_at, name."),
+    archived: bool | None = Query(default=None, description="Filter archived status when provided."),
+    enterable_only: bool = Query(default=False, description="Only include enterable workspaces."),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PageData[WorkspaceManageListItemOut]]:
+    """List workspaces in the current governance scope."""
+    service = WorkspaceService(settings)
+    data = await service.list_manage_workspaces(
+        user_id=user_id,
+        params=params,
+        q=q,
+        ordering=ordering,
+        archived=archived,
+        enterable_only=enterable_only,
+    )
+    return ApiResponse.success(data=data)
+
+
+@router.post(
+    "/workspaces",
+    response_model=ResponseModel[WorkspaceManageListItemOut],
+    summary="Create workspace in the current governance scope",
+)
+async def create_workspace(
+    payload: WorkspaceManageCreateRequest,
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[WorkspaceManageListItemOut]:
+    """Create workspace in the current governance scope."""
+    service = WorkspaceService(settings)
+    out = await service.create_manage_workspace(user_id=user_id, payload=payload)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -165,7 +211,6 @@ async def leave_workspace(
 )
 async def delete_workspace(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
-    orgm: OrgMembership = Depends(get_current_org_membership),
     user_id: UUID = Depends(get_current_user_id),
     confirm_name: str | None = Query(
         default=None,
@@ -177,17 +222,44 @@ async def delete_workspace(
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceDeleteResult]:
     """Delete workspace."""
-    service = OrganizationWorkspaceService(settings)
-    out = await service.delete_workspace(
-        organization_id=ctx.organization_id,
-        workspace_id=ctx.workspace_id,
+    service = WorkspaceService(settings)
+    out = await service.delete_manage_workspace(
         user_id=user_id,
-        org_role=orgm.role,
+        workspace_id=ctx.workspace_id,
         confirm_name=confirm_name or "",
     )
     return ApiResponse.success(
-        data=WorkspaceDeleteResult(
-            workspace_id=UUID(str(out.workspace_id)),
-            deleted=out.deleted,
-        )
+        data=WorkspaceDeleteResult(workspace_id=UUID(str(out.workspace_id)), deleted=out.deleted)
     )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/archive",
+    response_model=ResponseModel[WorkspaceManageArchiveResult],
+    summary="Archive workspace",
+)
+async def archive_workspace(
+    workspace_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[WorkspaceManageArchiveResult]:
+    """Archive workspace."""
+    service = WorkspaceService(settings)
+    out = await service.archive_manage_workspace(user_id=user_id, workspace_id=workspace_id)
+    return ApiResponse.success(data=out)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/unarchive",
+    response_model=ResponseModel[WorkspaceManageArchiveResult],
+    summary="Unarchive workspace",
+)
+async def unarchive_workspace(
+    workspace_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[WorkspaceManageArchiveResult]:
+    """Unarchive workspace."""
+    service = WorkspaceService(settings)
+    out = await service.unarchive_manage_workspace(user_id=user_id, workspace_id=workspace_id)
+    return ApiResponse.success(data=out)

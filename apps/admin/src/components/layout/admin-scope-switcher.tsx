@@ -1088,7 +1088,6 @@ export function AdminScopeSwitcher({
   });
 
   const workspaceMutations = useUserCenterWorkspacesMutations({
-    organizationId: undefined,
     t,
     onCreateSuccess: () => undefined,
     onArchiveSuccess: () => undefined,
@@ -1326,7 +1325,6 @@ export function AdminScopeSwitcher({
         t={t}
         createDialog={{
           open: workspaceCreateOpen,
-          organizationId: undefined,
           setOpen: setWorkspaceCreateOpen,
           values: workspaceCreateValues,
           setValues: setWorkspaceCreateValues,

@@ -24,18 +24,9 @@ function makeNotification(targetTo: string): NotificationItem {
 }
 
 describe("resolveNotificationTarget", () => {
-  it("maps legacy organization team targets to settings screens", () => {
-    expect(resolveNotificationTarget(makeNotification("/o/org-1/team/members"))).toEqual({
-      type: "settings",
-      target: { screen: "workspace.members", section: "members-table" },
-    });
-  });
-
-  it("keeps deleted organization extension targets out of project settings", () => {
-    expect(resolveNotificationTarget(makeNotification("/o/org-1/extensions"))).toEqual({
-      type: "navigate",
-      to: "/projects",
-    });
+  it("does not resolve removed legacy scope targets", () => {
+    expect(resolveNotificationTarget(makeNotification("/o/org-1/team/members"))).toBeNull();
+    expect(resolveNotificationTarget(makeNotification("/o/org-1/extensions"))).toBeNull();
   });
 
   it("normalizes legacy workspace site settings to website content settings", () => {

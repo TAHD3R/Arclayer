@@ -4,12 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { listOrganizationWorkspaceMembers } from "@/api/organization-workspaces";
+import { listWorkspaceMembers } from "@/api/workspace-management";
 import { UserAvatar } from "@/components/common/entity-avatar";
-import type {
-  OrganizationWorkspace,
-  OrganizationWorkspaceMember,
-} from "@arclayer/openapi/admin-types";
+import type { TeamMember } from "@arclayer/openapi/admin-types";
 import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,
@@ -25,10 +22,10 @@ function normalizeQuery(input: string): string {
   return String(input || "").trim();
 }
 
-type WorkspaceMembersPopoverWorkspace = Pick<
-  OrganizationWorkspace,
-  "organizationId" | "workspaceId" | "memberCount"
->;
+type WorkspaceMembersPopoverWorkspace = {
+  workspaceId: string;
+  memberCount: number;
+};
 
 export function WorkspaceMembersPopover({
   workspace,
@@ -55,10 +52,10 @@ export function WorkspaceMembersPopover({
   }, [open, q]);
 
   const membersQuery = useQuery({
-    queryKey: ["organization-workspace-members", workspace.workspaceId, page, q],
+    queryKey: ["workspace-management-members", workspace.workspaceId, page, q],
     enabled: open && workspace.memberCount > 0,
     queryFn: async () =>
-      listOrganizationWorkspaceMembers(workspace.organizationId, workspace.workspaceId, {
+      listWorkspaceMembers(workspace.workspaceId, {
         page,
         size: 10,
         q,
@@ -67,7 +64,7 @@ export function WorkspaceMembersPopover({
     meta: { silent: true },
   });
 
-  const renderMember = (member: OrganizationWorkspaceMember) => {
+  const renderMember = (member: TeamMember) => {
     const primary = member.displayName || member.username || member.email || "U";
     return (
       <li key={member.membershipId} className="py-2">

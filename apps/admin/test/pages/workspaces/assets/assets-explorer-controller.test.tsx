@@ -10,19 +10,12 @@ const mocked = vi.hoisted(() => ({
   listAssets: vi.fn(),
   listAssetFolders: vi.fn(),
   listAssetTags: vi.fn(),
-  listOrganizationAssets: vi.fn(),
-  listOrganizationAssetFolders: vi.fn(),
-  listOrganizationAssetTags: vi.fn(),
 }));
 
 vi.mock("@/api/assets", () => ({
   listAssets: (...args: unknown[]) => mocked.listAssets(...args),
   listAssetFolders: (...args: unknown[]) => mocked.listAssetFolders(...args),
   listAssetTags: (...args: unknown[]) => mocked.listAssetTags(...args),
-  listOrganizationAssets: (...args: unknown[]) => mocked.listOrganizationAssets(...args),
-  listOrganizationAssetFolders: (...args: unknown[]) =>
-    mocked.listOrganizationAssetFolders(...args),
-  listOrganizationAssetTags: (...args: unknown[]) => mocked.listOrganizationAssetTags(...args),
 }));
 
 function page<T>(items: T[], total = items.length): PageData<T> {
@@ -55,9 +48,6 @@ describe("useAssetsExplorerController", () => {
     mocked.listAssets.mockResolvedValue(page<AdminAssetSummary>([], 0));
     mocked.listAssetFolders.mockResolvedValue(page([], 0));
     mocked.listAssetTags.mockResolvedValue(page([], 0));
-    mocked.listOrganizationAssets.mockResolvedValue(page<AdminAssetSummary>([], 0));
-    mocked.listOrganizationAssetFolders.mockResolvedValue(page([], 0));
-    mocked.listOrganizationAssetTags.mockResolvedValue(page([], 0));
   });
 
   it("shows all assets at root and includes child assets inside a folder", async () => {

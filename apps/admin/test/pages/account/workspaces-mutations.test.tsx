@@ -4,14 +4,14 @@ import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useUserCenterWorkspacesMutations } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations";
-import { createOrganizationWorkspace } from "@/api/organization-workspaces";
+import { createWorkspace } from "@/api/workspace-management";
 import { patchWorkspaceDetail } from "@/api/workspaces";
 
-vi.mock("@/api/organization-workspaces", () => ({
-  createOrganizationWorkspace: vi.fn(),
-  archiveOrganizationWorkspace: vi.fn(),
-  unarchiveOrganizationWorkspace: vi.fn(),
-  deleteOrganizationWorkspace: vi.fn(),
+vi.mock("@/api/workspace-management", () => ({
+  createWorkspace: vi.fn(),
+  archiveWorkspace: vi.fn(),
+  unarchiveWorkspace: vi.fn(),
+  deleteWorkspace: vi.fn(),
 }));
 
 vi.mock("@/api/workspaces", () => ({
@@ -33,14 +33,13 @@ function createWrapper(queryClient: QueryClient) {
 describe("useUserCenterWorkspacesMutations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOrganizationWorkspace).mockResolvedValue({
+    vi.mocked(createWorkspace).mockResolvedValue({
       workspaceId: "ws-new",
       name: "New Workspace",
     } as never);
     vi.mocked(patchWorkspaceDetail).mockResolvedValue({
       id: "ws-new",
       project: { projectId: "project-new" },
-      organizationId: "org-1",
       name: "New Workspace",
       description: null,
       kind: "team",
@@ -65,7 +64,6 @@ describe("useUserCenterWorkspacesMutations", () => {
     const { result } = renderHook(
       () =>
         useUserCenterWorkspacesMutations({
-          organizationId: undefined,
           t: ((key: string) => key) as never,
           onCreateSuccess: vi.fn(),
           onArchiveSuccess: vi.fn(),
@@ -82,7 +80,7 @@ describe("useUserCenterWorkspacesMutations", () => {
     });
 
     await waitFor(() => {
-      expect(createOrganizationWorkspace).toHaveBeenCalledWith(undefined, {
+      expect(createWorkspace).toHaveBeenCalledWith({
         name: "New Workspace",
         description: "Fresh workspace",
         template: "blank",
@@ -90,7 +88,7 @@ describe("useUserCenterWorkspacesMutations", () => {
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["organization-workspaces-cards", "me"],
+      queryKey: ["workspace-management-cards"],
     });
   });
 
@@ -107,7 +105,6 @@ describe("useUserCenterWorkspacesMutations", () => {
     const { result } = renderHook(
       () =>
         useUserCenterWorkspacesMutations({
-          organizationId: undefined,
           t: ((key: string) => key) as never,
           onCreateSuccess: vi.fn(),
           onArchiveSuccess: vi.fn(),

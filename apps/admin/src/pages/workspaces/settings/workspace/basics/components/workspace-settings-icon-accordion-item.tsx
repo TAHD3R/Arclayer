@@ -29,7 +29,6 @@ function buildWorkspaceListItem(
     id: detail.id,
     workspaceId: detail.id,
     projectId: detail.project?.projectId ?? detail.id,
-    organizationId: detail.organizationId,
     name: detail.name,
     kind: "team",
     description: detail.description ?? null,

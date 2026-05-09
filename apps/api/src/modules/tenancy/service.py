@@ -19,7 +19,6 @@ class TenancyService(BaseService):
         if tenant is None:
             raise NotFound(error="WORKSPACE_TENANT_NOT_FOUND")
         return TenantIdentityOut(
-            organization_id=tenant.organization_id,
             workspace_id=tenant.workspace_id,
             project_id=None,
             runtime_id=None,

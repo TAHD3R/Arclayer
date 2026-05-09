@@ -81,7 +81,6 @@ const workspaceFixtures: MyWorkspace[] = [
   {
     workspaceId: "ws-alpha",
     projectId: "project-alpha",
-    organizationId: "org-1",
     name: "Workspace Alpha",
     kind: "team",
     iconMode: "initials",
@@ -97,7 +96,6 @@ const workspaceFixtures: MyWorkspace[] = [
   {
     workspaceId: "ws-beta",
     projectId: "project-gamma",
-    organizationId: "org-1",
     name: "Workspace Beta",
     kind: "team",
     iconMode: "initials",
@@ -116,7 +114,6 @@ const projectFixtures: ProjectListItem[] = [
   {
     id: "project-alpha",
     workspaceId: "ws-alpha",
-    organizationId: "org-1",
     slug: "alpha",
     name: "Project Alpha",
     description: "Primary project",
@@ -137,7 +134,6 @@ const projectFixtures: ProjectListItem[] = [
   {
     id: "project-beta",
     workspaceId: "ws-alpha",
-    organizationId: "org-1",
     slug: "beta",
     name: "Project Beta",
     description: "Secondary project",
@@ -268,7 +264,6 @@ beforeEach(() => {
   vi.mocked(getWorkspaceDetail).mockResolvedValue({
     id: "ws-alpha",
     project: null,
-    organizationId: "org-1",
     name: "Workspace Alpha",
     kind: "team",
     iconMode: "initials",

@@ -7,11 +7,7 @@ import type {
   ProjectPermissionAction,
   Role,
 } from "@arclayer/openapi/admin-types";
-import type {
-  OrganizationPermissionAction,
-  RolePermissionGrant,
-  WorkspacePermissionAction,
-} from "@arclayer/openapi/admin-types";
+import type { RolePermissionGrant, WorkspacePermissionAction } from "@arclayer/openapi/admin-types";
 
 const RBAC_PAGE_SIZE = 200;
 
@@ -64,10 +60,6 @@ export async function listWorkspacePermissionActions(
   workspaceId: string,
 ): Promise<WorkspacePermissionAction[]> {
   return api.get<WorkspacePermissionAction[]>(workspacePath(workspaceId, "/rbac/actions"));
-}
-
-export async function listOrganizationPermissionActions(): Promise<OrganizationPermissionAction[]> {
-  return api.get<OrganizationPermissionAction[]>("/organizations/me/actions");
 }
 
 export async function listProjectPermissionActions(

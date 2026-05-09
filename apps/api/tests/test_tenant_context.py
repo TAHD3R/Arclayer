@@ -179,7 +179,7 @@ async def test_get_workspace_context_raises_not_found(monkeypatch: pytest.Monkey
     assert ei.value.error == "NOT_FOUND"
 
 
-def test_build_guest_workspace_list_uses_workspace_org_id() -> None:
+def test_build_guest_workspace_list_omits_internal_org_id() -> None:
     user_id = uuid4()
     workspace_id = uuid4()
     organization_id = uuid4()
@@ -204,4 +204,5 @@ def test_build_guest_workspace_list_uses_workspace_org_id() -> None:
 
     out = ws_service._build_guest_workspace_list(workspaces=[cast(Workspace, ws)])
     assert len(out) == 1
-    assert UUID(str(out[0].organization_id)) == organization_id
+    assert out[0].workspace_id == workspace_id
+    assert not hasattr(out[0], "organization_id")

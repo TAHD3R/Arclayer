@@ -1,13 +1,11 @@
 {
   "INVITE_ACTION_ACCEPT_JOIN": "Accept invitation and join",
-  "INVITE_ACTION_ACCEPT_JOIN_ORG": "Accept and join organization",
   "INVITE_ACTION_BACK": "Back",
   "INVITE_ACTION_BACK_TO_LOGIN": "Back to Login",
   "INVITE_ACTION_ENTER_TOKEN": "Enter token manually",
   "INVITE_ACTION_GO_TO_LOGIN": "Go to Login",
   "INVITE_ACTION_JOIN": "Join and enter admin",
   "INVITE_ACTION_JOIN_ANYWAY": "Join with current account anyway",
-  "INVITE_ACTION_JOIN_ORG": "Join organization and enter admin",
   "INVITE_ACTION_LOGIN_JOIN": "Sign in and join",
   "INVITE_ACTION_LOGOUT_SWITCH": "Logout and switch account",
   "INVITE_ACTION_REGISTER_JOIN": "Create account and join",
@@ -46,13 +44,11 @@
   "INVITE_REPAIR_REQUIRED_DESC": "This instance currently needs repair. Invitations can continue after the setup state is fixed.",
   "INVITE_REPAIR_REQUIRED_TITLE": "Invitations are temporarily unavailable",
   "INVITE_ROLE_UNKNOWN": "Unknown role",
-  "INVITE_SCOPE_ORGANIZATION": "Organization invite",
   "INVITE_SCOPE_WORKSPACE": "Workspace invite",
   "INVITE_SETUP_REQUIRED_ACTION": "Go to setup",
   "INVITE_SETUP_REQUIRED_DESC": "This instance has not been initialized yet. Create the first administrator, then come back to accept the invitation.",
   "INVITE_SETUP_REQUIRED_TITLE": "Finish instance setup first",
   "INVITE_STEP2_TITLE": "Join Workspace",
-  "INVITE_STEP2_TITLE_ORG": "Join Organization",
   "INVITE_TOKEN_INPUT_CONFIRM": "Continue",
   "INVITE_TOKEN_INPUT_DESC": "If the button in the email does not work, copy the token from the email and paste it here.",
   "INVITE_TOKEN_INPUT_FIELD_HELP": "Paste the full token from the invitation email. We will validate and continue.",
@@ -61,5 +57,5 @@
   "INVITE_TOKEN_INPUT_TITLE": "Enter Invitation Token",
   "INVITE_TOKEN_MISSING": "Missing invitation token. Please check the link.",
   "INVITE_TOKEN_MISSING_DESC": "You can copy the token from the email and enter it manually.",
-  "INVITE_WORKSPACE_FALLBACK": "Organization"
+  "INVITE_WORKSPACE_FALLBACK": "Workspace"
 }

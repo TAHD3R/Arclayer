@@ -1,17 +1,17 @@
 import type { UploadInitRequest, UploadPartCommitRequest } from "@arclayer/openapi/admin-types";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import {
-  abortOrganizationUpload,
+  abortWorkspaceUpload,
   abortUpload,
-  commitOrganizationUploadPart,
+  commitWorkspaceUploadPart,
   commitUploadPart,
-  completeOrganizationUpload,
+  completeWorkspaceUpload,
   completeUpload,
-  initOrganizationUpload,
+  initWorkspaceUpload,
   initUpload,
-  presignOrganizationUploadPart,
+  presignWorkspaceUploadPart,
   presignUploadPart,
-  uploadOrganizationPart,
+  uploadWorkspacePart,
   uploadPart,
 } from "@/api/uploads";
 
@@ -55,18 +55,18 @@ export function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
     };
   }
 
-  if (scope.type === "organization") {
+  if (scope.type === "workspace") {
     return {
-      init: (payload) => initOrganizationUpload(rawId, payload),
-      abort: (uploadId) => abortOrganizationUpload(rawId, uploadId),
+      init: (payload) => initWorkspaceUpload(rawId, payload),
+      abort: (uploadId) => abortWorkspaceUpload(rawId, uploadId),
       uploadPart: async (params) => {
-        await uploadOrganizationPart({ ...params, organizationId: rawId });
+        await uploadWorkspacePart({ ...params, workspaceId: rawId });
       },
-      presignPart: (params) => presignOrganizationUploadPart({ ...params, organizationId: rawId }),
+      presignPart: (params) => presignWorkspaceUploadPart({ ...params, workspaceId: rawId }),
       commitPart: async (params) => {
-        await commitOrganizationUploadPart({ ...params, organizationId: rawId });
+        await commitWorkspaceUploadPart({ ...params, workspaceId: rawId });
       },
-      complete: (uploadId) => completeOrganizationUpload(rawId, uploadId),
+      complete: (uploadId) => completeWorkspaceUpload(rawId, uploadId),
     };
   }
 

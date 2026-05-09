@@ -8,7 +8,12 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
-from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION, ASSET_SCOPE_PROJECT, ASSET_SCOPE_USER
+from src.common.constants.assets import (
+    ASSET_SCOPE_ORGANIZATION,
+    ASSET_SCOPE_PROJECT,
+    ASSET_SCOPE_USER,
+    ASSET_SCOPE_WORKSPACE,
+)
 from src.common.types.json_types import JsonObject
 from src.common.utils.public_ids import encode_uuid
 from src.config import Settings
@@ -173,7 +178,9 @@ class AdminAssetsService(BaseService):
             "scope_type": str(scope.type),
             "scope_id": str(scope.id),
         }
-        if scope.type == ASSET_SCOPE_PROJECT:
+        if scope.type == ASSET_SCOPE_WORKSPACE:
+            payload["workspace_id"] = str(scope.id)
+        elif scope.type == ASSET_SCOPE_PROJECT:
             payload["project_id"] = str(scope.id)
         elif scope.type == ASSET_SCOPE_ORGANIZATION:
             payload["organization_id"] = str(scope.id)
@@ -193,6 +200,7 @@ class AdminAssetsService(BaseService):
             payload=ActivityAuditPayload(
                 event_name=event_name,
                 organization_id=scope.id if scope.type == ASSET_SCOPE_ORGANIZATION else None,
+                workspace_id=scope.id if scope.type == ASSET_SCOPE_WORKSPACE else None,
                 actor_user_id=actor_user_id,
                 entity_type="asset_folder",
                 entity_id=folder_id,
@@ -222,7 +230,9 @@ class AdminAssetsService(BaseService):
             "visibility": str(asset.visibility),
             "indexable": bool(asset.indexable),
         }
-        if scope.type == ASSET_SCOPE_PROJECT:
+        if scope.type == ASSET_SCOPE_WORKSPACE:
+            payload["workspace_id"] = str(scope.id)
+        elif scope.type == ASSET_SCOPE_PROJECT:
             payload["project_id"] = str(scope.id)
         elif scope.type == ASSET_SCOPE_ORGANIZATION:
             payload["organization_id"] = str(scope.id)
@@ -237,6 +247,7 @@ class AdminAssetsService(BaseService):
             payload=ActivityAuditPayload(
                 event_name=event_name,
                 organization_id=scope.id if scope.type == ASSET_SCOPE_ORGANIZATION else None,
+                workspace_id=scope.id if scope.type == ASSET_SCOPE_WORKSPACE else None,
                 actor_user_id=actor_user_id,
                 entity_type="asset",
                 entity_id=asset.id,

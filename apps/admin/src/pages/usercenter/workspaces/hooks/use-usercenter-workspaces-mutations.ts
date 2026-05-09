@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
-  archiveOrganizationWorkspace,
-  createOrganizationWorkspace,
-  deleteOrganizationWorkspace,
-  unarchiveOrganizationWorkspace,
-} from "@/api/organization-workspaces";
+  archiveWorkspace,
+  createWorkspace,
+  deleteWorkspace,
+  unarchiveWorkspace,
+} from "@/api/workspace-management";
 import { ApiError } from "@/lib/http";
 import { patchWorkspaceDetail } from "@/api/workspaces";
 import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
@@ -36,7 +36,6 @@ export type UpdateWorkspacePayload = {
 };
 
 interface UseUserCenterWorkspacesMutationsOptions {
-  organizationId?: string;
   t: UserCenterWorkspacesTranslateFn;
   onCreateSuccess: () => void;
   onArchiveSuccess: () => void;
@@ -44,14 +43,12 @@ interface UseUserCenterWorkspacesMutationsOptions {
 }
 
 export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspacesMutationsOptions) {
-  const { organizationId, t, onCreateSuccess, onArchiveSuccess, onDeleteSuccess } = options;
+  const { t, onCreateSuccess, onArchiveSuccess, onDeleteSuccess } = options;
   const queryClient = useQueryClient();
 
-  const tableScope = organizationId ? `org:${organizationId}` : "org:me";
-  const cardScope = organizationId ?? "me";
-  const activeTableKey = ["dataTable", `organization-workspaces-active:${tableScope}`] as const;
-  const archivedTableKey = ["dataTable", `organization-workspaces-archived:${tableScope}`] as const;
-  const cardsKey = ["organization-workspaces-cards", cardScope] as const;
+  const activeTableKey = ["dataTable", "workspace-management-active"] as const;
+  const archivedTableKey = ["dataTable", "workspace-management-archived"] as const;
+  const cardsKey = ["workspace-management-cards"] as const;
 
   const invalidateWorkspaceTables = async () => {
     await Promise.all([
@@ -59,7 +56,7 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
       queryClient.invalidateQueries({ queryKey: archivedTableKey }),
       queryClient.invalidateQueries({ queryKey: cardsKey }),
       queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] }),
-      queryClient.invalidateQueries({ queryKey: ["organization", "workspaces", "switcher"] }),
+      queryClient.invalidateQueries({ queryKey: ["workspace", "switcher"] }),
       queryClient.invalidateQueries({ queryKey: ["global-nav", "workspaces"] }),
     ]);
   };
@@ -72,7 +69,7 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
         throw new Error("WORKSPACE_NAME_REQUIRED");
       }
 
-      return createOrganizationWorkspace(organizationId, {
+      return createWorkspace({
         name: nextName,
         description: payload.description,
         template: "blank",
@@ -94,8 +91,7 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
   });
 
   const archiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) =>
-      archiveOrganizationWorkspace(organizationId, workspaceId),
+    mutationFn: async (workspaceId: string) => archiveWorkspace(workspaceId),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       onArchiveSuccess();
@@ -105,8 +101,7 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
   });
 
   const unarchiveMutation = useMutation({
-    mutationFn: async (workspaceId: string) =>
-      unarchiveOrganizationWorkspace(organizationId, workspaceId),
+    mutationFn: async (workspaceId: string) => unarchiveWorkspace(workspaceId),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       await invalidateWorkspaceTables();
@@ -116,7 +111,7 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
 
   const deleteMutation = useMutation({
     mutationFn: async (payload: DeleteWorkspacePayload) =>
-      deleteOrganizationWorkspace(organizationId, payload.workspaceId, payload.confirmName),
+      deleteWorkspace(payload.workspaceId, payload.confirmName),
     onSuccess: async () => {
       notifySuccessText(t("common:ACTION_SUCCESS"));
       onDeleteSuccess();

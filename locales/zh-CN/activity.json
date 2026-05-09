@@ -2,7 +2,7 @@
   "ACTIVITY_ACTION_IMPORT_EXPORT": "导入/导出",
   "ACTIVITY_DAY_TODAY": "今天",
   "ACTIVITY_DAY_YESTERDAY": "昨天",
-  "ACTIVITY_DESC_ORG": "查看组织级操作记录（可按工作空间/操作者筛选），用于追踪关键行为与排障。",
+  "ACTIVITY_DESC_ORG": "查看工作空间级操作记录（可按工作空间/操作者筛选），用于追踪关键行为与排障。",
   "ACTIVITY_DESC_WORKSPACE": "查看当前工作空间操作记录，用于追踪关键行为与排障。",
   "ACTIVITY_DETAIL_TITLE": "操作记录详情",
   "ACTIVITY_EMPTY_DESC": "尝试调整时间范围或筛选条件。",

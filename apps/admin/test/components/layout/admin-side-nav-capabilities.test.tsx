@@ -189,7 +189,6 @@ describe("AdminSiderNav capability nodes", () => {
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-1",
       project: { projectId: "project-1" },
-      organizationId: "org-1",
       name: "Workspace One",
       kind: "team",
       iconMode: "initials",
