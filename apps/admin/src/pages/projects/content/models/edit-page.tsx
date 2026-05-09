@@ -24,7 +24,7 @@ import { ContentModelsActionDialogs } from "./components/content-models-action-d
 import { ContentModelEditScreen } from "./components/content-model-edit-screen";
 import { CreateContentTypeDialog } from "./components/create-content-type-dialog";
 import type { ContentModelsTableRow, CreateContentTypeSubmitValues } from "./types";
-import { buildDuplicateContentModelPayload } from "./utils";
+import { buildContentModelsTableId, buildDuplicateContentModelPayload } from "./utils";
 
 type ContentModelEditPageProps = {
   projectId: string;
@@ -69,6 +69,7 @@ export function ContentModelEditPage({
   );
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
   const shouldLoadModels = !createOpen || Boolean(modelId);
+  const tableId = React.useMemo(() => buildContentModelsTableId(projectId), [projectId]);
 
   const modelsQuery = useQuery({
     queryKey: buildContentModelsQueryKey(projectId),
@@ -98,8 +99,11 @@ export function ContentModelEditPage({
   }, [createOpen, routeTransition.settled]);
 
   const refreshModels = React.useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: buildContentModelsQueryKey(projectId) });
-  }, [projectId, queryClient]);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: buildContentModelsQueryKey(projectId) }),
+      queryClient.invalidateQueries({ queryKey: ["dataTable", tableId] }),
+    ]);
+  }, [projectId, queryClient, tableId]);
 
   const handleModelChange = React.useCallback(
     (nextModel: ContentModelsTableRow) => {

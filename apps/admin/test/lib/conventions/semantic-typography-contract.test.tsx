@@ -29,7 +29,10 @@ describe("semantic typography contract", () => {
   it("keeps BaseTag on caption typography by default", () => {
     render(<BaseTag>Draft</BaseTag>);
 
-    expect(screen.getByText("Draft").closest("span")?.parentElement).toHaveClass("text-caption");
+    expect(screen.getByText("Draft").closest("span")?.parentElement).toHaveClass(
+      "text-caption",
+      "font-semibold!",
+    );
   });
 
   it("lets semantic tag wrappers opt into footnote typography", () => {

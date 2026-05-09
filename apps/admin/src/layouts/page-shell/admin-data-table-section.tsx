@@ -101,7 +101,7 @@ export function AdminDataTableSection<TData>({
           toolbar={!empty && toolbar ? { fullWidth: toolbar } : undefined}
           footer={footerSlot}
           infiniteScroll={resolvedInfiniteScroll}
-          surface="card"
+          surface="embedded"
           rowHeight={rowHeight}
           wrapHeaders={wrapHeaders}
           refreshing={refreshing}

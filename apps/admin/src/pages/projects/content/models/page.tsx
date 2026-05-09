@@ -37,7 +37,11 @@ import { ContentModelsSelectionToolbar } from "./components/content-models-selec
 import { buildContentModelsTableColumns } from "./components/content-models-table-columns";
 import { ContentModelsToolbar } from "./components/content-models-toolbar";
 import type { ContentModelsFilters, ContentModelsTableQuery, ContentModelsTableRow } from "./types";
-import { buildDuplicateContentModelPayload, toContentModelsTableQuery } from "./utils";
+import {
+  buildContentModelsTableId,
+  buildDuplicateContentModelPayload,
+  toContentModelsTableQuery,
+} from "./utils";
 
 type ContentModelsControlCenterPageProps = {
   projectId: string;
@@ -75,7 +79,7 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<ContentModelsFilters>({});
   const [lastSelectedModelId, setLastSelectedModelId] = React.useState<string | null>(null);
-  const tableId = React.useMemo(() => `project-content-models:${projectId}`, [projectId]);
+  const tableId = React.useMemo(() => buildContentModelsTableId(projectId), [projectId]);
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId });
   const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId });
   const dateTime = useAdminDateTimeFormatter({ projectId });

@@ -15,8 +15,9 @@ import type {
 } from "./types";
 
 const IDENTIFIER_PATTERN = /^[a-z][A-Za-z0-9]*$/;
-const CONTENT_MODEL_IDENTIFIER_MAX_LENGTH = 64;
-const CONTENT_MODEL_NAME_MAX_LENGTH = 128;
+export const CONTENT_MODEL_IDENTIFIER_MAX_LENGTH = 64;
+export const CONTENT_MODEL_NAME_MAX_LENGTH = 128;
+export const CONTENT_MODEL_DESCRIPTION_MAX_LENGTH = 256;
 const ACRONYM_IDENTIFIER_BOUNDARY_PATTERN = /([A-Z]+)([A-Z][a-z])/g;
 const CAMEL_IDENTIFIER_BOUNDARY_PATTERN = /([a-z0-9])([A-Z])/g;
 
@@ -24,6 +25,10 @@ const IRREGULAR_PLURALS = new Map<string, string>([
   ["category", "categories"],
   ["person", "people"],
 ]);
+
+export function buildContentModelsTableId(projectId: string): string {
+  return `project-content-models:${projectId}`;
+}
 
 export function createGeneratedIdentifier(value: string): ContentTypeIdentifierState {
   return {

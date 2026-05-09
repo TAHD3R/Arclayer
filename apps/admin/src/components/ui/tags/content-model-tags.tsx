@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Hash, type LucideIcon, LayoutGrid, Layers, Package } from "lucide-react";
 
-import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
+import { BaseTag, lucideTagIcon, type BaseTagColor, type TagPresentationProps } from "./tag-base";
 import type { ContentModelsTableRow } from "@/pages/projects/content/models/types";
 
 type SharedProps = TagPresentationProps & {
@@ -24,7 +24,6 @@ export function ContentModelFieldKeyTag(props: SharedProps) {
 export function ContentModelFieldTypeTag(props: SharedProps & { icon: LucideIcon }) {
   return (
     <BaseTag
-      color="blue"
       icon={lucideTagIcon(props.icon)}
       className={props.className}
       style={props.style}
@@ -43,6 +42,12 @@ const CONTENT_MODEL_KIND_ICON_MAP: Record<ContentModelKind, LucideIcon> = {
   component: Package,
 };
 
+const CONTENT_MODEL_KIND_COLOR_MAP: Record<ContentModelKind, BaseTagColor> = {
+  collection_type: "blue",
+  single_type: "green",
+  component: "gold",
+};
+
 export function ContentModelKindTag(
   props: SharedProps & { kind?: ContentModelsTableRow["modelKind"] },
 ) {
@@ -51,7 +56,7 @@ export function ContentModelKindTag(
   const Icon = CONTENT_MODEL_KIND_ICON_MAP[normalizedKind];
   return (
     <BaseTag
-      color="blue"
+      color={CONTENT_MODEL_KIND_COLOR_MAP[normalizedKind]}
       icon={lucideTagIcon(Icon)}
       className={props.className}
       style={props.style}

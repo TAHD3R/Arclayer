@@ -18,7 +18,7 @@ type TagSemanticClassNames = {
   content?: string;
 };
 
-type BaseTagColor = "default" | "green" | "blue" | "red" | "gold" | "error";
+export type BaseTagColor = "default" | "green" | "blue" | "red" | "gold" | "error";
 export type BaseTagTextStyle = keyof typeof TAG_TEXT_STYLE_CLASSNAMES;
 
 export type TagPresentationProps = {
@@ -45,7 +45,7 @@ function mergeTagClassNames(
     root: cn(TAG_BASE_ROOT_CLASSNAME, overrides?.root),
     icon: cn("inline-flex shrink-0 items-center ", overrides?.icon),
     content: cn(
-      "inline-flex min-w-0 max-w-full items-center gap-1 ",
+      "inline-flex min-w-0 max-w-full items-center gap-1 font-semibold!",
       TAG_TEXT_STYLE_CLASSNAMES[textStyle],
       overrides?.content,
     ),

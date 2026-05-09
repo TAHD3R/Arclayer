@@ -148,7 +148,12 @@ import {
   type ContentModelFieldTypeId,
 } from "../fields";
 import type { ContentModelsTableRow } from "../types";
-import { validateContentTypeIdentifier } from "../utils";
+import {
+  CONTENT_MODEL_DESCRIPTION_MAX_LENGTH,
+  CONTENT_MODEL_IDENTIFIER_MAX_LENGTH,
+  CONTENT_MODEL_NAME_MAX_LENGTH,
+  validateContentTypeIdentifier,
+} from "../utils";
 import { ContentModelsRowActions } from "./content-models-row-actions";
 import {
   ContentModelSettingsTab,
@@ -179,6 +184,14 @@ const FIELD_TYPE_ICON_MAP: Record<ContentModelFieldTypeId, LucideIcon> = {
   blocks: LayoutGrid,
   custom: Puzzle,
 };
+
+function CharacterCount(props: { value: string; max: number }) {
+  return (
+    <div className="mt-1 text-right text-caption text-label-secondary">
+      {props.value.length}/{props.max}
+    </div>
+  );
+}
 
 type ContentModelEditScreenProps = {
   projectId: string;
@@ -754,51 +767,69 @@ function FieldConfigDialog(props: {
                   title={t("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL")}
                   error={props.errors.name}
                 >
-                  <Input
-                    aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL")}
-                    value={props.draft.name}
-                    disabled={props.pending}
-                    onChange={(event) =>
-                      props.onDraftChange((draft) =>
-                        syncContentModelFieldDraftName(draft, event.target.value),
-                      )
-                    }
-                  />
+                  <div>
+                    <Input
+                      aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL")}
+                      value={props.draft.name}
+                      disabled={props.pending}
+                      maxLength={CONTENT_MODEL_NAME_MAX_LENGTH}
+                      onChange={(event) =>
+                        props.onDraftChange((draft) =>
+                          syncContentModelFieldDraftName(draft, event.target.value),
+                        )
+                      }
+                    />
+                    <CharacterCount value={props.draft.name} max={CONTENT_MODEL_NAME_MAX_LENGTH} />
+                  </div>
                 </SettingDialogField>
 
                 <SettingDialogField
                   title={t("CONTENT_MODELS_FIELD_CONFIG_KEY_LABEL")}
                   error={props.errors.key}
                 >
-                  <Input
-                    aria-label={t("CONTENT_MODELS_FIELD_CONFIG_KEY_LABEL")}
-                    value={props.draft.key.value}
-                    disabled={props.pending || props.keyReadOnly}
-                    placeholder={t("CONTENT_MODELS_FIELD_CONFIG_KEY_PLACEHOLDER")}
-                    onChange={(event) =>
-                      props.onDraftChange((draft) =>
-                        updateContentModelFieldDraftKey(draft, event.target.value),
-                      )
-                    }
-                  />
+                  <div>
+                    <Input
+                      aria-label={t("CONTENT_MODELS_FIELD_CONFIG_KEY_LABEL")}
+                      value={props.draft.key.value}
+                      disabled={props.pending || props.keyReadOnly}
+                      maxLength={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+                      placeholder={t("CONTENT_MODELS_FIELD_CONFIG_KEY_PLACEHOLDER")}
+                      onChange={(event) =>
+                        props.onDraftChange((draft) =>
+                          updateContentModelFieldDraftKey(draft, event.target.value),
+                        )
+                      }
+                    />
+                    <CharacterCount
+                      value={props.draft.key.value}
+                      max={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+                    />
+                  </div>
                 </SettingDialogField>
 
                 <SettingDialogField
                   title={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL")}
                 >
-                  <Textarea
-                    aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL")}
-                    value={props.draft.description}
-                    disabled={props.pending}
-                    rows={3}
-                    placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_PLACEHOLDER")}
-                    onChange={(event) =>
-                      props.onDraftChange((draft) => ({
-                        ...draft,
-                        description: event.target.value,
-                      }))
-                    }
-                  />
+                  <div>
+                    <Textarea
+                      aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL")}
+                      value={props.draft.description}
+                      disabled={props.pending}
+                      maxLength={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
+                      rows={3}
+                      placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_PLACEHOLDER")}
+                      onChange={(event) =>
+                        props.onDraftChange((draft) => ({
+                          ...draft,
+                          description: event.target.value,
+                        }))
+                      }
+                    />
+                    <CharacterCount
+                      value={props.draft.description}
+                      max={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
+                    />
+                  </div>
                 </SettingDialogField>
 
                 {supportsNumberValidation(props.draft.typeId) ? (
@@ -1826,6 +1857,7 @@ function SortableFieldHandle(props: {
 }
 
 function FieldDragOverlay(props: { row: ContentModelFieldRow | null }) {
+  const { t } = useTranslation("content");
   if (!props.row) return null;
   const typeId = getContentModelFieldTypeFromRow(props.row);
   const Icon = FIELD_TYPE_ICON_MAP[typeId];
@@ -1837,7 +1869,11 @@ function FieldDragOverlay(props: { row: ContentModelFieldRow | null }) {
         <span className="truncate text-headline text-label-primary">{props.row.label}</span>
         <ContentModelFieldKeyTag label={props.row.key} textStyle="caption" className="shrink-0" />
       </div>
-      <ContentModelFieldTypeTag icon={Icon} label={typeId} textStyle="caption" />
+      <ContentModelFieldTypeTag
+        icon={Icon}
+        label={t(getContentModelFieldTypeLabelKey(typeId))}
+        textStyle="caption"
+      />
       <div className="flex justify-end">
         <Button variant="ghost" size="sm" disabled>
           <Pencil className="size-4" />
@@ -2093,13 +2129,17 @@ function NameDescriptionSection(props: {
           <SettingItemContent>
             <div className="grid gap-4">
               <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL")}>
-                <Input
-                  aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL")}
-                  value={name}
-                  disabled={!canEdit}
-                  placeholder={t("CONTENT_MODELS_FIELD_CONFIG_NAME_PLACEHOLDER")}
-                  onChange={(event) => setName(event.target.value)}
-                />
+                <div>
+                  <Input
+                    aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL")}
+                    value={name}
+                    disabled={!canEdit}
+                    maxLength={CONTENT_MODEL_NAME_MAX_LENGTH}
+                    placeholder={t("CONTENT_MODELS_FIELD_CONFIG_NAME_PLACEHOLDER")}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                  <CharacterCount value={name} max={CONTENT_MODEL_NAME_MAX_LENGTH} />
+                </div>
               </SettingDialogField>
               <SettingDialogField title={t("CONTENT_MODELS_DETAILS_API_ID_LABEL")}>
                 <Input
@@ -2112,14 +2152,18 @@ function NameDescriptionSection(props: {
               <SettingDialogField
                 title={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL")}
               >
-                <Textarea
-                  aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL")}
-                  value={description}
-                  rows={4}
-                  disabled={!canEdit}
-                  placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_PLACEHOLDER")}
-                  onChange={(event) => setDescription(event.target.value)}
-                />
+                <div>
+                  <Textarea
+                    aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL")}
+                    value={description}
+                    rows={4}
+                    disabled={!canEdit}
+                    maxLength={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
+                    placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_PLACEHOLDER")}
+                    onChange={(event) => setDescription(event.target.value)}
+                  />
+                  <CharacterCount value={description} max={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH} />
+                </div>
               </SettingDialogField>
             </div>
           </SettingItemContent>

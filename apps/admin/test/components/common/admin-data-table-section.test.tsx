@@ -33,6 +33,28 @@ function EmptyTableHarness() {
   );
 }
 
+function FilledTableHarness() {
+  const table = useReactTable({
+    data: [{ name: "Alice" }],
+    columns: [{ accessorKey: "name", header: "Name" }],
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  return (
+    <AdminDataTableSection
+      table={table}
+      emptyText="empty"
+      emptyTitle="No rows"
+      emptyDescription="Nothing here yet."
+      loading={false}
+      error={null}
+      onRetry={() => undefined}
+      t={(key) => key}
+      rowHeight="medium"
+    />
+  );
+}
+
 describe("AdminDataTableSection", () => {
   it("keeps toolbar visible when the table is empty", () => {
     render(<EmptyTableHarness />);
@@ -48,5 +70,15 @@ describe("AdminDataTableSection", () => {
       "py-3",
       "px-0",
     );
+  });
+
+  it("uses the embedded data-table surface without an outer rounded card wrapper", () => {
+    const { container } = render(<FilledTableHarness />);
+    const surface = container.querySelector(
+      "div.relative.min-h-0.flex.flex-1.flex-col.overflow-hidden",
+    );
+
+    expect(surface?.className).toContain("rounded-none");
+    expect(surface?.className).not.toContain("rounded-lg");
   });
 });

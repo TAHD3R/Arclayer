@@ -14,6 +14,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import type { CreateContentTypeFormValues, CreateContentTypeSubmitValues } from "../types";
 import {
   buildCreateContentTypePayload,
+  CONTENT_MODEL_DESCRIPTION_MAX_LENGTH,
+  CONTENT_MODEL_IDENTIFIER_MAX_LENGTH,
+  CONTENT_MODEL_NAME_MAX_LENGTH,
   createGeneratedIdentifier,
   createManualIdentifier,
   syncGeneratedIdentifiersWithName,
@@ -36,6 +39,14 @@ type CreateContentTypeDialogProps = {
 };
 
 type FormErrors = Partial<Record<"name" | "singularKey" | "pluralKey", string>>;
+
+function CharacterCount(props: { value: string; max: number }) {
+  return (
+    <div className="mt-1 text-right text-caption text-label-secondary">
+      {props.value.length}/{props.max}
+    </div>
+  );
+}
 
 function FieldTitleWithHelp({ title, help }: { title: React.ReactNode; help: string }) {
   return (
@@ -83,7 +94,7 @@ function ModelKindOption(props: {
           className="mt-0.5"
         />
         <div className="min-w-0">
-          <div className="text-label-primary">{props.title}</div>
+          <div className="text-callout font-semibold text-label-primary">{props.title}</div>
           <div className="mt-1 text-caption text-label-secondary">{props.description}</div>
         </div>
       </div>
@@ -217,18 +228,22 @@ export function CreateContentTypeDialog({
               ) : undefined
             }
           >
-            <Input
-              value={values.name}
-              disabled={pending}
-              placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_PLACEHOLDER")}
-              aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
-              aria-invalid={errors.name ? true : undefined}
-              onChange={(event) => {
-                setValues((current) =>
-                  syncGeneratedIdentifiersWithName(current, event.target.value),
-                );
-              }}
-            />
+            <div>
+              <Input
+                value={values.name}
+                disabled={pending}
+                maxLength={CONTENT_MODEL_NAME_MAX_LENGTH}
+                placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_PLACEHOLDER")}
+                aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
+                aria-invalid={errors.name ? true : undefined}
+                onChange={(event) => {
+                  setValues((current) =>
+                    syncGeneratedIdentifiersWithName(current, event.target.value),
+                  );
+                }}
+              />
+              <CharacterCount value={values.name} max={CONTENT_MODEL_NAME_MAX_LENGTH} />
+            </div>
           </SettingDialogField>
 
           <SettingDialogField
@@ -252,19 +267,26 @@ export function CreateContentTypeDialog({
                     />
                   </span>
                 </label>
-                <Input
-                  id={singularInputId}
-                  value={values.singularKey.value}
-                  disabled={pending}
-                  placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_PLACEHOLDER")}
-                  aria-invalid={errors.singularKey ? true : undefined}
-                  onChange={(event) => {
-                    setValues((current) => ({
-                      ...current,
-                      singularKey: createManualIdentifier(event.target.value),
-                    }));
-                  }}
-                />
+                <div>
+                  <Input
+                    id={singularInputId}
+                    value={values.singularKey.value}
+                    disabled={pending}
+                    maxLength={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+                    placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_PLACEHOLDER")}
+                    aria-invalid={errors.singularKey ? true : undefined}
+                    onChange={(event) => {
+                      setValues((current) => ({
+                        ...current,
+                        singularKey: createManualIdentifier(event.target.value),
+                      }));
+                    }}
+                  />
+                  <CharacterCount
+                    value={values.singularKey.value}
+                    max={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+                  />
+                </div>
               </div>
               <div className="grid space-y-1.5 gap-1">
                 <label htmlFor={pluralInputId} className="grid space-y-1.5 gap-1">
@@ -275,34 +297,48 @@ export function CreateContentTypeDialog({
                     />
                   </span>
                 </label>
-                <Input
-                  id={pluralInputId}
-                  value={values.pluralKey.value}
-                  disabled={pending}
-                  placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_PLACEHOLDER")}
-                  aria-invalid={errors.pluralKey ? true : undefined}
-                  onChange={(event) => {
-                    setValues((current) => ({
-                      ...current,
-                      pluralKey: createManualIdentifier(event.target.value),
-                    }));
-                  }}
-                />
+                <div>
+                  <Input
+                    id={pluralInputId}
+                    value={values.pluralKey.value}
+                    disabled={pending}
+                    maxLength={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+                    placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_PLACEHOLDER")}
+                    aria-invalid={errors.pluralKey ? true : undefined}
+                    onChange={(event) => {
+                      setValues((current) => ({
+                        ...current,
+                        pluralKey: createManualIdentifier(event.target.value),
+                      }));
+                    }}
+                  />
+                  <CharacterCount
+                    value={values.pluralKey.value}
+                    max={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+                  />
+                </div>
               </div>
             </div>
           </SettingDialogField>
 
           <SettingDialogField title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}>
-            <Textarea
-              aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}
-              value={values.description}
-              disabled={pending}
-              placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER")}
-              rows={4}
-              onChange={(event) =>
-                setValues((current) => ({ ...current, description: event.target.value }))
-              }
-            />
+            <div>
+              <Textarea
+                aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}
+                value={values.description}
+                disabled={pending}
+                maxLength={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
+                placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER")}
+                rows={4}
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, description: event.target.value }))
+                }
+              />
+              <CharacterCount
+                value={values.description}
+                max={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
+              />
+            </div>
           </SettingDialogField>
         </SettingDialogFields>
       </form>

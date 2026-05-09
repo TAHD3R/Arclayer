@@ -158,21 +158,25 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
   ),
 }));
 
-function createWrapper() {
-  const queryClient = new QueryClient({
+function createTestQueryClient() {
+  return new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   });
+}
 
-  return function Wrapper({ children }: PropsWithChildren) {
+function createWrapper(queryClient = createTestQueryClient()) {
+  function Wrapper({ children }: PropsWithChildren) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>{children}</TooltipProvider>
       </QueryClientProvider>
     );
-  };
+  }
+
+  return Wrapper;
 }
 
 function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentModel {
@@ -257,6 +261,21 @@ describe("content model builder", () => {
   });
 
   test("creates from the edit route dialog and stays on the new model editor", async () => {
+    const queryClient = createTestQueryClient();
+    const staleTableQueryKey = [
+      "dataTable",
+      "project-content-models:project-1",
+      { page: 1, size: 50, ordering: "-updatedAt" },
+    ] as const;
+    queryClient.setQueryData(staleTableQueryKey, {
+      items: [],
+      total: 0,
+      page: 1,
+      size: 50,
+      pages: 0,
+      next: null,
+      prev: null,
+    });
     createContentModelMock.mockResolvedValue(
       buildModel({
         id: "model-2",
@@ -267,25 +286,42 @@ describe("content model builder", () => {
     );
 
     render(<ContentModelEditPage projectId="project-1" createOpen />, {
-      wrapper: createWrapper(),
+      wrapper: createWrapper(queryClient),
     });
 
     fireEvent.change(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "Blog Post" },
     });
 
+    expect(screen.getByText("9/128")).toBeInTheDocument();
     expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
       "blogPost",
     );
     expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
       "blogPosts",
     );
+    expect(screen.getAllByText("8/64").length).toBeGreaterThan(0);
+    expect(screen.getByText("9/64")).toBeInTheDocument();
 
     fireEvent.change(
       await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL"),
       {
         target: { value: "Editorial entries." },
       },
+    );
+
+    expect(screen.getByText("18/256")).toBeInTheDocument();
+    const kindSection = screen
+      .getByText("CONTENT_MODELS_CREATE_CONTENT_TYPE_KIND_LABEL")
+      .closest("div.grid.min-w-0.gap-3");
+    const nameSection = screen
+      .getByText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")
+      .closest("div.grid.min-w-0.gap-3");
+    expect(kindSection?.nextElementSibling).toBe(nameSection);
+    expect(screen.getByText("CONTENT_MODELS_KIND_COLLECTION_TYPE")).toHaveClass(
+      "text-callout",
+      "font-semibold",
+      "text-label-primary",
     );
 
     fireEvent.click(
@@ -313,6 +349,7 @@ describe("content model builder", () => {
         to: "/projects/project-1/content/models/edit?modelId=model-2",
       });
     });
+    expect(queryClient.getQueryState(staleTableQueryKey)?.isInvalidated).toBe(true);
   });
 
   test("create flow renders localized fallback title and skips model list query", () => {

@@ -1,12 +1,18 @@
 import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
+import { Users } from "lucide-react";
 
 import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
 import { UserAvatar } from "@/components/common/entity-avatar";
-import { BaseTag, ContentModelKindTag, UsesCountTag } from "@/components/ui/tags";
+import {
+  BaseTag,
+  ContentModelFieldKeyTag,
+  ContentModelKindTag,
+  lucideTagIcon,
+} from "@/components/ui/tags";
 import { Checkbox } from "@arclayer/ui/checkbox";
 
 import { ContentModelsRowActions } from "./content-models-row-actions";
@@ -50,9 +56,12 @@ function AvailableFieldsCell(props: { model: ContentModelsTableRow; emptyValue: 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1.5">
       {visibleFields.map((field) => (
-        <BaseTag key={field.key} textStyle="caption" className="max-w-36">
-          <span className="truncate">{field.label}</span>
-        </BaseTag>
+        <ContentModelFieldKeyTag
+          key={field.key}
+          label={field.label}
+          textStyle="caption"
+          className="max-w-36"
+        />
       ))}
       {remainingCount > 0 ? <BaseTag textStyle="caption">+{remainingCount}</BaseTag> : null}
     </div>
@@ -153,10 +162,9 @@ export function buildContentModelsTableColumns(params: {
       cell: ({ row }) => {
         const count = getContentModelFieldCount(row.original);
         return (
-          <UsesCountTag
-            label={params.t("content:CONTENT_MODELS_TABLE_FIELD_COUNT", { count })}
-            textStyle="caption"
-          />
+          <BaseTag icon={lucideTagIcon(Users)} textStyle="caption" style={{ marginInlineEnd: 0 }}>
+            {params.t("content:CONTENT_MODELS_TABLE_FIELD_COUNT", { count })}
+          </BaseTag>
         );
       },
       size: 140,

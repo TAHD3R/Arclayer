@@ -283,6 +283,29 @@ describe("DataTablePresenter", () => {
     expect(separators.length).toBe(0);
   });
 
+  it("removes card rounding when rendered as an embedded table surface", () => {
+    function EmbeddedSurfaceHarness() {
+      const data = [{ name: "Alice" }];
+      const columns = [{ accessorKey: "name", header: "Name" }];
+      const table = useReactTable({
+        data,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+      });
+
+      return <DataTablePresenter table={table} emptyText="empty" surface="embedded" />;
+    }
+
+    const { container } = render(<EmbeddedSurfaceHarness />);
+    const surface = container.querySelector(
+      "div.relative.min-h-0.flex.flex-1.flex-col.overflow-hidden",
+    );
+
+    expect(surface?.className).toContain("rounded-none");
+    expect(surface?.className).toContain("border-0");
+    expect(surface?.className).not.toContain("rounded-lg");
+  });
+
   it("renders shared infinite-scroll footer states", async () => {
     const user = userEvent.setup();
     const onLoadMore = vi.fn();
