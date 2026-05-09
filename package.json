@@ -36,5 +36,5 @@
     "vite-plugin-react-inspector": "catalog:",
     "vitest": "catalog:"
   },
-  "packageManager": "pnpm@10.28.2"
+  "packageManager": "pnpm@11.0.9"
 }

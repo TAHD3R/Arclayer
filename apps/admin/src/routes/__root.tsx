@@ -1,9 +1,9 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { SettingsScreenProvider } from "@/components/layout/settings-screen-provider";
 import { UsercenterOverlayHost } from "@/components/layout/usercenter-overlay-host";
-import { useSceneRevealTransition } from "@arclayer/hooks/use-scene-reveal-transition";
 import {
   isAuthScenePath,
   isLoginPath,
@@ -15,7 +15,6 @@ import { getSceneLayout, resolveSceneKey } from "@/lib/routing/scene-registry";
 import { RouterDefaultError, RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
 import { RouteDocumentTitleManager } from "@/components/builtin/route-document-title-manager";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 type SceneKey = ReturnType<typeof resolveSceneKey>;
@@ -46,13 +45,17 @@ export function RootLayout() {
   });
   const isWelcome = isWelcomePath(pathname);
   const sceneKey = resolveSceneKey(pathname);
-  const userReducedMotion = usePreferencesStore((s) => s.reduceMotion);
-  const { displayedScene, overlayVisible } = useSceneRevealTransition(sceneKey, {
-    isPagePending,
-    userReducedMotion,
-    shouldUseOverlayOnSceneChange: shouldUseSceneLoadingOverlay,
-  });
-  const Layout = getSceneLayout(displayedScene);
+  const lastResolvedSceneRef = useRef(sceneKey);
+  const Layout = getSceneLayout(sceneKey);
+  const overlayVisible =
+    isPagePending &&
+    lastResolvedSceneRef.current !== sceneKey &&
+    shouldUseSceneLoadingOverlay(lastResolvedSceneRef.current, sceneKey);
+
+  useEffect(() => {
+    if (isPagePending) return;
+    lastResolvedSceneRef.current = sceneKey;
+  }, [isPagePending, sceneKey]);
 
   if (isWelcome) {
     return (

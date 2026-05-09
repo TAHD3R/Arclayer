@@ -40,7 +40,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const { pathname, searchStr } = useRouterState({
     select: (s) => ({
-      pathname: s.location.pathname,
+      pathname: s.resolvedLocation?.pathname ?? s.location.pathname,
       searchStr: s.location.searchStr,
     }),
     structuralSharing: true,
@@ -326,6 +326,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       commandScope={commandScope}
       browseProjects={browseProjects}
       activeBrowseProjectId={isWorkspaceScopeRoute ? effectiveProjectId : null}
+      sidebarPathnameOverride={pathname}
       favoriteWorkspaceBase={
         isWorkspaceScopeRoute
           ? effectiveProjectId

@@ -11,4 +11,3 @@ export * from "./use-saving-key";
 export * from "./use-toggle";
 export * from "./use-media-prefers-reduced-motion";
 export * from "./use-prefers-reduced-motion";
-export * from "./use-scene-reveal-transition";

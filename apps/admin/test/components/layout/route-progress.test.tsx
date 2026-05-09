@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
@@ -45,7 +45,9 @@ vi.mock("@/hooks/use-prefers-reduced-motion", () => ({
 }));
 
 vi.mock("@/layouts/page-shell/default-page", () => ({
-  DefaultPage: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  DefaultPage: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="route-pending-overlay">{children}</div>
+  ),
 }));
 
 vi.mock("@arclayer/ui/skeleton", () => ({
@@ -55,6 +57,9 @@ vi.mock("@arclayer/ui/skeleton", () => ({
 describe("RouteTransition progress contract", () => {
   afterEach(() => {
     routerState.isLoading = false;
+    routerState.location.pathname = "/projects/project-1/activity";
+    routerState.resolvedLocation = null;
+    routerState.matches = [];
     startMock.mockReset();
     stopMock.mockReset();
   });
@@ -93,5 +98,46 @@ describe("RouteTransition progress contract", () => {
     view.unmount();
 
     expect(stopMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("covers stale route content immediately while cross-route loading is pending", () => {
+    const view = render(
+      <RouteTransition pendingMs={10_000}>
+        <div data-testid="old-route-content" />
+      </RouteTransition>,
+    );
+
+    routerState.isLoading = true;
+    routerState.location.pathname = "/projects/project-1/settings/access";
+    routerState.resolvedLocation = { pathname: "/projects/project-1/activity" };
+
+    view.rerender(
+      <RouteTransition pendingMs={10_000}>
+        <div data-testid="old-route-content" />
+      </RouteTransition>,
+    );
+
+    expect(view.getByTestId("old-route-content")).toBeInTheDocument();
+    expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
+  });
+
+  it("covers stale route content when pathname advances before pending state", () => {
+    const view = render(
+      <RouteTransition pendingMs={10_000}>
+        <div data-testid="old-route-content" />
+      </RouteTransition>,
+    );
+
+    routerState.location.pathname = "/projects/project-1/settings/access";
+    routerState.resolvedLocation = { pathname: "/projects/project-1/settings/access" };
+
+    view.rerender(
+      <RouteTransition pendingMs={10_000}>
+        <div data-testid="old-route-content" />
+      </RouteTransition>,
+    );
+
+    expect(view.getByTestId("old-route-content")).toBeInTheDocument();
+    expect(screen.getByTestId("route-pending-overlay")).toBeInTheDocument();
   });
 });

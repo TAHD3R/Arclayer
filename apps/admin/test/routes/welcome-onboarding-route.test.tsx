@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { redirectMock, resolvePostAuthRouteMock, routeState } = vi.hoisted(() => ({
   redirectMock: vi.fn((payload: unknown) => payload),
@@ -26,23 +26,22 @@ vi.mock("@/components/builtin/route-document-title-manager", () => ({
   RouteDocumentTitleManager: () => null,
 }));
 vi.mock("@/components/layout/scene-loading-overlay", () => ({
-  SceneLoadingOverlay: () => null,
+  SceneLoadingOverlay: (props: { visible: boolean }) => (
+    <div data-testid="scene-loading-overlay" data-visible={props.visible ? "true" : "false"} />
+  ),
 }));
 vi.mock("@/components/layout/usercenter-overlay-host", () => ({
   UsercenterOverlayHost: () => null,
 }));
 vi.mock("@/lib/routing/scene-registry", () => ({
-  resolveSceneKey: () => "global",
-  getSceneLayout: () => (props: { children: React.ReactNode }) => (
-    <div data-testid="scene-layout">{props.children}</div>
+  resolveSceneKey: (pathname: string) => {
+    if (pathname.startsWith("/login")) return "auth";
+    if (pathname.startsWith("/projects/")) return "admin";
+    return "global";
+  },
+  getSceneLayout: (sceneKey: string) => (props: { children: React.ReactNode }) => (
+    <div data-testid={`scene-layout-${sceneKey}`}>{props.children}</div>
   ),
-}));
-vi.mock("@arclayer/hooks/use-scene-reveal-transition", () => ({
-  useSceneRevealTransition: () => ({ displayedScene: "global", overlayVisible: false }),
-}));
-vi.mock("@/stores/use-preference-store", () => ({
-  usePreferencesStore: (selector: (state: { reduceMotion: boolean }) => unknown) =>
-    selector({ reduceMotion: false }),
 }));
 vi.mock("@/stores/use-auth-store", () => ({
   useAuthStore: {
@@ -74,14 +73,46 @@ const rootRouteConfig = Route as unknown as {
 };
 
 describe("welcome onboarding route guard", () => {
+  beforeEach(() => {
+    routeState.pathname = "/projects";
+    routeState.isPagePending = false;
+  });
+
   it("renders /welcome without the Admin scene layout", () => {
     routeState.pathname = "/welcome";
 
     render(<RootLayout />);
 
     expect(screen.getByTestId("route-outlet")).toBeInTheDocument();
-    expect(screen.queryByTestId("scene-layout")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("scene-layout-global")).not.toBeInTheDocument();
     expect(screen.queryByTestId("root-scene-shell")).not.toBeInTheDocument();
+  });
+
+  it("uses the current scene layout immediately when the pathname changes", () => {
+    const { rerender } = render(<RootLayout />);
+
+    expect(screen.getByTestId("scene-layout-global")).toBeInTheDocument();
+
+    routeState.pathname = "/projects/project_1";
+    routeState.isPagePending = true;
+    rerender(<RootLayout />);
+
+    expect(screen.queryByTestId("scene-layout-global")).not.toBeInTheDocument();
+    expect(screen.getByTestId("scene-layout-admin")).toBeInTheDocument();
+  });
+
+  it("only shows the root scene overlay for pending cross-fullscreen scene switches", () => {
+    const { rerender } = render(<RootLayout />);
+
+    routeState.isPagePending = true;
+    rerender(<RootLayout />);
+
+    expect(screen.getByTestId("scene-loading-overlay")).toHaveAttribute("data-visible", "false");
+
+    routeState.pathname = "/login";
+    rerender(<RootLayout />);
+
+    expect(screen.getByTestId("scene-loading-overlay")).toHaveAttribute("data-visible", "true");
   });
 
   it("redirects onboarding-required business pages to /welcome", async () => {

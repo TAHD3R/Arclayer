@@ -726,21 +726,8 @@ importers:
         specifier: 'catalog:'
         version: 4.1.0(@types/node@24.12.0)(@vitest/ui@4.1.0)(jsdom@26.1.0)(msw@2.12.11(@types/node@24.12.0)(typescript@5.9.3))(vite@7.3.1(@types/node@24.12.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
 
-  packages/contracts:
-    dependencies:
-      '@arclayer/openapi':
-        specifier: workspace:*
-        version: link:../openapi
-    devDependencies:
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-
   packages/delivery-sdk:
     dependencies:
-      '@arclayer/contracts':
-        specifier: workspace:*
-        version: link:../contracts
       '@arclayer/openapi':
         specifier: workspace:*
         version: link:../openapi
@@ -813,9 +800,6 @@ importers:
 
   packages/management-sdk:
     dependencies:
-      '@arclayer/contracts':
-        specifier: workspace:*
-        version: link:../contracts
       '@arclayer/openapi':
         specifier: workspace:*
         version: link:../openapi
@@ -1085,6 +1069,8 @@ importers:
         version: 5.9.3
 
   packages/web: {}
+
+  scripts/code-review-engine: {}
 
 packages:
 

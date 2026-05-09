@@ -31,7 +31,10 @@ const GLOBAL_COMMAND_SCOPE = {
 export function GlobalLayout() {
   const navigate = useNavigate();
   const { pathname, searchStr } = useRouterState({
-    select: (s) => ({ pathname: s.location.pathname, searchStr: s.location.searchStr }),
+    select: (s) => ({
+      pathname: s.resolvedLocation?.pathname ?? s.location.pathname,
+      searchStr: s.location.searchStr,
+    }),
     structuralSharing: true,
   });
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -118,6 +121,7 @@ export function GlobalLayout() {
       browseProjects={browseProjects}
       activeBrowseProjectId={null}
       sidebarCollapsible="icon"
+      sidebarPathnameOverride={pathname}
     >
       <Outlet />
     </AdminSceneLayout>

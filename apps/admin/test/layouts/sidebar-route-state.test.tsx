@@ -13,6 +13,7 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useSidebar } from "@arclayer/ui/sidebar";
 
 let mockPathname = "/projects/ws-1/content/create";
+let mockResolvedPathname: string | null = null;
 let mockSearchObject: Record<string, unknown> = {};
 let mockSearchStr = "";
 const navigateMock = vi.fn().mockResolvedValue(undefined);
@@ -30,6 +31,9 @@ vi.mock("@tanstack/react-router", () => ({
         search: Record<string, unknown>;
         searchStr: string;
       };
+      resolvedLocation?: {
+        pathname: string;
+      } | null;
     }) => unknown;
   }) =>
     select({
@@ -38,6 +42,7 @@ vi.mock("@tanstack/react-router", () => ({
         search: mockSearchObject,
         searchStr: mockSearchStr,
       },
+      resolvedLocation: mockResolvedPathname ? { pathname: mockResolvedPathname } : null,
     }),
 }));
 
@@ -125,8 +130,11 @@ function latestSceneProps() {
     activeBrowseProjectId?: string | null;
     favoriteWorkspaceBase?: string | null;
     sidebarPathnameOverride?: string;
+    commandScope?: { pathname?: string };
     loading?: boolean;
-    renderTopbar?: () => React.ReactElement<{ breadcrumbs?: Array<{ label: string }> }>;
+    renderTopbar?: () => React.ReactElement<{
+      breadcrumbs?: Array<{ key: string; label: string }>;
+    }>;
   };
 }
 
@@ -161,6 +169,7 @@ describe("sidebar route state wiring", () => {
     capturedSceneProps.length = 0;
     navigateMock.mockClear();
     mockPathname = "/projects/ws-1/content/create";
+    mockResolvedPathname = null;
     mockSearchObject = {};
     mockSearchStr = "";
     useAuthStore.setState({ accessToken: null, sessionVersion: 0 });
@@ -231,6 +240,24 @@ describe("sidebar route state wiring", () => {
       "activity",
       "settings.project",
     ]);
+  });
+
+  it("keeps the admin shell aligned with the resolved outlet route while navigation is pending", () => {
+    mockPathname = "/projects/ws-1/activity";
+    mockResolvedPathname = "/projects/ws-1/settings/general";
+
+    renderWithQueryClient(
+      <AdminLayout>
+        <div>content</div>
+      </AdminLayout>,
+    );
+
+    const props = latestSceneProps();
+    const topbar = props.renderTopbar?.();
+
+    expect(props.commandScope?.pathname).toBe("/projects/ws-1/settings/general");
+    expect(props.sidebarPathnameOverride).toBe("/projects/ws-1/settings/general");
+    expect(topbar?.props.breadcrumbs?.at(-1)?.key).toBe("settings.project");
   });
 
   it("keeps the project shell visible while workspace detail is still loading", () => {

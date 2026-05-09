@@ -17,8 +17,7 @@
     "./use-saving-key": "./src/use-saving-key.ts",
     "./use-toggle": "./src/use-toggle.ts",
     "./use-media-prefers-reduced-motion": "./src/use-media-prefers-reduced-motion.ts",
-    "./use-prefers-reduced-motion": "./src/use-prefers-reduced-motion.ts",
-    "./use-scene-reveal-transition": "./src/use-scene-reveal-transition.ts"
+    "./use-prefers-reduced-motion": "./src/use-prefers-reduced-motion.ts"
   },
   "dependencies": {
     "motion": "catalog:"

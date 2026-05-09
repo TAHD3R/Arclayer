@@ -110,10 +110,11 @@ export function RouteTransition({
 }: RouteTransitionProps) {
   const reducedMotion = usePrefersReducedMotion();
 
-  const { resolvedPathname, isPagePending, isRouteLoading } = useRouterState({
+  const { currentPathname, resolvedPathname, isPagePending, isRouteLoading } = useRouterState({
     select: (s) => ({
       // We intentionally only key by pathname so that search changes (filters, pagination, etc.)
       // do not trigger a full route transition animation.
+      currentPathname: s.location.pathname,
       resolvedPathname: s.resolvedLocation?.pathname ?? s.location.pathname,
       // Matches can stay pending even after `isLoading` flips; mirror router internals.
       isPagePending: s.isLoading || s.matches.some((d) => d.status === "pending"),
@@ -123,20 +124,34 @@ export function RouteTransition({
   });
   useRouteLoadingProgress(isRouteLoading);
 
-  // Keep rendering the last fully-resolved route while the next route is pending.
-  // This avoids "blank frames" when an exit animation completes before the next
-  // route finishes loading.
+  // Key route animations by the last resolved pathname, but keep children live.
+  // Freezing children during pending renders stale page content inside the next
+  // route shell for a frame on fast intra-scene navigation.
   const [displayedPathname, setDisplayedPathname] = useState(resolvedPathname);
-  const [displayedChildren, setDisplayedChildren] = useState(children);
+  // Same-route pending stays subtle by default. Path changes must cover during
+  // render because the router location can advance before Outlet or pending
+  // state resolves, otherwise stale route content is visible for one frame.
+  const isCrossRoutePending = isPagePending && currentPathname !== resolvedPathname;
+  const hasUnresolvedPathSwitch = currentPathname !== displayedPathname;
   const [routeAnimationSettled, setRouteAnimationSettled] = useState(true);
   const displayedPathnameRef = useRef(displayedPathname);
   const resolvedPathnameRef = useRef(resolvedPathname);
   const isPagePendingRef = useRef(isPagePending);
   const routeTransitionState = useMemo(
     () => ({
-      settled: routeAnimationSettled && !isPagePending && displayedPathname === resolvedPathname,
+      settled:
+        routeAnimationSettled &&
+        !isPagePending &&
+        !hasUnresolvedPathSwitch &&
+        displayedPathname === resolvedPathname,
     }),
-    [displayedPathname, isPagePending, resolvedPathname, routeAnimationSettled],
+    [
+      displayedPathname,
+      hasUnresolvedPathSwitch,
+      isPagePending,
+      resolvedPathname,
+      routeAnimationSettled,
+    ],
   );
 
   displayedPathnameRef.current = displayedPathname;
@@ -146,18 +161,18 @@ export function RouteTransition({
   useEffect(() => {
     if (isPagePending) return;
     setDisplayedPathname(resolvedPathname);
-    setDisplayedChildren(children);
-  }, [children, isPagePending, resolvedPathname]);
+  }, [isPagePending, resolvedPathname]);
 
   useEffect(() => {
-    if (isPagePending || displayedPathname !== resolvedPathname) {
+    if (isPagePending || hasUnresolvedPathSwitch || displayedPathname !== resolvedPathname) {
       setRouteAnimationSettled(false);
     }
-  }, [displayedPathname, isPagePending, resolvedPathname]);
+  }, [displayedPathname, hasUnresolvedPathSwitch, isPagePending, resolvedPathname]);
 
-  // "Slow pending" overlay: keep it subtle by default (top progress is already shown),
-  // but show a skeleton if the route is pending for long enough.
   const [showPending, setShowPending] = useState(false);
+  const pendingOverlayInitial =
+    isCrossRoutePending || hasUnresolvedPathSwitch ? { opacity: 1 } : { opacity: 0 };
+  const shouldShowPending = showPending || hasUnresolvedPathSwitch;
   const pendingShownAtRef = useRef<number | null>(null);
   const showPendingTimerRef = useRef<number | null>(null);
   const hidePendingTimerRef = useRef<number | null>(null);
@@ -176,6 +191,12 @@ export function RouteTransition({
     if (hidePendingTimerRef.current) {
       window.clearTimeout(hidePendingTimerRef.current);
       hidePendingTimerRef.current = null;
+    }
+
+    if (isCrossRoutePending || hasUnresolvedPathSwitch) {
+      pendingShownAtRef.current ??= Date.now();
+      setShowPending(true);
+      return;
     }
 
     if (!isPagePending) {
@@ -207,7 +228,14 @@ export function RouteTransition({
       setShowPending(true);
       showPendingTimerRef.current = null;
     }, pendingMs);
-  }, [isPagePending, pendingMinMs, pendingMs, showPending]);
+  }, [
+    hasUnresolvedPathSwitch,
+    isCrossRoutePending,
+    isPagePending,
+    pendingMinMs,
+    pendingMs,
+    showPending,
+  ]);
 
   return (
     <MotionConfig transition={transition}>
@@ -245,18 +273,18 @@ export function RouteTransition({
                 }
               }}
             >
-              {displayedChildren}
+              {children}
             </motion.div>
           </AnimatePresence>
         </RouteTransitionContext.Provider>
 
         <AnimatePresence>
-          {showPending ? (
+          {shouldShowPending ? (
             <motion.div
               className="absolute inset-0 z-10 cursor-progress"
               // Avoid using opacity on the container to keep Skeleton readable.
               style={{ background: "var(--color-background)" }}
-              initial={{ opacity: 0 }}
+              initial={pendingOverlayInitial}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               aria-busy

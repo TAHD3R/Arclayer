@@ -10,6 +10,8 @@ import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 let mockSearchStr = "";
+let mockPathname = "/projects";
+let mockResolvedPathname: string | null = null;
 let preferencesState = {
   sidebarWidthPx: 260,
   setSidebarWidthPx: vi.fn(),
@@ -40,8 +42,15 @@ vi.mock("@tanstack/react-router", () => ({
   useRouterState: ({
     select,
   }: {
-    select: (state: { location: { pathname: string; searchStr: string } }) => unknown;
-  }) => select({ location: { pathname: "/projects", searchStr: mockSearchStr } }),
+    select: (state: {
+      location: { pathname: string; searchStr: string };
+      resolvedLocation?: { pathname: string } | null;
+    }) => unknown;
+  }) =>
+    select({
+      location: { pathname: mockPathname, searchStr: mockSearchStr },
+      resolvedLocation: mockResolvedPathname ? { pathname: mockResolvedPathname } : null,
+    }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -67,6 +76,7 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
     activeBrowseProjectId,
     renderTopbar,
     sidebarCollapsible,
+    sidebarPathnameOverride,
   }: {
     children: React.ReactNode;
     mainItems: Array<{ key: string }>;
@@ -74,8 +84,15 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
     activeBrowseProjectId?: string | null;
     renderTopbar?: () => React.ReactNode;
     sidebarCollapsible?: "icon" | "none";
+    sidebarPathnameOverride?: string;
   }) => {
-    sceneLayoutSpy({ mainItems, browseProjects, activeBrowseProjectId, sidebarCollapsible });
+    sceneLayoutSpy({
+      mainItems,
+      browseProjects,
+      activeBrowseProjectId,
+      sidebarCollapsible,
+      sidebarPathnameOverride,
+    });
     return (
       <div data-testid="admin-scene-layout" data-sidebar-collapsible={sidebarCollapsible}>
         {renderTopbar?.()}
@@ -173,6 +190,8 @@ describe("GlobalLayout", () => {
       setSidebarWidthPx: vi.fn(),
     };
     mockSearchStr = "";
+    mockPathname = "/projects";
+    mockResolvedPathname = null;
     useAuthStore.setState({ accessToken: null, sessionVersion: 0 });
     useWorkspaceStore.setState({
       currentWorkspaceId: null,
@@ -248,6 +267,26 @@ describe("GlobalLayout", () => {
       to: "/projects",
     });
     expect(projectsItem?.children).toBeUndefined();
+  });
+
+  it("keeps the global shell aligned with the resolved outlet route while navigation is pending", () => {
+    vi.mocked(useCurrentUserProfile).mockReturnValue({
+      isSuperAdmin: true,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+      profile: { isSuperAdmin: true },
+    } as unknown as ReturnType<typeof useCurrentUserProfile>);
+    mockPathname = "/system/jobs";
+    mockResolvedPathname = "/system";
+
+    renderWithQueryClient(<GlobalLayout />);
+
+    const sceneProps = sceneLayoutSpy.mock.calls.at(-1)?.[0];
+    expect(sceneProps?.sidebarPathnameOverride).toBe("/system");
+
+    const breadcrumbs = topbarSpy.mock.calls.at(-1)?.[0]?.breadcrumbs ?? [];
+    expect(breadcrumbs.at(-1)?.key).toBe("global.platform.configuration");
   });
 
   it("includes the resources placeholder before projects in global navigation", () => {

@@ -34,6 +34,7 @@ This code-spec defines Admin component composition, visual language, accessibili
 - Data-driven pages must define loading, empty, and error states.
 - Form overlays should use `SettingDialog` unless the workflow cannot fit the settings/dialog contract.
 - Sticky `DefaultPage` headers must stay inside the route scroll container and must not be wrapped in a flex-stretching or flex-shrinking page-shell chain; use `--page-sticky-header-height` for related offsets instead of page-specific sticky variables.
+- Global route transition surfaces must treat `location.pathname`, `resolvedLocation.pathname`, and the currently displayed route key as distinct states. TanStack Router can advance `location.pathname` before the outlet has rendered the resolved target route or before pending state is observable, so cross-route transitions must cover the route content during render when the current pathname differs from the displayed route key. Do not freeze previous `children` into the next route shell.
 - Settings pages must compose existing settings and `packages/ui` primitives before introducing local visual structure.
 - Settings pages must not create nested card-like boxes or hand-authored border-on-border sections inside existing settings items.
 - Checkbox-based setting rows should put the checkbox before the label/content so the control reads as the row's primary affordance.
@@ -56,6 +57,7 @@ This code-spec defines Admin component composition, visual language, accessibili
 | Data fetch pending/error/empty states exist | Express them through shared state patterns |
 | Form-oriented overlay | Use `SettingDialog` with title and description |
 | Page shell uses `headerBehavior="sticky"` | Keep the header anchored to the route scroll container; the route frame must not shrink to viewport height, and the page-main chain must not add `flex-1`/height forcing |
+| Route `location.pathname` advances before the outlet resolves | Keep shell chrome aligned to `resolvedLocation.pathname` and immediately cover route content until the displayed route key catches up |
 | Setting section needs grouped rows | Use existing setting item/row primitives or unboxed layout; do not add nested cards with local borders |
 | Setting row uses a checkbox | Put the checkbox before the row text unless an existing shared component defines a different accessible pattern |
 | Antd `Button` added | Include `autoInsertSpace={false}` |
@@ -67,6 +69,7 @@ This code-spec defines Admin component composition, visual language, accessibili
 
 - Good: settings page composes `DefaultPage`, `ChromeTabs`, `SettingPanel`, and local form sections.
 - Good: a system settings shell uses `DefaultPage headerBehavior="sticky"` and offsets its side navigation with `--page-sticky-header-height`.
+- Good: a route transition renders live outlet children but keys motion by the last resolved pathname and immediately shows a content overlay when `location.pathname !== displayedPathname`.
 - Good: a system settings item renders checkbox rows as plain leading-control labels inside the existing settings item surface.
 - Good: table row status uses a semantic tag component with accessible text.
 - Good: a product-specific workspace picker remains in Admin, while a generic dropdown primitive lives in `packages/ui`.
@@ -74,6 +77,7 @@ This code-spec defines Admin component composition, visual language, accessibili
 - Base: a compact feature-local component stays under `pages/<domain>/<feature>/components`.
 - Bad: a page creates a custom floating card shell and oversized hero copy.
 - Bad: a settings route invents a page-specific sticky header variable, lets the route frame shrink to viewport height, or stretches the page-main region until sticky positioning no longer tracks the route scroll container.
+- Bad: a route transition delays the stale-content cover until an effect or slow-pending timeout after `location.pathname` has already changed.
 - Bad: a settings item contains another bordered card or locally styled border box for each row.
 - Bad: a feature imports Antd `Tag` and styles a one-off pill.
 - Bad: a shared primitive imports Admin route APIs, Admin stores, or page-local constants.
