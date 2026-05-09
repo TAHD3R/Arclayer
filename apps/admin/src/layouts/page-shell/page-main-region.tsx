@@ -1,5 +1,6 @@
 import {
   Children,
+  type CSSProperties,
   Fragment,
   isValidElement,
   type ReactNode,
@@ -189,6 +190,37 @@ export function PageMainRegion(props: {
   const afterFavorite = props.title && titleAdornment ? props.afterFavorite : null;
   const stickyHeader = props.headerBehavior === "sticky";
   const shouldFillAvailableHeight = fillAvailableHeight && !stickyHeader;
+  const stickyHeaderRef = useRef<HTMLElement | null>(null);
+  const [measuredStickyHeaderHeight, setMeasuredStickyHeaderHeight] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!stickyHeader) {
+      setMeasuredStickyHeaderHeight(null);
+      return;
+    }
+
+    const header = stickyHeaderRef.current;
+    if (!header) return;
+
+    const measure = () => {
+      const nextHeight = Math.ceil(header.getBoundingClientRect().height);
+      setMeasuredStickyHeaderHeight((current) => (current === nextHeight ? current : nextHeight));
+    };
+
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [stickyHeader]);
+
+  const contentContainerStyle =
+    measuredStickyHeaderHeight && measuredStickyHeaderHeight > 0
+      ? ({
+          "--page-sticky-header-height": `${measuredStickyHeaderHeight}px`,
+        } as CSSProperties)
+      : undefined;
 
   return (
     <div
@@ -206,6 +238,7 @@ export function PageMainRegion(props: {
           props.contentContainerClassName,
         )}
         data-slot="page-main-container"
+        style={contentContainerStyle}
       >
         {props.title ||
         props.description ||
@@ -213,6 +246,7 @@ export function PageMainRegion(props: {
         props.extra ||
         paneToggles.length > 0 ? (
           <header
+            ref={stickyHeader ? stickyHeaderRef : undefined}
             data-slot="page-main-header"
             className={clsx(
               "mb-4",

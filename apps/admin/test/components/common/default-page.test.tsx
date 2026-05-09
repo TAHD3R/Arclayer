@@ -6,6 +6,11 @@ import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import type { PropsWithChildren, ReactElement } from "react";
 
+class ResizeObserverMock {
+  observe = vi.fn();
+  disconnect = vi.fn();
+}
+
 vi.mock("@tanstack/react-router", () => ({
   useRouterState: ({
     select,
@@ -54,6 +59,7 @@ function mockOverflowingTitle() {
 describe("DefaultPage", () => {
   beforeEach(() => {
     useFavoritesStore.setState({ paths: [] });
+    vi.stubGlobal("ResizeObserver", ResizeObserverMock);
   });
 
   it("uses semantic page title typography and icon-only favorite toggle chrome", () => {
@@ -259,6 +265,31 @@ describe("DefaultPage", () => {
       "px-[var(--admin-route-gutter-x)]",
       "py-2",
     );
+  });
+
+  it("exposes the measured sticky header height for related sticky offsets", () => {
+    const heightSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ height: 132 } as DOMRect);
+
+    render(
+      <DefaultPage
+        title="System settings"
+        description="A longer description can wrap and make the sticky header taller."
+        headerBehavior="sticky"
+        contentContainerClassName="[--page-sticky-header-height:6rem]"
+      >
+        <div>Body</div>
+      </DefaultPage>,
+    );
+
+    const contentContainer = document.querySelector(
+      '[data-slot="page-main-container"]',
+    ) as HTMLElement | null;
+
+    expect(contentContainer).toHaveStyle({ "--page-sticky-header-height": "132px" });
+
+    heightSpy.mockRestore();
   });
 
   it("supports a tighter top spacing preset for contained settings dialogs", () => {

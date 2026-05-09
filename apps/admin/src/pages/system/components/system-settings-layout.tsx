@@ -145,7 +145,9 @@ export function SystemSettingsLayout(props: SystemSettingsLayoutProps) {
   const { t } = useTranslation(["settings"]);
   const [query, setQuery] = useState("");
   const currentUserQuery = useCurrentUserProfile();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const pathname = useRouterState({
+    select: (state) => state.resolvedLocation?.pathname ?? state.location.pathname,
+  });
   const activePage = getSystemSettingsPage(pathname);
   const navItems = useMemo(() => buildSystemSettingsNavItems(), []);
   const searchResults = useSearchResults(query);
@@ -180,7 +182,7 @@ export function SystemSettingsLayout(props: SystemSettingsLayoutProps) {
       description={t(activePage.descriptionKey)}
       showFavoriteToggle={false}
       headerBehavior="sticky"
-      contentContainerClassName="[--page-sticky-header-height:6rem]"
+      contentContainerClassName="min-h-full [--page-sticky-header-height:6rem]"
     >
       <div className="flex min-h-full w-full gap-8">
         <aside className="hidden min-h-full w-72 shrink-0 lg:block">
