@@ -39,4 +39,17 @@ describe("content model password field type", () => {
       maxLength: 128,
     });
   });
+
+  it("applies decimal defaults when switching from integer number fields", () => {
+    const integerDraft = createContentModelFieldDraft("number", {
+      name: "Price",
+      numberFormat: "integer",
+      decimalPlaces: "",
+    });
+
+    const decimalDraft = createContentModelFieldDraft("decimal", integerDraft);
+
+    expect(decimalDraft.numberFormat).toBe("decimal");
+    expect(decimalDraft.decimalPlaces).toBe("2");
+  });
 });

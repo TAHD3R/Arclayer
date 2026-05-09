@@ -746,6 +746,104 @@ describe("content model edit screen", () => {
     });
   });
 
+  test("submits decimal places when configured", async () => {
+    addContentModelFieldMock.mockResolvedValue(buildModel());
+
+    render(
+      <ContentModelEditScreen
+        projectId="project-1"
+        model={buildModel()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onModelChange={vi.fn()}
+        onRefreshModels={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }));
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_NUMBER_LABEL" }));
+    fireEvent.click(screen.getByText("CONTENT_MODELS_FIELD_TYPE_DECIMAL_LABEL"));
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL"), {
+      target: { value: "Price" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_DECIMAL_PLACES_LABEL"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_CONFIG_SUBMIT" }));
+
+    await waitFor(() => {
+      expect(addContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", {
+        key: "price",
+        label: "Price",
+        scalar: "number",
+        required: false,
+        config: {
+          kind: "decimal",
+          localizable: true,
+          decimalPlaces: 3,
+        },
+      });
+    });
+  });
+
+  test("submits blocks configuration when configured", async () => {
+    addContentModelFieldMock.mockResolvedValue(buildModel());
+
+    render(
+      <ContentModelEditScreen
+        projectId="project-1"
+        model={buildModel()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onModelChange={vi.fn()}
+        onRefreshModels={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }));
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_BLOCKS_LABEL" }));
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL"), {
+      target: { value: "Page Blocks" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_ADVANCED/ }),
+    );
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_ALLOWED_LABEL"), {
+      target: { value: "heroBlock\nquoteBlock" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_MIN_LABEL"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_MAX_LABEL"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_CONFIG_SUBMIT" }));
+
+    await waitFor(() => {
+      expect(addContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", {
+        key: "pageBlocks",
+        label: "Page Blocks",
+        scalar: "json",
+        required: false,
+        config: {
+          kind: "blocks",
+          localizable: true,
+          allowedBlocks: ["heroBlock", "quoteBlock"],
+          min: 1,
+          max: 3,
+        },
+      });
+    });
+  });
+
   test.each(FIELD_TYPE_CONFIG_SMOKE_CASES)(
     "shows type-specific config controls for %s",
     async (

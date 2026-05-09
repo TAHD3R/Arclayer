@@ -203,6 +203,7 @@ type FieldDraftErrors = Partial<
     | "key"
     | "numberMin"
     | "numberMax"
+    | "decimalPlaces"
     | "minLength"
     | "maxLength"
     | "regexPattern"
@@ -212,7 +213,10 @@ type FieldDraftErrors = Partial<
     | "componentMax"
     | "dynamicZoneComponentKeys"
     | "dynamicZoneMin"
-    | "dynamicZoneMax",
+    | "dynamicZoneMax"
+    | "blocksAllowedBlocks"
+    | "blocksMin"
+    | "blocksMax",
     string
   >
 >;
@@ -546,8 +550,7 @@ function supportsTextValidation(typeId: ContentModelFieldTypeId) {
     typeId === "markdown" ||
     typeId === "slug" ||
     typeId === "email" ||
-    typeId === "password" ||
-    typeId === "blocks"
+    typeId === "password"
   );
 }
 
@@ -791,6 +794,22 @@ function FieldConfigDialog(props: {
                         props.onDraftChange((draft) =>
                           createContentModelFieldDraft(value as ContentModelFieldTypeId, draft),
                         )
+                      }
+                    />
+                  </SettingDialogField>
+                ) : null}
+                {props.draft.typeId === "decimal" ? (
+                  <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_DECIMAL_PLACES_LABEL")}>
+                    <Input
+                      aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DECIMAL_PLACES_LABEL")}
+                      value={props.draft.decimalPlaces}
+                      disabled={props.pending}
+                      placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DECIMAL_PLACES_PLACEHOLDER")}
+                      onChange={(event) =>
+                        props.onDraftChange((draft) => ({
+                          ...draft,
+                          decimalPlaces: event.target.value,
+                        }))
                       }
                     />
                   </SettingDialogField>
@@ -1216,6 +1235,63 @@ function FieldConfigDialog(props: {
                           props.onDraftChange((draft) => ({
                             ...draft,
                             dynamicZoneMax: event.target.value,
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                  </div>
+                ) : null}
+
+                {props.draft.typeId === "blocks" ? (
+                  <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_ALLOWED_LABEL")}>
+                    <Textarea
+                      aria-label={t("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_ALLOWED_LABEL")}
+                      value={props.draft.blocksAllowedBlocks}
+                      disabled={props.pending}
+                      rows={4}
+                      placeholder={t("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_ALLOWED_PLACEHOLDER")}
+                      onChange={(event) =>
+                        props.onDraftChange((draft) => ({
+                          ...draft,
+                          blocksAllowedBlocks: event.target.value,
+                        }))
+                      }
+                    />
+                  </SettingDialogField>
+                ) : null}
+
+                {props.draft.typeId === "blocks" ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_MIN_LABEL")}
+                      error={props.errors.blocksMin}
+                    >
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_MIN_LABEL")}
+                        value={props.draft.blocksMin}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            blocksMin: event.target.value,
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_MAX_LABEL")}
+                      error={props.errors.blocksMax}
+                    >
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_BLOCKS_MAX_LABEL")}
+                        value={props.draft.blocksMax}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            blocksMax: event.target.value,
                           }))
                         }
                       />
@@ -2250,6 +2326,12 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
         errors.componentMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_NUMBER_RANGE");
       }
     }
+    if (draft.typeId === "decimal") {
+      const decimalPlaces = readPositiveIntegerInput(draft.decimalPlaces);
+      if (Number.isNaN(decimalPlaces)) {
+        errors.decimalPlaces = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+    }
     if (draft.typeId === "dynamic_zone") {
       const components = draft.dynamicZoneComponentKeys
         .split("\n")
@@ -2270,6 +2352,28 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
       }
       if (min !== null && max !== null && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
         errors.dynamicZoneMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_NUMBER_RANGE");
+      }
+    }
+    if (draft.typeId === "blocks") {
+      const blocks = draft.blocksAllowedBlocks.split("\n").map((item) => item.trim());
+      const normalizedBlocks = blocks.filter(Boolean);
+      if (
+        draft.blocksAllowedBlocks.trim() &&
+        (normalizedBlocks.length !== blocks.length ||
+          new Set(normalizedBlocks).size !== normalizedBlocks.length)
+      ) {
+        errors.blocksAllowedBlocks = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_BLOCKS_ALLOWED");
+      }
+      const min = readPositiveIntegerInput(draft.blocksMin);
+      const max = readPositiveIntegerInput(draft.blocksMax);
+      if (Number.isNaN(min)) {
+        errors.blocksMin = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+      if (Number.isNaN(max)) {
+        errors.blocksMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+      if (min !== null && max !== null && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
+        errors.blocksMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_NUMBER_RANGE");
       }
     }
 

@@ -86,6 +86,7 @@ export type ContentModelFieldDraft = {
   condition: string;
   enumerationOptions: string;
   numberFormat: "integer" | "decimal";
+  decimalPlaces: string;
   numberMin: string;
   numberMax: string;
   mediaMode: "single" | "multiple";
@@ -100,6 +101,9 @@ export type ContentModelFieldDraft = {
   dynamicZoneComponentKeys: string;
   dynamicZoneMin: string;
   dynamicZoneMax: string;
+  blocksAllowedBlocks: string;
+  blocksMin: string;
+  blocksMax: string;
   customFieldUid: string;
   customFieldScalar: CreateAdminContentModelFieldPayload["scalar"];
 };
@@ -115,6 +119,11 @@ type FieldSchemaRecord = {
   required?: unknown;
   config?: unknown;
 };
+
+function withDefaultString(value: string | undefined, defaultValue: string | undefined): string {
+  if (value && value.trim()) return value;
+  return defaultValue ?? "";
+}
 
 const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentModelFieldDraft>> = {
   rich_text: {
@@ -143,6 +152,7 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
   decimal: {
     localizable: false,
     numberFormat: "decimal",
+    decimalPlaces: "2",
   },
   biginteger: {
     localizable: false,
@@ -379,7 +389,8 @@ export function createContentModelFieldDraft(
     maxLength: previous?.maxLength ?? "",
     condition: previous?.condition ?? "",
     enumerationOptions: previous?.enumerationOptions ?? "",
-    numberFormat: previous?.numberFormat ?? defaults.numberFormat ?? "integer",
+    numberFormat: defaults.numberFormat ?? previous?.numberFormat ?? "integer",
+    decimalPlaces: withDefaultString(previous?.decimalPlaces, defaults.decimalPlaces),
     numberMin: previous?.numberMin ?? "",
     numberMax: previous?.numberMax ?? "",
     mediaMode: previous?.mediaMode ?? defaults.mediaMode ?? "single",
@@ -394,6 +405,9 @@ export function createContentModelFieldDraft(
     dynamicZoneComponentKeys: previous?.dynamicZoneComponentKeys ?? "",
     dynamicZoneMin: previous?.dynamicZoneMin ?? "",
     dynamicZoneMax: previous?.dynamicZoneMax ?? "",
+    blocksAllowedBlocks: previous?.blocksAllowedBlocks ?? "",
+    blocksMin: previous?.blocksMin ?? "",
+    blocksMax: previous?.blocksMax ?? "",
     customFieldUid: previous?.customFieldUid ?? "",
     customFieldScalar: previous?.customFieldScalar ?? "json",
   };
@@ -427,6 +441,7 @@ export function createContentModelFieldDraftFromRow(
     condition: asInputString(config.condition),
     enumerationOptions: options,
     numberFormat: config.numberFormat === "decimal" ? "decimal" : "integer",
+    decimalPlaces: asInputString(config.decimalPlaces ?? 2),
     numberMin: asInputString(config.min),
     numberMax: asInputString(config.max),
     mediaMode: config.mediaMode === "multiple" ? "multiple" : "single",
@@ -444,6 +459,11 @@ export function createContentModelFieldDraftFromRow(
       : "",
     dynamicZoneMin: asInputString(config.min),
     dynamicZoneMax: asInputString(config.max),
+    blocksAllowedBlocks: Array.isArray(config.allowedBlocks)
+      ? config.allowedBlocks.filter((item): item is string => typeof item === "string").join("\n")
+      : "",
+    blocksMin: asInputString(config.min),
+    blocksMax: asInputString(config.max),
     customFieldUid: asInputString(config.customFieldUid),
     customFieldScalar:
       row.scalar === "text" ||
@@ -549,8 +569,7 @@ export function buildContentModelFieldPayload(
     draft.typeId === "markdown" ||
     draft.typeId === "slug" ||
     draft.typeId === "email" ||
-    draft.typeId === "password" ||
-    draft.typeId === "blocks"
+    draft.typeId === "password"
   ) {
     const minLength = readIntegerString(draft.minLength);
     const maxLength = readIntegerString(draft.maxLength);
@@ -568,8 +587,24 @@ export function buildContentModelFieldPayload(
     if (options.length > 0) config.options = options;
   }
 
-  if (draft.typeId === "number" || draft.typeId === "decimal" || draft.typeId === "biginteger") {
+  if (draft.typeId === "number") {
     config.numberFormat = draft.numberFormat;
+    const min = readNumberString(draft.numberMin);
+    const max = readNumberString(draft.numberMax);
+    if (min !== null) config.min = min;
+    if (max !== null) config.max = max;
+  }
+
+  if (draft.typeId === "decimal") {
+    const decimalPlaces = readIntegerString(draft.decimalPlaces);
+    if (decimalPlaces !== null) config.decimalPlaces = decimalPlaces;
+    const min = readNumberString(draft.numberMin);
+    const max = readNumberString(draft.numberMax);
+    if (min !== null) config.min = min;
+    if (max !== null) config.max = max;
+  }
+
+  if (draft.typeId === "biginteger") {
     const min = readNumberString(draft.numberMin);
     const max = readNumberString(draft.numberMax);
     if (min !== null) config.min = min;
@@ -608,6 +643,18 @@ export function buildContentModelFieldPayload(
     if (components.length > 0) config.components = components;
     const min = readIntegerString(draft.dynamicZoneMin);
     const max = readIntegerString(draft.dynamicZoneMax);
+    if (min !== null) config.min = min;
+    if (max !== null) config.max = max;
+  }
+
+  if (draft.typeId === "blocks") {
+    const allowedBlocks = draft.blocksAllowedBlocks
+      .split("\n")
+      .map((blockKey) => blockKey.trim())
+      .filter(Boolean);
+    if (allowedBlocks.length > 0) config.allowedBlocks = allowedBlocks;
+    const min = readIntegerString(draft.blocksMin);
+    const max = readIntegerString(draft.blocksMax);
     if (min !== null) config.min = min;
     if (max !== null) config.max = max;
   }
