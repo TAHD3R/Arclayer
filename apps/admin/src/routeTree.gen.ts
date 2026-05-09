@@ -47,7 +47,6 @@ import { Route as ProjectsProjectIdSettingsDatabasesIndexRouteImport } from './r
 import { Route as ProjectsProjectIdSettingsApiIndexRouteImport } from './routes/projects/$projectId/settings/api/index'
 import { Route as ProjectsProjectIdSettingsApiKeysIndexRouteImport } from './routes/projects/$projectId/settings/api-keys/index'
 import { Route as ProjectsProjectIdContentSiteBuilderIndexRouteImport } from './routes/projects/$projectId/content/site-builder/index'
-import { Route as ProjectsProjectIdContentReleasesIndexRouteImport } from './routes/projects/$projectId/content/releases/index'
 import { Route as ProjectsProjectIdContentModelsIndexRouteImport } from './routes/projects/$projectId/content/models/index'
 import { Route as ProjectsProjectIdContentLocalizationIndexRouteImport } from './routes/projects/$projectId/content/localization/index'
 import { Route as ProjectsProjectIdContentLibraryIndexRouteImport } from './routes/projects/$projectId/content/library/index'
@@ -307,16 +306,6 @@ const ProjectsProjectIdContentSiteBuilderIndexRoute =
       (d) => d.Route,
     ),
   )
-const ProjectsProjectIdContentReleasesIndexRoute =
-  ProjectsProjectIdContentReleasesIndexRouteImport.update({
-    id: '/content/releases/',
-    path: '/content/releases/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any).lazy(() =>
-    import('./routes/projects/$projectId/content/releases/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
 const ProjectsProjectIdContentModelsIndexRoute =
   ProjectsProjectIdContentModelsIndexRouteImport.update({
     id: '/content/models/',
@@ -443,7 +432,6 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
   '/projects/$projectId/content/localization/': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models/': typeof ProjectsProjectIdContentModelsIndexRoute
-  '/projects/$projectId/content/releases/': typeof ProjectsProjectIdContentReleasesIndexRoute
   '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api/': typeof ProjectsProjectIdSettingsApiIndexRoute
@@ -491,7 +479,6 @@ export interface FileRoutesByTo {
   '/projects/$projectId/content/library': typeof ProjectsProjectIdContentLibraryIndexRoute
   '/projects/$projectId/content/localization': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models': typeof ProjectsProjectIdContentModelsIndexRoute
-  '/projects/$projectId/content/releases': typeof ProjectsProjectIdContentReleasesIndexRoute
   '/projects/$projectId/content/site-builder': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api': typeof ProjectsProjectIdSettingsApiIndexRoute
@@ -542,7 +529,6 @@ export interface FileRoutesById {
   '/projects/$projectId/content/library/': typeof ProjectsProjectIdContentLibraryIndexRoute
   '/projects/$projectId/content/localization/': typeof ProjectsProjectIdContentLocalizationIndexRoute
   '/projects/$projectId/content/models/': typeof ProjectsProjectIdContentModelsIndexRoute
-  '/projects/$projectId/content/releases/': typeof ProjectsProjectIdContentReleasesIndexRoute
   '/projects/$projectId/content/site-builder/': typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   '/projects/$projectId/settings/api-keys/': typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   '/projects/$projectId/settings/api/': typeof ProjectsProjectIdSettingsApiIndexRoute
@@ -594,7 +580,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/content/library/'
     | '/projects/$projectId/content/localization/'
     | '/projects/$projectId/content/models/'
-    | '/projects/$projectId/content/releases/'
     | '/projects/$projectId/content/site-builder/'
     | '/projects/$projectId/settings/api-keys/'
     | '/projects/$projectId/settings/api/'
@@ -642,7 +627,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/content/library'
     | '/projects/$projectId/content/localization'
     | '/projects/$projectId/content/models'
-    | '/projects/$projectId/content/releases'
     | '/projects/$projectId/content/site-builder'
     | '/projects/$projectId/settings/api-keys'
     | '/projects/$projectId/settings/api'
@@ -692,7 +676,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/content/library/'
     | '/projects/$projectId/content/localization/'
     | '/projects/$projectId/content/models/'
-    | '/projects/$projectId/content/releases/'
     | '/projects/$projectId/content/site-builder/'
     | '/projects/$projectId/settings/api-keys/'
     | '/projects/$projectId/settings/api/'
@@ -988,13 +971,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
-    '/projects/$projectId/content/releases/': {
-      id: '/projects/$projectId/content/releases/'
-      path: '/content/releases'
-      fullPath: '/projects/$projectId/content/releases/'
-      preLoaderRoute: typeof ProjectsProjectIdContentReleasesIndexRouteImport
-      parentRoute: typeof ProjectsProjectIdRoute
-    }
     '/projects/$projectId/content/models/': {
       id: '/projects/$projectId/content/models/'
       path: '/content/models'
@@ -1109,7 +1085,6 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdContentLibraryIndexRoute: typeof ProjectsProjectIdContentLibraryIndexRoute
   ProjectsProjectIdContentLocalizationIndexRoute: typeof ProjectsProjectIdContentLocalizationIndexRoute
   ProjectsProjectIdContentModelsIndexRoute: typeof ProjectsProjectIdContentModelsIndexRoute
-  ProjectsProjectIdContentReleasesIndexRoute: typeof ProjectsProjectIdContentReleasesIndexRoute
   ProjectsProjectIdContentSiteBuilderIndexRoute: typeof ProjectsProjectIdContentSiteBuilderIndexRoute
   ProjectsProjectIdSettingsApiKeysIndexRoute: typeof ProjectsProjectIdSettingsApiKeysIndexRoute
   ProjectsProjectIdSettingsApiIndexRoute: typeof ProjectsProjectIdSettingsApiIndexRoute
@@ -1146,8 +1121,6 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
     ProjectsProjectIdContentLocalizationIndexRoute,
   ProjectsProjectIdContentModelsIndexRoute:
     ProjectsProjectIdContentModelsIndexRoute,
-  ProjectsProjectIdContentReleasesIndexRoute:
-    ProjectsProjectIdContentReleasesIndexRoute,
   ProjectsProjectIdContentSiteBuilderIndexRoute:
     ProjectsProjectIdContentSiteBuilderIndexRoute,
   ProjectsProjectIdSettingsApiKeysIndexRoute:

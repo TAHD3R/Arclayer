@@ -30,12 +30,11 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav aligned with live workspace routes", () => {
     expect(listWorkspaceNavTargets()).toEqual([
       "/",
+      "/activity",
       "/assets",
       "/content/library",
       "/content/models",
-      "/content/releases",
       "/content/general",
-      "/activity",
       "/settings/general",
     ]);
   });
@@ -53,39 +52,43 @@ describe("workspace nav regression", () => {
   test("keeps workspace nav tree aligned with the approved IA", () => {
     expect(ADMIN_NAV_ITEMS.map((item) => item.key)).toEqual([
       "dashboard",
+      "activity",
       "assets",
       "content.library",
       "content.models",
-      "content.releases",
+      "website.analytics",
       "settings.site",
-      "analytics.highlights",
-      "analytics.real-time",
-      "analytics.traffic",
-      "analytics.insights",
       "apps.manage",
       "apps.market",
       "automations",
-      "activity",
       "settings.project",
     ]);
 
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "assets")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
     });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "analytics.highlights")).toMatchObject({
-      groupLabelBeforeKey: "nav:NAV_SECTION_ANALYTICS",
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.analytics")).toMatchObject({
+      labelKey: "nav:NAV_SECTION_ANALYTICS",
+      children: [
+        expect.objectContaining({ key: "analytics.highlights", disabled: true }),
+        expect.objectContaining({ key: "analytics.real-time", disabled: true }),
+        expect.objectContaining({ key: "analytics.traffic", disabled: true }),
+        expect.objectContaining({ key: "analytics.insights", disabled: true }),
+      ],
     });
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "apps.manage")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_SECTION_APPS",
     });
-    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "activity")).toMatchObject({
-      groupLabelBeforeKey: "nav:NAV_SECTION_OPERATIONS",
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "settings.site")).toMatchObject({
+      labelKey: "nav:NAV_SETTINGS_SITE",
     });
     expect(ADMIN_NAV_ITEMS.find((item) => item.key === "settings.project")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",
     });
 
-    expect(ADMIN_NAV_ITEMS.some((item) => item.children?.length)).toBe(false);
+    expect(ADMIN_NAV_ITEMS.find((item) => item.key === "website.analytics")?.children).toHaveLength(
+      4,
+    );
   });
 
   test("returns the project-first workspace nav tree", () => {
@@ -93,19 +96,15 @@ describe("workspace nav regression", () => {
 
     expect(projectNav.map((item) => item.key)).toEqual([
       "dashboard",
+      "activity",
       "assets",
       "content.library",
       "content.models",
-      "content.releases",
+      "website.analytics",
       "settings.site",
-      "analytics.highlights",
-      "analytics.real-time",
-      "analytics.traffic",
-      "analytics.insights",
       "apps.manage",
       "apps.market",
       "automations",
-      "activity",
       "settings.project",
     ]);
     expect(listWorkspaceNavTargets(projectNav)).toContain("/content/general");

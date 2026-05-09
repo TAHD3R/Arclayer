@@ -255,7 +255,7 @@ describe("resolveFavoriteNavItems", () => {
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
         path: "/projects/ws-1/content/general",
-        label: "nav:NAV_SETTINGS",
+        label: "nav:NAV_SETTINGS_SITE",
         isCurrentWorkspace: true,
       }),
       expect.objectContaining({
@@ -287,11 +287,11 @@ describe("resolveFavoriteNavItems", () => {
     expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
         path: "/projects/ws-9/content/localization",
-        label: "nav:NAV_SETTINGS",
+        label: "nav:NAV_SETTINGS_SITE",
       }),
       expect.objectContaining({
         path: "/projects/ws-9/content/domain",
-        label: "nav:NAV_SETTINGS",
+        label: "nav:NAV_SETTINGS_SITE",
       }),
     ]);
   });

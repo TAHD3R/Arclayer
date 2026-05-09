@@ -12,7 +12,6 @@ describe("project boundary contract", () => {
   test("project routes pass projectId to project-owned surfaces", () => {
     const routeFiles = [
       "apps/admin/src/routes/projects/$projectId/content/models/index.lazy.tsx",
-      "apps/admin/src/routes/projects/$projectId/content/releases/index.lazy.tsx",
       "apps/admin/src/routes/projects/$projectId/content/automation/index.lazy.tsx",
       "apps/admin/src/routes/projects/$projectId/content/site-builder/index.lazy.tsx",
       "apps/admin/src/routes/projects/$projectId/content/library/$itemId/index.lazy.tsx",

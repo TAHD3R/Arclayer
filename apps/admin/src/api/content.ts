@@ -9,11 +9,6 @@ import type {
   AdminContentTranslationGroup,
   AdminContentSeoProfile,
   AdminContentVersion,
-  AdminRelease,
-  AdminReleaseDryRun,
-  AdminReleaseList,
-  AdminReleasePublishResult,
-  AdminReleaseRollbackResult,
   AdminPublishImpact,
   ApplyAdminContentBootstrapShapePayload,
   CreateAdminContentModelFieldPayload,
@@ -424,50 +419,6 @@ export async function patchContentItemWorkflow(
     projectPath(projectId, `/content/items/${itemId}/workflow`),
     payload,
   );
-}
-
-export async function listProjectReleases(projectId: string): Promise<AdminReleaseList> {
-  return api.get<AdminReleaseList>(projectPath(projectId, "/releases"));
-}
-
-export async function getProjectReleaseDryRun(projectId: string): Promise<AdminReleaseDryRun> {
-  return api.get<AdminReleaseDryRun>(projectPath(projectId, "/releases/dry-run"));
-}
-
-export type PublishProjectReleasePayload = {
-  scheduledAt?: string | null;
-};
-
-export async function publishProjectRelease(
-  projectId: string,
-  payload?: PublishProjectReleasePayload,
-): Promise<AdminReleasePublishResult> {
-  return api.post<AdminReleasePublishResult>(projectPath(projectId, "/releases/publish"), payload);
-}
-
-export async function cancelScheduledProjectRelease(
-  projectId: string,
-  releaseId: string,
-): Promise<{ release: AdminRelease; job: unknown }> {
-  return api.post<{ release: AdminRelease; job: unknown }>(
-    projectPath(projectId, `/releases/${releaseId}/cancel-schedule`),
-  );
-}
-
-export async function rollbackProjectRelease(
-  projectId: string,
-  releaseId: string,
-): Promise<AdminReleaseRollbackResult> {
-  return api.post<AdminReleaseRollbackResult>(
-    projectPath(projectId, `/releases/${releaseId}/rollback`),
-  );
-}
-
-export async function getProjectRelease(
-  projectId: string,
-  releaseId: string,
-): Promise<AdminRelease> {
-  return api.get<AdminRelease>(projectPath(projectId, `/releases/${releaseId}`));
 }
 
 export async function getContentLibraryViews(

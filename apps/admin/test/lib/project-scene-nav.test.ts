@@ -16,19 +16,15 @@ describe("resolveProjectSceneNavItems", () => {
 
     expect(items.map((item) => item.key)).toEqual([
       "dashboard",
+      "activity",
       "assets",
       "content.library",
       "content.models",
-      "content.releases",
+      "website.analytics",
       "settings.site",
-      "analytics.highlights",
-      "analytics.real-time",
-      "analytics.traffic",
-      "analytics.insights",
       "apps.manage",
       "apps.market",
       "automations",
-      "activity",
       "settings.project",
     ]);
     expect(items[0]).toMatchObject({
@@ -40,14 +36,20 @@ describe("resolveProjectSceneNavItems", () => {
       groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
       to: "/projects/project-alpha/assets",
     });
-    expect(items.find((item) => item.key === "analytics.highlights")).toMatchObject({
-      groupLabelBeforeKey: "nav:NAV_SECTION_ANALYTICS",
+    expect(items.find((item) => item.key === "website.analytics")).toMatchObject({
+      labelKey: "nav:NAV_SECTION_ANALYTICS",
+      children: [
+        expect.objectContaining({ key: "analytics.highlights", disabled: true }),
+        expect.objectContaining({ key: "analytics.real-time", disabled: true }),
+        expect.objectContaining({ key: "analytics.traffic", disabled: true }),
+        expect.objectContaining({ key: "analytics.insights", disabled: true }),
+      ],
     });
     expect(items.find((item) => item.key === "apps.manage")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_SECTION_APPS",
     });
-    expect(items.find((item) => item.key === "activity")).toMatchObject({
-      groupLabelBeforeKey: "nav:NAV_SECTION_OPERATIONS",
+    expect(items.find((item) => item.key === "settings.site")).toMatchObject({
+      labelKey: "nav:NAV_SETTINGS_SITE",
     });
     expect(items.find((item) => item.key === "settings.project")).toMatchObject({
       groupLabelBeforeKey: "nav:NAV_SECTION_CONFIGURATION",

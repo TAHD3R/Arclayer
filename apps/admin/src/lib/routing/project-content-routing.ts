@@ -30,10 +30,6 @@ export function projectContentModelsEditPath(projectId: string, modelId: string)
   return `${projectContentModelsPath(projectId)}/edit?${search.toString()}`;
 }
 
-export function projectContentReleasesPath(projectId: string): string {
-  return `/projects/${encodeURIComponent(projectId)}/content/releases`;
-}
-
 export function projectContentAutomationPath(projectId: string): string {
   return `/projects/${encodeURIComponent(projectId)}/content/automation`;
 }

@@ -225,19 +225,15 @@ describe("sidebar route state wiring", () => {
     expect(props.favoriteWorkspaceBase).toBe("/projects/ws-1");
     expect(props.mainItems.map((item) => item.key)).toEqual([
       "dashboard",
+      "activity",
       "assets",
       "content.library",
       "content.models",
-      "content.releases",
+      "website.analytics",
       "settings.site",
-      "analytics.highlights",
-      "analytics.real-time",
-      "analytics.traffic",
-      "analytics.insights",
       "apps.manage",
       "apps.market",
       "automations",
-      "activity",
       "settings.project",
     ]);
   });
