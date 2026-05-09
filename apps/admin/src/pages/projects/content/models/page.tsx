@@ -36,13 +36,7 @@ import { ContentModelsActionDialogs } from "./components/content-models-action-d
 import { ContentModelsSelectionToolbar } from "./components/content-models-selection-toolbar";
 import { buildContentModelsTableColumns } from "./components/content-models-table-columns";
 import { ContentModelsToolbar } from "./components/content-models-toolbar";
-import { CreateContentTypeDialog } from "./components/create-content-type-dialog";
-import type {
-  ContentModelsFilters,
-  ContentModelsTableQuery,
-  ContentModelsTableRow,
-  CreateContentTypeSubmitValues,
-} from "./types";
+import type { ContentModelsFilters, ContentModelsTableQuery, ContentModelsTableRow } from "./types";
 import { buildDuplicateContentModelPayload, toContentModelsTableQuery } from "./utils";
 
 type ContentModelsControlCenterPageProps = {
@@ -73,7 +67,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
   const queryClient = useQueryClient();
   const permissionAccess = useProjectPermissionAccess(projectId);
   const canManageModels = permissionAccess.hasAction("project:content:models:write");
-  const [createOpen, setCreateOpen] = React.useState(false);
   const [duplicateModel, setDuplicateModel] = React.useState<ContentModelsTableRow | null>(null);
   const [bulkDuplicateOpen, setBulkDuplicateOpen] = React.useState(false);
   const [deleteModelState, setDeleteModelState] = React.useState<ContentModelsTableRow | null>(
@@ -100,16 +93,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
     },
     [navigate, projectId],
   );
-
-  const createMutation = useMutation({
-    mutationFn: (values: CreateContentTypeSubmitValues) =>
-      createContentModel(projectId, values.payload),
-    onSuccess: async () => {
-      await refreshModels();
-      setCreateOpen(false);
-    },
-    onError: notifyError,
-  });
 
   const duplicateMutation = useMutation({
     mutationFn: async (model: ContentModelsTableRow) => {
@@ -271,7 +254,17 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
         title={t("CONTENT_MODELS_TITLE")}
         showFavoriteToggle
         action={
-          <Button type="button" disabled={!canManageModels} onClick={() => setCreateOpen(true)}>
+          <Button
+            type="button"
+            disabled={!canManageModels}
+            onClick={() => {
+              void navigate({
+                to: "/projects/$projectId/content/models/edit",
+                params: { projectId },
+                search: { create: true },
+              });
+            }}
+          >
             <PlusIcon className="size-4" />
             {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION")}
           </Button>
@@ -339,14 +332,6 @@ export function ContentModelsControlCenterPage({ projectId }: ContentModelsContr
         }}
         onOpenDuplicate={() => setBulkDuplicateOpen(true)}
         onOpenDelete={() => setBulkDeleteOpen(true)}
-      />
-      <CreateContentTypeDialog
-        open={createOpen}
-        pending={createMutation.isPending}
-        onOpenChange={setCreateOpen}
-        onSubmit={async (values) => {
-          await createMutation.mutateAsync(values);
-        }}
       />
       <ContentModelsActionDialogs
         duplicateDialog={{

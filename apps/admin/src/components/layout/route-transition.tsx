@@ -1,7 +1,15 @@
 import { useProgress } from "@bprogress/react";
 import { useRouterState } from "@tanstack/react-router";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from "react";
 import clsx from "clsx";
 
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -14,6 +22,16 @@ type RouteTransitionProps = PropsWithChildren<{
   pendingMinMs?: number;
   variant?: "slide" | "fade";
 }>;
+
+type RouteTransitionState = {
+  settled: boolean;
+};
+
+const RouteTransitionContext = createContext<RouteTransitionState>({ settled: true });
+
+export function useRouteTransitionState() {
+  return useContext(RouteTransitionContext);
+}
 
 function useRouteLoadingProgress(isRouteLoading: boolean) {
   const { start, stop } = useProgress();
@@ -110,12 +128,32 @@ export function RouteTransition({
   // route finishes loading.
   const [displayedPathname, setDisplayedPathname] = useState(resolvedPathname);
   const [displayedChildren, setDisplayedChildren] = useState(children);
+  const [routeAnimationSettled, setRouteAnimationSettled] = useState(true);
+  const displayedPathnameRef = useRef(displayedPathname);
+  const resolvedPathnameRef = useRef(resolvedPathname);
+  const isPagePendingRef = useRef(isPagePending);
+  const routeTransitionState = useMemo(
+    () => ({
+      settled: routeAnimationSettled && !isPagePending && displayedPathname === resolvedPathname,
+    }),
+    [displayedPathname, isPagePending, resolvedPathname, routeAnimationSettled],
+  );
+
+  displayedPathnameRef.current = displayedPathname;
+  resolvedPathnameRef.current = resolvedPathname;
+  isPagePendingRef.current = isPagePending;
 
   useEffect(() => {
     if (isPagePending) return;
     setDisplayedPathname(resolvedPathname);
     setDisplayedChildren(children);
   }, [children, isPagePending, resolvedPathname]);
+
+  useEffect(() => {
+    if (isPagePending || displayedPathname !== resolvedPathname) {
+      setRouteAnimationSettled(false);
+    }
+  }, [displayedPathname, isPagePending, resolvedPathname]);
 
   // "Slow pending" overlay: keep it subtle by default (top progress is already shown),
   // but show a skeleton if the route is pending for long enough.
@@ -174,29 +212,43 @@ export function RouteTransition({
   return (
     <MotionConfig transition={transition}>
       <div className={clsx("relative flex min-h-0 min-w-0 w-full flex-1 flex-col", className)}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={displayedPathname}
-            className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
-            initial={
-              reducedMotion
-                ? { opacity: 1 }
-                : variant === "fade"
-                  ? { opacity: 0 }
-                  : { opacity: 0, y: 6 }
-            }
-            animate={variant === "fade" ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            exit={
-              reducedMotion
-                ? { opacity: 1 }
-                : variant === "fade"
-                  ? { opacity: 0 }
-                  : { opacity: 0, y: -6 }
-            }
-          >
-            {displayedChildren}
-          </motion.div>
-        </AnimatePresence>
+        <RouteTransitionContext.Provider value={routeTransitionState}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={displayedPathname}
+              className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
+              initial={
+                reducedMotion
+                  ? { opacity: 1 }
+                  : variant === "fade"
+                    ? { opacity: 0 }
+                    : { opacity: 0, y: 6 }
+              }
+              animate={variant === "fade" ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={
+                reducedMotion
+                  ? { opacity: 1 }
+                  : variant === "fade"
+                    ? { opacity: 0 }
+                    : { opacity: 0, y: -6 }
+              }
+              onAnimationStart={() => {
+                setRouteAnimationSettled(false);
+              }}
+              onAnimationComplete={() => {
+                if (
+                  displayedPathname === displayedPathnameRef.current &&
+                  displayedPathname === resolvedPathnameRef.current &&
+                  !isPagePendingRef.current
+                ) {
+                  setRouteAnimationSettled(true);
+                }
+              }}
+            >
+              {displayedChildren}
+            </motion.div>
+          </AnimatePresence>
+        </RouteTransitionContext.Provider>
 
         <AnimatePresence>
           {showPending ? (

@@ -1,6 +1,11 @@
 import * as React from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { codeToHtml } from "shiki";
 import {
   ArrowLeft,
   AtSign,
@@ -42,8 +47,11 @@ import {
   addContentModelField,
   buildContentModelFieldTypesQueryKey,
   deleteContentModelField,
+  getContentModelImpactPreview,
+  getContentModelJsonPreview,
   getContentModelFieldTypeRegistry,
   listAllContentModels,
+  patchContentModel,
   reorderContentModelFields,
   type AdminContentModelFieldTypeDefinition,
   type AdminContentModelFieldTypeRegistry,
@@ -53,16 +61,12 @@ import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
-import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav/admin-sider-nav";
-import {
-  ContentModelFieldKeyTag,
-  ContentModelFieldTypeTag,
-  SelectedCountTag,
-} from "@/components/ui/tags";
+import { ContentModelFieldKeyTag, ContentModelFieldTypeTag } from "@/components/ui/tags";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { projectContentModelsEditPath } from "@/lib/routing/project-content-routing";
+import { normalizeThemeMode } from "@/lib/theme";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
@@ -85,11 +89,23 @@ import {
   DropdownMenuIconItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { FieldLabel } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
+import { RadioGroup, RadioGroupItem } from "@arclayer/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import {
+  SettingItem,
+  SettingItemContent,
+  SettingItemDescription,
+  SettingItemFooter,
+  SettingItemHeader,
+  SettingItemTitle,
+} from "@arclayer/ui/setting-item";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 import { Textarea } from "@arclayer/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import type { JsonValueInput } from "@arclayer/openapi/admin-types";
 import type { AdminNavItem } from "@/types/admin-nav";
 import {
@@ -98,6 +114,8 @@ import {
   useDataTableWrapHeadersPreference,
 } from "@arclayer/ui/data-table";
 import { Highlight } from "@arclayer/ui/highlight";
+import { Switch } from "@arclayer/ui/switch";
+import { createPortal } from "react-dom";
 
 import {
   buildContentModelFieldPayload,
@@ -109,8 +127,10 @@ import {
   getContentModelFieldTypeDescriptionKey,
   getContentModelFieldTypeFromRow,
   getContentModelFieldTypeLabelKey,
-  isContentModelFieldLocalized,
   readContentModelFieldRows,
+  supportsContentModelFieldDefaultValue,
+  supportsContentModelFieldLocalizableSetting,
+  supportsContentModelFieldUniqueSetting,
   syncContentModelFieldDraftName,
   updateContentModelFieldDraftKey,
   type ContentModelFieldDraft,
@@ -120,7 +140,10 @@ import {
 import type { ContentModelsTableRow } from "../types";
 import { validateContentTypeIdentifier } from "../utils";
 import { ContentModelsRowActions } from "./content-models-row-actions";
-import { ContentModelSettingsTab } from "./content-model-settings-tab";
+import {
+  ContentModelSettingsTab,
+  type ContentModelSettingsSectionKey,
+} from "./content-model-settings-tab";
 
 const FIELD_TYPE_ICON_MAP: Record<ContentModelFieldTypeId, LucideIcon> = {
   rich_text: TextCursorInput,
@@ -160,7 +183,11 @@ type ContentModelEditScreenProps = {
   onClose: () => void;
 };
 
-type ContentModelEditSectionKey = "fields" | "settings";
+type ContentModelEditSectionKey =
+  | "fields"
+  | "name_description"
+  | "json_preview"
+  | ContentModelSettingsSectionKey;
 type FieldConfigSectionKey = "basic" | "advanced";
 
 type FieldDraftErrors = Partial<
@@ -188,7 +215,7 @@ function ContentModelEditSectionMenu(props: {
 }) {
   const { t } = useTranslation("content");
   const editPath = projectContentModelsEditPath(props.projectId, props.modelId);
-  const settingsPath = `${editPath}&section=settings`;
+  const sectionPath = (section: ContentModelEditSectionKey) => `${editPath}&section=${section}`;
   const items: AdminNavItem[] = [
     {
       key: "fields",
@@ -197,10 +224,28 @@ function ContentModelEditSectionMenu(props: {
       to: editPath,
     },
     {
+      key: "name_description",
+      icon: Pencil,
+      label: t("CONTENT_MODELS_EDIT_TAB_NAME_DESCRIPTION"),
+      to: sectionPath("name_description"),
+    },
+    {
+      key: "json_preview",
+      icon: Braces,
+      label: t("CONTENT_MODELS_EDIT_TAB_JSON_PREVIEW"),
+      to: sectionPath("json_preview"),
+    },
+    {
       key: "settings",
       icon: Settings2,
       label: t("CONTENT_MODELS_EDIT_TAB_SETTINGS"),
-      to: settingsPath,
+      to: sectionPath("settings"),
+    },
+    {
+      key: "workflow",
+      icon: LayoutGrid,
+      label: t("CONTENT_MODELS_EDIT_TAB_WORKFLOW"),
+      to: sectionPath("workflow"),
     },
   ];
 
@@ -210,7 +255,9 @@ function ContentModelEditSectionMenu(props: {
         items={items}
         showFavorites={false}
         className="m-0 w-full [&_[data-active]]:w-full [&_[data-sidebar=menu-button]]:w-full [&_[data-sidebar=menu-item]]:w-full [&_[data-sidebar=menu]]:w-full"
-        pathnameOverride={props.activeSection === "settings" ? settingsPath : editPath}
+        pathnameOverride={
+          props.activeSection === "fields" ? editPath : sectionPath(props.activeSection)
+        }
       />
     </SidebarProvider>
   );
@@ -256,29 +303,33 @@ function FieldConfigSectionMenu(props: {
     </Highlight>
   );
 }
-function ChoiceButtonGroup<T extends string>(props: {
+function ChoiceRadioGroup<T extends string>(props: {
   value: T;
   options: Array<{ value: T; label: string }>;
   onChange: (value: T) => void;
+  columnsClassName?: string;
 }) {
+  const groupId = React.useId();
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {props.options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          className={cn(
-            "flex items-center justify-center rounded-md border px-3 py-2 text-footnote font-medium transition-colors",
-            props.value === option.value
-              ? "border-primary bg-primary/8 text-label-primary"
-              : "border-border/70 bg-background text-label-secondary hover:bg-accent/40 hover:text-label-primary",
-          )}
-          onClick={() => props.onChange(option.value)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <RadioGroup
+      value={props.value}
+      onValueChange={(value) => props.onChange(value as T)}
+      className={cn("grid gap-2 sm:grid-cols-2", props.columnsClassName)}
+    >
+      {props.options.map((option) => {
+        const inputId = `${groupId}-${option.value}`;
+        return (
+          <FieldLabel
+            key={option.value}
+            htmlFor={inputId}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-md border border-border/70 bg-background p-2.5 transition-colors hover:border-border hover:bg-accent/35 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/10"
+          >
+            <RadioGroupItem id={inputId} value={option.value} />
+            <span className="text-footnote font-medium text-label-primary">{option.label}</span>
+          </FieldLabel>
+        );
+      })}
+    </RadioGroup>
   );
 }
 
@@ -325,9 +376,9 @@ function FieldTypePickerDialog(props: {
       contentClassName="sm:max-w-6xl"
       bodyClassName="py-6"
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-4">
         {CONTENT_MODEL_FIELD_TYPE_GROUPS.map((group) => (
-          <section key={group.id} className="flex min-h-0 flex-col gap-3">
+          <section key={group.id} className="flex h-full min-h-0 flex-col gap-3">
             <div>
               <h3 className="text-headline text-label-primary">
                 {t(getContentModelFieldTypeGroupLabelKey(group.id))}
@@ -337,7 +388,7 @@ function FieldTypePickerDialog(props: {
               </p>
             </div>
 
-            <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex min-h-0 flex-1 flex-col gap-2">
               {group.typeIds.flatMap((typeId) => {
                 if (availableBuiltInTypeIds && !availableBuiltInTypeIds.has(typeId)) return [];
                 const Icon = FIELD_TYPE_ICON_MAP[typeId];
@@ -348,7 +399,7 @@ function FieldTypePickerDialog(props: {
                     aria-label={t(getContentModelFieldTypeLabelKey(typeId))}
                     disabled={!props.canManageFields}
                     className={cn(
-                      "flex w-full items-start gap-3 rounded-lg border border-border/70 bg-background px-4 py-3 text-left transition-colors",
+                      "flex h-full min-h-[5.25rem] w-full items-start gap-3 rounded-lg border border-border/70 bg-background px-4 py-3 text-left transition-colors",
                       "hover:border-border hover:bg-accent/45",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
                       "disabled:cursor-not-allowed disabled:opacity-60",
@@ -415,7 +466,7 @@ function FieldTypePickerDialog(props: {
   );
 }
 
-function DraftCheckboxSetting(props: {
+function DraftSwitchSetting(props: {
   checked: boolean;
   disabled: boolean;
   title: string;
@@ -423,24 +474,84 @@ function DraftCheckboxSetting(props: {
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-3 rounded-md border border-border/70 bg-background px-3 py-3">
-      <Checkbox
-        checked={props.checked}
-        disabled={props.disabled}
-        onCheckedChange={(checked) => props.onChange(Boolean(checked))}
-      />
+    <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 bg-background px-3 py-2.5">
       <div className="min-w-0">
         <div className="text-headline text-label-primary">{props.title}</div>
         <div className="mt-1 text-callout text-label-secondary">{props.description}</div>
       </div>
-    </label>
+      <Switch
+        checked={props.checked}
+        disabled={props.disabled}
+        onCheckedChange={props.onChange}
+        aria-label={props.title}
+      />
+    </div>
   );
+}
+
+type ConditionTargetField = {
+  key: string;
+  label: string;
+  typeId: ContentModelFieldTypeId;
+  values: string[];
+};
+
+type DraftConditionState = {
+  targetFieldKey: string;
+  value: string;
+};
+
+function parseConditionDraft(value: string): DraftConditionState {
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { targetFieldKey: "", value: "" };
+    }
+    const source = (parsed as Record<string, unknown>).source;
+    const equals = (parsed as Record<string, unknown>).equals;
+    return {
+      targetFieldKey: typeof source === "string" ? source : "",
+      value:
+        typeof equals === "string" ? equals : typeof equals === "boolean" ? String(equals) : "",
+    };
+  } catch {
+    return { targetFieldKey: "", value: "" };
+  }
+}
+
+function buildConditionDraft(payload: DraftConditionState): string {
+  if (!payload.targetFieldKey || !payload.value) return "";
+  const equals =
+    payload.value === "true" ? true : payload.value === "false" ? false : payload.value;
+  return JSON.stringify({
+    source: payload.targetFieldKey,
+    operator: "is",
+    equals,
+  });
 }
 
 function supportsTextValidation(typeId: ContentModelFieldTypeId) {
   return (
-    typeId === "short_text" || typeId === "rich_text" || typeId === "markdown" || typeId === "slug"
+    typeId === "short_text" ||
+    typeId === "rich_text" ||
+    typeId === "markdown" ||
+    typeId === "slug" ||
+    typeId === "email" ||
+    typeId === "password"
   );
+}
+
+function supportsNumberValidation(typeId: ContentModelFieldTypeId) {
+  return typeId === "number" || typeId === "decimal" || typeId === "biginteger";
+}
+
+function supportsDateVariantSelection(typeId: ContentModelFieldTypeId) {
+  return typeId === "date_time" || typeId === "date" || typeId === "time";
+}
+
+function isDarkMode(): boolean {
+  if (typeof document === "undefined") return false;
+  return normalizeThemeMode(document.documentElement.dataset.theme) === "dark";
 }
 
 function readPositiveIntegerInput(value: string): number | null {
@@ -454,18 +565,17 @@ function getFieldConfigFlag(row: ContentModelFieldRow, key: string): boolean {
   return Boolean(row.config && row.config[key] === true);
 }
 
-function moveFieldKey(
+function moveFieldRows(
   rows: ContentModelFieldRow[],
-  sourceKey: string,
-  targetKey: string,
-): string[] {
-  const keys = rows.map((row) => row.key);
-  const sourceIndex = keys.indexOf(sourceKey);
-  const targetIndex = keys.indexOf(targetKey);
-  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return keys;
-  const [source] = keys.splice(sourceIndex, 1);
-  keys.splice(targetIndex, 0, source);
-  return keys;
+  activeIndex: number,
+  overIndex: number,
+): ContentModelFieldRow[] {
+  if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) return rows;
+  const nextRows = [...rows];
+  const [source] = nextRows.splice(activeIndex, 1);
+  if (!source) return rows;
+  nextRows.splice(overIndex, 0, source);
+  return nextRows;
 }
 
 function FieldConfigDialog(props: {
@@ -477,6 +587,7 @@ function FieldConfigDialog(props: {
   submitLabel: string;
   referenceOptions: ContentModelsTableRow[];
   componentOptions: ContentModelsTableRow[];
+  conditionOptions: ConditionTargetField[];
   referenceLoading: boolean;
   canManageFields: boolean;
   onOpenChange: (open: boolean) => void;
@@ -485,6 +596,7 @@ function FieldConfigDialog(props: {
   onSubmit: () => void;
 }) {
   const { t } = useTranslation("content");
+  const formId = React.useId();
   const typeLabel = t(getContentModelFieldTypeLabelKey(props.draft.typeId));
   const dynamicZoneKeys = React.useMemo(
     () =>
@@ -498,9 +610,18 @@ function FieldConfigDialog(props: {
   );
   const [activeConfigSection, setActiveConfigSection] =
     React.useState<FieldConfigSectionKey>("basic");
+  const [conditionEnabled, setConditionEnabled] = React.useState(false);
+  const [conditionDraft, setConditionDraft] = React.useState<DraftConditionState>(
+    parseConditionDraft(props.draft.condition),
+  );
   React.useEffect(() => {
     if (props.open) setActiveConfigSection("basic");
   }, [props.draft.typeId, props.open]);
+  React.useEffect(() => {
+    const parsed = parseConditionDraft(props.draft.condition);
+    setConditionDraft(parsed);
+    setConditionEnabled(Boolean(parsed.targetFieldKey && parsed.value));
+  }, [props.draft.condition, props.open]);
   const toggleDynamicZoneComponent = React.useCallback(
     (componentKey: string, checked: boolean) => {
       props.onDraftChange((draft) => {
@@ -520,6 +641,17 @@ function FieldConfigDialog(props: {
     },
     [props],
   );
+  const selectedConditionField = React.useMemo(
+    () =>
+      props.conditionOptions.find((field) => field.key === conditionDraft.targetFieldKey) ?? null,
+    [conditionDraft.targetFieldKey, props.conditionOptions],
+  );
+  const currentConditionValues = selectedConditionField?.values ?? [];
+  const supportsDefaultValue = supportsContentModelFieldDefaultValue(props.draft.typeId);
+  const supportsUniqueSetting = supportsContentModelFieldUniqueSetting(props.draft.typeId);
+  const supportsLocalizableSetting = supportsContentModelFieldLocalizableSetting(
+    props.draft.typeId,
+  );
 
   return (
     <SettingDialog
@@ -527,16 +659,23 @@ function FieldConfigDialog(props: {
       onOpenChange={props.onOpenChange}
       title={typeLabel}
       description={t(getContentModelFieldTypeDescriptionKey(props.draft.typeId))}
-      contentClassName="sm:max-w-4xl"
+      contentClassName="sm:max-w-4xl [&_[data-setting-dialog-body]]:min-h-0"
       footer={
         <div className="flex w-full items-center justify-end gap-2">
-          <Button variant="ghost" disabled={props.pending} onClick={props.onChangeType}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={props.pending}
+            onClick={props.onChangeType}
+          >
             {t("CONTENT_MODELS_FIELD_CONFIG_CHANGE_TYPE")}
           </Button>
           <Button
+            type="submit"
+            form={formId}
+            data-field-config-submit="true"
             loading={props.pending}
             disabled={!props.canManageFields}
-            onClick={props.onSubmit}
           >
             {props.submitLabel}
           </Button>
@@ -544,15 +683,19 @@ function FieldConfigDialog(props: {
       }
     >
       <form
-        className="py-2"
+        id={formId}
+        className="min-h-0 py-2"
         onSubmit={(event) => {
           event.preventDefault();
+          const submitter = (event.nativeEvent as SubmitEvent).submitter;
+          if (!(submitter instanceof HTMLElement)) return;
+          if (!submitter.hasAttribute("data-field-config-submit")) return;
           props.onSubmit();
         }}
       >
-        <div className="grid gap-5 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <div className="grid max-h-[min(72vh,44rem)] min-h-0 gap-5 lg:grid-cols-[14rem_minmax(0,1fr)]">
           <aside
-            className="min-w-0 border-b border-border/60 pb-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-3"
+            className="min-w-0 border-b border-border/60 pb-3 lg:sticky lg:top-0 lg:self-start lg:border-b-0 lg:pb-0 lg:pr-3"
             aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NAV_LABEL")}
           >
             <FieldConfigSectionMenu
@@ -561,7 +704,7 @@ function FieldConfigDialog(props: {
             />
           </aside>
 
-          <div className="min-w-0">
+          <div className="min-h-0 min-w-0 overflow-y-auto pr-1">
             {activeConfigSection === "basic" ? (
               <SettingDialogFields>
                 <SettingDialogField
@@ -582,13 +725,13 @@ function FieldConfigDialog(props: {
 
                 <SettingDialogField
                   title={t("CONTENT_MODELS_FIELD_CONFIG_KEY_LABEL")}
-                  description={t("CONTENT_MODELS_FIELD_CONFIG_KEY_DESC")}
                   error={props.errors.key}
                 >
                   <Input
                     aria-label={t("CONTENT_MODELS_FIELD_CONFIG_KEY_LABEL")}
                     value={props.draft.key.value}
                     disabled={props.pending || props.keyReadOnly}
+                    placeholder={t("CONTENT_MODELS_FIELD_CONFIG_KEY_PLACEHOLDER")}
                     onChange={(event) =>
                       props.onDraftChange((draft) =>
                         updateContentModelFieldDraftKey(draft, event.target.value),
@@ -605,6 +748,7 @@ function FieldConfigDialog(props: {
                     value={props.draft.description}
                     disabled={props.pending}
                     rows={3}
+                    placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_PLACEHOLDER")}
                     onChange={(event) =>
                       props.onDraftChange((draft) => ({
                         ...draft,
@@ -614,22 +758,50 @@ function FieldConfigDialog(props: {
                   />
                 </SettingDialogField>
 
-                {props.draft.typeId === "number" ? (
-                  <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_FORMAT_LABEL")}>
-                    <ChoiceButtonGroup
-                      value={props.draft.numberFormat}
+                {supportsNumberValidation(props.draft.typeId) ? (
+                  <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_VARIANT_LABEL")}>
+                    <ChoiceRadioGroup
+                      value={props.draft.typeId}
                       options={[
                         {
-                          value: "integer",
-                          label: t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_FORMAT_INTEGER"),
+                          value: "number",
+                          label: t("CONTENT_MODELS_FIELD_TYPE_NUMBER_LABEL"),
                         },
                         {
                           value: "decimal",
-                          label: t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_FORMAT_DECIMAL"),
+                          label: t("CONTENT_MODELS_FIELD_TYPE_DECIMAL_LABEL"),
+                        },
+                        {
+                          value: "biginteger",
+                          label: t("CONTENT_MODELS_FIELD_TYPE_BIGINTEGER_LABEL"),
                         },
                       ]}
+                      columnsClassName="grid-cols-1 sm:grid-cols-3"
                       onChange={(value) =>
-                        props.onDraftChange((draft) => ({ ...draft, numberFormat: value }))
+                        props.onDraftChange((draft) =>
+                          createContentModelFieldDraft(value as ContentModelFieldTypeId, draft),
+                        )
+                      }
+                    />
+                  </SettingDialogField>
+                ) : null}
+                {supportsDateVariantSelection(props.draft.typeId) ? (
+                  <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_DATE_VARIANT_LABEL")}>
+                    <ChoiceRadioGroup
+                      value={props.draft.typeId}
+                      options={[
+                        {
+                          value: "date_time",
+                          label: t("CONTENT_MODELS_FIELD_TYPE_DATE_TIME_LABEL"),
+                        },
+                        { value: "date", label: t("CONTENT_MODELS_FIELD_TYPE_DATE_LABEL") },
+                        { value: "time", label: t("CONTENT_MODELS_FIELD_TYPE_TIME_LABEL") },
+                      ]}
+                      columnsClassName="grid-cols-1 sm:grid-cols-3"
+                      onChange={(value) =>
+                        props.onDraftChange((draft) =>
+                          createContentModelFieldDraft(value as ContentModelFieldTypeId, draft),
+                        )
                       }
                     />
                   </SettingDialogField>
@@ -642,6 +814,7 @@ function FieldConfigDialog(props: {
                       value={props.draft.enumerationOptions}
                       disabled={props.pending}
                       rows={5}
+                      placeholder={t("CONTENT_MODELS_FIELD_CONFIG_ENUM_OPTIONS_PLACEHOLDER")}
                       onChange={(event) =>
                         props.onDraftChange((draft) => ({
                           ...draft,
@@ -655,7 +828,7 @@ function FieldConfigDialog(props: {
                 {props.draft.typeId === "media" ? (
                   <>
                     <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_MODE_LABEL")}>
-                      <ChoiceButtonGroup
+                      <ChoiceRadioGroup
                         value={props.draft.mediaMode}
                         options={[
                           {
@@ -673,7 +846,7 @@ function FieldConfigDialog(props: {
                       />
                     </SettingDialogField>
                     <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_LABEL")}>
-                      <ChoiceButtonGroup
+                      <ChoiceRadioGroup
                         value={props.draft.mediaKind}
                         options={[
                           {
@@ -701,7 +874,7 @@ function FieldConfigDialog(props: {
                   <SettingDialogField
                     title={t("CONTENT_MODELS_FIELD_CONFIG_BOOLEAN_DEFAULT_LABEL")}
                   >
-                    <ChoiceButtonGroup
+                    <ChoiceRadioGroup
                       value={props.draft.booleanDefault}
                       options={[
                         {
@@ -729,7 +902,7 @@ function FieldConfigDialog(props: {
                     <SettingDialogField
                       title={t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_MODE_LABEL")}
                     >
-                      <ChoiceButtonGroup
+                      <ChoiceRadioGroup
                         value={props.draft.referenceMode}
                         options={[
                           {
@@ -750,27 +923,37 @@ function FieldConfigDialog(props: {
                       title={t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_LABEL")}
                       error={props.errors.referenceTargetModelKey}
                     >
-                      <select
-                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_LABEL")}
-                        className="flex h-9 w-full rounded-md border border-border/70 bg-background px-3 text-footnote text-label-primary outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-60"
-                        disabled={props.pending || props.referenceLoading}
-                        value={props.draft.referenceTargetModelKey}
-                        onChange={(event) =>
+                      <Select
+                        value={props.draft.referenceTargetModelKey || "__unset__"}
+                        onValueChange={(value) =>
                           props.onDraftChange((draft) => ({
                             ...draft,
-                            referenceTargetModelKey: event.target.value,
+                            referenceTargetModelKey: value === "__unset__" ? "" : value,
                           }))
                         }
                       >
-                        <option value="">
-                          {t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_UNSELECTED")}
-                        </option>
-                        {props.referenceOptions.map((model) => (
-                          <option key={model.id} value={model.singularKey}>
-                            {model.name}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger
+                          className="w-full"
+                          disabled={props.pending || props.referenceLoading}
+                          aria-label={t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_LABEL")}
+                        >
+                          <SelectValue
+                            placeholder={t(
+                              "CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_UNSELECTED",
+                            )}
+                          />
+                        </SelectTrigger>
+                        <SelectContent position="popper" align="start">
+                          <SelectItem value="__unset__">
+                            {t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_UNSELECTED")}
+                          </SelectItem>
+                          {props.referenceOptions.map((model) => (
+                            <SelectItem key={model.id} value={model.singularKey}>
+                              {model.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </SettingDialogField>
                   </>
                 ) : null}
@@ -780,27 +963,35 @@ function FieldConfigDialog(props: {
                     title={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL")}
                     error={props.errors.componentTargetModelKey}
                   >
-                    <select
-                      aria-label={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL")}
-                      className="flex h-9 w-full rounded-md border border-border/70 bg-background px-3 text-footnote text-label-primary outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-60"
-                      disabled={props.pending || props.referenceLoading}
-                      value={props.draft.componentTargetModelKey}
-                      onChange={(event) =>
+                    <Select
+                      value={props.draft.componentTargetModelKey || "__unset__"}
+                      onValueChange={(value) =>
                         props.onDraftChange((draft) => ({
                           ...draft,
-                          componentTargetModelKey: event.target.value,
+                          componentTargetModelKey: value === "__unset__" ? "" : value,
                         }))
                       }
                     >
-                      <option value="">
-                        {t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_UNSELECTED")}
-                      </option>
-                      {props.componentOptions.map((model) => (
-                        <option key={model.id} value={model.singularKey}>
-                          {model.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger
+                        className="w-full"
+                        disabled={props.pending || props.referenceLoading}
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL")}
+                      >
+                        <SelectValue
+                          placeholder={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_UNSELECTED")}
+                        />
+                      </SelectTrigger>
+                      <SelectContent position="popper" align="start">
+                        <SelectItem value="__unset__">
+                          {t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_UNSELECTED")}
+                        </SelectItem>
+                        {props.componentOptions.map((model) => (
+                          <SelectItem key={model.id} value={model.singularKey}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </SettingDialogField>
                 ) : null}
 
@@ -837,12 +1028,14 @@ function FieldConfigDialog(props: {
               </SettingDialogFields>
             ) : (
               <SettingDialogFields>
-                {props.draft.typeId === "boolean" ? null : (
+                {supportsDefaultValue ? (
                   <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL")}>
                     <Input
                       aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL")}
+                      type={supportsNumberValidation(props.draft.typeId) ? "number" : "text"}
                       value={props.draft.defaultValue}
                       disabled={props.pending}
+                      placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_PLACEHOLDER")}
                       onChange={(event) =>
                         props.onDraftChange((draft) => ({
                           ...draft,
@@ -851,18 +1044,19 @@ function FieldConfigDialog(props: {
                       }
                     />
                   </SettingDialogField>
-                )}
+                ) : null}
 
                 {supportsTextValidation(props.draft.typeId) ? (
                   <>
                     <SettingDialogField
-                      title={t("CONTENT_MODELS_FIELD_CONFIG_PATTERN_LABEL")}
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_LABEL")}
                       error={props.errors.regexPattern}
                     >
                       <Input
-                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_PATTERN_LABEL")}
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_LABEL")}
                         value={props.draft.regexPattern}
                         disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_PLACEHOLDER")}
                         onChange={(event) =>
                           props.onDraftChange((draft) => ({
                             ...draft,
@@ -880,6 +1074,7 @@ function FieldConfigDialog(props: {
                           aria-label={t("CONTENT_MODELS_FIELD_CONFIG_MIN_LENGTH_LABEL")}
                           value={props.draft.minLength}
                           disabled={props.pending}
+                          placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
                           onChange={(event) =>
                             props.onDraftChange((draft) => ({
                               ...draft,
@@ -896,6 +1091,7 @@ function FieldConfigDialog(props: {
                           aria-label={t("CONTENT_MODELS_FIELD_CONFIG_MAX_LENGTH_LABEL")}
                           value={props.draft.maxLength}
                           disabled={props.pending}
+                          placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
                           onChange={(event) =>
                             props.onDraftChange((draft) => ({
                               ...draft,
@@ -908,7 +1104,7 @@ function FieldConfigDialog(props: {
                   </>
                 ) : null}
 
-                {props.draft.typeId === "number" ? (
+                {supportsNumberValidation(props.draft.typeId) ? (
                   <div className="grid gap-3 sm:grid-cols-2">
                     <SettingDialogField
                       title={t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_MIN_LABEL")}
@@ -918,6 +1114,7 @@ function FieldConfigDialog(props: {
                         aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_MIN_LABEL")}
                         value={props.draft.numberMin}
                         disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_PLACEHOLDER")}
                         onChange={(event) =>
                           props.onDraftChange((draft) => ({
                             ...draft,
@@ -934,6 +1131,7 @@ function FieldConfigDialog(props: {
                         aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_MAX_LABEL")}
                         value={props.draft.numberMax}
                         disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_NUMBER_PLACEHOLDER")}
                         onChange={(event) =>
                           props.onDraftChange((draft) => ({
                             ...draft,
@@ -955,6 +1153,7 @@ function FieldConfigDialog(props: {
                         aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DYNAMIC_ZONE_MIN_LABEL")}
                         value={props.draft.dynamicZoneMin}
                         disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
                         onChange={(event) =>
                           props.onDraftChange((draft) => ({
                             ...draft,
@@ -971,6 +1170,7 @@ function FieldConfigDialog(props: {
                         aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DYNAMIC_ZONE_MAX_LABEL")}
                         value={props.draft.dynamicZoneMax}
                         disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
                         onChange={(event) =>
                           props.onDraftChange((draft) => ({
                             ...draft,
@@ -983,7 +1183,10 @@ function FieldConfigDialog(props: {
                 ) : null}
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <DraftCheckboxSetting
+                  <div className="sm:col-span-2 text-headline font-semibold text-label-primary">
+                    {t("CONTENT_MODELS_FIELD_CONFIG_SETTINGS_GROUP_TITLE")}
+                  </div>
+                  <DraftSwitchSetting
                     checked={props.draft.required}
                     disabled={props.pending}
                     title={t("CONTENT_MODELS_FIELD_CONFIG_REQUIRED_LABEL")}
@@ -992,25 +1195,29 @@ function FieldConfigDialog(props: {
                       props.onDraftChange((draft) => ({ ...draft, required: checked }))
                     }
                   />
-                  <DraftCheckboxSetting
-                    checked={props.draft.unique}
-                    disabled={props.pending}
-                    title={t("CONTENT_MODELS_FIELD_CONFIG_UNIQUE_LABEL")}
-                    description={t("CONTENT_MODELS_FIELD_CONFIG_UNIQUE_DESC")}
-                    onChange={(checked) =>
-                      props.onDraftChange((draft) => ({ ...draft, unique: checked }))
-                    }
-                  />
-                  <DraftCheckboxSetting
-                    checked={props.draft.localizable}
-                    disabled={props.pending}
-                    title={t("CONTENT_MODELS_FIELD_CONFIG_LOCALIZED_LABEL")}
-                    description={t("CONTENT_MODELS_FIELD_CONFIG_LOCALIZED_DESC")}
-                    onChange={(checked) =>
-                      props.onDraftChange((draft) => ({ ...draft, localizable: checked }))
-                    }
-                  />
-                  <DraftCheckboxSetting
+                  {supportsUniqueSetting ? (
+                    <DraftSwitchSetting
+                      checked={props.draft.unique}
+                      disabled={props.pending}
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_UNIQUE_LABEL")}
+                      description={t("CONTENT_MODELS_FIELD_CONFIG_UNIQUE_DESC")}
+                      onChange={(checked) =>
+                        props.onDraftChange((draft) => ({ ...draft, unique: checked }))
+                      }
+                    />
+                  ) : null}
+                  {supportsLocalizableSetting ? (
+                    <DraftSwitchSetting
+                      checked={props.draft.localizable}
+                      disabled={props.pending}
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_LOCALIZED_LABEL")}
+                      description={t("CONTENT_MODELS_FIELD_CONFIG_LOCALIZED_DESC")}
+                      onChange={(checked) =>
+                        props.onDraftChange((draft) => ({ ...draft, localizable: checked }))
+                      }
+                    />
+                  ) : null}
+                  <DraftSwitchSetting
                     checked={props.draft.hiddenInEditor}
                     disabled={props.pending}
                     title={t("CONTENT_MODELS_FIELD_CONFIG_HIDDEN_EDITOR_LABEL")}
@@ -1019,7 +1226,7 @@ function FieldConfigDialog(props: {
                       props.onDraftChange((draft) => ({ ...draft, hiddenInEditor: checked }))
                     }
                   />
-                  <DraftCheckboxSetting
+                  <DraftSwitchSetting
                     checked={props.draft.omitFromApiResponse}
                     disabled={props.pending}
                     title={t("CONTENT_MODELS_FIELD_CONFIG_OMIT_API_LABEL")}
@@ -1030,16 +1237,129 @@ function FieldConfigDialog(props: {
                   />
                 </div>
 
-                <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_LABEL")}>
-                  <Textarea
-                    aria-label={t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_LABEL")}
-                    value={props.draft.condition}
-                    disabled={props.pending}
-                    rows={3}
-                    onChange={(event) =>
-                      props.onDraftChange((draft) => ({ ...draft, condition: event.target.value }))
-                    }
-                  />
+                <SettingDialogField
+                  title={t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_LABEL")}
+                  description={t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_DESC")}
+                >
+                  <div className="grid gap-3">
+                    {!conditionEnabled ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild focusTrigger={false}>
+                          <span className="block">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-center"
+                              disabled={props.pending || props.conditionOptions.length === 0}
+                              onClick={() => {
+                                const fallback = props.conditionOptions[0];
+                                if (!fallback) return;
+                                const next = {
+                                  targetFieldKey: fallback.key,
+                                  value:
+                                    fallback.typeId === "boolean"
+                                      ? "true"
+                                      : (fallback.values[0] ?? ""),
+                                };
+                                setConditionEnabled(true);
+                                setConditionDraft(next);
+                                props.onDraftChange((draft) => ({
+                                  ...draft,
+                                  condition: buildConditionDraft(next),
+                                }));
+                              }}
+                            >
+                              {t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_APPLY")}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {props.conditionOptions.length === 0 ? (
+                          <TooltipContent className="max-w-72 text-left">
+                            {t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_UNAVAILABLE")}
+                          </TooltipContent>
+                        ) : null}
+                      </Tooltip>
+                    ) : null}
+                    {conditionEnabled && props.conditionOptions.length > 0 ? (
+                      <div className="grid gap-3 rounded-md border border-border/60 p-3">
+                        <div className="grid gap-2">
+                          <div className="text-caption text-label-secondary">
+                            {t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_FIELD_LABEL")}
+                          </div>
+                          <Select
+                            value={conditionDraft.targetFieldKey}
+                            onValueChange={(value) => {
+                              const nextField =
+                                props.conditionOptions.find((field) => field.key === value) ?? null;
+                              const next = {
+                                targetFieldKey: value,
+                                value:
+                                  nextField?.typeId === "boolean"
+                                    ? "true"
+                                    : (nextField?.values[0] ?? ""),
+                              };
+                              setConditionDraft(next);
+                              props.onDraftChange((draft) => ({
+                                ...draft,
+                                condition: buildConditionDraft(next),
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="w-full" disabled={props.pending}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent position="popper" align="start">
+                              {props.conditionOptions.map((field) => (
+                                <SelectItem key={field.key} value={field.key}>
+                                  {field.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <div className="text-caption text-label-secondary">
+                            {t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_VALUE_LABEL")}
+                          </div>
+                          <Select
+                            value={conditionDraft.value}
+                            onValueChange={(value) => {
+                              const next = { ...conditionDraft, value };
+                              setConditionDraft(next);
+                              props.onDraftChange((draft) => ({
+                                ...draft,
+                                condition: buildConditionDraft(next),
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="w-full" disabled={props.pending}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent position="popper" align="start">
+                              {currentConditionValues.map((value) => (
+                                <SelectItem key={value} value={value}>
+                                  {value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="justify-start"
+                          disabled={props.pending}
+                          onClick={() => {
+                            setConditionEnabled(false);
+                            setConditionDraft({ targetFieldKey: "", value: "" });
+                            props.onDraftChange((draft) => ({ ...draft, condition: "" }));
+                          }}
+                        >
+                          {t("CONTENT_MODELS_FIELD_CONFIG_CONDITION_CLEAR")}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
                 </SettingDialogField>
               </SettingDialogFields>
             )}
@@ -1143,6 +1463,63 @@ function FieldRowMenu(props: {
   );
 }
 
+function SortableFieldHandle(props: {
+  row: ContentModelFieldRow;
+  disabled: boolean;
+  label: string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props.row.key,
+    disabled: props.disabled,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      data-dragging={isDragging ? "true" : undefined}
+      className={cn(
+        "flex min-w-0 items-center gap-2 rounded-sm",
+        isDragging ? "opacity-45" : undefined,
+      )}
+    >
+      <button
+        type="button"
+        className="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-label-tertiary transition-colors hover:bg-muted/60 hover:text-label-primary disabled:cursor-not-allowed disabled:opacity-45"
+        aria-label={props.label}
+        disabled={props.disabled}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="size-4" aria-hidden="true" />
+      </button>
+      <span className="min-w-0 truncate text-headline text-label-primary">{props.row.label}</span>
+      <ContentModelFieldKeyTag label={props.row.key} textStyle="caption" className="shrink-0" />
+    </div>
+  );
+}
+
+function FieldDragOverlay(props: { row: ContentModelFieldRow | null }) {
+  if (!props.row) return null;
+  const typeId = getContentModelFieldTypeFromRow(props.row);
+  const Icon = FIELD_TYPE_ICON_MAP[typeId];
+
+  return (
+    <div className="flex min-w-[22.5rem] items-center justify-between gap-3 rounded-md border border-border/70 bg-background px-3 py-2 shadow-md">
+      <div className="flex min-w-0 items-center gap-2">
+        <GripVertical className="size-4 shrink-0 text-label-tertiary" aria-hidden="true" />
+        <span className="truncate text-headline text-label-primary">{props.row.label}</span>
+        <ContentModelFieldKeyTag label={props.row.key} textStyle="caption" className="shrink-0" />
+      </div>
+      <ContentModelFieldTypeTag icon={Icon} label={typeId} textStyle="caption" />
+    </div>
+  );
+}
+
 function FieldsTable(props: {
   tableId: string;
   rows: ContentModelFieldRow[];
@@ -1155,30 +1532,47 @@ function FieldsTable(props: {
     row: ContentModelFieldRow,
     flag: "hiddenInEditor" | "omitFromApiResponse",
   ) => void;
-  onBulkToggleFieldFlag: (
-    rows: ContentModelFieldRow[],
-    flag: "hiddenInEditor" | "omitFromApiResponse",
-  ) => void;
   onDeleteField: (row: ContentModelFieldRow) => void;
-  onReorderField: (sourceKey: string, targetKey: string) => void;
+  onReorderFields: (fieldKeys: string[]) => void;
   onRefresh: () => void;
 }) {
   const { t } = useTranslation(["content", "common"]);
-  const [searchInput, setSearchInput] = React.useState("");
   const [rowHeight] = useDataTableRowHeightPreference({ tableId: props.tableId });
   const [wrapHeaders] = useDataTableWrapHeadersPreference({
     tableId: props.tableId,
   });
-  const [draggingFieldKey, setDraggingFieldKey] = React.useState<string | null>(null);
-  const filteredRows = React.useMemo(() => {
-    const query = searchInput.trim().toLowerCase();
-    if (!query) return props.rows;
-    return props.rows.filter((row) => {
-      const typeId = getContentModelFieldTypeFromRow(row);
-      const typeLabel = t(getContentModelFieldTypeLabelKey(typeId)).toLowerCase();
-      return [row.label, row.key, typeLabel].some((value) => value.toLowerCase().includes(query));
-    });
-  }, [props.rows, searchInput, t]);
+  const [activeDragKey, setActiveDragKey] = React.useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
+  const filteredRows = props.rows;
+  const activeDragRow = React.useMemo(
+    () => props.rows.find((row) => row.key === activeDragKey) ?? null,
+    [activeDragKey, props.rows],
+  );
+  const handleDragStart = React.useCallback((event: DragStartEvent) => {
+    setActiveDragKey(String(event.active.id));
+  }, []);
+  const handleDragEnd = React.useCallback(
+    (event: DragEndEvent) => {
+      setActiveDragKey(null);
+      const activeKey = String(event.active.id);
+      const overKey = event.over ? String(event.over.id) : null;
+      if (!overKey || activeKey === overKey) return;
+      const activeIndex = props.rows.findIndex((row) => row.key === activeKey);
+      const overIndex = props.rows.findIndex((row) => row.key === overKey);
+      const nextRows = moveFieldRows(props.rows, activeIndex, overIndex);
+      props.onReorderFields(nextRows.map((row) => row.key));
+    },
+    [props],
+  );
+  const handleDragCancel = React.useCallback(() => {
+    setActiveDragKey(null);
+  }, []);
   const columns = React.useMemo<ColumnDef<ContentModelFieldRow, unknown>[]>(
     () => [
       {
@@ -1190,48 +1584,11 @@ function FieldsTable(props: {
         },
         header: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_NAME"),
         cell: ({ row }) => (
-          <div
-            className={cn(
-              "flex min-w-0 items-center gap-2 rounded-sm",
-              draggingFieldKey && draggingFieldKey !== row.original.key
-                ? "outline outline-1 outline-primary/20"
-                : undefined,
-            )}
-            onDragOver={(event) => {
-              if (!draggingFieldKey || draggingFieldKey === row.original.key) return;
-              event.preventDefault();
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              if (!draggingFieldKey || draggingFieldKey === row.original.key) return;
-              props.onReorderField(draggingFieldKey, row.original.key);
-              setDraggingFieldKey(null);
-            }}
-          >
-            <button
-              type="button"
-              className="inline-flex size-6 shrink-0 cursor-grab items-center justify-center rounded-sm text-label-tertiary transition-colors hover:bg-muted/60 hover:text-label-primary active:cursor-grabbing"
-              aria-label={t("content:CONTENT_MODELS_FIELD_ROW_DRAG_ACTION")}
-              disabled={props.pending || !props.canManageFields}
-              draggable={!props.pending && props.canManageFields}
-              onDragStart={(event) => {
-                event.dataTransfer.effectAllowed = "move";
-                event.dataTransfer.setData("text/plain", row.original.key);
-                setDraggingFieldKey(row.original.key);
-              }}
-              onDragEnd={() => setDraggingFieldKey(null)}
-            >
-              <GripVertical className="size-4" aria-hidden="true" />
-            </button>
-            <span className="min-w-0 truncate text-headline text-label-primary">
-              {row.original.label}
-            </span>
-            <ContentModelFieldKeyTag
-              label={row.original.key}
-              textStyle="caption"
-              className="shrink-0"
-            />
-          </div>
+          <SortableFieldHandle
+            row={row.original}
+            disabled={props.pending || !props.canManageFields}
+            label={t("content:CONTENT_MODELS_FIELD_ROW_DRAG_ACTION")}
+          />
         ),
         size: 360,
         minSize: 280,
@@ -1257,18 +1614,6 @@ function FieldsTable(props: {
         },
         size: 180,
         minSize: 150,
-      },
-      {
-        id: "localization",
-        accessorFn: isContentModelFieldLocalized,
-        meta: {
-          title: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_LOCALIZATION"),
-          kind: "meta",
-        },
-        header: t("content:CONTENT_MODELS_FIELDS_TABLE_COL_LOCALIZATION"),
-        cell: () => null,
-        size: 160,
-        minSize: 140,
       },
       {
         id: "actions",
@@ -1303,7 +1648,7 @@ function FieldsTable(props: {
         minSize: 132,
       },
     ],
-    [draggingFieldKey, props, t],
+    [props, t],
   );
   const tableCore = useDataTableCore<ContentModelFieldRow>({
     columns,
@@ -1312,63 +1657,10 @@ function FieldsTable(props: {
     initialState: {
       pageSize: 500,
     },
-    rowSelection: {
-      enabled: true,
-      getRowId: (row) => row.key,
-    },
     features: {
       sorting: { enabled: true, mode: "client" },
     },
   });
-  const selectedFieldRows = tableCore.table.getSelectedRowModel().rows.map((row) => row.original);
-  const toolbar = (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <DataTableSearchInput
-          value={searchInput}
-          onChange={setSearchInput}
-          placeholder={t("content:CONTENT_MODELS_FIELDS_SEARCH_PLACEHOLDER")}
-          clearLabel={t("common:CLEAR")}
-        />
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={t("common:REFRESH")}
-          disabled={props.refreshing}
-          onClick={props.onRefresh}
-        >
-          <RefreshCw className={cn("size-4", props.refreshing ? "animate-spin" : undefined)} />
-        </Button>
-      </div>
-      {selectedFieldRows.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 bg-muted/35 px-3 py-2">
-          <SelectedCountTag
-            label={t("content:CONTENT_MODELS_FIELDS_SELECTED_COUNT", {
-              count: selectedFieldRows.length,
-            })}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={props.pending}
-            onClick={() => props.onBulkToggleFieldFlag(selectedFieldRows, "hiddenInEditor")}
-          >
-            <EyeOff className="size-4" />
-            {t("content:CONTENT_MODELS_FIELD_ROW_HIDE_IN_EDITOR_ACTION")}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={props.pending}
-            onClick={() => props.onBulkToggleFieldFlag(selectedFieldRows, "omitFromApiResponse")}
-          >
-            <ShieldOff className="size-4" />
-            {t("content:CONTENT_MODELS_FIELD_ROW_OMIT_API_ACTION")}
-          </Button>
-        </div>
-      ) : null}
-    </div>
-  );
   const footerSlot = (
     <div className="w-full">
       <Button
@@ -1384,29 +1676,226 @@ function FieldsTable(props: {
   );
 
   return (
-    <AdminDataTableSection
-      table={tableCore.table}
-      emptyText={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_TEXT")}
-      emptyTitle={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_TITLE")}
-      emptyDescription={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_DESC")}
-      loading={false}
-      error={null}
-      onRetry={props.onRefresh}
-      t={t}
-      rowHeight={rowHeight}
-      wrapHeaders={wrapHeaders}
-      refreshing={props.refreshing}
-      toolbar={toolbar}
-      footerSlot={footerSlot}
-      rowClassName={(row) => (row.getIsSelected() ? "bg-muted/35 hover:bg-muted/45" : undefined)}
-      onRowClick={(row, _rowIndex, event) => {
-        if (event.detail >= 2) {
-          props.onEditField(row.original);
-          return;
-        }
-        row.toggleSelected();
-      }}
-    />
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <SortableContext
+        items={filteredRows.map((row) => row.key)}
+        strategy={verticalListSortingStrategy}
+      >
+        <AdminDataTableSection
+          table={tableCore.table}
+          emptyText={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_TEXT")}
+          emptyTitle={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_TITLE")}
+          emptyDescription={t("content:CONTENT_MODELS_FIELDS_TABLE_EMPTY_DESC")}
+          loading={false}
+          error={null}
+          onRetry={props.onRefresh}
+          t={t}
+          rowHeight={rowHeight}
+          wrapHeaders={wrapHeaders}
+          refreshing={props.refreshing}
+          footerSlot={footerSlot}
+        />
+      </SortableContext>
+      {typeof document === "undefined"
+        ? null
+        : createPortal(
+            <DragOverlay adjustScale={false} zIndex={80}>
+              <FieldDragOverlay row={activeDragRow} />
+            </DragOverlay>,
+            document.body,
+          )}
+    </DndContext>
+  );
+}
+
+function NameDescriptionSection(props: {
+  projectId: string;
+  model: ContentModelsTableRow;
+  canManageModels: boolean;
+  pending: boolean;
+  onModelChange: (model: ContentModelsTableRow) => void;
+}) {
+  const { t } = useTranslation("content");
+  const [name, setName] = React.useState(props.model.name ?? "");
+  const [description, setDescription] = React.useState(props.model.description ?? "");
+
+  React.useEffect(() => {
+    setName(props.model.name ?? "");
+    setDescription(props.model.description ?? "");
+  }, [props.model.description, props.model.id, props.model.name]);
+
+  const dirty =
+    name.trim() !== (props.model.name ?? "").trim() ||
+    description.trim() !== (props.model.description ?? "").trim();
+  const canEdit = props.canManageModels && !props.pending;
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        name: name.trim(),
+        description: description.trim() || null,
+      };
+      const preview = await getContentModelImpactPreview(props.projectId, props.model.id, payload);
+      return patchContentModel(props.projectId, props.model.id, {
+        ...payload,
+        impactPreviewToken: preview.previewToken,
+      });
+    },
+    onSuccess: (updated) => {
+      props.onModelChange(updated);
+      notifySuccessText(t("CONTENT_MODELS_SETTINGS_SAVED"));
+    },
+    onError: notifyError,
+  });
+
+  return (
+    <section className="min-h-0 pb-8">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 py-6">
+        <SettingItem>
+          <SettingItemHeader>
+            <SettingItemTitle>{t("CONTENT_MODELS_DETAILS_TITLE")}</SettingItemTitle>
+            <SettingItemDescription>{t("CONTENT_MODELS_DETAILS_DESC")}</SettingItemDescription>
+          </SettingItemHeader>
+          <SettingItemContent>
+            <div className="grid gap-4">
+              <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL")}>
+                <Input
+                  aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL")}
+                  value={name}
+                  disabled={!canEdit}
+                  placeholder={t("CONTENT_MODELS_FIELD_CONFIG_NAME_PLACEHOLDER")}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </SettingDialogField>
+              <SettingDialogField
+                title={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL")}
+              >
+                <Textarea
+                  aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL")}
+                  value={description}
+                  rows={4}
+                  disabled={!canEdit}
+                  placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_PLACEHOLDER")}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </SettingDialogField>
+            </div>
+          </SettingItemContent>
+          {dirty ? (
+            <SettingItemFooter>
+              <div className="text-footnote text-label-secondary">
+                {t("CONTENT_MODELS_SETTINGS_UNSAVED_CHANGES")}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saveMutation.isPending}
+                  onClick={() => {
+                    setName(props.model.name ?? "");
+                    setDescription(props.model.description ?? "");
+                  }}
+                >
+                  {t("CONTENT_MODELS_FILTER_RESET")}
+                </Button>
+                <Button
+                  type="button"
+                  loading={saveMutation.isPending}
+                  disabled={!canEdit || saveMutation.isPending || !name.trim()}
+                  onClick={() => void saveMutation.mutateAsync()}
+                >
+                  {t("CONTENT_MODELS_SETTINGS_SAVE_ACTION")}
+                </Button>
+              </div>
+            </SettingItemFooter>
+          ) : null}
+        </SettingItem>
+      </div>
+    </section>
+  );
+}
+
+function JsonPreviewSection(props: { projectId: string; modelId: string }) {
+  const { t } = useTranslation("content");
+  const [themeMode, setThemeMode] = React.useState<"light" | "dark">(
+    isDarkMode() ? "dark" : "light",
+  );
+  const previewQuery = useQuery({
+    queryKey: ["content", "models", "json-preview", props.projectId, props.modelId],
+    queryFn: () => getContentModelJsonPreview(props.projectId, props.modelId),
+    staleTime: 30_000,
+  });
+  const previewJson = React.useMemo(
+    () => JSON.stringify(previewQuery.data ?? {}, null, 2),
+    [previewQuery.data],
+  );
+  const highlightedPreviewQuery = useQuery({
+    queryKey: ["content", "models", "json-preview-highlight", previewJson, themeMode],
+    queryFn: () =>
+      codeToHtml(previewJson, {
+        lang: "json",
+        theme: themeMode === "dark" ? "github-dark" : "github-light",
+      }),
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  React.useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const apply = () => setThemeMode(isDarkMode() ? "dark" : "light");
+    apply();
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type !== "attributes" || mutation.attributeName !== "data-theme") continue;
+        apply();
+      }
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section className="min-h-0 pb-8">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 py-6">
+        <SettingItem>
+          <SettingItemHeader>
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <SettingItemTitle>{t("CONTENT_MODELS_EDIT_TAB_JSON_PREVIEW")}</SettingItemTitle>
+                <SettingItemDescription className="mt-1">
+                  {t("CONTENT_MODELS_JSON_DESC")}
+                </SettingItemDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={previewQuery.isFetching}
+                onClick={() => void previewQuery.refetch()}
+              >
+                <RefreshCw
+                  className={cn("size-4", previewQuery.isFetching ? "animate-spin" : undefined)}
+                />
+                {t("CONTENT_MODELS_JSON_REFRESH")}
+              </Button>
+            </div>
+          </SettingItemHeader>
+          <SettingItemContent>
+            <div
+              className="overflow-x-auto rounded-md border border-border/70 bg-muted/20 [&_pre]:m-0! [&_pre]:min-h-80! [&_pre]:rounded-none! [&_pre]:bg-transparent! [&_pre]:p-4! [&_pre]:text-caption!"
+              dangerouslySetInnerHTML={{
+                __html:
+                  highlightedPreviewQuery.data ??
+                  `<pre>${previewJson.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`,
+              }}
+            />
+          </SettingItemContent>
+        </SettingItem>
+      </div>
+    </section>
   );
 }
 
@@ -1428,7 +1917,12 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
   const [fieldToDelete, setFieldToDelete] = React.useState<ContentModelFieldRow | null>(null);
   const [fieldsRefreshing, setFieldsRefreshing] = React.useState(false);
   const activeSection: ContentModelEditSectionKey =
-    props.section === "settings" ? "settings" : "fields";
+    props.section === "name_description" ||
+    props.section === "json_preview" ||
+    props.section === "settings" ||
+    props.section === "workflow"
+      ? props.section
+      : "fields";
   const tableId = React.useMemo(
     () => `project-content-model-fields:${props.projectId}:${activeModel?.id ?? "none"}`,
     [activeModel?.id, props.projectId],
@@ -1475,6 +1969,28 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
   const componentOptions = React.useMemo(
     () => (referenceModelsQuery.data ?? []).filter((model) => model.modelKind === "component"),
     [referenceModelsQuery.data],
+  );
+  const conditionOptions = React.useMemo<ConditionTargetField[]>(
+    () =>
+      fieldRows.flatMap((row) => {
+        if (fieldToEdit && row.key === fieldToEdit.key) return [];
+        const typeId = getContentModelFieldTypeFromRow(row);
+        if (typeId !== "boolean" && typeId !== "enumeration") return [];
+        const options =
+          typeId === "enumeration" && Array.isArray(row.config?.options)
+            ? row.config.options.filter((item): item is string => typeof item === "string")
+            : [];
+        if (typeId === "enumeration" && options.length === 0) return [];
+        return [
+          {
+            key: row.key,
+            label: row.label,
+            typeId,
+            values: typeId === "boolean" ? ["true", "false"] : options,
+          },
+        ];
+      }),
+    [fieldRows, fieldToEdit],
   );
 
   const handleCopyId = React.useCallback(async () => {
@@ -1634,7 +2150,7 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
       }
     }
 
-    if (draft.typeId === "number") {
+    if (supportsNumberValidation(draft.typeId)) {
       const min = draft.numberMin.trim();
       const max = draft.numberMax.trim();
       if (min && Number.isNaN(Number(min))) {
@@ -1763,23 +2279,8 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     [patchFieldConfigMutation],
   );
 
-  const handleBulkToggleFieldFlag = React.useCallback(
-    (rows: ContentModelFieldRow[], flag: "hiddenInEditor" | "omitFromApiResponse") => {
-      const updates = rows
-        .filter((row) => !row.locked)
-        .map((row) => ({
-          row,
-          config: { ...(row.config as Record<string, JsonValueInput>), [flag]: true },
-        }));
-      if (updates.length === 0) return;
-      void patchFieldConfigMutation.mutateAsync(updates);
-    },
-    [patchFieldConfigMutation],
-  );
-
-  const handleReorderField = React.useCallback(
-    (sourceKey: string, targetKey: string) => {
-      const fieldKeys = moveFieldKey(fieldRows, sourceKey, targetKey);
+  const handleReorderFields = React.useCallback(
+    (fieldKeys: string[]) => {
       if (fieldKeys.join("\u0000") === fieldRows.map((row) => row.key).join("\u0000")) return;
       void reorderFieldMutation.mutateAsync(fieldKeys);
     },
@@ -1867,25 +2368,41 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
           onAddField={handleOpenAddField}
           onEditField={handleOpenEditField}
           onToggleFieldFlag={handleToggleFieldFlag}
-          onBulkToggleFieldFlag={handleBulkToggleFieldFlag}
           onDeleteField={setFieldToDelete}
-          onReorderField={handleReorderField}
+          onReorderFields={handleReorderFields}
           onRefresh={() => void handleRefreshFields()}
         />
       </div>
     );
-  const content =
-    activeSection === "fields" ? (
-      <section className="min-h-0 pb-8">{fieldsContent}</section>
-    ) : (
+  const content = (() => {
+    if (activeSection === "fields") {
+      return <section className="min-h-0 pb-8">{fieldsContent}</section>;
+    }
+    if (activeSection === "name_description") {
+      return (
+        <NameDescriptionSection
+          projectId={props.projectId}
+          model={activeModel}
+          canManageModels={props.canManageModels !== false}
+          pending={pending}
+          onModelChange={props.onModelChange}
+        />
+      );
+    }
+    if (activeSection === "json_preview") {
+      return <JsonPreviewSection projectId={props.projectId} modelId={activeModel.id} />;
+    }
+    return (
       <ContentModelSettingsTab
         projectId={props.projectId}
         model={activeModel}
         canManageModels={props.canManageModels !== false}
         pending={pending}
+        section={activeSection}
         onModelChange={props.onModelChange}
       />
     );
+  })();
   const renderSectionMenu = () => (
     <ContentModelEditSectionMenu
       projectId={props.projectId}
@@ -1943,6 +2460,7 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
         }
         referenceOptions={referenceOptions}
         componentOptions={componentOptions}
+        conditionOptions={conditionOptions}
         referenceLoading={referenceModelsQuery.isLoading}
         canManageFields={canManageFields}
         onOpenChange={(open) => {

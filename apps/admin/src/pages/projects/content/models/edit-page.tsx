@@ -9,6 +9,7 @@ import {
   deleteContentModel,
   listAllContentModels,
 } from "@/api/content";
+import { useRouteTransitionState } from "@/components/layout/route-transition";
 import { useProjectPermissionAccess } from "@/hooks/use-workspace-permission-access";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
@@ -21,35 +22,80 @@ import { Button } from "@arclayer/ui/button";
 
 import { ContentModelsActionDialogs } from "./components/content-models-action-dialogs";
 import { ContentModelEditScreen } from "./components/content-model-edit-screen";
-import type { ContentModelsTableRow } from "./types";
+import { CreateContentTypeDialog } from "./components/create-content-type-dialog";
+import type { ContentModelsTableRow, CreateContentTypeSubmitValues } from "./types";
 import { buildDuplicateContentModelPayload } from "./utils";
 
 type ContentModelEditPageProps = {
   projectId: string;
   modelId?: string;
-  section?: "fields" | "settings";
+  createOpen?: boolean;
+  section?: "fields" | "name_description" | "json_preview" | "settings" | "workflow";
 };
 
-export function ContentModelEditPage({ projectId, modelId, section }: ContentModelEditPageProps) {
+const CREATE_FLOW_FALLBACK_MODEL: ContentModelsTableRow = {
+  id: "__create__",
+  workspaceId: "__create__",
+  siteId: "__create__",
+  singularKey: "newModel",
+  pluralKey: "newModels",
+  name: "",
+  description: "",
+  category: "custom",
+  modelKind: "collection_type",
+  capabilities: ["queryable"],
+  defaultEditor: "form",
+  draftContractRevision: 0,
+  updatedAt: "",
+  updatedByUserId: null,
+  updatedBy: null,
+};
+
+export function ContentModelEditPage({
+  projectId,
+  modelId,
+  createOpen = false,
+  section,
+}: ContentModelEditPageProps) {
   const { t } = useTranslation(["content", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const routeTransition = useRouteTransitionState();
   const permissionAccess = useProjectPermissionAccess(projectId);
   const canManageModels = permissionAccess.hasAction("project:content:models:write");
   const [duplicateModel, setDuplicateModel] = React.useState<ContentModelsTableRow | null>(null);
   const [deleteModelState, setDeleteModelState] = React.useState<ContentModelsTableRow | null>(
     null,
   );
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const shouldLoadModels = !createOpen || Boolean(modelId);
 
   const modelsQuery = useQuery({
     queryKey: buildContentModelsQueryKey(projectId),
     queryFn: () => listAllContentModels(projectId),
+    enabled: shouldLoadModels,
   });
 
   const activeModel = React.useMemo(
     () => (modelId ? (modelsQuery.data ?? []).find((model) => model.id === modelId) : null),
     [modelId, modelsQuery.data],
   );
+  const draftCreateModel = React.useMemo<ContentModelsTableRow | null>(
+    () =>
+      createOpen
+        ? { ...CREATE_FLOW_FALLBACK_MODEL, name: t("content:CONTENT_MODELS_CREATE_UNTITLED_NAME") }
+        : null,
+    [createOpen, t],
+  );
+
+  React.useEffect(() => {
+    if (!createOpen || !routeTransition.settled) {
+      setCreateDialogOpen(false);
+      return;
+    }
+
+    setCreateDialogOpen(true);
+  }, [createOpen, routeTransition.settled]);
 
   const refreshModels = React.useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: buildContentModelsQueryKey(projectId) });
@@ -76,6 +122,16 @@ export function ContentModelEditPage({ projectId, modelId, section }: ContentMod
     },
     [navigate, projectId],
   );
+
+  const createMutation = useMutation({
+    mutationFn: (values: CreateContentTypeSubmitValues) =>
+      createContentModel(projectId, values.payload),
+    onSuccess: async (model) => {
+      await refreshModels();
+      navigateToModel(model);
+    },
+    onError: notifyError,
+  });
 
   const duplicateMutation = useMutation({
     mutationFn: async (model: ContentModelsTableRow) => {
@@ -108,7 +164,7 @@ export function ContentModelEditPage({ projectId, modelId, section }: ContentMod
     onError: notifyError,
   });
 
-  if (!activeModel) {
+  if (!activeModel && !draftCreateModel) {
     return (
       <DefaultPage title={t("content:CONTENT_MODELS_TITLE")} showFavoriteToggle={false}>
         <ContentGuard
@@ -127,19 +183,41 @@ export function ContentModelEditPage({ projectId, modelId, section }: ContentMod
     );
   }
 
+  const screenModel = activeModel ?? draftCreateModel;
+  if (!screenModel) return null;
+
   return (
     <>
       <ContentModelEditScreen
         projectId={projectId}
-        model={activeModel}
+        model={screenModel}
         section={section}
         canManageModels={canManageModels}
-        pending={duplicateMutation.isPending || deleteMutation.isPending}
+        pending={
+          createMutation.isPending || duplicateMutation.isPending || deleteMutation.isPending
+        }
         onDuplicate={setDuplicateModel}
         onDelete={setDeleteModelState}
         onModelChange={handleModelChange}
         onRefreshModels={refreshModels}
         onClose={navigateToModels}
+      />
+      <CreateContentTypeDialog
+        open={createDialogOpen}
+        pending={createMutation.isPending}
+        onOpenChange={(open) => {
+          if (open) {
+            setCreateDialogOpen(true);
+            return;
+          }
+          if (!createMutation.isPending) {
+            setCreateDialogOpen(false);
+            navigateToModels();
+          }
+        }}
+        onSubmit={async (values) => {
+          await createMutation.mutateAsync(values);
+        }}
       />
       <ContentModelsActionDialogs
         duplicateDialog={{

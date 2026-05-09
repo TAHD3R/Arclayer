@@ -6,7 +6,7 @@ import {
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
 import { UserAvatar } from "@/components/common/entity-avatar";
-import { BaseTag, UsesCountTag } from "@/components/ui/tags";
+import { BaseTag, ContentModelKindTag, UsesCountTag } from "@/components/ui/tags";
 import { Checkbox } from "@arclayer/ui/checkbox";
 
 import { ContentModelsRowActions } from "./content-models-row-actions";
@@ -233,9 +233,11 @@ export function buildContentModelsTableColumns(params: {
       cell: ({ row }) => {
         const modelKind = row.original.modelKind ?? "collection_type";
         return (
-          <BaseTag textStyle="caption">
-            {params.t(`content:CONTENT_MODELS_KIND_${modelKind.toUpperCase()}`)}
-          </BaseTag>
+          <ContentModelKindTag
+            kind={modelKind}
+            textStyle="caption"
+            label={params.t(`content:CONTENT_MODELS_KIND_${modelKind.toUpperCase()}`)}
+          />
         );
       },
       size: 160,

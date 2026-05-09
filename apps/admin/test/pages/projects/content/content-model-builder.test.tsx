@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/page";
+import { ContentModelEditPage } from "@/pages/projects/content/models/edit-page";
 import {
   buildDuplicateContentModelPayload,
   getContentModelFieldCount,
@@ -15,6 +16,12 @@ import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const createContentModelMock = vi.fn();
 const deleteContentModelMock = vi.fn();
+const buildContentModelFieldTypesQueryKeyMock = vi.fn((projectId: string) => [
+  "content",
+  "field-types",
+  projectId,
+]);
+const getContentModelFieldTypeRegistryMock = vi.fn();
 const listAllContentModelsMock = vi.fn();
 const listContentModelsMock = vi.fn();
 const navigateMock = vi.fn();
@@ -28,8 +35,12 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/api/content", () => ({
   buildContentModelsQueryKey: (...args: unknown[]) => ["content", "models", ...args],
+  buildContentModelFieldTypesQueryKey: (...args: [string]) =>
+    buildContentModelFieldTypesQueryKeyMock(...args),
   createContentModel: (...args: unknown[]) => createContentModelMock(...args),
   deleteContentModel: (...args: unknown[]) => deleteContentModelMock(...args),
+  getContentModelFieldTypeRegistry: (...args: unknown[]) =>
+    getContentModelFieldTypeRegistryMock(...args),
   listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
   listContentModels: (...args: unknown[]) => listContentModelsMock(...args),
 }));
@@ -50,7 +61,12 @@ vi.mock("@/hooks/use-workspace-permission-access", () => ({
 }));
 
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string) => {
+      if (key === "content:CONTENT_MODELS_CREATE_UNTITLED_NAME") return "未命名内容模型";
+      return key;
+    },
+  }),
 }));
 
 vi.mock("@/layouts/page-shell/default-page", () => ({
@@ -180,12 +196,21 @@ function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentMod
   };
 }
 
-function getCreateInput(label: string) {
+function queryCreateInput(label: string) {
   const input = screen
-    .getAllByLabelText(label)
+    .queryAllByLabelText(label)
     .find((element): element is HTMLInputElement | HTMLTextAreaElement =>
       element.matches("input, textarea"),
     );
+  return input ?? null;
+}
+
+async function findCreateInput(label: string) {
+  let input = queryCreateInput(label);
+  await waitFor(() => {
+    input = queryCreateInput(label);
+    expect(input).not.toBeNull();
+  });
   if (!input) throw new Error(`Missing create content type input: ${label}`);
   return input;
 }
@@ -194,6 +219,8 @@ describe("content model builder", () => {
   beforeEach(() => {
     createContentModelMock.mockReset();
     deleteContentModelMock.mockReset();
+    buildContentModelFieldTypesQueryKeyMock.mockClear();
+    getContentModelFieldTypeRegistryMock.mockReset();
     listAllContentModelsMock.mockReset();
     listContentModelsMock.mockReset();
     navigateMock.mockReset();
@@ -208,18 +235,10 @@ describe("content model builder", () => {
       prev: null,
     });
     listAllContentModelsMock.mockResolvedValue([]);
+    getContentModelFieldTypeRegistryMock.mockResolvedValue({ fieldTypes: [] });
   });
 
-  test("opens create content type dialog and creates with camelCase identifiers", async () => {
-    createContentModelMock.mockResolvedValue(
-      buildModel({
-        id: "model-2",
-        singularKey: "blogPost",
-        pluralKey: "blogPosts",
-        name: "Blog Post",
-      }),
-    );
-
+  test("navigates to the edit route create flow", () => {
     render(<ContentModelsControlCenterPage projectId="project-1" />, {
       wrapper: createWrapper(),
     });
@@ -229,20 +248,45 @@ describe("content model builder", () => {
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
     );
 
-    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/projects/$projectId/content/models/edit",
+      params: { projectId: "project-1" },
+      search: { create: true },
+    });
+    expect(createContentModelMock).not.toHaveBeenCalled();
+  });
+
+  test("creates from the edit route dialog and stays on the new model editor", async () => {
+    createContentModelMock.mockResolvedValue(
+      buildModel({
+        id: "model-2",
+        singularKey: "blogPost",
+        pluralKey: "blogPosts",
+        name: "Blog Post",
+      }),
+    );
+
+    render(<ContentModelEditPage projectId="project-1" createOpen />, {
+      wrapper: createWrapper(),
+    });
+
+    fireEvent.change(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "Blog Post" },
     });
 
-    expect(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
       "blogPost",
     );
-    expect(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
       "blogPosts",
     );
 
-    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL"), {
-      target: { value: "Editorial entries." },
-    });
+    fireEvent.change(
+      await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL"),
+      {
+        target: { value: "Editorial entries." },
+      },
+    );
 
     fireEvent.click(
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_SUBMIT" }),
@@ -263,32 +307,57 @@ describe("content model builder", () => {
         views: [],
       });
     });
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/projects/project-1/content/models/edit?modelId=model-2",
+      });
+    });
+  });
+
+  test("create flow renders localized fallback title and skips model list query", () => {
+    render(<ContentModelEditPage projectId="project-1" createOpen />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.getByText("未命名内容模型")).toBeInTheDocument();
+    expect(listAllContentModelsMock).not.toHaveBeenCalled();
+  });
+
+  test("closes the edit route create dialog without saving and returns to models", async () => {
+    render(<ContentModelEditPage projectId="project-1" createOpen />, {
+      wrapper: createWrapper(),
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "CONTENT_MODELS_CANCEL_ACTION" }));
+
+    expect(createContentModelMock).not.toHaveBeenCalled();
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/projects/project-1/content/models",
+    });
   });
 
   test("keeps manually edited identifiers stable when name changes", async () => {
     createContentModelMock.mockResolvedValue(buildModel());
 
-    render(<ContentModelsControlCenterPage projectId="project-1" />, {
+    render(<ContentModelEditPage projectId="project-1" createOpen />, {
       wrapper: createWrapper(),
     });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_ACTION" }),
-    );
-    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+    fireEvent.change(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "News item" },
     });
-    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL"), {
+    fireEvent.change(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL"), {
       target: { value: "storyBlock" },
     });
-    fireEvent.change(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
+    fireEvent.change(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "Press release" },
     });
 
-    expect(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")).toHaveValue(
       "storyBlock",
     );
-    expect(getCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
+    expect(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")).toHaveValue(
       "pressReleases",
     );
   });

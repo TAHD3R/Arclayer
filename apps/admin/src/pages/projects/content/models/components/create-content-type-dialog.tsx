@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import { CircleHelp } from "lucide-react";
 
 import { Button } from "@arclayer/ui/button";
+import { FieldLabel } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
+import { RadioGroup, RadioGroupItem } from "@arclayer/ui/radio-group";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Textarea } from "@arclayer/ui/textarea";
@@ -56,27 +58,36 @@ function FieldTitleWithHelp({ title, help }: { title: React.ReactNode; help: str
 }
 
 function ModelKindOption(props: {
-  active: boolean;
+  modelKind: CreateContentTypeFormValues["modelKind"];
+  value: CreateContentTypeFormValues["modelKind"];
   disabled?: boolean;
   title: string;
   description: string;
-  onClick: () => void;
 }) {
+  const inputId = React.useId();
   return (
-    <button
-      type="button"
-      disabled={props.disabled}
+    <FieldLabel
+      htmlFor={inputId}
       className={[
-        "grid min-w-0 gap-1 rounded-md border px-3 py-2 text-left transition-colors",
-        props.active
-          ? "border-primary/45 bg-primary/10 text-label-primary"
-          : "border-border/70 bg-surface text-label-secondary hover:border-border hover:text-label-primary",
+        "flex h-full min-w-0 cursor-pointer rounded-md border border-border/70 bg-surface p-3 transition-colors",
+        "hover:border-border hover:bg-accent/35",
+        "has-data-[state=checked]:border-primary/45 has-data-[state=checked]:bg-primary/10",
+        "has-[button[disabled]]:cursor-not-allowed has-[button[disabled]]:opacity-60",
       ].join(" ")}
-      onClick={props.onClick}
     >
-      <span className="text-headline">{props.title}</span>
-      <span className="text-caption">{props.description}</span>
-    </button>
+      <div className="flex min-w-0 gap-2">
+        <RadioGroupItem
+          id={inputId}
+          value={props.modelKind}
+          disabled={props.disabled}
+          className="mt-0.5"
+        />
+        <div className="min-w-0">
+          <div className="text-label-primary">{props.title}</div>
+          <div className="mt-1 text-caption text-label-secondary">{props.description}</div>
+        </div>
+      </div>
+    </FieldLabel>
   );
 }
 
@@ -173,20 +184,28 @@ export function CreateContentTypeDialog({
             title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_KIND_LABEL")}
             description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_KIND_HELP")}
           >
-            <div className="grid gap-2 sm:grid-cols-3">
+            <RadioGroup
+              value={values.modelKind}
+              disabled={pending}
+              onValueChange={(value) => {
+                setValues((current) => ({
+                  ...current,
+                  modelKind: value as CreateContentTypeFormValues["modelKind"],
+                }));
+              }}
+              className="grid gap-2 md:grid-cols-3"
+            >
               {(["collection_type", "single_type", "component"] as const).map((modelKind) => (
                 <ModelKindOption
                   key={modelKind}
-                  active={values.modelKind === modelKind}
+                  modelKind={modelKind}
+                  value={values.modelKind}
                   disabled={pending}
                   title={t(`CONTENT_MODELS_KIND_${modelKind.toUpperCase()}`)}
                   description={t(`CONTENT_MODELS_KIND_${modelKind.toUpperCase()}_DESC`)}
-                  onClick={() => {
-                    setValues((current) => ({ ...current, modelKind }));
-                  }}
                 />
               ))}
-            </div>
+            </RadioGroup>
           </SettingDialogField>
 
           <SettingDialogField

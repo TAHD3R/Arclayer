@@ -45,11 +45,11 @@ export const CONTENT_MODEL_FIELD_TYPE_GROUPS = [
   },
   {
     id: "value_logic",
-    typeIds: ["number", "decimal", "biginteger", "boolean", "enumeration"],
+    typeIds: ["number", "boolean", "enumeration"],
   },
   {
     id: "time_media",
-    typeIds: ["date_time", "time", "date", "media", "location"],
+    typeIds: ["date_time", "media", "location"],
   },
   {
     id: "structure",
@@ -186,6 +186,62 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
     localizable: false,
   },
 };
+
+export function supportsContentModelFieldDefaultValue(typeId: ContentModelFieldTypeId): boolean {
+  return (
+    typeId === "short_text" ||
+    typeId === "rich_text" ||
+    typeId === "markdown" ||
+    typeId === "slug" ||
+    typeId === "email" ||
+    typeId === "number" ||
+    typeId === "decimal" ||
+    typeId === "biginteger" ||
+    typeId === "enumeration" ||
+    typeId === "date_time" ||
+    typeId === "time" ||
+    typeId === "date"
+  );
+}
+
+export function supportsContentModelFieldUniqueSetting(typeId: ContentModelFieldTypeId): boolean {
+  return (
+    typeId === "short_text" ||
+    typeId === "slug" ||
+    typeId === "email" ||
+    typeId === "number" ||
+    typeId === "decimal" ||
+    typeId === "biginteger" ||
+    typeId === "enumeration" ||
+    typeId === "date_time" ||
+    typeId === "time" ||
+    typeId === "date" ||
+    typeId === "boolean"
+  );
+}
+
+export function supportsContentModelFieldLocalizableSetting(
+  typeId: ContentModelFieldTypeId,
+): boolean {
+  return (
+    typeId === "rich_text" ||
+    typeId === "short_text" ||
+    typeId === "markdown" ||
+    typeId === "slug" ||
+    typeId === "email" ||
+    typeId === "number" ||
+    typeId === "decimal" ||
+    typeId === "biginteger" ||
+    typeId === "enumeration" ||
+    typeId === "date_time" ||
+    typeId === "time" ||
+    typeId === "date" ||
+    typeId === "media" ||
+    typeId === "location" ||
+    typeId === "json_object" ||
+    typeId === "blocks"
+  );
+}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -436,7 +492,7 @@ export function buildContentModelFieldPayload(
 ): CreateAdminContentModelFieldPayload {
   const config: Record<string, JsonValueInput> = {
     kind: draft.typeId,
-    localizable: draft.localizable,
+    localizable: draft.localizable && supportsContentModelFieldLocalizableSetting(draft.typeId),
   };
 
   if (draft.typeId === "custom") {
@@ -447,7 +503,7 @@ export function buildContentModelFieldPayload(
   if (description) {
     config.description = description;
   }
-  if (draft.unique) {
+  if (draft.unique && supportsContentModelFieldUniqueSetting(draft.typeId)) {
     config.unique = true;
   }
   if (draft.hiddenInEditor) {
@@ -457,7 +513,7 @@ export function buildContentModelFieldPayload(
     config.omitFromApiResponse = true;
   }
   const defaultValue = draft.defaultValue.trim();
-  if (defaultValue) {
+  if (defaultValue && supportsContentModelFieldDefaultValue(draft.typeId)) {
     config.defaultValue = defaultValue;
   }
   const condition = draft.condition.trim();

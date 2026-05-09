@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
-import { ListChecks, Route, Settings2, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -9,17 +8,26 @@ import type {
 } from "@arclayer/openapi/admin-types";
 import { getContentModelImpactPreview, patchContentModel } from "@/api/content";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import { Input } from "@arclayer/ui/input";
-import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
-import { cn } from "@arclayer/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Switch } from "@arclayer/ui/switch";
+import {
+  SystemSettingField,
+  SystemSettingFooterActions,
+  SystemSettingItem,
+  SystemSettingRow,
+  SystemSettingStack,
+} from "@/pages/system/components/system-setting-item";
+
+export type ContentModelSettingsSectionKey = "settings" | "workflow";
 
 type ContentModelSettingsTabProps = {
   projectId: string;
   model: AdminContentModel;
   canManageModels: boolean;
   pending: boolean;
+  section: ContentModelSettingsSectionKey;
   onModelChange: (model: AdminContentModel) => void;
 };
 
@@ -44,7 +52,6 @@ type WorkflowTransition = NonNullable<WorkflowContract["transitions"]>[number];
 type WorkflowActorRule = NonNullable<WorkflowContract["stageAssignments"]>[number];
 type WorkflowRoleCode = NonNullable<WorkflowActorRule["roleCodes"]>[number];
 type WorkflowRoleState = Record<WorkflowStage, WorkflowRoleCode[]>;
-type WorkflowTextState = Record<WorkflowStage, string>;
 
 type WorkflowSettingsState = {
   states: string[];
@@ -54,9 +61,9 @@ type WorkflowSettingsState = {
   publishStage: WorkflowStage;
   transitionKeys: string[];
   assignmentRoles: WorkflowRoleState;
-  assignmentUserIds: WorkflowTextState;
+  assignmentUserIds: Record<WorkflowStage, string[]>;
   permissionRoles: WorkflowRoleState;
-  permissionUserIds: WorkflowTextState;
+  permissionUserIds: Record<WorkflowStage, string[]>;
 };
 
 const WORKFLOW_STAGES: readonly WorkflowStage[] = [
@@ -78,19 +85,6 @@ const DEFAULT_WORKFLOW_TRANSITIONS: readonly WorkflowTransition[] = [
   { fromStage: "approved", toStage: "changes_requested" },
   { fromStage: "approved", toStage: "drafting" },
 ];
-
-function readRoutingSchema(model: AdminContentModel) {
-  const routingSchema = model.routingSchema as Record<string, unknown> | null;
-  const mode =
-    routingSchema?.mode === "single" || routingSchema?.mode === "localized"
-      ? routingSchema.mode
-      : "none";
-  const slugField =
-    (routingSchema?.slugField as string | undefined) ??
-    (routingSchema?.slug_field as string | undefined) ??
-    "";
-  return { mode, slugField };
-}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -127,27 +121,44 @@ function createEmptyRoleState(): WorkflowRoleState {
   };
 }
 
-function createEmptyTextState(): WorkflowTextState {
-  return Object.fromEntries(WORKFLOW_STAGES.map((stage) => [stage, ""])) as WorkflowTextState;
+function createEmptyUserIdState(): Record<WorkflowStage, string[]> {
+  return {
+    drafting: [],
+    in_review: [],
+    changes_requested: [],
+    approved: [],
+  };
+}
+
+function readRoutingSchema(model: AdminContentModel) {
+  const routingSchema = model.routingSchema as Record<string, unknown> | null;
+  const mode =
+    routingSchema?.mode === "single" || routingSchema?.mode === "localized"
+      ? routingSchema.mode
+      : "none";
+  const slugField =
+    (routingSchema?.slugField as string | undefined) ??
+    (routingSchema?.slug_field as string | undefined) ??
+    "";
+  return { mode, slugField };
 }
 
 function readWorkflowActorRules(value: unknown): {
   roleState: WorkflowRoleState;
-  userState: WorkflowTextState;
+  userIdState: Record<WorkflowStage, string[]>;
 } {
   const roleState = createEmptyRoleState();
-  const userState = createEmptyTextState();
+  const userIdState = createEmptyUserIdState();
   for (const item of asArray(value)) {
     const record = asRecord(item);
     const stage = record?.stage;
     if (!isWorkflowStage(stage)) continue;
     roleState[stage] = asArray(record?.roleCodes ?? record?.role_codes).filter(isWorkflowRoleCode);
-    userState[stage] = asArray(record?.userIds ?? record?.user_ids)
+    userIdState[stage] = asArray(record?.userIds ?? record?.user_ids)
       .filter((userId): userId is string => typeof userId === "string" && userId.trim().length > 0)
-      .map((userId) => userId.trim())
-      .join(", ");
+      .map((userId) => userId.trim());
   }
-  return { roleState, userState };
+  return { roleState, userIdState };
 }
 
 function readWorkflowSettings(model: AdminContentModel): WorkflowSettingsState {
@@ -181,30 +192,19 @@ function readWorkflowSettings(model: AdminContentModel): WorkflowSettingsState {
       transitionKey,
     ),
     assignmentRoles: assignments.roleState,
-    assignmentUserIds: assignments.userState,
+    assignmentUserIds: assignments.userIdState,
     permissionRoles: permissions.roleState,
-    permissionUserIds: permissions.userState,
+    permissionUserIds: permissions.userIdState,
   };
-}
-
-function parseWorkflowUserIds(value: string): string[] {
-  return Array.from(
-    new Set(
-      value
-        .split(/[\s,]+/g)
-        .map((entry) => entry.trim())
-        .filter(Boolean),
-    ),
-  );
 }
 
 function buildWorkflowActorRules(
   roleState: WorkflowRoleState,
-  userState: WorkflowTextState,
+  userIdState: Record<WorkflowStage, string[]>,
 ): WorkflowActorRule[] {
   return WORKFLOW_STAGES.flatMap((stage) => {
     const roleCodes = roleState[stage];
-    const userIds = parseWorkflowUserIds(userState[stage]);
+    const userIds = userIdState[stage];
     return roleCodes.length || userIds.length ? [{ stage, roleCodes, userIds }] : [];
   });
 }
@@ -236,187 +236,87 @@ function toggleWorkflowRole(
   return { ...current, [stage]: nextRoles };
 }
 
-function CapabilityCheckbox(props: {
-  capability: string;
-  label: string;
-  description: string;
+function toComparable(value: unknown): string {
+  return JSON.stringify(value);
+}
+
+function SettingCheckboxRow(props: {
   checked: boolean;
   disabled: boolean;
+  label: string;
+  description?: string;
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-3 rounded-md border border-border/70 bg-background px-3 py-3">
-      <Checkbox
-        checked={props.checked}
-        disabled={props.disabled}
-        onCheckedChange={(checked) => props.onChange(Boolean(checked))}
-      />
-      <div className="min-w-0">
-        <div className="text-headline text-label-primary">{props.label}</div>
-        <div className="mt-1 text-callout text-label-secondary">{props.description}</div>
-      </div>
-    </label>
-  );
-}
-
-function WorkflowStageButton(props: {
-  active: boolean;
-  disabled: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={props.disabled}
-      className={cn(
-        "flex items-center justify-center rounded-md border px-3 py-2 text-footnote font-medium transition-colors",
-        props.active
-          ? "border-primary bg-primary/8 text-label-primary"
-          : "border-border/70 bg-background text-label-secondary hover:bg-accent/40 hover:text-label-primary",
-        props.disabled && "cursor-not-allowed opacity-60",
-      )}
-      onClick={props.onClick}
-    >
-      {props.label}
-    </button>
-  );
-}
-
-function WorkflowActorRulesEditor(props: {
-  title: string;
-  description: string;
-  disabled: boolean;
-  roles: WorkflowRoleState;
-  userIds: WorkflowTextState;
-  onRolesChange: (stage: WorkflowStage, role: WorkflowRoleCode, checked: boolean) => void;
-  onUserIdsChange: (stage: WorkflowStage, value: string) => void;
-  t: (key: string) => string;
-}) {
-  return (
-    <SettingDialogField title={props.title} description={props.description}>
-      <div className="grid gap-3">
-        {WORKFLOW_STAGES.map((stage) => (
-          <div
-            key={stage}
-            className="grid gap-3 rounded-md border border-border/70 bg-background px-3 py-3"
-          >
-            <div className="text-headline text-label-primary">
-              {props.t(`CONTENT_MODELS_WORKFLOW_STAGE_${stage.toUpperCase()}`)}
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {WORKFLOW_ROLE_CODES.map((role) => (
-                <label
-                  key={role}
-                  className="flex items-center gap-2 text-callout text-label-primary"
-                >
-                  <Checkbox
-                    checked={props.roles[stage].includes(role)}
-                    disabled={props.disabled}
-                    onCheckedChange={(checked) =>
-                      props.onRolesChange(stage, role, Boolean(checked))
-                    }
-                  />
-                  {props.t(`CONTENT_MODELS_WORKFLOW_ROLE_${role.toUpperCase()}`)}
-                </label>
-              ))}
-            </div>
-            <Input
-              aria-label={props.t("CONTENT_MODELS_SETTINGS_WORKFLOW_USER_IDS_LABEL")}
-              value={props.userIds[stage]}
-              disabled={props.disabled}
-              placeholder={props.t("CONTENT_MODELS_SETTINGS_WORKFLOW_USER_IDS_PLACEHOLDER")}
-              onChange={(event) => props.onUserIdsChange(stage, event.target.value)}
-            />
-          </div>
-        ))}
-      </div>
-    </SettingDialogField>
-  );
-}
-
-function SettingsSection(props: {
-  icon: LucideIcon;
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  const Icon = props.icon;
-  return (
-    <section className="grid gap-4">
-      <div className="flex items-start gap-3">
-        <Icon className="mt-0.5 size-4.5 shrink-0 text-label-secondary" />
-        <div>
-          <h3 className="text-headline text-label-primary">{props.title}</h3>
-          {props.description ? (
-            <p className="mt-1 text-callout text-label-secondary">{props.description}</p>
-          ) : null}
-        </div>
-      </div>
-      {props.children}
-    </section>
+    <SystemSettingRow
+      title={props.label}
+      description={props.description}
+      control={
+        <Switch
+          checked={props.checked}
+          disabled={props.disabled}
+          onCheckedChange={props.onChange}
+        />
+      }
+    />
   );
 }
 
 export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
   const { t } = useTranslation("content");
-  const model = props.model;
 
-  const [capabilities, setCapabilities] = React.useState<string[]>(() => model.capabilities ?? []);
-  const [routingMode, setRoutingMode] = React.useState<string>(() => readRoutingSchema(model).mode);
+  const [capabilities, setCapabilities] = React.useState<string[]>(
+    () => props.model.capabilities ?? [],
+  );
+  const [routingMode, setRoutingMode] = React.useState<string>(
+    () => readRoutingSchema(props.model).mode,
+  );
   const [slugField, setSlugField] = React.useState<string>(
-    () => readRoutingSchema(model).slugField,
+    () => readRoutingSchema(props.model).slugField,
   );
   const [workflowSettings, setWorkflowSettings] = React.useState<WorkflowSettingsState>(() =>
-    readWorkflowSettings(model),
+    readWorkflowSettings(props.model),
   );
 
   React.useEffect(() => {
-    const routingSchema = readRoutingSchema(model);
-    setCapabilities(model.capabilities ?? []);
+    const routingSchema = readRoutingSchema(props.model);
+    setCapabilities(props.model.capabilities ?? []);
     setRoutingMode(routingSchema.mode);
     setSlugField(routingSchema.slugField);
-    setWorkflowSettings(readWorkflowSettings(model));
-  }, [model]);
+    setWorkflowSettings(readWorkflowSettings(props.model));
+  }, [props.model]);
 
-  const hasChanges = React.useMemo(() => {
-    const currentCaps = [...(model.capabilities ?? [])].sort().join(",");
-    const nextCaps = [...capabilities].sort().join(",");
-    const currentModelRouting = readRoutingSchema(model);
-    const currentRouting = JSON.stringify({
-      mode: currentModelRouting.mode,
-      slugField: currentModelRouting.slugField || null,
-    });
-    const nextRouting = JSON.stringify({
-      mode: routingMode,
-      slugField: slugField || null,
-    });
-    const currentWorkflow = JSON.stringify(buildWorkflowContract(readWorkflowSettings(model)));
-    const nextWorkflow = JSON.stringify(buildWorkflowContract(workflowSettings));
+  const canEdit = props.canManageModels && !props.pending;
+
+  const coreDirty = React.useMemo(() => {
+    const current = [...(props.model.capabilities ?? [])].sort();
+    const next = [...capabilities].sort();
+    return toComparable(current) !== toComparable(next);
+  }, [capabilities, props.model.capabilities]);
+
+  const routingDirty = React.useMemo(() => {
+    const current = readRoutingSchema(props.model);
     return (
-      currentCaps !== nextCaps || currentRouting !== nextRouting || currentWorkflow !== nextWorkflow
+      toComparable({ mode: current.mode, slugField: current.slugField || null }) !==
+      toComparable({ mode: routingMode, slugField: slugField.trim() || null })
     );
-  }, [model, capabilities, routingMode, slugField, workflowSettings]);
+  }, [props.model, routingMode, slugField]);
+
+  const workflowDirty = React.useMemo(() => {
+    const current = buildWorkflowContract(readWorkflowSettings(props.model));
+    const next = buildWorkflowContract(workflowSettings);
+    return toComparable(current) !== toComparable(next);
+  }, [props.model, workflowSettings]);
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      const patchPayload = {
-        capabilities: capabilities as Parameters<typeof patchContentModel>[2]["capabilities"],
-        routing: {
-          mode: routingMode as "none" | "single" | "localized",
-          slugField: slugField || null,
-        },
-        workflow: buildWorkflowContract(workflowSettings),
-      };
-      const preview = await getContentModelImpactPreview(
-        props.projectId,
-        props.model.id,
-        patchPayload,
-      );
+    mutationFn: async (
+      payload: Pick<PatchAdminContentModelPayload, "capabilities" | "routing" | "workflow">,
+    ) => {
+      const preview = await getContentModelImpactPreview(props.projectId, props.model.id, payload);
       return patchContentModel(props.projectId, props.model.id, {
-        ...patchPayload,
-        impact_preview_token: preview.previewToken,
-      } as Parameters<typeof patchContentModel>[2]);
+        ...payload,
+        impactPreviewToken: preview.previewToken,
+      });
     },
     onSuccess: (updated) => {
       props.onModelChange(updated);
@@ -427,7 +327,7 @@ export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
 
   const handleToggleCapability = React.useCallback((capability: string, checked: boolean) => {
     setCapabilities((prev) =>
-      checked ? [...prev, capability] : prev.filter((c) => c !== capability),
+      checked ? Array.from(new Set([...prev, capability])) : prev.filter((c) => c !== capability),
     );
   }, []);
 
@@ -455,173 +355,260 @@ export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
     [],
   );
 
-  const handleWorkflowUserIdsChange = React.useCallback(
-    (scope: "assignmentUserIds" | "permissionUserIds", stage: WorkflowStage, value: string) => {
-      setWorkflowSettings((current) => ({
-        ...current,
-        [scope]: { ...current[scope], [stage]: value },
-      }));
-    },
-    [],
-  );
+  const saveSettings = React.useCallback(() => {
+    void saveMutation.mutateAsync({
+      capabilities: capabilities as PatchAdminContentModelPayload["capabilities"],
+      routing: {
+        mode: routingMode as "none" | "single" | "localized",
+        slugField: slugField.trim() || null,
+      },
+    });
+  }, [capabilities, routingMode, saveMutation, slugField]);
 
-  const canEdit = props.canManageModels && !props.pending;
+  const saveWorkflow = React.useCallback(() => {
+    void saveMutation.mutateAsync({
+      workflow: buildWorkflowContract(workflowSettings),
+    });
+  }, [saveMutation, workflowSettings]);
 
-  return (
-    <section className="min-h-0 pb-8">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 py-6">
-        <SettingsSection
-          icon={Settings2}
-          title={t("CONTENT_MODELS_SETTINGS_CAPABILITIES_TITLE")}
-          description={t("CONTENT_MODELS_SETTINGS_CAPABILITIES_DESC")}
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            {CAPABILITIES.map((capability) => (
-              <CapabilityCheckbox
-                key={capability}
-                capability={capability}
-                label={t(`CONTENT_MODELS_SETTINGS_CAPABILITY_${capability.toUpperCase()}_LABEL`)}
-                description={t(
-                  `CONTENT_MODELS_SETTINGS_CAPABILITY_${capability.toUpperCase()}_DESC`,
-                )}
-                checked={capabilities.includes(capability)}
-                disabled={!canEdit}
-                onChange={(checked) => handleToggleCapability(capability, checked)}
-              />
-            ))}
-          </div>
-        </SettingsSection>
+  const resetSettings = React.useCallback(() => {
+    const routingSchema = readRoutingSchema(props.model);
+    setCapabilities(props.model.capabilities ?? []);
+    setRoutingMode(routingSchema.mode);
+    setSlugField(routingSchema.slugField);
+  }, [props.model]);
 
-        <SettingsSection
-          icon={ListChecks}
-          title={t("CONTENT_MODELS_SETTINGS_WORKFLOW_TITLE")}
-          description={t("CONTENT_MODELS_SETTINGS_WORKFLOW_DESC")}
-        >
-          <SettingDialogFields>
-            <SettingDialogField title={t("CONTENT_MODELS_SETTINGS_WORKFLOW_PUBLISH_STAGE_LABEL")}>
-              <div className="grid gap-2 sm:grid-cols-4">
-                {WORKFLOW_STAGES.map((stage) => (
-                  <WorkflowStageButton
-                    key={stage}
-                    active={workflowSettings.publishStage === stage}
+  const resetWorkflow = React.useCallback(() => {
+    setWorkflowSettings(readWorkflowSettings(props.model));
+  }, [props.model]);
+
+  if (props.section === "settings") {
+    return (
+      <section className="min-h-0 pb-8">
+        <div className="mx-auto w-full max-w-4xl py-6">
+          <SystemSettingStack>
+            <SystemSettingItem
+              id="content-model-settings-capabilities"
+              title={t("CONTENT_MODELS_SETTINGS_CAPABILITIES_TITLE")}
+              description={t("CONTENT_MODELS_SETTINGS_CAPABILITIES_DESC")}
+              footer={
+                <SystemSettingFooterActions
+                  dirty={coreDirty || routingDirty}
+                  pending={saveMutation.isPending || !canEdit}
+                  saveLabel={t("CONTENT_MODELS_SETTINGS_SAVE_ACTION")}
+                  resetLabel={t("CONTENT_MODELS_FILTER_RESET")}
+                  hint={t("CONTENT_MODELS_SETTINGS_UNSAVED_CHANGES")}
+                  onSave={saveSettings}
+                  onReset={resetSettings}
+                />
+              }
+            >
+              <div className="grid gap-1">
+                {CAPABILITIES.map((capability) => (
+                  <SettingCheckboxRow
+                    key={capability}
+                    checked={capabilities.includes(capability)}
                     disabled={!canEdit}
-                    label={t(`CONTENT_MODELS_WORKFLOW_STAGE_${stage.toUpperCase()}`)}
-                    onClick={() =>
-                      setWorkflowSettings((current) => ({ ...current, publishStage: stage }))
-                    }
+                    label={t(
+                      `CONTENT_MODELS_SETTINGS_CAPABILITY_${capability.toUpperCase()}_LABEL`,
+                    )}
+                    description={t(
+                      `CONTENT_MODELS_SETTINGS_CAPABILITY_${capability.toUpperCase()}_DESC`,
+                    )}
+                    onChange={(checked) => handleToggleCapability(capability, checked)}
                   />
                 ))}
               </div>
-            </SettingDialogField>
-            <SettingDialogField
-              title={t("CONTENT_MODELS_SETTINGS_WORKFLOW_TRANSITIONS_LABEL")}
-              description={t("CONTENT_MODELS_SETTINGS_WORKFLOW_TRANSITIONS_DESC")}
+            </SystemSettingItem>
+
+            <SystemSettingItem
+              id="content-model-settings-routing"
+              title={t("CONTENT_MODELS_SETTINGS_ROUTING_TITLE")}
+              description={t("CONTENT_MODELS_SETTINGS_ROUTING_DESC")}
             >
-              <div className="grid gap-2 sm:grid-cols-2">
-                {DEFAULT_WORKFLOW_TRANSITIONS.map((transition) => {
-                  const key = transitionKey(transition);
-                  return (
-                    <label
-                      key={key}
-                      className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-3 py-2 text-callout text-label-primary"
-                    >
-                      <Checkbox
-                        checked={workflowSettings.transitionKeys.includes(key)}
-                        disabled={!canEdit}
-                        onCheckedChange={(checked) => handleToggleTransition(key, Boolean(checked))}
-                      />
-                      <span>
-                        {t(`CONTENT_MODELS_WORKFLOW_STAGE_${transition.fromStage.toUpperCase()}`)}
-                        {" -> "}
-                        {t(`CONTENT_MODELS_WORKFLOW_STAGE_${transition.toStage.toUpperCase()}`)}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </SettingDialogField>
-            <WorkflowActorRulesEditor
-              title={t("CONTENT_MODELS_SETTINGS_WORKFLOW_ASSIGNMENTS_LABEL")}
-              description={t("CONTENT_MODELS_SETTINGS_WORKFLOW_ASSIGNMENTS_DESC")}
-              disabled={!canEdit}
-              roles={workflowSettings.assignmentRoles}
-              userIds={workflowSettings.assignmentUserIds}
-              t={t}
-              onRolesChange={(stage, role, checked) =>
-                handleWorkflowRoleChange("assignmentRoles", stage, role, checked)
-              }
-              onUserIdsChange={(stage, value) =>
-                handleWorkflowUserIdsChange("assignmentUserIds", stage, value)
-              }
-            />
-            <WorkflowActorRulesEditor
-              title={t("CONTENT_MODELS_SETTINGS_WORKFLOW_PERMISSIONS_LABEL")}
-              description={t("CONTENT_MODELS_SETTINGS_WORKFLOW_PERMISSIONS_DESC")}
-              disabled={!canEdit}
-              roles={workflowSettings.permissionRoles}
-              userIds={workflowSettings.permissionUserIds}
-              t={t}
-              onRolesChange={(stage, role, checked) =>
-                handleWorkflowRoleChange("permissionRoles", stage, role, checked)
-              }
-              onUserIdsChange={(stage, value) =>
-                handleWorkflowUserIdsChange("permissionUserIds", stage, value)
-              }
-            />
-          </SettingDialogFields>
-        </SettingsSection>
-
-        <SettingsSection
-          icon={Route}
-          title={t("CONTENT_MODELS_SETTINGS_ROUTING_TITLE")}
-          description={t("CONTENT_MODELS_SETTINGS_ROUTING_DESC")}
-        >
-          <SettingDialogFields>
-            <SettingDialogField title={t("CONTENT_MODELS_SETTINGS_ROUTING_MODE_LABEL")}>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {(["none", "single", "localized"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    disabled={!canEdit}
-                    className={cn(
-                      "flex items-center justify-center rounded-md border px-3 py-2 text-footnote font-medium transition-colors",
-                      routingMode === mode
-                        ? "border-primary bg-primary/8 text-label-primary"
-                        : "border-border/70 bg-background text-label-secondary hover:bg-accent/40 hover:text-label-primary",
-                      !canEdit && "cursor-not-allowed opacity-60",
-                    )}
-                    onClick={() => setRoutingMode(mode)}
-                  >
-                    {t(`CONTENT_MODELS_SETTINGS_ROUTING_MODE_${mode.toUpperCase()}`)}
-                  </button>
-                ))}
-              </div>
-            </SettingDialogField>
-            {routingMode !== "none" ? (
-              <SettingDialogField title={t("CONTENT_MODELS_SETTINGS_ROUTING_SLUG_FIELD_LABEL")}>
-                <Input
-                  aria-label={t("CONTENT_MODELS_SETTINGS_ROUTING_SLUG_FIELD_LABEL")}
-                  value={slugField}
-                  disabled={!canEdit}
-                  placeholder="slug"
-                  onChange={(e) => setSlugField(e.target.value)}
+              <div className="grid gap-3">
+                <SystemSettingRow
+                  title={t("CONTENT_MODELS_SETTINGS_ROUTING_MODE_LABEL")}
+                  description={t("CONTENT_MODELS_SETTINGS_ROUTING_MODE_DESC")}
+                  control={
+                    <Select value={routingMode} onValueChange={(value) => setRoutingMode(value)}>
+                      <SelectTrigger className="w-52" disabled={!canEdit}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent position="popper" align="start">
+                        <SelectItem value="none">
+                          {t("CONTENT_MODELS_SETTINGS_ROUTING_MODE_NONE")}
+                        </SelectItem>
+                        <SelectItem value="single">
+                          {t("CONTENT_MODELS_SETTINGS_ROUTING_MODE_SINGLE")}
+                        </SelectItem>
+                        <SelectItem value="localized">
+                          {t("CONTENT_MODELS_SETTINGS_ROUTING_MODE_LOCALIZED")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  }
                 />
-              </SettingDialogField>
-            ) : null}
-          </SettingDialogFields>
-        </SettingsSection>
 
-        <div className="flex items-center justify-end gap-3 border-t border-border/60 pt-5">
-          <Button
-            variant="primary"
-            loading={saveMutation.isPending}
-            disabled={!canEdit || !hasChanges}
-            onClick={() => saveMutation.mutate()}
-          >
-            {t("CONTENT_MODELS_SETTINGS_SAVE_ACTION")}
-          </Button>
+                {routingMode !== "none" ? (
+                  <SystemSettingField
+                    label={t("CONTENT_MODELS_SETTINGS_ROUTING_SLUG_FIELD_LABEL")}
+                    description={t("CONTENT_MODELS_SETTINGS_ROUTING_SLUG_FIELD_DESC")}
+                  >
+                    <Input
+                      aria-label={t("CONTENT_MODELS_SETTINGS_ROUTING_SLUG_FIELD_LABEL")}
+                      value={slugField}
+                      disabled={!canEdit}
+                      placeholder="slug"
+                      onChange={(event) => setSlugField(event.target.value)}
+                    />
+                  </SystemSettingField>
+                ) : null}
+              </div>
+            </SystemSettingItem>
+          </SystemSettingStack>
         </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="min-h-0 pb-8">
+      <div className="mx-auto w-full max-w-4xl py-6">
+        <SystemSettingStack>
+          <SystemSettingItem
+            id="content-model-settings-workflow"
+            title={t("CONTENT_MODELS_SETTINGS_WORKFLOW_TITLE")}
+            description={t("CONTENT_MODELS_SETTINGS_WORKFLOW_DESC")}
+            footer={
+              <SystemSettingFooterActions
+                dirty={workflowDirty}
+                pending={saveMutation.isPending || !canEdit}
+                saveLabel={t("CONTENT_MODELS_SETTINGS_SAVE_ACTION")}
+                resetLabel={t("CONTENT_MODELS_FILTER_RESET")}
+                hint={t("CONTENT_MODELS_SETTINGS_UNSAVED_CHANGES")}
+                onSave={saveWorkflow}
+                onReset={resetWorkflow}
+              />
+            }
+          >
+            <div className="grid gap-5">
+              <SystemSettingRow
+                title={t("CONTENT_MODELS_SETTINGS_WORKFLOW_PUBLISH_STAGE_LABEL")}
+                control={
+                  <Select
+                    value={workflowSettings.publishStage}
+                    onValueChange={(value) =>
+                      setWorkflowSettings((current) => ({
+                        ...current,
+                        publishStage: value as WorkflowStage,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="w-52" disabled={!canEdit}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      {WORKFLOW_STAGES.map((stage) => (
+                        <SelectItem key={stage} value={stage}>
+                          {t(`CONTENT_MODELS_WORKFLOW_STAGE_${stage.toUpperCase()}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                }
+              />
+
+              <div className="grid gap-2">
+                <div className="text-headline font-semibold text-label-primary">
+                  {t("CONTENT_MODELS_SETTINGS_WORKFLOW_TRANSITIONS_LABEL")}
+                </div>
+                <div className="text-callout text-label-secondary">
+                  {t("CONTENT_MODELS_SETTINGS_WORKFLOW_TRANSITIONS_DESC")}
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {DEFAULT_WORKFLOW_TRANSITIONS.map((transition) => {
+                    const key = transitionKey(transition);
+                    return (
+                      <label
+                        key={key}
+                        className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-callout text-label-primary"
+                      >
+                        <Checkbox
+                          checked={workflowSettings.transitionKeys.includes(key)}
+                          disabled={!canEdit}
+                          onCheckedChange={(checked) =>
+                            handleToggleTransition(key, Boolean(checked))
+                          }
+                        />
+                        <span>
+                          {t(`CONTENT_MODELS_WORKFLOW_STAGE_${transition.fromStage.toUpperCase()}`)}
+                          {" -> "}
+                          {t(`CONTENT_MODELS_WORKFLOW_STAGE_${transition.toStage.toUpperCase()}`)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {["assignmentRoles", "permissionRoles"].map((scope) => {
+                const isAssignment = scope === "assignmentRoles";
+                return (
+                  <div key={scope} className="grid gap-3">
+                    <div className="text-headline font-semibold text-label-primary">
+                      {t(
+                        isAssignment
+                          ? "CONTENT_MODELS_SETTINGS_WORKFLOW_ASSIGNMENTS_LABEL"
+                          : "CONTENT_MODELS_SETTINGS_WORKFLOW_PERMISSIONS_LABEL",
+                      )}
+                    </div>
+                    <div className="text-callout text-label-secondary">
+                      {t(
+                        isAssignment
+                          ? "CONTENT_MODELS_SETTINGS_WORKFLOW_ASSIGNMENTS_DESC"
+                          : "CONTENT_MODELS_SETTINGS_WORKFLOW_PERMISSIONS_DESC",
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      {WORKFLOW_STAGES.map((stage) => (
+                        <div
+                          key={`${scope}-${stage}`}
+                          className="grid gap-2 rounded-md border border-border/60 px-3 py-3"
+                        >
+                          <div className="text-headline text-label-primary">
+                            {t(`CONTENT_MODELS_WORKFLOW_STAGE_${stage.toUpperCase()}`)}
+                          </div>
+                          <div className="flex flex-wrap gap-4">
+                            {WORKFLOW_ROLE_CODES.map((role) => (
+                              <label key={role} className="flex items-center gap-2 text-callout">
+                                <Checkbox
+                                  checked={workflowSettings[
+                                    scope as "assignmentRoles" | "permissionRoles"
+                                  ][stage].includes(role)}
+                                  disabled={!canEdit}
+                                  onCheckedChange={(checked) =>
+                                    handleWorkflowRoleChange(
+                                      scope as "assignmentRoles" | "permissionRoles",
+                                      stage,
+                                      role,
+                                      Boolean(checked),
+                                    )
+                                  }
+                                />
+                                {t(`CONTENT_MODELS_WORKFLOW_ROLE_${role.toUpperCase()}`)}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </SystemSettingItem>
+        </SystemSettingStack>
       </div>
     </section>
   );
