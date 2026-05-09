@@ -52,4 +52,20 @@ describe("content model password field type", () => {
     expect(decimalDraft.numberFormat).toBe("decimal");
     expect(decimalDraft.decimalPlaces).toBe("2");
   });
+
+  it("does not submit hidden pattern configuration for text types without pattern controls", () => {
+    const markdownDraft = createContentModelFieldDraft("markdown", {
+      name: "Body",
+      regexPattern: "^internal-only$",
+    });
+    const shortTextDraft = createContentModelFieldDraft("short_text", {
+      name: "Title",
+      regexPattern: "^public$",
+    });
+
+    expect(buildContentModelFieldPayload(markdownDraft).config).not.toHaveProperty("pattern");
+    expect(buildContentModelFieldPayload(shortTextDraft).config).toMatchObject({
+      pattern: "^public$",
+    });
+  });
 });

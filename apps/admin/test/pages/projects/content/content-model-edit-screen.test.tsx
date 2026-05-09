@@ -181,6 +181,7 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     [
       "CONTENT_MODELS_FIELD_CONFIG_MEDIA_MODE_LABEL",
       "CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_LABEL",
+      "CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_ANY",
     ],
     false,
     false,
@@ -253,6 +254,55 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     false,
   ],
   ["CONTENT_MODELS_FIELD_TYPE_BLOCKS_LABEL", [], true, false, false, false, true, true, false],
+] as const;
+
+const FIELD_TYPE_VARIANT_CONFIG_SMOKE_CASES = [
+  [
+    "CONTENT_MODELS_FIELD_TYPE_NUMBER_LABEL",
+    "CONTENT_MODELS_FIELD_TYPE_DECIMAL_LABEL",
+    [
+      "CONTENT_MODELS_FIELD_CONFIG_NUMBER_VARIANT_LABEL",
+      "CONTENT_MODELS_FIELD_CONFIG_DECIMAL_PLACES_LABEL",
+    ],
+    [
+      "CONTENT_MODELS_FIELD_CONFIG_NUMBER_MIN_LABEL",
+      "CONTENT_MODELS_FIELD_CONFIG_NUMBER_MAX_LABEL",
+    ],
+    ["CONTENT_MODELS_FIELD_CONFIG_MIN_LENGTH_LABEL"],
+  ],
+  [
+    "CONTENT_MODELS_FIELD_TYPE_NUMBER_LABEL",
+    "CONTENT_MODELS_FIELD_TYPE_BIGINTEGER_LABEL",
+    ["CONTENT_MODELS_FIELD_CONFIG_NUMBER_VARIANT_LABEL"],
+    [
+      "CONTENT_MODELS_FIELD_CONFIG_NUMBER_MIN_LABEL",
+      "CONTENT_MODELS_FIELD_CONFIG_NUMBER_MAX_LABEL",
+    ],
+    [
+      "CONTENT_MODELS_FIELD_CONFIG_DECIMAL_PLACES_LABEL",
+      "CONTENT_MODELS_FIELD_CONFIG_MIN_LENGTH_LABEL",
+    ],
+  ],
+  [
+    "CONTENT_MODELS_FIELD_TYPE_DATE_TIME_LABEL",
+    "CONTENT_MODELS_FIELD_TYPE_DATE_LABEL",
+    ["CONTENT_MODELS_FIELD_CONFIG_DATE_VARIANT_LABEL"],
+    ["CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL"],
+    [
+      "CONTENT_MODELS_FIELD_CONFIG_NUMBER_MIN_LABEL",
+      "CONTENT_MODELS_FIELD_CONFIG_MIN_LENGTH_LABEL",
+    ],
+  ],
+  [
+    "CONTENT_MODELS_FIELD_TYPE_DATE_TIME_LABEL",
+    "CONTENT_MODELS_FIELD_TYPE_TIME_LABEL",
+    ["CONTENT_MODELS_FIELD_CONFIG_DATE_VARIANT_LABEL"],
+    ["CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL"],
+    [
+      "CONTENT_MODELS_FIELD_CONFIG_NUMBER_MIN_LABEL",
+      "CONTENT_MODELS_FIELD_CONFIG_MIN_LENGTH_LABEL",
+    ],
+  ],
 ] as const;
 
 describe("content model edit screen", () => {
@@ -979,6 +1029,45 @@ describe("content model edit screen", () => {
         expect(localizableToggle).toBeInTheDocument();
       } else {
         expect(localizableToggle).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  test.each(FIELD_TYPE_VARIANT_CONFIG_SMOKE_CASES)(
+    "shows variant-specific config controls for %s -> %s",
+    async (parentLabel, variantLabel, basicLabels, advancedLabels, absentLabels) => {
+      render(
+        <ContentModelEditScreen
+          projectId="project-1"
+          model={buildModel()}
+          onDuplicate={vi.fn()}
+          onDelete={vi.fn()}
+          onModelChange={vi.fn()}
+          onRefreshModels={vi.fn()}
+          onClose={vi.fn()}
+        />,
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }));
+      fireEvent.click(screen.getByRole("button", { name: parentLabel }));
+      fireEvent.click(screen.getByText(variantLabel));
+
+      for (const basicLabel of basicLabels) {
+        expect(screen.getByText(basicLabel)).toBeInTheDocument();
+      }
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_ADVANCED/ }),
+      );
+
+      for (const advancedLabel of advancedLabels) {
+        expect(screen.getByText(advancedLabel)).toBeInTheDocument();
+      }
+      for (const absentLabel of absentLabels) {
+        expect(screen.queryByText(absentLabel)).not.toBeInTheDocument();
       }
     },
   );

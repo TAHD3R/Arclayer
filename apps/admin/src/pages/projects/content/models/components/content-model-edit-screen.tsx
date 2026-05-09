@@ -137,6 +137,7 @@ import {
   readContentModelFieldRows,
   supportsContentModelFieldDefaultValue,
   supportsContentModelFieldLocalizableSetting,
+  supportsContentModelFieldPatternSetting,
   supportsContentModelFieldUniqueSetting,
   syncContentModelFieldDraftName,
   updateContentModelFieldDraftKey,
@@ -879,6 +880,10 @@ function FieldConfigDialog(props: {
                         value={props.draft.mediaKind}
                         options={[
                           {
+                            value: "any",
+                            label: t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_ANY"),
+                          },
+                          {
                             value: "image",
                             label: t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_IMAGE"),
                           },
@@ -1104,9 +1109,7 @@ function FieldConfigDialog(props: {
 
                 {supportsTextValidation(props.draft.typeId) ? (
                   <>
-                    {props.draft.typeId === "short_text" ||
-                    props.draft.typeId === "slug" ||
-                    props.draft.typeId === "email" ? (
+                    {supportsContentModelFieldPatternSetting(props.draft.typeId) ? (
                       <SettingDialogField
                         title={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_LABEL")}
                         error={props.errors.regexPattern}
@@ -2409,7 +2412,7 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
       ) {
         errors.maxLength = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_LENGTH_RANGE");
       }
-      if (draft.regexPattern.trim()) {
+      if (supportsContentModelFieldPatternSetting(draft.typeId) && draft.regexPattern.trim()) {
         try {
           new RegExp(draft.regexPattern);
         } catch {

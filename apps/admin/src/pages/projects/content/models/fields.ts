@@ -90,7 +90,7 @@ export type ContentModelFieldDraft = {
   numberMin: string;
   numberMax: string;
   mediaMode: "single" | "multiple";
-  mediaKind: "image" | "video" | "file";
+  mediaKind: "any" | "image" | "video" | "file";
   booleanDefault: "none" | "true" | "false";
   referenceMode: "single" | "multiple";
   referenceTargetModelKey: string;
@@ -172,7 +172,7 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
   },
   media: {
     localizable: false,
-    mediaKind: "image",
+    mediaKind: "any",
     mediaMode: "single",
   },
   location: {
@@ -259,6 +259,10 @@ export function supportsContentModelFieldLocalizableSetting(
     typeId === "json_object" ||
     typeId === "blocks"
   );
+}
+
+export function supportsContentModelFieldPatternSetting(typeId: ContentModelFieldTypeId): boolean {
+  return typeId === "short_text" || typeId === "slug" || typeId === "email";
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -446,7 +450,9 @@ export function createContentModelFieldDraftFromRow(
     numberMax: asInputString(config.max),
     mediaMode: config.mediaMode === "multiple" ? "multiple" : "single",
     mediaKind:
-      config.mediaKind === "video" ? "video" : config.mediaKind === "file" ? "file" : "image",
+      config.mediaKind === "image" || config.mediaKind === "video" || config.mediaKind === "file"
+        ? config.mediaKind
+        : "any",
     booleanDefault,
     referenceMode: config.referenceMode === "multiple" ? "multiple" : "single",
     referenceTargetModelKey: asInputString(config.targetModelKey),
@@ -573,9 +579,12 @@ export function buildContentModelFieldPayload(
   ) {
     const minLength = readIntegerString(draft.minLength);
     const maxLength = readIntegerString(draft.maxLength);
-    const pattern = draft.regexPattern.trim();
     if (minLength !== null) config.minLength = minLength;
     if (maxLength !== null) config.maxLength = maxLength;
+  }
+
+  if (supportsContentModelFieldPatternSetting(draft.typeId)) {
+    const pattern = draft.regexPattern.trim();
     if (pattern) config.pattern = pattern;
   }
 
@@ -612,9 +621,11 @@ export function buildContentModelFieldPayload(
   }
 
   if (draft.typeId === "media") {
-    config.mediaKind = draft.mediaKind;
     config.mediaMode = draft.mediaMode;
     config.assetScope = "project";
+    if (draft.mediaKind !== "any") {
+      config.mediaKind = draft.mediaKind;
+    }
   }
 
   if (draft.typeId === "boolean" && draft.booleanDefault !== "none") {
