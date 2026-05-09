@@ -2,7 +2,14 @@ import * as React from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { codeToHtml } from "shiki";
@@ -201,6 +208,8 @@ type FieldDraftErrors = Partial<
     | "regexPattern"
     | "referenceTargetModelKey"
     | "componentTargetModelKey"
+    | "componentMin"
+    | "componentMax"
     | "dynamicZoneComponentKeys"
     | "dynamicZoneMin"
     | "dynamicZoneMax",
@@ -373,12 +382,12 @@ function FieldTypePickerDialog(props: {
       open={props.open}
       onOpenChange={props.onOpenChange}
       title={t("CONTENT_MODELS_FIELD_TYPE_PICKER_TITLE")}
-      contentClassName="sm:max-w-6xl"
+      contentClassName="sm:h-[min(52rem,calc(100dvh-2rem))] sm:max-w-6xl"
       bodyClassName="py-6"
     >
-      <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
         {CONTENT_MODEL_FIELD_TYPE_GROUPS.map((group) => (
-          <section key={group.id} className="flex h-full min-h-0 flex-col gap-3">
+          <section key={group.id} className="flex min-h-0 flex-col gap-3">
             <div>
               <h3 className="text-headline text-label-primary">
                 {t(getContentModelFieldTypeGroupLabelKey(group.id))}
@@ -388,7 +397,7 @@ function FieldTypePickerDialog(props: {
               </p>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-2">
+            <div className="flex min-h-0 flex-col gap-2">
               {group.typeIds.flatMap((typeId) => {
                 if (availableBuiltInTypeIds && !availableBuiltInTypeIds.has(typeId)) return [];
                 const Icon = FIELD_TYPE_ICON_MAP[typeId];
@@ -399,7 +408,7 @@ function FieldTypePickerDialog(props: {
                     aria-label={t(getContentModelFieldTypeLabelKey(typeId))}
                     disabled={!props.canManageFields}
                     className={cn(
-                      "flex h-full min-h-[5.25rem] w-full items-start gap-3 rounded-lg border border-border/70 bg-background px-4 py-3 text-left transition-colors",
+                      "flex w-full items-start gap-3 rounded-lg border border-border/70 bg-background px-4 py-3 text-left transition-colors",
                       "hover:border-border hover:bg-accent/45",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
                       "disabled:cursor-not-allowed disabled:opacity-60",
@@ -411,7 +420,7 @@ function FieldTypePickerDialog(props: {
                       <div className="text-headline text-label-primary">
                         {t(getContentModelFieldTypeLabelKey(typeId))}
                       </div>
-                      <div className="mt-1 text-callout text-label-secondary">
+                      <div className="mt-1 text-callout text-label-secondary" aria-hidden="true">
                         {t(getContentModelFieldTypeDescriptionKey(typeId))}
                       </div>
                     </div>
@@ -537,7 +546,8 @@ function supportsTextValidation(typeId: ContentModelFieldTypeId) {
     typeId === "markdown" ||
     typeId === "slug" ||
     typeId === "email" ||
-    typeId === "password"
+    typeId === "password" ||
+    typeId === "blocks"
   );
 }
 
@@ -659,7 +669,7 @@ function FieldConfigDialog(props: {
       onOpenChange={props.onOpenChange}
       title={typeLabel}
       description={t(getContentModelFieldTypeDescriptionKey(props.draft.typeId))}
-      contentClassName="sm:max-w-4xl [&_[data-setting-dialog-body]]:min-h-0"
+      contentClassName="sm:h-[min(52rem,calc(100dvh-2rem))] sm:max-w-6xl [&_[data-setting-dialog-body]]:min-h-0"
       footer={
         <div className="flex w-full items-center justify-end gap-2">
           <Button
@@ -693,7 +703,7 @@ function FieldConfigDialog(props: {
           props.onSubmit();
         }}
       >
-        <div className="grid max-h-[min(72vh,44rem)] min-h-0 gap-5 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <div className="grid min-h-0 gap-5 lg:grid-cols-[14rem_minmax(0,1fr)]">
           <aside
             className="min-w-0 border-b border-border/60 pb-3 lg:sticky lg:top-0 lg:self-start lg:border-b-0 lg:pb-0 lg:pr-3"
             aria-label={t("CONTENT_MODELS_FIELD_CONFIG_NAV_LABEL")}
@@ -959,40 +969,67 @@ function FieldConfigDialog(props: {
                 ) : null}
 
                 {props.draft.typeId === "component" ? (
-                  <SettingDialogField
-                    title={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL")}
-                    error={props.errors.componentTargetModelKey}
-                  >
-                    <Select
-                      value={props.draft.componentTargetModelKey || "__unset__"}
-                      onValueChange={(value) =>
-                        props.onDraftChange((draft) => ({
-                          ...draft,
-                          componentTargetModelKey: value === "__unset__" ? "" : value,
-                        }))
-                      }
+                  <>
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL")}
+                      error={props.errors.componentTargetModelKey}
                     >
-                      <SelectTrigger
-                        className="w-full"
-                        disabled={props.pending || props.referenceLoading}
-                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL")}
+                      <Select
+                        value={props.draft.componentTargetModelKey || "__unset__"}
+                        onValueChange={(value) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            componentTargetModelKey: value === "__unset__" ? "" : value,
+                          }))
+                        }
                       >
-                        <SelectValue
-                          placeholder={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_UNSELECTED")}
-                        />
-                      </SelectTrigger>
-                      <SelectContent position="popper" align="start">
-                        <SelectItem value="__unset__">
-                          {t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_UNSELECTED")}
-                        </SelectItem>
-                        {props.componentOptions.map((model) => (
-                          <SelectItem key={model.id} value={model.singularKey}>
-                            {model.name}
+                        <SelectTrigger
+                          className="w-full"
+                          disabled={props.pending || props.referenceLoading}
+                          aria-label={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL")}
+                        >
+                          <SelectValue
+                            placeholder={t(
+                              "CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_UNSELECTED",
+                            )}
+                          />
+                        </SelectTrigger>
+                        <SelectContent position="popper" align="start">
+                          <SelectItem value="__unset__">
+                            {t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_UNSELECTED")}
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </SettingDialogField>
+                          {props.componentOptions.map((model) => (
+                            <SelectItem key={model.id} value={model.singularKey}>
+                              {model.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </SettingDialogField>
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MODE_LABEL")}
+                    >
+                      <ChoiceRadioGroup
+                        value={props.draft.componentRepeatable ? "repeatable" : "single"}
+                        options={[
+                          {
+                            value: "single",
+                            label: t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MODE_SINGLE"),
+                          },
+                          {
+                            value: "repeatable",
+                            label: t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MODE_REPEATABLE"),
+                          },
+                        ]}
+                        onChange={(value) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            componentRepeatable: value === "repeatable",
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                  </>
                 ) : null}
 
                 {props.draft.typeId === "dynamic_zone" ? (
@@ -1048,23 +1085,27 @@ function FieldConfigDialog(props: {
 
                 {supportsTextValidation(props.draft.typeId) ? (
                   <>
-                    <SettingDialogField
-                      title={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_LABEL")}
-                      error={props.errors.regexPattern}
-                    >
-                      <Input
-                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_LABEL")}
-                        value={props.draft.regexPattern}
-                        disabled={props.pending}
-                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_PLACEHOLDER")}
-                        onChange={(event) =>
-                          props.onDraftChange((draft) => ({
-                            ...draft,
-                            regexPattern: event.target.value,
-                          }))
-                        }
-                      />
-                    </SettingDialogField>
+                    {props.draft.typeId === "short_text" ||
+                    props.draft.typeId === "slug" ||
+                    props.draft.typeId === "email" ? (
+                      <SettingDialogField
+                        title={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_LABEL")}
+                        error={props.errors.regexPattern}
+                      >
+                        <Input
+                          aria-label={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_LABEL")}
+                          value={props.draft.regexPattern}
+                          disabled={props.pending}
+                          placeholder={t("CONTENT_MODELS_FIELD_CONFIG_REGEX_PLACEHOLDER")}
+                          onChange={(event) =>
+                            props.onDraftChange((draft) => ({
+                              ...draft,
+                              regexPattern: event.target.value,
+                            }))
+                          }
+                        />
+                      </SettingDialogField>
+                    ) : null}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <SettingDialogField
                         title={t("CONTENT_MODELS_FIELD_CONFIG_MIN_LENGTH_LABEL")}
@@ -1175,6 +1216,45 @@ function FieldConfigDialog(props: {
                           props.onDraftChange((draft) => ({
                             ...draft,
                             dynamicZoneMax: event.target.value,
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                  </div>
+                ) : null}
+
+                {props.draft.typeId === "component" && props.draft.componentRepeatable ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MIN_LABEL")}
+                      error={props.errors.componentMin}
+                    >
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MIN_LABEL")}
+                        value={props.draft.componentMin}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            componentMin: event.target.value,
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MAX_LABEL")}
+                      error={props.errors.componentMax}
+                    >
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MAX_LABEL")}
+                        value={props.draft.componentMax}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            componentMax: event.target.value,
                           }))
                         }
                       />
@@ -1468,25 +1548,40 @@ function SortableFieldHandle(props: {
   disabled: boolean;
   label: string;
 }) {
+  const [rowElement, setRowElement] = React.useState<HTMLTableRowElement | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.row.key,
-    disabled: props.disabled,
+    disabled: props.disabled || props.row.locked,
   });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const handleNodeRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      const nextRow =
+        node?.closest("tr") instanceof HTMLTableRowElement ? node.closest("tr") : null;
+      setRowElement(nextRow);
+      setNodeRef(nextRow ?? node);
+    },
+    [setNodeRef],
+  );
+
+  React.useLayoutEffect(() => {
+    if (!rowElement) return;
+    rowElement.style.transform = CSS.Transform.toString(transform) ?? "";
+    rowElement.style.transition = transition ?? "";
+    rowElement.dataset.dragging = isDragging ? "true" : "";
+    rowElement.classList.toggle("opacity-45", isDragging);
+    rowElement.classList.toggle("relative", isDragging);
+    rowElement.classList.toggle("z-10", isDragging);
+
+    return () => {
+      rowElement.style.transform = "";
+      rowElement.style.transition = "";
+      delete rowElement.dataset.dragging;
+      rowElement.classList.remove("opacity-45", "relative", "z-10");
+    };
+  }, [isDragging, rowElement, transform, transition]);
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      data-dragging={isDragging ? "true" : undefined}
-      className={cn(
-        "flex min-w-0 items-center gap-2 rounded-sm",
-        isDragging ? "opacity-45" : undefined,
-      )}
-    >
+    <div ref={handleNodeRef} className="flex min-w-0 items-center gap-2 rounded-sm">
       <button
         type="button"
         className="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-label-tertiary transition-colors hover:bg-muted/60 hover:text-label-primary disabled:cursor-not-allowed disabled:opacity-45"
@@ -1509,13 +1604,18 @@ function FieldDragOverlay(props: { row: ContentModelFieldRow | null }) {
   const Icon = FIELD_TYPE_ICON_MAP[typeId];
 
   return (
-    <div className="flex min-w-[22.5rem] items-center justify-between gap-3 rounded-md border border-border/70 bg-background px-3 py-2 shadow-md">
+    <div className="grid min-w-[42rem] grid-cols-[minmax(18rem,1fr)_11rem_8.25rem] items-center gap-3 rounded-md border border-border/70 bg-background px-3 py-3 shadow-md">
       <div className="flex min-w-0 items-center gap-2">
         <GripVertical className="size-4 shrink-0 text-label-tertiary" aria-hidden="true" />
         <span className="truncate text-headline text-label-primary">{props.row.label}</span>
         <ContentModelFieldKeyTag label={props.row.key} textStyle="caption" className="shrink-0" />
       </div>
       <ContentModelFieldTypeTag icon={Icon} label={typeId} textStyle="caption" />
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" disabled>
+          <Pencil className="size-4" />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1565,6 +1665,7 @@ function FieldsTable(props: {
       if (!overKey || activeKey === overKey) return;
       const activeIndex = props.rows.findIndex((row) => row.key === activeKey);
       const overIndex = props.rows.findIndex((row) => row.key === overKey);
+      if (props.rows[activeIndex]?.locked) return;
       const nextRows = moveFieldRows(props.rows, activeIndex, overIndex);
       props.onReorderFields(nextRows.map((row) => row.key));
     },
@@ -1586,7 +1687,7 @@ function FieldsTable(props: {
         cell: ({ row }) => (
           <SortableFieldHandle
             row={row.original}
-            disabled={props.pending || !props.canManageFields}
+            disabled={props.pending || !props.canManageFields || row.original.locked}
             label={t("content:CONTENT_MODELS_FIELD_ROW_DRAG_ACTION")}
           />
         ),
@@ -1678,6 +1779,7 @@ function FieldsTable(props: {
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
@@ -1770,6 +1872,14 @@ function NameDescriptionSection(props: {
                   disabled={!canEdit}
                   placeholder={t("CONTENT_MODELS_FIELD_CONFIG_NAME_PLACEHOLDER")}
                   onChange={(event) => setName(event.target.value)}
+                />
+              </SettingDialogField>
+              <SettingDialogField title={t("CONTENT_MODELS_DETAILS_API_ID_LABEL")}>
+                <Input
+                  aria-label={t("CONTENT_MODELS_DETAILS_API_ID_LABEL")}
+                  value={props.model.singularKey}
+                  readOnly
+                  disabled
                 />
               </SettingDialogField>
               <SettingDialogField
@@ -2127,6 +2237,19 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     if (draft.typeId === "component" && !draft.componentTargetModelKey.trim()) {
       errors.componentTargetModelKey = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_COMPONENT_TARGET");
     }
+    if (draft.typeId === "component" && draft.componentRepeatable) {
+      const min = readPositiveIntegerInput(draft.componentMin);
+      const max = readPositiveIntegerInput(draft.componentMax);
+      if (Number.isNaN(min)) {
+        errors.componentMin = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+      if (Number.isNaN(max)) {
+        errors.componentMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+      if (min !== null && max !== null && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
+        errors.componentMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_NUMBER_RANGE");
+      }
+    }
     if (draft.typeId === "dynamic_zone") {
       const components = draft.dynamicZoneComponentKeys
         .split("\n")
@@ -2221,7 +2344,10 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
         omitFromApiResponse: current.omitFromApiResponse,
         defaultValue: current.defaultValue,
         condition: current.condition,
+        componentRepeatable: current.componentRepeatable,
         componentTargetModelKey: current.componentTargetModelKey,
+        componentMin: current.componentMin,
+        componentMax: current.componentMax,
         dynamicZoneComponentKeys: current.dynamicZoneComponentKeys,
         dynamicZoneMin: current.dynamicZoneMin,
         dynamicZoneMax: current.dynamicZoneMax,
@@ -2246,6 +2372,10 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
           omitFromApiResponse: current.omitFromApiResponse,
           defaultValue: current.defaultValue,
           condition: current.condition,
+          componentRepeatable: current.componentRepeatable,
+          componentTargetModelKey: current.componentTargetModelKey,
+          componentMin: current.componentMin,
+          componentMax: current.componentMax,
           customFieldUid: definition.uid,
           customFieldScalar: definition.scalar,
         }),

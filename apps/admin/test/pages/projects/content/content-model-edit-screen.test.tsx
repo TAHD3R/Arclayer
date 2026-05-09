@@ -137,12 +137,12 @@ function buildModel(overrides: Partial<AdminContentModel> = {}): AdminContentMod
 }
 
 const FIELD_TYPE_CONFIG_SMOKE_CASES = [
-  ["CONTENT_MODELS_FIELD_TYPE_SHORT_TEXT_LABEL", [], true, true, false, false, true, true],
-  ["CONTENT_MODELS_FIELD_TYPE_RICH_TEXT_LABEL", [], true, true, false, false, false, true],
-  ["CONTENT_MODELS_FIELD_TYPE_MARKDOWN_LABEL", [], true, true, false, false, false, true],
-  ["CONTENT_MODELS_FIELD_TYPE_SLUG_LABEL", [], true, true, false, false, true, true],
-  ["CONTENT_MODELS_FIELD_TYPE_EMAIL_LABEL", [], true, true, false, false, true, true],
-  ["CONTENT_MODELS_FIELD_TYPE_PASSWORD_LABEL", [], false, true, false, false, false, false],
+  ["CONTENT_MODELS_FIELD_TYPE_SHORT_TEXT_LABEL", [], true, true, false, false, true, true, false],
+  ["CONTENT_MODELS_FIELD_TYPE_RICH_TEXT_LABEL", [], true, false, false, false, false, true, false],
+  ["CONTENT_MODELS_FIELD_TYPE_MARKDOWN_LABEL", [], true, false, false, false, false, true, false],
+  ["CONTENT_MODELS_FIELD_TYPE_SLUG_LABEL", [], true, true, false, false, true, true, false],
+  ["CONTENT_MODELS_FIELD_TYPE_EMAIL_LABEL", [], true, true, false, false, true, true, false],
+  ["CONTENT_MODELS_FIELD_TYPE_PASSWORD_LABEL", [], true, false, false, false, false, false, false],
   [
     "CONTENT_MODELS_FIELD_TYPE_NUMBER_LABEL",
     ["CONTENT_MODELS_FIELD_CONFIG_NUMBER_VARIANT_LABEL"],
@@ -152,6 +152,7 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     false,
     true,
     true,
+    false,
   ],
   [
     "CONTENT_MODELS_FIELD_TYPE_ENUMERATION_LABEL",
@@ -162,6 +163,7 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     false,
     true,
     true,
+    false,
   ],
   [
     "CONTENT_MODELS_FIELD_TYPE_DATE_TIME_LABEL",
@@ -172,6 +174,7 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     false,
     true,
     true,
+    false,
   ],
   [
     "CONTENT_MODELS_FIELD_TYPE_MEDIA_LABEL",
@@ -185,8 +188,9 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     false,
     false,
     true,
+    false,
   ],
-  ["CONTENT_MODELS_FIELD_TYPE_LOCATION_LABEL", [], false, false, false, false, false, true],
+  ["CONTENT_MODELS_FIELD_TYPE_LOCATION_LABEL", [], false, false, false, false, false, true, false],
   [
     "CONTENT_MODELS_FIELD_TYPE_BOOLEAN_LABEL",
     ["CONTENT_MODELS_FIELD_CONFIG_BOOLEAN_DEFAULT_LABEL"],
@@ -196,8 +200,19 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     false,
     true,
     false,
+    false,
   ],
-  ["CONTENT_MODELS_FIELD_TYPE_JSON_OBJECT_LABEL", [], false, false, false, false, false, true],
+  [
+    "CONTENT_MODELS_FIELD_TYPE_JSON_OBJECT_LABEL",
+    [],
+    false,
+    false,
+    false,
+    false,
+    true,
+    true,
+    false,
+  ],
   [
     "CONTENT_MODELS_FIELD_TYPE_REFERENCE_LABEL",
     [
@@ -210,16 +225,21 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     false,
     false,
     false,
+    false,
   ],
   [
     "CONTENT_MODELS_FIELD_TYPE_COMPONENT_LABEL",
-    ["CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL"],
+    [
+      "CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL",
+      "CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MODE_LABEL",
+    ],
     false,
     false,
     false,
     false,
     false,
     false,
+    true,
   ],
   [
     "CONTENT_MODELS_FIELD_TYPE_DYNAMIC_ZONE_LABEL",
@@ -230,8 +250,9 @@ const FIELD_TYPE_CONFIG_SMOKE_CASES = [
     true,
     false,
     false,
+    false,
   ],
-  ["CONTENT_MODELS_FIELD_TYPE_BLOCKS_LABEL", [], false, false, false, false, false, true],
+  ["CONTENT_MODELS_FIELD_TYPE_BLOCKS_LABEL", [], true, false, false, false, true, true, false],
 ] as const;
 
 describe("content model edit screen", () => {
@@ -310,6 +331,8 @@ describe("content model edit screen", () => {
     fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }));
 
     expect(screen.getByText("CONTENT_MODELS_FIELD_TYPE_PICKER_TITLE")).toBeInTheDocument();
+    const pickerDialog = screen.getByRole("dialog");
+    expect(pickerDialog).toHaveClass("sm:h-[min(52rem,calc(100dvh-2rem))]");
     expect(screen.queryByText("CONTENT_MODELS_FIELD_TYPE_PICKER_DESC")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "CONTENT_MODELS_CANCEL_ACTION" }),
@@ -327,7 +350,7 @@ describe("content model edit screen", () => {
     expect(screen.getByText("CONTENT_MODELS_FIELD_TYPE_GROUP_STRUCTURE_LABEL")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_RICH_TEXT_LABEL" }),
-    ).toBeInTheDocument();
+    ).not.toHaveClass("h-full");
     expect(
       screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_MARKDOWN_LABEL" }),
     ).toBeInTheDocument();
@@ -539,6 +562,40 @@ describe("content model edit screen", () => {
     ).toBeInTheDocument();
   });
 
+  test("shows the readonly model API ID in name and description", () => {
+    render(
+      <ContentModelEditScreen
+        projectId="project-1"
+        model={buildModel({
+          singularKey: "articleModel",
+          fieldSchema: {
+            title: {
+              label: "Title",
+              scalar: "text",
+              required: true,
+              config: { kind: "short_text" },
+            },
+          },
+        })}
+        section="name_description"
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onModelChange={vi.fn()}
+        onRefreshModels={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    const apiIdInput = screen.getByLabelText("CONTENT_MODELS_DETAILS_API_ID_LABEL");
+
+    expect(apiIdInput).toHaveValue("articleModel");
+    expect(apiIdInput).toHaveAttribute("readonly");
+    expect(apiIdInput).toBeDisabled();
+  });
+
   test("keeps date variants configurable when editing an existing date field", async () => {
     const updatedModel = buildModel({
       fieldSchema: {
@@ -613,6 +670,82 @@ describe("content model edit screen", () => {
     expect(onModelChange).toHaveBeenCalledWith(updatedModel);
   });
 
+  test("submits repeatable component bounds when configured", async () => {
+    listAllContentModelsMock.mockResolvedValue([
+      buildModel(),
+      buildModel({
+        id: "component-1",
+        singularKey: "seoBlock",
+        pluralKey: "seoBlocks",
+        name: "SEO block",
+        modelKind: "component",
+      }),
+    ]);
+    addContentModelFieldMock.mockResolvedValue(buildModel());
+
+    render(
+      <ContentModelEditScreen
+        projectId="project-1"
+        model={buildModel()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onModelChange={vi.fn()}
+        onRefreshModels={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_COMPONENT_LABEL" }),
+    );
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL"), {
+      target: { value: "SEO Blocks" },
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL"),
+      ).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_TARGET_LABEL"));
+    await waitFor(() => {
+      expect(screen.getAllByText("SEO block").length).toBeGreaterThan(1);
+    });
+    const seoBlockOptions = screen.getAllByText("SEO block");
+    fireEvent.click(seoBlockOptions[seoBlockOptions.length - 1]);
+    fireEvent.click(screen.getByText("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MODE_REPEATABLE"));
+    fireEvent.click(
+      screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_ADVANCED/ }),
+    );
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MIN_LABEL"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MAX_LABEL"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_CONFIG_SUBMIT" }));
+
+    await waitFor(() => {
+      expect(addContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", {
+        key: "seoBlocks",
+        label: "SEO Blocks",
+        scalar: "json",
+        required: false,
+        config: {
+          kind: "component",
+          localizable: false,
+          targetComponentKey: "seoBlock",
+          repeatable: true,
+          min: 1,
+          max: 3,
+        },
+      });
+    });
+  });
+
   test.each(FIELD_TYPE_CONFIG_SMOKE_CASES)(
     "shows type-specific config controls for %s",
     async (
@@ -624,6 +757,7 @@ describe("content model edit screen", () => {
       hasDynamicZoneBounds,
       hasUniqueSetting,
       hasLocalizableSetting,
+      hasComponentBounds,
     ) => {
       render(
         <ContentModelEditScreen
@@ -712,6 +846,27 @@ describe("content model edit screen", () => {
         ).toBeInTheDocument();
       } else {
         expect(dynamicZoneMinControl).not.toBeInTheDocument();
+      }
+
+      const componentMinControl = screen.queryByLabelText(
+        "CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MIN_LABEL",
+      );
+      if (hasComponentBounds) {
+        fireEvent.click(
+          screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_BASIC/ }),
+        );
+        fireEvent.click(screen.getByText("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MODE_REPEATABLE"));
+        fireEvent.click(
+          screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_ADVANCED/ }),
+        );
+        expect(
+          screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MIN_LABEL"),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_COMPONENT_MAX_LABEL"),
+        ).toBeInTheDocument();
+      } else {
+        expect(componentMinControl).not.toBeInTheDocument();
       }
 
       const uniqueToggle = screen.queryByText("CONTENT_MODELS_FIELD_CONFIG_UNIQUE_LABEL");

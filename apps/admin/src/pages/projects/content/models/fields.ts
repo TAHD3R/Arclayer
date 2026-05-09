@@ -93,7 +93,10 @@ export type ContentModelFieldDraft = {
   booleanDefault: "none" | "true" | "false";
   referenceMode: "single" | "multiple";
   referenceTargetModelKey: string;
+  componentRepeatable: boolean;
   componentTargetModelKey: string;
+  componentMin: string;
+  componentMax: string;
   dynamicZoneComponentKeys: string;
   dynamicZoneMin: string;
   dynamicZoneMax: string;
@@ -178,6 +181,7 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
   },
   component: {
     localizable: false,
+    componentRepeatable: false,
   },
   dynamic_zone: {
     localizable: false,
@@ -200,7 +204,9 @@ export function supportsContentModelFieldDefaultValue(typeId: ContentModelFieldT
     typeId === "enumeration" ||
     typeId === "date_time" ||
     typeId === "time" ||
-    typeId === "date"
+    typeId === "date" ||
+    typeId === "password" ||
+    typeId === "blocks"
   );
 }
 
@@ -216,7 +222,9 @@ export function supportsContentModelFieldUniqueSetting(typeId: ContentModelField
     typeId === "date_time" ||
     typeId === "time" ||
     typeId === "date" ||
-    typeId === "boolean"
+    typeId === "boolean" ||
+    typeId === "json_object" ||
+    typeId === "blocks"
   );
 }
 
@@ -379,7 +387,10 @@ export function createContentModelFieldDraft(
     booleanDefault: previous?.booleanDefault ?? defaults.booleanDefault ?? "none",
     referenceMode: previous?.referenceMode ?? defaults.referenceMode ?? "single",
     referenceTargetModelKey: previous?.referenceTargetModelKey ?? "",
+    componentRepeatable: previous?.componentRepeatable ?? defaults.componentRepeatable ?? false,
     componentTargetModelKey: previous?.componentTargetModelKey ?? "",
+    componentMin: previous?.componentMin ?? "",
+    componentMax: previous?.componentMax ?? "",
     dynamicZoneComponentKeys: previous?.dynamicZoneComponentKeys ?? "",
     dynamicZoneMin: previous?.dynamicZoneMin ?? "",
     dynamicZoneMax: previous?.dynamicZoneMax ?? "",
@@ -424,7 +435,10 @@ export function createContentModelFieldDraftFromRow(
     booleanDefault,
     referenceMode: config.referenceMode === "multiple" ? "multiple" : "single",
     referenceTargetModelKey: asInputString(config.targetModelKey),
+    componentRepeatable: readBoolean(config.repeatable),
     componentTargetModelKey: asInputString(config.targetComponentKey),
+    componentMin: asInputString(config.min),
+    componentMax: asInputString(config.max),
     dynamicZoneComponentKeys: Array.isArray(config.components)
       ? config.components.filter((item): item is string => typeof item === "string").join("\n")
       : "",
@@ -535,7 +549,8 @@ export function buildContentModelFieldPayload(
     draft.typeId === "markdown" ||
     draft.typeId === "slug" ||
     draft.typeId === "email" ||
-    draft.typeId === "password"
+    draft.typeId === "password" ||
+    draft.typeId === "blocks"
   ) {
     const minLength = readIntegerString(draft.minLength);
     const maxLength = readIntegerString(draft.maxLength);
@@ -578,6 +593,11 @@ export function buildContentModelFieldPayload(
 
   if (draft.typeId === "component") {
     config.targetComponentKey = draft.componentTargetModelKey;
+    config.repeatable = draft.componentRepeatable;
+    const min = readIntegerString(draft.componentMin);
+    const max = readIntegerString(draft.componentMax);
+    if (draft.componentRepeatable && min !== null) config.min = min;
+    if (draft.componentRepeatable && max !== null) config.max = max;
   }
 
   if (draft.typeId === "dynamic_zone") {

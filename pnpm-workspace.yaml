@@ -4,6 +4,12 @@ packages:
   - packages/**
   - scripts/*
 
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  msgpackr-extract: true
+  msw: true
+
 catalogs:
   default:
     '@ariakit/react': ^0.4.24
