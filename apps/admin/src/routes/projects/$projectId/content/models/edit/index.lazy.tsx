@@ -8,6 +8,6 @@ export const Route = createLazyFileRoute("/projects/$projectId/content/models/ed
 
 function ProjectContentModelsEditRouteComponent() {
   const { projectId } = Route.useParams();
-  const { modelId } = Route.useSearch();
-  return <ContentModelEditPage projectId={projectId} modelId={modelId} />;
+  const { modelId, section } = Route.useSearch();
+  return <ContentModelEditPage projectId={projectId} modelId={modelId} section={section} />;
 }

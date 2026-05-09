@@ -27,9 +27,10 @@ import { buildDuplicateContentModelPayload } from "./utils";
 type ContentModelEditPageProps = {
   projectId: string;
   modelId?: string;
+  section?: "fields" | "settings";
 };
 
-export function ContentModelEditPage({ projectId, modelId }: ContentModelEditPageProps) {
+export function ContentModelEditPage({ projectId, modelId, section }: ContentModelEditPageProps) {
   const { t } = useTranslation(["content", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -131,6 +132,7 @@ export function ContentModelEditPage({ projectId, modelId }: ContentModelEditPag
       <ContentModelEditScreen
         projectId={projectId}
         model={activeModel}
+        section={section}
         canManageModels={canManageModels}
         pending={duplicateMutation.isPending || deleteMutation.isPending}
         onDuplicate={setDuplicateModel}

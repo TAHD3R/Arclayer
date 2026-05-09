@@ -14,7 +14,6 @@ import { Checkbox } from "@arclayer/ui/checkbox";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { cn } from "@arclayer/lib/utils";
-import { ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 
 type ContentModelSettingsTabProps = {
   projectId: string;
@@ -469,7 +468,7 @@ export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
   const canEdit = props.canManageModels && !props.pending;
 
   return (
-    <ChromeTabsContent value="settings" className="min-h-0 flex-1 pb-8">
+    <section className="min-h-0 pb-8">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 py-6">
         <SettingsSection
           icon={Settings2}
@@ -624,6 +623,6 @@ export function ContentModelSettingsTab(props: ContentModelSettingsTabProps) {
           </Button>
         </div>
       </div>
-    </ChromeTabsContent>
+    </section>
   );
 }

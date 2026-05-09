@@ -228,7 +228,6 @@ export function buildContentModelsTableColumns(params: {
       meta: {
         title: params.t("content:CONTENT_MODELS_TABLE_COL_MODEL_KIND"),
         kind: "meta",
-        defaultHidden: true,
       },
       header: params.t("content:CONTENT_MODELS_TABLE_COL_MODEL_KIND"),
       cell: ({ row }) => {

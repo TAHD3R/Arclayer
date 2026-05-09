@@ -197,7 +197,7 @@ export function SystemSettingField(props: {
       <span>
         <span className="block text-headline font-semibold text-label-primary">{props.label}</span>
         {props.description ? (
-          <span className="mt-1 block text-callout text-label-secondary">{props.description}</span>
+          <span className="mt-1 block text-label-secondary">{props.description}</span>
         ) : null}
       </span>
       {props.children}

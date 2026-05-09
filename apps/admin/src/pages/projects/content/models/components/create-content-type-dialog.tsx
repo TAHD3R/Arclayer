@@ -201,6 +201,7 @@ export function CreateContentTypeDialog({
             <Input
               value={values.name}
               disabled={pending}
+              placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_PLACEHOLDER")}
               aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
               aria-invalid={errors.name ? true : undefined}
               onChange={(event) => {
@@ -236,6 +237,7 @@ export function CreateContentTypeDialog({
                   id={singularInputId}
                   value={values.singularKey.value}
                   disabled={pending}
+                  placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_PLACEHOLDER")}
                   aria-invalid={errors.singularKey ? true : undefined}
                   onChange={(event) => {
                     setValues((current) => ({
@@ -258,6 +260,7 @@ export function CreateContentTypeDialog({
                   id={pluralInputId}
                   value={values.pluralKey.value}
                   disabled={pending}
+                  placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_PLACEHOLDER")}
                   aria-invalid={errors.pluralKey ? true : undefined}
                   onChange={(event) => {
                     setValues((current) => ({
@@ -275,6 +278,7 @@ export function CreateContentTypeDialog({
               aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}
               value={values.description}
               disabled={pending}
+              placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER")}
               rows={4}
               onChange={(event) =>
                 setValues((current) => ({ ...current, description: event.target.value }))

@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelEditScreen } from "@/pages/projects/content/models/components/content-model-edit-screen";
 import type { AdminContentModel } from "@arclayer/openapi/admin-types";
-import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
 const addContentModelFieldMock = vi.fn();
 const buildContentModelFieldTypesQueryKeyMock = vi.fn((projectId: string) => [
@@ -70,6 +69,32 @@ vi.mock("@/layouts/page-shell/default-page", () => ({
   ),
 }));
 
+vi.mock("@/components/layout/admin-side-nav/admin-sider-nav", () => ({
+  AdminSiderNav: ({
+    items,
+  }: {
+    items: Array<{
+      key: string;
+      label: string;
+      isActive?: boolean;
+      onAction?: () => void;
+    }>;
+  }) => (
+    <nav>
+      {items.map((item) => (
+        <button
+          key={item.key}
+          type="button"
+          aria-current={item.isActive ? "page" : undefined}
+          onClick={item.onAction}
+        >
+          {item.label}
+        </button>
+      ))}
+    </nav>
+  ),
+}));
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -79,18 +104,7 @@ function createWrapper() {
   });
 
   return function Wrapper({ children }: PropsWithChildren) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <ChromeTabsProvider
-          labels={{
-            scrollLeftAriaLabel: "scroll left",
-            scrollRightAriaLabel: "scroll right",
-          }}
-        >
-          {children}
-        </ChromeTabsProvider>
-      </QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -146,6 +160,15 @@ describe("content model edit screen", () => {
     );
 
     expect(screen.getByText("CONTENT_MODELS_FIELDS_EMPTY_TITLE")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CONTENT_MODELS_EDIT_TAB_FIELDS" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CONTENT_MODELS_EDIT_TAB_SETTINGS" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: "CONTENT_MODELS_EDIT_TAB_FIELDS" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }),
     ).toBeInTheDocument();
@@ -272,6 +295,19 @@ describe("content model edit screen", () => {
     expect(
       screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_DESCRIPTION_OPTIONAL_LABEL"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_BASIC/ }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.queryByRole("tab", { name: "CONTENT_MODELS_FIELD_CONFIG_TAB_BASIC" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_ADVANCED/ }),
+    );
+    expect(
+      screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_BASIC/ }));
     expect(screen.getByText("CONTENT_MODELS_FIELD_CONFIG_KEY_DESC")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "CONTENT_MODELS_CANCEL_ACTION" }),
@@ -345,10 +381,15 @@ describe("content model edit screen", () => {
     expect(
       screen.queryByRole("button", { name: "CONTENT_MODELS_EDIT_SAVE_ACTION" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "CONTENT_MODELS_EDIT_TAB_FIELDS" })).toBeInTheDocument();
     expect(
-      screen.getByRole("tab", { name: "CONTENT_MODELS_EDIT_TAB_SETTINGS" }),
-    ).toBeInTheDocument();
+      screen.getAllByRole("button", { name: /CONTENT_MODELS_EDIT_TAB_FIELDS/ }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("button", { name: /CONTENT_MODELS_EDIT_TAB_SETTINGS/ }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("tab", { name: "CONTENT_MODELS_EDIT_TAB_FIELDS" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Title")).toBeInTheDocument();
     expect(screen.getByText("title")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_MODELS_FIELD_TYPE_SHORT_TEXT_LABEL")).toBeInTheDocument();
