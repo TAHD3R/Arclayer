@@ -32,6 +32,12 @@ class MediaFieldType(AbstractFieldType):
         kind = config.get("mediaKind")
         if kind is not None and kind not in ("image", "video", "file"):
             raise ValueError("mediaKind must be 'image', 'video', or 'file'")
+        allowed_types = config.get("allowedTypes")
+        if allowed_types is not None:
+            if not isinstance(allowed_types, list) or not allowed_types:
+                raise ValueError("allowedTypes must include at least one media type")
+            if any(item not in ("images", "videos", "files") for item in allowed_types):
+                raise ValueError("allowedTypes must contain 'images', 'videos', or 'files'")
 
 
 class LocationFieldType(AbstractFieldType):

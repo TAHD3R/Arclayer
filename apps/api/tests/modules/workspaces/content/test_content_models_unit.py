@@ -253,6 +253,8 @@ def test_content_model_field_type_registry_exposes_builtin_and_plugin_contracts(
     assert "uid" not in field_types
     assert field_types["short_text"].scalar == "text"
     assert field_types["reference"].allowed_model_kinds == ["collection_type", "single_type"]
+    media_properties = cast(dict[str, object], field_types["media"].config_schema["properties"])
+    assert media_properties["allowedTypes"] == "string[]"
     dynamic_zone_properties = cast(dict[str, str], field_types["dynamic_zone"].config_schema["properties"])
     assert dynamic_zone_properties["components"] == "string[]"
     assert field_types["plugin.color.swatch"].source == "plugin"
@@ -394,6 +396,33 @@ def test_content_model_field_contract_validation_rejects_invalid_decimal_places(
                 label="Price",
                 scalar="number",
                 config={"kind": "decimal", "decimalPlaces": -1},
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_CONFIG_INVALID"
+
+
+def test_content_model_field_contract_validation_accepts_media_allowed_types() -> None:
+    validate_content_model_field_contract(
+        contracts_schema.ContentModelFieldContract(
+            key="gallery",
+            label="Gallery",
+            scalar="json",
+            config={"kind": "media", "mediaMode": "multiple", "allowedTypes": ["images", "videos"]},
+        ),
+        model_kind="collection_type",
+    )
+
+
+def test_content_model_field_contract_validation_rejects_invalid_media_allowed_types() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="gallery",
+                label="Gallery",
+                scalar="json",
+                config={"kind": "media", "allowedTypes": ["documents"]},
             ),
             model_kind="collection_type",
         )

@@ -131,8 +131,13 @@ const FIELD_CONFIG_MATRIX_CASES: FieldConfigMatrixCase[] = [
   {
     typeId: "media",
     expectedScalar: "json",
-    draft: { mediaKind: "video", mediaMode: "multiple" },
-    expectedConfig: { mediaKind: "video", mediaMode: "multiple", assetScope: "project" },
+    draft: { mediaAllowedTypes: ["videos", "files"], mediaMode: "multiple" },
+    expectedConfig: {
+      allowedTypes: ["videos", "files"],
+      mediaMode: "multiple",
+      assetScope: "project",
+    },
+    absentConfigKeys: ["mediaKind"],
   },
   {
     typeId: "location",
@@ -218,5 +223,6 @@ describe("content model field configuration matrix", () => {
       assetScope: "project",
     });
     expect(payload.config).not.toHaveProperty("mediaKind");
+    expect(payload.config).not.toHaveProperty("allowedTypes");
   });
 });

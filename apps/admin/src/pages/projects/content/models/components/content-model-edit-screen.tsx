@@ -126,6 +126,7 @@ import { createPortal } from "react-dom";
 
 import {
   buildContentModelFieldPayload,
+  CONTENT_MODEL_MEDIA_ALLOWED_TYPES,
   CONTENT_MODEL_FIELD_TYPE_GROUPS,
   createContentModelFieldDraftFromRow,
   createContentModelFieldDraft,
@@ -143,6 +144,7 @@ import {
   updateContentModelFieldDraftKey,
   type ContentModelFieldDraft,
   type ContentModelFieldRow,
+  type ContentModelMediaAllowedType,
   type ContentModelFieldTypeId,
 } from "../fields";
 import type { ContentModelsTableRow } from "../types";
@@ -208,6 +210,7 @@ type FieldDraftErrors = Partial<
     | "minLength"
     | "maxLength"
     | "regexPattern"
+    | "mediaAllowedTypes"
     | "referenceTargetModelKey"
     | "componentTargetModelKey"
     | "componentMin"
@@ -563,6 +566,12 @@ function supportsDateVariantSelection(typeId: ContentModelFieldTypeId) {
   return typeId === "date_time" || typeId === "date" || typeId === "time";
 }
 
+function getMediaAllowedTypeLabelKey(typeId: ContentModelMediaAllowedType): string {
+  if (typeId === "images") return "CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_IMAGE";
+  if (typeId === "videos") return "CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_VIDEO";
+  return "CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_FILE";
+}
+
 function isDarkMode(): boolean {
   if (typeof document === "undefined") return false;
   return normalizeThemeMode(document.documentElement.dataset.theme) === "dark";
@@ -651,6 +660,20 @@ function FieldConfigDialog(props: {
           nextKeys.delete(componentKey);
         }
         return { ...draft, dynamicZoneComponentKeys: [...nextKeys].join("\n") };
+      });
+    },
+    [props],
+  );
+  const toggleMediaAllowedType = React.useCallback(
+    (typeId: ContentModelMediaAllowedType, checked: boolean) => {
+      props.onDraftChange((draft) => {
+        const nextTypes = new Set(draft.mediaAllowedTypes);
+        if (checked) {
+          nextTypes.add(typeId);
+        } else {
+          nextTypes.delete(typeId);
+        }
+        return { ...draft, mediaAllowedTypes: [...nextTypes] };
       });
     },
     [props],
@@ -875,31 +898,27 @@ function FieldConfigDialog(props: {
                         }
                       />
                     </SettingDialogField>
-                    <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_LABEL")}>
-                      <ChoiceRadioGroup
-                        value={props.draft.mediaKind}
-                        options={[
-                          {
-                            value: "any",
-                            label: t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_ANY"),
-                          },
-                          {
-                            value: "image",
-                            label: t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_IMAGE"),
-                          },
-                          {
-                            value: "video",
-                            label: t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_VIDEO"),
-                          },
-                          {
-                            value: "file",
-                            label: t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_FILE"),
-                          },
-                        ]}
-                        onChange={(value) =>
-                          props.onDraftChange((draft) => ({ ...draft, mediaKind: value }))
-                        }
-                      />
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_KIND_LABEL")}
+                      error={props.errors.mediaAllowedTypes}
+                    >
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        {CONTENT_MODEL_MEDIA_ALLOWED_TYPES.map((typeId) => (
+                          <label
+                            key={typeId}
+                            className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-3 py-2 text-footnote text-label-primary"
+                          >
+                            <Checkbox
+                              checked={props.draft.mediaAllowedTypes.includes(typeId)}
+                              disabled={props.pending}
+                              onCheckedChange={(checked) =>
+                                toggleMediaAllowedType(typeId, Boolean(checked))
+                              }
+                            />
+                            <span>{t(getMediaAllowedTypeLabelKey(typeId))}</span>
+                          </label>
+                        ))}
+                      </div>
                     </SettingDialogField>
                   </>
                 ) : null}
@@ -2315,6 +2334,9 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     }
     if (draft.typeId === "component" && !draft.componentTargetModelKey.trim()) {
       errors.componentTargetModelKey = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_COMPONENT_TARGET");
+    }
+    if (draft.typeId === "media" && draft.mediaAllowedTypes.length === 0) {
+      errors.mediaAllowedTypes = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_MEDIA_ALLOWED_TYPES");
     }
     if (draft.typeId === "component" && draft.componentRepeatable) {
       const min = readPositiveIntegerInput(draft.componentMin);

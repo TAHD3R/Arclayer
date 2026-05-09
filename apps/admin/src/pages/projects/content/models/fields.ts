@@ -37,6 +37,9 @@ export type ContentModelBuiltInFieldTypeId =
 export type ContentModelFieldTypeId = ContentModelBuiltInFieldTypeId | "custom";
 
 export type ContentModelFieldTypeGroupId = "text" | "value_logic" | "time_media" | "structure";
+export type ContentModelMediaAllowedType = "images" | "videos" | "files";
+
+export const CONTENT_MODEL_MEDIA_ALLOWED_TYPES = ["images", "videos", "files"] as const;
 
 export const CONTENT_MODEL_FIELD_TYPE_GROUPS = [
   {
@@ -91,6 +94,7 @@ export type ContentModelFieldDraft = {
   numberMax: string;
   mediaMode: "single" | "multiple";
   mediaKind: "any" | "image" | "video" | "file";
+  mediaAllowedTypes: ContentModelMediaAllowedType[];
   booleanDefault: "none" | "true" | "false";
   referenceMode: "single" | "multiple";
   referenceTargetModelKey: string;
@@ -111,6 +115,8 @@ export type ContentModelFieldDraft = {
 type FieldConfigRecord = {
   kind?: unknown;
   localizable?: unknown;
+  allowedTypes?: unknown;
+  mediaKind?: unknown;
 };
 
 type FieldSchemaRecord = {
@@ -123,6 +129,21 @@ type FieldSchemaRecord = {
 function withDefaultString(value: string | undefined, defaultValue: string | undefined): string {
   if (value && value.trim()) return value;
   return defaultValue ?? "";
+}
+
+function readMediaAllowedTypes(config: FieldConfigRecord): ContentModelMediaAllowedType[] {
+  const allowedTypes = config.allowedTypes;
+  if (Array.isArray(allowedTypes)) {
+    const normalized = allowedTypes.filter(
+      (item): item is ContentModelMediaAllowedType =>
+        item === "images" || item === "videos" || item === "files",
+    );
+    if (normalized.length > 0) return [...new Set(normalized)];
+  }
+  if (config.mediaKind === "image") return ["images"];
+  if (config.mediaKind === "video") return ["videos"];
+  if (config.mediaKind === "file") return ["files"];
+  return [...CONTENT_MODEL_MEDIA_ALLOWED_TYPES];
 }
 
 const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentModelFieldDraft>> = {
@@ -173,6 +194,7 @@ const DEFAULTS_BY_TYPE: Record<ContentModelBuiltInFieldTypeId, Partial<ContentMo
   media: {
     localizable: false,
     mediaKind: "any",
+    mediaAllowedTypes: [...CONTENT_MODEL_MEDIA_ALLOWED_TYPES],
     mediaMode: "single",
   },
   location: {
@@ -398,7 +420,9 @@ export function createContentModelFieldDraft(
     numberMin: previous?.numberMin ?? "",
     numberMax: previous?.numberMax ?? "",
     mediaMode: previous?.mediaMode ?? defaults.mediaMode ?? "single",
-    mediaKind: previous?.mediaKind ?? defaults.mediaKind ?? "image",
+    mediaKind: previous?.mediaKind ?? defaults.mediaKind ?? "any",
+    mediaAllowedTypes: previous?.mediaAllowedTypes ??
+      defaults.mediaAllowedTypes ?? [...CONTENT_MODEL_MEDIA_ALLOWED_TYPES],
     booleanDefault: previous?.booleanDefault ?? defaults.booleanDefault ?? "none",
     referenceMode: previous?.referenceMode ?? defaults.referenceMode ?? "single",
     referenceTargetModelKey: previous?.referenceTargetModelKey ?? "",
@@ -453,6 +477,7 @@ export function createContentModelFieldDraftFromRow(
       config.mediaKind === "image" || config.mediaKind === "video" || config.mediaKind === "file"
         ? config.mediaKind
         : "any",
+    mediaAllowedTypes: readMediaAllowedTypes(config),
     booleanDefault,
     referenceMode: config.referenceMode === "multiple" ? "multiple" : "single",
     referenceTargetModelKey: asInputString(config.targetModelKey),
@@ -623,8 +648,11 @@ export function buildContentModelFieldPayload(
   if (draft.typeId === "media") {
     config.mediaMode = draft.mediaMode;
     config.assetScope = "project";
-    if (draft.mediaKind !== "any") {
-      config.mediaKind = draft.mediaKind;
+    const allowedTypes = draft.mediaAllowedTypes.filter((item, index, items) => {
+      return CONTENT_MODEL_MEDIA_ALLOWED_TYPES.includes(item) && items.indexOf(item) === index;
+    });
+    if (allowedTypes.length > 0 && allowedTypes.length < CONTENT_MODEL_MEDIA_ALLOWED_TYPES.length) {
+      config.allowedTypes = allowedTypes;
     }
   }
 

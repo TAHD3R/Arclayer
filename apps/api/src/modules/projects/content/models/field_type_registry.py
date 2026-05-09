@@ -155,7 +155,13 @@ _BUILT_IN_FIELD_TYPES: tuple[ContentModelFieldTypeDefinitionOut, ...] = (
         scalar="json",
         group="time_media",
         icon="image",
-        config_schema={"properties": {"mediaMode": ["single", "multiple"], "mediaKind": ["image", "video", "file"]}},
+        config_schema={
+            "properties": {
+                "mediaMode": ["single", "multiple"],
+                "mediaKind": ["image", "video", "file"],
+                "allowedTypes": "string[]",
+            }
+        },
     ),
     _field_type("location", scalar="json", group="time_media", icon="map-pin"),
     _field_type(
@@ -431,6 +437,20 @@ def _assert_dynamic_zone_validation(field: ContentModelFieldContract, config: di
     _assert_number_validation(config)
 
 
+def _assert_media_allowed_types(field: ContentModelFieldContract, config: dict[str, Any]) -> None:
+    allowed_types = config.get("allowedTypes")
+    if allowed_types is None:
+        return
+    normalized = _assert_non_empty_string_list(allowed_types, field=field, config_key="allowedTypes")
+    invalid = [item for item in normalized if item not in {"images", "videos", "files"}]
+    if invalid:
+        raise Conflict(
+            "allowedTypes values must be images, videos, or files",
+            error="CONTENT_MODEL_FIELD_CONFIG_INVALID",
+            meta={"fieldKey": field.key, "configKey": "allowedTypes"},
+        )
+
+
 def _assert_common_config(field: ContentModelFieldContract, config: dict[str, Any]) -> None:
     for key in ("localizable", "unique", "hiddenInEditor", "omitFromApiResponse"):
         value = config.get(key)
@@ -500,6 +520,7 @@ def validate_content_model_field_contract(
             raise Conflict("mediaMode must be single or multiple", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
         if config.get("mediaKind") not in (None, "image", "video", "file"):
             raise Conflict("mediaKind must be image, video, or file", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
+        _assert_media_allowed_types(field, config)
     if definition.config_kind == "component":
         target_component_key = config.get("targetComponentKey")
         if not isinstance(target_component_key, str) or not target_component_key.strip():
