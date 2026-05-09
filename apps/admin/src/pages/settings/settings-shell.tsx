@@ -60,7 +60,7 @@ function SettingsNavList(props: {
               {showLeadingLabel ? (
                 <li
                   data-slot="settings-nav-group-label"
-                  className="px-3 pt-4 pb-2 text-xs font-semibold text-label-tertiary"
+                  className="pl-2 pr-3 pt-4 pb-2 text-footnote font-semibold text-label-secondary"
                   aria-hidden="true"
                 >
                   {leadingLabel}

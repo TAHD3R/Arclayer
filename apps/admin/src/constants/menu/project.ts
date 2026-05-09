@@ -20,6 +20,14 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    key: "activity",
+    label: "Activity",
+    labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
+    to: "/activity",
+    icon: History,
+    insertStarredAfter: true,
+  },
+  {
     key: "assets",
     label: "Assets",
     labelKey: "nav:NAV_ASSETS",
@@ -185,14 +193,6 @@ const BASE_PROJECT_NAV_ITEMS: AdminNavItem[] = [
     to: "/automations",
     icon: Zap,
     disabled: true,
-  },
-  {
-    key: "activity",
-    label: "Activity",
-    labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
-    to: "/activity",
-    icon: History,
-    groupLabelBeforeKey: "nav:NAV_SECTION_OPERATIONS",
   },
   {
     key: "settings.project",
