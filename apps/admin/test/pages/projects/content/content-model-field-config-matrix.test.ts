@@ -131,11 +131,18 @@ const FIELD_CONFIG_MATRIX_CASES: FieldConfigMatrixCase[] = [
   {
     typeId: "media",
     expectedScalar: "json",
-    draft: { mediaAllowedTypes: ["videos", "files"], mediaMode: "multiple" },
+    draft: {
+      mediaAllowedTypes: ["videos", "files"],
+      mediaMode: "multiple",
+      mediaMin: "1",
+      mediaMax: "4",
+    },
     expectedConfig: {
       allowedTypes: ["videos", "files"],
       mediaMode: "multiple",
       assetScope: "project",
+      min: 1,
+      max: 4,
     },
     absentConfigKeys: ["mediaKind"],
   },
@@ -160,8 +167,13 @@ const FIELD_CONFIG_MATRIX_CASES: FieldConfigMatrixCase[] = [
   {
     typeId: "reference",
     expectedScalar: "json",
-    draft: { referenceMode: "multiple", referenceTargetModelKey: "article" },
-    expectedConfig: { referenceMode: "multiple", targetModelKey: "article" },
+    draft: {
+      referenceMode: "multiple",
+      referenceTargetModelKey: "article",
+      referenceMin: "1",
+      referenceMax: "3",
+    },
+    expectedConfig: { referenceMode: "multiple", targetModelKey: "article", min: 1, max: 3 },
   },
   {
     typeId: "component",

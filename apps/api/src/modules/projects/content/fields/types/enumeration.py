@@ -39,6 +39,9 @@ class EnumerationFieldType(AbstractFieldType):
         normalized = [o.strip() for o in options]
         if len(set(normalized)) != len(normalized):
             raise ValueError("Enumeration options must be unique")
+        default_value = config.get("defaultValue")
+        if default_value is not None and default_value not in normalized:
+            raise ValueError("Enumeration defaultValue must be one of the configured options")
 
 
 def _as_string_options(value: object) -> list[str]:

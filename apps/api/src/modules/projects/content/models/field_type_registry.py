@@ -160,6 +160,8 @@ _BUILT_IN_FIELD_TYPES: tuple[ContentModelFieldTypeDefinitionOut, ...] = (
                 "mediaMode": ["single", "multiple"],
                 "mediaKind": ["image", "video", "file"],
                 "allowedTypes": "string[]",
+                "min": "integer",
+                "max": "integer",
             }
         },
     ),
@@ -177,7 +179,14 @@ _BUILT_IN_FIELD_TYPES: tuple[ContentModelFieldTypeDefinitionOut, ...] = (
         scalar="json",
         group="structure",
         icon="waypoints",
-        config_schema={"properties": {"referenceMode": ["single", "multiple"], "targetModelKey": "string"}},
+        config_schema={
+            "properties": {
+                "referenceMode": ["single", "multiple"],
+                "targetModelKey": "string",
+                "min": "integer",
+                "max": "integer",
+            }
+        },
         allowed_model_kinds=["collection_type", "single_type"],
     ),
     _field_type(
@@ -185,7 +194,9 @@ _BUILT_IN_FIELD_TYPES: tuple[ContentModelFieldTypeDefinitionOut, ...] = (
         scalar="json",
         group="structure",
         icon="blocks",
-        config_schema={"properties": {"targetComponentKey": "string"}},
+        config_schema={
+            "properties": {"targetComponentKey": "string", "repeatable": "boolean", "min": "integer", "max": "integer"}
+        },
     ),
     _field_type(
         "dynamic_zone",
@@ -355,6 +366,13 @@ def _assert_enum_options(field: ContentModelFieldContract, config: dict[str, Any
             error="CONTENT_MODEL_FIELD_OPTIONS_DUPLICATE",
             meta={"fieldKey": field.key},
         )
+    default_value = config.get("defaultValue")
+    if default_value is not None and (not isinstance(default_value, str) or default_value not in normalized):
+        raise Conflict(
+            "Enumeration defaultValue must be one of the configured options",
+            error="CONTENT_MODEL_FIELD_CONFIG_INVALID",
+            meta={"fieldKey": field.key, "configKey": "defaultValue"},
+        )
 
 
 def _assert_text_validation(field: ContentModelFieldContract, config: dict[str, Any]) -> None:
@@ -408,6 +426,29 @@ def _assert_number_validation(config: dict[str, Any]) -> None:
         raise Conflict("min cannot exceed max", error="CONTENT_MODEL_FIELD_VALIDATION_INVALID")
 
 
+def _assert_integer_bounds_validation(config: dict[str, Any]) -> None:
+    min_value = config.get("min")
+    max_value = config.get("max")
+    if min_value is not None and (type(min_value) is not int or min_value < 0):
+        raise Conflict("min must be a non-negative integer", error="CONTENT_MODEL_FIELD_VALIDATION_INVALID")
+    if max_value is not None and (type(max_value) is not int or max_value < 0):
+        raise Conflict("max must be a non-negative integer", error="CONTENT_MODEL_FIELD_VALIDATION_INVALID")
+    if type(min_value) is int and type(max_value) is int and min_value > max_value:
+        raise Conflict("min cannot exceed max", error="CONTENT_MODEL_FIELD_VALIDATION_INVALID")
+
+
+def _assert_multiple_only_bounds(config: dict[str, Any], *, mode_key: str, multiple_value: str) -> None:
+    if "min" not in config and "max" not in config:
+        return
+    if config.get(mode_key) == multiple_value:
+        _assert_integer_bounds_validation(config)
+        return
+    raise Conflict(
+        "min and max can only be configured for multiple-value fields",
+        error="CONTENT_MODEL_FIELD_VALIDATION_INVALID",
+    )
+
+
 def _assert_decimal_validation(config: dict[str, Any]) -> None:
     _assert_number_validation(config)
     decimal_places = config.get("decimalPlaces")
@@ -434,7 +475,7 @@ def _assert_non_empty_string_list(value: Any, *, field: ContentModelFieldContrac
 
 def _assert_dynamic_zone_validation(field: ContentModelFieldContract, config: dict[str, Any]) -> None:
     _assert_non_empty_string_list(config.get("components"), field=field, config_key="components")
-    _assert_number_validation(config)
+    _assert_integer_bounds_validation(config)
 
 
 def _assert_media_allowed_types(field: ContentModelFieldContract, config: dict[str, Any]) -> None:
@@ -515,12 +556,16 @@ def validate_content_model_field_contract(
                 error="CONTENT_MODEL_FIELD_REFERENCE_TARGET_REQUIRED",
                 meta={"fieldKey": field.key},
             )
+        if config.get("referenceMode") not in (None, "single", "multiple"):
+            raise Conflict("referenceMode must be single or multiple", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
+        _assert_multiple_only_bounds(config, mode_key="referenceMode", multiple_value="multiple")
     if definition.config_kind == "media":
         if config.get("mediaMode") not in (None, "single", "multiple"):
             raise Conflict("mediaMode must be single or multiple", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
         if config.get("mediaKind") not in (None, "image", "video", "file"):
             raise Conflict("mediaKind must be image, video, or file", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
         _assert_media_allowed_types(field, config)
+        _assert_multiple_only_bounds(config, mode_key="mediaMode", multiple_value="multiple")
     if definition.config_kind == "component":
         target_component_key = config.get("targetComponentKey")
         if not isinstance(target_component_key, str) or not target_component_key.strip():
@@ -529,13 +574,23 @@ def validate_content_model_field_contract(
                 error="CONTENT_MODEL_FIELD_COMPONENT_TARGET_REQUIRED",
                 meta={"fieldKey": field.key},
             )
+        repeatable = config.get("repeatable")
+        if repeatable is not None and not isinstance(repeatable, bool):
+            raise Conflict("repeatable must be a boolean", error="CONTENT_MODEL_FIELD_CONFIG_INVALID")
+        if "min" in config or "max" in config:
+            if repeatable is not True:
+                raise Conflict(
+                    "min and max can only be configured for repeatable component fields",
+                    error="CONTENT_MODEL_FIELD_VALIDATION_INVALID",
+                )
+            _assert_integer_bounds_validation(config)
     if definition.config_kind == "dynamic_zone":
         _assert_dynamic_zone_validation(field, config)
     if definition.config_kind == "blocks":
         allowed_blocks = config.get("allowedBlocks")
         if allowed_blocks is not None:
             _assert_non_empty_string_list(allowed_blocks, field=field, config_key="allowedBlocks")
-        _assert_number_validation(config)
+        _assert_integer_bounds_validation(config)
 
 
 def validate_content_model_field_contracts(

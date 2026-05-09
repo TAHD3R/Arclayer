@@ -32,6 +32,7 @@ class ReferenceFieldType(AbstractFieldType):
         mode = config.get("referenceMode", "single")
         if mode not in ("single", "multiple"):
             raise ValueError("referenceMode must be 'single' or 'multiple'")
+        _assert_multiple_item_bounds(config, mode=mode, mode_name="referenceMode")
 
 
 class ComponentFieldType(AbstractFieldType):
@@ -54,6 +55,13 @@ class ComponentFieldType(AbstractFieldType):
         target = config.get("targetComponentKey")
         if not isinstance(target, str) or not target.strip():
             raise ValueError("Component field requires targetComponentKey")
+        repeatable = config.get("repeatable", False)
+        if not isinstance(repeatable, bool):
+            raise ValueError("repeatable must be a boolean")
+        if "min" in config or "max" in config:
+            if repeatable is not True:
+                raise ValueError("min and max can only be configured for repeatable components")
+            _assert_integer_bounds(config)
 
 
 class DynamicZoneFieldType(AbstractFieldType):
@@ -78,3 +86,23 @@ class DynamicZoneFieldType(AbstractFieldType):
             raise ValueError("Dynamic zone requires at least one component")
         if not all(isinstance(c, str) and c.strip() for c in components):
             raise ValueError("Dynamic zone components must be non-empty strings")
+        _assert_integer_bounds(config)
+
+
+def _assert_multiple_item_bounds(config: FieldConfig, *, mode: object, mode_name: str) -> None:
+    if "min" not in config and "max" not in config:
+        return
+    if mode != "multiple":
+        raise ValueError(f"min and max can only be configured when {mode_name} is 'multiple'")
+    _assert_integer_bounds(config)
+
+
+def _assert_integer_bounds(config: FieldConfig) -> None:
+    min_value = config.get("min")
+    max_value = config.get("max")
+    if min_value is not None and (type(min_value) is not int or min_value < 0):
+        raise ValueError("min must be a non-negative integer")
+    if max_value is not None and (type(max_value) is not int or max_value < 0):
+        raise ValueError("max must be a non-negative integer")
+    if type(min_value) is int and type(max_value) is int and min_value > max_value:
+        raise ValueError("min must not exceed max")

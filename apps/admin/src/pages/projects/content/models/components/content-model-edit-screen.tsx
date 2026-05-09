@@ -204,14 +204,20 @@ type FieldDraftErrors = Partial<
   Record<
     | "name"
     | "key"
+    | "defaultValue"
     | "numberMin"
     | "numberMax"
     | "decimalPlaces"
     | "minLength"
     | "maxLength"
     | "regexPattern"
+    | "enumerationOptions"
     | "mediaAllowedTypes"
+    | "mediaMin"
+    | "mediaMax"
     | "referenceTargetModelKey"
+    | "referenceMin"
+    | "referenceMax"
     | "componentTargetModelKey"
     | "componentMin"
     | "componentMax"
@@ -861,7 +867,10 @@ function FieldConfigDialog(props: {
                 ) : null}
 
                 {props.draft.typeId === "enumeration" ? (
-                  <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_ENUM_OPTIONS_LABEL")}>
+                  <SettingDialogField
+                    title={t("CONTENT_MODELS_FIELD_CONFIG_ENUM_OPTIONS_LABEL")}
+                    error={props.errors.enumerationOptions}
+                  >
                     <Textarea
                       aria-label={t("CONTENT_MODELS_FIELD_CONFIG_ENUM_OPTIONS_LABEL")}
                       value={props.draft.enumerationOptions}
@@ -1109,20 +1118,62 @@ function FieldConfigDialog(props: {
             ) : (
               <SettingDialogFields>
                 {supportsDefaultValue ? (
-                  <SettingDialogField title={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL")}>
-                    <Input
-                      aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL")}
-                      type={supportsNumberValidation(props.draft.typeId) ? "number" : "text"}
-                      value={props.draft.defaultValue}
-                      disabled={props.pending}
-                      placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_PLACEHOLDER")}
-                      onChange={(event) =>
-                        props.onDraftChange((draft) => ({
-                          ...draft,
-                          defaultValue: event.target.value,
-                        }))
-                      }
-                    />
+                  <SettingDialogField
+                    title={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL")}
+                    error={props.errors.defaultValue}
+                  >
+                    {props.draft.typeId === "enumeration" ? (
+                      <Select
+                        value={props.draft.defaultValue || "__unset__"}
+                        onValueChange={(value) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            defaultValue: value === "__unset__" ? "" : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger
+                          className="w-full"
+                          disabled={props.pending}
+                          aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL")}
+                        >
+                          <SelectValue
+                            placeholder={t("CONTENT_MODELS_FIELD_CONFIG_ENUM_DEFAULT_PLACEHOLDER")}
+                          />
+                        </SelectTrigger>
+                        <SelectContent position="popper" align="start">
+                          <SelectItem value="__unset__">
+                            {t("CONTENT_MODELS_FIELD_CONFIG_ENUM_DEFAULT_PLACEHOLDER")}
+                          </SelectItem>
+                          {[
+                            ...new Set(
+                              props.draft.enumerationOptions
+                                .split("\n")
+                                .map((option) => option.trim())
+                                .filter(Boolean),
+                            ),
+                          ].map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL")}
+                        type={supportsNumberValidation(props.draft.typeId) ? "number" : "text"}
+                        value={props.draft.defaultValue}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            defaultValue: event.target.value,
+                          }))
+                        }
+                      />
+                    )}
                   </SettingDialogField>
                 ) : null}
 
@@ -1218,6 +1269,84 @@ function FieldConfigDialog(props: {
                           props.onDraftChange((draft) => ({
                             ...draft,
                             numberMax: event.target.value,
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                  </div>
+                ) : null}
+
+                {props.draft.typeId === "media" && props.draft.mediaMode === "multiple" ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_MIN_LABEL")}
+                      error={props.errors.mediaMin}
+                    >
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_MIN_LABEL")}
+                        value={props.draft.mediaMin}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            mediaMin: event.target.value,
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_MAX_LABEL")}
+                      error={props.errors.mediaMax}
+                    >
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_MEDIA_MAX_LABEL")}
+                        value={props.draft.mediaMax}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            mediaMax: event.target.value,
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                  </div>
+                ) : null}
+
+                {props.draft.typeId === "reference" && props.draft.referenceMode === "multiple" ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_MIN_LABEL")}
+                      error={props.errors.referenceMin}
+                    >
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_MIN_LABEL")}
+                        value={props.draft.referenceMin}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            referenceMin: event.target.value,
+                          }))
+                        }
+                      />
+                    </SettingDialogField>
+                    <SettingDialogField
+                      title={t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_MAX_LABEL")}
+                      error={props.errors.referenceMax}
+                    >
+                      <Input
+                        aria-label={t("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_MAX_LABEL")}
+                        value={props.draft.referenceMax}
+                        disabled={props.pending}
+                        placeholder={t("CONTENT_MODELS_FIELD_CONFIG_LENGTH_PLACEHOLDER")}
+                        onChange={(event) =>
+                          props.onDraftChange((draft) => ({
+                            ...draft,
+                            referenceMax: event.target.value,
                           }))
                         }
                       />
@@ -2337,6 +2466,50 @@ export function ContentModelEditScreen(props: ContentModelEditScreenProps) {
     }
     if (draft.typeId === "media" && draft.mediaAllowedTypes.length === 0) {
       errors.mediaAllowedTypes = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_MEDIA_ALLOWED_TYPES");
+    }
+    if (draft.typeId === "enumeration") {
+      const options = draft.enumerationOptions
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (options.length === 0) {
+        errors.enumerationOptions = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_ENUM_OPTIONS");
+      } else {
+        const normalizedOptions = new Set(options);
+        if (normalizedOptions.size !== options.length) {
+          errors.enumerationOptions = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_ENUM_OPTIONS_DUP");
+        }
+        const defaultValue = draft.defaultValue.trim();
+        if (defaultValue && !normalizedOptions.has(defaultValue)) {
+          errors.defaultValue = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_ENUM_DEFAULT");
+        }
+      }
+    }
+    if (draft.typeId === "media" && draft.mediaMode === "multiple") {
+      const min = readPositiveIntegerInput(draft.mediaMin);
+      const max = readPositiveIntegerInput(draft.mediaMax);
+      if (Number.isNaN(min)) {
+        errors.mediaMin = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+      if (Number.isNaN(max)) {
+        errors.mediaMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+      if (min !== null && max !== null && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
+        errors.mediaMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_NUMBER_RANGE");
+      }
+    }
+    if (draft.typeId === "reference" && draft.referenceMode === "multiple") {
+      const min = readPositiveIntegerInput(draft.referenceMin);
+      const max = readPositiveIntegerInput(draft.referenceMax);
+      if (Number.isNaN(min)) {
+        errors.referenceMin = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+      if (Number.isNaN(max)) {
+        errors.referenceMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_POSITIVE_INTEGER");
+      }
+      if (min !== null && max !== null && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
+        errors.referenceMax = t("CONTENT_MODELS_FIELD_CONFIG_VALIDATION_NUMBER_RANGE");
+      }
     }
     if (draft.typeId === "component" && draft.componentRepeatable) {
       const min = readPositiveIntegerInput(draft.componentMin);

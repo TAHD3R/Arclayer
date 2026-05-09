@@ -38,6 +38,22 @@ class MediaFieldType(AbstractFieldType):
                 raise ValueError("allowedTypes must include at least one media type")
             if any(item not in ("images", "videos", "files") for item in allowed_types):
                 raise ValueError("allowedTypes must contain 'images', 'videos', or 'files'")
+        _assert_multiple_item_bounds(config, mode=mode)
+
+
+def _assert_multiple_item_bounds(config: FieldConfig, *, mode: object) -> None:
+    if "min" not in config and "max" not in config:
+        return
+    if mode != "multiple":
+        raise ValueError("min and max can only be configured when mediaMode is 'multiple'")
+    min_value = config.get("min")
+    max_value = config.get("max")
+    if min_value is not None and (type(min_value) is not int or min_value < 0):
+        raise ValueError("min must be a non-negative integer")
+    if max_value is not None and (type(max_value) is not int or max_value < 0):
+        raise ValueError("max must be a non-negative integer")
+    if type(min_value) is int and type(max_value) is int and min_value > max_value:
+        raise ValueError("min must not exceed max")
 
 
 class LocationFieldType(AbstractFieldType):

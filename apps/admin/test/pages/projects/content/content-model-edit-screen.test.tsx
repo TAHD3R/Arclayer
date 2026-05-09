@@ -896,6 +896,189 @@ describe("content model edit screen", () => {
     });
   });
 
+  test("submits enumeration options and default value when configured", async () => {
+    addContentModelFieldMock.mockResolvedValue(buildModel());
+
+    render(
+      <ContentModelEditScreen
+        projectId="project-1"
+        model={buildModel()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onModelChange={vi.fn()}
+        onRefreshModels={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_ENUMERATION_LABEL" }),
+    );
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL"), {
+      target: { value: "Status" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_ENUM_OPTIONS_LABEL"), {
+      target: { value: "draft\npublished" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_ADVANCED/ }),
+    );
+    fireEvent.click(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_DEFAULT_VALUE_LABEL"));
+    await waitFor(() => {
+      expect(screen.getAllByText("published").length).toBeGreaterThan(0);
+    });
+    const publishedOptions = screen.getAllByText("published");
+    fireEvent.click(publishedOptions[publishedOptions.length - 1]);
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_CONFIG_SUBMIT" }));
+
+    await waitFor(() => {
+      expect(addContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", {
+        key: "status",
+        label: "Status",
+        scalar: "text",
+        required: false,
+        config: {
+          kind: "enumeration",
+          localizable: true,
+          options: ["draft", "published"],
+          defaultValue: "published",
+        },
+      });
+    });
+  });
+
+  test("submits media item bounds for multiple media fields", async () => {
+    addContentModelFieldMock.mockResolvedValue(buildModel());
+
+    render(
+      <ContentModelEditScreen
+        projectId="project-1"
+        model={buildModel()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onModelChange={vi.fn()}
+        onRefreshModels={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }));
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_MEDIA_LABEL" }));
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL"), {
+      target: { value: "Gallery" },
+    });
+    fireEvent.click(screen.getByText("CONTENT_MODELS_FIELD_CONFIG_MEDIA_MODE_MULTIPLE"));
+    fireEvent.click(
+      screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_ADVANCED/ }),
+    );
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_MEDIA_MIN_LABEL"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_MEDIA_MAX_LABEL"), {
+      target: { value: "4" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_CONFIG_SUBMIT" }));
+
+    await waitFor(() => {
+      expect(addContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", {
+        key: "gallery",
+        label: "Gallery",
+        scalar: "json",
+        required: false,
+        config: {
+          kind: "media",
+          localizable: true,
+          mediaMode: "multiple",
+          assetScope: "project",
+          min: 1,
+          max: 4,
+        },
+      });
+    });
+  });
+
+  test("submits reference item bounds for multiple reference fields", async () => {
+    listAllContentModelsMock.mockResolvedValue([
+      buildModel(),
+      buildModel({
+        id: "model-2",
+        singularKey: "authorProfile",
+        pluralKey: "authorProfiles",
+        name: "Author profile",
+      }),
+    ]);
+    addContentModelFieldMock.mockResolvedValue(buildModel());
+
+    render(
+      <ContentModelEditScreen
+        projectId="project-1"
+        model={buildModel()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onModelChange={vi.fn()}
+        onRefreshModels={vi.fn()}
+        onClose={vi.fn()}
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELDS_EMPTY_ACTION" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_TYPE_REFERENCE_LABEL" }),
+    );
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_NAME_LABEL"), {
+      target: { value: "Related Authors" },
+    });
+    fireEvent.click(screen.getByText("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_MODE_MULTIPLE"));
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_LABEL"),
+      ).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_TARGET_LABEL"));
+    await waitFor(() => {
+      expect(screen.getAllByText("Author profile").length).toBeGreaterThan(1);
+    });
+    const authorProfileOptions = screen.getAllByText("Author profile");
+    fireEvent.click(authorProfileOptions[authorProfileOptions.length - 1]);
+    fireEvent.click(
+      screen.getByRole("button", { name: /CONTENT_MODELS_FIELD_CONFIG_TAB_ADVANCED/ }),
+    );
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_MIN_LABEL"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByLabelText("CONTENT_MODELS_FIELD_CONFIG_REFERENCE_MAX_LABEL"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_FIELD_CONFIG_SUBMIT" }));
+
+    await waitFor(() => {
+      expect(addContentModelFieldMock).toHaveBeenCalledWith("project-1", "model-1", {
+        key: "relatedAuthors",
+        label: "Related Authors",
+        scalar: "json",
+        required: false,
+        config: {
+          kind: "reference",
+          localizable: false,
+          referenceMode: "multiple",
+          targetModelKey: "authorProfile",
+          min: 1,
+          max: 3,
+        },
+      });
+    });
+  });
+
   test.each(FIELD_TYPE_CONFIG_SMOKE_CASES)(
     "shows type-specific config controls for %s",
     async (

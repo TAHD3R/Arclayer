@@ -95,9 +95,13 @@ export type ContentModelFieldDraft = {
   mediaMode: "single" | "multiple";
   mediaKind: "any" | "image" | "video" | "file";
   mediaAllowedTypes: ContentModelMediaAllowedType[];
+  mediaMin: string;
+  mediaMax: string;
   booleanDefault: "none" | "true" | "false";
   referenceMode: "single" | "multiple";
   referenceTargetModelKey: string;
+  referenceMin: string;
+  referenceMax: string;
   componentRepeatable: boolean;
   componentTargetModelKey: string;
   componentMin: string;
@@ -423,9 +427,13 @@ export function createContentModelFieldDraft(
     mediaKind: previous?.mediaKind ?? defaults.mediaKind ?? "any",
     mediaAllowedTypes: previous?.mediaAllowedTypes ??
       defaults.mediaAllowedTypes ?? [...CONTENT_MODEL_MEDIA_ALLOWED_TYPES],
+    mediaMin: previous?.mediaMin ?? "",
+    mediaMax: previous?.mediaMax ?? "",
     booleanDefault: previous?.booleanDefault ?? defaults.booleanDefault ?? "none",
     referenceMode: previous?.referenceMode ?? defaults.referenceMode ?? "single",
     referenceTargetModelKey: previous?.referenceTargetModelKey ?? "",
+    referenceMin: previous?.referenceMin ?? "",
+    referenceMax: previous?.referenceMax ?? "",
     componentRepeatable: previous?.componentRepeatable ?? defaults.componentRepeatable ?? false,
     componentTargetModelKey: previous?.componentTargetModelKey ?? "",
     componentMin: previous?.componentMin ?? "",
@@ -478,9 +486,13 @@ export function createContentModelFieldDraftFromRow(
         ? config.mediaKind
         : "any",
     mediaAllowedTypes: readMediaAllowedTypes(config),
+    mediaMin: asInputString(config.min),
+    mediaMax: asInputString(config.max),
     booleanDefault,
     referenceMode: config.referenceMode === "multiple" ? "multiple" : "single",
     referenceTargetModelKey: asInputString(config.targetModelKey),
+    referenceMin: asInputString(config.min),
+    referenceMax: asInputString(config.max),
     componentRepeatable: readBoolean(config.repeatable),
     componentTargetModelKey: asInputString(config.targetComponentKey),
     componentMin: asInputString(config.min),
@@ -648,6 +660,10 @@ export function buildContentModelFieldPayload(
   if (draft.typeId === "media") {
     config.mediaMode = draft.mediaMode;
     config.assetScope = "project";
+    const min = readIntegerString(draft.mediaMin);
+    const max = readIntegerString(draft.mediaMax);
+    if (draft.mediaMode === "multiple" && min !== null) config.min = min;
+    if (draft.mediaMode === "multiple" && max !== null) config.max = max;
     const allowedTypes = draft.mediaAllowedTypes.filter((item, index, items) => {
       return CONTENT_MODEL_MEDIA_ALLOWED_TYPES.includes(item) && items.indexOf(item) === index;
     });
@@ -663,6 +679,10 @@ export function buildContentModelFieldPayload(
   if (draft.typeId === "reference") {
     config.referenceMode = draft.referenceMode;
     config.targetModelKey = draft.referenceTargetModelKey;
+    const min = readIntegerString(draft.referenceMin);
+    const max = readIntegerString(draft.referenceMax);
+    if (draft.referenceMode === "multiple" && min !== null) config.min = min;
+    if (draft.referenceMode === "multiple" && max !== null) config.max = max;
   }
 
   if (draft.typeId === "component") {

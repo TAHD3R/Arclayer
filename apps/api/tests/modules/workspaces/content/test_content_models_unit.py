@@ -255,6 +255,15 @@ def test_content_model_field_type_registry_exposes_builtin_and_plugin_contracts(
     assert field_types["reference"].allowed_model_kinds == ["collection_type", "single_type"]
     media_properties = cast(dict[str, object], field_types["media"].config_schema["properties"])
     assert media_properties["allowedTypes"] == "string[]"
+    assert media_properties["min"] == "integer"
+    assert media_properties["max"] == "integer"
+    reference_properties = cast(dict[str, object], field_types["reference"].config_schema["properties"])
+    assert reference_properties["min"] == "integer"
+    assert reference_properties["max"] == "integer"
+    component_properties = cast(dict[str, object], field_types["component"].config_schema["properties"])
+    assert component_properties["repeatable"] == "boolean"
+    assert component_properties["min"] == "integer"
+    assert component_properties["max"] == "integer"
     dynamic_zone_properties = cast(dict[str, str], field_types["dynamic_zone"].config_schema["properties"])
     assert dynamic_zone_properties["components"] == "string[]"
     assert field_types["plugin.color.swatch"].source == "plugin"
@@ -403,6 +412,21 @@ def test_content_model_field_contract_validation_rejects_invalid_decimal_places(
     assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_CONFIG_INVALID"
 
 
+def test_content_model_field_contract_validation_rejects_invalid_enumeration_default() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="status",
+                label="Status",
+                scalar="text",
+                config={"kind": "enumeration", "options": ["draft", "published"], "defaultValue": "archived"},
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_CONFIG_INVALID"
+
+
 def test_content_model_field_contract_validation_accepts_media_allowed_types() -> None:
     validate_content_model_field_contract(
         contracts_schema.ContentModelFieldContract(
@@ -410,6 +434,18 @@ def test_content_model_field_contract_validation_accepts_media_allowed_types() -
             label="Gallery",
             scalar="json",
             config={"kind": "media", "mediaMode": "multiple", "allowedTypes": ["images", "videos"]},
+        ),
+        model_kind="collection_type",
+    )
+
+
+def test_content_model_field_contract_validation_accepts_media_item_bounds() -> None:
+    validate_content_model_field_contract(
+        contracts_schema.ContentModelFieldContract(
+            key="gallery",
+            label="Gallery",
+            scalar="json",
+            config={"kind": "media", "mediaMode": "multiple", "min": 1, "max": 4},
         ),
         model_kind="collection_type",
     )
@@ -428,6 +464,97 @@ def test_content_model_field_contract_validation_rejects_invalid_media_allowed_t
         )
 
     assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_CONFIG_INVALID"
+
+
+def test_content_model_field_contract_validation_rejects_single_media_item_bounds() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="gallery",
+                label="Gallery",
+                scalar="json",
+                config={"kind": "media", "mediaMode": "single", "min": 1},
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_VALIDATION_INVALID"
+
+
+def test_content_model_field_contract_validation_accepts_reference_item_bounds() -> None:
+    validate_content_model_field_contract(
+        contracts_schema.ContentModelFieldContract(
+            key="relatedArticles",
+            label="Related articles",
+            scalar="json",
+            config={
+                "kind": "reference",
+                "referenceMode": "multiple",
+                "targetModelKey": "article",
+                "min": 1,
+                "max": 3,
+            },
+        ),
+        model_kind="collection_type",
+    )
+
+
+def test_content_model_field_contract_validation_rejects_single_reference_item_bounds() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="relatedArticles",
+                label="Related articles",
+                scalar="json",
+                config={
+                    "kind": "reference",
+                    "referenceMode": "single",
+                    "targetModelKey": "article",
+                    "min": 1,
+                },
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_VALIDATION_INVALID"
+
+
+def test_content_model_field_contract_validation_accepts_repeatable_component_bounds() -> None:
+    validate_content_model_field_contract(
+        contracts_schema.ContentModelFieldContract(
+            key="seo",
+            label="SEO",
+            scalar="json",
+            config={
+                "kind": "component",
+                "targetComponentKey": "seoBlock",
+                "repeatable": True,
+                "min": 1,
+                "max": 3,
+            },
+        ),
+        model_kind="collection_type",
+    )
+
+
+def test_content_model_field_contract_validation_rejects_non_repeatable_component_bounds() -> None:
+    with pytest.raises(Exception) as exc:
+        validate_content_model_field_contract(
+            contracts_schema.ContentModelFieldContract(
+                key="seo",
+                label="SEO",
+                scalar="json",
+                config={
+                    "kind": "component",
+                    "targetComponentKey": "seoBlock",
+                    "repeatable": False,
+                    "min": 1,
+                },
+            ),
+            model_kind="collection_type",
+        )
+
+    assert getattr(exc.value, "error", None) == "CONTENT_MODEL_FIELD_VALIDATION_INVALID"
 
 
 def test_component_model_kind_rejects_delivery_capabilities() -> None:
