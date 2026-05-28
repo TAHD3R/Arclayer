@@ -1,7 +1,8 @@
 import type { MouseEvent as ReactMouseEvent, PropsWithChildren } from "react";
 import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentModelsControlCenterPage } from "@/pages/projects/content/models/page";
@@ -12,6 +13,7 @@ import {
   toContentModelsTableQuery,
 } from "@/pages/projects/content/models/utils";
 import type { AdminContentModel } from "@arclayer/openapi/admin-types";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const createContentModelMock = vi.fn();
@@ -171,7 +173,14 @@ function createWrapper(queryClient = createTestQueryClient()) {
   function Wrapper({ children }: PropsWithChildren) {
     return (
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>{children}</TooltipProvider>
+        <ChromeTabsProvider
+          labels={{
+            scrollLeftAriaLabel: "Scroll tabs left",
+            scrollRightAriaLabel: "Scroll tabs right",
+          }}
+        >
+          <TooltipProvider>{children}</TooltipProvider>
+        </ChromeTabsProvider>
       </QueryClientProvider>
     );
   }
@@ -217,6 +226,12 @@ async function findCreateInput(label: string) {
   });
   if (!input) throw new Error(`Missing create content type input: ${label}`);
   return input;
+}
+
+async function openCreateDetailsView() {
+  fireEvent.click(
+    await screen.findByRole("button", { name: "CONTENT_MODELS_CREATE_CONTINUE_ACTION" }),
+  );
 }
 
 describe("content model builder", () => {
@@ -289,6 +304,28 @@ describe("content model builder", () => {
       wrapper: createWrapper(queryClient),
     });
 
+    expect(
+      await screen.findByRole("tab", { name: "CONTENT_MODELS_CREATE_MANUAL_TAB" }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(
+      screen.getByRole("heading", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_TITLE" }),
+    ).toHaveClass("sr-only");
+    expect(screen.getByText("CONTENT_MODELS_CREATE_STARTER_TEMPLATE_TITLE")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_TEMPLATE_BLANK_LABEL" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_TEMPLATE_BLOG_POSTS_LABEL" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_TEMPLATE_TEAM_MEMBERS_LABEL" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: /CONTENT_MODELS_KIND_COLLECTION_TYPE/ }),
+    ).toBeInTheDocument();
+
+    await openCreateDetailsView();
+
     fireEvent.change(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "Blog Post" },
     });
@@ -311,22 +348,12 @@ describe("content model builder", () => {
     );
 
     expect(screen.getByText("18/256")).toBeInTheDocument();
-    const kindSection = screen
-      .getByText("CONTENT_MODELS_CREATE_CONTENT_TYPE_KIND_LABEL")
-      .closest("div.grid.min-w-0.gap-3");
-    const nameSection = screen
-      .getByText("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")
-      .closest("div.grid.min-w-0.gap-3");
-    expect(kindSection?.nextElementSibling).toBe(nameSection);
-    expect(screen.getByText("CONTENT_MODELS_KIND_COLLECTION_TYPE")).toHaveClass(
-      "text-callout",
-      "font-semibold",
-      "text-label-primary",
-    );
+    expect(
+      screen.getByRole("heading", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_TITLE" }),
+    ).not.toHaveClass("sr-only");
+    expect(screen.queryByText("CONTENT_MODELS_CREATE_MODEL_TYPE_TITLE")).not.toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONTENT_TYPE_SUBMIT" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_CONFIRM" }));
 
     await waitFor(() => {
       expect(createContentModelMock).toHaveBeenCalledWith("project-1", {
@@ -361,6 +388,31 @@ describe("content model builder", () => {
     expect(listAllContentModelsMock).not.toHaveBeenCalled();
   });
 
+  test("ai tab shows placeholder and disables the primary action", async () => {
+    const user = userEvent.setup();
+    render(<ContentModelEditPage projectId="project-1" createOpen />, {
+      wrapper: createWrapper(),
+    });
+
+    await user.click(await screen.findByRole("tab", { name: "CONTENT_MODELS_CREATE_AI_TAB" }));
+
+    await waitFor(() => {
+      const dialog = screen.getByRole("dialog");
+      expect(
+        within(dialog).getByText("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_TITLE"),
+      ).toBeInTheDocument();
+      expect(
+        within(dialog).getByText("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_DESC"),
+      ).toBeInTheDocument();
+      expect(
+        within(dialog).getByText("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_STATUS"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_AI_NOT_AVAILABLE" }),
+    ).toBeDisabled();
+  });
+
   test("closes the edit route create dialog without saving and returns to models", async () => {
     render(<ContentModelEditPage projectId="project-1" createOpen />, {
       wrapper: createWrapper(),
@@ -380,6 +432,8 @@ describe("content model builder", () => {
     render(<ContentModelEditPage projectId="project-1" createOpen />, {
       wrapper: createWrapper(),
     });
+
+    await openCreateDetailsView();
 
     fireEvent.change(await findCreateInput("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL"), {
       target: { value: "News item" },

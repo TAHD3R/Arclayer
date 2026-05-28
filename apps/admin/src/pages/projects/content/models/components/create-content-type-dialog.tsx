@@ -1,8 +1,11 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, Sparkles } from "lucide-react";
 
+import { BaseTag } from "@/components/ui/tags";
 import { Button } from "@arclayer/ui/button";
+import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { FieldLabel } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
 import { RadioGroup, RadioGroupItem } from "@arclayer/ui/radio-group";
@@ -39,6 +42,40 @@ type CreateContentTypeDialogProps = {
 };
 
 type FormErrors = Partial<Record<"name" | "singularKey" | "pluralKey", string>>;
+type CreateDialogView = "start" | "details";
+type CreateDialogMode = "manual" | "ai";
+type StarterTemplateKey =
+  | "blank"
+  | "blogPosts"
+  | "authors"
+  | "categories"
+  | "projects"
+  | "clients"
+  | "teamMembers"
+  | "listings"
+  | "events"
+  | "menuItems"
+  | "songs"
+  | "shows"
+  | "recipes";
+
+const STARTER_TEMPLATES: Array<{ key: StarterTemplateKey; labelKey: string }> = [
+  { key: "blank", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_BLANK_LABEL" },
+  { key: "blogPosts", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_BLOG_POSTS_LABEL" },
+  { key: "authors", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_AUTHORS_LABEL" },
+  { key: "categories", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_CATEGORIES_LABEL" },
+  { key: "projects", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_PROJECTS_LABEL" },
+  { key: "clients", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_CLIENTS_LABEL" },
+  { key: "teamMembers", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_TEAM_MEMBERS_LABEL" },
+  { key: "listings", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_LISTINGS_LABEL" },
+  { key: "events", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_EVENTS_LABEL" },
+  { key: "menuItems", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_MENU_ITEMS_LABEL" },
+  { key: "songs", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_SONGS_LABEL" },
+  { key: "shows", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_SHOWS_LABEL" },
+  { key: "recipes", labelKey: "CONTENT_MODELS_CREATE_TEMPLATE_RECIPES_LABEL" },
+];
+
+const MODEL_KIND_OPTIONS = ["collection_type", "single_type", "component"] as const;
 
 function CharacterCount(props: { value: string; max: number }) {
   return (
@@ -102,6 +139,270 @@ function ModelKindOption(props: {
   );
 }
 
+function StarterTemplateTag(props: {
+  label: string;
+  selected: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={props.disabled}
+      aria-pressed={props.selected}
+      className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
+      onClick={props.onSelect}
+    >
+      <BaseTag
+        color={props.selected ? "blue" : "default"}
+        textStyle="footnote"
+        className="cursor-pointer rounded-md transition-colors"
+      >
+        {props.label}
+      </BaseTag>
+    </button>
+  );
+}
+
+function CreateDialogTabs(props: {
+  mode: CreateDialogMode;
+  onModeChange: (mode: CreateDialogMode) => void;
+}) {
+  const { t } = useTranslation("content");
+
+  return (
+    <ChromeTabs
+      value={props.mode}
+      onValueChange={(value) => props.onModeChange(value as CreateDialogMode)}
+    >
+      <ChromeTabsList className="w-auto">
+        <ChromeTabsTrigger value="manual">
+          {t("CONTENT_MODELS_CREATE_MANUAL_TAB")}
+        </ChromeTabsTrigger>
+        <ChromeTabsTrigger value="ai">{t("CONTENT_MODELS_CREATE_AI_TAB")}</ChromeTabsTrigger>
+      </ChromeTabsList>
+    </ChromeTabs>
+  );
+}
+
+function ManualStartView(props: {
+  values: CreateContentTypeFormValues;
+  pending: boolean;
+  selectedTemplate: StarterTemplateKey;
+  onModelKindChange: (modelKind: CreateContentTypeFormValues["modelKind"]) => void;
+  onTemplateChange: (templateKey: StarterTemplateKey) => void;
+}) {
+  const { t } = useTranslation("content");
+
+  return (
+    <SettingDialogFields>
+      <SettingDialogField
+        title={t("CONTENT_MODELS_CREATE_STARTER_TEMPLATE_TITLE")}
+        description={t("CONTENT_MODELS_CREATE_STARTER_TEMPLATE_DESC")}
+      >
+        <div className="flex flex-wrap gap-2">
+          {STARTER_TEMPLATES.map((template) => (
+            <StarterTemplateTag
+              key={template.key}
+              label={t(template.labelKey)}
+              selected={props.selectedTemplate === template.key}
+              disabled={props.pending}
+              onSelect={() => props.onTemplateChange(template.key)}
+            />
+          ))}
+        </div>
+      </SettingDialogField>
+
+      {props.selectedTemplate === "blank" ? (
+        <SettingDialogField
+          title={t("CONTENT_MODELS_CREATE_MODEL_TYPE_TITLE")}
+          description={t("CONTENT_MODELS_CREATE_MODEL_TYPE_DESC")}
+        >
+          <RadioGroup
+            value={props.values.modelKind}
+            disabled={props.pending}
+            onValueChange={(value) => {
+              if (value) props.onModelKindChange(value as CreateContentTypeFormValues["modelKind"]);
+            }}
+            className="grid gap-2 md:grid-cols-3"
+          >
+            {MODEL_KIND_OPTIONS.map((modelKind) => (
+              <ModelKindOption
+                key={modelKind}
+                modelKind={modelKind}
+                value={props.values.modelKind}
+                disabled={props.pending}
+                title={t(`CONTENT_MODELS_KIND_${modelKind.toUpperCase()}`)}
+                description={t(`CONTENT_MODELS_KIND_${modelKind.toUpperCase()}_DESC`)}
+              />
+            ))}
+          </RadioGroup>
+        </SettingDialogField>
+      ) : null}
+    </SettingDialogFields>
+  );
+}
+
+function AiPlaceholderView() {
+  const { t } = useTranslation("content");
+
+  return (
+    <Empty className="min-h-72 p-0 md:p-0">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Sparkles className="size-6" aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle className="text-title3">
+          {t("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_TITLE")}
+        </EmptyTitle>
+        <EmptyDescription>
+          {t("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_DESC")}
+          <span className="mt-2 block text-footnote text-label-tertiary">
+            {t("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_STATUS")}
+          </span>
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+}
+
+function DetailsView(props: {
+  values: CreateContentTypeFormValues;
+  errors: FormErrors;
+  pending: boolean;
+  singularInputId: string;
+  pluralInputId: string;
+  onValuesChange: (next: CreateContentTypeFormValues) => void;
+}) {
+  const { t } = useTranslation("content");
+
+  return (
+    <SettingDialogFields>
+      <SettingDialogField
+        title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
+        description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_HELP")}
+        error={
+          props.errors.name ? (
+            <div className="text-footnote text-destructive">{props.errors.name}</div>
+          ) : undefined
+        }
+      >
+        <div>
+          <Input
+            value={props.values.name}
+            disabled={props.pending}
+            maxLength={CONTENT_MODEL_NAME_MAX_LENGTH}
+            placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_PLACEHOLDER")}
+            aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
+            aria-invalid={props.errors.name ? true : undefined}
+            onChange={(event) =>
+              props.onValuesChange(
+                syncGeneratedIdentifiersWithName(props.values, event.target.value),
+              )
+            }
+          />
+          <CharacterCount value={props.values.name} max={CONTENT_MODEL_NAME_MAX_LENGTH} />
+        </div>
+      </SettingDialogField>
+
+      <SettingDialogField
+        title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_IDENTIFIER_LABEL")}
+        description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_IDENTIFIER_HELP")}
+        error={
+          props.errors.pluralKey || props.errors.singularKey ? (
+            <div className="text-footnote text-destructive">
+              {[props.errors.singularKey, props.errors.pluralKey].filter(Boolean).join(" ")}
+            </div>
+          ) : undefined
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1 space-y-1.5">
+            <label htmlFor={props.singularInputId} className="grid gap-1 space-y-1.5">
+              <span className="font-semibold text-label-secondary">
+                <FieldTitleWithHelp
+                  title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")}
+                  help={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_HELP")}
+                />
+              </span>
+            </label>
+            <div>
+              <Input
+                id={props.singularInputId}
+                value={props.values.singularKey.value}
+                disabled={props.pending}
+                maxLength={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+                placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_PLACEHOLDER")}
+                aria-invalid={props.errors.singularKey ? true : undefined}
+                onChange={(event) =>
+                  props.onValuesChange({
+                    ...props.values,
+                    singularKey: createManualIdentifier(event.target.value),
+                  })
+                }
+              />
+              <CharacterCount
+                value={props.values.singularKey.value}
+                max={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+              />
+            </div>
+          </div>
+          <div className="grid gap-1 space-y-1.5">
+            <label htmlFor={props.pluralInputId} className="grid gap-1 space-y-1.5">
+              <span className="font-semibold text-label-secondary">
+                <FieldTitleWithHelp
+                  title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")}
+                  help={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_HELP")}
+                />
+              </span>
+            </label>
+            <div>
+              <Input
+                id={props.pluralInputId}
+                value={props.values.pluralKey.value}
+                disabled={props.pending}
+                maxLength={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+                placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_PLACEHOLDER")}
+                aria-invalid={props.errors.pluralKey ? true : undefined}
+                onChange={(event) =>
+                  props.onValuesChange({
+                    ...props.values,
+                    pluralKey: createManualIdentifier(event.target.value),
+                  })
+                }
+              />
+              <CharacterCount
+                value={props.values.pluralKey.value}
+                max={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
+              />
+            </div>
+          </div>
+        </div>
+      </SettingDialogField>
+
+      <SettingDialogField title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}>
+        <div>
+          <Textarea
+            aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}
+            value={props.values.description}
+            disabled={props.pending}
+            maxLength={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
+            placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER")}
+            rows={4}
+            onChange={(event) =>
+              props.onValuesChange({ ...props.values, description: event.target.value })
+            }
+          />
+          <CharacterCount
+            value={props.values.description}
+            max={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
+          />
+        </div>
+      </SettingDialogField>
+    </SettingDialogFields>
+  );
+}
+
 export function CreateContentTypeDialog({
   open,
   pending = false,
@@ -111,6 +412,9 @@ export function CreateContentTypeDialog({
   const { t } = useTranslation("content");
   const [values, setValues] = React.useState<CreateContentTypeFormValues>(DEFAULT_VALUES);
   const [errors, setErrors] = React.useState<FormErrors>({});
+  const [view, setView] = React.useState<CreateDialogView>("start");
+  const [mode, setMode] = React.useState<CreateDialogMode>("manual");
+  const [selectedTemplate, setSelectedTemplate] = React.useState<StarterTemplateKey>("blank");
   const singularInputId = React.useId();
   const pluralInputId = React.useId();
 
@@ -118,6 +422,9 @@ export function CreateContentTypeDialog({
     if (open) return;
     setValues(DEFAULT_VALUES);
     setErrors({});
+    setView("start");
+    setMode("manual");
+    setSelectedTemplate("blank");
   }, [open]);
 
   const validate = React.useCallback((): FormErrors => {
@@ -167,180 +474,77 @@ export function CreateContentTypeDialog({
     });
   }, [onSubmit, validate, values]);
 
+  const tabs =
+    view === "start" ? <CreateDialogTabs mode={mode} onModeChange={setMode} /> : undefined;
+
+  const footer =
+    view === "details" ? (
+      <>
+        <Button variant="ghost" disabled={pending} onClick={() => onOpenChange(false)}>
+          {t("CONTENT_MODELS_CANCEL_ACTION")}
+        </Button>
+        <Button loading={pending} onClick={() => void submit()}>
+          {t("CONTENT_MODELS_CREATE_CONFIRM")}
+        </Button>
+      </>
+    ) : (
+      <>
+        <Button variant="ghost" disabled={pending} onClick={() => onOpenChange(false)}>
+          {t("CONTENT_MODELS_CANCEL_ACTION")}
+        </Button>
+        {mode === "ai" ? (
+          <Button disabled>{t("CONTENT_MODELS_CREATE_AI_NOT_AVAILABLE")}</Button>
+        ) : (
+          <Button disabled={pending} onClick={() => setView("details")}>
+            {t("CONTENT_MODELS_CREATE_CONTINUE_ACTION")}
+          </Button>
+        )}
+      </>
+    );
+
   return (
     <SettingDialog
       open={open}
       onOpenChange={onOpenChange}
       title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_TITLE")}
-      footer={
-        <>
-          <Button variant="ghost" disabled={pending} onClick={() => onOpenChange(false)}>
-            {t("CONTENT_MODELS_CANCEL_ACTION")}
-          </Button>
-          <Button loading={pending} onClick={() => void submit()}>
-            {t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SUBMIT")}
-          </Button>
-        </>
-      }
+      titleClassName={view === "start" ? "sr-only" : undefined}
+      description={tabs}
+      contentClassName="sm:max-w-3xl"
+      footer={footer}
     >
       <form
         className="py-2"
         onSubmit={(event) => {
           event.preventDefault();
-          void submit();
+          if (view === "details") {
+            void submit();
+            return;
+          }
+          if (mode === "manual") setView("details");
         }}
       >
-        <SettingDialogFields>
-          <SettingDialogField
-            title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_KIND_LABEL")}
-            description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_KIND_HELP")}
-          >
-            <RadioGroup
-              value={values.modelKind}
-              disabled={pending}
-              onValueChange={(value) => {
-                setValues((current) => ({
-                  ...current,
-                  modelKind: value as CreateContentTypeFormValues["modelKind"],
-                }));
-              }}
-              className="grid gap-2 md:grid-cols-3"
-            >
-              {(["collection_type", "single_type", "component"] as const).map((modelKind) => (
-                <ModelKindOption
-                  key={modelKind}
-                  modelKind={modelKind}
-                  value={values.modelKind}
-                  disabled={pending}
-                  title={t(`CONTENT_MODELS_KIND_${modelKind.toUpperCase()}`)}
-                  description={t(`CONTENT_MODELS_KIND_${modelKind.toUpperCase()}_DESC`)}
-                />
-              ))}
-            </RadioGroup>
-          </SettingDialogField>
-
-          <SettingDialogField
-            title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
-            description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_HELP")}
-            error={
-              errors.name ? (
-                <div className="text-footnote text-destructive">{errors.name}</div>
-              ) : undefined
-            }
-          >
-            <div>
-              <Input
-                value={values.name}
-                disabled={pending}
-                maxLength={CONTENT_MODEL_NAME_MAX_LENGTH}
-                placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_PLACEHOLDER")}
-                aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_NAME_LABEL")}
-                aria-invalid={errors.name ? true : undefined}
-                onChange={(event) => {
-                  setValues((current) =>
-                    syncGeneratedIdentifiersWithName(current, event.target.value),
-                  );
-                }}
-              />
-              <CharacterCount value={values.name} max={CONTENT_MODEL_NAME_MAX_LENGTH} />
-            </div>
-          </SettingDialogField>
-
-          <SettingDialogField
-            title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_IDENTIFIER_LABEL")}
-            description={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_IDENTIFIER_HELP")}
-            error={
-              errors.pluralKey || errors.singularKey ? (
-                <div className="text-footnote text-destructive">
-                  {[errors.singularKey, errors.pluralKey].filter(Boolean).join(" ")}
-                </div>
-              ) : undefined
-            }
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid space-y-1.5 gap-1">
-                <label htmlFor={singularInputId} className="grid space-y-1.5 gap-1">
-                  <span className="font-semibold text-label-secondary">
-                    <FieldTitleWithHelp
-                      title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_LABEL")}
-                      help={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_HELP")}
-                    />
-                  </span>
-                </label>
-                <div>
-                  <Input
-                    id={singularInputId}
-                    value={values.singularKey.value}
-                    disabled={pending}
-                    maxLength={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
-                    placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_SINGULAR_PLACEHOLDER")}
-                    aria-invalid={errors.singularKey ? true : undefined}
-                    onChange={(event) => {
-                      setValues((current) => ({
-                        ...current,
-                        singularKey: createManualIdentifier(event.target.value),
-                      }));
-                    }}
-                  />
-                  <CharacterCount
-                    value={values.singularKey.value}
-                    max={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
-                  />
-                </div>
-              </div>
-              <div className="grid space-y-1.5 gap-1">
-                <label htmlFor={pluralInputId} className="grid space-y-1.5 gap-1">
-                  <span className="font-semibold text-label-secondary">
-                    <FieldTitleWithHelp
-                      title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_LABEL")}
-                      help={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_HELP")}
-                    />
-                  </span>
-                </label>
-                <div>
-                  <Input
-                    id={pluralInputId}
-                    value={values.pluralKey.value}
-                    disabled={pending}
-                    maxLength={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
-                    placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_PLURAL_PLACEHOLDER")}
-                    aria-invalid={errors.pluralKey ? true : undefined}
-                    onChange={(event) => {
-                      setValues((current) => ({
-                        ...current,
-                        pluralKey: createManualIdentifier(event.target.value),
-                      }));
-                    }}
-                  />
-                  <CharacterCount
-                    value={values.pluralKey.value}
-                    max={CONTENT_MODEL_IDENTIFIER_MAX_LENGTH}
-                  />
-                </div>
-              </div>
-            </div>
-          </SettingDialogField>
-
-          <SettingDialogField title={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}>
-            <div>
-              <Textarea
-                aria-label={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_LABEL")}
-                value={values.description}
-                disabled={pending}
-                maxLength={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
-                placeholder={t("CONTENT_MODELS_CREATE_CONTENT_TYPE_DESCRIPTION_PLACEHOLDER")}
-                rows={4}
-                onChange={(event) =>
-                  setValues((current) => ({ ...current, description: event.target.value }))
-                }
-              />
-              <CharacterCount
-                value={values.description}
-                max={CONTENT_MODEL_DESCRIPTION_MAX_LENGTH}
-              />
-            </div>
-          </SettingDialogField>
-        </SettingDialogFields>
+        {view === "start" ? (
+          mode === "manual" ? (
+            <ManualStartView
+              values={values}
+              pending={pending}
+              selectedTemplate={selectedTemplate}
+              onModelKindChange={(modelKind) => setValues((current) => ({ ...current, modelKind }))}
+              onTemplateChange={setSelectedTemplate}
+            />
+          ) : (
+            <AiPlaceholderView />
+          )
+        ) : (
+          <DetailsView
+            values={values}
+            errors={errors}
+            pending={pending}
+            singularInputId={singularInputId}
+            pluralInputId={pluralInputId}
+            onValuesChange={setValues}
+          />
+        )}
       </form>
     </SettingDialog>
   );

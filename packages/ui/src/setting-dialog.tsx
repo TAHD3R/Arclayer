@@ -19,6 +19,7 @@ type SettingDialogProps = {
   footer?: ReactNode;
   contentClassName?: string;
   bodyClassName?: string;
+  titleClassName?: string;
   preventInitialFocus?: boolean;
   showCloseButton?: boolean;
   closeButtonClassName?: string;
@@ -38,6 +39,7 @@ export function SettingDialog({
   footer,
   contentClassName,
   bodyClassName,
+  titleClassName,
   preventInitialFocus = true,
   showCloseButton = true,
   closeButtonClassName,
@@ -72,12 +74,14 @@ export function SettingDialog({
         }
       >
         <DialogHeader className="min-w-0 px-6 py-5 text-left border-b">
-          <DialogTitle className="text-title3 font-semibold text-label-primary">
+          <DialogTitle
+            className={cn("text-title3 font-semibold text-label-primary", titleClassName)}
+          >
             {displayTitle}
           </DialogTitle>
           {displayDescription ? (
-            <DialogDescription className="mb-0 text-body text-label-secondary">
-              {displayDescription}
+            <DialogDescription asChild>
+              <div className="mb-0 text-body text-label-secondary">{displayDescription}</div>
             </DialogDescription>
           ) : null}
         </DialogHeader>
