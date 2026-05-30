@@ -76,8 +76,7 @@ reports/code-review-engine/
 .gitnexus
 .worktrees/
 
-# Trellis
-.trellis/
+# Local planning
 docs/plans/
 
 # Audit reports (generated)

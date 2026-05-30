@@ -6,7 +6,6 @@ It is **not** the implementation contract source.
 ## Source Routing
 
 - Implementation contracts: `docs/spec/**` (canonical).
-- Trellis runtime mirror: `.trellis/spec/**` (generated from `docs/spec/**`).
 - Non-spec guidance: `docs/guidelines/**`.
 - Visual language: `DESIGN.md` (primary) plus `docs/guidelines/frontend-design.md`.
 

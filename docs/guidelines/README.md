@@ -3,7 +3,7 @@
 This directory stores **non-spec** project guidance.
 
 Implementation contracts are not maintained here.
-Canonical implementation contracts live in `docs/spec/**` and mirror into `.trellis/spec/**`.
+Canonical implementation contracts live in `docs/spec/**`.
 
 ## Active Non-Spec Guides
 
@@ -21,7 +21,4 @@ These files remain temporarily while their domain contracts are being migrated i
 ## Maintenance Rules
 
 - Add or update implementation contracts in `docs/spec/**`.
-- After changing `docs/spec/**`, run:
-  - `pnpm spec:sync`
-  - `pnpm spec:check`
-- Keep `.trellis/spec/**` generated-only; do not edit it manually.
+- Keep non-spec guidance in this directory.

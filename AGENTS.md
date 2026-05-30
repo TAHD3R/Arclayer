@@ -7,12 +7,9 @@ Actionable rules for automated coding agents — keep diffs minimal, safe, and r
 Use this routing model for every change:
 
 - Implementation contracts (canonical): `docs/spec/**`
-- Trellis runtime mirror (generated): `.trellis/spec/**`
 - Non-spec guidance: `docs/guidelines/**`
 - Visual language source: `DESIGN.md`
 - Admin design implementation guide: `docs/guidelines/frontend-design.md`
-
-`docs/spec/** -> .trellis/spec/**` is one-way. Do not hand-edit `.trellis/spec/**`.
 
 ## Repo Map
 
@@ -35,16 +32,6 @@ Do not:
 - run `.venv/bin/*` directly
 - hand-edit generated artifacts
 - run long-lived dev servers unless requested
-
-## Spec Mirror Workflow
-
-When `docs/spec/**` changes:
-
-1. run `pnpm spec:sync`
-2. run `pnpm spec:check`
-
-`spec:sync` may overwrite `.trellis/spec/**`.
-`spec:check` must be side-effect free.
 
 ## Validation Fast Path
 
@@ -82,8 +69,3 @@ Prefer live repo truth if indexes are stale or unavailable.
 - Keep one canonical contract surface after hard-cut changes.
 - Remove superseded shims/facades in the same rollout unless explicitly approved.
 - Do not touch lockfiles, caches, build outputs, or `node_modules/` unless the task requires it.
-
-## Trellis
-
-Trellis workflow and task context live under `.trellis/`.
-If task tools are available, prefer them for task lifecycle operations.

@@ -6,7 +6,7 @@
 
 ## Overview
 
-Backend specs define concrete contracts for FastAPI routes, services, repositories, schemas, persistence, errors, logging, quality gates, and cross-layer behavior. They should be read before backend implementation and referenced from Trellis task context when backend code changes.
+Backend specs define concrete contracts for FastAPI routes, services, repositories, schemas, persistence, errors, logging, quality gates, and cross-layer behavior. They should be read before backend implementation.
 
 Shared frontend/backend contracts live under `docs/spec/shared/` and should be linked instead of duplicated.
 

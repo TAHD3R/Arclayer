@@ -48,7 +48,7 @@ This code-spec defines validation scope, lint/format/typecheck/test expectations
 - Good: a backend response-field rename runs `pnpm api:check`, regenerates OpenAPI, and runs `pnpm admin:check`.
 - Good: a shared UI primitive change runs the package tests and Admin checks for affected surfaces.
 - Good: a root Turbo task edit is followed by the root script that uses that task.
-- Base: a pure `.trellis/spec` documentation update runs mechanical Markdown/JSONL checks instead of app test suites because no app behavior changed.
+- Base: a pure `docs/spec` documentation update runs mechanical Markdown checks instead of app test suites because no app behavior changed.
 - Bad: reporting “tests passed” after only running a formatter.
 - Bad: adding a defensive fallback that returns empty data after an API error to make UI tests pass.
 - Bad: ignoring a generated artifact diff because typecheck still passes.
