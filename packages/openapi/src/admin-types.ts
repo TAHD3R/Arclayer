@@ -51,6 +51,12 @@ export type UserProfile = Generated.UserProfile & {
   avatar_url?: string | null;
   avatar_asset_id?: string | null;
 };
+export type RegisterResult = Omit<Generated.RegisterResult, "requiresEmailVerification"> & {
+  requiresEmailVerification?: boolean;
+  requires_email_verification?: boolean;
+  retry_after?: number | null;
+};
+export type RegisterEmailVerificationOut = Generated.RegisterEmailVerificationOut;
 export type OnboardingProfile = Generated.OnboardingProfileOut & {
   job_role?: Generated.OnboardingProfileOut["jobRole"];
   company_size?: Generated.OnboardingProfileOut["companySize"];

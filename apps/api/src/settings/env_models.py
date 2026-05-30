@@ -225,6 +225,8 @@ class EmailSettings(BaseSettings):
     def _normalize_template_dir(cls, value: Path | None) -> Path | None:
         if value is None:
             return None
+        if not str(value).strip() or value == Path("."):
+            return None
         current = Path(__file__).resolve().parent
         repo_root = current.parents[2]
         return _normalize_runtime_fs_path(value, default_base=repo_root / "static")

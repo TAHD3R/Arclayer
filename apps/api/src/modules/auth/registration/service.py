@@ -13,6 +13,7 @@ class PublicRegisterPolicy(BaseModel):
 
     enabled: bool
     require_email: bool
+    require_email_verification: bool
     email_domains_allowlist: frozenset[str]
 
     def is_email_allowed(self, email: str | None) -> bool:
@@ -49,6 +50,13 @@ async def get_public_register_policy(settings: Settings) -> PublicRegisterPolicy
     require_email = auth.get("public_register_require_email") if isinstance(auth, dict) else None
     require_email_bool = require_email if isinstance(require_email, bool) else False
 
+    require_email_verification = (
+        auth.get("public_register_require_email_verification") if isinstance(auth, dict) else None
+    )
+    require_email_verification_bool = (
+        require_email_verification if isinstance(require_email_verification, bool) else False
+    )
+
     allowlist_raw = auth.get("public_register_email_domains_allowlist") if isinstance(auth, dict) else None
     domains: set[str] = set()
     if isinstance(allowlist_raw, list):
@@ -62,5 +70,6 @@ async def get_public_register_policy(settings: Settings) -> PublicRegisterPolicy
     return PublicRegisterPolicy(
         enabled=enabled_bool,
         require_email=require_email_bool,
+        require_email_verification=require_email_verification_bool,
         email_domains_allowlist=frozenset(domains),
     )

@@ -123,3 +123,4 @@ class UserMutableFields(Protocol):
     display_name: str | None
     avatar_url: str | None
     avatar_asset_id: UUID | None
+    email_verified_at: datetime | None

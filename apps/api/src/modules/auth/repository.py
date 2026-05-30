@@ -18,6 +18,7 @@ from src.modules.auth.contracts.schema import UserLike
 from src.platform.cache.valkey import ValkeyClientLike
 
 EMAIL_CODE_RESEND_COOLDOWN_SECONDS = 60
+EMAIL_VERIFICATION_TOKEN_BYTES = 32
 
 
 def _coerce_int(value: object) -> int | None:
@@ -133,6 +134,7 @@ class UserRepository(TortoiseORMRepository):
         display_name: str | None,
         password_hash: str,
         is_super_admin: bool = False,
+        email_verified_at: datetime | None = None,
     ) -> User:
         user = await User.create(
             username=username,
@@ -141,6 +143,7 @@ class UserRepository(TortoiseORMRepository):
             is_super_admin=is_super_admin,
             display_name=display_name,
             avatar_url=None,
+            email_verified_at=email_verified_at,
         )
         await UserCredential.create(user=user, password_hash=password_hash)
         return user
@@ -154,6 +157,7 @@ class UserRepository(TortoiseORMRepository):
         password_hash: str,
         conn: BaseDBAsyncClient,
         is_super_admin: bool = False,
+        email_verified_at: datetime | None = None,
     ) -> User:
         user = await User.create(
             using_db=conn,
@@ -163,6 +167,7 @@ class UserRepository(TortoiseORMRepository):
             is_super_admin=is_super_admin,
             display_name=display_name,
             avatar_url=None,
+            email_verified_at=email_verified_at,
         )
         await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
         return user
@@ -237,8 +242,22 @@ class UserRepository(TortoiseORMRepository):
         record = cast(User, user)
         mutable = cast(UserMutableFields, record)
         mutable.email = email
-        await record.save(update_fields=["email"])
+        record.email_verified_at = datetime.now(UTC) if email else None
+        await record.save(update_fields=["email", "email_verified_at"])
         return record
+
+    async def set_email_verified_at(self, user: UserLike, verified_at: datetime | None) -> User:
+        record = cast(User, user)
+        record.email_verified_at = verified_at
+        await record.save(update_fields=["email_verified_at"])
+        return record
+
+    async def mark_email_verified(self, user: UserLike) -> User:
+        return await self.set_email_verified_at(user, datetime.now(UTC))
+
+    async def delete_user(self, user: UserLike) -> None:
+        record = cast(User, user)
+        await record.delete()
 
     async def set_status(self, user: UserLike, status: UserStatus) -> User:
         record = cast(User, user)
@@ -433,6 +452,90 @@ class EmailLoginCodeStore:
         ex = ttl if ttl > 0 else None
         await self._client.set_json(self._email_key(email), record, ex=ex)
         return tries
+
+    def remaining_expires_in(self, record: dict[str, Any]) -> int:
+        return self._remaining_ttl(record)
+
+    def remaining_retry_after(self, record: dict[str, Any]) -> int:
+        now_ts = int(datetime.now(UTC).timestamp())
+        resend_available_at = _coerce_int(record.get("resend_available_at"))
+        if resend_available_at is None:
+            return 0
+        return max(resend_available_at - now_ts, 0)
+
+    def _remaining_ttl(self, record: dict[str, Any]) -> int:
+        now_ts = int(datetime.now(UTC).timestamp())
+        expires_at = _coerce_int(record.get("expires_at"))
+        if expires_at is None:
+            return 0
+        return max(expires_at - now_ts, 0)
+
+
+class RegistrationEmailVerificationStore:
+    """
+    Store registration verification links keyed by token and email.
+
+    The email key lets resend reuse the active token during cooldown without
+    exposing whether an unrelated token exists.
+    """
+
+    def __init__(
+        self,
+        client: ValkeyClientLike,
+        *,
+        ttl_seconds: int = 60 * 60,
+        resend_cooldown_seconds: int = EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
+    ) -> None:
+        self._client = client
+        self._ttl_seconds = max(int(ttl_seconds), 5 * 60)
+        self._resend_cooldown_seconds = max(int(resend_cooldown_seconds), 1)
+
+    def _token_key(self, token: str) -> str:
+        return f"auth:registration_email_verification:token:{token}"
+
+    def _email_key(self, email: str) -> str:
+        return f"auth:registration_email_verification:email:{email.strip().lower()}"
+
+    async def issue(self, *, user_id: UUID, email: str) -> tuple[str, int, int]:
+        normalized_email = email.strip().lower()
+        token = secrets.token_urlsafe(EMAIL_VERIFICATION_TOKEN_BYTES)
+        ttl = self._ttl_seconds
+        retry_after = self._resend_cooldown_seconds
+        now_ts = int(datetime.now(UTC).timestamp())
+        record = {
+            "token": token,
+            "user_id": str(user_id),
+            "email": normalized_email,
+            "issued_at": now_ts,
+            "expires_at": now_ts + ttl,
+            "resend_available_at": now_ts + retry_after,
+        }
+        await self._client.set_json(self._token_key(token), record, ex=ttl)
+        await self._client.set_json(self._email_key(normalized_email), record, ex=ttl)
+        return token, ttl, retry_after
+
+    async def get_by_token(self, *, token: str) -> dict[str, Any] | None:
+        record = await self._client.get_json(self._token_key(token.strip()))
+        return record if isinstance(record, dict) else None
+
+    async def get_by_email(self, *, email: str) -> dict[str, Any] | None:
+        record = await self._client.get_json(self._email_key(email))
+        return record if isinstance(record, dict) else None
+
+    async def delete_record(self, record: dict[str, Any]) -> None:
+        token = str(record.get("token") or "").strip()
+        email = str(record.get("email") or "").strip().lower()
+        if token:
+            await self._client.delete(self._token_key(token))
+        if email:
+            await self._client.delete(self._email_key(email))
+
+    async def delete_by_email(self, *, email: str) -> None:
+        record = await self.get_by_email(email=email)
+        if record is not None:
+            await self.delete_record(record)
+            return
+        await self._client.delete(self._email_key(email))
 
     def remaining_expires_in(self, record: dict[str, Any]) -> int:
         return self._remaining_ttl(record)

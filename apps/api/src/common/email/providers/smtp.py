@@ -105,7 +105,8 @@ class SmtpEmailProvider(EmailProvider):
 
         password_secret = _secret_from_value(merged.get("password"), base.password)
 
-        template_dir: Path | None = base.template_dir or default_template_dir()
+        configured_template_dir = base.template_dir or default_template_dir()
+        template_dir: Path | None = configured_template_dir if configured_template_dir.is_dir() else None
         return ConnectionConfig(
             MAIL_USERNAME=username if use_credentials else "",
             MAIL_PASSWORD=(password_secret if use_credentials and password_secret is not None else SecretStr("")),

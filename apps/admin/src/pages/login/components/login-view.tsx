@@ -1,9 +1,19 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
+import { useTranslation } from "react-i18next";
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import type { LoginMode } from "@/lib/auth/auth-mode";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@arclayer/ui/alert-dialog";
 
 import type { LoginViewProps } from "../types";
 import { ForgotPasswordPane } from "./forgot-password-pane";
@@ -36,15 +46,21 @@ export function LoginView({
   authTransitionLoading = false,
   onRegisterEmailSubmit,
   onRegisterSubmit,
+  onRegisterVerificationResend,
+  registerVerification,
+  emailVerificationNotice,
+  onEmailVerificationNoticeOpenChange,
   registerSeed,
   registerEmailLoading = false,
   registerLoading = false,
+  registerResendLoading = false,
   publicRegisterEnabled = true,
   challenge,
   onLoginTwoFactorSubmit,
   onCancelTwoFactorChallenge,
   twoFactorLoading = false,
 }: LoginViewProps) {
+  const { t } = useTranslation();
   const reducedMotion = usePrefersReducedMotion();
   const resolvedMode: LoginMode = publicRegisterEnabled
     ? mode
@@ -81,6 +97,22 @@ export function LoginView({
   return (
     <div className="w-full">
       <SceneLoadingOverlay visible={authTransitionLoading} />
+      <AlertDialog
+        open={Boolean(emailVerificationNotice?.open)}
+        onOpenChange={onEmailVerificationNoticeOpenChange}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("auth:REGISTER_VERIFY_EMAIL_NOTICE_TITLE")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("auth:REGISTER_VERIFY_EMAIL_NOTICE_DESC")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>{t("auth:REGISTER_VERIFY_EMAIL_NOTICE_ACTION")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <MotionConfig transition={transition}>
         <div className="relative">
           <AnimatePresence mode="wait">
@@ -159,8 +191,11 @@ export function LoginView({
                 <RegisterPane
                   onEmailSubmit={onRegisterEmailSubmit}
                   onSubmit={onRegisterSubmit}
+                  onVerificationResend={onRegisterVerificationResend}
+                  verification={registerVerification}
                   emailCheckLoading={registerEmailLoading}
                   loading={registerLoading}
+                  resendLoading={registerResendLoading}
                   registerSeed={registerSeed}
                   redirect={redirect}
                   pendingOAuthProvider={pendingOAuthProvider}

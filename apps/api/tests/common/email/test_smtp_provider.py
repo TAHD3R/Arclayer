@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi_mail import MessageType
 from fastapi_mail.schemas import MultipartSubtypeEnum
 
 from src.common.email.provider import EmailMessage
 from src.common.email.providers.smtp import SmtpEmailProvider
-from src.config import Settings
+from src.config import EmailSettings, Settings
 
 
 def test_smtp_provider_build_connection_config_uses_nested_provider_config() -> None:
@@ -30,6 +32,23 @@ def test_smtp_provider_build_connection_config_uses_nested_provider_config() -> 
     assert config.MAIL_SERVER == "smtp.example.com"
     assert config.MAIL_PORT == 2525
     assert config.USE_CREDENTIALS is False
+
+
+def test_smtp_provider_omits_missing_template_folder() -> None:
+    provider = SmtpEmailProvider(
+        settings=Settings(email=EmailSettings(template_dir=Path("/tmp/arclayer-missing-mail-templates"))),
+        config={
+            "server": "smtp.example.com",
+            "mail_from": "noreply@example.com",
+            "use_credentials": False,
+            "starttls": False,
+            "ssl_tls": False,
+        },
+    )
+
+    config = provider.build_connection_config()
+
+    assert config.TEMPLATE_FOLDER is None
 
 
 def test_smtp_provider_build_message_schema_keeps_html_template_subtype() -> None:

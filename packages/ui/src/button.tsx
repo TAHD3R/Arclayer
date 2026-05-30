@@ -35,12 +35,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   },
   ref,
 ) {
-  const content = (
-    <>
-      {loading ? <Spinner className="size-4" /> : null}
-      {children}
-    </>
-  );
+  const content = loading ? <Spinner className="size-4" /> : children;
 
   if (asChild) {
     return (

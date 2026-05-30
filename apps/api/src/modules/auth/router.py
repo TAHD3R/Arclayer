@@ -75,7 +75,11 @@ from src.modules.auth.schema import (
     OnboardingProfileOut,
     OnboardingProfilePatchRequest,
     RefreshRequest,
+    RegisterEmailResendRequest,
+    RegisterEmailVerificationOut,
+    RegisterEmailVerificationRequest,
     RegisterRequest,
+    RegisterResult,
     RequestMyEmailChangeOut,
     RequestMyEmailChangeRequest,
     RequestRemoveMyPasswordOut,
@@ -421,32 +425,64 @@ async def login_two_factor(
 @guard_rate_limit(*REGISTER_RATE_LIMIT)
 @router.post(
     "/register",
-    response_model=ResponseModel[UserProfile],
+    response_model=ResponseModel[RegisterResult],
     summary="Register a new account",
 )
 async def register(
     payload: RegisterRequest,
     background_tasks: BackgroundTasks,
     service: AuthService = Depends(_get_auth_service),
-) -> ResponseModel[UserProfile]:
+) -> ResponseModel[RegisterResult]:
     """Register a new account."""
-    user = await service.register_public(
+    result = await service.register_public(
         username=payload.username,
         password=payload.password,
         email=payload.email,
         display_name=payload.display_name,
     )
-    profile = service.build_user_profile(user)
-    if profile.email:
+    if result.user.email and not result.requires_email_verification:
         locale = get_current_locale()
         background_tasks.add_task(
             service.send_welcome_email,
-            recipient=profile.email,
-            username=profile.username,
-            user_id=profile.id,
+            recipient=result.user.email,
+            username=result.user.username,
+            user_id=result.user.id,
             locale=locale,
         )
-    return ApiResponse.success(message=t("auth", "REGISTER_SUCCESS"), data=profile)
+    return ApiResponse.success(message=t("auth", "REGISTER_SUCCESS"), data=result)
+
+
+@guard_rate_limit(*REGISTER_RATE_LIMIT)
+@router.post(
+    "/register/email/resend",
+    response_model=ResponseModel[RegisterResult],
+    summary="Resend registration email verification link",
+)
+async def resend_registration_email_verification(
+    payload: RegisterEmailResendRequest,
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[RegisterResult]:
+    """Resend public-registration email verification link."""
+    result = await service.resend_registration_email_verification(
+        email=payload.email,
+        locale=get_current_locale(),
+    )
+    return ApiResponse.success(message=t("auth", "EMAIL_CODE_SENT"), data=result)
+
+
+@guard_rate_limit(*REGISTER_RATE_LIMIT)
+@router.post(
+    "/register/email/confirm",
+    response_model=ResponseModel[RegisterEmailVerificationOut],
+    summary="Confirm registration email verification token",
+)
+async def confirm_registration_email_verification(
+    payload: RegisterEmailVerificationRequest,
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[RegisterEmailVerificationOut]:
+    """Confirm public-registration email verification token."""
+    result = await service.confirm_registration_email_verification(token=payload.token)
+    return ApiResponse.success(message=t("auth", "EMAIL_VERIFIED"), data=result)
 
 
 @guard_rate_limit(*REFRESH_RATE_LIMIT)

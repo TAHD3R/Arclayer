@@ -143,6 +143,28 @@ class RegisterRequest(BaseSchema):
         return value
 
 
+class RegisterEmailResendRequest(BaseSchema):
+    """Resend public-registration verification email."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    email: EmailStr = Field(description="Email address used during registration.")
+
+
+class RegisterEmailVerificationRequest(BaseSchema):
+    """Confirm public-registration email verification token."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    token: str = Field(min_length=16, max_length=256, description="Email verification token.")
+
+
+class RegisterEmailVerificationOut(BaseSchema):
+    """Confirmed registration email verification result."""
+
+    email: EmailStr = Field(description="Verified email address.")
+
+
 class AcceptInvitationRequest(BaseSchema):
     """Accept an invitation and create an account (invite-only registration)."""
 
@@ -291,6 +313,18 @@ class UserProfile(BaseOut):
         description="Whether the avatar asset was auto-aligned (purpose/visibility/indexable) in this response.",
     )
     is_super_admin: bool = False
+
+
+class RegisterResult(BaseSchema):
+    """Registration result and optional email verification metadata."""
+
+    user: UserProfile
+    requires_email_verification: bool = Field(
+        default=False,
+        description="Whether the user must verify their email before signing in.",
+    )
+    expires_in: int | None = Field(default=None, ge=1, description="Verification link TTL in seconds.")
+    retry_after: int | None = Field(default=None, ge=0, description="Seconds before the link can be resent.")
 
 
 OnboardingJobRole = Literal[

@@ -368,6 +368,103 @@ class EmailService:
                 user_id=user_id,
             )
 
+    async def send_registration_verification(
+        self,
+        *,
+        recipient: str,
+        verification_token: str,
+        expires_in: int,
+        user_id: str | None = None,
+        locale: str | None = None,
+    ) -> None:
+        if not await self._enabled():
+            self.logger.info(
+                "Attempt to send registration verification email while email sending is disabled",
+                recipient=recipient,
+                type="registration_verification",
+                user_id=user_id,
+            )
+            return
+        if not valid_recipient(recipient):
+            self.logger.warning(
+                "Recipient email is invalid, skip sending mail",
+                recipient=recipient,
+                type="registration_verification",
+                user_id=user_id,
+            )
+            return
+
+        cid = uuid7().hex
+        try:
+            base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
+            verification_url = (
+                f"{base}/login?mode=register&verify_token={verification_token}" if base else None
+            )
+            subject = t(
+                "auth",
+                "REGISTER_VERIFY_EMAIL_SUBJECT",
+                default="Verify your email",
+                locale=locale,
+            )
+            if verification_url:
+                plain_body = t(
+                    "auth",
+                    "REGISTER_VERIFY_EMAIL_PLAIN_WITH_LINK",
+                    default=(
+                        "Verify your email: {verification_url}\n"
+                        "This link expires in {expires_in} seconds.\n"
+                        "If you did not create this account, you can ignore this email."
+                    ),
+                    locale=locale,
+                    verification_url=verification_url,
+                    verification_token=verification_token,
+                    expires_in=expires_in,
+                )
+            else:
+                plain_body = t(
+                    "auth",
+                    "REGISTER_VERIFY_EMAIL_PLAIN",
+                    default=(
+                        "Your verification token is: {verification_token}\n"
+                        "This token expires in {expires_in} seconds.\n"
+                        "If you did not create this account, you can ignore this email."
+                    ),
+                    locale=locale,
+                    verification_token=verification_token,
+                    expires_in=expires_in,
+                )
+            message = EmailMessage.single(
+                recipient=recipient,
+                subject=subject,
+                text_body=plain_body,
+                template_id="registration_verification",
+            )
+            await self._send(message)
+            self.logger.info(
+                "Successfully sent registration verification email",
+                recipient=recipient,
+                type="registration_verification",
+                cid=cid,
+                user_id=user_id,
+            )
+        except BaseException as exc:
+            raise_if_fatal(exc)
+            self.logger.exception(
+                "Failed to send registration verification email",
+                recipient=recipient,
+                type="registration_verification",
+                cid=cid,
+                error=str(exc),
+                user_id=user_id,
+            )
+            raise_mail_delivery_error(
+                exc,
+                namespace="auth",
+                failure_key="MAIL_DELIVERY_FAILED",
+                failure_error="MAIL_DELIVERY_FAILED",
+                expose_configuration_details=False,
+            )
+
     async def send_login_code(
         self,
         *,

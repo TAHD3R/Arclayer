@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
@@ -43,6 +43,8 @@ import type {
   LoginPaneSeed,
   LoginTwoFactorFormValues,
   LoginViewProps,
+  RegisterEmailVerificationState,
+  EmailVerificationNoticeState,
   RegisterFormValues,
   RegisterPaneSeed,
 } from "../types";
@@ -219,6 +221,11 @@ export function useLoginPage(): LoginPageState {
   const [loginSeed, setLoginSeed] = useState<LoginPaneSeed | null>(null);
   const [loginEmailCodeSeed, setLoginEmailCodeSeed] = useState<LoginEmailCodePaneSeed | null>(null);
   const [registerSeed, setRegisterSeed] = useState<RegisterPaneSeed | null>(null);
+  const [registerVerification, setRegisterVerification] =
+    useState<RegisterEmailVerificationState | null>(null);
+  const [emailVerificationNotice, setEmailVerificationNotice] =
+    useState<EmailVerificationNoticeState>({ open: false });
+  const handledVerifyTokenRef = useRef<string | null>(null);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState<string | undefined>(undefined);
   const [pendingOAuth, setPendingOAuth] = useState<PendingOAuthState | null>(null);
   const [authTransitionLoading, setAuthTransitionLoading] = useState(false);
@@ -232,6 +239,7 @@ export function useLoginPage(): LoginPageState {
     mode = "login",
     oauth_code: oauthCode,
     oauth_error: oauthError,
+    verify_token: verifyToken,
   } = loginRouteApi.useSearch();
 
   const publicRegisterEnabled = runtime.publicRegisterEnabled !== false;
@@ -277,6 +285,15 @@ export function useLoginPage(): LoginPageState {
         password: values.password,
         display_name: values.username.trim(),
       }),
+    onError: notifyError,
+  });
+  const registerVerificationResendMutation = useMutation({
+    mutationFn: async (email: string) => authApi.resendRegistrationEmailVerification({ email }),
+    onError: notifyError,
+  });
+  const registerVerificationConfirmMutation = useMutation({
+    mutationFn: async (token: string) =>
+      authApi.confirmRegistrationEmailVerification({ token }),
     onError: notifyError,
   });
   const bootstrapMutation = useMutation({
@@ -629,6 +646,39 @@ export function useLoginPage(): LoginPageState {
     });
   }, [clearPendingOAuthFlow, effectiveMode, navigate, oauthError, redirectTo, t]);
 
+  useEffect(() => {
+    if (!verifyToken) return;
+    if (handledVerifyTokenRef.current === verifyToken) return;
+    handledVerifyTokenRef.current = verifyToken;
+    const run = async () => {
+      try {
+        const result = await registerVerificationConfirmMutation.mutateAsync(verifyToken);
+        setRegisterVerification(null);
+        setRegisterSeed(null);
+        void navigate({
+          to: "/login",
+          search: {
+            ...(redirectTo ? { redirect: redirectTo } : {}),
+            mode: "login",
+          },
+          replace: true,
+        });
+        setLoginSeed({ email: result.email, step: "password" });
+        setEmailVerificationNotice({ open: true, email: result.email });
+      } catch {
+        void navigate({
+          to: "/login",
+          search: {
+            ...(redirectTo ? { redirect: redirectTo } : {}),
+            mode: "register",
+          },
+          replace: true,
+        });
+      }
+    };
+    void run();
+  }, [navigate, redirectTo, registerVerificationConfirmMutation.mutateAsync, t, verifyToken]);
+
   const onModeChange = (next: LoginMode, options?: LoginModeChangeOptions) => {
     const nextMode = resolveLoginMode(next, publicRegisterEnabled);
 
@@ -662,6 +712,9 @@ export function useLoginPage(): LoginPageState {
     setForgotPasswordEmail(
       nextMode === "forgot-password" ? options?.email?.trim() || undefined : undefined,
     );
+    if (nextMode !== "register") {
+      setRegisterVerification(null);
+    }
 
     void navigate({
       to: "/login",
@@ -786,7 +839,16 @@ export function useLoginPage(): LoginPageState {
   const onRegisterFinish = async (values: RegisterFormValues) => {
     if (!publicRegisterEnabled) return;
     try {
-      await registerMutation.mutateAsync(values);
+      const result = await registerMutation.mutateAsync(values);
+      if (result.requiresEmailVerification ?? result.requires_email_verification) {
+        const retryAfter = result.retryAfter ?? result.retry_after ?? 60;
+        setRegisterVerification({
+          email: values.email,
+          retryAfter: typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 60,
+        });
+        notifyInfoText(t("auth:REGISTER_VERIFY_EMAIL_SENT"));
+        return;
+      }
       const tokens = await loginMutation.mutateAsync({
         email: values.email,
         password: values.password,
@@ -809,6 +871,19 @@ export function useLoginPage(): LoginPageState {
         return;
       }
     }
+  };
+
+  const onRegisterVerificationResend = async (email: string) => {
+    const result = await registerVerificationResendMutation.mutateAsync(email);
+    const retryAfter = result.retryAfter ?? result.retry_after ?? 60;
+    setRegisterVerification({
+      email,
+      retryAfter: typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 60,
+    });
+    notifyInfoText(t("auth:REGISTER_VERIFY_EMAIL_SENT"));
+    return {
+      retryAfter: typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 60,
+    };
   };
 
   const onBootstrapFinish = async (values: BootstrapFormValues) => {
@@ -869,9 +944,15 @@ export function useLoginPage(): LoginPageState {
       authTransitionLoading,
       onRegisterEmailSubmit,
       onRegisterSubmit: onRegisterFinish,
+      onRegisterVerificationResend,
+      registerVerification,
+      emailVerificationNotice,
+      onEmailVerificationNoticeOpenChange: (open: boolean) =>
+        setEmailVerificationNotice((current) => ({ ...current, open })),
       registerSeed,
       registerEmailLoading: emailCheckMutation.isPending,
       registerLoading: registerMutation.isPending || loginMutation.isPending || runtimeLoading,
+      registerResendLoading: registerVerificationResendMutation.isPending,
       publicRegisterEnabled,
       challenge: activeChallenge,
       onLoginTwoFactorSubmit: onLoginTwoFactorFinish,

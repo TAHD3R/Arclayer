@@ -38,8 +38,11 @@ const ACCOUNT_NAME_MAX_LENGTH = 32;
 type RegisterPaneProps = {
   onEmailSubmit: (email: string) => Promise<boolean>;
   onSubmit: (values: RegisterFormValues) => Promise<void>;
+  onVerificationResend: (email: string) => Promise<{ retryAfter: number }>;
+  verification?: { email: string; retryAfter: number } | null;
   emailCheckLoading: boolean;
   loading: boolean;
+  resendLoading: boolean;
   redirect?: string;
   registerSeed?: RegisterPaneSeed | null;
   pendingOAuthProvider?: string | null;
@@ -88,6 +91,7 @@ export function RegisterPane(props: RegisterPaneProps) {
   const { t } = useTranslation();
   const variants = props.reducedMotion ? {} : props.itemVariants;
   const [emailExists, setEmailExists] = useState(false);
+  const [retryAfter, setRetryAfter] = useState(0);
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(
       z.object({
@@ -166,6 +170,9 @@ export function RegisterPane(props: RegisterPaneProps) {
   const resetRef = useRef(form.reset);
   resetRef.current = form.reset;
   const seedEmail = props.registerSeed?.email ?? "";
+  const verificationEmail = props.verification?.email ?? "";
+  const isVerificationPending = Boolean(props.verification);
+  const busy = props.emailCheckLoading || props.loading || props.resendLoading;
 
   useEffect(() => {
     resetRef.current({
@@ -177,10 +184,32 @@ export function RegisterPane(props: RegisterPaneProps) {
   }, [seedEmail]);
 
   useEffect(() => {
+    if (!props.verification) {
+      setRetryAfter(0);
+      return;
+    }
+    setRetryAfter(Math.max(0, props.verification.retryAfter));
+    resetRef.current({
+      email: props.verification.email,
+      username: deriveAccountNameFromEmail(props.verification.email),
+      password: "",
+    });
+  }, [props.verification]);
+
+  useEffect(() => {
     setEmailExists(false);
   }, [emailValue]);
 
   useEffect(() => {
+    if (retryAfter <= 0) return;
+    const timer = window.setInterval(() => {
+      setRetryAfter((current) => (current <= 1 ? 0 : current - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryAfter]);
+
+  useEffect(() => {
+    if (isVerificationPending) return;
     if (form.formState.dirtyFields.username) return;
     const derivedUsername = deriveAccountNameFromEmail(emailValue);
     if (form.getValues("username") === derivedUsername) return;
@@ -189,7 +218,7 @@ export function RegisterPane(props: RegisterPaneProps) {
       shouldTouch: false,
       shouldValidate: false,
     });
-  }, [emailValue, form]);
+  }, [emailValue, form, isVerificationPending]);
 
   const submitRegister = form.handleSubmit(async (values) => {
     setEmailExists(false);
@@ -201,8 +230,20 @@ export function RegisterPane(props: RegisterPaneProps) {
     await props.onSubmit(values);
   });
 
+  const resendVerification = async () => {
+    const email = verificationEmail || form.getValues("email");
+    if (!email) return;
+    const result = await props.onVerificationResend(email);
+    setRetryAfter(result.retryAfter);
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isVerificationPending) {
+      if (retryAfter > 0 || busy) return;
+      void resendVerification();
+      return;
+    }
     void submitRegister();
   };
 
@@ -212,7 +253,7 @@ export function RegisterPane(props: RegisterPaneProps) {
       <div className={AUTH_PANE_CONTENT_CLASS}>
         <motion.div variants={variants} className="empty:hidden">
           <AuthOauthButtons
-            disabled={props.emailCheckLoading || props.loading}
+            disabled={busy || isVerificationPending}
             redirect={props.redirect}
             dividerPlacement="after"
             loadingProvider={props.pendingOAuthProvider}
@@ -241,7 +282,7 @@ export function RegisterPane(props: RegisterPaneProps) {
                   inputClassName={AUTH_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
-                  disabled={props.emailCheckLoading || props.loading}
+                  disabled={busy || isVerificationPending}
                   spellCheck={false}
                   {...form.register("email")}
                 />
@@ -250,12 +291,19 @@ export function RegisterPane(props: RegisterPaneProps) {
                     ? String(form.formState.errors.email.message)
                     : undefined}
                 </FieldError>
+                {isVerificationPending ? (
+                  <div className="text-callout text-label-secondary">
+                    {t("auth:REGISTER_VERIFY_EMAIL_SENT_HINT", {
+                      email: verificationEmail || form.getValues("email"),
+                    })}
+                  </div>
+                ) : null}
                 {emailExists && !form.formState.errors.email ? (
                   <div className="text-callout text-label-secondary">
                     <span>{t("auth:REGISTER_EMAIL_EXISTS_MESSAGE")} </span>
                     <AuthLinkButton
                       className="!text-callout"
-                      disabled={props.emailCheckLoading || props.loading}
+                      disabled={busy}
                       onClick={() => props.onSwitchToLogin(form.getValues("email"), "password")}
                       type="button"
                     >
@@ -267,77 +315,92 @@ export function RegisterPane(props: RegisterPaneProps) {
             </Field>
           </motion.div>
 
-          <RegisterField
-            title={t("auth:FIELD_PASSWORD_LABEL")}
-            error={
-              form.formState.errors.password?.message
-                ? String(form.formState.errors.password.message)
-                : undefined
-            }
-            variants={variants}
-          >
-            <AuthPasswordControl
-              autoComplete="new-password"
-              aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-              aria-invalid={form.formState.errors.password ? true : undefined}
-              className={AUTH_INPUT_GROUP_CLASS}
-              inputClassName={AUTH_INPUT_CLASS}
-              placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-              startIcon={<Lock size={16} />}
-              disabled={props.loading}
-              {...form.register("password")}
-            />
-            <PasswordRequirementChecklist
-              password={passwordValue}
-              active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
-              t={t}
-            />
-          </RegisterField>
+          {isVerificationPending ? null : (
+            <>
+              <RegisterField
+                title={t("auth:FIELD_PASSWORD_LABEL")}
+                error={
+                  form.formState.errors.password?.message
+                    ? String(form.formState.errors.password.message)
+                    : undefined
+                }
+                variants={variants}
+              >
+                <AuthPasswordControl
+                  autoComplete="new-password"
+                  aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+                  aria-invalid={form.formState.errors.password ? true : undefined}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
+                  placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+                  startIcon={<Lock size={16} />}
+                  disabled={busy}
+                  {...form.register("password")}
+                />
+                <PasswordRequirementChecklist
+                  password={passwordValue}
+                  active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
+                  t={t}
+                />
+              </RegisterField>
 
-          <RegisterField
-            title={t("auth:FIELD_USERNAME_LABEL")}
-            helpText={t("auth:FIELD_USERNAME_HELP")}
-            error={
-              form.formState.errors.username?.message
-                ? String(form.formState.errors.username.message)
-                : undefined
-            }
-            variants={variants}
-          >
-            <AuthInputControl
-              autoComplete="username"
-              aria-label={t("auth:FIELD_USERNAME_LABEL")}
-              aria-invalid={form.formState.errors.username ? true : undefined}
-              className={AUTH_INPUT_GROUP_CLASS}
-              inputClassName={AUTH_INPUT_CLASS}
-              placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
-              startIcon={<User size={16} />}
-              endIcon={
-                usernameChecking ? <LoaderCircle className="size-4 animate-spin" /> : undefined
-              }
-              disabled={props.loading}
-              spellCheck={false}
-              {...form.register("username")}
-            />
-            {usernameFeedback ? (
-              <div className={`flex items-center gap-2 text-footnote ${usernameFeedbackClassName}`}>
-                {usernameFeedback.icon}
-                <span>{usernameFeedback.message}</span>
-              </div>
-            ) : null}
-          </RegisterField>
+              <RegisterField
+                title={t("auth:FIELD_USERNAME_LABEL")}
+                helpText={t("auth:FIELD_USERNAME_HELP")}
+                error={
+                  form.formState.errors.username?.message
+                    ? String(form.formState.errors.username.message)
+                    : undefined
+                }
+                variants={variants}
+              >
+                <AuthInputControl
+                  autoComplete="username"
+                  aria-label={t("auth:FIELD_USERNAME_LABEL")}
+                  aria-invalid={form.formState.errors.username ? true : undefined}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
+                  placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
+                  startIcon={<User size={16} />}
+                  endIcon={
+                    usernameChecking ? <LoaderCircle className="size-4 animate-spin" /> : undefined
+                  }
+                  disabled={busy}
+                  spellCheck={false}
+                  {...form.register("username")}
+                />
+                {usernameFeedback ? (
+                  <div
+                    className={`flex items-center gap-2 text-footnote ${usernameFeedbackClassName}`}
+                  >
+                    {usernameFeedback.icon}
+                    <span>{usernameFeedback.message}</span>
+                  </div>
+                ) : null}
+              </RegisterField>
+            </>
+          )}
 
           <motion.div variants={variants} className="grid gap-3 pt-1">
             <Button
               className="w-full"
               type="submit"
               size="lg"
-              loading={props.emailCheckLoading || props.loading}
+              loading={busy && (!isVerificationPending || props.resendLoading)}
               disabled={
-                props.emailCheckLoading || props.loading || usernameChecking || usernameUnavailable
+                busy ||
+                (isVerificationPending
+                  ? retryAfter > 0
+                  : usernameChecking || usernameUnavailable)
               }
             >
-              <AuthButtonLabel>{t("auth:REGISTER_BUTTON")}</AuthButtonLabel>
+              <AuthButtonLabel>
+                {isVerificationPending
+                  ? retryAfter > 0
+                    ? t("auth:REGISTER_VERIFY_EMAIL_RESEND_WAIT", { countdown: `${retryAfter}s` })
+                    : t("auth:REGISTER_VERIFY_EMAIL_RESEND_ACTION")
+                  : t("auth:REGISTER_BUTTON")}
+              </AuthButtonLabel>
             </Button>
           </motion.div>
         </form>
@@ -347,7 +410,7 @@ export function RegisterPane(props: RegisterPaneProps) {
               <span>{t("auth:HAVE_ACCOUNT")} </span>
               <AuthLinkButton
                 className="!px-1 !text-callout font-normal"
-                disabled={props.emailCheckLoading || props.loading}
+                disabled={busy}
                 onClick={() => props.onSwitchToLogin()}
                 type="button"
               >

@@ -30,6 +30,7 @@ type AccessFormValues = {
   oauthAutoAcceptEmailInvites: boolean;
   publicRegisterEnabled: boolean;
   publicRegisterRequireEmail: boolean;
+  publicRegisterRequireEmailVerification: boolean;
   publicRegisterEmailDomainsAllowlist: string;
 };
 
@@ -46,6 +47,9 @@ function buildInitialValues(
     ),
     publicRegisterEnabled: Boolean(readBooleanValue(auth, "public_register_enabled")),
     publicRegisterRequireEmail: Boolean(readBooleanValue(auth, "public_register_require_email")),
+    publicRegisterRequireEmailVerification: Boolean(
+      readBooleanValue(auth, "public_register_require_email_verification"),
+    ),
     publicRegisterEmailDomainsAllowlist: joinLineList(
       readStringArrayValue(auth, "public_register_email_domains_allowlist"),
     ),
@@ -99,6 +103,8 @@ export function SystemSettingsAccessPage() {
   const registrationDirty =
     values.publicRegisterEnabled !== initialValues.publicRegisterEnabled ||
     values.publicRegisterRequireEmail !== initialValues.publicRegisterRequireEmail ||
+    values.publicRegisterRequireEmailVerification !==
+      initialValues.publicRegisterRequireEmailVerification ||
     values.publicRegisterEmailDomainsAllowlist !==
       initialValues.publicRegisterEmailDomainsAllowlist;
 
@@ -139,6 +145,9 @@ export function SystemSettingsAccessPage() {
         ...form.getValues(),
         publicRegisterEnabled: Boolean(form.getValues("publicRegisterEnabled")),
         publicRegisterRequireEmail: Boolean(form.getValues("publicRegisterRequireEmail")),
+        publicRegisterRequireEmailVerification: Boolean(
+          form.getValues("publicRegisterRequireEmailVerification"),
+        ),
         publicRegisterEmailDomainsAllowlist: nextAllowlist.join("\n"),
       };
       await persistPatch(
@@ -146,6 +155,8 @@ export function SystemSettingsAccessPage() {
           auth: {
             public_register_enabled: nextValues.publicRegisterEnabled,
             public_register_require_email: nextValues.publicRegisterRequireEmail,
+            public_register_require_email_verification:
+              nextValues.publicRegisterRequireEmailVerification,
             public_register_email_domains_allowlist: nextAllowlist,
           },
         },
@@ -220,6 +231,8 @@ export function SystemSettingsAccessPage() {
                   ...form.getValues(),
                   publicRegisterEnabled: initialValues.publicRegisterEnabled,
                   publicRegisterRequireEmail: initialValues.publicRegisterRequireEmail,
+                  publicRegisterRequireEmailVerification:
+                    initialValues.publicRegisterRequireEmailVerification,
                   publicRegisterEmailDomainsAllowlist:
                     initialValues.publicRegisterEmailDomainsAllowlist,
                 })
@@ -249,6 +262,22 @@ export function SystemSettingsAccessPage() {
                   title={t("settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_REQUIRE_EMAIL_TITLE")}
                   description={t(
                     "settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_REQUIRE_EMAIL_DESC",
+                  )}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="publicRegisterRequireEmailVerification"
+              render={({ field }) => (
+                <SettingBooleanControl
+                  title={t(
+                    "settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_REQUIRE_EMAIL_VERIFICATION_TITLE",
+                  )}
+                  description={t(
+                    "settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_REQUIRE_EMAIL_VERIFICATION_DESC",
                   )}
                   checked={Boolean(field.value)}
                   onCheckedChange={field.onChange}

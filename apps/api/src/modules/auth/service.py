@@ -38,6 +38,7 @@ from src.modules.auth.repository import (
     PasswordRemovalCodeStore,
     PasswordResetStore,
     RefreshTokenStore,
+    RegistrationEmailVerificationStore,
     UserRepository,
 )
 from src.modules.auth.schema import (
@@ -48,6 +49,8 @@ from src.modules.auth.schema import (
     MyInvitationListQuery,
     MyInvitationOut,
     MySecurityCapabilityOut,
+    RegisterEmailVerificationOut,
+    RegisterResult,
     ResetTokenPayload,
     TokenPair,
     UpdateMyProfileRequest,
@@ -103,6 +106,9 @@ class AuthService(BaseService):
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
         self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
         self.email_change_store = EmailChangeStore(valkey) if valkey else None
+        self.registration_email_verification_store = (
+            RegistrationEmailVerificationStore(valkey) if valkey else None
+        )
         self.password_removal_store = PasswordRemovalCodeStore(valkey) if valkey else None
         self.email_service = EmailService(settings)
         self.invitation_service = AuthInvitationService(settings)
@@ -173,6 +179,14 @@ class AuthService(BaseService):
                 error="EMAIL_CHANGE_STORE_UNAVAILABLE",
             )
         return self.email_change_store
+
+    def _require_registration_email_verification_store(self) -> RegistrationEmailVerificationStore:
+        if self.registration_email_verification_store is None:
+            raise ServiceUnavailable(
+                message=self._ta("EMAIL_VERIFICATION_STORE_UNAVAILABLE", "邮箱验证服务不可用"),
+                error="EMAIL_VERIFICATION_STORE_UNAVAILABLE",
+            )
+        return self.registration_email_verification_store
 
     def _require_password_removal_store(self) -> PasswordRemovalCodeStore:
         if self.password_removal_store is None:
@@ -389,6 +403,23 @@ class AuthService(BaseService):
         await self.email_service.send_email_change_code(
             recipient=recipient,
             code=code,
+            expires_in=expires_in,
+            user_id=str(user_id) if user_id else None,
+            locale=locale,
+        )
+
+    async def send_registration_verification_email(
+        self,
+        *,
+        recipient: str,
+        verification_token: str,
+        expires_in: int,
+        user_id: UUID | None = None,
+        locale: str | None = None,
+    ) -> None:
+        await self.email_service.send_registration_verification(
+            recipient=recipient,
+            verification_token=verification_token,
             expires_in=expires_in,
             user_id=str(user_id) if user_id else None,
             locale=locale,
@@ -921,6 +952,7 @@ class AuthService(BaseService):
             display_name=display_name,
             password_hash=password_hash,
             is_super_admin=is_super_admin,
+            email_verified_at=datetime.now(UTC) if email else None,
         )
         user_id = UUID(str(user.id))
         await self.onboarding_service.ensure_initialized(user_id=user_id)
@@ -1436,7 +1468,7 @@ class AuthService(BaseService):
         password: str,
         email: str | None = None,
         display_name: str | None = None,
-    ) -> UserLike:
+    ) -> RegisterResult:
         from src.modules.auth.registration.service import get_public_register_policy
 
         policy = await get_public_register_policy(self.settings)
@@ -1447,6 +1479,15 @@ class AuthService(BaseService):
         normalized_email = (email or "").strip().lower() or None
         if policy.require_email and not normalized_email:
             raise BadRequest(message=self._ta("EMAIL_REQUIRED", "邮箱必填"), error="EMAIL_REQUIRED")
+        if policy.require_email_verification:
+            if not normalized_email:
+                raise BadRequest(message=self._ta("EMAIL_REQUIRED", "邮箱必填"), error="EMAIL_REQUIRED")
+            if not await self.email_service.is_enabled():
+                raise BadRequest(
+                    message=self._ta("MAIL_DISABLED", "系统未开启邮件服务，请联系管理员"),
+                    error="MAIL_DISABLED",
+                )
+            self._require_registration_email_verification_store()
         if normalized_email and not policy.is_email_allowed(normalized_email):
             raise Forbidden(
                 message=self._ta("REGISTER_DOMAIN_NOT_ALLOWED", "该邮箱域名不允许注册"),
@@ -1458,8 +1499,131 @@ class AuthService(BaseService):
             email=normalized_email,
             display_name=display_name,
         )
+        profile = self.build_user_profile(user)
+        if not policy.require_email_verification:
+            return RegisterResult(user=profile, requires_email_verification=False)
 
-        return user
+        user_id = UUID(str(user.id))
+        store = self._require_registration_email_verification_store()
+        await self.user_repo.set_email_verified_at(user, None)
+        token, ttl, retry_after = await store.issue(user_id=user_id, email=cast(str, normalized_email))
+        try:
+            await self.send_registration_verification_email(
+                recipient=cast(str, normalized_email),
+                verification_token=token,
+                expires_in=ttl,
+                user_id=user_id,
+            )
+        except BaseException:
+            await store.delete_by_email(email=cast(str, normalized_email))
+            await self.user_repo.delete_user(user)
+            raise
+
+        return RegisterResult(
+            user=profile,
+            requires_email_verification=True,
+            expires_in=ttl,
+            retry_after=retry_after,
+        )
+
+    async def resend_registration_email_verification(
+        self,
+        *,
+        email: str,
+        locale: str | None = None,
+    ) -> RegisterResult:
+        from src.modules.auth.registration.service import get_public_register_policy
+
+        policy = await get_public_register_policy(self.settings)
+        if not policy.enabled:
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+        if not policy.require_email_verification:
+            raise BadRequest(
+                message=self._ta("EMAIL_VERIFICATION_NOT_REQUIRED", "当前不需要邮箱验证"),
+                error="EMAIL_VERIFICATION_NOT_REQUIRED",
+            )
+        if not await self.email_service.is_enabled():
+            raise BadRequest(
+                message=self._ta("MAIL_DISABLED", "系统未开启邮件服务，请联系管理员"),
+                error="MAIL_DISABLED",
+            )
+
+        normalized_email = self._normalize_email(email)
+        user = await self.user_repo.get_by_email(normalized_email)
+        if user is None:
+            raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
+        if getattr(user, "email_verified_at", None) is not None:
+            return RegisterResult(user=self.build_user_profile(user), requires_email_verification=False)
+
+        store = self._require_registration_email_verification_store()
+        existing = await store.get_by_email(email=normalized_email)
+        if existing is not None:
+            expires_in = store.remaining_expires_in(existing)
+            retry_after = store.remaining_retry_after(existing)
+            if expires_in > 0 and retry_after > 0:
+                return RegisterResult(
+                    user=self.build_user_profile(user),
+                    requires_email_verification=True,
+                    expires_in=expires_in,
+                    retry_after=retry_after,
+                )
+
+        await store.delete_by_email(email=normalized_email)
+        user_id = UUID(str(user.id))
+        token, ttl, retry_after = await store.issue(user_id=user_id, email=normalized_email)
+        try:
+            await self.send_registration_verification_email(
+                recipient=normalized_email,
+                verification_token=token,
+                expires_in=ttl,
+                user_id=user_id,
+                locale=locale,
+            )
+        except BaseException:
+            await store.delete_by_email(email=normalized_email)
+            raise
+
+        return RegisterResult(
+            user=self.build_user_profile(user),
+            requires_email_verification=True,
+            expires_in=ttl,
+            retry_after=retry_after,
+        )
+
+    async def confirm_registration_email_verification(self, *, token: str) -> RegisterEmailVerificationOut:
+        store = self._require_registration_email_verification_store()
+        normalized_token = token.strip()
+        record = await store.get_by_token(token=normalized_token)
+        if record is None or store.remaining_expires_in(record) <= 0:
+            if record is not None:
+                await store.delete_record(record)
+            raise Unauthorized(
+                message=self._ta("EMAIL_VERIFICATION_TOKEN_INVALID", "邮箱验证链接无效或已过期"),
+                error="EMAIL_VERIFICATION_TOKEN_INVALID",
+            )
+
+        email = str(record.get("email") or "").strip().lower()
+        user_id_raw = str(record.get("user_id") or "").strip()
+        if not email or not user_id_raw:
+            await store.delete_record(record)
+            raise Unauthorized(
+                message=self._ta("EMAIL_VERIFICATION_TOKEN_INVALID", "邮箱验证链接无效或已过期"),
+                error="EMAIL_VERIFICATION_TOKEN_INVALID",
+            )
+
+        user = await self.user_repo.get_by_id(UUID(user_id_raw))
+        if user is None:
+            await store.delete_record(record)
+            raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
+        current_email = str(getattr(user, "email", "") or "").strip().lower()
+        if current_email != email:
+            await store.delete_record(record)
+            raise BadRequest(message=self._ta("EMAIL_MISMATCH", "邮箱与验证码不匹配"), error="EMAIL_MISMATCH")
+
+        if getattr(user, "email_verified_at", None) is None:
+            await self.user_repo.mark_email_verified(user)
+        await store.delete_record(record)
+        return RegisterEmailVerificationOut(email=email)
 
     async def request_password_reset(
         self,

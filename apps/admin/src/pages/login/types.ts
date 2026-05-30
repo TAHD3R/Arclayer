@@ -43,6 +43,16 @@ export interface RegisterFormValues {
   password: string;
 }
 
+export interface RegisterEmailVerificationState {
+  email: string;
+  retryAfter: number;
+}
+
+export interface EmailVerificationNoticeState {
+  open: boolean;
+  email?: string;
+}
+
 export interface LoginPaneSeed {
   email: string;
   step: "email" | "password";
@@ -91,9 +101,14 @@ export interface LoginViewProps {
   authTransitionLoading?: boolean;
   onRegisterEmailSubmit: (email: string) => Promise<boolean>;
   onRegisterSubmit: (values: RegisterFormValues) => Promise<void>;
+  onRegisterVerificationResend: (email: string) => Promise<{ retryAfter: number }>;
+  registerVerification?: RegisterEmailVerificationState | null;
+  emailVerificationNotice?: EmailVerificationNoticeState;
+  onEmailVerificationNoticeOpenChange?: (open: boolean) => void;
   registerSeed?: RegisterPaneSeed | null;
   registerEmailLoading?: boolean;
   registerLoading?: boolean;
+  registerResendLoading?: boolean;
   publicRegisterEnabled?: boolean;
   challenge: AuthChallengeSnapshot | null;
   onLoginTwoFactorSubmit: (values: LoginTwoFactorFormValues) => Promise<void>;

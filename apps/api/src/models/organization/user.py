@@ -28,6 +28,7 @@ class User(BaseModel):
     avatar_url = fields.CharField(max_length=512, null=True)
     # New canonical avatar reference. Public URL is derived from Asset delivery, not stored here.
     avatar_asset_id = fields.UUIDField(null=True, db_index=True)
+    email_verified_at = fields.DatetimeField(null=True, db_index=True)
     last_login_at = fields.DatetimeField(null=True)
     token_version = fields.IntField(default=0, db_index=True)
 

@@ -7,6 +7,7 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
 from src.core.services import BaseService
+from src.modules.auth.registration.service import get_public_register_policy
 from src.modules.auth.repository import EmailLoginCodeStore
 from src.modules.auth.schema import LoginEmailCodeRequestOut, TokenPair
 from src.modules.auth.service import AuthService
@@ -56,6 +57,17 @@ class AuthLoginService(BaseService):
             )
         return self.email_login_code_store
 
+    async def _ensure_email_verified_for_login(self, user: object) -> None:
+        policy = await get_public_register_policy(self.settings)
+        if not policy.require_email_verification:
+            return
+        if getattr(user, "email_verified_at", None) is not None:
+            return
+        raise Forbidden(
+            message=self._ta("EMAIL_NOT_VERIFIED", "请先验证邮箱后再登录"),
+            error="EMAIL_NOT_VERIFIED",
+        )
+
     async def login(
         self,
         *,
@@ -72,6 +84,7 @@ class AuthLoginService(BaseService):
             )
         if not self.auth_service.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
+        await self._ensure_email_verified_for_login(user)
 
         password_hash = getattr(credential, "password_hash", "")
         if not isinstance(password_hash, str) or not password_hash:
@@ -221,6 +234,7 @@ class AuthLoginService(BaseService):
             )
         if not self.auth_service.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
+        await self._ensure_email_verified_for_login(user)
         if not await self.auth_service.email_service.is_enabled():
             raise BadRequest(
                 message=self._ta("MAIL_DISABLED", "系统未开启邮件服务，请联系管理员"),

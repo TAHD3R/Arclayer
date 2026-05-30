@@ -13,6 +13,8 @@ import type {
   PatchOnboardingProfilePayload,
   RequestRemoveMyPasswordPayload,
   RegisterPayload,
+  RegisterResult,
+  RegisterEmailVerificationOut,
   RequestMyEmailChangeOut,
   RequestMyEmailChangePayload,
   ResetTokenPayload,
@@ -74,8 +76,24 @@ export async function loginTwoFactor(payload: {
   );
 }
 
-export async function register(payload: RegisterPayload): Promise<UserProfile> {
-  return api.post<UserProfile>("/auth/register", payload, { auth: { skipRefresh: true } });
+export async function register(payload: RegisterPayload): Promise<RegisterResult> {
+  return api.post<RegisterResult>("/auth/register", payload, { auth: { skipRefresh: true } });
+}
+
+export async function resendRegistrationEmailVerification(payload: {
+  email: string;
+}): Promise<RegisterResult> {
+  return api.post<RegisterResult>("/auth/register/email/resend", payload, {
+    auth: { skipRefresh: true },
+  });
+}
+
+export async function confirmRegistrationEmailVerification(payload: {
+  token: string;
+}): Promise<RegisterEmailVerificationOut> {
+  return api.post<RegisterEmailVerificationOut>("/auth/register/email/confirm", payload, {
+    auth: { skipRefresh: true },
+  });
 }
 
 export async function refresh(payload: { refresh_token: string }): Promise<TokenPair> {

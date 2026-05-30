@@ -9,7 +9,7 @@ from fastapi_mail.errors import ConnectionErrors
 from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
-from src.core.exceptions import BadRequest, ServiceUnavailable, Unauthorized
+from src.core.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
 from src.models.organization.user import UserStatus
 from src.modules.auth.contracts.schema import UserRepositoryLike
@@ -136,11 +136,13 @@ class FakeUser(BaseModel):
     token_version: int = 0
     credential: FakeCredential | None = None
     last_login_at: Any | None = None
+    email_verified_at: Any | None = "verified"
 
 
 class FakeUserRepository:
     def __init__(self, user: FakeUser) -> None:
         self._user = user
+        self.deleted = False
 
     async def get_by_identifier(self, identifier: str) -> FakeUser | None:
         return self._user if identifier == self._user.username else None
@@ -196,9 +198,22 @@ class FakeUserRepository:
         display_name: str | None,
         password_hash: str,
         is_super_admin: bool = False,
+        email_verified_at: Any | None = None,
     ) -> FakeUser:
-        _ = username, email, display_name, password_hash, is_super_admin
+        _ = username, email, display_name, password_hash, is_super_admin, email_verified_at
         raise RuntimeError("not used")
+
+    async def mark_email_verified(self, user) -> FakeUser:
+        user.email_verified_at = "verified"
+        return user
+
+    async def set_email_verified_at(self, user, verified_at) -> FakeUser:
+        user.email_verified_at = verified_at
+        return user
+
+    async def delete_user(self, user) -> None:
+        if user is self._user:
+            self.deleted = True
 
 
 class FakeTwoFactor:
@@ -248,6 +263,26 @@ async def test_login_returns_two_factor_challenge(monkeypatch) -> None:
     assert isinstance(exc.value.meta, dict)
     assert isinstance(exc.value.meta.get("two_factor_token"), str)
     assert isinstance(exc.value.meta.get("expires_in"), int)
+
+
+async def test_login_blocks_unverified_email_when_registration_verification_required(
+    monkeypatch,
+) -> None:
+    service, _, user = _build_login_service(monkeypatch, two_factor_enabled=False)
+    user.email_verified_at = None
+
+    async def _fake_policy(_settings):
+        class Policy:
+            require_email_verification = True
+
+        return Policy()
+
+    monkeypatch.setattr("src.modules.auth.login.service.get_public_register_policy", _fake_policy)
+
+    with pytest.raises(Forbidden) as exc:
+        await service.login(email="demo@example.com", password="pass")
+
+    assert exc.value.error == "EMAIL_NOT_VERIFIED"
 
 
 async def test_complete_two_factor_login_issues_tokens(monkeypatch) -> None:

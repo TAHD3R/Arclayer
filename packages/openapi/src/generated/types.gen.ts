@@ -10446,6 +10446,48 @@ export type RefreshRequest = {
 };
 
 /**
+ * RegisterEmailResendRequest
+ *
+ * Resend public-registration verification email.
+ */
+export type RegisterEmailResendRequest = {
+    /**
+     * Email
+     *
+     * Email address used during registration.
+     */
+    email: string;
+};
+
+/**
+ * RegisterEmailVerificationOut
+ *
+ * Confirmed registration email verification result.
+ */
+export type RegisterEmailVerificationOut = {
+    /**
+     * Email
+     *
+     * Verified email address.
+     */
+    email: string;
+};
+
+/**
+ * RegisterEmailVerificationRequest
+ *
+ * Confirm public-registration email verification token.
+ */
+export type RegisterEmailVerificationRequest = {
+    /**
+     * Token
+     *
+     * Email verification token.
+     */
+    token: string;
+};
+
+/**
  * RegisterRequest
  *
  * User registration request.
@@ -10475,6 +10517,33 @@ export type RegisterRequest = {
      * Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.
      */
     username: string;
+};
+
+/**
+ * RegisterResult
+ *
+ * Registration result and optional email verification metadata.
+ */
+export type RegisterResult = {
+    /**
+     * Expiresin
+     *
+     * Verification link TTL in seconds.
+     */
+    expiresIn?: number | null;
+    /**
+     * Requiresemailverification
+     *
+     * Whether the user must verify their email before signing in.
+     */
+    requiresEmailVerification?: boolean;
+    /**
+     * Retryafter
+     *
+     * Seconds before the link can be resent.
+     */
+    retryAfter?: number | null;
+    user: UserProfile;
 };
 
 /**
@@ -13865,6 +13934,56 @@ export type ResponseModelPublishJobOut = {
  */
 export type ResponseModelPublishReadinessOut = {
     data?: PublishReadinessOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[RegisterEmailVerificationOut]
+ */
+export type ResponseModelRegisterEmailVerificationOut = {
+    data?: RegisterEmailVerificationOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[RegisterResult]
+ */
+export type ResponseModelRegisterResult = {
+    data?: RegisterResult | null;
     /**
      * Error
      */
@@ -20315,10 +20434,60 @@ export type GlobalAuthRegisterResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelUserProfile;
+    200: ResponseModelRegisterResult;
 };
 
 export type GlobalAuthRegisterResponse = GlobalAuthRegisterResponses[keyof GlobalAuthRegisterResponses];
+
+export type GlobalAuthConfirmRegistrationEmailVerificationData = {
+    body: RegisterEmailVerificationRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/register/email/confirm';
+};
+
+export type GlobalAuthConfirmRegistrationEmailVerificationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthConfirmRegistrationEmailVerificationError = GlobalAuthConfirmRegistrationEmailVerificationErrors[keyof GlobalAuthConfirmRegistrationEmailVerificationErrors];
+
+export type GlobalAuthConfirmRegistrationEmailVerificationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelRegisterEmailVerificationOut;
+};
+
+export type GlobalAuthConfirmRegistrationEmailVerificationResponse = GlobalAuthConfirmRegistrationEmailVerificationResponses[keyof GlobalAuthConfirmRegistrationEmailVerificationResponses];
+
+export type GlobalAuthResendRegistrationEmailVerificationData = {
+    body: RegisterEmailResendRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/register/email/resend';
+};
+
+export type GlobalAuthResendRegistrationEmailVerificationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthResendRegistrationEmailVerificationError = GlobalAuthResendRegistrationEmailVerificationErrors[keyof GlobalAuthResendRegistrationEmailVerificationErrors];
+
+export type GlobalAuthResendRegistrationEmailVerificationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelRegisterResult;
+};
+
+export type GlobalAuthResendRegistrationEmailVerificationResponse = GlobalAuthResendRegistrationEmailVerificationResponses[keyof GlobalAuthResendRegistrationEmailVerificationResponses];
 
 export type GlobalAuthResetPasswordData = {
     body: ResetPasswordRequest;

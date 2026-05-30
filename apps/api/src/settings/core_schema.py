@@ -426,6 +426,12 @@ def build_core_settings_schema() -> ConfigSchema:
                         label="Require email for public registration",
                     ),
                     ConfigField(
+                        key="public_register_require_email_verification",
+                        type="bool",
+                        default=False,
+                        label="Require email verification after public registration",
+                    ),
+                    ConfigField(
                         key="public_register_email_domains_allowlist",
                         type="list",
                         default=[],

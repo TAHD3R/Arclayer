@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -20,6 +21,9 @@ class UserLike(Protocol):
 
     @property
     def email(self) -> object: ...
+
+    @property
+    def email_verified_at(self) -> object: ...
 
     @property
     def display_name(self) -> object: ...
@@ -89,4 +93,11 @@ class UserRepositoryLike(Protocol):
         display_name: str | None,
         password_hash: str,
         is_super_admin: bool = False,
+        email_verified_at: datetime | None = None,
     ) -> UserLike: ...
+
+    async def mark_email_verified(self, user: UserLike) -> UserLike: ...
+
+    async def set_email_verified_at(self, user: UserLike, verified_at: datetime | None) -> UserLike: ...
+
+    async def delete_user(self, user: UserLike) -> None: ...

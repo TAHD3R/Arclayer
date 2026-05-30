@@ -103,6 +103,7 @@ function renderLoginView(overrides: Partial<React.ComponentProps<typeof LoginVie
         onForgotPasswordSubmit={async () => undefined}
         onRegisterEmailSubmit={async () => false}
         onRegisterSubmit={async () => undefined}
+        onRegisterVerificationResend={async () => ({ retryAfter: 60 })}
         publicRegisterEnabled
         challenge={null}
         onLoginTwoFactorSubmit={async () => undefined}
@@ -136,6 +137,20 @@ describe("LoginView register entry visibility", () => {
     renderLoginView();
 
     expect(screen.getByText("auth:CREATE_ACCOUNT")).toBeInTheDocument();
+  });
+
+  test("shows email verification notice dialog after confirmation", () => {
+    renderLoginView({
+      emailVerificationNotice: { open: true, email: "founder@example.com" },
+      onEmailVerificationNoticeOpenChange: vi.fn(),
+    });
+
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getByText("auth:REGISTER_VERIFY_EMAIL_NOTICE_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("auth:REGISTER_VERIFY_EMAIL_NOTICE_DESC")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "auth:REGISTER_VERIFY_EMAIL_NOTICE_ACTION" }),
+    ).toBeInTheDocument();
   });
 });
 
