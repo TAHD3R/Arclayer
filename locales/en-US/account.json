@@ -12,6 +12,7 @@
   "ACCOUNT_DANGER_WORKSPACE_TITLE": "Workspace exits stay in workspace settings",
   "ACCOUNT_HELP_CENTER": "Help center",
   "ACCOUNT_LANGUAGE_EN": "English",
+  "ACCOUNT_LANGUAGE_SYSTEM_DEFAULT": "Follow system default",
   "ACCOUNT_LANGUAGE_ZH": "Chinese",
   "ACCOUNT_LOGOUT": "Sign out",
   "ACCOUNT_MENU_ACCOUNT": "Settings",

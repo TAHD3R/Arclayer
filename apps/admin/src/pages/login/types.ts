@@ -82,8 +82,6 @@ export interface LoginViewProps {
   loginEmailCodeSeed?: LoginEmailCodePaneSeed | null;
   loginEmailCodeRequestLoading?: boolean;
   loginEmailCodeVerifyLoading?: boolean;
-  initialKeepSession?: boolean;
-  onKeepSessionPreferenceChange?: (keepSession: boolean) => void;
   redirect?: string | undefined;
   pendingOAuthProvider?: PendingOAuthProvider | null;
   onStartOAuth?: (input: { provider: string; startUrl: string; keepSession: boolean }) => void;

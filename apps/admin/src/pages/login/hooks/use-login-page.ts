@@ -194,8 +194,6 @@ type LoginPageState =
 
 export function useLoginPage(): LoginPageState {
   const applyLogin = useAuthStore((s) => s.applyLogin);
-  const keepSession = useAuthStore((s) => s.keepSession);
-  const setKeepSession = useAuthStore((s) => s.setKeepSession);
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
   const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
@@ -520,7 +518,7 @@ export function useLoginPage(): LoginPageState {
     const run = async () => {
       try {
         const activePending = readPopupPendingOAuthState() ?? readPendingOAuthState();
-        const keepSessionForSso = activePending?.keepSession ?? keepSession;
+        const keepSessionForSso = true;
         const tokens = await ssoExchangeMutation.mutateAsync(oauthCode);
         clearActiveChallenge();
         applyLogin(tokens, { keepSession: keepSessionForSso });
@@ -541,7 +539,7 @@ export function useLoginPage(): LoginPageState {
         await navigateAfterAuth();
       } catch (error) {
         const activePending = readPopupPendingOAuthState() ?? readPendingOAuthState();
-        const keepSessionForSso = activePending?.keepSession ?? keepSession;
+        const keepSessionForSso = true;
         if (
           startTwoFactorChallenge(error, {
             keepSession: keepSessionForSso,
@@ -595,7 +593,6 @@ export function useLoginPage(): LoginPageState {
   }, [
     applyLogin,
     clearActiveChallenge,
-    keepSession,
     effectiveMode,
     navigate,
     oauthCode,
@@ -649,7 +646,7 @@ export function useLoginPage(): LoginPageState {
         ? {
             email: options.email,
             autoRequest: options.step === "verify",
-            keepSession: options.keepSession ?? keepSession,
+            keepSession: true,
             passwordLoginAvailable: options.passwordLoginAvailable,
           }
         : null,
@@ -696,7 +693,7 @@ export function useLoginPage(): LoginPageState {
     try {
       const tokens = await loginMutation.mutateAsync(values);
       clearActiveChallenge();
-      applyLogin(tokens, { keepSession: values.keepSession });
+      applyLogin(tokens, { keepSession: true });
       void queryClient.cancelQueries();
       queryClient.clear();
       notifySuccessText(t("auth:LOGIN_SUCCESS"));
@@ -704,7 +701,7 @@ export function useLoginPage(): LoginPageState {
     } catch (error) {
       if (
         startTwoFactorChallenge(error, {
-          keepSession: values.keepSession,
+          keepSession: true,
           redirect: redirectTo,
           source: "password",
         })
@@ -718,7 +715,7 @@ export function useLoginPage(): LoginPageState {
     loginEmailCodeRequestMutation.mutateAsync(email);
 
   const onLoginEmailCodeFinish = async (values: LoginEmailCodeFormValues) => {
-    const keepSessionForEmailCode = loginEmailCodeSeed?.keepSession ?? keepSession;
+    const keepSessionForEmailCode = true;
 
     try {
       const tokens = await loginEmailCodeVerifyMutation.mutateAsync(values);
@@ -863,8 +860,6 @@ export function useLoginPage(): LoginPageState {
       loginLoading: loginMutation.isPending || ssoExchangeMutation.isPending,
       loginEmailCodeRequestLoading: loginEmailCodeRequestMutation.isPending,
       loginEmailCodeVerifyLoading: loginEmailCodeVerifyMutation.isPending,
-      initialKeepSession: keepSession,
-      onKeepSessionPreferenceChange: setKeepSession,
       redirect: redirectTo,
       pendingOAuthProvider: pendingOAuth?.provider ?? null,
       onStartOAuth: startOAuthPopup,

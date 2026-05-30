@@ -13,7 +13,7 @@ type AuthFieldErrorProps = {
 
 export function AuthFieldError({ message, className }: AuthFieldErrorProps) {
   if (!message) return null;
-  return <p className={cn("text-footnote text-destructive", className)}>{message}</p>;
+  return <p className={cn("!text-callout text-destructive", className)}>{message}</p>;
 }
 
 type AuthInputControlProps = React.ComponentProps<typeof InputGroupInput> & {

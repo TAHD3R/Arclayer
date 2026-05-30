@@ -1,7 +1,7 @@
-import { KeyRound, Lock, Mail } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import type { FormEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -10,7 +10,6 @@ import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
-import { Checkbox } from "@arclayer/ui/checkbox";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
 import type { LoginEmailLookupResult, LoginFormValues, LoginPaneSeed } from "../types";
@@ -29,15 +28,12 @@ import {
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,128}$/;
 
 type LoginPaneValues = LoginFormValues;
-type LoginPaneStep = "email" | "password";
 
 type LoginPaneProps = {
   onEmailSubmit: (email: string) => Promise<LoginEmailLookupResult>;
   onSubmit: (values: LoginFormValues) => Promise<void>;
   emailCheckLoading: boolean;
   loading: boolean;
-  initialKeepSession: boolean;
-  onKeepSessionPreferenceChange?: (keepSession: boolean) => void;
   loginSeed?: LoginPaneSeed | null;
   redirect?: string;
   pendingOAuthProvider?: string | null;
@@ -57,7 +53,6 @@ type LoginPaneProps = {
 export function LoginPane(props: LoginPaneProps) {
   const { t } = useTranslation();
   const variants = props.reducedMotion ? {} : props.itemVariants;
-  const [step, setStep] = useState<LoginPaneStep>("email");
   const form = useForm<LoginPaneValues>({
     resolver: zodResolver(
       z.object({
@@ -72,35 +67,27 @@ export function LoginPane(props: LoginPaneProps) {
     defaultValues: {
       email: "",
       password: "",
-      keepSession: props.initialKeepSession,
+      keepSession: true,
     },
     mode: "onSubmit",
   });
   const resetRef = useRef(form.reset);
   resetRef.current = form.reset;
   const seedEmail = props.loginSeed?.email ?? "";
-  const seedStep = props.loginSeed?.step;
 
   useEffect(() => {
-    const nextStep = seedStep === "password" && seedEmail ? "password" : "email";
     resetRef.current({
       email: seedEmail,
       password: "",
-      keepSession: props.initialKeepSession,
+      keepSession: true,
     });
-    setStep(nextStep);
-  }, [seedEmail, seedStep]);
-
-  useEffect(() => {
-    form.setValue("keepSession", props.initialKeepSession);
-  }, [form, props.initialKeepSession]);
+  }, [seedEmail]);
 
   const emailError = form.formState.errors.email?.message;
   const passwordError = form.formState.errors.password?.message;
-  const keepSession = Boolean(form.watch("keepSession"));
   const emailFieldError = emailError ? String(emailError) : null;
 
-  const submitPassword = async () => {
+  const submitLogin = async () => {
     const isEmailValid = await form.trigger("email");
     if (!isEmailValid) return;
 
@@ -116,73 +103,49 @@ export function LoginPane(props: LoginPaneProps) {
       return;
     }
 
-    await props.onSubmit({
-      email: form.getValues("email"),
-      password,
-      keepSession,
-    });
-  };
-
-  const handleContinue = async () => {
-    const isValid = await form.trigger("email");
-    if (!isValid) return;
-    const lookup = await props.onEmailSubmit(form.getValues("email"));
+    const email = form.getValues("email");
+    const lookup = await props.onEmailSubmit(email);
     if (!lookup.exists) {
-      setStep("email");
       form.setError("email", {
         message: t("auth:LOGIN_EMAIL_NOT_REACHABLE"),
       });
       return;
     }
     if (!lookup.passwordLoginAvailable) {
-      props.onSwitchToEmailCode(form.getValues("email"), keepSession, false);
+      props.onSwitchToEmailCode(email, true, false);
       return;
     }
-    setStep("password");
-    form.clearErrors("password");
+
+    await props.onSubmit({
+      email,
+      password,
+      keepSession: true,
+    });
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (step === "email") {
-      void handleContinue();
-      return;
-    }
-    void submitPassword();
-  };
-
-  const handleUseAnotherEmail = () => {
-    setStep("email");
-    form.setValue("password", "");
-    form.clearErrors("password");
-  };
-
-  const handleKeepSessionChange = (value: boolean | "indeterminate") => {
-    const nextKeepSession = Boolean(value);
-    form.setValue("keepSession", nextKeepSession);
-    props.onKeepSessionPreferenceChange?.(nextKeepSession);
+    void submitLogin();
   };
 
   return (
     <div className={AUTH_PANE_ROOT_CLASS}>
       <AuthPaneHeader titleKey="auth:LOGIN_PAGE_TITLE" variants={variants} />
       <div className={AUTH_PANE_CONTENT_CLASS}>
-        {step === "email" ? (
-          <motion.div variants={variants} className="empty:hidden">
-            <AuthOauthButtons
-              disabled={props.emailCheckLoading || props.loading}
-              redirect={props.redirect}
-              dividerPlacement="after"
-              loadingProvider={props.pendingOAuthProvider}
-              onProviderStart={
-                props.onStartOAuth
-                  ? ({ provider, startUrl }) =>
-                      props.onStartOAuth?.({ provider, startUrl, keepSession })
-                  : undefined
-              }
-            />
-          </motion.div>
-        ) : null}
+        <motion.div variants={variants} className="empty:hidden">
+          <AuthOauthButtons
+            disabled={props.emailCheckLoading || props.loading}
+            redirect={props.redirect}
+            dividerPlacement="after"
+            loadingProvider={props.pendingOAuthProvider}
+            onProviderStart={
+              props.onStartOAuth
+                ? ({ provider, startUrl }) =>
+                    props.onStartOAuth?.({ provider, startUrl, keepSession: true })
+                : undefined
+            }
+          />
+        </motion.div>
         <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
@@ -190,15 +153,13 @@ export function LoginPane(props: LoginPaneProps) {
                 <AuthPaneTitleRow
                   title={t("auth:FIELD_EMAIL_LABEL")}
                   action={
-                    step === "password" ? (
-                      <AuthLinkButton
-                        disabled={props.emailCheckLoading || props.loading}
-                        onClick={handleUseAnotherEmail}
-                        type="button"
-                      >
-                        {t("auth:AUTH_CHANGE_EMAIL")}
-                      </AuthLinkButton>
-                    ) : undefined
+                    <AuthLinkButton
+                      disabled={props.emailCheckLoading || props.loading}
+                      onClick={() => props.onSwitchToEmailCode(form.getValues("email"), true)}
+                      type="button"
+                    >
+                      {t("auth:LOGIN_EMAIL_CODE_ACTION")}
+                    </AuthLinkButton>
                   }
                 />
                 <AuthInputControl
@@ -209,8 +170,7 @@ export function LoginPane(props: LoginPaneProps) {
                   inputClassName={AUTH_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
-                  disabled={props.emailCheckLoading || props.loading || step === "password"}
-                  readOnly={step === "password"}
+                  disabled={props.emailCheckLoading || props.loading}
                   spellCheck={false}
                   {...form.register("email")}
                 />
@@ -219,86 +179,55 @@ export function LoginPane(props: LoginPaneProps) {
             </Field>
           </motion.div>
 
-          {step === "password" ? (
-            <motion.div variants={variants}>
-              <Field className={AUTH_FIELD_CLASS}>
-                <FieldContent className="gap-2.5">
-                  <AuthPaneTitleRow
-                    title={t("auth:FIELD_PASSWORD_LABEL")}
-                    action={
-                      <AuthLinkButton
-                        disabled={props.emailCheckLoading || props.loading}
-                        onClick={() => props.onForgotPassword(form.getValues("email"))}
-                        type="button"
-                      >
-                        {t("auth:FORGOT_PASSWORD")}
-                      </AuthLinkButton>
-                    }
-                  />
-                  <AuthPasswordControl
-                    autoComplete="current-password"
-                    aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-                    aria-invalid={passwordError ? true : undefined}
-                    className={AUTH_INPUT_GROUP_CLASS}
-                    inputClassName={AUTH_INPUT_CLASS}
-                    placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-                    startIcon={<Lock size={16} />}
-                    disabled={props.loading}
-                    {...form.register("password")}
-                  />
-                  <FieldError>{passwordError ? String(passwordError) : undefined}</FieldError>
-                </FieldContent>
-              </Field>
-            </motion.div>
-          ) : null}
-
-          {step === "password" ? (
-            <motion.div variants={variants} className="my-2">
-              <div className="grid gap-1.5">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <Checkbox checked={keepSession} onCheckedChange={handleKeepSessionChange} />
-                  <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
-                </label>
-              </div>
-            </motion.div>
-          ) : null}
+          <motion.div variants={variants}>
+            <Field className={AUTH_FIELD_CLASS}>
+              <FieldContent className="gap-2.5">
+                <AuthPaneTitleRow
+                  title={t("auth:FIELD_PASSWORD_LABEL")}
+                  action={
+                    <AuthLinkButton
+                      disabled={props.emailCheckLoading || props.loading}
+                      onClick={() => props.onForgotPassword(form.getValues("email"))}
+                      type="button"
+                    >
+                      {t("auth:FORGOT_PASSWORD")}
+                    </AuthLinkButton>
+                  }
+                />
+                <AuthPasswordControl
+                  autoComplete="current-password"
+                  aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+                  aria-invalid={passwordError ? true : undefined}
+                  className={AUTH_INPUT_GROUP_CLASS}
+                  inputClassName={AUTH_INPUT_CLASS}
+                  placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+                  startIcon={<Lock size={16} />}
+                  disabled={props.loading}
+                  {...form.register("password")}
+                />
+                <FieldError>{passwordError ? String(passwordError) : undefined}</FieldError>
+              </FieldContent>
+            </Field>
+          </motion.div>
 
           <motion.div variants={variants} className="grid gap-3 pt-1">
             <Button
               className="w-full"
               type="submit"
               size="lg"
-              loading={step === "email" ? props.emailCheckLoading : props.loading}
+              loading={props.emailCheckLoading || props.loading}
             >
-              <AuthButtonLabel>
-                {step === "email" ? t("auth:LOGIN_NEXT_BUTTON") : t("auth:LOGIN_BUTTON")}
-              </AuthButtonLabel>
+              <AuthButtonLabel>{t("auth:LOGIN_BUTTON")}</AuthButtonLabel>
             </Button>
           </motion.div>
         </form>
-        {step === "password" ? (
-          <motion.div variants={variants} className="pt-1.5 empty:hidden">
-            <AuthOauthButtons
-              disabled={props.emailCheckLoading || props.loading}
-              showProviders={false}
-              leadingActions={[
-                {
-                  key: "email-code",
-                  label: t("auth:LOGIN_EMAIL_CODE_ACTION"),
-                  icon: <KeyRound className="size-4" />,
-                  onClick: () => props.onSwitchToEmailCode(form.getValues("email"), keepSession),
-                },
-              ]}
-            />
-          </motion.div>
-        ) : null}
         {props.publicRegisterEnabled ? (
           <div className="grid mt-4 gap-2">
             <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
-              <div className="text-body text-label-secondary">
+              <div className="text-callout text-label-secondary">
                 <span>{t("auth:NO_ACCOUNT")} </span>
                 <AuthLinkButton
-                  className="!px-1 !text-body font-normal"
+                  className="!px-1 !text-callout font-normal"
                   disabled={props.emailCheckLoading || props.loading}
                   onClick={() => props.onSwitchToRegister()}
                   type="button"

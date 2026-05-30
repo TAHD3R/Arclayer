@@ -40,6 +40,7 @@ vi.mock("react-i18next", () => ({
 describe("RegisterPane oauth section", () => {
   beforeEach(() => {
     usernameCheckMock.mockReset();
+    usernameCheckMock.mockResolvedValue({ available: true });
     vi.useRealTimers();
   });
 
@@ -86,27 +87,59 @@ describe("RegisterPane oauth section", () => {
     ).toBeTruthy();
   });
 
-  it("hides oauth after advancing to the details step", () => {
+  it("renders the seeded register form as a single step", () => {
     renderPane({
       registerSeed: { email: "founder@example.com", step: "details" },
     });
 
-    expect(screen.queryByTestId("oauth-section")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "auth:AUTH_CHANGE_EMAIL" })).toBeInTheDocument();
+    expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "auth:AUTH_CHANGE_EMAIL" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toHaveValue("founder@example.com");
+    expect(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
     expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("founder");
   });
 
-  it("prefills account name from the email local part when continuing", async () => {
+  it("prefills account name from a legal email local part", async () => {
     const user = userEvent.setup();
 
     renderPane();
 
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "Philip.Cole@example.com");
-    await user.click(screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" }));
 
-    expect(await screen.findByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("philip-cole");
+    await waitFor(() =>
+      expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("philip-cole"),
+    );
     expect(screen.queryByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
+  });
+
+  it("leaves account name empty when the email local part cannot become a legal default", async () => {
+    const user = userEvent.setup();
+
+    renderPane();
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "a@a.com");
+
+    expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("");
+  });
+
+  it("does not overwrite a manually edited account name when the email changes", async () => {
+    const user = userEvent.setup();
+
+    renderPane();
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "founder@example.com");
+    await waitFor(() =>
+      expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("founder"),
+    );
+    await user.clear(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"));
+    await user.type(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"), "manual-name");
+    await user.clear(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"));
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "other@example.com");
+
+    expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("manual-name");
   });
 
   it("shows existing-email recovery inside the email field content", async () => {
@@ -116,15 +149,16 @@ describe("RegisterPane oauth section", () => {
 
     const emailField = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
     await user.type(emailField, "founder@example.com");
-    await user.click(screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" }));
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "ValidPass1");
+    await user.click(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" }));
 
     const notice = await screen.findByText("auth:REGISTER_EMAIL_EXISTS_MESSAGE");
     const noticeContainer = notice.closest("div");
     const submitButton = screen.getByRole("button", {
-      name: "auth:REGISTER_NEXT_BUTTON",
+      name: "auth:REGISTER_BUTTON",
     });
 
-    expect(noticeContainer).toHaveClass("text-body", "text-label-secondary");
+    expect(noticeContainer).toHaveClass("text-callout", "text-label-secondary");
     expect(noticeContainer).toContainElement(
       screen.getByRole("button", { name: "auth:REGISTER_EMAIL_EXISTS_ACTION" }),
     );
@@ -144,11 +178,33 @@ describe("RegisterPane oauth section", () => {
       registerSeed: { email: "founder@example.com", step: "details" },
     });
 
+    await user.clear(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"));
     await user.type(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"), "taken-name");
     await waitFor(() =>
       expect(screen.getByText("auth:USERNAME_AVAILABILITY_UNAVAILABLE")).toBeInTheDocument(),
     );
     expect(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" })).toBeDisabled();
+  });
+
+  it("submits valid registration values after checking that the email is new", async () => {
+    const user = userEvent.setup();
+    const onEmailSubmit = vi.fn(async () => false);
+    const onSubmit = vi.fn(async () => undefined);
+
+    renderPane({ onEmailSubmit, onSubmit });
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "founder@example.com");
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "ValidPass1");
+    await user.click(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" }));
+
+    await waitFor(() => {
+      expect(onEmailSubmit).toHaveBeenCalledWith("founder@example.com");
+      expect(onSubmit).toHaveBeenCalledWith({
+        email: "founder@example.com",
+        password: "ValidPass1",
+        username: "founder",
+      });
+    });
   });
 
   it("hides password guidance before interaction and shows the checklist while invalid", async () => {

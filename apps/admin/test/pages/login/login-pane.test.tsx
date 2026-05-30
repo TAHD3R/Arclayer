@@ -48,7 +48,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("LoginPane oauth section", () => {
-  it("shows oauth after the email step and hides it on the password step", () => {
+  it("renders one-step login with top auth methods", () => {
     const { container } = render(
       <LoginPane
         onEmailSubmit={async () => ({
@@ -58,7 +58,6 @@ describe("LoginPane oauth section", () => {
         onSubmit={async () => undefined}
         emailCheckLoading={false}
         loading={false}
-        initialKeepSession={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={() => undefined}
@@ -75,6 +74,18 @@ describe("LoginPane oauth section", () => {
     expect(contentGroup).toHaveClass("grid", "gap-2");
     expect(contentGroup?.parentElement).toHaveClass("grid", "gap-12");
     expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
+    expect(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
+    expect(screen.queryByText("auth:KEEP_SESSION")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "auth:KEEP_SESSION" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("oauth-actions").querySelector("button")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:FORGOT_PASSWORD" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }),
+    ).not.toBeInTheDocument();
     expect(
       screen
         .getByTestId("oauth-actions")
@@ -83,7 +94,7 @@ describe("LoginPane oauth section", () => {
     ).toBeTruthy();
   });
 
-  it("shows email code action in the auth methods section on password step", async () => {
+  it("shows email code action in the email title row", async () => {
     const onSwitchToEmailCode = vi.fn();
 
     render(
@@ -95,7 +106,6 @@ describe("LoginPane oauth section", () => {
         onSubmit={async () => undefined}
         emailCheckLoading={false}
         loading={false}
-        initialKeepSession
         loginSeed={{ email: "demo@example.com", step: "password" }}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={onSwitchToEmailCode}
@@ -114,7 +124,11 @@ describe("LoginPane oauth section", () => {
 
     expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", true);
     expect(screen.getByTestId("oauth-actions")).toBeInTheDocument();
-    expect(emailCodeButton.querySelector("svg")).toBeInTheDocument();
+    expect(emailCodeButton.querySelector("svg")).toBeNull();
+    expect(
+      screen.getByText("auth:FIELD_EMAIL_LABEL").compareDocumentPosition(emailCodeButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("routes passwordless accounts into email-code flow from the email step", async () => {
@@ -129,7 +143,6 @@ describe("LoginPane oauth section", () => {
         onSubmit={async () => undefined}
         emailCheckLoading={false}
         loading={false}
-        initialKeepSession={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={onSwitchToEmailCode}
@@ -142,13 +155,13 @@ describe("LoginPane oauth section", () => {
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
 
-    expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", false, false);
-    expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
+    expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", true, false);
   });
 
-  it("shows unknown email as a field validation error without switching to register", async () => {
+  it("shows unknown email as a callout field validation error without switching to register", async () => {
     const onSwitchToRegister = vi.fn();
 
     render(
@@ -160,7 +173,6 @@ describe("LoginPane oauth section", () => {
         onSubmit={async () => undefined}
         emailCheckLoading={false}
         loading={false}
-        initialKeepSession={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={() => undefined}
@@ -173,24 +185,28 @@ describe("LoginPane oauth section", () => {
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "missing@example.com");
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
 
-    expect(await screen.findByText("auth:LOGIN_EMAIL_NOT_REACHABLE")).toBeInTheDocument();
+    const alert = await screen.findByText("auth:LOGIN_EMAIL_NOT_REACHABLE");
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveClass("!text-callout", "font-normal", "text-destructive");
     expect(screen.queryByText("auth:LOGIN_EMAIL_NOT_FOUND_MESSAGE")).not.toBeInTheDocument();
     expect(onSwitchToRegister).not.toHaveBeenCalled();
   });
 
-  it("shows keep-session only on the password step and reads the stored preference", () => {
-    const { rerender } = render(
+  it("submits login with keep-session enabled by default", async () => {
+    const onSubmit = vi.fn(async () => undefined);
+
+    render(
       <LoginPane
         onEmailSubmit={async () => ({
           exists: true,
           passwordLoginAvailable: true,
         })}
-        onSubmit={async () => undefined}
+        onSubmit={onSubmit}
         emailCheckLoading={false}
         loading={false}
-        initialKeepSession={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={() => undefined}
@@ -201,56 +217,20 @@ describe("LoginPane oauth section", () => {
       />,
     );
 
-    expect(screen.queryByText("auth:KEEP_SESSION")).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
 
-    rerender(
-      <LoginPane
-        onEmailSubmit={async () => ({
-          exists: true,
-          passwordLoginAvailable: true,
-        })}
-        onSubmit={async () => undefined}
-        emailCheckLoading={false}
-        loading={false}
-        initialKeepSession={false}
-        loginSeed={{ email: "demo@example.com", step: "password" }}
-        onForgotPassword={() => undefined}
-        onSwitchToEmailCode={() => undefined}
-        onSwitchToRegister={() => undefined}
-        publicRegisterEnabled
-        reducedMotion
-        itemVariants={{}}
-      />,
-    );
-
-    expect(screen.getByText("auth:KEEP_SESSION")).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "auth:KEEP_SESSION" })).not.toBeChecked();
-
-    rerender(
-      <LoginPane
-        onEmailSubmit={async () => ({
-          exists: true,
-          passwordLoginAvailable: true,
-        })}
-        onSubmit={async () => undefined}
-        emailCheckLoading={false}
-        loading={false}
-        initialKeepSession
-        loginSeed={{ email: "demo@example.com", step: "password" }}
-        onForgotPassword={() => undefined}
-        onSwitchToEmailCode={() => undefined}
-        onSwitchToRegister={() => undefined}
-        publicRegisterEnabled
-        reducedMotion
-        itemVariants={{}}
-      />,
-    );
-
-    expect(screen.getByRole("checkbox", { name: "auth:KEEP_SESSION" })).toBeChecked();
+    expect(onSubmit).toHaveBeenCalledWith({
+      email: "demo@example.com",
+      password: "secret123",
+      keepSession: true,
+    });
   });
 
-  it("persists the keep-session preference when the checkbox changes", async () => {
-    const onKeepSessionPreferenceChange = vi.fn();
+  it("keeps email-code switch enabled when the email is empty", async () => {
+    const onSwitchToEmailCode = vi.fn();
 
     render(
       <LoginPane
@@ -261,11 +241,9 @@ describe("LoginPane oauth section", () => {
         onSubmit={async () => undefined}
         emailCheckLoading={false}
         loading={false}
-        initialKeepSession={false}
-        onKeepSessionPreferenceChange={onKeepSessionPreferenceChange}
-        loginSeed={{ email: "demo@example.com", step: "password" }}
+        loginSeed={null}
         onForgotPassword={() => undefined}
-        onSwitchToEmailCode={() => undefined}
+        onSwitchToEmailCode={onSwitchToEmailCode}
         onSwitchToRegister={() => undefined}
         publicRegisterEnabled
         reducedMotion
@@ -274,9 +252,9 @@ describe("LoginPane oauth section", () => {
     );
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("checkbox", { name: "auth:KEEP_SESSION" }));
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
 
-    expect(onKeepSessionPreferenceChange).toHaveBeenCalledWith(true);
+    expect(onSwitchToEmailCode).toHaveBeenCalledWith("", true);
   });
 
   it("renders the primary action without a trailing icon", () => {
@@ -289,7 +267,6 @@ describe("LoginPane oauth section", () => {
         onSubmit={async () => undefined}
         emailCheckLoading={false}
         loading={false}
-        initialKeepSession={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={() => undefined}
@@ -301,7 +278,7 @@ describe("LoginPane oauth section", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }).querySelector("svg"),
+      screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }).querySelector("svg"),
     ).toBeNull();
   });
 });

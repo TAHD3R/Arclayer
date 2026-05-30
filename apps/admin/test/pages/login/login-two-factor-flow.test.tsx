@@ -100,11 +100,19 @@ vi.mock("motion/react", () => {
 
   return {
     AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    LayoutGroup: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     MotionConfig: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     motion: new Proxy(
-      {},
       {
-        get: (_target, tag: string) => {
+        create:
+          (Component: ElementType) =>
+          ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+            <Component {...props}>{children}</Component>
+          ),
+      },
+      {
+        get: (target, tag: string) => {
+          if (tag in target) return target[tag as keyof typeof target];
           const existing = motionElements.get(tag);
           if (existing) return existing;
 
@@ -417,13 +425,6 @@ describe("LoginPage two-factor challenge flow", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
-    await waitFor(() => {
-      expect(emailCheckMock).toHaveBeenCalledWith({
-        email: "demo@example.com",
-      });
-    });
-    expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
 
@@ -526,9 +527,6 @@ describe("LoginPage two-factor challenge flow", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
-    expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
-
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
 
     expect(
@@ -566,9 +564,6 @@ describe("LoginPage two-factor challenge flow", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
-    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
-    expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
-
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
     expect(
       await screen.findByRole("heading", {

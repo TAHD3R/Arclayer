@@ -3,7 +3,6 @@ import { motion, type Variants } from "motion/react";
 import { type ReactNode, useId } from "react";
 import { useTranslation } from "react-i18next";
 
-import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { LegalFooter } from "@/components/layout/legal-footer";
 import { cn } from "@arclayer/lib/utils";
 import { FieldTitle } from "@arclayer/ui/field";
@@ -33,7 +32,7 @@ export const AUTH_OTP_SLOT_CLASS = cn(
   "text-callout font-semibold text-label-primary transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
-export const AUTH_PANE_META_CLASS = "grid gap-2.5 text-center text-body text-label-secondary";
+export const AUTH_PANE_META_CLASS = "grid gap-2.5 text-center text-callout text-label-secondary";
 
 export function AuthPaneHeader(props: {
   titleKey: string;
@@ -45,10 +44,7 @@ export function AuthPaneHeader(props: {
   const subtitle = props.subtitle ?? (props.subtitleKey ? t(props.subtitleKey) : null);
 
   return (
-    <motion.div variants={props.variants} className="grid gap-2.5">
-      <div className="select-none">
-        <AdminFullLogo to="/login" ariaLabel="Arclayer" width={132} />
-      </div>
+    <motion.div variants={props.variants} className="grid gap-2.5 text-center">
       <div className="grid gap-2">
         <h1 className="select-none text-largetitle text-label-primary">{t(props.titleKey)}</h1>
         {subtitle ? (
@@ -150,7 +146,7 @@ export function AuthPaneLegal(props: {
 }) {
   return (
     <motion.div variants={props.variants} className={cn("grid gap-1 text-center", props.className)}>
-      <LegalFooter i18nKey={props.i18nKey} className="text-body" />
+      <LegalFooter i18nKey={props.i18nKey} className="text-callout" />
     </motion.div>
   );
 }

@@ -188,7 +188,7 @@ describe("Login auth otp layouts", () => {
     expect(mockedNotifications.notifySuccessText).toHaveBeenCalledWith("auth:LOGIN_CODE_SENT");
   });
 
-  it("disables verify until the full code is entered and shows password login below the form", async () => {
+  it("disables verify until the full code is entered and shows password login inside the form", async () => {
     render(
       <LoginEmailCodePane
         seed={{
@@ -215,6 +215,7 @@ describe("Login auth otp layouts", () => {
     });
     expect(passwordButton).toBeInTheDocument();
     expect(passwordButton.querySelector("svg")).toBeInTheDocument();
+    expect(screen.getByTestId("oauth-section").closest("form")).not.toBeNull();
 
     fireEvent.change(screen.getByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL"), {
       target: { value: "123456" },

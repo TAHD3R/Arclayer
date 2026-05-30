@@ -32,8 +32,7 @@ import {
   AuthPaneTitleRow,
 } from "./auth-pane-primitives";
 
-type RegisterPaneStep = "email" | "details";
-
+const ACCOUNT_NAME_MIN_LENGTH = 3;
 const ACCOUNT_NAME_MAX_LENGTH = 32;
 
 type RegisterPaneProps = {
@@ -61,7 +60,8 @@ function deriveAccountNameFromEmail(email: string): string {
     .slice(0, ACCOUNT_NAME_MAX_LENGTH)
     .replace(/-+$/g, "");
 
-  return normalized.length >= 3 ? normalized : "user";
+  if (normalized.length < ACCOUNT_NAME_MIN_LENGTH) return "";
+  return ACCOUNT_NAME_PATTERN.test(normalized) ? normalized : "";
 }
 
 function RegisterField(props: {
@@ -87,7 +87,6 @@ function RegisterField(props: {
 export function RegisterPane(props: RegisterPaneProps) {
   const { t } = useTranslation();
   const variants = props.reducedMotion ? {} : props.itemVariants;
-  const [step, setStep] = useState<RegisterPaneStep>("email");
   const [emailExists, setEmailExists] = useState(false);
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(
@@ -99,6 +98,8 @@ export function RegisterPane(props: RegisterPaneProps) {
         username: z
           .string()
           .min(1, t("auth:VALIDATION_USERNAME_REQUIRED"))
+          .min(ACCOUNT_NAME_MIN_LENGTH, t("auth:VALIDATION_USERNAME_INVALID"))
+          .max(ACCOUNT_NAME_MAX_LENGTH, t("auth:VALIDATION_USERNAME_INVALID"))
           .regex(ACCOUNT_NAME_PATTERN, t("auth:VALIDATION_USERNAME_INVALID")),
         password: z
           .string()
@@ -113,9 +114,10 @@ export function RegisterPane(props: RegisterPaneProps) {
     },
     mode: "onSubmit",
   });
+  const emailValue = form.watch("email");
   const usernameValue = form.watch("username");
   const passwordValue = form.watch("password");
-  const usernameAvailability = useUsernameAvailability(usernameValue, step === "details");
+  const usernameAvailability = useUsernameAvailability(usernameValue, true);
   const normalizedUsername = String(usernameValue || "")
     .trim()
     .toLowerCase();
@@ -159,109 +161,78 @@ export function RegisterPane(props: RegisterPaneProps) {
       : usernameFeedback?.tone === "danger"
         ? "text-destructive"
         : "text-label-secondary";
-  const usernameChecking = step === "details" && usernameAvailability.isChecking;
-  const usernameUnavailable =
-    step === "details" && usernameAvailability.formatValid && usernameAvailability.unavailable;
+  const usernameChecking = usernameAvailability.isChecking;
+  const usernameUnavailable = usernameAvailability.formatValid && usernameAvailability.unavailable;
   const resetRef = useRef(form.reset);
   resetRef.current = form.reset;
   const seedEmail = props.registerSeed?.email ?? "";
-  const seedStep = props.registerSeed?.step;
 
   useEffect(() => {
-    const nextStep = seedStep === "details" && seedEmail ? "details" : "email";
     resetRef.current({
       email: seedEmail,
-      username: nextStep === "details" ? deriveAccountNameFromEmail(seedEmail) : "",
+      username: deriveAccountNameFromEmail(seedEmail),
       password: "",
     });
-    setStep(nextStep);
     setEmailExists(false);
-  }, [seedEmail, seedStep]);
+  }, [seedEmail]);
 
-  const submitDetails = form.handleSubmit(async (values) => {
+  useEffect(() => {
     setEmailExists(false);
-    await props.onSubmit(values);
-  });
+  }, [emailValue]);
 
-  const handleContinue = async () => {
-    const isValid = await form.trigger("email");
-    if (!isValid) return;
+  useEffect(() => {
+    if (form.formState.dirtyFields.username) return;
+    const derivedUsername = deriveAccountNameFromEmail(emailValue);
+    if (form.getValues("username") === derivedUsername) return;
+    form.setValue("username", derivedUsername, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [emailValue, form]);
+
+  const submitRegister = form.handleSubmit(async (values) => {
     setEmailExists(false);
-    const exists = await props.onEmailSubmit(form.getValues("email"));
+    const exists = await props.onEmailSubmit(values.email);
     if (exists) {
-      setStep("email");
       setEmailExists(true);
       return;
     }
-    setStep("details");
-    if (!form.getValues("username").trim()) {
-      form.setValue("username", deriveAccountNameFromEmail(form.getValues("email")), {
-        shouldDirty: true,
-        shouldValidate: false,
-      });
-    }
-    form.clearErrors(["username", "password"]);
-  };
+    await props.onSubmit(values);
+  });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (step === "email") {
-      void handleContinue();
-      return;
-    }
-    void submitDetails();
-  };
-
-  const handleUseAnotherEmail = () => {
-    setStep("email");
-    setEmailExists(false);
-    form.setValue("username", "");
-    form.setValue("password", "");
-    form.clearErrors(["username", "password"]);
+    void submitRegister();
   };
 
   return (
     <div className={AUTH_PANE_ROOT_CLASS}>
       <AuthPaneHeader titleKey="auth:REGISTER_PAGE_TITLE" variants={variants} />
       <div className={AUTH_PANE_CONTENT_CLASS}>
-        {step === "email" ? (
-          <motion.div variants={variants} className="empty:hidden">
-            <AuthOauthButtons
-              disabled={props.emailCheckLoading || props.loading}
-              redirect={props.redirect}
-              dividerPlacement="after"
-              loadingProvider={props.pendingOAuthProvider}
-              onProviderStart={
-                props.onStartOAuth
-                  ? ({ provider, startUrl }) =>
-                      props.onStartOAuth?.({
-                        provider,
-                        startUrl,
-                        keepSession: true,
-                      })
-                  : undefined
-              }
-            />
-          </motion.div>
-        ) : null}
+        <motion.div variants={variants} className="empty:hidden">
+          <AuthOauthButtons
+            disabled={props.emailCheckLoading || props.loading}
+            redirect={props.redirect}
+            dividerPlacement="after"
+            loadingProvider={props.pendingOAuthProvider}
+            onProviderStart={
+              props.onStartOAuth
+                ? ({ provider, startUrl }) =>
+                    props.onStartOAuth?.({
+                      provider,
+                      startUrl,
+                      keepSession: true,
+                    })
+                : undefined
+            }
+          />
+        </motion.div>
         <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
           <motion.div variants={variants}>
             <Field className={AUTH_FIELD_CLASS}>
               <FieldContent className="gap-2.5">
-                <AuthPaneTitleRow
-                  title={t("auth:FIELD_EMAIL_LABEL")}
-                  action={
-                    step === "details" ? (
-                      <AuthLinkButton
-                        disabled={props.emailCheckLoading || props.loading}
-                        onClick={handleUseAnotherEmail}
-                        type="button"
-                      >
-                        {t("auth:AUTH_CHANGE_EMAIL")}
-                      </AuthLinkButton>
-                    ) : undefined
-                  }
-                />
+                <AuthPaneTitleRow title={t("auth:FIELD_EMAIL_LABEL")} />
                 <AuthInputControl
                   autoComplete="email"
                   aria-label={t("auth:FIELD_EMAIL_LABEL")}
@@ -270,8 +241,7 @@ export function RegisterPane(props: RegisterPaneProps) {
                   inputClassName={AUTH_INPUT_CLASS}
                   placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
                   startIcon={<Mail size={16} />}
-                  disabled={props.emailCheckLoading || props.loading || step === "details"}
-                  readOnly={step === "details"}
+                  disabled={props.emailCheckLoading || props.loading}
                   spellCheck={false}
                   {...form.register("email")}
                 />
@@ -281,10 +251,10 @@ export function RegisterPane(props: RegisterPaneProps) {
                     : undefined}
                 </FieldError>
                 {emailExists && !form.formState.errors.email ? (
-                  <div className="text-body text-label-secondary">
+                  <div className="text-callout text-label-secondary">
                     <span>{t("auth:REGISTER_EMAIL_EXISTS_MESSAGE")} </span>
                     <AuthLinkButton
-                      className="!text-body"
+                      className="!text-callout"
                       disabled={props.emailCheckLoading || props.loading}
                       onClick={() => props.onSwitchToLogin(form.getValues("email"), "password")}
                       type="button"
@@ -297,96 +267,86 @@ export function RegisterPane(props: RegisterPaneProps) {
             </Field>
           </motion.div>
 
-          {step === "details" ? (
-            <>
-              <RegisterField
-                title={t("auth:FIELD_USERNAME_LABEL")}
-                helpText={t("auth:FIELD_USERNAME_HELP")}
-                error={
-                  form.formState.errors.username?.message
-                    ? String(form.formState.errors.username.message)
-                    : undefined
-                }
-                variants={variants}
-              >
-                <AuthInputControl
-                  autoComplete="username"
-                  aria-label={t("auth:FIELD_USERNAME_LABEL")}
-                  aria-invalid={form.formState.errors.username ? true : undefined}
-                  className={AUTH_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_INPUT_CLASS}
-                  placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
-                  startIcon={<User size={16} />}
-                  endIcon={
-                    usernameChecking ? <LoaderCircle className="size-4 animate-spin" /> : undefined
-                  }
-                  disabled={props.loading}
-                  spellCheck={false}
-                  {...form.register("username")}
-                />
-                {usernameFeedback ? (
-                  <div
-                    className={`flex items-center gap-2 text-footnote ${usernameFeedbackClassName}`}
-                  >
-                    {usernameFeedback.icon}
-                    <span>{usernameFeedback.message}</span>
-                  </div>
-                ) : null}
-              </RegisterField>
+          <RegisterField
+            title={t("auth:FIELD_PASSWORD_LABEL")}
+            error={
+              form.formState.errors.password?.message
+                ? String(form.formState.errors.password.message)
+                : undefined
+            }
+            variants={variants}
+          >
+            <AuthPasswordControl
+              autoComplete="new-password"
+              aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+              aria-invalid={form.formState.errors.password ? true : undefined}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
+              placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+              startIcon={<Lock size={16} />}
+              disabled={props.loading}
+              {...form.register("password")}
+            />
+            <PasswordRequirementChecklist
+              password={passwordValue}
+              active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
+              t={t}
+            />
+          </RegisterField>
 
-              <RegisterField
-                title={t("auth:FIELD_PASSWORD_LABEL")}
-                error={
-                  form.formState.errors.password?.message
-                    ? String(form.formState.errors.password.message)
-                    : undefined
-                }
-                variants={variants}
-              >
-                <AuthPasswordControl
-                  autoComplete="new-password"
-                  aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-                  aria-invalid={form.formState.errors.password ? true : undefined}
-                  className={AUTH_INPUT_GROUP_CLASS}
-                  inputClassName={AUTH_INPUT_CLASS}
-                  placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-                  startIcon={<Lock size={16} />}
-                  disabled={props.loading}
-                  {...form.register("password")}
-                />
-                <PasswordRequirementChecklist
-                  password={passwordValue}
-                  active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
-                  t={t}
-                />
-              </RegisterField>
-            </>
-          ) : null}
+          <RegisterField
+            title={t("auth:FIELD_USERNAME_LABEL")}
+            helpText={t("auth:FIELD_USERNAME_HELP")}
+            error={
+              form.formState.errors.username?.message
+                ? String(form.formState.errors.username.message)
+                : undefined
+            }
+            variants={variants}
+          >
+            <AuthInputControl
+              autoComplete="username"
+              aria-label={t("auth:FIELD_USERNAME_LABEL")}
+              aria-invalid={form.formState.errors.username ? true : undefined}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
+              placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
+              startIcon={<User size={16} />}
+              endIcon={
+                usernameChecking ? <LoaderCircle className="size-4 animate-spin" /> : undefined
+              }
+              disabled={props.loading}
+              spellCheck={false}
+              {...form.register("username")}
+            />
+            {usernameFeedback ? (
+              <div className={`flex items-center gap-2 text-footnote ${usernameFeedbackClassName}`}>
+                {usernameFeedback.icon}
+                <span>{usernameFeedback.message}</span>
+              </div>
+            ) : null}
+          </RegisterField>
 
           <motion.div variants={variants} className="grid gap-3 pt-1">
             <Button
               className="w-full"
               type="submit"
               size="lg"
-              loading={step === "email" ? props.emailCheckLoading : props.loading}
+              loading={props.emailCheckLoading || props.loading}
               disabled={
-                props.emailCheckLoading ||
-                props.loading ||
-                (step === "details" && (usernameChecking || usernameUnavailable))
+                props.emailCheckLoading || props.loading || usernameChecking || usernameUnavailable
               }
             >
-              <AuthButtonLabel>
-                {step === "email" ? t("auth:REGISTER_NEXT_BUTTON") : t("auth:REGISTER_BUTTON")}
-              </AuthButtonLabel>
+              <AuthButtonLabel>{t("auth:REGISTER_BUTTON")}</AuthButtonLabel>
             </Button>
           </motion.div>
         </form>
         <div className="grid mt-4 gap-2">
           <motion.div variants={variants} className={AUTH_PANE_META_CLASS}>
-            <div className="text-body text-label-secondary">
+            <div className="text-callout text-label-secondary">
               <span>{t("auth:HAVE_ACCOUNT")} </span>
               <AuthLinkButton
-                className="!px-1 !text-body font-normal"
+                className="!px-1 !text-callout font-normal"
                 disabled={props.emailCheckLoading || props.loading}
                 onClick={() => props.onSwitchToLogin()}
                 type="button"

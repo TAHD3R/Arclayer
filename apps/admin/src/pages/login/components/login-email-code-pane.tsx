@@ -380,23 +380,23 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
             </div>
           </motion.div>
         ) : null}
+        {props.seed?.passwordLoginAvailable === false ? null : (
+          <motion.div variants={variants} className="pt-1.5 empty:hidden">
+            <AuthOauthButtons
+              disabled={props.requestLoading || props.verifyLoading}
+              showProviders={false}
+              leadingActions={[
+                {
+                  key: "password-login",
+                  label: t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD"),
+                  icon: <Lock className="size-4" />,
+                  onClick: () => props.onBackToPassword(form.getValues("email")),
+                },
+              ]}
+            />
+          </motion.div>
+        )}
       </form>
-      {props.seed?.passwordLoginAvailable === false ? null : (
-        <motion.div variants={variants} className="pt-1.5 empty:hidden">
-          <AuthOauthButtons
-            disabled={props.requestLoading || props.verifyLoading}
-            showProviders={false}
-            leadingActions={[
-              {
-                key: "password-login",
-                label: t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD"),
-                icon: <Lock className="size-4" />,
-                onClick: () => props.onBackToPassword(form.getValues("email")),
-              },
-            ]}
-          />
-        </motion.div>
-      )}
     </div>
   );
 }

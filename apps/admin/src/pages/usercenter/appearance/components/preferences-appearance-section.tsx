@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Switch } from "@arclayer/ui/switch";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
+import { buildThemePreferenceOptions } from "@/components/settings/preference-options";
 import { PreferenceSettingRow } from "@/pages/usercenter/appearance/components/preference-setting-row";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { ThemePreference } from "@/types/stores";
@@ -34,11 +35,7 @@ export function UserAppearanceSection() {
   const setReduceMotion = usePreferencesStore((s) => s.setReduceMotion);
   const contrastMore = usePreferencesStore((s) => s.contrastMore);
   const setContrastMore = usePreferencesStore((s) => s.setContrastMore);
-  const themeOptions: Array<{ label: string; value: ThemePreference }> = [
-    { value: "system", label: t("ACCOUNT_THEME_SYSTEM") },
-    { value: "light", label: t("ACCOUNT_THEME_LIGHT") },
-    { value: "dark", label: t("ACCOUNT_THEME_DARK") },
-  ];
+  const themeOptions = buildThemePreferenceOptions(t);
 
   return (
     <div className="flex flex-col gap-6">

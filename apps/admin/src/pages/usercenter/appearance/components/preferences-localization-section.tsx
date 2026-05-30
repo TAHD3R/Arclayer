@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Switch } from "@arclayer/ui/switch";
-import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
+import {
+  applyLanguagePreferenceValue,
+  buildLanguagePreferenceOptions,
+  resolveLanguagePreferenceValue,
+  type LanguagePreferenceValue,
+} from "@/components/settings/preference-options";
 import { buildTimezoneOptions } from "@/lib/settings/general/localization-options";
 import { PreferenceSettingRow } from "@/pages/usercenter/appearance/components/preference-setting-row";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -83,19 +88,12 @@ export function UserLocalizationSection() {
   const isBrowserLanguageEnabled = localePreferenceMode === "browser";
   const isAutoTimezoneEnabled = timeZonePreference === null;
 
-  const languageValue = useMemo(() => {
-    if (localePreferenceMode === "workspace") return "workspace";
-    if (localePreferenceMode === "browser") return locale;
-    return localePreference ?? locale;
-  }, [locale, localePreference, localePreferenceMode]);
-
-  const languageOptions = useMemo(
-    () => [
-      { value: "workspace", label: t("ME_PREF_LOCALE_MODE_WORKSPACE") },
-      ...buildSupportedLocaleOptions(SUPPORTED_LOCALES, t),
-    ],
-    [t],
+  const languageValue = useMemo(
+    () => resolveLanguagePreferenceValue({ locale, localePreference, localePreferenceMode }),
+    [locale, localePreference, localePreferenceMode],
   );
+
+  const languageOptions = useMemo(() => buildLanguagePreferenceOptions(t), [t]);
 
   const timeZoneOptions = useMemo(
     () =>
@@ -134,11 +132,10 @@ export function UserLocalizationSection() {
         description={t("ME_PREF_LANGUAGE_DESC")}
         disabled={isBrowserLanguageEnabled}
         onSelectChange={(value) => {
-          if (value === "workspace") {
-            setWorkspaceLocaleMode();
-            return;
-          }
-          setLocale(value as AppLocale);
+          applyLanguagePreferenceValue(value as LanguagePreferenceValue, {
+            setLocale,
+            setWorkspaceLocaleMode,
+          });
         }}
         options={languageOptions}
         selectValue={languageValue}

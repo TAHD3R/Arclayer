@@ -12,6 +12,7 @@
   "ACCOUNT_DANGER_WORKSPACE_TITLE": "工作空间危险操作留在工作空间内部",
   "ACCOUNT_HELP_CENTER": "帮助中心",
   "ACCOUNT_LANGUAGE_EN": "English",
+  "ACCOUNT_LANGUAGE_SYSTEM_DEFAULT": "跟随系统默认",
   "ACCOUNT_LANGUAGE_ZH": "中文",
   "ACCOUNT_LOGOUT": "退出登录",
   "ACCOUNT_MENU_ACCOUNT": "设置",
