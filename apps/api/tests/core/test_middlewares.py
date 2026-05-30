@@ -205,6 +205,38 @@ async def test_csrf_rejects_invalid_token_and_cross_origin(monkeypatch, tmp_path
         assert cross_origin.json().get("meta", {}).get("reason") == "origin_mismatch"
 
 
+async def test_csrf_allows_trusted_frontend_origin(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__CSRF__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__CSRF__TRUSTED_ORIGINS", '["http://localhost:5173"]')
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @app.get("/api/v1/csrf")
+    async def csrf_get() -> dict[str, str]:
+        return {"ok": "1"}
+
+    @app.post("/api/v1/csrf")
+    async def csrf_post() -> dict[str, str]:
+        return {"ok": "1"}
+
+    async with asgi_client(app, base_url="http://127.0.0.1:8000") as client:
+        await client.get("/api/v1/csrf")
+        token = client.cookies.get("csrf_token")
+        assert token is not None
+
+        response = await client.post(
+            "/api/v1/csrf",
+            headers={
+                "Origin": "http://localhost:5173",
+                "X-CSRF-Token": token,
+            },
+        )
+        assert response.status_code == 200
+
+
 async def test_csrf_exempts_content_api_token_routes(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
     monkeypatch.setenv("SECURITY__ENABLED", "1")

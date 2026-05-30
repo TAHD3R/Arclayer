@@ -540,7 +540,7 @@ class Settings(BaseSettings):
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
     public_id: PublicIdSettings = Field(default_factory=PublicIdSettings)
-    email: EmailSettings = Field(default_factory=EmailSettings)
+    email: EmailSettings = Field(default_factory=EmailSettings, validation_alias="MAIL")
     saas: SaasSettings = Field(default_factory=SaasSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     testing: TestingSettings = Field(default_factory=TestingSettings)

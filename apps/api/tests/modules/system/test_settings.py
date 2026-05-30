@@ -60,3 +60,28 @@ def test_settings_dotenv_overrides_init(tmp_path) -> None:
         application=ApplicationSettings(app_name="FromInit"),
     )
     assert settings.application.app_name == "FromDotEnv"
+
+
+def test_settings_dotenv_mail_alias_loads_email_settings(tmp_path) -> None:
+    env_file = tmp_path / ".env.test"
+    env_file.write_text(
+        "\n".join(
+            [
+                "MAIL__ENABLED=true",
+                "MAIL__SERVER=127.0.0.1",
+                "MAIL__PORT=1025",
+                "MAIL__STARTTLS=false",
+                "MAIL__USE_CREDENTIALS=false",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    settings = Settings(_env_file=(str(env_file),), _env_file_encoding="utf-8")
+
+    assert settings.email.enabled is True
+    assert settings.email.server == "127.0.0.1"
+    assert settings.email.port == 1025
+    assert settings.email.starttls is False
+    assert settings.email.use_credentials is False

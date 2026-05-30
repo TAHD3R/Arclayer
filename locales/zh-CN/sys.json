@@ -1,7 +1,7 @@
 {
-  "INSTANCE_ALREADY_INITIALIZED": "这个 Arclayer 实例已经完成初始化，请使用现有管理员账号登录继续。",
-  "INSTANCE_INITIALIZED": "实例已初始化",
-  "INSTANCE_SETUP_REPAIR_REQUIRED": "此实例需要修复后才能继续初始化。",
+  "INSTANCE_ALREADY_INITIALIZED": "系统已经完成初始化，请使用现有管理员账号登录继续。",
+  "INSTANCE_INITIALIZED": "系统已初始化",
+  "INSTANCE_SETUP_REPAIR_REQUIRED": "系统需要修复后才能继续初始化。",
   "SYS_CHECK_AUTH_ALLOWLIST_DUPLICATES": "public_register_email_domains_allowlist 包含重复项",
   "SYS_CHECK_AUTH_ALLOWLIST_NOT_LIST": "public_register_email_domains_allowlist 必须是列表",
   "SYS_CHECK_AUTH_ALLOWLIST_NOT_STRING_LIST": "public_register_email_domains_allowlist 只能包含字符串",
