@@ -57,16 +57,37 @@ class AuthLoginService(BaseService):
             )
         return self.email_login_code_store
 
-    async def _ensure_email_verified_for_login(self, user: object) -> None:
+    async def _raise_email_not_verified(self, user: object, *, locale: str | None = None) -> None:
+        email = self.auth_service._normalize_email(str(getattr(user, "email", "") or ""))
+        if not email:
+            raise Forbidden(
+                message=self._ta("EMAIL_NOT_VERIFIED", "请先验证邮箱后再登录"),
+                error="EMAIL_NOT_VERIFIED",
+            )
+
+        result = await self.auth_service.resend_registration_email_verification(
+            email=email,
+            locale=locale,
+        )
+        meta = {
+            "email": email,
+            "requires_email_verification": True,
+            "expires_in": result.expires_in,
+            "retry_after": result.retry_after,
+        }
+        raise Forbidden(
+            message=self._ta("EMAIL_NOT_VERIFIED", "请先验证邮箱后再登录"),
+            error="EMAIL_NOT_VERIFIED",
+            meta=meta,
+        )
+
+    async def _ensure_email_verified_for_login(self, user: object, *, locale: str | None = None) -> None:
         policy = await get_public_register_policy(self.settings)
         if not policy.require_email_verification:
             return
         if getattr(user, "email_verified_at", None) is not None:
             return
-        raise Forbidden(
-            message=self._ta("EMAIL_NOT_VERIFIED", "请先验证邮箱后再登录"),
-            error="EMAIL_NOT_VERIFIED",
-        )
+        await self._raise_email_not_verified(user, locale=locale)
 
     async def login(
         self,
@@ -74,6 +95,7 @@ class AuthLoginService(BaseService):
         email: str,
         password: str,
         request_context: AuthRequestContext | None = None,
+        locale: str | None = None,
     ) -> TokenPair:
         user = await self.auth_service.user_repo.get_by_email(self.auth_service._normalize_email(email))
         credential = None if user is None else getattr(user, "credential", None)
@@ -84,7 +106,6 @@ class AuthLoginService(BaseService):
             )
         if not self.auth_service.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
-        await self._ensure_email_verified_for_login(user)
 
         password_hash = getattr(credential, "password_hash", "")
         if not isinstance(password_hash, str) or not password_hash:
@@ -98,6 +119,8 @@ class AuthLoginService(BaseService):
                 message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
                 error="INVALID_CREDENTIALS",
             )
+
+        await self._ensure_email_verified_for_login(user, locale=locale)
 
         user_id = UUID(str(user.id))
         if await self.two_factor.is_enabled(user_id=user_id):
@@ -234,7 +257,7 @@ class AuthLoginService(BaseService):
             )
         if not self.auth_service.user_repo.is_active(user):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
-        await self._ensure_email_verified_for_login(user)
+        await self._ensure_email_verified_for_login(user, locale=locale)
         if not await self.auth_service.email_service.is_enabled():
             raise BadRequest(
                 message=self._ta("MAIL_DISABLED", "系统未开启邮件服务，请联系管理员"),

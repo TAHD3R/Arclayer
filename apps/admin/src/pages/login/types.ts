@@ -48,6 +48,8 @@ export interface RegisterEmailVerificationState {
   retryAfter: number;
 }
 
+export type LoginEmailVerificationState = RegisterEmailVerificationState;
+
 export interface EmailVerificationNoticeState {
   open: boolean;
   email?: string;
@@ -84,9 +86,12 @@ export interface LoginViewProps {
   onModeChange: (mode: LoginMode, options?: LoginModeChangeOptions) => void;
   onLoginEmailSubmit: (email: string) => Promise<LoginEmailLookupResult>;
   onLoginSubmit: (values: LoginFormValues) => Promise<void>;
+  onLoginVerificationResend: (email: string) => Promise<{ retryAfter: number }>;
+  loginVerification?: LoginEmailVerificationState | null;
   loginSeed?: LoginPaneSeed | null;
   loginEmailLoading?: boolean;
   loginLoading?: boolean;
+  loginResendLoading?: boolean;
   onLoginEmailCodeRequest: (email: string) => Promise<LoginEmailCodeRequestResult>;
   onLoginEmailCodeVerify: (values: LoginEmailCodeFormValues) => Promise<void>;
   loginEmailCodeSeed?: LoginEmailCodePaneSeed | null;

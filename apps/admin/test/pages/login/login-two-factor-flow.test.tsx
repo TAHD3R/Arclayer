@@ -27,11 +27,13 @@ const {
   loginMock,
   requestLoginEmailCodeMock,
   verifyLoginEmailCodeMock,
+  resendRegistrationEmailVerificationMock,
   exchangeSSOMock,
   applyLoginMock,
   queryClientClearMock,
   queryClientCancelQueriesMock,
   notifyErrorTextMock,
+  notifyInfoTextMock,
   notifySuccessTextMock,
   listSSOProvidersMock,
   runtimeState,
@@ -44,11 +46,13 @@ const {
   loginMock: vi.fn(),
   requestLoginEmailCodeMock: vi.fn(),
   verifyLoginEmailCodeMock: vi.fn(),
+  resendRegistrationEmailVerificationMock: vi.fn(),
   exchangeSSOMock: vi.fn(),
   applyLoginMock: vi.fn(),
   queryClientClearMock: vi.fn(),
   queryClientCancelQueriesMock: vi.fn(),
   notifyErrorTextMock: vi.fn(),
+  notifyInfoTextMock: vi.fn(),
   notifySuccessTextMock: vi.fn(),
   listSSOProvidersMock: vi.fn(),
   runtimeState: {
@@ -144,6 +148,8 @@ vi.mock("@/api/auth", () => ({
   login: (...args: unknown[]) => loginMock(...args),
   requestLoginEmailCode: (...args: unknown[]) => requestLoginEmailCodeMock(...args),
   verifyLoginEmailCode: (...args: unknown[]) => verifyLoginEmailCodeMock(...args),
+  resendRegistrationEmailVerification: (...args: unknown[]) =>
+    resendRegistrationEmailVerificationMock(...args),
   register: vi.fn(),
   forgotPassword: vi.fn(),
   refresh: vi.fn(),
@@ -161,22 +167,24 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
     leadingActions = [],
     loadingProvider = null,
     onProviderStart,
+    disabled = false,
   }: {
     leadingActions?: Array<{ key: string; label: string; onClick: () => void }>;
     loadingProvider?: string | null;
+    disabled?: boolean;
     onProviderStart?: (input: { provider: string; startUrl: string }) => void;
   }) =>
     leadingActions.length > 0 || onProviderStart ? (
       <div>
         {leadingActions.map((action) => (
-          <button key={action.key} type="button" onClick={action.onClick}>
+          <button key={action.key} type="button" disabled={disabled} onClick={action.onClick}>
             {action.label}
           </button>
         ))}
         {onProviderStart ? (
           <button
             type="button"
-            disabled={loadingProvider === "google"}
+            disabled={disabled || loadingProvider === "google"}
             aria-busy={loadingProvider === "google" ? true : undefined}
             onClick={() =>
               onProviderStart({
@@ -255,7 +263,7 @@ vi.mock("@/lib/routing/post-auth-routing", () => ({
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
   notifyErrorText: (...args: unknown[]) => notifyErrorTextMock(...args),
-  notifyInfoText: vi.fn(),
+  notifyInfoText: (...args: unknown[]) => notifyInfoTextMock(...args),
   notifySuccessText: (...args: unknown[]) => notifySuccessTextMock(...args),
 }));
 
@@ -381,12 +389,14 @@ describe("LoginPage two-factor challenge flow", () => {
     loginMock.mockReset();
     requestLoginEmailCodeMock.mockReset();
     verifyLoginEmailCodeMock.mockReset();
+    resendRegistrationEmailVerificationMock.mockReset();
     exchangeSSOMock.mockReset();
     listSSOProvidersMock.mockReset();
     applyLoginMock.mockReset();
     queryClientClearMock.mockReset();
     queryClientCancelQueriesMock.mockReset();
     notifyErrorTextMock.mockReset();
+    notifyInfoTextMock.mockReset();
     notifySuccessTextMock.mockReset();
     navigateMock.mockReset();
     authState.applyLogin.mockReset();
@@ -445,6 +455,93 @@ describe("LoginPage two-factor challenge flow", () => {
     expect(screen.getByLabelText("auth:TWO_FACTOR_CODE_LABEL")).toBeInTheDocument();
     expect(authState.applyLogin).not.toHaveBeenCalled();
     expect(queryClientClearMock).not.toHaveBeenCalled();
+  });
+
+  it("shows login email verification state when password login returns EMAIL_NOT_VERIFIED", async () => {
+    emailCheckMock.mockResolvedValueOnce({
+      exists: true,
+      passwordLoginAvailable: true,
+    });
+    loginMock.mockRejectedValueOnce(
+      new ApiError({
+        status: 403,
+        message: "请先验证邮箱后再登录",
+        error: "EMAIL_NOT_VERIFIED",
+        meta: {
+          email: "demo@example.com",
+          requires_email_verification: true,
+          expires_in: 3600,
+          retry_after: 60,
+        },
+      }),
+    );
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
+
+    expect(await screen.findByText("auth:REGISTER_VERIFY_EMAIL_SENT_HINT")).toBeInTheDocument();
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toBeDisabled();
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toHaveValue("demo@example.com");
+    expect(
+      screen.queryByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "auth:FORGOT_PASSWORD" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:CREATE_ACCOUNT" })).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "auth:REGISTER_VERIFY_EMAIL_RESEND_WAIT" }),
+    ).toBeDisabled();
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/login",
+      search: { mode: "login" },
+      replace: true,
+    });
+  });
+
+  it("resends login email verification after countdown is available", async () => {
+    emailCheckMock.mockResolvedValueOnce({
+      exists: true,
+      passwordLoginAvailable: true,
+    });
+    loginMock.mockRejectedValueOnce(
+      new ApiError({
+        status: 403,
+        message: "请先验证邮箱后再登录",
+        error: "EMAIL_NOT_VERIFIED",
+        meta: {
+          email: "demo@example.com",
+          requires_email_verification: true,
+          expires_in: 3600,
+          retry_after: 0,
+        },
+      }),
+    );
+    resendRegistrationEmailVerificationMock.mockResolvedValueOnce({
+      requires_email_verification: true,
+      retry_after: 60,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
+
+    const resendButton = await screen.findByRole("button", {
+      name: "auth:REGISTER_VERIFY_EMAIL_RESEND_ACTION",
+    });
+    expect(resendButton).not.toBeDisabled();
+    await user.click(resendButton);
+
+    expect(resendRegistrationEmailVerificationMock).toHaveBeenCalledWith({
+      email: "demo@example.com",
+    });
+    expect(notifyInfoTextMock).toHaveBeenCalledWith("auth:REGISTER_VERIFY_EMAIL_SENT");
   });
 
   it("restores otp pane from sessionStorage when challenge is still active", async () => {

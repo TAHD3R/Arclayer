@@ -66,6 +66,7 @@ vi.mock("@/api/auth", () => ({
   requestLoginEmailCode: vi.fn(),
   verifyLoginEmailCode: vi.fn(),
   register: vi.fn(),
+  resendRegistrationEmailVerification: vi.fn(),
   forgotPassword: vi.fn(),
   refresh: vi.fn(),
   refreshCookie: vi.fn(),

@@ -31,6 +31,7 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { OAuthPopupResult, PendingOAuthState } from "@/types/auth/oauth-popup";
 
+import { LOGIN_EMAIL_VERIFICATION_STATE_STARTED } from "../constants";
 import type {
   BootstrapFormValues,
   BootstrapPaneProps,
@@ -38,6 +39,7 @@ import type {
   LoginEmailLookupResult,
   LoginEmailCodeFormValues,
   LoginEmailCodePaneSeed,
+  LoginEmailVerificationState,
   LoginFormValues,
   LoginModeChangeOptions,
   LoginPaneSeed,
@@ -51,6 +53,7 @@ import type {
 
 const loginRouteApi = getRouteApi("/login/");
 const TWO_FACTOR_REQUIRED_ERROR = "TWO_FACTOR_REQUIRED";
+const EMAIL_NOT_VERIFIED_ERROR = "EMAIL_NOT_VERIFIED";
 const CHALLENGE_INVALID_ERRORS = new Set([
   "TWO_FACTOR_CHALLENGE_INVALID",
   "TWO_FACTOR_CHALLENGE_EXPIRED",
@@ -59,6 +62,11 @@ const CHALLENGE_INVALID_ERRORS = new Set([
 type TwoFactorChallengeMeta = {
   twoFactorToken: string;
   expiresIn: number;
+};
+
+type EmailVerificationMeta = {
+  email: string;
+  retryAfter: number;
 };
 
 const OAUTH_SEARCH_CONSUME_DEDUPE_WINDOW_MS = 2_000;
@@ -189,6 +197,28 @@ function isHandledTwoFactorError(error: unknown): error is ApiError {
   return error instanceof ApiError && resolveTwoFactorChallengeMeta(error) !== null;
 }
 
+function resolveEmailVerificationMeta(error: ApiError): EmailVerificationMeta | null {
+  if (error.error !== EMAIL_NOT_VERIFIED_ERROR) return null;
+  const meta = (error.meta ?? {}) as {
+    email?: string;
+    requiresEmailVerification?: boolean;
+    requires_email_verification?: boolean;
+    retryAfter?: number;
+    retry_after?: number;
+  };
+  const requiresEmailVerification =
+    meta.requiresEmailVerification ?? meta.requires_email_verification;
+  const email = typeof meta.email === "string" ? meta.email.trim() : "";
+  const retryAfter = meta.retryAfter ?? meta.retry_after ?? 60;
+
+  if (!requiresEmailVerification || !email) return null;
+
+  return {
+    email,
+    retryAfter: typeof retryAfter === "number" && retryAfter >= 0 ? retryAfter : 60,
+  };
+}
+
 type LoginPageState =
   | { entry: "auth"; props: LoginViewProps }
   | { entry: "bootstrap"; props: BootstrapPaneProps }
@@ -220,6 +250,8 @@ export function useLoginPage(): LoginPageState {
       : storedActiveChallenge;
   const [loginSeed, setLoginSeed] = useState<LoginPaneSeed | null>(null);
   const [loginEmailCodeSeed, setLoginEmailCodeSeed] = useState<LoginEmailCodePaneSeed | null>(null);
+  const [loginVerification, setLoginVerification] =
+    useState<LoginEmailVerificationState | null>(null);
   const [registerSeed, setRegisterSeed] = useState<RegisterPaneSeed | null>(null);
   const [registerVerification, setRegisterVerification] =
     useState<RegisterEmailVerificationState | null>(null);
@@ -260,11 +292,15 @@ export function useLoginPage(): LoginPageState {
       authApi.login({ email: values.email, password: values.password }),
     onError: (error) => {
       if (isHandledTwoFactorError(error)) return;
+      if (error instanceof ApiError && resolveEmailVerificationMeta(error)) return;
       notifyError(error);
     },
   });
   const loginEmailCodeRequestMutation = useMutation({
     mutationFn: async (email: string) => authApi.requestLoginEmailCode({ email }),
+    onError: (error) => {
+      if (error instanceof ApiError && resolveEmailVerificationMeta(error)) return;
+    },
   });
   const loginEmailCodeVerifyMutation = useMutation({
     mutationFn: async (values: LoginEmailCodeFormValues) =>
@@ -463,6 +499,32 @@ export function useLoginPage(): LoginPageState {
       return true;
     },
     [setChallenge],
+  );
+
+  const startEmailVerificationState = useCallback(
+    (error: unknown) => {
+      if (!(error instanceof ApiError)) return false;
+      const verificationMeta = resolveEmailVerificationMeta(error);
+      if (!verificationMeta) return false;
+
+      setLoginVerification(verificationMeta);
+      setLoginSeed({ email: verificationMeta.email, step: "password" });
+      setLoginEmailCodeSeed(null);
+      setRegisterVerification(null);
+      setRegisterSeed(null);
+      setForgotPasswordEmail(undefined);
+      setOptimisticMode("login");
+      void navigate({
+        to: "/login",
+        search: {
+          ...(redirectTo ? { redirect: redirectTo } : {}),
+          mode: "login",
+        },
+        replace: true,
+      });
+      return true;
+    },
+    [navigate, redirectTo],
   );
 
   const clearActiveChallenge = useCallback(() => {
@@ -664,6 +726,7 @@ export function useLoginPage(): LoginPageState {
           replace: true,
         });
         setLoginSeed({ email: result.email, step: "password" });
+        setLoginVerification(null);
         setEmailVerificationNotice({ open: true, email: result.email });
       } catch {
         void navigate({
@@ -715,6 +778,7 @@ export function useLoginPage(): LoginPageState {
     if (nextMode !== "register") {
       setRegisterVerification(null);
     }
+    setLoginVerification(null);
 
     void navigate({
       to: "/login",
@@ -761,11 +825,22 @@ export function useLoginPage(): LoginPageState {
       ) {
         return;
       }
+      if (startEmailVerificationState(error)) {
+        return;
+      }
     }
   };
 
-  const onLoginEmailCodeRequest = async (email: string) =>
-    loginEmailCodeRequestMutation.mutateAsync(email);
+  const onLoginEmailCodeRequest = async (email: string) => {
+    try {
+      return await loginEmailCodeRequestMutation.mutateAsync(email);
+    } catch (error) {
+      if (startEmailVerificationState(error)) {
+        throw new Error(LOGIN_EMAIL_VERIFICATION_STATE_STARTED);
+      }
+      throw error;
+    }
+  };
 
   const onLoginEmailCodeFinish = async (values: LoginEmailCodeFormValues) => {
     const keepSessionForEmailCode = true;
@@ -886,6 +961,20 @@ export function useLoginPage(): LoginPageState {
     };
   };
 
+  const onLoginVerificationResend = async (email: string) => {
+    const result = await registerVerificationResendMutation.mutateAsync(email);
+    const retryAfter = result.retryAfter ?? result.retry_after ?? 60;
+    const nextRetryAfter = typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 60;
+    setLoginVerification({
+      email,
+      retryAfter: nextRetryAfter,
+    });
+    notifyInfoText(t("auth:REGISTER_VERIFY_EMAIL_SENT"));
+    return {
+      retryAfter: nextRetryAfter,
+    };
+  };
+
   const onBootstrapFinish = async (values: BootstrapFormValues) => {
     const tokens = await bootstrapMutation.mutateAsync(values);
     clearActiveChallenge();
@@ -927,12 +1016,15 @@ export function useLoginPage(): LoginPageState {
       onModeChange,
       onLoginEmailSubmit,
       onLoginSubmit: onLoginFinish,
+      onLoginVerificationResend,
+      loginVerification,
       loginSeed,
       onLoginEmailCodeRequest,
       onLoginEmailCodeVerify: onLoginEmailCodeFinish,
       loginEmailCodeSeed,
       loginEmailLoading: emailCheckMutation.isPending,
       loginLoading: loginMutation.isPending || ssoExchangeMutation.isPending,
+      loginResendLoading: registerVerificationResendMutation.isPending,
       loginEmailCodeRequestLoading: loginEmailCodeRequestMutation.isPending,
       loginEmailCodeVerifyLoading: loginEmailCodeVerifyMutation.isPending,
       redirect: redirectTo,

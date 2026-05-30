@@ -29,12 +29,15 @@ export function LoginView({
   onModeChange,
   onLoginEmailSubmit,
   onLoginSubmit,
+  onLoginVerificationResend,
+  loginVerification,
   loginSeed,
   onLoginEmailCodeRequest,
   onLoginEmailCodeVerify,
   loginEmailCodeSeed,
   loginEmailLoading = false,
   loginLoading = false,
+  loginResendLoading = false,
   loginEmailCodeRequestLoading = false,
   loginEmailCodeVerifyLoading = false,
   redirect,
@@ -149,8 +152,11 @@ export function LoginView({
                 <LoginPane
                   onEmailSubmit={onLoginEmailSubmit}
                   onSubmit={onLoginSubmit}
+                  onVerificationResend={onLoginVerificationResend}
+                  verification={loginVerification}
                   emailCheckLoading={loginEmailLoading}
                   loading={loginLoading}
+                  resendLoading={loginResendLoading}
                   loginSeed={loginSeed}
                   redirect={redirect}
                   onForgotPassword={(email) => onModeChange("forgot-password", { email })}

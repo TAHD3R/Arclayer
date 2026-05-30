@@ -13,6 +13,7 @@ import { AuthLinkButton, AuthInputControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
+import { LOGIN_EMAIL_VERIFICATION_STATE_STARTED } from "../constants";
 import type {
   LoginEmailCodeFormValues,
   LoginEmailCodePaneSeed,
@@ -205,6 +206,9 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
       })
       .catch((error) => {
         if (!active) return;
+        if (error instanceof Error && error.message === LOGIN_EMAIL_VERIFICATION_STATE_STARTED) {
+          return;
+        }
         setStep("request");
         setRequestError(
           error instanceof ApiError
@@ -234,6 +238,9 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
     try {
       handleCodeRequestSuccess(await props.onRequestCode(form.getValues("email")));
     } catch (error) {
+      if (error instanceof Error && error.message === LOGIN_EMAIL_VERIFICATION_STATE_STARTED) {
+        return;
+      }
       setStep("request");
       setRequestError(
         error instanceof ApiError ? error.message : t("auth:LOGIN_EMAIL_CODE_REQUEST_FAILED"),

@@ -268,21 +268,134 @@ async def test_login_returns_two_factor_challenge(monkeypatch) -> None:
 async def test_login_blocks_unverified_email_when_registration_verification_required(
     monkeypatch,
 ) -> None:
-    service, _, user = _build_login_service(monkeypatch, two_factor_enabled=False)
+    service, valkey, user = _build_login_service(monkeypatch, two_factor_enabled=False)
     user.email_verified_at = None
+    sent: list[str] = []
 
     async def _fake_policy(_settings):
         class Policy:
+            enabled = True
+            require_email = True
             require_email_verification = True
 
         return Policy()
 
+    async def _fake_send(**kwargs: object) -> None:
+        sent.append(str(kwargs["recipient"]))
+
+    async def _fake_email_enabled() -> bool:
+        return True
+
     monkeypatch.setattr("src.modules.auth.login.service.get_public_register_policy", _fake_policy)
+    monkeypatch.setattr("src.modules.auth.registration.service.get_public_register_policy", _fake_policy)
+    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_email_enabled)
+    monkeypatch.setattr(service.auth_service, "send_registration_verification_email", _fake_send)
 
     with pytest.raises(Forbidden) as exc:
         await service.login(email="demo@example.com", password="pass")
 
     assert exc.value.error == "EMAIL_NOT_VERIFIED"
+    assert exc.value.meta == {
+        "email": "demo@example.com",
+        "requires_email_verification": True,
+        "expires_in": 3600,
+        "retry_after": 60,
+    }
+    assert sent == ["demo@example.com"]
+
+    token_records = [
+        record
+        for key, record in valkey._store.items()
+        if key.startswith("auth:registration_email_verification:token:") and isinstance(record, dict)
+    ]
+    assert len(token_records) == 1
+
+    with pytest.raises(Forbidden) as second:
+        await service.login(email="demo@example.com", password="pass")
+
+    assert second.value.error == "EMAIL_NOT_VERIFIED"
+    assert isinstance(second.value.meta, dict)
+    assert second.value.meta["email"] == "demo@example.com"
+    assert second.value.meta["requires_email_verification"] is True
+    assert second.value.meta["retry_after"] > 0
+    assert sent == ["demo@example.com"]
+
+
+async def test_login_does_not_trigger_email_verification_for_wrong_password(monkeypatch) -> None:
+    service, valkey, user = _build_login_service(monkeypatch, two_factor_enabled=False)
+    user.email_verified_at = None
+    sent: list[str] = []
+
+    async def _fake_policy(_settings):
+        class Policy:
+            enabled = True
+            require_email = True
+            require_email_verification = True
+
+        return Policy()
+
+    async def _fake_send(**kwargs: object) -> None:
+        sent.append(str(kwargs["recipient"]))
+
+    async def _fake_email_enabled() -> bool:
+        return True
+
+    monkeypatch.setattr("src.modules.auth.login.service.get_public_register_policy", _fake_policy)
+    monkeypatch.setattr("src.modules.auth.registration.service.get_public_register_policy", _fake_policy)
+    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_email_enabled)
+    monkeypatch.setattr(service.auth_service, "send_registration_verification_email", _fake_send)
+
+    with pytest.raises(Unauthorized) as exc:
+        await service.login(email="demo@example.com", password="wrong")
+
+    assert exc.value.error == "INVALID_CREDENTIALS"
+    assert sent == []
+    assert not any(
+        key.startswith("auth:registration_email_verification:")
+        for key in valkey._store
+    )
+
+
+async def test_email_code_request_blocks_unverified_email_and_does_not_send_login_code(
+    monkeypatch,
+) -> None:
+    service, _, user = _build_login_service(monkeypatch, two_factor_enabled=False)
+    user.email_verified_at = None
+    verification_sent: list[str] = []
+    login_code_sent: list[str] = []
+
+    async def _fake_policy(_settings):
+        class Policy:
+            enabled = True
+            require_email = True
+            require_email_verification = True
+
+        return Policy()
+
+    async def _fake_verification_send(**kwargs: object) -> None:
+        verification_sent.append(str(kwargs["recipient"]))
+
+    async def _fake_login_code_send(**kwargs: object) -> None:
+        login_code_sent.append(str(kwargs["recipient"]))
+
+    async def _fake_email_enabled() -> bool:
+        return True
+
+    monkeypatch.setattr("src.modules.auth.login.service.get_public_register_policy", _fake_policy)
+    monkeypatch.setattr("src.modules.auth.registration.service.get_public_register_policy", _fake_policy)
+    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_email_enabled)
+    monkeypatch.setattr(service.auth_service, "send_registration_verification_email", _fake_verification_send)
+    monkeypatch.setattr(service.auth_service.email_service, "send_login_code", _fake_login_code_send)
+
+    with pytest.raises(Forbidden) as exc:
+        await service.request_login_email_code(email="demo@example.com", locale="en-US")
+
+    assert exc.value.error == "EMAIL_NOT_VERIFIED"
+    assert isinstance(exc.value.meta, dict)
+    assert exc.value.meta["email"] == "demo@example.com"
+    assert exc.value.meta["requires_email_verification"] is True
+    assert verification_sent == ["demo@example.com"]
+    assert login_code_sent == []
 
 
 async def test_complete_two_factor_login_issues_tokens(monkeypatch) -> None:

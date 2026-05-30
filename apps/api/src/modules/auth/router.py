@@ -338,6 +338,7 @@ async def login(
         email=str(payload.email),
         password=payload.password,
         request_context=build_auth_request_context(request),
+        locale=get_current_locale(),
     )
     _set_refresh_cookie(
         fastapi_response,

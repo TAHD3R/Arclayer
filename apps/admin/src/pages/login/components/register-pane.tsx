@@ -18,6 +18,7 @@ import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
+import { useEmailVerificationCountdown } from "../hooks/use-email-verification-countdown";
 import type { RegisterFormValues, RegisterPaneSeed } from "../types";
 import {
   AUTH_FIELD_CLASS,
@@ -91,7 +92,6 @@ export function RegisterPane(props: RegisterPaneProps) {
   const { t } = useTranslation();
   const variants = props.reducedMotion ? {} : props.itemVariants;
   const [emailExists, setEmailExists] = useState(false);
-  const [retryAfter, setRetryAfter] = useState(0);
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(
       z.object({
@@ -173,6 +173,7 @@ export function RegisterPane(props: RegisterPaneProps) {
   const verificationEmail = props.verification?.email ?? "";
   const isVerificationPending = Boolean(props.verification);
   const busy = props.emailCheckLoading || props.loading || props.resendLoading;
+  const { retryAfter, setRetryAfter } = useEmailVerificationCountdown(props.verification);
 
   useEffect(() => {
     resetRef.current({
@@ -184,11 +185,7 @@ export function RegisterPane(props: RegisterPaneProps) {
   }, [seedEmail]);
 
   useEffect(() => {
-    if (!props.verification) {
-      setRetryAfter(0);
-      return;
-    }
-    setRetryAfter(Math.max(0, props.verification.retryAfter));
+    if (!props.verification) return;
     resetRef.current({
       email: props.verification.email,
       username: deriveAccountNameFromEmail(props.verification.email),
@@ -199,14 +196,6 @@ export function RegisterPane(props: RegisterPaneProps) {
   useEffect(() => {
     setEmailExists(false);
   }, [emailValue]);
-
-  useEffect(() => {
-    if (retryAfter <= 0) return;
-    const timer = window.setInterval(() => {
-      setRetryAfter((current) => (current <= 1 ? 0 : current - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [retryAfter]);
 
   useEffect(() => {
     if (isVerificationPending) return;

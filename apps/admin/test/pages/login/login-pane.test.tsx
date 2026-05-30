@@ -56,8 +56,10 @@ describe("LoginPane oauth section", () => {
           passwordLoginAvailable: true,
         })}
         onSubmit={async () => undefined}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
         emailCheckLoading={false}
         loading={false}
+        resendLoading={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={() => undefined}
@@ -104,8 +106,10 @@ describe("LoginPane oauth section", () => {
           passwordLoginAvailable: true,
         })}
         onSubmit={async () => undefined}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
         emailCheckLoading={false}
         loading={false}
+        resendLoading={false}
         loginSeed={{ email: "demo@example.com", step: "password" }}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={onSwitchToEmailCode}
@@ -141,8 +145,10 @@ describe("LoginPane oauth section", () => {
           passwordLoginAvailable: false,
         })}
         onSubmit={async () => undefined}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
         emailCheckLoading={false}
         loading={false}
+        resendLoading={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={onSwitchToEmailCode}
@@ -171,8 +177,10 @@ describe("LoginPane oauth section", () => {
           passwordLoginAvailable: false,
         })}
         onSubmit={async () => undefined}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
         emailCheckLoading={false}
         loading={false}
+        resendLoading={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={() => undefined}
@@ -205,8 +213,10 @@ describe("LoginPane oauth section", () => {
           passwordLoginAvailable: true,
         })}
         onSubmit={onSubmit}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
         emailCheckLoading={false}
         loading={false}
+        resendLoading={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={() => undefined}
@@ -239,8 +249,10 @@ describe("LoginPane oauth section", () => {
           passwordLoginAvailable: true,
         })}
         onSubmit={async () => undefined}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
         emailCheckLoading={false}
         loading={false}
+        resendLoading={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={onSwitchToEmailCode}
@@ -265,8 +277,10 @@ describe("LoginPane oauth section", () => {
           passwordLoginAvailable: true,
         })}
         onSubmit={async () => undefined}
+        onVerificationResend={async () => ({ retryAfter: 60 })}
         emailCheckLoading={false}
         loading={false}
+        resendLoading={false}
         loginSeed={null}
         onForgotPassword={() => undefined}
         onSwitchToEmailCode={() => undefined}
@@ -280,5 +294,48 @@ describe("LoginPane oauth section", () => {
     expect(
       screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }).querySelector("svg"),
     ).toBeNull();
+  });
+
+  it("shows pending verification state and resends from the primary action", async () => {
+    const onVerificationResend = vi.fn(async () => ({ retryAfter: 60 }));
+
+    render(
+      <LoginPane
+        onEmailSubmit={async () => ({
+          exists: true,
+          passwordLoginAvailable: true,
+        })}
+        onSubmit={async () => undefined}
+        onVerificationResend={onVerificationResend}
+        verification={{ email: "demo@example.com", retryAfter: 0 }}
+        emailCheckLoading={false}
+        loading={false}
+        resendLoading={false}
+        loginSeed={null}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={() => undefined}
+        onSwitchToRegister={() => undefined}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toBeDisabled();
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toHaveValue("demo@example.com");
+    expect(screen.getByTestId("oauth-actions")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "auth:FORGOT_PASSWORD" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:CREATE_ACCOUNT" })).not.toBeDisabled();
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "auth:REGISTER_VERIFY_EMAIL_RESEND_ACTION" }),
+    );
+
+    expect(onVerificationResend).toHaveBeenCalledWith("demo@example.com");
   });
 });

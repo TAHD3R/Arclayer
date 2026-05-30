@@ -20,8 +20,10 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
   AuthOauthButtons: ({
     dividerLabelKey = "auth:OAUTH_ACCOUNT_DIVIDER",
     leadingActions = [],
+    disabled = false,
   }: {
     dividerLabelKey?: string;
+    disabled?: boolean;
     leadingActions?: Array<{
       key: string;
       label: string;
@@ -32,7 +34,7 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
     <div data-testid="oauth-section">
       <span>{dividerLabelKey}</span>
       {leadingActions.map((action) => (
-        <button key={action.key} type="button" onClick={action.onClick}>
+        <button key={action.key} type="button" disabled={disabled} onClick={action.onClick}>
           {action.icon}
           {action.label}
         </button>
@@ -95,6 +97,7 @@ function renderLoginView(overrides: Partial<React.ComponentProps<typeof LoginVie
           passwordLoginAvailable: true,
         })}
         onLoginSubmit={async () => undefined}
+        onLoginVerificationResend={async () => ({ retryAfter: 60 })}
         onLoginEmailCodeRequest={async () => ({
           expiresIn: 600,
           retryAfter: 0,
@@ -137,6 +140,26 @@ describe("LoginView register entry visibility", () => {
     renderLoginView();
 
     expect(screen.getByText("auth:CREATE_ACCOUNT")).toBeInTheDocument();
+  });
+
+  test("shows pending email verification state in login pane", () => {
+    renderLoginView({
+      loginVerification: { email: "founder@example.com", retryAfter: 60 },
+    });
+
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toBeDisabled();
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toHaveValue("founder@example.com");
+    expect(screen.getByText("auth:REGISTER_VERIFY_EMAIL_SENT_HINT")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "auth:FORGOT_PASSWORD" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
+    expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:CREATE_ACCOUNT" })).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "auth:REGISTER_VERIFY_EMAIL_RESEND_WAIT" }),
+    ).toBeDisabled();
   });
 
   test("shows email verification notice dialog after confirmation", () => {
