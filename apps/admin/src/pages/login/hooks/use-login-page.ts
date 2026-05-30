@@ -316,10 +316,8 @@ export function useLoginPage(): LoginPageState {
   const registerMutation = useMutation({
     mutationFn: async (values: RegisterFormValues) =>
       authApi.register({
-        username: values.username,
         email: values.email,
         password: values.password,
-        display_name: values.username.trim(),
       }),
     onError: notifyError,
   });

@@ -112,28 +112,14 @@ class RegisterRequest(BaseSchema):
 
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
 
-    username: str = Field(
-        min_length=3,
-        max_length=32,
-        description="Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.",
-        examples=["jasar", "team-owner"],
-    )
     email: EmailStr = Field(description="Email address.", examples=["user@example.com"])
     password: str = Field(min_length=8, max_length=128, description="Password (min 8 chars).")
-    display_name: str = Field(min_length=1, max_length=64, description="Display name.")
-
-    @field_validator("username")
-    @classmethod
-    def validate_username(cls, value: str) -> str:
-        return _normalize_account_name(value)
+    display_name: str | None = Field(default=None, max_length=64, description="Display name.")
 
     @field_validator("display_name")
     @classmethod
-    def validate_display_name(cls, value: str) -> str:
-        normalized = _normalize_display_name(value)
-        if normalized is None:
-            raise ValueError("Display name is required.")
-        return normalized
+    def validate_display_name(cls, value: str | None) -> str | None:
+        return _normalize_display_name(value)
 
     @field_validator("password")
     @classmethod

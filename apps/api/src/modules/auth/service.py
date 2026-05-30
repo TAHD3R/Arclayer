@@ -75,10 +75,21 @@ _FATAL_AUTH_EVENT_ERRORS: tuple[type[BaseException], ...] = (
     SystemExit,
 )
 
+_GENERATED_USERNAME_MAX_LENGTH = 32
+
 
 def _raise_if_fatal(exc: BaseException) -> None:
     if isinstance(exc, _FATAL_AUTH_EVENT_ERRORS):
         raise exc
+
+
+def _sanitize_generated_username_base(value: str | None) -> str:
+    raw = (value or "").strip().lower()
+    if "@" in raw:
+        raw = raw.split("@", 1)[0]
+    raw = re.sub(r"[^a-z0-9]+", "-", raw)
+    raw = re.sub(r"-+", "-", raw).strip("-")
+    return raw[:_GENERATED_USERNAME_MAX_LENGTH].strip("-") or "user"
 
 
 class _TwoFactorReauthLike(Protocol):
@@ -971,6 +982,20 @@ class AuthService(BaseService):
     async def username_exists(self, *, username: str) -> bool:
         return await self.user_repo.exists_username(username.strip().lower())
 
+    async def generate_unique_username(self, *, email: str | None = None) -> str:
+        base = _sanitize_generated_username_base(email)
+        if len(base) >= 3 and not await self.user_repo.exists_username(base):
+            return base
+
+        suffix_length = 7
+        prefix = base[: max(1, _GENERATED_USERNAME_MAX_LENGTH - suffix_length)].strip("-") or "user"
+        for _ in range(10):
+            username = f"{prefix}-{uuid7().hex[:6]}"
+            if not await self.user_repo.exists_username(username):
+                return username
+
+        return f"user-{uuid7().hex[:12]}"
+
     async def refresh(
         self,
         *,
@@ -1464,7 +1489,6 @@ class AuthService(BaseService):
     async def register_public(
         self,
         *,
-        username: str,
         password: str,
         email: str | None = None,
         display_name: str | None = None,
@@ -1493,6 +1517,7 @@ class AuthService(BaseService):
                 message=self._ta("REGISTER_DOMAIN_NOT_ALLOWED", "该邮箱域名不允许注册"),
                 error="REGISTER_DOMAIN_NOT_ALLOWED",
             )
+        username = await self.generate_unique_username(email=normalized_email)
         user = await self.register(
             username=username,
             password=password,

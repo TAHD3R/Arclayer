@@ -312,21 +312,44 @@ async def test_register_public_requires_email_verification_and_sends_mail(monkey
     monkeypatch.setattr(service, "send_registration_verification_email", _fake_send)
 
     result = await service.register_public(
-        username="new-user",
         password="pass1234",
         email="New-User@Example.COM",
-        display_name="New User",
     )
 
     assert result.requires_email_verification is True
     assert result.retry_after == 60
     assert result.expires_in == 3600
     assert result.user.email == "new-user@example.com"
+    assert result.user.username == "new-user"
+    assert result.user.display_name is None
     assert len(repo.users) == 1
     assert repo.users[0].email_verified_at is None
     assert sent[0]["recipient"] == "new-user@example.com"
     assert isinstance(sent[0]["verification_token"], str)
     assert "auth:registration_email_verification:email:new-user@example.com" in valkey._store
+
+
+async def test_register_public_generates_collision_safe_username(monkeypatch) -> None:
+    service, _valkey, repo = _build_service(monkeypatch)
+
+    monkeypatch.setattr(
+        "src.modules.auth.registration.service.get_public_register_policy",
+        _get_verification_policy,
+    )
+    monkeypatch.setattr(service.email_service, "is_enabled", _email_enabled)
+
+    async def _fake_send(**_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(service, "send_registration_verification_email", _fake_send)
+
+    first = await service.register_public(password="pass1234", email="New-User@Example.COM")
+    second = await service.register_public(password="pass1234", email="new-user@other.example")
+
+    assert first.user.username == "new-user"
+    assert second.user.username.startswith("new-user-")
+    assert second.user.username != first.user.username
+    assert len(repo.users) == 2
 
 
 async def test_register_public_fails_when_mail_disabled_without_creating_user(monkeypatch) -> None:
@@ -339,7 +362,7 @@ async def test_register_public_fails_when_mail_disabled_without_creating_user(mo
     monkeypatch.setattr(service.email_service, "is_enabled", _email_disabled)
 
     with pytest.raises(BadRequest) as exc:
-        await service.register_public(username="new-user", password="pass1234", email="new@example.com")
+        await service.register_public(password="pass1234", email="new@example.com")
 
     assert exc.value.error == "MAIL_DISABLED"
     assert repo.users == []
@@ -359,7 +382,7 @@ async def test_confirm_registration_email_verification_marks_user_verified(monke
 
     monkeypatch.setattr(service, "send_registration_verification_email", _fake_send)
 
-    result = await service.register_public(username="new-user", password="pass1234", email="new@example.com")
+    result = await service.register_public(password="pass1234", email="new@example.com")
     token = next(
         str(record["token"])
         for key, record in valkey._store.items()
@@ -388,7 +411,7 @@ async def test_resend_registration_email_verification_respects_cooldown(monkeypa
 
     monkeypatch.setattr(service, "send_registration_verification_email", _fake_send)
 
-    await service.register_public(username="new-user", password="pass1234", email="new@example.com")
+    await service.register_public(password="pass1234", email="new@example.com")
     resent = await service.resend_registration_email_verification(email="new@example.com")
 
     assert resent.requires_email_verification is True

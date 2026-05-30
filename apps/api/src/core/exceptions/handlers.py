@@ -137,7 +137,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             status_code=500,
             message=message,
             error="INTERNAL_ERROR",
-            details=str(exc) if debug else None,
+            details=None,
             debug=debug,
         )
 
@@ -197,7 +197,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
             status_code=500,
             message=message,
             error="DB_OPERATIONAL_ERROR",
-            details=str(exc) if debug else None,
+            details=None,
             debug=debug,
         )
 

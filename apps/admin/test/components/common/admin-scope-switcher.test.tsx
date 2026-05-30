@@ -421,4 +421,22 @@ describe("AdminScopeSwitcher", () => {
     });
     expect(navigateMock).toHaveBeenCalledWith({ to: "/projects" });
   });
+
+  it("routes new workspace creation through onboarding", async () => {
+    const user = userEvent.setup();
+    renderWithQueryClient(<AdminScopeSwitcher />);
+
+    await user.click(await screen.findByRole("button", { name: "Select scope" }));
+    const panel = getLatestDialog();
+    await user.click(within(panel).getByRole("button", { name: /Workspace Alpha/ }));
+
+    const workspacePickerPanel = getLatestDialog();
+    await user.click(within(workspacePickerPanel).getByRole("button", { name: "New workspace" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/welcome",
+      search: { mode: "create-workspace" },
+    });
+    expect(screen.queryByRole("dialog", { name: /New workspace/ })).not.toBeInTheDocument();
+  });
 });

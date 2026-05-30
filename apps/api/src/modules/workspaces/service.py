@@ -61,6 +61,10 @@ def _resolve_organization_id(value: object) -> UUID:
     return UUID(str(cast(HasOrganizationId, value).organization_id))
 
 
+def _normalize_workspace_manage_template(value: object) -> OrganizationWorkspaceTemplate:
+    return OrganizationWorkspaceTemplate(getattr(value, "value", value))
+
+
 def _normalize_workspace_icon_color(value: str) -> str:
     normalized = str(value or "").strip().lower()
     if not normalized:
@@ -562,7 +566,7 @@ class WorkspaceService(BaseService):
             payload=OrganizationWorkspaceCreateRequest(
                 name=workspace_name,
                 description=payload.description,
-                template=OrganizationWorkspaceTemplate(payload.template.value),
+                template=_normalize_workspace_manage_template(payload.template),
                 locale=payload.locale,
                 timezone=payload.timezone,
                 date_format=payload.date_format,

@@ -93,6 +93,8 @@ export const Route = createRootRoute({
       isWelcome &&
       import.meta.env.DEV &&
       new URLSearchParams(location.searchStr).get("dryRun") === "1";
+    const createWorkspaceWelcome =
+      isWelcome && new URLSearchParams(location.searchStr).get("mode") === "create-workspace";
 
     if (!token && !isPublic) {
       throw redirect({
@@ -102,7 +104,7 @@ export const Route = createRootRoute({
       });
     }
 
-    if (token && dryRunWelcome) {
+    if (token && (dryRunWelcome || createWorkspaceWelcome)) {
       return;
     }
 

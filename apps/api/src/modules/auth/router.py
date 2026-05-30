@@ -436,7 +436,6 @@ async def register(
 ) -> ResponseModel[RegisterResult]:
     """Register a new account."""
     result = await service.register_public(
-        username=payload.username,
         password=payload.password,
         email=payload.email,
         display_name=payload.display_name,

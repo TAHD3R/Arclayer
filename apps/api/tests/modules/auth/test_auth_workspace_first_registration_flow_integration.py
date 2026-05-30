@@ -11,6 +11,15 @@ from src.core.registry import create_app
 
 pytestmark = pytest.mark.integration
 
+_CSRF_ORIGIN = "http://testserver"
+
+
+async def _csrf_headers(client: AsyncClient) -> dict[str, str]:
+    await client.get("/api/v1/system/runtime")
+    token = client.cookies.get("csrf_token")
+    assert token is not None
+    return {"Origin": _CSRF_ORIGIN, "X-CSRF-Token": token}
+
 
 @pytest.mark.asyncio
 async def test_public_register_and_login_requires_onboarding_workspace_choice(
@@ -34,13 +43,15 @@ async def test_public_register_and_login_requires_onboarding_workspace_choice(
             register_response = await client.post(
                 "/api/v1/auth/register",
                 json={
-                    "username": username,
                     "email": email,
-                    "display_name": "Workspace First",
                     "password": "workspace_first_pass_123",
                 },
+                headers=await _csrf_headers(client),
             )
             assert register_response.status_code == 200, register_response.text
+            register_payload = register_response.json()["data"]
+            assert register_payload["user"]["username"] == username
+            assert register_payload["user"]["displayName"] is None
 
             login_response = await client.post(
                 "/api/v1/auth/login",
@@ -48,6 +59,7 @@ async def test_public_register_and_login_requires_onboarding_workspace_choice(
                     "email": email,
                     "password": "workspace_first_pass_123",
                 },
+                headers=await _csrf_headers(client),
             )
             assert login_response.status_code == 200, login_response.text
             access_token = login_response.json()["data"]["accessToken"]
@@ -66,7 +78,7 @@ async def test_public_register_and_login_requires_onboarding_workspace_choice(
 
 
 @pytest.mark.asyncio
-async def test_public_username_check_reports_availability_before_and_after_register(
+async def test_public_username_check_reports_generated_username_after_register(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -87,6 +99,7 @@ async def test_public_username_check_reports_availability_before_and_after_regis
             available_response = await client.post(
                 "/api/v1/auth/username-check",
                 json={"username": username},
+                headers=await _csrf_headers(client),
             )
             assert available_response.status_code == 200, available_response.text
             assert available_response.json()["data"]["available"] is True
@@ -94,17 +107,18 @@ async def test_public_username_check_reports_availability_before_and_after_regis
             register_response = await client.post(
                 "/api/v1/auth/register",
                 json={
-                    "username": username,
                     "email": f"{username}@example.com",
-                    "display_name": "Studio Team",
                     "password": "workspace_first_pass_123",
                 },
+                headers=await _csrf_headers(client),
             )
             assert register_response.status_code == 200, register_response.text
+            assert register_response.json()["data"]["user"]["username"] == username
 
             unavailable_response = await client.post(
                 "/api/v1/auth/username-check",
                 json={"username": username},
+                headers=await _csrf_headers(client),
             )
             assert unavailable_response.status_code == 200, unavailable_response.text
             assert unavailable_response.json()["data"]["available"] is False

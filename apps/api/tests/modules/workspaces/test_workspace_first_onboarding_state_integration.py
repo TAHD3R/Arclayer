@@ -15,9 +15,22 @@ from src.models.workspaces.workspace import Workspace
 
 pytestmark = pytest.mark.integration
 
+_CSRF_ORIGIN = "http://testserver"
+
 
 def _auth_headers(access_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {access_token}"}
+
+
+async def _csrf_headers(client: AsyncClient) -> dict[str, str]:
+    await client.get("/api/v1/system/runtime")
+    token = client.cookies.get("csrf_token")
+    assert token is not None
+    return {"Origin": _CSRF_ORIGIN, "X-CSRF-Token": token}
+
+
+async def _auth_csrf_headers(client: AsyncClient, access_token: str) -> dict[str, str]:
+    return {**_auth_headers(access_token), **await _csrf_headers(client)}
 
 
 @pytest.mark.asyncio
@@ -45,17 +58,17 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
             register_response = await client.post(
                 "/api/v1/auth/register",
                 json={
-                    "username": username,
                     "email": email,
-                    "display_name": "Onboarding User",
                     "password": password,
                 },
+                headers=await _csrf_headers(client),
             )
             assert register_response.status_code == 200, register_response.text
 
             login_response = await client.post(
                 "/api/v1/auth/login",
                 json={"email": email, "password": password},
+                headers=await _csrf_headers(client),
             )
             assert login_response.status_code == 200, login_response.text
             access_token = login_response.json()["data"]["accessToken"]
@@ -75,7 +88,7 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
                 json={
                     "name": workspace_name,
                 },
-                headers=headers,
+                headers=await _auth_csrf_headers(client, access_token),
             )
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
             created_workspace = create_workspace_resp.json()["data"]
@@ -108,7 +121,7 @@ async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaul
                         }
                     }
                 },
-                headers=headers,
+                headers=await _auth_csrf_headers(client, access_token),
             )
             assert patch_defaults_resp.status_code == 200, patch_defaults_resp.text
 
@@ -145,17 +158,17 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             register_response = await client.post(
                 "/api/v1/auth/register",
                 json={
-                    "username": username,
                     "email": email,
-                    "display_name": "Team Owner",
                     "password": password,
                 },
+                headers=await _csrf_headers(client),
             )
             assert register_response.status_code == 200, register_response.text
 
             login_response = await client.post(
                 "/api/v1/auth/login",
                 json={"email": email, "password": password},
+                headers=await _csrf_headers(client),
             )
             assert login_response.status_code == 200, login_response.text
             access_token = login_response.json()["data"]["accessToken"]
@@ -166,7 +179,7 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
                 json={
                     "name": "Blog Team",
                 },
-                headers=headers,
+                headers=await _auth_csrf_headers(client, access_token),
             )
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
             created_workspace = create_workspace_resp.json()["data"]
@@ -198,7 +211,7 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
                         }
                     }
                 },
-                headers=headers,
+                headers=await _auth_csrf_headers(client, access_token),
             )
             assert patch_defaults_resp.status_code == 200, patch_defaults_resp.text
 
@@ -213,7 +226,7 @@ async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
             repeated_create_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
                 json={"name": "Ignored", "slug": f"ignored-{suffix}"},
-                headers=headers,
+                headers=await _auth_csrf_headers(client, access_token),
             )
             assert repeated_create_resp.status_code == 400, repeated_create_resp.text
             assert repeated_create_resp.json()["error"] == "WORKSPACE_ONBOARDING_COMPLETED"
@@ -243,17 +256,17 @@ async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_o
             register_response = await client.post(
                 "/api/v1/auth/register",
                 json={
-                    "username": username,
                     "email": email,
-                    "display_name": "Existing Workspace User",
                     "password": password,
                 },
+                headers=await _csrf_headers(client),
             )
             assert register_response.status_code == 200, register_response.text
 
             login_response = await client.post(
                 "/api/v1/auth/login",
                 json={"email": email, "password": password},
+                headers=await _csrf_headers(client),
             )
             assert login_response.status_code == 200, login_response.text
             access_token = login_response.json()["data"]["accessToken"]
@@ -285,7 +298,7 @@ async def test_onboarding_workspace_creation_allows_existing_workspace_in_team_o
             create_workspace_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
                 json={"name": "Founder Team"},
-                headers=headers,
+                headers=await _auth_csrf_headers(client, access_token),
             )
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
             created_workspace = create_workspace_resp.json()["data"]

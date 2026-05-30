@@ -31,8 +31,11 @@ export function WorkspaceCreateStep(props: {
 
   return (
     <div className="flex flex-col gap-5 py-6">
-      <div className="flex flex-row items-start gap-6 sm:gap-8">
-        <div className="flex shrink-0 flex-col gap-3 pl-1">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="workspace-name" className="text-headline text-label-primary">
+          {t("onboarding:WELCOME_WORKSPACE_IDENTITY_TITLE")}
+        </label>
+        <div className="flex flex-row items-start gap-6 sm:gap-8">
           <AvatarUploadSlot
             size={80}
             shape="square"
@@ -46,26 +49,26 @@ export function WorkspaceCreateStep(props: {
             onPick={props.onPickIcon}
             onRemove={props.onRemoveIcon}
           />
-        </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="workspace-name" className="text-headline text-label-primary">
-              {t("settings:SETTINGS_WORKSPACE_NAME_LABEL")}
-            </label>
-            <Input
-              id="workspace-name"
-              value={props.name}
-              onChange={(event) => props.onNameChange(event.target.value)}
-              maxLength={WORKSPACE_NAME_MAX_LENGTH}
-              className="h-10 max-w-sm text-body"
-              placeholder={t("settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER")}
-              aria-invalid={Boolean(props.errors.name)}
-            />
-            <div className="text-footnote text-label-secondary">
-              {`${props.name.length}/${WORKSPACE_NAME_MAX_LENGTH}`}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-1.5">
+              <Input
+                id="workspace-name"
+                aria-label={t("settings:SETTINGS_WORKSPACE_NAME_LABEL")}
+                value={props.name}
+                onChange={(event) => props.onNameChange(event.target.value)}
+                maxLength={WORKSPACE_NAME_MAX_LENGTH}
+                className="h-10 w-full text-body"
+                placeholder={t("settings:SETTINGS_WORKSPACE_NAME_PLACEHOLDER")}
+                aria-invalid={Boolean(props.errors.name)}
+              />
+              <div className="text-footnote text-label-secondary">
+                {`${props.name.length}/${WORKSPACE_NAME_MAX_LENGTH}`}
+              </div>
+              {props.errors.name ? (
+                <WelcomeFieldError>{props.errors.name}</WelcomeFieldError>
+              ) : null}
             </div>
-            {props.errors.name ? <WelcomeFieldError>{props.errors.name}</WelcomeFieldError> : null}
           </div>
         </div>
       </div>

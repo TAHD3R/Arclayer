@@ -41,13 +41,16 @@ describe("AuthPreferencesBar", () => {
   });
 
   it("renders as a full-width footer without visible labels or card chrome", () => {
-    render(<AuthPreferencesBar />);
+    render(<AuthPreferencesBar trailing={<button type="button">Sign Out</button>} />);
 
     const bar = screen.getByTestId("auth-preferences-bar");
     const content = bar.firstElementChild as HTMLElement;
 
     expect(bar).toHaveClass("shrink-0", "bg-background");
     expect(bar).not.toHaveClass("fixed", "inset-x-0", "bottom-0", "border-t");
+    expect(content).toHaveClass("flex-nowrap", "whitespace-nowrap", "overflow-hidden");
+    expect(content).not.toHaveClass("flex-wrap");
+    expect(content).not.toHaveClass("max-w-90");
     expect(content).not.toHaveClass("rounded-md", "border", "shadow-sm", "backdrop-blur");
     expect(screen.queryByText("auth:AUTH_LANGUAGE_LABEL")).not.toBeInTheDocument();
     expect(screen.queryByText("auth:AUTH_THEME_LABEL")).not.toBeInTheDocument();
@@ -60,6 +63,13 @@ describe("AuthPreferencesBar", () => {
     expect(
       screen.getByRole("combobox", { name: "ACCOUNT_SETTINGS_THEME_LABEL" }).querySelector("svg"),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
+  });
+
+  it("does not render trailing actions on login by default", () => {
+    render(<AuthPreferencesBar />);
+
+    expect(screen.queryByRole("button", { name: "Sign Out" })).not.toBeInTheDocument();
   });
 
   it("uses auth language options and writes through the preference store", async () => {

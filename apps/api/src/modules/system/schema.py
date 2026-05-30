@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from pydantic import Field
+import re
 
+from pydantic import ConfigDict, EmailStr, Field, field_validator
+
+from src.common.constants.auth import PASSWORD_REGEX
 from src.common.schemas import BaseSchema
-from src.modules.auth.schema import RegisterRequest
+from src.modules.auth.schema import _normalize_account_name, _normalize_display_name
 
 
 class SystemRuntimeCapabilities(BaseSchema):
@@ -33,5 +36,37 @@ class SystemRuntimeOut(BaseSchema):
     )
 
 
-class SystemBootstrapRequest(RegisterRequest):
+class SystemBootstrapRequest(BaseSchema):
     """Bootstrap the instance by creating the first super-admin account."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    username: str = Field(
+        min_length=3,
+        max_length=32,
+        description="Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.",
+        examples=["jasar", "team-owner"],
+    )
+    email: EmailStr = Field(description="Email address.", examples=["user@example.com"])
+    password: str = Field(min_length=8, max_length=128, description="Password (min 8 chars).")
+    display_name: str = Field(min_length=1, max_length=64, description="Display name.")
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        return _normalize_account_name(value)
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str) -> str:
+        normalized = _normalize_display_name(value)
+        if normalized is None:
+            raise ValueError("Display name is required.")
+        return normalized
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if not re.match(PASSWORD_REGEX, value):
+            raise ValueError("Password must contain letters and numbers, and be 8-128 characters long.")
+        return value

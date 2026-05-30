@@ -50,7 +50,7 @@ function ThemeOptionContent(props: { value: ThemePreference; label: string }) {
   );
 }
 
-export function AuthPreferencesBar() {
+export function AuthPreferencesBar(props: { trailing?: ReactNode }) {
   const { t } = useTranslation("account");
   const locale = usePreferencesStore((s) => s.locale);
   const localePreference = usePreferencesStore((s) => s.localePreference);
@@ -82,7 +82,7 @@ export function AuthPreferencesBar() {
         "pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
       )}
     >
-      <div className="flex w-full max-w-90 flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-callout text-label-secondary">
+      <div className="flex w-full min-w-0 flex-nowrap items-center justify-center gap-x-2 overflow-hidden whitespace-nowrap text-callout text-label-secondary">
         <Select
           value={languageValue}
           onValueChange={(value) =>
@@ -94,7 +94,7 @@ export function AuthPreferencesBar() {
         >
           <SelectTrigger
             aria-label={languageLabel}
-            className="h-8 max-w-[12rem] border-transparent bg-transparent px-2 !text-callout text-label-primary shadow-none hover:bg-muted/60"
+            className="h-8 min-w-0 max-w-[10rem] shrink border-transparent bg-transparent px-2 !text-callout text-label-primary shadow-none hover:bg-muted/60"
             size="sm"
           >
             <SelectValue>
@@ -114,7 +114,7 @@ export function AuthPreferencesBar() {
             ))}
           </SelectContent>
         </Select>
-        <span className="h-4 w-px bg-border" aria-hidden="true" />
+        <span className="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
         <Select
           value={themePreference}
           onValueChange={(value) => {
@@ -123,7 +123,7 @@ export function AuthPreferencesBar() {
         >
           <SelectTrigger
             aria-label={themeLabel}
-            className="h-8 max-w-[11rem] border-transparent bg-transparent px-2 !text-callout text-label-primary shadow-none hover:bg-muted/60"
+            className="h-8 min-w-0 max-w-[10rem] shrink border-transparent bg-transparent px-2 !text-callout text-label-primary shadow-none hover:bg-muted/60"
             size="sm"
           >
             <SelectValue>
@@ -143,6 +143,9 @@ export function AuthPreferencesBar() {
             ))}
           </SelectContent>
         </Select>
+        {props.trailing ? (
+          <span className="inline-flex shrink-0 items-center gap-x-2">{props.trailing}</span>
+        ) : null}
       </div>
     </div>
   );

@@ -137,7 +137,7 @@ class AppFactory:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
         self.app = FastAPI(
-            debug=self.settings.debug,
+            debug=False,
             title=self.settings.application.app_name,
             version=self.settings.application.app_version,
             description=self.settings.application.app_description,

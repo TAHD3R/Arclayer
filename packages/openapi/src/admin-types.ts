@@ -136,9 +136,10 @@ export type LoginEmailCodeRequestOut = Generated.LoginEmailCodeRequestOut & {
   expires_in?: number;
   retry_after?: number;
 };
-export type RegisterPayload = Omit<Generated.RegisterRequest, "displayName"> & {
+export type RegisterPayload = Omit<Generated.RegisterRequest, "displayName" | "username"> & {
   displayName?: string;
   display_name?: string;
+  username?: string;
 };
 export type TwoFactorChallengeMeta = {
   twoFactorToken: string;

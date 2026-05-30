@@ -6,8 +6,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RegisterPane } from "@/pages/login/components/register-pane";
 
-const usernameCheckMock = vi.fn();
-
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   getRouteApi: () => ({ useSearch: () => ({}) }),
@@ -26,10 +24,6 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
   }) => <div data-testid="oauth-section">{dividerLabelKey}</div>,
 }));
 
-vi.mock("@/api/auth", () => ({
-  usernameCheck: (...args: unknown[]) => usernameCheckMock(...args),
-}));
-
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
@@ -39,8 +33,6 @@ vi.mock("react-i18next", () => ({
 
 describe("RegisterPane oauth section", () => {
   beforeEach(() => {
-    usernameCheckMock.mockReset();
-    usernameCheckMock.mockResolvedValue({ available: true });
     vi.useRealTimers();
   });
 
@@ -101,47 +93,7 @@ describe("RegisterPane oauth section", () => {
     expect(screen.queryByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
     expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toHaveValue("founder@example.com");
     expect(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
-    expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("founder");
-  });
-
-  it("prefills account name from a legal email local part", async () => {
-    const user = userEvent.setup();
-
-    renderPane();
-
-    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "Philip.Cole@example.com");
-
-    await waitFor(() =>
-      expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("philip-cole"),
-    );
-    expect(screen.queryByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
-  });
-
-  it("leaves account name empty when the email local part cannot become a legal default", async () => {
-    const user = userEvent.setup();
-
-    renderPane();
-
-    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "a@a.com");
-
-    expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("");
-  });
-
-  it("does not overwrite a manually edited account name when the email changes", async () => {
-    const user = userEvent.setup();
-
-    renderPane();
-
-    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "founder@example.com");
-    await waitFor(() =>
-      expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("founder"),
-    );
-    await user.clear(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"));
-    await user.type(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"), "manual-name");
-    await user.clear(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"));
-    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "other@example.com");
-
-    expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("manual-name");
+    expect(screen.queryByLabelText("auth:FIELD_USERNAME_LABEL")).not.toBeInTheDocument();
   });
 
   it("shows existing-email recovery inside the email field content", async () => {
@@ -172,22 +124,6 @@ describe("RegisterPane oauth section", () => {
     ).toBeTruthy();
   });
 
-  it("shows username availability feedback and blocks submit when the name is unavailable", async () => {
-    usernameCheckMock.mockResolvedValue({ available: false });
-    const user = userEvent.setup();
-
-    renderPane({
-      registerSeed: { email: "founder@example.com", step: "details" },
-    });
-
-    await user.clear(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"));
-    await user.type(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"), "taken-name");
-    await waitFor(() =>
-      expect(screen.getByText("auth:USERNAME_AVAILABILITY_UNAVAILABLE")).toBeInTheDocument(),
-    );
-    expect(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" })).toBeDisabled();
-  });
-
   it("submits valid registration values after checking that the email is new", async () => {
     const user = userEvent.setup();
     const onEmailSubmit = vi.fn(async () => false);
@@ -204,7 +140,6 @@ describe("RegisterPane oauth section", () => {
       expect(onSubmit).toHaveBeenCalledWith({
         email: "founder@example.com",
         password: "ValidPass1",
-        username: "founder",
       });
     });
   });

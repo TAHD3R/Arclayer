@@ -1,78 +1,82 @@
-import { ArrowLeft } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import {
+  BriefcaseBusiness,
+  CircleHelp,
+  Code2,
+  FileText,
+  Megaphone,
+  Rocket,
+  type LucideIcon,
+} from "lucide-react";
 
-import { Button } from "@arclayer/ui/button";
+import { cn } from "@arclayer/lib/utils";
 
 type QuestionnaireOption = {
   value: string;
   label: string;
 };
 
+const TEAM_TYPE_ICONS: Record<string, LucideIcon> = {
+  agency: BriefcaseBusiness,
+  content: FileText,
+  developer: Code2,
+  founder: Rocket,
+  marketing: Megaphone,
+  other: CircleHelp,
+};
+
 export function WorkspaceCustomizationStep(props: {
-  substep: 0 | 1 | 2;
-  selectedTeamType: string | null;
-  selectedGoal: string | null;
-  selectedHeardAboutUs: string | null;
-  teamTypeOptions: QuestionnaireOption[];
-  goalOptions: QuestionnaireOption[];
-  heardAboutUsOptions: QuestionnaireOption[];
-  onTeamTypeChange: (value: string) => void;
-  onGoalChange: (value: string) => void;
-  onHeardAboutUsChange: (value: string) => void;
-  onBackToPreviousQuestion: () => void;
+  selected: string | null;
+  options: QuestionnaireOption[];
+  variant: "teamType" | "heardAboutUs";
+  onChange: (value: string) => void;
 }) {
-  const { t } = useTranslation("onboarding");
-  const options =
-    props.substep === 0
-      ? props.teamTypeOptions
-      : props.substep === 1
-        ? props.goalOptions
-        : props.heardAboutUsOptions;
-  const selected =
-    props.substep === 0
-      ? props.selectedTeamType
-      : props.substep === 1
-        ? props.selectedGoal
-        : props.selectedHeardAboutUs;
-  const onSelect =
-    props.substep === 0
-      ? props.onTeamTypeChange
-      : props.substep === 1
-        ? props.onGoalChange
-        : props.onHeardAboutUsChange;
-  const question =
-    props.substep === 0
-      ? t("WELCOME_CUSTOMIZE_TEAM_TYPE_QUESTION")
-      : props.substep === 1
-        ? t("WELCOME_CUSTOMIZE_GOAL_QUESTION")
-        : t("WELCOME_CUSTOMIZE_HEARD_ABOUT_US_QUESTION");
-  const progress =
-    props.substep === 0
-      ? t("WELCOME_CUSTOMIZE_PROGRESS_1")
-      : props.substep === 1
-        ? t("WELCOME_CUSTOMIZE_PROGRESS_2")
-        : t("WELCOME_CUSTOMIZE_PROGRESS_3");
+  const isTeamType = props.variant === "teamType";
 
   return (
     <div className="flex flex-col gap-4 py-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="text-title3 text-label-primary">{question}</div>
-          <div className="mt-1 text-footnote text-label-secondary">{progress}</div>
-        </div>
-        {props.substep > 0 ? (
-          <Button variant="ghost" className="gap-2" onClick={props.onBackToPreviousQuestion}>
-            <ArrowLeft className="size-4" />
-            {props.substep === 1
-              ? t("WELCOME_CUSTOMIZE_BACK_TO_TEAM_TYPE")
-              : t("WELCOME_CUSTOMIZE_BACK_TO_GOAL")}
-          </Button>
-        ) : null}
-      </div>
+      <div
+        data-testid="workspace-customization-options"
+        className={cn(
+          "grid gap-2.5 sm:grid-cols-2",
+          isTeamType ? "lg:grid-cols-3" : "lg:grid-cols-4",
+        )}
+      >
+        {props.options.map((option) => {
+          const active = props.selected === option.value;
+          const Icon = TEAM_TYPE_ICONS[option.value] ?? CircleHelp;
+          if (isTeamType) {
+            return (
+              <button
+                key={option.value}
+                type="button"
+                data-testid={`team-type-option-${option.value}`}
+                className={cn(
+                  "flex min-h-32 flex-col justify-between rounded-lg border bg-card p-4 text-left",
+                  "transition-colors duration-200 hover:border-border/80 hover:bg-accent/50",
+                  active
+                    ? "border-primary bg-primary-highlighted"
+                    : "border-border text-label-primary",
+                )}
+                onClick={() => props.onChange(option.value)}
+              >
+                <span
+                  data-testid={`team-type-option-${option.value}-icon`}
+                  className={cn(
+                    "inline-flex size-10 items-center justify-center rounded-lg border",
+                    active
+                      ? "border-primary/30 bg-background/70 text-primary"
+                      : "border-border bg-muted/50 text-label-secondary",
+                  )}
+                >
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <span className="pt-4 text-callout font-semibold text-label-primary">
+                  {option.label}
+                </span>
+              </button>
+            );
+          }
 
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        {options.map((option) => {
-          const active = selected === option.value;
           return (
             <button
               key={option.value}
@@ -82,7 +86,7 @@ export function WorkspaceCustomizationStep(props: {
                   ? "min-h-14 rounded-lg border border-primary bg-primary-highlighted px-4 py-2.5 text-left text-callout font-semibold text-label-primary"
                   : "min-h-14 rounded-lg border border-border px-4 py-2.5 text-left text-callout font-semibold text-label-primary transition-colors hover:bg-muted"
               }
-              onClick={() => onSelect(option.value)}
+              onClick={() => props.onChange(option.value)}
             >
               {option.label}
             </button>

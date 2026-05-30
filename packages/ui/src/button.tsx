@@ -7,6 +7,7 @@ import type { HTMLMotionProps } from "motion/react";
 import { Button as ButtonPrimitive } from "./button-primitive";
 import { buttonVariants } from "./button-variants";
 import { Spinner } from "./spinner";
+import { cn } from "@arclayer/lib/utils";
 
 const DEFAULT_TAP_SCALE = 0.98;
 
@@ -35,7 +36,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   },
   ref,
 ) {
-  const content = loading ? <Spinner className="size-4" /> : children;
+  const content = loading ? (
+    <>
+      <span className="invisible inline-flex items-center gap-2">{children}</span>
+      <Spinner className="absolute top-1/2 left-1/2 size-4 -translate-x-1/2 -translate-y-1/2" />
+    </>
+  ) : (
+    children
+  );
 
   if (asChild) {
     return (
@@ -61,7 +69,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={buttonVariants({ variant, size, className })}
+      className={buttonVariants({ variant, size, className: cn(loading && "relative", className) })}
       tapScale={loading ? 1 : tapScale}
       disabled={disabled || loading}
       aria-busy={loading || undefined}

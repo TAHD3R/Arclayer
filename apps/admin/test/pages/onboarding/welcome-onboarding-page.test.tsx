@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +9,7 @@ const {
   navigateMock,
   searchState,
   listMyWorkspacesMock,
+  createWorkspaceMock,
   createMyOnboardingWorkspaceMock,
   getWorkspaceDetailMock,
   patchWorkspaceDetailMock,
@@ -24,8 +25,12 @@ const {
   preferenceState,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
-  searchState: { dryRun: "1" as "1" | undefined },
+  searchState: {
+    dryRun: "1" as "1" | undefined,
+    mode: undefined as "create-workspace" | undefined,
+  },
   listMyWorkspacesMock: vi.fn(),
+  createWorkspaceMock: vi.fn(),
   createMyOnboardingWorkspaceMock: vi.fn(),
   getWorkspaceDetailMock: vi.fn(),
   patchWorkspaceDetailMock: vi.fn(),
@@ -40,11 +45,15 @@ const {
   workspaceState: {
     setCurrentWorkspaceId: vi.fn(),
     setCurrentProjectId: vi.fn(),
+    setCurrentContext: vi.fn(),
   },
   preferenceState: {
     reduceMotion: true,
     locale: "en-US",
+    localePreference: null,
     localePreferenceMode: "workspace",
+    themeMode: "light",
+    themePreference: "light",
     timeZonePreference: "UTC",
     setLocale: vi.fn(),
     setBrowserLocale: vi.fn(),
@@ -68,6 +77,10 @@ vi.mock("@/api/workspaces", () => ({
   getWorkspaceDetail: (...args: unknown[]) => getWorkspaceDetailMock(...args),
   patchWorkspaceDetail: (...args: unknown[]) => patchWorkspaceDetailMock(...args),
   patchWorkspaceRolePolicy: (...args: unknown[]) => patchWorkspaceRolePolicyMock(...args),
+}));
+
+vi.mock("@/api/workspace-management", () => ({
+  createWorkspace: (...args: unknown[]) => createWorkspaceMock(...args),
 }));
 
 vi.mock("@/api/rbac", () => ({
@@ -119,17 +132,15 @@ vi.mock("@/stores/use-preference-store", () => ({
     selector(preferenceState),
 }));
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => {
-      const normalized = key.includes(":") ? key.split(":")[1] : key;
-      return (
-        {
-          WELCOME_FOOTER_COPYRIGHT: "Copyright © 2026 Arclayer. All rights reserved.",
-          WELCOME_PRIVACY_POLICY: "Privacy Policy",
-          WELCOME_TERMS_OF_SERVICE: "Terms of Service",
+const translate = (key: string) => {
+  const normalized = key.includes(":") ? key.split(":")[1] : key;
+  return (
+    {
           WELCOME_SIGN_OUT: "Sign Out",
-          WELCOME_IMAGE_ALT: "Arclayer onboarding preview",
+          ACCOUNT_LANGUAGE_SYSTEM_DEFAULT: "System default",
+          ACCOUNT_THEME_SYSTEM: "System",
+          ACCOUNT_THEME_LIGHT: "Light",
+          ACCOUNT_THEME_DARK: "Dark",
           WELCOME_STEP_PROFILE_TITLE: "Let's get to know you!",
           WELCOME_STEP_WORKSPACE_TITLE: "Create your workspace",
           WELCOME_STEP_TEAM_TITLE: "Collaborate with your team",
@@ -141,6 +152,7 @@ vi.mock("react-i18next", () => ({
           WELCOME_PROFILE_DISPLAY_NAME_PLACEHOLDER: "Your name",
           WELCOME_PROFILE_DISPLAY_NAME_REQUIRED: "Enter a display name.",
           WELCOME_PROFILE_DISPLAY_NAME_INVALID: "Invalid display name",
+          WELCOME_PROFILE_IDENTITY_TITLE: "Profile identity",
           WELCOME_PROFILE_SAVED: "Profile saved.",
           WELCOME_PROFILE_JOB_ROLE_TITLE: "Job role (optional)",
           WELCOME_PROFILE_JOB_ROLE_PLACEHOLDER: "Select your role",
@@ -169,6 +181,7 @@ vi.mock("react-i18next", () => ({
           WELCOME_WORKSPACE_NAME_PLACEHOLDER: "Acme Content",
           WELCOME_WORKSPACE_DESCRIPTION_LABEL: "Workspace description",
           WELCOME_WORKSPACE_DESCRIPTION_PLACEHOLDER: "Description",
+          WELCOME_WORKSPACE_IDENTITY_TITLE: "Workspace identity",
           WELCOME_WORKSPACE_DEFAULT_ROLE_LABEL: "Default member role",
           WELCOME_WORKSPACE_SAVED: "Workspace created.",
           WELCOME_WORKSPACE_LANGUAGE_LABEL: "Workspace language",
@@ -185,13 +198,12 @@ vi.mock("react-i18next", () => ({
           WELCOME_INVITE_VALIDATION_ERROR: "Check the invite rows before continuing.",
           WELCOME_INVITE_SAVED: "Team invites saved.",
           WELCOME_CUSTOMIZE_TEAM_TYPE_QUESTION: "What best describes your team?",
-          WELCOME_CUSTOMIZE_GOAL_QUESTION: "What do you want to set up first?",
           WELCOME_CUSTOMIZE_HEARD_ABOUT_US_QUESTION: "How did you hear about us?",
           WELCOME_CUSTOMIZE_PROGRESS_1: "Question 1 of 3",
+          WELCOME_CUSTOMIZE_PROGRESS_1_OF_2: "Question 1 of 2",
           WELCOME_CUSTOMIZE_PROGRESS_2: "Question 2 of 3",
+          WELCOME_CUSTOMIZE_PROGRESS_2_OF_2: "Question 2 of 2",
           WELCOME_CUSTOMIZE_PROGRESS_3: "Question 3 of 3",
-          WELCOME_CUSTOMIZE_BACK_TO_TEAM_TYPE: "Back to question 1",
-          WELCOME_CUSTOMIZE_BACK_TO_GOAL: "Back to question 2",
           WELCOME_CUSTOMIZE_SKIP: "Skip for now",
           WELCOME_CUSTOMIZE_TEAM_TYPE_CONTENT: "Content team",
           WELCOME_CUSTOMIZE_TEAM_TYPE_MARKETING: "Marketing team",
@@ -199,12 +211,6 @@ vi.mock("react-i18next", () => ({
           WELCOME_CUSTOMIZE_TEAM_TYPE_DEVELOPER: "Developer team",
           WELCOME_CUSTOMIZE_TEAM_TYPE_FOUNDER: "Founder / operator",
           WELCOME_CUSTOMIZE_TEAM_TYPE_OTHER: "Other",
-          WELCOME_CUSTOMIZE_GOAL_CONTENT: "Manage structured content",
-          WELCOME_CUSTOMIZE_GOAL_WEBSITES: "Build and launch websites",
-          WELCOME_CUSTOMIZE_GOAL_ASSETS: "Centralize assets",
-          WELCOME_CUSTOMIZE_GOAL_LOCALIZATION: "Localize content",
-          WELCOME_CUSTOMIZE_GOAL_AUTOMATION: "Automate publishing",
-          WELCOME_CUSTOMIZE_GOAL_EVALUATE: "Evaluate Arclayer",
           WELCOME_CUSTOMIZE_HEARD_SEARCH: "Search engine",
           WELCOME_CUSTOMIZE_HEARD_SOCIAL: "Social media",
           WELCOME_CUSTOMIZE_HEARD_REFERRAL: "Friend or colleague",
@@ -226,13 +232,18 @@ vi.mock("react-i18next", () => ({
           ME_PROFILE_AVATAR_CHANGE: "Change avatar",
           ME_PROFILE_AVATAR_REMOVE: "Remove avatar",
           ACCOUNT_SETTINGS_LANGUAGE_LABEL: "Language",
+          ACCOUNT_SETTINGS_THEME_LABEL: "Theme",
           ME_PREF_LANGUAGE_DESC: "Choose the interface language.",
           ME_PREF_TIMEZONE_TITLE: "Time zone",
           ME_PREF_TIMEZONE_DESC: "Choose the time zone.",
-        }[normalized] ?? normalized
-      );
-    },
-    i18n: { resolvedLanguage: "en-US", language: "en-US" },
+    }[normalized] ?? normalized
+  );
+};
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: translate,
+    i18n: { resolvedLanguage: "en-US", language: "en-US", t: translate },
   }),
 }));
 
@@ -253,8 +264,10 @@ function renderPage() {
 
 beforeEach(() => {
   searchState.dryRun = "1";
+  searchState.mode = undefined;
   navigateMock.mockReset();
   listMyWorkspacesMock.mockReset();
+  createWorkspaceMock.mockReset();
   createMyOnboardingWorkspaceMock.mockReset();
   getWorkspaceDetailMock.mockReset();
   patchWorkspaceDetailMock.mockReset();
@@ -268,6 +281,7 @@ beforeEach(() => {
   patchCoreSettingsMock.mockReset();
   workspaceState.setCurrentWorkspaceId.mockReset();
   workspaceState.setCurrentProjectId.mockReset();
+  workspaceState.setCurrentContext.mockReset();
   preferenceState.setLocale.mockReset();
   preferenceState.setBrowserLocale.mockReset();
   preferenceState.setTimeZonePreference.mockReset();
@@ -279,37 +293,113 @@ describe("WelcomeOnboardingPage", () => {
     const user = userEvent.setup();
 
     expect(screen.getByText("Let's get to know you!")).toBeInTheDocument();
-    expect(screen.getByText("Copyright © 2026 Arclayer. All rights reserved.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Copyright © 2026 Arclayer. All rights reserved."),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Privacy Policy")).not.toBeInTheDocument();
+    expect(screen.queryByText("Terms of Service")).not.toBeInTheDocument();
+    expect(screen.getByTestId("auth-preferences-bar")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Language" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Theme" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Arclayer" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("auth-scene-header-after-logo")).toContainElement(
+      screen.getByTestId("onboarding-progress-step-1"),
+    );
+    expect(screen.getByTestId("auth-scene-content").firstElementChild).toHaveClass("max-w-xl");
+    expect(screen.getByTestId("auth-scene-content").firstElementChild).not.toHaveClass(
+      "max-w-120",
+    );
+    expect(screen.getByTestId("onboarding-step-copy")).toHaveClass("text-center");
+    expect(screen.getByText("Profile identity")).toBeInTheDocument();
     expect(screen.getByText("Job role (optional)")).toBeInTheDocument();
     expect(screen.getByText("Company size (optional)")).toBeInTheDocument();
     expect(screen.getByText("Subscribe to product update emails")).toBeInTheDocument();
+    expect(screen.getByTestId("product-updates-title")).toHaveClass(
+      "text-headline",
+      "text-label-primary",
+    );
+    expect(screen.getByTestId("product-updates-field").firstElementChild).toBe(
+      screen.getByRole("checkbox", { name: "Subscribe to product update emails" }),
+    );
     expect(
-      screen.getByRole("switch", { name: "Subscribe to product update emails" }),
-    ).toBeChecked();
+      screen.getByRole("checkbox", { name: "Subscribe to product update emails" }),
+    ).not.toBeChecked();
     expect(screen.queryByText("Language")).not.toBeInTheDocument();
     expect(screen.queryByText("Time zone")).not.toBeInTheDocument();
+    expect(screen.getByTestId("onboarding-actions")).toHaveClass("justify-start");
+    expect(screen.getByRole("button", { name: "Continue" })).not.toHaveClass("w-full");
+    expect(screen.getByTestId("onboarding-progress-step-1")).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+    expect(screen.getByTestId("onboarding-progress-step-1")).toHaveClass("h-2", "w-8");
+    expect(screen.getByTestId("onboarding-progress-step-1")).toHaveClass("bg-secondary");
+    expect(screen.getByTestId("onboarding-progress-step-1")).not.toHaveClass("bg-primary");
+    expect(screen.getByTestId("onboarding-progress-step-2")).toHaveAttribute(
+      "data-state",
+      "inactive",
+    );
+    expect(screen.getByTestId("onboarding-progress-step-2")).toHaveClass("size-2");
+    expect(screen.getByTestId("onboarding-progress-step-2")).toHaveClass(
+      "bg-muted-foreground/30",
+    );
+    expect(screen.getByTestId("onboarding-progress-step-5")).toHaveAttribute(
+      "data-step-id",
+      "heardAboutUs",
+    );
+    expect(screen.getByTestId("onboarding-step-transition")).toBeInTheDocument();
 
     await user.type(await screen.findByLabelText("Display name"), "Philip Cole");
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("Create your workspace");
-    await user.clear(await screen.findByLabelText("Workspace name"));
-    await user.type(await screen.findByLabelText("Workspace name"), "Studio Team");
+    expect(screen.getByText("Workspace identity")).toBeInTheDocument();
+    expect(within(screen.getByTestId("onboarding-actions")).getByRole("button", { name: "Back" })).toBeInTheDocument();
+    const workspaceNameInput = await screen.findByLabelText("Workspace name");
+    expect(workspaceNameInput).toHaveClass("w-full");
+    expect(workspaceNameInput).not.toHaveClass("max-w-sm");
+    await user.clear(workspaceNameInput);
+    await user.type(workspaceNameInput, "Studio Team");
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
     await screen.findByText("Collaborate with your team");
+    expect(screen.getByRole("button", { name: "Invite members" })).not.toHaveClass("w-full");
     await user.type(
       (await screen.findAllByPlaceholderText("example@email.com"))[0],
       "editor@example.com",
     );
     await user.click(screen.getByRole("button", { name: "Invite members" }));
 
-    await screen.findByText("Help us customize your workspace");
+    await screen.findByText("What best describes your team?");
+    expect(screen.getByTestId("auth-scene-content").firstElementChild).toHaveClass("max-w-4xl");
+    expect(screen.getByTestId("workspace-customization-options")).toHaveClass(
+      "sm:grid-cols-2",
+      "lg:grid-cols-3",
+    );
+    expect(screen.getByTestId("team-type-option-content-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("team-type-option-marketing-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("team-type-option-agency-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("team-type-option-developer-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("team-type-option-founder-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("team-type-option-other-icon")).toBeInTheDocument();
+    expect(screen.getByText("Question 1 of 2")).toBeInTheDocument();
+    expect(screen.queryByText("Help us customize your workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("What do you want to set up first?")).not.toBeInTheDocument();
+    expect(screen.queryByText("Back to question 1")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Skip for now" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Skip for now" })).not.toHaveClass("w-full");
     await user.click(await screen.findByRole("button", { name: "Content team" }));
-    expect(screen.getByRole("button", { name: "Skip for now" })).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Manage structured content" }));
+    expect(screen.getByText("What best describes your team?")).toBeInTheDocument();
+    expect(screen.queryByText("Manage structured content")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toHaveClass("hover:bg-accent");
     await user.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByRole("button", { name: "Skip for now" })).toBeInTheDocument();
     await screen.findByText("How did you hear about us?");
+    expect(screen.getByTestId("workspace-customization-options")).toHaveClass(
+      "sm:grid-cols-2",
+      "lg:grid-cols-4",
+    );
+    expect(screen.getByText("Question 2 of 2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Skip for now" })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Friend or colleague" }));
     await user.click(screen.getByRole("button", { name: "Start building" }));
@@ -324,6 +414,75 @@ describe("WelcomeOnboardingPage", () => {
   }, 10000);
 
   it("saves onboarding profile signals on the first real step", async () => {
+    searchState.dryRun = undefined;
+    listMyWorkspacesMock.mockResolvedValue({
+      items: [],
+      onboarding: { status: "pending_workspace", workspaceId: null },
+    });
+    meMock.mockResolvedValue({
+      id: "user-1",
+      username: "philip",
+      email: "philip@example.com",
+      displayName: "Philip Cole",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    getMyOnboardingProfileMock.mockResolvedValue({
+      jobRole: "content_manager",
+      companySize: "11_50",
+      subscribedProductUpdates: false,
+      heardAboutUs: null,
+    });
+    updateMyProfileMock.mockResolvedValue({
+      id: "user-1",
+      username: "philip",
+      email: "philip@example.com",
+      displayName: "Philip Cole",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    const patchDeferred: { resolve?: (value: unknown) => void } = {};
+    patchMyOnboardingProfileMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          patchDeferred.resolve = resolve;
+        }),
+    );
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByDisplayValue("Philip Cole");
+    const continueButton = screen.getByRole("button", { name: "Continue" });
+    await user.click(continueButton);
+
+    await waitFor(() => {
+      expect(continueButton).toHaveAttribute("aria-busy", "true");
+    });
+    expect(continueButton).toHaveClass("relative");
+    expect(continueButton.querySelector(".invisible")).toHaveTextContent("Continue");
+    expect(continueButton.querySelector('[role="status"]')).toBeInTheDocument();
+    patchDeferred.resolve?.({
+      jobRole: "content_manager",
+      companySize: "11_50",
+      subscribedProductUpdates: false,
+      heardAboutUs: null,
+    });
+
+    await waitFor(() => {
+      expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({
+        job_role: "content_manager",
+        company_size: "11_50",
+        subscribed_product_updates: false,
+      });
+    });
+    expect(preferenceState.setLocale).not.toHaveBeenCalled();
+    expect(preferenceState.setTimeZonePreference).not.toHaveBeenCalled();
+  });
+
+  it("preserves an existing product update subscription from the backend", async () => {
     searchState.dryRun = undefined;
     listMyWorkspacesMock.mockResolvedValue({
       items: [],
@@ -363,7 +522,9 @@ describe("WelcomeOnboardingPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await screen.findByDisplayValue("Philip Cole");
+    expect(
+      await screen.findByRole("checkbox", { name: "Subscribe to product update emails" }),
+    ).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
     await waitFor(() => {
@@ -373,8 +534,6 @@ describe("WelcomeOnboardingPage", () => {
         subscribed_product_updates: true,
       });
     });
-    expect(preferenceState.setLocale).not.toHaveBeenCalled();
-    expect(preferenceState.setTimeZonePreference).not.toHaveBeenCalled();
   });
 
   it("blocks invalid invite email before advancing", async () => {
@@ -393,5 +552,110 @@ describe("WelcomeOnboardingPage", () => {
 
     expect(await screen.findByText("Enter a valid email address.")).toBeInTheDocument();
     expect(screen.getByText("Collaborate with your team")).toBeInTheDocument();
+  });
+
+  it("runs the create-workspace flow without the profile step and switches context on completion", async () => {
+    searchState.dryRun = undefined;
+    searchState.mode = "create-workspace";
+    meMock.mockResolvedValue({
+      id: "user-1",
+      username: "philip",
+      email: "philip@example.com",
+      displayName: "Philip Cole",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    createWorkspaceMock.mockResolvedValue({
+      workspaceId: "ws-created",
+      name: "Studio Team",
+    });
+    patchWorkspaceDetailMock.mockResolvedValue({ id: "ws-created", name: "Studio Team" });
+    patchWorkspaceRolePolicyMock.mockResolvedValue({ defaultRoleCode: "editor" });
+    patchCoreSettingsMock.mockResolvedValue({});
+    listWorkspaceRolesMock.mockResolvedValue({
+      items: [
+        { code: "admin", name: "Admin" },
+        { code: "editor", name: "Editor" },
+      ],
+    });
+    patchMyOnboardingProfileMock.mockResolvedValue({
+      heardAboutUs: "referral",
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    expect(await screen.findByText("Create your workspace")).toBeInTheDocument();
+    expect(screen.queryByText("Let's get to know you!")).not.toBeInTheDocument();
+    expect(screen.getByTestId("auth-scene-header-leading")).toContainElement(
+      screen.getByRole("button", { name: "Back" }),
+    );
+    expect(screen.getByTestId("onboarding-progress-step-1")).toHaveAttribute(
+      "data-step-id",
+      "workspace",
+    );
+    expect(screen.getByTestId("onboarding-progress-step-4")).toHaveAttribute(
+      "data-step-id",
+      "heardAboutUs",
+    );
+    expect(await screen.findByLabelText("Workspace name")).toHaveValue("");
+
+    await user.type(await screen.findByLabelText("Workspace name"), "Studio Team");
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => {
+      expect(createWorkspaceMock).toHaveBeenCalledTimes(1);
+    });
+    expect(createMyOnboardingWorkspaceMock).not.toHaveBeenCalled();
+
+    await screen.findByText("Collaborate with your team");
+    await user.click(screen.getByRole("button", { name: "Skip for now" }));
+    await screen.findByText("What best describes your team?");
+    await user.click(screen.getByRole("button", { name: "Content team" }));
+    expect(screen.getByText("What best describes your team?")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("How did you hear about us?");
+    await user.click(screen.getByRole("button", { name: "Friend or colleague" }));
+    await user.click(screen.getByRole("button", { name: "Start building" }));
+
+    await waitFor(() => {
+      expect(workspaceState.setCurrentContext).toHaveBeenCalledWith({
+        workspaceId: "ws-created",
+        projectId: null,
+      });
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/projects", replace: true });
+    });
+    expect(createWorkspaceMock).toHaveBeenCalledTimes(1);
+    expect(patchMyOnboardingProfileMock).toHaveBeenCalledWith({ heard_about_us: "referral" });
+  });
+
+  it("goes back in browser history from the first create-workspace step", async () => {
+    searchState.dryRun = undefined;
+    searchState.mode = "create-workspace";
+    meMock.mockResolvedValue({
+      id: "user-1",
+      username: "philip",
+      email: "philip@example.com",
+      displayName: "Philip Cole",
+      avatarUrl: null,
+      avatarAssetId: null,
+      isSuperAdmin: false,
+    });
+    listWorkspaceRolesMock.mockResolvedValue({ items: [] });
+    const historyBackSpy = vi.spyOn(window.history, "back").mockImplementation(() => undefined);
+
+    renderPage();
+    const user = userEvent.setup();
+
+    expect(await screen.findByText("Create your workspace")).toBeInTheDocument();
+    const backButton = screen.getByRole("button", { name: "Back" });
+    expect(screen.getByTestId("auth-scene-header-leading")).toContainElement(backButton);
+    expect(backButton.parentElement).not.toHaveClass("-left-12");
+    await user.click(backButton);
+
+    expect(historyBackSpy).toHaveBeenCalledTimes(1);
+    expect(navigateMock).not.toHaveBeenCalled();
+    historyBackSpy.mockRestore();
   });
 });

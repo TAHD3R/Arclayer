@@ -224,7 +224,7 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.getByText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
     expect(screen.queryByText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
     expect(screen.getByText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("auth:FIELD_USERNAME_LABEL")).toBeInTheDocument();
+    expect(screen.queryByText("auth:FIELD_USERNAME_LABEL")).not.toBeInTheDocument();
 
     const oauthSection = screen.getByTestId("oauth-section");
     const submitButton = screen.getByRole("button", {
@@ -232,7 +232,6 @@ describe("LoginView auth pane hierarchy", () => {
     });
     const emailField = screen.getByLabelText("auth:FIELD_EMAIL_LABEL");
     const passwordField = screen.getByLabelText("auth:FIELD_PASSWORD_LABEL");
-    const usernameField = screen.getByLabelText("auth:FIELD_USERNAME_LABEL");
     const registerIntro = screen.getByText("auth:HAVE_ACCOUNT").closest("div");
     const signInAction = screen.getByText("auth:SIGN_IN");
     const legalCopy = screen.getByText("auth:LEGAL_REGISTER");
@@ -250,9 +249,6 @@ describe("LoginView auth pane hierarchy", () => {
     ).toBeTruthy();
     expect(
       emailField.compareDocumentPosition(passwordField) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      passwordField.compareDocumentPosition(usernameField) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       oauthSection.compareDocumentPosition(registerIntro!) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -273,7 +269,7 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.queryByLabelText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
     expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toHaveValue("founder@example.com");
     expect(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
-    expect(screen.getByLabelText("auth:FIELD_USERNAME_LABEL")).toHaveValue("founder");
+    expect(screen.queryByLabelText("auth:FIELD_USERNAME_LABEL")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "auth:AUTH_CHANGE_EMAIL" }),
     ).not.toBeInTheDocument();

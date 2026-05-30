@@ -21,6 +21,12 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     get_settings.cache_clear()
 
 
+def _configure_debug_logging_env(monkeypatch, log_dir: Path) -> None:
+    _configure_logging_env(monkeypatch, log_dir)
+    monkeypatch.setenv("APP_ENV", "development")
+    get_settings.cache_clear()
+
+
 async def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
     app = create_app()
@@ -102,4 +108,32 @@ async def test_unhandled_error_handler(monkeypatch, tmp_path: Path) -> None:
     assert payload["message"] == "Internal server error"
     assert payload["error"] == "INTERNAL_ERROR"
     # Never leak stack traces in API responses.
+    assert "Traceback" not in response.text
+
+
+async def test_debug_app_still_uses_sanitized_internal_error_envelope(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _configure_debug_logging_env(monkeypatch, tmp_path)
+    app = create_app()
+
+    @app.get("/debug-unhandled")
+    def debug_unhandled() -> None:
+        raise RuntimeError("debug boom")
+
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with app.router.lifespan_context(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/debug-unhandled", headers={"X-Locale": "en-US"})
+
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/json")
+    payload = response.json()
+    assert payload["message"] == "Internal server error"
+    assert payload["error"] == "INTERNAL_ERROR"
+    assert payload["meta"] is not None
+    assert payload["meta"]["path"] == "/debug-unhandled"
+    assert "details" not in payload["meta"]
+    assert "debug boom" not in response.text
     assert "Traceback" not in response.text

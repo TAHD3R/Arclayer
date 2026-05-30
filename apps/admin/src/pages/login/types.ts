@@ -39,7 +39,6 @@ export interface LoginEmailLookupResult {
 
 export interface RegisterFormValues {
   email: string;
-  username: string;
   password: string;
 }
 

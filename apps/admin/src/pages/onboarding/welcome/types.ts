@@ -1,6 +1,8 @@
 import type { AppLocale } from "@/lib/i18n";
 
-export type WelcomeOnboardingStep = 1 | 2 | 3 | 4;
+export type WelcomeOnboardingStepId = "profile" | "workspace" | "team" | "teamType" | "heardAboutUs";
+export type WelcomeOnboardingStep = WelcomeOnboardingStepId;
+export type OnboardingFlowMode = "first-run" | "create-workspace";
 export type WelcomeMode = "real" | "dry-run";
 
 export type RoleOption = {

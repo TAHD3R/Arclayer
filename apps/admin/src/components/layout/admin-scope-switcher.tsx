@@ -47,11 +47,6 @@ import {
   type UserCenterProjectListItem,
 } from "@/pages/usercenter/projects/project-list-items";
 import { useUserCenterProjectsMutations } from "@/pages/usercenter/projects/hooks/use-usercenter-projects-mutations";
-import {
-  WorkspaceCreateDialog,
-  type CreateWorkspaceFormValues,
-} from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
-import { useUserCenterWorkspacesMutations } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { MyWorkspace, Project } from "@arclayer/openapi/admin-types";
@@ -1070,11 +1065,6 @@ export function AdminScopeSwitcher({
   const setCurrentProjectId = useWorkspaceStore((state) => state.setCurrentProjectId);
   const setCurrentContext = useWorkspaceStore((state) => state.setCurrentContext);
 
-  const [workspaceCreateOpen, setWorkspaceCreateOpen] = useState(false);
-  const [workspaceCreateValues, setWorkspaceCreateValues] = useState<CreateWorkspaceFormValues>({
-    name: "",
-    description: "",
-  });
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
   const [projectCreateValues, setProjectCreateValues] = useState<CreateProjectFormValues>(() => {
     const seed = createNameSeedProjectSlugState("");
@@ -1087,12 +1077,6 @@ export function AdminScopeSwitcher({
     };
   });
 
-  const workspaceMutations = useUserCenterWorkspacesMutations({
-    t,
-    onCreateSuccess: () => undefined,
-    onArchiveSuccess: () => undefined,
-    onDeleteSuccess: () => undefined,
-  });
   const projectMutations = useUserCenterProjectsMutations({
     workspaceId: undefined,
     t,
@@ -1297,7 +1281,12 @@ export function AdminScopeSwitcher({
               }));
               setProjectCreateOpen(true);
             }}
-            onOpenWorkspaceCreateDialog={() => setWorkspaceCreateOpen(true)}
+            onOpenWorkspaceCreateDialog={() => {
+              void navigate({
+                to: "/welcome" as never,
+                search: { mode: "create-workspace" } as never,
+              });
+            }}
             onOpenProjectSettings={() => {
               if (!panelSelectedProject) return;
               void navigate({
@@ -1320,25 +1309,6 @@ export function AdminScopeSwitcher({
           />
         </FloatingPanelContent>
       </FloatingPanelRoot>
-
-      <WorkspaceCreateDialog
-        t={t}
-        createDialog={{
-          open: workspaceCreateOpen,
-          setOpen: setWorkspaceCreateOpen,
-          values: workspaceCreateValues,
-          setValues: setWorkspaceCreateValues,
-          pending: workspaceMutations.createMutation.isPending,
-          onSubmit: async (values) => {
-            const created = await workspaceMutations.createMutation.mutateAsync(values);
-            setWorkspaceCreateOpen(false);
-            setWorkspaceCreateValues({ name: "", description: "" });
-            setCurrentWorkspaceId(created.workspaceId);
-            setCurrentProjectId(null);
-            void navigate({ to: projectsHomePath() as never });
-          },
-        }}
-      />
 
       <ProjectCreateDialog
         t={t}

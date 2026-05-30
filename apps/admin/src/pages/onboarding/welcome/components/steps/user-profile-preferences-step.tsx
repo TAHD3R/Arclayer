@@ -2,9 +2,9 @@ import { useTranslation } from "react-i18next";
 
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { initialsFromName } from "@/lib/auth/user-profile";
+import { Checkbox } from "@arclayer/ui/checkbox";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import { Switch } from "@arclayer/ui/switch";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { WelcomeFieldError } from "../welcome-field-error";
 
@@ -34,29 +34,29 @@ export function UserProfilePreferencesStep(props: {
 
   return (
     <div className="flex flex-col gap-6 py-6">
-      <div className="flex items-start gap-5">
-        <AvatarUploadSlot
-          size={80}
-          shape="circle"
-          src={props.avatarUrl ?? undefined}
-          fallback={initialsFromName(props.displayName || "User")}
-          disabled={props.avatarBusy}
-          loading={props.avatarBusy}
-          uploadAriaLabel={t("account:ME_PROFILE_AVATAR_CHANGE")}
-          removeAriaLabel={t("account:ME_PROFILE_AVATAR_REMOVE")}
-          canRemove={Boolean(props.avatarUrl)}
-          onPick={props.onPickAvatar}
-          onRemove={props.onRemoveAvatar}
-        />
-        <div className="min-w-0 flex-1 space-y-2">
-          <SettingDialogField
-            title={t("account:ME_PROFILE_DISPLAY_NAME_TITLE")}
-            error={
-              props.displayNameError ? (
-                <WelcomeFieldError>{props.displayNameError}</WelcomeFieldError>
-              ) : undefined
-            }
-          >
+      <SettingDialogField
+        title={t("onboarding:WELCOME_PROFILE_IDENTITY_TITLE")}
+        error={
+          props.displayNameError ? (
+            <WelcomeFieldError>{props.displayNameError}</WelcomeFieldError>
+          ) : undefined
+        }
+      >
+        <div className="flex items-start gap-5">
+          <AvatarUploadSlot
+            size={80}
+            shape="circle"
+            src={props.avatarUrl ?? undefined}
+            fallback={initialsFromName(props.displayName || "User")}
+            disabled={props.avatarBusy}
+            loading={props.avatarBusy}
+            uploadAriaLabel={t("account:ME_PROFILE_AVATAR_CHANGE")}
+            removeAriaLabel={t("account:ME_PROFILE_AVATAR_REMOVE")}
+            canRemove={Boolean(props.avatarUrl)}
+            onPick={props.onPickAvatar}
+            onRemove={props.onRemoveAvatar}
+          />
+          <div className="min-w-0 flex-1 space-y-2">
             <Input
               id="welcome-display-name"
               aria-label={t("account:ME_PROFILE_DISPLAY_NAME_TITLE")}
@@ -69,9 +69,9 @@ export function UserProfilePreferencesStep(props: {
             <div className="text-footnote text-label-secondary">
               {`${props.displayName.length}/64`}
             </div>
-          </SettingDialogField>
+          </div>
         </div>
-      </div>
+      </SettingDialogField>
 
       <SettingDialogFields>
         <SettingDialogField title={t("onboarding:WELCOME_PROFILE_JOB_ROLE_TITLE")}>
@@ -104,20 +104,24 @@ export function UserProfilePreferencesStep(props: {
           </Select>
         </SettingDialogField>
 
-        <div className="flex min-w-0 items-center justify-between gap-4">
+        <div data-testid="product-updates-field" className="flex min-w-0 items-start gap-3">
+          <Checkbox
+            aria-label={t("onboarding:WELCOME_PROFILE_PRODUCT_UPDATES_TITLE")}
+            checked={props.subscribedProductUpdates}
+            className="mt-0.5"
+            onCheckedChange={props.onSubscribedProductUpdatesChange}
+          />
           <div className="grid min-w-0 gap-1">
-            <div className="text-headline text-label-primary">
+            <div
+              data-testid="product-updates-title"
+              className="text-headline text-label-primary"
+            >
               {t("onboarding:WELCOME_PROFILE_PRODUCT_UPDATES_TITLE")}
             </div>
             <div className="text-label-secondary">
               {t("onboarding:WELCOME_PROFILE_PRODUCT_UPDATES_DESC")}
             </div>
           </div>
-          <Switch
-            aria-label={t("onboarding:WELCOME_PROFILE_PRODUCT_UPDATES_TITLE")}
-            checked={props.subscribedProductUpdates}
-            onCheckedChange={props.onSubscribedProductUpdatesChange}
-          />
         </div>
       </SettingDialogFields>
     </div>

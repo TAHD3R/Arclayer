@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import * as authApi from "@/api/auth";
 import { listWorkspaceRoles } from "@/api/rbac";
 import { patchCoreSettings } from "@/api/settings";
 import { createTeamInvitation } from "@/api/team";
+import { createWorkspace } from "@/api/workspace-management";
 import {
   createMyOnboardingWorkspace,
   getWorkspaceDetail,
@@ -20,15 +21,12 @@ import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
 import { DEFAULT_LOCALE, detectBrowserLocale, normalizeLocale } from "@/lib/i18n";
 import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/lib/time/datetime-config";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { projectsHomePath } from "@/lib/routing/workspace-routing";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { uploadAvatarFile } from "@/pages/usercenter/profile/lib/avatar-upload";
 import { Button } from "@arclayer/ui/button";
-import {
-  getWelcomeStepDescriptionKey,
-  getWelcomeStepImage,
-  getWelcomeStepTitleKey,
-} from "./lib/onboarding-copy";
+import { getWelcomeStepDescriptionKey, getWelcomeStepTitleKey } from "./lib/onboarding-copy";
 import {
   isValidWelcomeDisplayName,
   isWorkspaceNameValid,
@@ -36,7 +34,10 @@ import {
   validateInviteRow,
 } from "./lib/onboarding-validation";
 import { OnboardingStepHeader } from "./components/onboarding-step-header";
-import { OnboardingStepTransition } from "./components/onboarding-step-transition";
+import {
+  OnboardingMotionItem,
+  OnboardingStepTransition,
+} from "./components/onboarding-step-transition";
 import { UserProfilePreferencesStep } from "./components/steps/user-profile-preferences-step";
 import { WorkspaceCreateStep } from "./components/steps/workspace-create-step";
 import { TeamCollaborationStep } from "./components/steps/team-collaboration-step";
@@ -44,12 +45,28 @@ import { WorkspaceCustomizationStep } from "./components/steps/workspace-customi
 import { WelcomeFieldError } from "./components/welcome-field-error";
 import type {
   InviteDraftRow,
+  OnboardingFlowMode,
   RoleOption,
   UserProfileDraft,
   WelcomeMode,
-  WelcomeOnboardingStep,
+  WelcomeOnboardingStepId,
   WorkspaceDraft,
 } from "./types";
+
+const CREATE_WORKSPACE_SESSION_KEY = "arclayer:onboarding:create-workspace:workspace-id";
+const FIRST_RUN_STEPS: readonly WelcomeOnboardingStepId[] = [
+  "profile",
+  "workspace",
+  "team",
+  "teamType",
+  "heardAboutUs",
+];
+const CREATE_WORKSPACE_STEPS: readonly WelcomeOnboardingStepId[] = [
+  "workspace",
+  "team",
+  "teamType",
+  "heardAboutUs",
+];
 
 function getBrowserTimeZone() {
   try {
@@ -97,14 +114,20 @@ function hasDryRunSearch(search: { dryRun?: unknown }): boolean {
 export function WelcomeOnboardingPage() {
   const { t } = useTranslation(["onboarding", "common", "assets"]);
   const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as { dryRun?: "1" };
+  const search = useSearch({ strict: false }) as { dryRun?: "1"; mode?: "create-workspace" };
+  const queryClient = useQueryClient();
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
-  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
+  const setCurrentContext = useWorkspaceStore((state) => state.setCurrentContext);
   const browserTimezone = useMemo(() => getBrowserTimeZone(), []);
   const mode: WelcomeMode = import.meta.env.DEV && hasDryRunSearch(search) ? "dry-run" : "real";
   const isDryRun = mode === "dry-run";
+  const flowMode: OnboardingFlowMode =
+    !isDryRun && search.mode === "create-workspace" ? "create-workspace" : "first-run";
+  const visibleSteps = flowMode === "create-workspace" ? CREATE_WORKSPACE_STEPS : FIRST_RUN_STEPS;
 
-  const [step, setStep] = useState<WelcomeOnboardingStep>(1);
+  const [step, setStep] = useState<WelcomeOnboardingStepId>(() =>
+    flowMode === "create-workspace" ? "workspace" : "profile",
+  );
   const [direction, setDirection] = useState<1 | -1>(1);
   const [createdWorkspaceId, setCreatedWorkspaceId] = useState<string | null>(
     isDryRun ? "dry-run-workspace" : null,
@@ -116,7 +139,7 @@ export function WelcomeOnboardingPage() {
     avatarAssetId: null,
     jobRole: null,
     companySize: null,
-    subscribedProductUpdates: true,
+    subscribedProductUpdates: false,
   }));
   const [workspaceDraft, setWorkspaceDraft] = useState<WorkspaceDraft>(() => {
     const locale = detectBrowserLocale();
@@ -133,9 +156,7 @@ export function WelcomeOnboardingPage() {
   });
   const [workspaceErrors, setWorkspaceErrors] = useState<Record<string, string | null>>({});
   const [inviteRows, setInviteRows] = useState<InviteDraftRow[]>(() => buildInviteRows("editor"));
-  const [questionnaireSubstep, setQuestionnaireSubstep] = useState<0 | 1 | 2>(0);
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null);
-  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [selectedHeardAboutUs, setSelectedHeardAboutUs] = useState<string | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [workspaceIconPreviewUrl, setWorkspaceIconPreviewUrl] = useState<string | null>(null);
@@ -148,7 +169,7 @@ export function WelcomeOnboardingPage() {
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", "welcome-onboarding"],
     queryFn: listMyWorkspaces,
-    enabled: !isDryRun,
+    enabled: !isDryRun && flowMode === "first-run",
     retry: false,
     meta: { silent: true },
   });
@@ -162,7 +183,7 @@ export function WelcomeOnboardingPage() {
   const onboardingProfileQuery = useQuery({
     queryKey: ["me", "onboarding-profile", "welcome-onboarding"],
     queryFn: authApi.getMyOnboardingProfile,
-    enabled: !isDryRun,
+    enabled: !isDryRun && flowMode === "first-run",
     retry: false,
     meta: { silent: true },
   });
@@ -241,17 +262,6 @@ export function WelcomeOnboardingPage() {
     ],
     [t],
   );
-  const goalOptions = useMemo(
-    () => [
-      { value: "content", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_CONTENT") },
-      { value: "websites", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_WEBSITES") },
-      { value: "assets", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_ASSETS") },
-      { value: "localization", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_LOCALIZATION") },
-      { value: "automation", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_AUTOMATION") },
-      { value: "evaluate", label: t("onboarding:WELCOME_CUSTOMIZE_GOAL_EVALUATE") },
-    ],
-    [t],
-  );
   const heardAboutUsOptions = useMemo(
     () => [
       { value: "search", label: t("onboarding:WELCOME_CUSTOMIZE_HEARD_SEARCH") },
@@ -276,7 +286,9 @@ export function WelcomeOnboardingPage() {
   );
 
   useEffect(() => {
-    if (isDryRun || !workspacesQuery.data || initializedRef.current) return;
+    if (isDryRun || flowMode !== "first-run" || !workspacesQuery.data || initializedRef.current) {
+      return;
+    }
     const onboarding = workspacesQuery.data.onboarding ?? {
       status: "completed" as const,
       workspaceId: null,
@@ -284,10 +296,23 @@ export function WelcomeOnboardingPage() {
     const onboardingWorkspaceId = getWorkspaceIdFromOnboarding(workspacesQuery.data);
     if (onboarding.status === "pending_workspace_defaults" && onboardingWorkspaceId) {
       setCreatedWorkspaceId(onboardingWorkspaceId);
-      setStep(2);
+      setStep("workspace");
     }
     initializedRef.current = true;
-  }, [isDryRun, workspacesQuery.data]);
+  }, [flowMode, isDryRun, workspacesQuery.data]);
+
+  useEffect(() => {
+    if (isDryRun || flowMode !== "create-workspace" || initializedRef.current) return;
+    try {
+      const workspaceId = window.sessionStorage.getItem(CREATE_WORKSPACE_SESSION_KEY);
+      if (workspaceId) {
+        setCreatedWorkspaceId(workspaceId);
+      }
+    } catch {
+      // sessionStorage is only a duplicate-creation guard; ignore unavailable storage.
+    }
+    initializedRef.current = true;
+  }, [flowMode, isDryRun]);
 
   useEffect(() => {
     if (isDryRun || !profileQuery.data) return;
@@ -344,6 +369,7 @@ export function WelcomeOnboardingPage() {
   }, [workspaceDetailQuery.data]);
 
   useEffect(() => {
+    if (flowMode !== "first-run") return;
     if (workspaceNameTouched) return;
     const displayName = normalizeWelcomeDisplayName(profileDraft.displayName);
     if (!displayName) return;
@@ -351,7 +377,7 @@ export function WelcomeOnboardingPage() {
     setWorkspaceDraft((current) =>
       current.name === defaultName ? current : { ...current, name: defaultName },
     );
-  }, [profileDraft.displayName, t, workspaceNameTouched]);
+  }, [flowMode, profileDraft.displayName, t, workspaceNameTouched]);
 
   useEffect(() => {
     setInviteRows((rows) =>
@@ -383,15 +409,15 @@ export function WelcomeOnboardingPage() {
 
   const submitStepMutation = useMutation({
     mutationFn: async () => {
-      if (step === 1) {
+      if (step === "profile") {
         await submitProfileStep();
         return;
       }
-      if (step === 2) {
+      if (step === "workspace") {
         await submitWorkspaceStep();
         return;
       }
-      if (step === 3) {
+      if (step === "team") {
         await submitInviteStep();
         return;
       }
@@ -448,10 +474,30 @@ export function WelcomeOnboardingPage() {
       return;
     }
 
-    const workspaceId =
-      createdWorkspaceId ??
-      (await createMyOnboardingWorkspace({ name: workspaceDraft.name.trim() })).workspaceId;
+    let workspaceId = createdWorkspaceId;
+    if (!workspaceId) {
+      workspaceId =
+        flowMode === "create-workspace"
+          ? (
+              await createWorkspace({
+                name: workspaceDraft.name.trim(),
+                description: workspaceDraft.description.trim() || undefined,
+                template: "blank",
+                locale: workspaceDraft.locale,
+                timezone: workspaceDraft.timezone,
+                dateFormat: workspaceDraft.dateFormat,
+              })
+            ).workspaceId
+          : (await createMyOnboardingWorkspace({ name: workspaceDraft.name.trim() })).workspaceId;
+    }
     setCreatedWorkspaceId(workspaceId);
+    if (flowMode === "create-workspace") {
+      try {
+        window.sessionStorage.setItem(CREATE_WORKSPACE_SESSION_KEY, workspaceId);
+      } catch {
+        // sessionStorage is only a duplicate-creation guard; ignore unavailable storage.
+      }
+    }
 
     let nextIconUrl = workspaceDraft.iconUrl;
     if (workspaceIconFile) {
@@ -486,7 +532,11 @@ export function WelcomeOnboardingPage() {
         use_relative_datetime: workspaceDraft.useRelativeDateTime,
       },
     });
-    await workspacesQuery.refetch();
+    if (flowMode === "first-run") {
+      await workspacesQuery.refetch();
+    } else {
+      await invalidateWorkspaceQueries();
+    }
     notifySuccessText(t("onboarding:WELCOME_WORKSPACE_SAVED"));
     goNextStep();
   }
@@ -555,18 +605,46 @@ export function WelcomeOnboardingPage() {
     goNextStep();
   }
 
+  async function invalidateWorkspaceQueries() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] }),
+      queryClient.invalidateQueries({ queryKey: ["workspace", "switcher"] }),
+      queryClient.invalidateQueries({ queryKey: ["global-nav", "workspaces"] }),
+      queryClient.invalidateQueries({ queryKey: ["scope-switcher", "projects"] }),
+    ]);
+  }
+
+  async function completeCreateWorkspaceFlow() {
+    if (!createdWorkspaceId) {
+      throw new Error(t("onboarding:WELCOME_WORKSPACE_REQUIRED_FOR_INVITES"));
+    }
+    await authApi.patchMyOnboardingProfile({
+      heard_about_us: selectedHeardAboutUs,
+    });
+    await invalidateWorkspaceQueries();
+    setCurrentContext({ workspaceId: createdWorkspaceId, projectId: null });
+    try {
+      window.sessionStorage.removeItem(CREATE_WORKSPACE_SESSION_KEY);
+    } catch {
+      // sessionStorage is only a duplicate-creation guard; ignore unavailable storage.
+    }
+    await navigate({ to: projectsHomePath() as never, replace: true });
+  }
+
   async function submitCustomizeStep() {
-    if (questionnaireSubstep === 0) {
-      setQuestionnaireSubstep(1);
+    if (step === "teamType") {
+      goNextStep();
       return;
     }
-    if (questionnaireSubstep === 1) {
-      setQuestionnaireSubstep(2);
-      return;
-    }
+    if (step !== "heardAboutUs") return;
 
     if (isDryRun) {
       await navigate({ to: "/", replace: true });
+      return;
+    }
+
+    if (flowMode === "create-workspace") {
+      await completeCreateWorkspaceFlow();
       return;
     }
 
@@ -581,25 +659,32 @@ export function WelcomeOnboardingPage() {
     if (!onboarding || onboarding.status !== "completed" || !workspaceId) {
       throw new Error(t("onboarding:WORKSPACE_DEFAULTS_STATE_ERROR"));
     }
-    setCurrentWorkspaceId(workspaceId);
-    useWorkspaceStore.getState().setCurrentProjectId(null);
+    setCurrentContext({ workspaceId, projectId: null });
     await navigate({ to: "/", replace: true });
   }
 
   function goNextStep() {
     setStepError(null);
     setDirection(1);
-    setStep((current) => Math.min(4, current + 1) as WelcomeOnboardingStep);
+    setStep((current) => {
+      const currentIndex = visibleSteps.indexOf(current);
+      const nextIndex = Math.min(visibleSteps.length - 1, Math.max(0, currentIndex) + 1);
+      return visibleSteps[nextIndex];
+    });
   }
 
   function goBack() {
     setStepError(null);
-    if (step === 4 && questionnaireSubstep > 0) {
-      setQuestionnaireSubstep((current) => (current === 2 ? 1 : 0));
+    setDirection(-1);
+    if (flowMode === "create-workspace" && step === visibleSteps[0]) {
+      window.history.back();
       return;
     }
-    setDirection(-1);
-    setStep((current) => Math.max(1, current - 1) as WelcomeOnboardingStep);
+    setStep((current) => {
+      const currentIndex = visibleSteps.indexOf(current);
+      const previousIndex = Math.max(0, Math.max(0, currentIndex) - 1);
+      return visibleSteps[previousIndex];
+    });
   }
 
   function updateInviteRow(id: string, patch: Partial<InviteDraftRow>) {
@@ -642,29 +727,29 @@ export function WelcomeOnboardingPage() {
 
   const isLoading =
     !isDryRun &&
-    (workspacesQuery.isLoading || profileQuery.isLoading || onboardingProfileQuery.isLoading);
+    (workspacesQuery.isLoading ||
+      profileQuery.isLoading ||
+      (flowMode === "first-run" && onboardingProfileQuery.isLoading));
   const isError =
     !isDryRun &&
-    (workspacesQuery.isError || profileQuery.isError || onboardingProfileQuery.isError);
+    (workspacesQuery.isError ||
+      profileQuery.isError ||
+      (flowMode === "first-run" && onboardingProfileQuery.isError));
   const isPending = submitStepMutation.isPending || avatarUploadMutation.isPending;
   const finalButtonLabel =
-    step === 3
+    step === "team"
       ? t("onboarding:WELCOME_INVITE_MEMBERS")
-      : step === 4 && questionnaireSubstep === 2
+      : step === "heardAboutUs"
         ? t("onboarding:WELCOME_FINAL_CTA")
         : t("onboarding:WELCOME_CONTINUE");
+  const isQuestionnaireStep = step === "teamType" || step === "heardAboutUs";
+  const contentMaxClassName = isQuestionnaireStep ? "max-w-4xl" : "max-w-xl";
+  const currentIndex = visibleSteps.indexOf(step);
+  const isCreateWorkspaceFirstStep = flowMode === "create-workspace" && currentIndex === 0;
 
   if (isLoading) {
     return (
-      <OnboardingLayout
-        aside={
-          <img
-            src="/onboarding/onboarding-01.jpg"
-            alt={t("onboarding:WELCOME_IMAGE_ALT")}
-            className="h-full w-full object-cover"
-          />
-        }
-      >
+      <OnboardingLayout>
         <div className="flex h-full min-h-0 items-center justify-center text-body text-label-secondary">
           <LoaderCircle className="mr-3 size-4 animate-spin" />
           {t("onboarding:WORKSPACE_FIRST_LOADING")}
@@ -675,15 +760,7 @@ export function WelcomeOnboardingPage() {
 
   if (isError) {
     return (
-      <OnboardingLayout
-        aside={
-          <img
-            src="/onboarding/onboarding-01.jpg"
-            alt={t("onboarding:WELCOME_IMAGE_ALT")}
-            className="h-full w-full object-cover"
-          />
-        }
-      >
+      <OnboardingLayout>
         <div className="flex h-full min-h-0 flex-col justify-center gap-4">
           <div className="text-title3 text-label-primary">
             {t("onboarding:WORKSPACE_FIRST_LOAD_FAILED_TITLE")}
@@ -701,13 +778,11 @@ export function WelcomeOnboardingPage() {
 
   return (
     <OnboardingLayout
-      aside={
-        <img
-          src={getWelcomeStepImage(step)}
-          alt={t("onboarding:WELCOME_IMAGE_ALT")}
-          className="h-full w-full object-cover"
-        />
-      }
+      currentStep={step}
+      contentMaxClassName={contentMaxClassName}
+      headerBack={isCreateWorkspaceFirstStep}
+      onHeaderBack={goBack}
+      steps={visibleSteps}
     >
       <input
         ref={avatarFileInputRef}
@@ -725,159 +800,165 @@ export function WelcomeOnboardingPage() {
         tabIndex={-1}
         onChange={handleWorkspaceIconFileChange}
       />
-      <div className="flex h-full min-h-0 flex-col">
-        <OnboardingStepHeader
-          currentStep={step}
-          title={currentTitle}
-          description={currentDescription}
-          canGoBack={step > 1 || (step === 4 && questionnaireSubstep === 1)}
-          onBack={goBack}
-        />
-
+      <div className="flex min-h-[min(36rem,100%)] flex-col">
         <OnboardingStepTransition step={step} direction={direction} reduceMotion={reduceMotion}>
-          {step === 1 ? (
-            <UserProfilePreferencesStep
-              displayName={profileDraft.displayName}
-              avatarUrl={profileDraft.avatarUrl}
-              jobRole={profileDraft.jobRole}
-              companySize={profileDraft.companySize}
-              subscribedProductUpdates={profileDraft.subscribedProductUpdates}
-              jobRoleOptions={jobRoleOptions}
-              companySizeOptions={companySizeOptions}
-              displayNameError={displayNameError}
-              avatarBusy={avatarUploadMutation.isPending}
-              onDisplayNameChange={(displayName) =>
-                setProfileDraft((current) => ({ ...current, displayName }))
-              }
-              onJobRoleChange={(jobRole) => setProfileDraft((current) => ({ ...current, jobRole }))}
-              onCompanySizeChange={(companySize) =>
-                setProfileDraft((current) => ({ ...current, companySize }))
-              }
-              onSubscribedProductUpdatesChange={(subscribedProductUpdates) =>
-                setProfileDraft((current) => ({ ...current, subscribedProductUpdates }))
-              }
-              onPickAvatar={() => avatarFileInputRef.current?.click()}
-              onRemoveAvatar={() => {
-                if (isDryRun) {
-                  setProfileDraft((current) => ({ ...current, avatarUrl: null }));
-                  return;
+          <OnboardingMotionItem>
+            <OnboardingStepHeader
+              title={currentTitle}
+              description={currentDescription}
+              canGoBack={currentIndex > 0}
+              onBack={goBack}
+            />
+          </OnboardingMotionItem>
+
+          {step === "profile" ? (
+            <OnboardingMotionItem>
+              <UserProfilePreferencesStep
+                displayName={profileDraft.displayName}
+                avatarUrl={profileDraft.avatarUrl}
+                jobRole={profileDraft.jobRole}
+                companySize={profileDraft.companySize}
+                subscribedProductUpdates={profileDraft.subscribedProductUpdates}
+                jobRoleOptions={jobRoleOptions}
+                companySizeOptions={companySizeOptions}
+                displayNameError={displayNameError}
+                avatarBusy={avatarUploadMutation.isPending}
+                onDisplayNameChange={(displayName) =>
+                  setProfileDraft((current) => ({ ...current, displayName }))
                 }
-                void authApi.updateMyProfile({ avatarAssetId: null }).then(() => {
-                  setProfileDraft((current) => ({
+                onJobRoleChange={(jobRole) =>
+                  setProfileDraft((current) => ({ ...current, jobRole }))
+                }
+                onCompanySizeChange={(companySize) =>
+                  setProfileDraft((current) => ({ ...current, companySize }))
+                }
+                onSubscribedProductUpdatesChange={(subscribedProductUpdates) =>
+                  setProfileDraft((current) => ({ ...current, subscribedProductUpdates }))
+                }
+                onPickAvatar={() => avatarFileInputRef.current?.click()}
+                onRemoveAvatar={() => {
+                  if (isDryRun) {
+                    setProfileDraft((current) => ({ ...current, avatarUrl: null }));
+                    return;
+                  }
+                  void authApi.updateMyProfile({ avatarAssetId: null }).then(() => {
+                    setProfileDraft((current) => ({
+                      ...current,
+                      avatarUrl: null,
+                      avatarAssetId: null,
+                    }));
+                  });
+                }}
+              />
+            </OnboardingMotionItem>
+          ) : null}
+
+          {step === "workspace" ? (
+            <OnboardingMotionItem>
+              <WorkspaceCreateStep
+                name={workspaceDraft.name}
+                description={workspaceDraft.description}
+                iconUrl={workspaceDraft.iconUrl}
+                defaultRoleCode={workspaceDraft.defaultRoleCode}
+                roleOptions={roleOptions}
+                errors={workspaceErrors}
+                iconBusy={submitStepMutation.isPending}
+                onNameChange={(name) => {
+                  setWorkspaceNameTouched(true);
+                  setWorkspaceDraft((current) => ({ ...current, name }));
+                }}
+                onDescriptionChange={(description) =>
+                  setWorkspaceDraft((current) => ({ ...current, description }))
+                }
+                onPickIcon={() => workspaceIconFileInputRef.current?.click()}
+                onRemoveIcon={() => {
+                  if (workspaceIconPreviewUrl) URL.revokeObjectURL(workspaceIconPreviewUrl);
+                  setWorkspaceIconPreviewUrl(null);
+                  setWorkspaceIconFile(null);
+                  setWorkspaceDraft((current) => ({
                     ...current,
-                    avatarUrl: null,
-                    avatarAssetId: null,
+                    iconUrl: null,
                   }));
-                });
-              }}
-            />
+                }}
+                onDefaultRoleCodeChange={(defaultRoleCode) =>
+                  setWorkspaceDraft((current) => ({ ...current, defaultRoleCode }))
+                }
+              />
+            </OnboardingMotionItem>
           ) : null}
 
-          {step === 2 ? (
-            <WorkspaceCreateStep
-              name={workspaceDraft.name}
-              description={workspaceDraft.description}
-              iconUrl={workspaceDraft.iconUrl}
-              defaultRoleCode={workspaceDraft.defaultRoleCode}
-              roleOptions={roleOptions}
-              errors={workspaceErrors}
-              iconBusy={submitStepMutation.isPending}
-              onNameChange={(name) => {
-                setWorkspaceNameTouched(true);
-                setWorkspaceDraft((current) => ({ ...current, name }));
-              }}
-              onDescriptionChange={(description) =>
-                setWorkspaceDraft((current) => ({ ...current, description }))
-              }
-              onPickIcon={() => workspaceIconFileInputRef.current?.click()}
-              onRemoveIcon={() => {
-                if (workspaceIconPreviewUrl) URL.revokeObjectURL(workspaceIconPreviewUrl);
-                setWorkspaceIconPreviewUrl(null);
-                setWorkspaceIconFile(null);
-                setWorkspaceDraft((current) => ({
-                  ...current,
-                  iconUrl: null,
-                }));
-              }}
-              onDefaultRoleCodeChange={(defaultRoleCode) =>
-                setWorkspaceDraft((current) => ({ ...current, defaultRoleCode }))
-              }
-            />
+          {step === "team" ? (
+            <OnboardingMotionItem>
+              <TeamCollaborationStep
+                rows={inviteRows}
+                roleOptions={roleOptions}
+                disabled={isPending}
+                onEmailChange={(id, email) => updateInviteRow(id, { email, error: null })}
+                onRoleCodeChange={(id, roleCode) => updateInviteRow(id, { roleCode, error: null })}
+              />
+            </OnboardingMotionItem>
           ) : null}
 
-          {step === 3 ? (
-            <TeamCollaborationStep
-              rows={inviteRows}
-              roleOptions={roleOptions}
-              disabled={isPending}
-              onEmailChange={(id, email) => updateInviteRow(id, { email, error: null })}
-              onRoleCodeChange={(id, roleCode) => updateInviteRow(id, { roleCode, error: null })}
-            />
+          {isQuestionnaireStep ? (
+            <OnboardingMotionItem>
+              <WorkspaceCustomizationStep
+                selected={step === "teamType" ? selectedTeamType : selectedHeardAboutUs}
+                options={step === "teamType" ? teamTypeOptions : heardAboutUsOptions}
+                variant={step === "teamType" ? "teamType" : "heardAboutUs"}
+                onChange={step === "teamType" ? setSelectedTeamType : setSelectedHeardAboutUs}
+              />
+            </OnboardingMotionItem>
           ) : null}
 
-          {step === 4 ? (
-            <WorkspaceCustomizationStep
-              substep={questionnaireSubstep}
-              selectedTeamType={selectedTeamType}
-              selectedGoal={selectedGoal}
-              selectedHeardAboutUs={selectedHeardAboutUs}
-              teamTypeOptions={teamTypeOptions}
-              goalOptions={goalOptions}
-              heardAboutUsOptions={heardAboutUsOptions}
-              onTeamTypeChange={(value) => {
-                setSelectedTeamType(value);
-                setQuestionnaireSubstep(1);
-              }}
-              onGoalChange={setSelectedGoal}
-              onHeardAboutUsChange={setSelectedHeardAboutUs}
-              onBackToPreviousQuestion={() =>
-                setQuestionnaireSubstep((current) => (current === 2 ? 1 : 0))
-              }
-            />
-          ) : null}
+          <OnboardingMotionItem className="mt-auto space-y-3 pt-4">
+            {stepError ? <WelcomeFieldError>{stepError}</WelcomeFieldError> : null}
+            <div
+              data-testid="onboarding-actions"
+              className="flex flex-wrap items-center justify-start gap-2"
+            >
+              <Button
+                variant={isQuestionnaireStep ? "ghost" : "default"}
+                className="h-11 px-4"
+                loading={isPending}
+                disabled={(step === "profile" && isProfileStepDisabled) || isPending}
+                onClick={() => submitStepMutation.mutate()}
+              >
+                {finalButtonLabel}
+              </Button>
+              {step === "team" ? (
+                <Button
+                  variant="ghost"
+                  className="h-10 px-4"
+                  disabled={isPending}
+                  onClick={goNextStep}
+                >
+                  {t("onboarding:WELCOME_INVITE_SKIP")}
+                </Button>
+              ) : null}
+              {flowMode === "first-run" && step === "workspace" ? (
+                <Button variant="ghost" className="h-10 px-4" disabled={isPending} onClick={goBack}>
+                  {t("common:BACK")}
+                </Button>
+              ) : null}
+              {isQuestionnaireStep ? (
+                <Button
+                  variant="ghost"
+                  className="h-10 px-4"
+                  disabled={isPending}
+                  onClick={() => {
+                    if (step === "teamType") {
+                      goNextStep();
+                      return;
+                    }
+                    submitStepMutation.mutate();
+                  }}
+                >
+                  {t("onboarding:WELCOME_CUSTOMIZE_SKIP")}
+                </Button>
+              ) : null}
+            </div>
+          </OnboardingMotionItem>
         </OnboardingStepTransition>
-
-        <div className="mt-auto space-y-3 pt-4">
-          {stepError ? <WelcomeFieldError>{stepError}</WelcomeFieldError> : null}
-          <Button
-            className="h-11 w-full"
-            loading={isPending}
-            disabled={(step === 1 && isProfileStepDisabled) || isPending}
-            onClick={() => submitStepMutation.mutate()}
-          >
-            {finalButtonLabel}
-          </Button>
-          {step === 3 ? (
-            <Button
-              variant="ghost"
-              className="h-10 w-full"
-              disabled={isPending}
-              onClick={goNextStep}
-            >
-              {t("onboarding:WELCOME_INVITE_SKIP")}
-            </Button>
-          ) : null}
-          {step === 4 ? (
-            <Button
-              variant="ghost"
-              className="h-10 w-full"
-              disabled={isPending}
-              onClick={() => {
-                if (questionnaireSubstep === 0) {
-                  setQuestionnaireSubstep(1);
-                  return;
-                }
-                if (questionnaireSubstep === 1) {
-                  setQuestionnaireSubstep(2);
-                  return;
-                }
-                submitStepMutation.mutate();
-              }}
-            >
-              {t("onboarding:WELCOME_CUSTOMIZE_SKIP")}
-            </Button>
-          ) : null}
-        </div>
       </div>
     </OnboardingLayout>
   );
