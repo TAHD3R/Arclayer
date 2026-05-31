@@ -490,6 +490,23 @@ describe("SystemSettingsStoragePage", () => {
     );
   });
 
+  it("renders the current profile selector above the profiles table", async () => {
+    listStorageProfilesMock.mockResolvedValue([buildProfile()]);
+
+    const { container } = renderPage();
+
+    const currentProfileTitle = await screen.findByText(
+      "settings:SETTINGS_SYSTEM_STORAGE_CURRENT_PROFILE_TITLE",
+    );
+    const profilesTable = container.querySelector("table");
+
+    expect(profilesTable).not.toBeNull();
+    expect(
+      currentProfileTitle.compareDocumentPosition(profilesTable as HTMLTableElement) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("renders read-only state for the environment default profile", async () => {
     listStorageProfilesMock.mockResolvedValue([
       buildProfile({
@@ -644,6 +661,88 @@ describe("SystemSettingsStoragePage", () => {
     expect(notifySuccessTextMock).not.toHaveBeenCalledWith(
       "endpoint_url is required when provider=aws_s3",
     );
+  });
+
+  it("saves upload purpose policies as storage.upload_policy", async () => {
+    listStorageProfilesMock.mockResolvedValue([buildProfile()]);
+    getSystemCoreSettingsMock.mockResolvedValue({
+      value: {
+        storage: {
+          upload_chunk_size_mb: 8,
+          upload_session_ttl_seconds: 3600,
+          recycle_bin_retention_days: 90,
+          upload_policy: {
+            defaults: {
+              max_size_mb: 2048,
+              allowed_extensions: ["jpg", "png", "pdf"],
+            },
+            purposes: {
+              avatar: {
+                max_size_mb: 10,
+                allowed_extensions: ["jpg", "png"],
+              },
+            },
+          },
+        },
+      },
+      secrets: {},
+    });
+
+    renderPage();
+
+    const defaultExtensions = await screen.findByLabelText(
+      "settings:SETTINGS_STORAGE_UPLOAD_POLICY_DEFAULTS_LABEL settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS",
+    );
+    fireEvent.change(defaultExtensions, { target: { value: "jpg, png, webp, pdf" } });
+    fireEvent.keyDown(defaultExtensions, { key: "Enter" });
+    fireEvent.change(
+      screen.getByLabelText(
+        "settings:SETTINGS_STORAGE_UPLOAD_POLICY_AVATAR_LABEL settings:SETTINGS_STORAGE_UPLOAD_POLICY_MAX_SIZE_MB",
+      ),
+      { target: { value: "12" } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(
+        "settings:SETTINGS_STORAGE_UPLOAD_POLICY_FAVICON_LABEL settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS",
+      ),
+      { target: { value: "ico, png" } },
+    );
+    fireEvent.keyDown(
+      screen.getByLabelText(
+        "settings:SETTINGS_STORAGE_UPLOAD_POLICY_FAVICON_LABEL settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS",
+      ),
+      { key: "Enter" },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "settings:SETTINGS_SAVE" }));
+
+    await waitFor(() => {
+      expect(patchSystemCoreSettingsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storage: expect.objectContaining({
+            upload_chunk_size_mb: 8,
+            upload_session_ttl_seconds: 3600,
+            recycle_bin_retention_days: 90,
+            upload_policy: expect.objectContaining({
+              defaults: {
+                max_size_mb: 2048,
+                allowed_extensions: ["jpg", "png", "pdf", "webp"],
+              },
+              purposes: expect.objectContaining({
+                avatar: {
+                  max_size_mb: 12,
+                  allowed_extensions: ["jpg", "png"],
+                },
+                favicon: {
+                  max_size_mb: 2,
+                  allowed_extensions: ["ico", "png"],
+                },
+              }),
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   it("creates aws_s3 profiles with endpoint and tests the created profile once", async () => {

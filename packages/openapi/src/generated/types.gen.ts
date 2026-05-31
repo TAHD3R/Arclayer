@@ -10498,7 +10498,7 @@ export type RegisterRequest = {
      *
      * Display name.
      */
-    displayName: string;
+    displayName?: string | null;
     /**
      * Email
      *
@@ -10511,12 +10511,6 @@ export type RegisterRequest = {
      * Password (min 8 chars).
      */
     password: string;
-    /**
-     * Username
-     *
-     * Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.
-     */
-    username: string;
 };
 
 /**
@@ -14855,6 +14849,31 @@ export type ResponseModelUploadPartPresignOut = {
 };
 
 /**
+ * ResponseModel[UploadPolicyOut]
+ */
+export type ResponseModelUploadPolicyOut = {
+    data?: UploadPolicyOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[UploadStatusOut]
  */
 export type ResponseModelUploadStatusOut = {
@@ -17451,6 +17470,48 @@ export type UploadPartPresignOut = {
 };
 
 /**
+ * UploadPolicyOut
+ */
+export type UploadPolicyOut = {
+    /**
+     * Accept
+     *
+     * Browser file input accept string.
+     */
+    accept?: string;
+    /**
+     * Allowedextensions
+     *
+     * Allowed file extensions.
+     */
+    allowedExtensions?: Array<string>;
+    /**
+     * Allowedmimetypes
+     *
+     * Allowed MIME types.
+     */
+    allowedMimeTypes?: Array<string>;
+    /**
+     * Maxsizebytes
+     *
+     * Maximum upload size in bytes.
+     */
+    maxSizeBytes: number;
+    /**
+     * Maxsizemb
+     *
+     * Maximum upload size in MiB.
+     */
+    maxSizeMb: number;
+    /**
+     * Purpose
+     *
+     * Resolved upload purpose.
+     */
+    purpose: string;
+};
+
+/**
  * UploadStatusOut
  */
 export type UploadStatusOut = {
@@ -19905,6 +19966,22 @@ export type GlobalAuthInitAvatarUploadResponses = {
 };
 
 export type GlobalAuthInitAvatarUploadResponse = GlobalAuthInitAvatarUploadResponses[keyof GlobalAuthInitAvatarUploadResponses];
+
+export type GlobalAuthGetAvatarUploadPolicyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/avatar/uploads/policy';
+};
+
+export type GlobalAuthGetAvatarUploadPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadPolicyOut;
+};
+
+export type GlobalAuthGetAvatarUploadPolicyResponse = GlobalAuthGetAvatarUploadPolicyResponses[keyof GlobalAuthGetAvatarUploadPolicyResponses];
 
 export type GlobalAuthGetAvatarUploadStatusData = {
     body?: never;
@@ -26322,6 +26399,43 @@ export type DomainProjectsInitUploadResponses = {
 
 export type DomainProjectsInitUploadResponse = DomainProjectsInitUploadResponses[keyof DomainProjectsInitUploadResponses];
 
+export type DomainProjectsGetUploadPolicyData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         *
+         * Project ID.
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Purpose
+         */
+        purpose?: string;
+    };
+    url: '/api/v1/projects/{project_id}/uploads/policy';
+};
+
+export type DomainProjectsGetUploadPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainProjectsGetUploadPolicyError = DomainProjectsGetUploadPolicyErrors[keyof DomainProjectsGetUploadPolicyErrors];
+
+export type DomainProjectsGetUploadPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadPolicyOut;
+};
+
+export type DomainProjectsGetUploadPolicyResponse = DomainProjectsGetUploadPolicyResponses[keyof DomainProjectsGetUploadPolicyResponses];
+
 export type DomainProjectsGetUploadStatusData = {
     body?: never;
     path: {
@@ -30259,6 +30373,38 @@ export type DomainWorkspacesInitUploadResponses = {
 };
 
 export type DomainWorkspacesInitUploadResponse = DomainWorkspacesInitUploadResponses[keyof DomainWorkspacesInitUploadResponses];
+
+export type DomainWorkspacesGetUploadPolicyData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{workspace_id}/uploads/policy';
+};
+
+export type DomainWorkspacesGetUploadPolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetUploadPolicyError = DomainWorkspacesGetUploadPolicyErrors[keyof DomainWorkspacesGetUploadPolicyErrors];
+
+export type DomainWorkspacesGetUploadPolicyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUploadPolicyOut;
+};
+
+export type DomainWorkspacesGetUploadPolicyResponse = DomainWorkspacesGetUploadPolicyResponses[keyof DomainWorkspacesGetUploadPolicyResponses];
 
 export type DomainWorkspacesGetUploadStatusData = {
     body?: never;

@@ -477,29 +477,10 @@ def build_core_settings_schema() -> ConfigSchema:
                         label_i18n="settings:STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL",
                     ),
                     ConfigField(
-                        key="upload_max_file_size_mb",
-                        type="int",
-                        default=2048,
-                        label="Max upload file size (MiB)",
-                        label_i18n="settings:STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL",
-                    ),
-                    ConfigField(
-                        key="upload_max_avatar_size_mb",
-                        type="int",
-                        default=10,
-                        label="Max avatar upload file size (MiB)",
-                    ),
-                    ConfigField(
-                        key="upload_max_site_logo_size_mb",
-                        type="int",
-                        default=20,
-                        label="Max site logo upload file size (MiB)",
-                    ),
-                    ConfigField(
-                        key="upload_max_favicon_size_mb",
-                        type="int",
-                        default=2,
-                        label="Max favicon upload file size (MiB)",
+                        key="upload_policy",
+                        type="dict",
+                        default={},
+                        label="Upload policy",
                     ),
                     ConfigField(
                         key="upload_session_ttl_seconds",

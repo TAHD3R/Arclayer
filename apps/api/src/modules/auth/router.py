@@ -20,6 +20,7 @@ from src.modules.assets.admin.uploads.schema import (
     UploadInitOut,
     UploadPartCommitRequest,
     UploadPartPresignOut,
+    UploadPolicyOut,
     UploadStatusOut,
     build_upload_init_out,
 )
@@ -961,6 +962,18 @@ async def init_avatar_upload(
         target_folder_id=None,
     )
     return ApiResponse.success(data=build_upload_init_out(session))
+
+
+@router.get(
+    "/me/avatar/uploads/policy",
+    response_model=ResponseModel[UploadPolicyOut],
+    summary="Get avatar upload policy (current user)",
+)
+async def get_avatar_upload_policy(
+    _user: User = Depends(get_current_user),
+    service: UploadsService = Depends(_get_uploads_service),
+) -> ResponseModel[UploadPolicyOut]:
+    return ApiResponse.success(data=await service.get_upload_policy(purpose="avatar"))
 
 
 @router.get(

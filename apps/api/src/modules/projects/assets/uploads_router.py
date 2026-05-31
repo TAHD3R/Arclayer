@@ -15,6 +15,7 @@ from src.modules.assets.admin.uploads.schema import (
     UploadInitRequest,
     UploadPartCommitRequest,
     UploadPartPresignOut,
+    UploadPolicyOut,
     UploadStatusOut,
     build_upload_init_out,
 )
@@ -68,6 +69,21 @@ async def init_upload(
         target_folder_id=payload.folder_id,
     )
     return ApiResponse.success(data=build_upload_init_out(session))
+
+
+@router.get(
+    "/uploads/policy",
+    response_model=ResponseModel[UploadPolicyOut],
+    summary="Get project upload policy",
+    dependencies=[require_project_permission("project:assets:manage")],
+)
+async def get_upload_policy(
+    purpose: str = "library",
+    _ctx: ProjectRequestContext = Depends(get_project_context),
+    _user=Depends(get_current_user),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[UploadPolicyOut]:
+    return ApiResponse.success(data=await service.get_upload_policy(purpose=purpose))
 
 
 @router.get(

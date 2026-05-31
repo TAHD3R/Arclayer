@@ -24,3 +24,17 @@ class StorageProfileRecord(BaseModel):
         table = "system_storage_profiles"
         abstract = False
         unique_together = (("scope_type", "scope_id", "profile_key"),)
+
+
+class StorageProfileTestStateRecord(BaseModel):
+    scope_type = fields.CharField(max_length=32, default=SCOPE_TYPE_SYSTEM, db_index=True)
+    scope_id = fields.UUIDField(default=SYSTEM_SCOPE_ID, db_index=True)
+    profile_key = fields.CharField(max_length=128, db_index=True)
+    last_test_status = fields.CharField(max_length=32)
+    last_test_message = fields.TextField(null=True)
+    last_tested_at = fields.DatetimeField()
+
+    class Meta(BaseModel.Meta):
+        table = "system_storage_profile_test_states"
+        abstract = False
+        unique_together = (("scope_type", "scope_id", "profile_key"),)

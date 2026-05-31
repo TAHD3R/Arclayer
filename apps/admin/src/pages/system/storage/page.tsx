@@ -40,6 +40,8 @@ import {
   getSystemSettingsSection,
   SYSTEM_CORE_SETTINGS_QUERY_KEY,
   readNumberValue,
+  readRecordValue,
+  readStringArrayValue,
   readStringValue,
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
@@ -65,6 +67,18 @@ import {
   DrawerTitle,
 } from "@arclayer/ui/drawer";
 import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from "@arclayer/ui/combobox";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -73,6 +87,7 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@arclayer/ui/empty";
+import { FileTypeIcon } from "@arclayer/ui/icons/file-type-icon";
 import { Input } from "@arclayer/ui/input";
 import { NumberInput } from "@arclayer/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
@@ -117,12 +132,23 @@ type StorageProfileFormValues = {
 type StorageLimitsFormValues = {
   defaultProfileKey: string;
   uploadChunkSizeMb: number;
-  uploadMaxFileSizeMb: number;
-  uploadMaxAvatarSizeMb: number;
-  uploadMaxSiteLogoSizeMb: number;
-  uploadMaxFaviconSizeMb: number;
+  uploadPolicy: UploadPolicyFormValues;
   uploadSessionTtlSeconds: number;
   recycleBinRetentionDays: number;
+};
+
+type UploadPolicyPurposeKey = "library" | "avatar" | "workspaceIcon" | "siteLogo" | "favicon";
+type UploadPurposePolicyFormValues = {
+  maxSizeMb: number;
+  allowedExtensions: string;
+};
+type UploadPolicyFormValues = {
+  defaults: UploadPurposePolicyFormValues;
+  purposes: Record<UploadPolicyPurposeKey, UploadPurposePolicyFormValues>;
+};
+type UploadExtensionOption = {
+  value: string;
+  label: string;
 };
 
 type StorageProviderOption = {
@@ -156,13 +182,93 @@ const STORAGE_PROFILE_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{1,127}$/;
 const ENV_DEFAULT_PROFILE_KEY = "env-default";
 const STORAGE_LIMIT_FIELDS = [
   "uploadChunkSizeMb",
-  "uploadMaxFileSizeMb",
-  "uploadMaxAvatarSizeMb",
-  "uploadMaxSiteLogoSizeMb",
-  "uploadMaxFaviconSizeMb",
   "uploadSessionTtlSeconds",
   "recycleBinRetentionDays",
 ] as const;
+const UPLOAD_POLICY_FORM_PURPOSES = [
+  {
+    key: "library",
+    payloadKey: "library",
+    labelKey: "settings:SETTINGS_STORAGE_UPLOAD_POLICY_LIBRARY_LABEL",
+  },
+  {
+    key: "avatar",
+    payloadKey: "avatar",
+    labelKey: "settings:SETTINGS_STORAGE_UPLOAD_POLICY_AVATAR_LABEL",
+  },
+  {
+    key: "workspaceIcon",
+    payloadKey: "workspace_icon",
+    labelKey: "settings:SETTINGS_STORAGE_UPLOAD_POLICY_WORKSPACE_ICON_LABEL",
+  },
+  {
+    key: "siteLogo",
+    payloadKey: "site_logo",
+    labelKey: "settings:SETTINGS_STORAGE_UPLOAD_POLICY_SITE_LOGO_LABEL",
+  },
+  {
+    key: "favicon",
+    payloadKey: "favicon",
+    labelKey: "settings:SETTINGS_STORAGE_UPLOAD_POLICY_FAVICON_LABEL",
+  },
+] as const satisfies readonly {
+  key: UploadPolicyPurposeKey;
+  payloadKey: string;
+  labelKey: string;
+}[];
+const DEFAULT_IMAGE_UPLOAD_EXTENSIONS = "jpg, jpeg, png, webp, gif, bmp, tif, tiff, avif";
+const DEFAULT_LIBRARY_UPLOAD_EXTENSIONS = `${DEFAULT_IMAGE_UPLOAD_EXTENSIONS}, zip, pdf, mp4, webm, mov, m4v, woff2, woff, ttf, otf, eot`;
+const UPLOAD_EXTENSION_OPTIONS: readonly UploadExtensionOption[] = [
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "gif",
+  "bmp",
+  "tif",
+  "tiff",
+  "avif",
+  "ico",
+  "zip",
+  "pdf",
+  "mp4",
+  "webm",
+  "mov",
+  "m4v",
+  "woff2",
+  "woff",
+  "ttf",
+  "otf",
+  "eot",
+].map((ext) => ({ value: ext, label: `.${ext}` }));
+const DEFAULT_UPLOAD_POLICY_FORM_VALUES: UploadPolicyFormValues = {
+  defaults: {
+    maxSizeMb: 2048,
+    allowedExtensions: DEFAULT_LIBRARY_UPLOAD_EXTENSIONS,
+  },
+  purposes: {
+    library: {
+      maxSizeMb: 2048,
+      allowedExtensions: DEFAULT_LIBRARY_UPLOAD_EXTENSIONS,
+    },
+    avatar: {
+      maxSizeMb: 10,
+      allowedExtensions: DEFAULT_IMAGE_UPLOAD_EXTENSIONS,
+    },
+    workspaceIcon: {
+      maxSizeMb: 20,
+      allowedExtensions: DEFAULT_IMAGE_UPLOAD_EXTENSIONS,
+    },
+    siteLogo: {
+      maxSizeMb: 20,
+      allowedExtensions: DEFAULT_IMAGE_UPLOAD_EXTENSIONS,
+    },
+    favicon: {
+      maxSizeMb: 2,
+      allowedExtensions: "ico, png",
+    },
+  },
+};
 const PROVIDER_OPTIONS: readonly StorageProviderOption[] = [
   {
     value: "local",
@@ -293,6 +399,112 @@ function buildFormValues(profile: StorageProfileOut): StorageProfileFormValues {
   };
 }
 
+function cloneDefaultUploadPolicyFormValues(): UploadPolicyFormValues {
+  return {
+    defaults: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.defaults },
+    purposes: {
+      library: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.library },
+      avatar: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.avatar },
+      workspaceIcon: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.workspaceIcon },
+      siteLogo: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.siteLogo },
+      favicon: { ...DEFAULT_UPLOAD_POLICY_FORM_VALUES.purposes.favicon },
+    },
+  };
+}
+
+function formatExtensionsInput(values: string[]): string {
+  return values
+    .map((value) => value.trim().toLowerCase().replace(/^\./, ""))
+    .filter(Boolean)
+    .join(", ");
+}
+
+function parseExtensionsInput(value: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const part of value.split(",")) {
+    const ext = part.trim().toLowerCase().replace(/^\./, "");
+    if (!ext || seen.has(ext)) continue;
+    seen.add(ext);
+    result.push(ext);
+  }
+  return result;
+}
+
+function readUploadPurposePolicy(
+  record: ReturnType<typeof readRecordValue>,
+  fallback: UploadPurposePolicyFormValues,
+): UploadPurposePolicyFormValues {
+  return {
+    maxSizeMb: readNumberValue(record, "max_size_mb") ?? fallback.maxSizeMb,
+    allowedExtensions: readStringArrayValue(record, "allowed_extensions").length
+      ? formatExtensionsInput(readStringArrayValue(record, "allowed_extensions"))
+      : fallback.allowedExtensions,
+  };
+}
+
+function getExtensionOptions(value: string): UploadExtensionOption[] {
+  const selected = parseExtensionsInput(value);
+  const optionByValue = new Map(UPLOAD_EXTENSION_OPTIONS.map((option) => [option.value, option]));
+  for (const ext of selected) {
+    if (!optionByValue.has(ext)) {
+      optionByValue.set(ext, { value: ext, label: `.${ext}` });
+    }
+  }
+  return Array.from(optionByValue.values());
+}
+
+function buildUploadPolicyInitialValues(
+  storage: ReturnType<typeof getSystemSettingsSection>,
+): UploadPolicyFormValues {
+  const fallback = cloneDefaultUploadPolicyFormValues();
+  const policy = readRecordValue(storage, "upload_policy");
+  const defaults = readUploadPurposePolicy(readRecordValue(policy, "defaults"), fallback.defaults);
+  const purposes = readRecordValue(policy, "purposes");
+
+  return {
+    defaults,
+    purposes: {
+      library: readUploadPurposePolicy(
+        readRecordValue(purposes, "library"),
+        fallback.purposes.library,
+      ),
+      avatar: readUploadPurposePolicy(readRecordValue(purposes, "avatar"), fallback.purposes.avatar),
+      workspaceIcon: readUploadPurposePolicy(
+        readRecordValue(purposes, "workspace_icon"),
+        fallback.purposes.workspaceIcon,
+      ),
+      siteLogo: readUploadPurposePolicy(
+        readRecordValue(purposes, "site_logo"),
+        fallback.purposes.siteLogo,
+      ),
+      favicon: readUploadPurposePolicy(
+        readRecordValue(purposes, "favicon"),
+        fallback.purposes.favicon,
+      ),
+    },
+  };
+}
+
+function buildUploadPolicyPayload(value: UploadPolicyFormValues) {
+  const purposePayload = Object.fromEntries(
+    UPLOAD_POLICY_FORM_PURPOSES.map((purpose) => [
+      purpose.payloadKey,
+      {
+        max_size_mb: value.purposes[purpose.key].maxSizeMb,
+        allowed_extensions: parseExtensionsInput(value.purposes[purpose.key].allowedExtensions),
+      },
+    ]),
+  );
+  return {
+    defaults: {
+      max_size_mb: value.defaults.maxSizeMb,
+      allowed_extensions: parseExtensionsInput(value.defaults.allowedExtensions),
+    },
+    purposes: purposePayload,
+  };
+}
+
 function buildStorageLimitsInitialValues(
   input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
 ): StorageLimitsFormValues {
@@ -300,10 +512,7 @@ function buildStorageLimitsInitialValues(
   return {
     defaultProfileKey: readStringValue(storage, "default_profile_key") ?? "",
     uploadChunkSizeMb: readNumberValue(storage, "upload_chunk_size_mb") ?? 8,
-    uploadMaxFileSizeMb: readNumberValue(storage, "upload_max_file_size_mb") ?? 2048,
-    uploadMaxAvatarSizeMb: readNumberValue(storage, "upload_max_avatar_size_mb") ?? 10,
-    uploadMaxSiteLogoSizeMb: readNumberValue(storage, "upload_max_site_logo_size_mb") ?? 20,
-    uploadMaxFaviconSizeMb: readNumberValue(storage, "upload_max_favicon_size_mb") ?? 2,
+    uploadPolicy: buildUploadPolicyInitialValues(storage),
     uploadSessionTtlSeconds: readNumberValue(storage, "upload_session_ttl_seconds") ?? 3600,
     recycleBinRetentionDays: readNumberValue(storage, "recycle_bin_retention_days") ?? 90,
   };
@@ -431,6 +640,188 @@ function StorageLimitNumberField(props: {
         />
       }
     />
+  );
+}
+
+function StorageExtensionOptionContent(props: { option: UploadExtensionOption }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <FileTypeIcon filename={`file.${props.option.value}`} size={18} className="shrink-0" />
+      <span className="truncate">{props.option.label}</span>
+    </span>
+  );
+}
+
+function StorageExtensionSelect(props: {
+  value: string;
+  onChange: (value: string) => void;
+  ariaLabel: string;
+  placeholder: string;
+}) {
+  const anchor = useComboboxAnchor();
+  const selectedExtensions = parseExtensionsInput(props.value);
+  const options = useMemo(() => getExtensionOptions(props.value), [props.value]);
+  const selectedOptions = options.filter((option) => selectedExtensions.includes(option.value));
+  const addTypedExtensions = (raw: string) => {
+    const typedExtensions = parseExtensionsInput(raw);
+    if (!typedExtensions.length) return;
+    props.onChange(formatExtensionsInput([...selectedExtensions, ...typedExtensions]));
+  };
+
+  return (
+    <Combobox
+      multiple
+      items={options}
+      itemToStringLabel={(option) => option.label}
+      itemToStringValue={(option) => option.value}
+      isItemEqualToValue={(option, value) => option.value === value.value}
+      value={selectedOptions}
+      onValueChange={(next) =>
+        props.onChange(formatExtensionsInput(next.map((option) => option.value)))
+      }
+    >
+      <ComboboxChips ref={anchor} className="min-h-9 w-full">
+        {selectedOptions.map((option) => (
+          <ComboboxChip
+            key={option.value}
+            className="gap-1.5 border border-border/70 bg-background text-label-primary shadow-xs hover:bg-accent/25 dark:border-input/80 dark:bg-input/45 dark:text-label-primary dark:hover:bg-input/65 [&_[data-slot=combobox-chip-remove]]:text-label-secondary [&_[data-slot=combobox-chip-remove]]:hover:bg-accent/50 [&_[data-slot=combobox-chip-remove]]:hover:text-label-primary"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <FileTypeIcon filename={`file.${option.value}`} size={14} className="shrink-0" />
+            {option.label}
+          </ComboboxChip>
+        ))}
+        <ComboboxValue>
+          <ComboboxChipsInput
+            aria-label={props.ariaLabel}
+            showClear
+            placeholder={selectedOptions.length ? undefined : props.placeholder}
+            onBlur={(event) => {
+              addTypedExtensions(event.currentTarget.value);
+              event.currentTarget.value = "";
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== ",") return;
+              event.preventDefault();
+              addTypedExtensions(event.currentTarget.value);
+              event.currentTarget.value = "";
+            }}
+          />
+        </ComboboxValue>
+      </ComboboxChips>
+      <ComboboxContent anchor={anchor}>
+        <ComboboxList>
+          <ComboboxEmpty>{props.placeholder}</ComboboxEmpty>
+          {options.map((option) => (
+            <ComboboxItem key={option.value} value={option}>
+              <StorageExtensionOptionContent option={option} />
+            </ComboboxItem>
+          ))}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+}
+
+function StorageUploadPolicyRow(props: {
+  label: string;
+  value: UploadPurposePolicyFormValues;
+  onChange: (value: Partial<UploadPurposePolicyFormValues>) => void;
+  maxSizeLabel: string;
+  extensionsLabel: string;
+  extensionsPlaceholder: string;
+}) {
+  return (
+    <div className="grid min-w-0 gap-3 py-3 md:grid-cols-[minmax(8rem,0.75fr)_8rem_minmax(20rem,2fr)] md:items-center">
+      <div className="text-callout font-semibold text-label-primary">{props.label}</div>
+      <div className="grid gap-1">
+        <span className="text-caption text-label-secondary md:hidden">{props.maxSizeLabel}</span>
+        <NumberInput
+          value={props.value.maxSizeMb}
+          min={1}
+          className="h-9 w-full"
+          aria-label={`${props.label} ${props.maxSizeLabel}`}
+          onValueChange={(next) => props.onChange({ maxSizeMb: next ?? 1 })}
+        />
+      </div>
+      <div className="grid min-w-0 gap-1">
+        <span className="text-caption text-label-secondary md:hidden">{props.extensionsLabel}</span>
+        <StorageExtensionSelect
+          value={props.value.allowedExtensions}
+          onChange={(next) => props.onChange({ allowedExtensions: next })}
+          ariaLabel={`${props.label} ${props.extensionsLabel}`}
+          placeholder={props.extensionsPlaceholder}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StorageUploadPolicyEditor(props: {
+  value: UploadPolicyFormValues;
+  onChange: (value: UploadPolicyFormValues) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const updateDefaults = (patch: Partial<UploadPurposePolicyFormValues>) => {
+    props.onChange({
+      ...props.value,
+      defaults: { ...props.value.defaults, ...patch },
+    });
+  };
+  const updatePurpose = (
+    key: UploadPolicyPurposeKey,
+    patch: Partial<UploadPurposePolicyFormValues>,
+  ) => {
+    props.onChange({
+      ...props.value,
+      purposes: {
+        ...props.value.purposes,
+        [key]: { ...props.value.purposes[key], ...patch },
+      },
+    });
+  };
+
+  return (
+    <div className="grid gap-3 py-2">
+      <div className="grid gap-1">
+        <div className="text-headline font-semibold text-label-primary">
+          {props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_TYPES_TITLE")}
+        </div>
+        <div className="text-label-secondary">
+          {props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_TYPES_DESC")}
+        </div>
+      </div>
+      <div className="min-w-0 divide-y divide-border/70 border-y border-border/70">
+        <div className="hidden gap-3 py-2 text-caption font-medium text-label-secondary md:grid md:grid-cols-[minmax(8rem,0.75fr)_8rem_minmax(20rem,2fr)]">
+          <span />
+          <span>{props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_MAX_SIZE_MB")}</span>
+          <span>{props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS")}</span>
+        </div>
+        <StorageUploadPolicyRow
+          label={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_DEFAULTS_LABEL")}
+          value={props.value.defaults}
+          onChange={updateDefaults}
+          maxSizeLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_MAX_SIZE_MB")}
+          extensionsLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS")}
+          extensionsPlaceholder={props.t(
+            "settings:SETTINGS_STORAGE_UPLOAD_POLICY_EXTENSIONS_PLACEHOLDER",
+          )}
+        />
+        {UPLOAD_POLICY_FORM_PURPOSES.map((purpose) => (
+          <StorageUploadPolicyRow
+            key={purpose.key}
+            label={props.t(purpose.labelKey)}
+            value={props.value.purposes[purpose.key]}
+            onChange={(patch) => updatePurpose(purpose.key, patch)}
+            maxSizeLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_MAX_SIZE_MB")}
+            extensionsLabel={props.t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ALLOWED_EXTENSIONS")}
+            extensionsPlaceholder={props.t(
+              "settings:SETTINGS_STORAGE_UPLOAD_POLICY_EXTENSIONS_PLACEHOLDER",
+            )}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -655,7 +1046,7 @@ export function SystemSettingsStoragePage() {
   const pendingProfileKey = getPendingProfileKey(pendingAction);
   const limitsDirty = STORAGE_LIMIT_FIELDS.some(
     (field) => limitValues[field] !== limitsInitialValues[field],
-  );
+  ) || JSON.stringify(limitValues.uploadPolicy) !== JSON.stringify(limitsInitialValues.uploadPolicy);
   const defaultProfileDirty =
     limitValues.defaultProfileKey !== limitsInitialValues.defaultProfileKey;
 
@@ -951,10 +1342,7 @@ export function SystemSettingsStoragePage() {
       await patchCoreSettings.mutateAsync({
         storage: {
           upload_chunk_size_mb: values.uploadChunkSizeMb,
-          upload_max_file_size_mb: values.uploadMaxFileSizeMb,
-          upload_max_avatar_size_mb: values.uploadMaxAvatarSizeMb,
-          upload_max_site_logo_size_mb: values.uploadMaxSiteLogoSizeMb,
-          upload_max_favicon_size_mb: values.uploadMaxFaviconSizeMb,
+          upload_policy: buildUploadPolicyPayload(values.uploadPolicy),
           upload_session_ttl_seconds: values.uploadSessionTtlSeconds,
           recycle_bin_retention_days: values.recycleBinRetentionDays,
         },
@@ -1069,15 +1457,6 @@ export function SystemSettingsStoragePage() {
               </Empty>
             ) : (
               <div className="grid min-w-0 max-w-full gap-4 overflow-hidden">
-                <DataTablePresenter
-                  table={profileTable}
-                  emptyText={t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE")}
-                  className="min-w-0 max-w-full overflow-hidden"
-                  surface="embedded"
-                  rowHeight="tall"
-                  wrapContent
-                  columnMenuLabels={profileColumnMenuLabels}
-                />
                 <SystemSettingRow
                   className="max-w-full flex-wrap"
                   title={t("settings:SETTINGS_SYSTEM_STORAGE_CURRENT_PROFILE_TITLE")}
@@ -1100,6 +1479,15 @@ export function SystemSettingsStoragePage() {
                       </SelectContent>
                     </Select>
                   }
+                />
+                <DataTablePresenter
+                  table={profileTable}
+                  emptyText={t("settings:SETTINGS_SYSTEM_STORAGE_EMPTY_TITLE")}
+                  className="min-w-0 max-w-full overflow-hidden"
+                  surface="embedded"
+                  rowHeight="tall"
+                  wrapContent
+                  columnMenuLabels={profileColumnMenuLabels}
                 />
               </div>
             )}
@@ -1128,41 +1516,12 @@ export function SystemSettingsStoragePage() {
                   limitsForm.setValue("uploadChunkSizeMb", value, { shouldDirty: true })
                 }
               />
-              <StorageLimitNumberField
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
-                description={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_DESC")}
-                value={limitValues.uploadMaxFileSizeMb}
-                min={1}
-                onValueChange={(value) =>
-                  limitsForm.setValue("uploadMaxFileSizeMb", value, { shouldDirty: true })
+              <StorageUploadPolicyEditor
+                value={limitValues.uploadPolicy}
+                onChange={(value) =>
+                  limitsForm.setValue("uploadPolicy", value, { shouldDirty: true })
                 }
-              />
-              <StorageLimitNumberField
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_LABEL")}
-                description={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB_DESC")}
-                value={limitValues.uploadMaxAvatarSizeMb}
-                min={1}
-                onValueChange={(value) =>
-                  limitsForm.setValue("uploadMaxAvatarSizeMb", value, { shouldDirty: true })
-                }
-              />
-              <StorageLimitNumberField
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_LABEL")}
-                description={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB_DESC")}
-                value={limitValues.uploadMaxSiteLogoSizeMb}
-                min={1}
-                onValueChange={(value) =>
-                  limitsForm.setValue("uploadMaxSiteLogoSizeMb", value, { shouldDirty: true })
-                }
-              />
-              <StorageLimitNumberField
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_LABEL")}
-                description={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB_DESC")}
-                value={limitValues.uploadMaxFaviconSizeMb}
-                min={1}
-                onValueChange={(value) =>
-                  limitsForm.setValue("uploadMaxFaviconSizeMb", value, { shouldDirty: true })
-                }
+                t={t}
               />
               <StorageLimitNumberField
                 label={t("settings:SETTINGS_STORAGE_UPLOAD_SESSION_TTL_SECONDS_LABEL")}

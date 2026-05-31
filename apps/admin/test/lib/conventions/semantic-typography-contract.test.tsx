@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 
 import { buttonVariants } from "@arclayer/ui/button";
 import { SelectedCountTag } from "@/components/ui/tags";
-import { BaseTag } from "@/components/ui/tags/tag-base";
+import { BaseTag, lucideTagIcon } from "@/components/ui/tags/tag-base";
+import { RadioTower } from "lucide-react";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../../..");
 const TOKENS_CSS_PATH = path.join(REPO_ROOT, "packages/ui/src/tokens.css");
@@ -33,6 +34,27 @@ describe("semantic typography contract", () => {
       "text-caption",
       "font-semibold!",
     );
+  });
+
+  it("keeps BaseTag text truncatable without shrinking its icon", () => {
+    render(
+      <div className="w-24">
+        <BaseTag color="blue" icon={lucideTagIcon(RadioTower)}>
+          Current storage profile with a very long name
+        </BaseTag>
+      </div>,
+    );
+
+    const label = screen.getByText("Current storage profile with a very long name");
+    const labelWrapper = label.closest("span");
+    const content = labelWrapper?.parentElement;
+    const root = content?.parentElement;
+    const icon = root?.querySelector("svg")?.parentElement;
+
+    expect(root).toHaveClass("min-w-0", "max-w-full", "overflow-hidden");
+    expect(content).toHaveClass("min-w-0", "max-w-full", "flex-1", "overflow-hidden");
+    expect(labelWrapper).toHaveClass("min-w-0", "max-w-full", "flex-1", "truncate");
+    expect(icon).toHaveClass("shrink-0");
   });
 
   it("lets semantic tag wrappers opt into footnote typography", () => {

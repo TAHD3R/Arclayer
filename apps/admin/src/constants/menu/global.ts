@@ -1,5 +1,4 @@
 import {
-  CreditCard,
   House,
   LayoutDashboard,
   PanelsTopLeft,
@@ -54,14 +53,14 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     to: "/system/tenants",
     icon: Users,
   },
-  {
-    key: "global.platform.plans",
-    label: "Plans & Limits",
-    labelKey: "nav:NAV_GLOBAL_PLATFORM_PLANS_LIMITS",
-    to: "/system/plans",
-    icon: CreditCard,
-    disabled: true,
-  },
+  // {
+  //   key: "global.platform.plans",
+  //   label: "Plans & Limits",
+  //   labelKey: "nav:NAV_GLOBAL_PLATFORM_PLANS_LIMITS",
+  //   to: "/system/plans",
+  //   icon: CreditCard,
+  //   disabled: true,
+  // },
   {
     key: "global.platform.audit",
     label: "Audit Log",

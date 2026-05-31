@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from pydantic import Field, PostgresDsn, SecretStr, computed_field, field_validator
+from pydantic import BaseModel, Field, PostgresDsn, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.settings.env_models import (
@@ -27,6 +27,83 @@ _REPO_ROOT_PREFIXES = {
     "docs",
     "docker",
 }
+
+_DEFAULT_IMAGE_UPLOAD_EXTENSIONS = [
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "gif",
+    "bmp",
+    "tif",
+    "tiff",
+    "avif",
+]
+_DEFAULT_LIBRARY_UPLOAD_EXTENSIONS = [
+    *_DEFAULT_IMAGE_UPLOAD_EXTENSIONS,
+    "zip",
+    "pdf",
+    "mp4",
+    "webm",
+    "mov",
+    "m4v",
+    "woff2",
+    "woff",
+    "ttf",
+    "otf",
+    "eot",
+]
+
+
+class UploadPurposePolicySettings(BaseModel):
+    max_size_mb: int = Field(default=2048, ge=1, le=1024 * 100)
+    allowed_extensions: list[str] = Field(default_factory=lambda: list(_DEFAULT_LIBRARY_UPLOAD_EXTENSIONS))
+
+    @field_validator("allowed_extensions", mode="after")
+    @classmethod
+    def _normalize_allowed_extensions(cls, value: list[str]) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            ext = str(item or "").strip().lower().lstrip(".")
+            if not ext or ext in seen:
+                continue
+            seen.add(ext)
+            normalized.append(ext)
+        return normalized
+
+
+class UploadPolicySettings(BaseModel):
+    defaults: UploadPurposePolicySettings = Field(
+        default_factory=lambda: UploadPurposePolicySettings(
+            max_size_mb=2048,
+            allowed_extensions=list(_DEFAULT_LIBRARY_UPLOAD_EXTENSIONS),
+        )
+    )
+    purposes: dict[str, UploadPurposePolicySettings] = Field(
+        default_factory=lambda: {
+            "library": UploadPurposePolicySettings(
+                max_size_mb=2048,
+                allowed_extensions=list(_DEFAULT_LIBRARY_UPLOAD_EXTENSIONS),
+            ),
+            "avatar": UploadPurposePolicySettings(
+                max_size_mb=10,
+                allowed_extensions=list(_DEFAULT_IMAGE_UPLOAD_EXTENSIONS),
+            ),
+            "workspace_icon": UploadPurposePolicySettings(
+                max_size_mb=20,
+                allowed_extensions=list(_DEFAULT_IMAGE_UPLOAD_EXTENSIONS),
+            ),
+            "site_logo": UploadPurposePolicySettings(
+                max_size_mb=20,
+                allowed_extensions=list(_DEFAULT_IMAGE_UPLOAD_EXTENSIONS),
+            ),
+            "favicon": UploadPurposePolicySettings(
+                max_size_mb=2,
+                allowed_extensions=["ico", "png"],
+            ),
+        }
+    )
 
 
 def _build_settings_from_env_file[S: BaseSettings](
@@ -207,6 +284,7 @@ class StorageSettings(BaseSettings):
         le=1024 * 100,
         description="Max favicon upload size (MiB).",
     )
+    upload_policy: UploadPolicySettings = Field(default_factory=UploadPolicySettings)
     upload_session_ttl_seconds: int = Field(
         default=3600,
         ge=60,

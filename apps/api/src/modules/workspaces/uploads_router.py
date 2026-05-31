@@ -15,6 +15,7 @@ from src.modules.assets.admin.uploads.schema import (
     UploadInitRequest,
     UploadPartCommitRequest,
     UploadPartPresignOut,
+    UploadPolicyOut,
     UploadStatusOut,
     build_upload_init_out,
 )
@@ -73,6 +74,21 @@ async def init_upload(
         target_folder_id=payload.folder_id,
     )
     return ApiResponse.success(data=build_upload_init_out(session))
+
+
+@router.get(
+    "/uploads/policy",
+    response_model=ResponseModel[UploadPolicyOut],
+    summary="Get workspace upload policy",
+    dependencies=[require_workspace_permission("system:settings:manage")],
+)
+async def get_upload_policy(
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    _user=Depends(get_current_user),
+    service: UploadsService = Depends(get_uploads_service),
+) -> ResponseModel[UploadPolicyOut]:
+    _ = ctx
+    return ApiResponse.success(data=await service.get_upload_policy(purpose=WORKSPACE_ICON_UPLOAD_PURPOSE))
 
 
 @router.get(

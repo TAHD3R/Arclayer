@@ -1,6 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import type React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { useDropzoneMock } = vi.hoisted(() => ({
+  useDropzoneMock: vi.fn(),
+}));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -9,12 +13,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("react-dropzone", () => ({
-  useDropzone: () => ({
-    getRootProps: (props?: Record<string, unknown>) => props ?? {},
-    getInputProps: () => ({}),
-    isDragActive: false,
-    open: vi.fn(),
-  }),
+  useDropzone: useDropzoneMock,
 }));
 
 vi.mock("@arclayer/ui/tooltip", () => ({
@@ -26,6 +25,16 @@ vi.mock("@arclayer/ui/tooltip", () => ({
 import { FileUpload } from "@/pages/workspaces/assets/components/file-upload/file-upload";
 
 describe("FileUpload.Panel", () => {
+  beforeEach(() => {
+    useDropzoneMock.mockReset();
+    useDropzoneMock.mockReturnValue({
+      getRootProps: (props?: Record<string, unknown>) => props ?? {},
+      getInputProps: () => ({}),
+      isDragActive: false,
+      open: vi.fn(),
+    });
+  });
+
   it("renders upload items without wrapping the list in an extra card container", () => {
     render(
       <FileUpload.Panel
@@ -48,5 +57,27 @@ describe("FileUpload.Panel", () => {
     expect(list).toHaveClass("grid", "gap-3");
     expect(list).not.toHaveClass("flex", "flex-col");
     expect(listContainer).not.toHaveClass("rounded-xl", "border", "bg-card", "p-3");
+  });
+
+  it("passes upload policy limits into dropzone validation", () => {
+    render(
+      <FileUpload.Panel
+        items={[]}
+        accept=".png,image/png"
+        maxSizeBytes={4}
+        onPickFiles={() => undefined}
+        onDeleteItem={() => undefined}
+      />,
+    );
+
+    const validator = useDropzoneMock.mock.calls[0][0].validator as (file: File) => unknown;
+
+    expect(validator(new File(["ok"], "avatar.png", { type: "image/png" }))).toBeNull();
+    expect(validator(new File(["large"], "avatar.png", { type: "image/png" }))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "file-too-large" })]),
+    );
+    expect(validator(new File(["ok"], "avatar.gif", { type: "image/gif" }))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "file-invalid-type" })]),
+    );
   });
 });

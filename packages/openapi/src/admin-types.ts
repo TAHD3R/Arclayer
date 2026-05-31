@@ -740,6 +740,12 @@ export type UploadCompleteOut = Generated.UploadCompleteOut;
 export type UploadInitOut = Generated.UploadInitOut;
 export type UploadInitRequest = Generated.UploadInitRequest;
 export type AvatarUploadInitRequest = Generated.AvatarUploadInitRequest;
+export type UploadPurposePolicy = Omit<Generated.UploadPolicyOut, "purpose">;
+export type UploadPolicySettings = {
+  defaults: UploadPurposePolicy;
+  purposes: Record<string, UploadPurposePolicy>;
+};
+export type UploadPolicyOut = Generated.UploadPolicyOut;
 export type UploadPartCommitRequest = Generated.UploadPartCommitRequest;
 export type UploadPartPresignOut = Generated.UploadPartPresignOut;
 export type UploadStatusOut = Generated.UploadStatusOut;

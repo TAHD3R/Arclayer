@@ -1,4 +1,8 @@
-import type { UploadInitRequest, UploadPartCommitRequest } from "@arclayer/openapi/admin-types";
+import type {
+  UploadInitRequest,
+  UploadPartCommitRequest,
+  UploadPolicyOut,
+} from "@arclayer/openapi/admin-types";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import {
   abortWorkspaceUpload,
@@ -7,6 +11,8 @@ import {
   commitUploadPart,
   completeWorkspaceUpload,
   completeUpload,
+  getUploadPolicy,
+  getWorkspaceUploadPolicy,
   initWorkspaceUpload,
   initUpload,
   presignWorkspaceUploadPart,
@@ -16,6 +22,7 @@ import {
 } from "@/api/uploads";
 
 type ScopedUploadsApi = {
+  getPolicy: (purpose: string) => Promise<UploadPolicyOut>;
   init: (payload: UploadInitRequest) => ReturnType<typeof initUpload>;
   abort: (uploadId: string) => Promise<unknown>;
   uploadPart: (params: {
@@ -42,6 +49,7 @@ export function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
 
   if (scope.type === "project") {
     return {
+      getPolicy: (purpose) => getUploadPolicy(rawId, purpose),
       init: (payload) => initUpload(rawId, payload),
       abort: (uploadId) => abortUpload(rawId, uploadId),
       uploadPart: async (params) => {
@@ -57,6 +65,7 @@ export function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
 
   if (scope.type === "workspace") {
     return {
+      getPolicy: () => getWorkspaceUploadPolicy(rawId),
       init: (payload) => initWorkspaceUpload(rawId, payload),
       abort: (uploadId) => abortWorkspaceUpload(rawId, uploadId),
       uploadPart: async (params) => {
@@ -71,6 +80,36 @@ export function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
   }
 
   throw new Error("ASSET_SCOPE_UNSUPPORTED");
+}
+
+function isFileAccepted(file: File, accept: string): boolean {
+  const tokens = accept
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  if (!tokens.length) return true;
+
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const mime = (file.type || "").toLowerCase();
+  return tokens.some((token) => {
+    if (token.startsWith(".")) return Boolean(ext) && token === `.${ext}`;
+    if (token.endsWith("/*")) return mime.startsWith(`${token.slice(0, -1)}`);
+    return Boolean(mime) && mime === token;
+  });
+}
+
+async function validateFileAgainstPolicy(options: {
+  api: ScopedUploadsApi;
+  purpose: string;
+  file: File;
+}): Promise<void> {
+  const policy = await options.api.getPolicy(options.purpose);
+  if (options.file.size > policy.maxSizeBytes) {
+    throw new Error("UPLOAD_TOO_LARGE");
+  }
+  if (!isFileAccepted(options.file, policy.accept || "")) {
+    throw new Error("UPLOAD_TYPE_NOT_ALLOWED");
+  }
 }
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
@@ -217,6 +256,7 @@ export async function uploadSingleAssetFromFile(options: {
 }): Promise<string> {
   const api = getScopedUploadsApi(options.scope);
   const purpose = String(options.purpose || "").trim() || "library";
+  await validateFileAgainstPolicy({ api, purpose, file: options.file });
   const session = await initUploadSession({
     api,
     purpose,

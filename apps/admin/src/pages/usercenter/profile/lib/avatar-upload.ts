@@ -2,6 +2,7 @@ import {
   abortAvatarUpload,
   commitAvatarUploadPart,
   completeAvatarUpload,
+  getAvatarUploadPolicy,
   initAvatarUpload,
   presignAvatarUploadPart,
   uploadAvatarPart,
@@ -16,6 +17,21 @@ type UploadPlan = {
   totalParts: number;
   method: string;
 };
+
+function isFileAccepted(file: File, accept: string): boolean {
+  const tokens = accept
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  if (!tokens.length) return true;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const mime = (file.type || "").toLowerCase();
+  return tokens.some((token) => {
+    if (token.startsWith(".")) return Boolean(ext) && token === `.${ext}`;
+    if (token.endsWith("/*")) return mime.startsWith(`${token.slice(0, -1)}`);
+    return Boolean(mime) && mime === token;
+  });
+}
 
 async function runSequentially(
   items: readonly number[],
@@ -82,6 +98,14 @@ async function uploadS3Part(params: {
 export async function uploadAvatarFile(file: File, signal?: AbortSignal): Promise<string> {
   let uploadId: string | null = null;
   try {
+    const policy = await getAvatarUploadPolicy();
+    if (file.size > policy.maxSizeBytes) {
+      throw new Error("UPLOAD_TOO_LARGE");
+    }
+    if (!isFileAccepted(file, policy.accept || "")) {
+      throw new Error("UPLOAD_TYPE_NOT_ALLOWED");
+    }
+
     const init = await initAvatarUpload({
       filename: file.name,
       mime: file.type || null,

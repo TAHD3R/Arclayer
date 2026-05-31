@@ -10,7 +10,7 @@ const TAG_TEXT_STYLE_CLASSNAMES = {
 } as const;
 
 export const TAG_BASE_ROOT_CLASSNAME =
-  "inline-flex min-w-0 max-w-full shrink items-center rounded-sm border border-border px-2 py-1 font-semibold whitespace-nowrap ";
+  "inline-flex min-w-0 max-w-full shrink items-center overflow-hidden rounded-sm border border-border px-2 py-1 font-semibold whitespace-nowrap ";
 
 type TagSemanticClassNames = {
   root?: string;
@@ -45,7 +45,7 @@ function mergeTagClassNames(
     root: cn(TAG_BASE_ROOT_CLASSNAME, overrides?.root),
     icon: cn("inline-flex shrink-0 items-center ", overrides?.icon),
     content: cn(
-      "inline-flex min-w-0 max-w-full items-center gap-1 font-semibold!",
+      "inline-flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden font-semibold!",
       TAG_TEXT_STYLE_CLASSNAMES[textStyle],
       overrides?.content,
     ),
@@ -95,14 +95,14 @@ export function BaseTag({
     >
       <span className={mergedClassNames.content}>
         {icon ? <span className={mergedClassNames.icon}>{icon}</span> : null}
-        <span className="inline-flex min-w-0 max-w-full shrink items-center overflow-hidden">
+        <span className="block min-w-0 max-w-full flex-1 truncate">
           {children}
         </span>
       </span>
       {closable ? (
         <button
           type="button"
-          className="ml-1 inline-flex size-4 items-center justify-center rounded-sm opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
+          className="ml-1 inline-flex size-4 shrink-0 items-center justify-center rounded-sm opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
           onClick={(event) => {
             onClose?.(event);
           }}

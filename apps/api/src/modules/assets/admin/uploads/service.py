@@ -27,13 +27,14 @@ from src.models.assets.asset import AssetPurpose, AssetVisibility
 from src.models.assets.upload import UploadSessionRecord, UploadStatus
 from src.modules.analytics.audit import ActivityAuditPayload, write_required_activity_event
 from src.modules.assets.admin.uploads.policy.service import (
+    UploadPolicy,
     build_upload_policy,
     normalize_original_filename,
     validate_sha256_hex,
     validate_upload_metadata,
 )
 from src.modules.assets.admin.uploads.repository import UploadsRepository
-from src.modules.assets.admin.uploads.schema import UploadPartPresignOut
+from src.modules.assets.admin.uploads.schema import UploadPartPresignOut, UploadPolicyOut
 from src.modules.assets.naming.service import (
     build_scoped_asset_object_key,
     build_scoped_upload_part_object_key,
@@ -100,6 +101,12 @@ def _ts(key: str, default: str) -> str:
     return t("errors", key, default=default)
 
 
+def _accept_for_policy(policy: UploadPolicy) -> str:
+    ext_tokens = [f".{ext}" for ext in sorted(policy.allowed_exts)]
+    mime_tokens = sorted(policy.allowed_mime_types)
+    return ",".join([*ext_tokens, *mime_tokens])
+
+
 def normalize_visibility_and_indexable(
     *,
     purpose: str,
@@ -155,6 +162,32 @@ class UploadsService(BaseService):
 
     def _expires_at(self) -> datetime:
         return datetime.now(tz=UTC) + timedelta(seconds=self.settings.storage.upload_session_ttl_seconds)
+
+    async def get_upload_policy(self, *, purpose: str) -> UploadPolicyOut:
+        effective = await get_effective_settings(self.settings)
+        normalized_purpose = (purpose or "").strip().lower() or "library"
+        policy = self._build_policy(effective=effective, purpose=normalized_purpose)
+        max_size_bytes = int(policy.max_size_bytes)
+        return UploadPolicyOut(
+            purpose=normalized_purpose,
+            max_size_mb=max(1, max_size_bytes // (1024 * 1024)),
+            max_size_bytes=max_size_bytes,
+            allowed_extensions=sorted(policy.allowed_exts),
+            allowed_mime_types=sorted(policy.allowed_mime_types),
+            accept=_accept_for_policy(policy),
+        )
+
+    @staticmethod
+    def _build_policy(*, effective: Settings, purpose: str) -> UploadPolicy:
+        global_max_bytes = int(effective.storage.upload_policy.defaults.max_size_mb) * 1024 * 1024
+        return build_upload_policy(
+            purpose=purpose,
+            global_max_size_bytes=global_max_bytes,
+            max_avatar_size_bytes=int(effective.storage.upload_max_avatar_size_mb) * 1024 * 1024,
+            max_site_logo_size_bytes=int(effective.storage.upload_max_site_logo_size_mb) * 1024 * 1024,
+            max_favicon_size_bytes=int(effective.storage.upload_max_favicon_size_mb) * 1024 * 1024,
+            upload_policy_settings=effective.storage.upload_policy,
+        )
 
     @staticmethod
     def _upload_tmp_dir_key(*, scope: AssetScope, upload_id: UUID) -> str:
@@ -221,16 +254,9 @@ class UploadsService(BaseService):
         effective = await get_effective_settings(self.settings)
         profile_key, active_profile = await get_effective_storage_profile(self.settings)
 
-        global_max_bytes = int(effective.storage.upload_max_file_size_mb) * 1024 * 1024
-        policy = build_upload_policy(
-            purpose=purpose,
-            global_max_size_bytes=global_max_bytes,
-            max_avatar_size_bytes=int(effective.storage.upload_max_avatar_size_mb) * 1024 * 1024,
-            max_site_logo_size_bytes=int(effective.storage.upload_max_site_logo_size_mb) * 1024 * 1024,
-            max_favicon_size_bytes=int(effective.storage.upload_max_favicon_size_mb) * 1024 * 1024,
-        )
+        policy = self._build_policy(effective=effective, purpose=purpose)
         ext = validate_upload_metadata(
-            purpose=purpose, filename=normalized_filename, size_bytes=size_bytes, policy=policy
+            purpose=purpose, filename=normalized_filename, mime=mime, size_bytes=size_bytes, policy=policy
         )
         stem = Path(normalized_filename).stem or "asset"
         slug = slugify(stem)

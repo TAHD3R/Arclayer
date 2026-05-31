@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from src.config import get_settings
 from src.core.exceptions import init_exception_handlers
+from src.models.storage.storage_profile import StorageProfileTestStateRecord
 from src.models.system.setting import SettingRecord
 from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.system.router import router as system_router
@@ -80,10 +81,24 @@ async def test_storage_profiles_crud_and_runtime_reference(prepared_db, tmp_path
         tested = await client.post(f"/api/v1/system/storage-profiles/{profile_id}/test")
         assert tested.status_code == 200
         assert tested.json()["data"]["ok"] is True
+        assert await StorageProfileTestStateRecord.filter(profile_key="local-main").exists()
 
         env_default_tested = await client.post("/api/v1/system/storage-profiles/by-key/env-default/test")
         assert env_default_tested.status_code == 200
         assert env_default_tested.json()["data"]["ok"] is True
+        assert await StorageProfileTestStateRecord.filter(profile_key="env-default").exists()
+
+        listed_after_tests = await client.get("/api/v1/system/storage-profiles")
+        assert listed_after_tests.status_code == 200
+        state_by_key = {
+            item["profileKey"]: item
+            for item in listed_after_tests.json()["data"]["items"]
+            if item["profileKey"] in {"local-main", "env-default"}
+        }
+        assert state_by_key["local-main"]["lastTestStatus"] == "passed"
+        assert state_by_key["local-main"]["lastTestedAt"]
+        assert state_by_key["env-default"]["lastTestStatus"] == "passed"
+        assert state_by_key["env-default"]["lastTestedAt"]
 
         invalid_id_tested = await client.post(
             "/api/v1/system/storage-profiles/00000000-0000-0000-0000-000000000000/test"

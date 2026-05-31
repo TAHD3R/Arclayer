@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 
 import {
   abortUpload,
   commitUploadPart,
   completeUpload,
+  getUploadPolicy,
   initUpload,
   presignUploadPart,
   uploadPart,
@@ -97,6 +99,14 @@ export function AssetUploadDialog(props: {
 
   const folderId = props.defaultFolderId;
   const purpose = (props.purpose || "library").trim() || "library";
+  const scopeId = String(props.scope.id || "").trim();
+  const uploadPolicyQuery = useQuery({
+    queryKey: ["assets", "upload-policy", props.scope.type, scopeId, purpose],
+    queryFn: () => getUploadPolicy(scopeId, purpose),
+    enabled: props.open && props.scope.type === "project" && Boolean(scopeId),
+    staleTime: 60_000,
+  });
+  const uploadPolicy = uploadPolicyQuery.data ?? null;
   const dropZoneHintSummary = useMemo(() => {
     const p = purpose.toLowerCase();
     if (p === "favicon") {
@@ -361,6 +371,8 @@ export function AssetUploadDialog(props: {
       <FileUpload.Panel
         items={fileUploadPanelItems}
         isDisabled={hasUploading}
+        accept={uploadPolicy?.accept || undefined}
+        maxSizeBytes={uploadPolicy?.maxSizeBytes ?? undefined}
         dropZoneHintSummary={dropZoneHintSummary}
         dropZoneHintDetail={dropZoneHintDetail}
         onPickFiles={pickFiles}

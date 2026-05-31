@@ -5,6 +5,7 @@ import {
   abortAvatarUpload,
   commitAvatarUploadPart,
   completeAvatarUpload,
+  getAvatarUploadPolicy,
   initAvatarUpload,
   presignAvatarUploadPart,
   uploadAvatarPart,
@@ -17,11 +18,20 @@ vi.mock("@/api/uploads", () => ({
   commitAvatarUploadPart: vi.fn(),
   completeAvatarUpload: vi.fn(),
   abortAvatarUpload: vi.fn(),
+  getAvatarUploadPolicy: vi.fn(),
 }));
 
 describe("uploadAvatarFile", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getAvatarUploadPolicy).mockResolvedValue({
+      purpose: "avatar",
+      maxSizeMb: 10,
+      maxSizeBytes: 10 * 1024 * 1024,
+      allowedExtensions: ["jpg", "jpeg", "png", "webp"],
+      allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+      accept: ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp",
+    } as never);
   });
 
   it("local 模式下上传完成后返回 assetId", async () => {
@@ -92,5 +102,39 @@ describe("uploadAvatarFile", () => {
     expect(uploadAvatarPart).not.toHaveBeenCalled();
 
     fetchMock.mockRestore();
+  });
+
+  it("文件超过头像策略大小时不会初始化上传", async () => {
+    vi.mocked(getAvatarUploadPolicy).mockResolvedValue({
+      purpose: "avatar",
+      maxSizeMb: 1,
+      maxSizeBytes: 1,
+      allowedExtensions: ["png"],
+      allowedMimeTypes: ["image/png"],
+      accept: ".png,image/png",
+    } as never);
+
+    const file = new File(["avatar-bytes"], "avatar.png", { type: "image/png" });
+
+    await expect(uploadAvatarFile(file)).rejects.toThrow("UPLOAD_TOO_LARGE");
+    expect(initAvatarUpload).not.toHaveBeenCalled();
+    expect(abortAvatarUpload).not.toHaveBeenCalled();
+  });
+
+  it("文件类型不在头像策略内时不会初始化上传", async () => {
+    vi.mocked(getAvatarUploadPolicy).mockResolvedValue({
+      purpose: "avatar",
+      maxSizeMb: 10,
+      maxSizeBytes: 10 * 1024 * 1024,
+      allowedExtensions: ["png"],
+      allowedMimeTypes: ["image/png"],
+      accept: ".png,image/png",
+    } as never);
+
+    const file = new File(["avatar-bytes"], "avatar.gif", { type: "image/gif" });
+
+    await expect(uploadAvatarFile(file)).rejects.toThrow("UPLOAD_TYPE_NOT_ALLOWED");
+    expect(initAvatarUpload).not.toHaveBeenCalled();
+    expect(abortAvatarUpload).not.toHaveBeenCalled();
   });
 });

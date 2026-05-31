@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from src.common.types.json_types import JsonObject
@@ -10,7 +10,7 @@ from src.core.i18n import t
 from src.core.services import BaseService
 from src.models.assets.asset import AssetRecord
 from src.models.assets.upload import UploadSessionRecord
-from src.models.storage.storage_profile import StorageProfileRecord
+from src.models.storage.storage_profile import StorageProfileRecord, StorageProfileTestStateRecord
 from src.models.system.setting import SettingRecord
 from src.modules.system.storage_profiles.schema import (
     StorageProfileConfigPayload,
@@ -44,9 +44,10 @@ class StorageProfilesService(BaseService):
             scope_type=SCOPE_TYPE_SYSTEM,
             scope_id=SYSTEM_SCOPE_ID,
         ).order_by("-is_default", "display_name", "created_at")
-        items = [self._to_out(record) for record in records]
+        test_states = await self._load_test_states()
+        items = [self._to_out(record, test_states.get(record.profile_key)) for record in records]
         if not any(item.profile_key == ENV_DEFAULT_PROFILE_KEY for item in items):
-            items.append(self._build_env_default_out())
+            items.append(self._build_env_default_out(test_states.get(ENV_DEFAULT_PROFILE_KEY)))
         return StorageProfileListOut(items=items)
 
     async def create_profile(
@@ -147,14 +148,21 @@ class StorageProfilesService(BaseService):
             raise NotFound(message=_ts("STORAGE_PROFILE_NOT_FOUND"), error="STORAGE_PROFILE_NOT_FOUND")
 
         config = build_env_storage_profile_config(self.settings)
-        return await self._test_config(config)
+        result = await self._test_config(config)
+        await self._remember_test_state(
+            profile_key=ENV_DEFAULT_PROFILE_KEY,
+            status=result.status,
+            message=result.message,
+        )
+        return result
 
     async def _test_record(self, record: StorageProfileRecord) -> StorageProfileTestResultOut:
         result = await self._test_config(build_storage_profile_config_from_record(record, settings=self.settings))
-        record.last_test_status = result.status
-        record.last_test_message = result.message
-        record.last_tested_at = datetime.now(tz=UTC)
-        await record.save(update_fields=["last_test_status", "last_test_message", "last_tested_at", "updated_at"])
+        await self._remember_test_state(
+            profile_key=record.profile_key,
+            status=result.status,
+            message=result.message,
+        )
         return result
 
     async def _test_config(self, config: StorageProfileConfig) -> StorageProfileTestResultOut:
@@ -193,7 +201,40 @@ class StorageProfilesService(BaseService):
         await record.delete()
         return StorageProfileDeleteOut(id=profile_id, deleted=True)
 
-    def _build_env_default_out(self) -> StorageProfileOut:
+    async def _remember_test_state(
+        self,
+        *,
+        profile_key: str,
+        status: Literal["passed", "failed"],
+        message: str | None,
+    ) -> None:
+        now = datetime.now(tz=UTC)
+        record, _created = await StorageProfileTestStateRecord.get_or_create(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+            profile_key=profile_key,
+            defaults={
+                "last_test_status": status,
+                "last_test_message": message,
+                "last_tested_at": now,
+            },
+        )
+        record.last_test_status = status
+        record.last_test_message = message
+        record.last_tested_at = now
+        await record.save(update_fields=["last_test_status", "last_test_message", "last_tested_at", "updated_at"])
+
+    async def _load_test_states(self) -> dict[str, StorageProfileTestStateRecord]:
+        states = await StorageProfileTestStateRecord.filter(
+            scope_type=SCOPE_TYPE_SYSTEM,
+            scope_id=SYSTEM_SCOPE_ID,
+        )
+        return {state.profile_key: state for state in states}
+
+    def _build_env_default_out(
+        self,
+        test_state: StorageProfileTestStateRecord | None = None,
+    ) -> StorageProfileOut:
         config = build_env_storage_profile_config(self.settings)
         return StorageProfileOut(
             id=UUID(int=0),
@@ -208,9 +249,18 @@ class StorageProfilesService(BaseService):
             secrets=StorageProfileSecretsOut(secret_access_key=config.secret_access_key is not None),
             is_active=True,
             is_default=False,
+            last_test_status=cast(Literal["passed", "failed"] | None, test_state.last_test_status)
+            if test_state
+            else None,
+            last_test_message=test_state.last_test_message if test_state else None,
+            last_tested_at=test_state.last_tested_at if test_state else None,
         )
 
-    def _to_out(self, record: StorageProfileRecord) -> StorageProfileOut:
+    def _to_out(
+        self,
+        record: StorageProfileRecord,
+        test_state: StorageProfileTestStateRecord | None = None,
+    ) -> StorageProfileOut:
         config = build_storage_profile_config_from_record(record, settings=self.settings)
         return StorageProfileOut(
             id=record.id,
@@ -227,9 +277,11 @@ class StorageProfilesService(BaseService):
             ),
             is_active=record.is_active,
             is_default=record.is_default,
-            last_test_status=record.last_test_status,
-            last_test_message=record.last_test_message,
-            last_tested_at=record.last_tested_at,
+            last_test_status=cast(Literal["passed", "failed"] | None, test_state.last_test_status)
+            if test_state
+            else None,
+            last_test_message=test_state.last_test_message if test_state else None,
+            last_tested_at=test_state.last_tested_at if test_state else None,
         )
 
     @staticmethod

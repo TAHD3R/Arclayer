@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from src.config import UploadPolicySettings
 from src.core.exceptions import BadRequest
 from src.modules.assets.admin.uploads.policy.service import (
     UploadPolicy,
@@ -53,6 +54,21 @@ def test_avatar_policy_allows_images_only() -> None:
     assert exc.value.error == "UPLOAD_TYPE_NOT_ALLOWED"
 
 
+def test_policy_rejects_mime_extension_mismatch() -> None:
+    policy = _policy_for("avatar")
+
+    with pytest.raises(BadRequest) as exc:
+        validate_upload_metadata(
+            purpose="avatar",
+            filename="a.png",
+            mime="application/pdf",
+            size_bytes=1,
+            policy=policy,
+        )
+
+    assert exc.value.error == "UPLOAD_MIME_NOT_ALLOWED"
+
+
 def test_favicon_policy_allows_ico_png_only() -> None:
     policy = _policy_for("favicon")
     assert validate_upload_metadata(purpose="favicon", filename="a.ico", size_bytes=1, policy=policy) == "ico"
@@ -72,6 +88,62 @@ def test_library_policy_allows_common_types_but_not_svg() -> None:
 
     with pytest.raises(BadRequest):
         validate_upload_metadata(purpose="library", filename="a.svg", size_bytes=1, policy=policy)
+
+
+def test_configured_policy_overrides_purpose_extensions_and_size() -> None:
+    policy = build_upload_policy(
+        purpose="library",
+        global_max_size_bytes=100 * 1024 * 1024,
+        max_avatar_size_bytes=10,
+        max_site_logo_size_bytes=20,
+        max_favicon_size_bytes=5,
+        upload_policy_settings=UploadPolicySettings.model_validate(
+            {
+                "defaults": {"max_size_mb": 100, "allowed_extensions": ["pdf"]},
+                "purposes": {
+                    "library": {"max_size_mb": 1, "allowed_extensions": ["png", "svg"]},
+                },
+            }
+        ),
+    )
+
+    assert policy.max_size_bytes == 1024 * 1024
+    assert policy.allowed_exts == frozenset({"png"})
+    assert validate_upload_metadata(
+        purpose="library",
+        filename="a.png",
+        mime="image/png",
+        size_bytes=1,
+        policy=policy,
+    ) == "png"
+    with pytest.raises(BadRequest) as exc:
+        validate_upload_metadata(
+            purpose="library",
+            filename="a.pdf",
+            mime="application/pdf",
+            size_bytes=1,
+            policy=policy,
+        )
+    assert exc.value.error == "UPLOAD_TYPE_NOT_ALLOWED"
+
+
+def test_unknown_purpose_uses_configured_defaults() -> None:
+    policy = build_upload_policy(
+        purpose="custom",
+        global_max_size_bytes=100 * 1024 * 1024,
+        max_avatar_size_bytes=10,
+        max_site_logo_size_bytes=20,
+        max_favicon_size_bytes=5,
+        upload_policy_settings=UploadPolicySettings.model_validate(
+            {
+                "defaults": {"max_size_mb": 2, "allowed_extensions": ["pdf"]},
+                "purposes": {},
+            }
+        ),
+    )
+
+    assert policy.max_size_bytes == 2 * 1024 * 1024
+    assert policy.allowed_exts == frozenset({"pdf"})
 
 
 def test_policy_enforces_purpose_size_cap() -> None:

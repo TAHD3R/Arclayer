@@ -47,6 +47,23 @@ class UploadAbortOut(BaseSchema):
     status: str = Field(..., description="Final session status.")
 
 
+class UploadPurposePolicy(BaseSchema):
+    max_size_mb: int = Field(..., ge=1, description="Maximum upload size in MiB.")
+    max_size_bytes: int = Field(..., ge=1, description="Maximum upload size in bytes.")
+    allowed_extensions: list[str] = Field(default_factory=list, description="Allowed file extensions.")
+    allowed_mime_types: list[str] = Field(default_factory=list, description="Allowed MIME types.")
+    accept: str = Field(default="", description="Browser file input accept string.")
+
+
+class UploadPolicySettings(BaseSchema):
+    defaults: UploadPurposePolicy
+    purposes: dict[str, UploadPurposePolicy] = Field(default_factory=dict)
+
+
+class UploadPolicyOut(UploadPurposePolicy):
+    purpose: str = Field(..., description="Resolved upload purpose.")
+
+
 class UploadPartPresignOut(BaseSchema):
     url: str = Field(..., description="Presigned URL for direct upload.")
     method: str = Field(default="PUT", description="HTTP method to use.")

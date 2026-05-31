@@ -9,6 +9,7 @@ import type {
   UploadPartPresignOut,
   UploadPartCommitRequest,
   AvatarUploadInitRequest,
+  UploadPolicyOut,
 } from "@arclayer/openapi/admin-types";
 
 export async function initUpload(
@@ -16,6 +17,14 @@ export async function initUpload(
   payload: UploadInitRequest,
 ): Promise<UploadInitOut> {
   return api.post<UploadInitOut>(projectPath(projectId, "/uploads/init"), payload);
+}
+
+export async function getUploadPolicy(
+  projectId: string,
+  purpose = "library",
+): Promise<UploadPolicyOut> {
+  const params = new URLSearchParams({ purpose });
+  return api.get<UploadPolicyOut>(projectPath(projectId, `/uploads/policy?${params.toString()}`));
 }
 
 export async function getUploadStatus(
@@ -85,6 +94,10 @@ export async function initWorkspaceUpload(
   payload: UploadInitRequest,
 ): Promise<UploadInitOut> {
   return api.post<UploadInitOut>(workspacePath(workspaceId, "/uploads/init"), payload);
+}
+
+export async function getWorkspaceUploadPolicy(workspaceId: string): Promise<UploadPolicyOut> {
+  return api.get<UploadPolicyOut>(workspacePath(workspaceId, "/uploads/policy"));
 }
 
 export async function getWorkspaceUploadStatus(
@@ -159,6 +172,10 @@ export async function abortWorkspaceUpload(
 
 export async function initAvatarUpload(payload: AvatarUploadInitRequest): Promise<UploadInitOut> {
   return api.post<UploadInitOut>("/auth/me/avatar/uploads/init", payload);
+}
+
+export async function getAvatarUploadPolicy(): Promise<UploadPolicyOut> {
+  return api.get<UploadPolicyOut>("/auth/me/avatar/uploads/policy");
 }
 
 export async function getAvatarUploadStatus(uploadId: string): Promise<UploadStatusOut> {

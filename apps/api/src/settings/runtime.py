@@ -5,7 +5,7 @@ from typing import Any, cast
 
 from tortoise.exceptions import OperationalError
 
-from src.config import Settings
+from src.config import Settings, UploadPolicySettings
 from src.core.logging import get_logger
 from src.models.system.setting import SettingRecord
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
@@ -55,6 +55,12 @@ def _safe_bool(value: object) -> bool | None:
 
 def _safe_str(value: object) -> str | None:
     if isinstance(value, str):
+        return value
+    return None
+
+
+def _safe_dict(value: object) -> dict[str, object] | None:
+    if isinstance(value, dict):
         return value
     return None
 
@@ -126,7 +132,11 @@ async def get_effective_settings(settings: Settings) -> Settings:
         if default_profile_key:
             updates["default_profile_key"] = default_profile_key
 
-    # Upload policy overrides.
+    upload_policy_payload = _safe_dict(storage.get("upload_policy"))
+    if upload_policy_payload is not None:
+        updates["upload_policy"] = UploadPolicySettings.model_validate(upload_policy_payload)
+
+    # Upload policy legacy overrides.
     for key in [
         "upload_chunk_size_mb",
         "upload_max_file_size_mb",
@@ -140,6 +150,41 @@ async def get_effective_settings(settings: Settings) -> Settings:
             v = _safe_int(storage.get(key))
             if v is not None:
                 updates[key] = v
+
+    if upload_policy_payload is None:
+        policy = settings.storage.upload_policy.model_copy(deep=True)
+        defaults = policy.defaults
+        purposes = dict(policy.purposes)
+
+        global_max = _safe_int(storage.get("upload_max_file_size_mb"))
+        if global_max is not None:
+            defaults = defaults.model_copy(update={"max_size_mb": global_max})
+            purposes["library"] = purposes.get("library", defaults).model_copy(update={"max_size_mb": global_max})
+
+        avatar_max = _safe_int(storage.get("upload_max_avatar_size_mb"))
+        if avatar_max is not None and "avatar" in purposes:
+            purposes["avatar"] = purposes["avatar"].model_copy(update={"max_size_mb": avatar_max})
+
+        site_logo_max = _safe_int(storage.get("upload_max_site_logo_size_mb"))
+        if site_logo_max is not None:
+            for purpose in ("site_logo", "workspace_icon"):
+                if purpose in purposes:
+                    purposes[purpose] = purposes[purpose].model_copy(update={"max_size_mb": site_logo_max})
+
+        favicon_max = _safe_int(storage.get("upload_max_favicon_size_mb"))
+        if favicon_max is not None and "favicon" in purposes:
+            purposes["favicon"] = purposes["favicon"].model_copy(update={"max_size_mb": favicon_max})
+
+        if any(
+            key in storage
+            for key in [
+                "upload_max_file_size_mb",
+                "upload_max_avatar_size_mb",
+                "upload_max_site_logo_size_mb",
+                "upload_max_favicon_size_mb",
+            ]
+        ):
+            updates["upload_policy"] = policy.model_copy(update={"defaults": defaults, "purposes": purposes})
 
     if not updates:
         return settings

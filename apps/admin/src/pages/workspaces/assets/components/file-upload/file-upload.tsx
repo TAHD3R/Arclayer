@@ -33,6 +33,8 @@ export interface FileUploadPanelProps {
   items: FileUploadPanelItem[];
   isDisabled?: boolean;
   className?: string;
+  accept?: string;
+  maxSizeBytes?: number;
   onPickFiles: (files: File[]) => void;
   onDeleteItem: (id: string) => void;
   onRetryItem?: (id: string) => void;
@@ -370,6 +372,8 @@ export function FileUploadPanel(props: FileUploadPanelProps) {
       <div className="px-5">
         <FileUploadDropZone
           isDisabled={props.isDisabled}
+          accept={props.accept}
+          maxSizeBytes={props.maxSizeBytes}
           hintSummary={props.dropZoneHintSummary}
           hintDetail={props.dropZoneHintDetail}
           onPickFiles={props.onPickFiles}
