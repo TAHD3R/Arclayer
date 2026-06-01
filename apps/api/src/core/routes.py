@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, FastAPI
 
 from src.config import Settings
+from src.modules.ai.router import router as ai_router
 from src.modules.assets.router import router as public_assets_router
 from src.modules.auth.router import router as auth_router
 from src.modules.library.router import router as public_library_router
@@ -120,6 +121,7 @@ def register_routes(app: FastAPI, settings: Settings) -> None:
 
     # Admin API: authenticated Admin UI operations and internal control-plane routes.
     include_auth_router_with_prefix(app, settings=settings)
+    include_router_with_global_prefix_prepended(app, ai_router, settings=settings, prefix="/chat")
     include_router_with_global_prefix_prepended(app, sites_router, settings=settings)
     include_router_with_global_prefix_prepended(app, system_router, settings=settings, prefix="/system")
     include_router_with_global_prefix_prepended(app, permissions_router, settings=settings, prefix="/permissions")

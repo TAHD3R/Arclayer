@@ -1,0 +1,91 @@
+# LiteLLM Proxy Configuration
+# Phase 1 — AI Infrastructure baseline.
+# Virtual Keys are created by Arclayer at runtime via LiteLLM's /key/* endpoints.
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  disable_master_key_return: true
+  store_prompts_in_spend_logs: false
+  request_timeout_seconds: 120
+
+litellm_settings:
+  # Enable cost tracking and spend logs via postgres
+  success_callback: ["prometheus"]
+  failure_callback: ["prometheus"]
+  service_callback: ["prometheus_success_logger", "prometheus_failure_logger"]
+
+  # Default drop params to avoid sending internal params upstream
+  drop_params: true
+
+  # Set request timeout for LLM calls
+  request_timeout: 120
+
+  # Fallback configuration — try anthropic if openai is unavailable
+  num_retries: 2
+
+  # Telemetry: opt out of LiteLLM's own telemetry
+  telemetry: false
+
+router_settings:
+  # Cooldown failed deployments to avoid thundering herd on retry
+  cooldown_time: 30
+  # Number of retries on failure before marking deployment as down
+  num_retries: 2
+  # Redis/Valkey for distributed rate limiting (shared with Arclayer)
+  redis_host: valkey
+  redis_port: 6379
+  redis_password: arclayer_dev
+  redis_username: arclayer
+
+model_list:
+  # --- OpenAI Models ---
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+      rpm: 500
+      tpm: 100000
+    model_info:
+      mode: chat
+      max_tokens: 4096
+      supports_function_calling: true
+      supports_vision: false
+
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+      rpm: 1000
+      tpm: 200000
+    model_info:
+      mode: chat
+      max_tokens: 4096
+      supports_function_calling: true
+      supports_vision: false
+
+  # --- Anthropic Models ---
+  - model_name: claude-sonnet-4-6
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+      rpm: 200
+      tpm: 50000
+    model_info:
+      mode: chat
+      max_tokens: 8192
+      supports_function_calling: true
+      supports_vision: true
+
+  # --- Mock / Development Model ---
+  # Used when no real provider keys are configured. Returns a static
+  # response for development and test environments.
+  - model_name: mock
+    litellm_params:
+      model: openai/mock
+      api_key: mock-key-not-used
+    model_info:
+      mode: chat
+      max_tokens: 1024
+      supports_function_calling: false
+      supports_vision: false

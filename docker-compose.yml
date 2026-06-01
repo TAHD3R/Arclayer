@@ -68,6 +68,28 @@ services:
     networks:
       - arclayer
 
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: arclayer-litellm
+    restart: unless-stopped
+    env_file:
+      - ./docker/env/litellm.env
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./docker/litellm/config.yaml:/app/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - arclayer
+
   mailpit:
     image: axllent/mailpit:v1.29.2
     container_name: arclayer-mailpit

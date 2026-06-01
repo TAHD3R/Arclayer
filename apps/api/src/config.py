@@ -548,6 +548,71 @@ class AnalyticsSettings(BaseSettings):
     audit_log: AnalyticsAuditLogSettings = Field(default_factory=AnalyticsAuditLogSettings)
 
 
+class AISettings(BaseSettings):
+    """AI/LLM infrastructure settings.
+
+    Environment prefix: AI__
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="AI__",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        validate_default=True,
+    )
+
+    # LiteLLM proxy connection
+    litellm_base_url: str = Field(default="http://localhost:4000")
+    litellm_master_key: str | None = Field(default=None, description="LiteLLM master key for virtual key management")
+    litellm_timeout_seconds: float = Field(default=120.0, ge=1.0, le=600.0)
+
+    # Default LLM model
+    default_model: str = Field(default="gpt-4o-mini")
+    default_max_tokens: int = Field(default=4096, ge=1, le=128000)
+
+    # Budget defaults (in microdollars)
+    default_monthly_limit_micros: int = Field(
+        default=100_000_000,  # $100
+        ge=0,
+        description="Default monthly AI spend limit per workspace (microdollars)",
+    )
+    reservation_ttl_seconds: int = Field(
+        default=300,
+        ge=10,
+        le=3600,
+        description="TTL for budget reservations before automatic expiry",
+    )
+
+    # Rate limiting defaults
+    rate_limit_enabled: bool = Field(default=True)
+    rate_limit_capacity: int = Field(default=100, ge=1, description="Max requests per window")
+    rate_limit_window_seconds: int = Field(default=60, ge=1, le=86400)
+
+    # Provider data retention (R3 blocker #4)
+    # When False, sends data retention opt-out to providers (OpenAI: store=false, Anthropic: retention={store:false})
+    data_retention_enabled: bool = Field(
+        default=False,
+        description="Allow providers to retain/train on API data",
+    )
+
+    # Mock mode for development without real provider keys
+    mock_enabled: bool = Field(
+        default=False,
+        description="Use mock LLM provider instead of real LiteLLM",
+    )
+
+    # Observability
+    audit_log_enabled: bool = Field(default=True)
+    metrics_enabled: bool = Field(default=True)
+
+    # Provider API keys (optional — can also be set via LiteLLM config)
+    openai_api_key: str | None = Field(default=None)
+    anthropic_api_key: str | None = Field(default=None)
+
+
 class MiddlewareSettings(BaseSettings):
     """
     Middleware settings for the API application.
@@ -621,6 +686,7 @@ class Settings(BaseSettings):
     email: EmailSettings = Field(default_factory=EmailSettings, validation_alias="MAIL")
     saas: SaasSettings = Field(default_factory=SaasSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
+    ai: AISettings = Field(default_factory=AISettings)
     testing: TestingSettings = Field(default_factory=TestingSettings)
 
     @computed_field

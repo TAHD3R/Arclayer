@@ -2,10 +2,11 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { CircleHelp, Sparkles } from "lucide-react";
 
+import { useAIChat } from "@/hooks/use-ai-chat";
+
 import { BaseTag } from "@/components/ui/tags";
 import { Button } from "@arclayer/ui/button";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { FieldLabel } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
 import { RadioGroup, RadioGroupItem } from "@arclayer/ui/radio-group";
@@ -243,26 +244,93 @@ function ManualStartView(props: {
   );
 }
 
-function AiPlaceholderView() {
+function AiChatView() {
   const { t } = useTranslation("content");
+  const [input, setInput] = React.useState("");
+  const { messages, isLoading, error, sendMessage, cancel } = useAIChat();
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = React.useCallback(() => {
+    const trimmed = input.trim();
+    if (!trimmed || isLoading) return;
+    setInput("");
+    void sendMessage(trimmed);
+  }, [input, isLoading, sendMessage]);
+
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend],
+  );
 
   return (
-    <Empty className="min-h-72 p-0 md:p-0">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Sparkles className="size-6" aria-hidden="true" />
-        </EmptyMedia>
-        <EmptyTitle className="text-title3">
-          {t("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_TITLE")}
-        </EmptyTitle>
-        <EmptyDescription>
-          {t("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_DESC")}
-          <span className="mt-2 block text-footnote text-label-tertiary">
-            {t("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_STATUS")}
-          </span>
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
+    <div className="flex min-h-72 flex-col gap-3">
+      {/* Messages area */}
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-border bg-surface p-3">
+        {messages.length === 0 && !error ? (
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <Sparkles className="mx-auto mb-2 size-6 text-label-secondary" aria-hidden="true" />
+            <p className="text-body text-label-secondary">
+              {t("CONTENT_MODELS_CREATE_AI_CHAT_EMPTY")}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={[
+                  "whitespace-pre-wrap rounded-lg px-3 py-2 text-body",
+                  msg.role === "user"
+                    ? "self-end max-w-[80%] bg-primary/10 text-label-primary"
+                    : "bg-accent text-label-primary",
+                ].join(" ")}
+              >
+                {msg.content}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+        {error && (
+          <div className="mt-2 rounded-md bg-destructive/10 px-3 py-2 text-footnote text-destructive">
+            {error}
+          </div>
+        )}
+      </div>
+
+      {/* Input area */}
+      <div className="flex items-end gap-2">
+        <Textarea
+          value={input}
+          disabled={isLoading}
+          placeholder={t("CONTENT_MODELS_CREATE_AI_CHAT_INPUT_PLACEHOLDER")}
+          className="min-h-10 flex-1 resize-none"
+          rows={2}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <div className="flex shrink-0 gap-2">
+          {isLoading ? (
+            <Button variant="ghost" onClick={cancel} type="button">
+              {t("CONTENT_MODELS_CREATE_AI_CHAT_CANCEL")}
+            </Button>
+          ) : (
+            <Button onClick={handleSend} disabled={!input.trim()} type="button">
+              {t("CONTENT_MODELS_CREATE_AI_CHAT_SEND")}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -533,7 +601,7 @@ export function CreateContentTypeDialog({
               onTemplateChange={setSelectedTemplate}
             />
           ) : (
-            <AiPlaceholderView />
+            <AiChatView />
           )
         ) : (
           <DetailsView

@@ -388,7 +388,7 @@ describe("content model builder", () => {
     expect(listAllContentModelsMock).not.toHaveBeenCalled();
   });
 
-  test("ai tab shows placeholder and disables the primary action", async () => {
+  test("ai tab shows a chat interface and disables the primary action", async () => {
     const user = userEvent.setup();
     render(<ContentModelEditPage projectId="project-1" createOpen />, {
       wrapper: createWrapper(),
@@ -398,16 +398,11 @@ describe("content model builder", () => {
 
     await waitFor(() => {
       const dialog = screen.getByRole("dialog");
-      expect(
-        within(dialog).getByText("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_TITLE"),
-      ).toBeInTheDocument();
-      expect(
-        within(dialog).getByText("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_DESC"),
-      ).toBeInTheDocument();
-      expect(
-        within(dialog).getByText("CONTENT_MODELS_CREATE_AI_PLACEHOLDER_STATUS"),
-      ).toBeInTheDocument();
+      expect(within(dialog).getByText("CONTENT_MODELS_CREATE_AI_CHAT_EMPTY")).toBeInTheDocument();
     });
+    expect(
+      screen.getByPlaceholderText("CONTENT_MODELS_CREATE_AI_CHAT_INPUT_PLACEHOLDER"),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "CONTENT_MODELS_CREATE_AI_NOT_AVAILABLE" }),
     ).toBeDisabled();

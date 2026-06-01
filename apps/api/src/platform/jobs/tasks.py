@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from src.config import get_settings
+from src.platform.jobs.ai_usage import aggregate_daily_usage
 from src.platform.jobs.analytics_retention import analytics_audit_log_retention_cleanup
 from src.platform.jobs.assets_thumbnails import ASSET_THUMBNAILS_JOB_NAME, generate_asset_thumbnails
 from src.platform.jobs.scheduled_publish import check_scheduled_publishes, execute_scheduled_publish
@@ -33,6 +34,22 @@ async def task_generate_asset_thumbnails(
 async def task_analytics_audit_log_retention_cleanup() -> None:
     settings = get_settings()
     await analytics_audit_log_retention_cleanup({"settings": settings})
+
+
+@broker.task(
+    task_name="ai:usage:aggregate_daily",
+    schedule=[
+        {
+            # Daily AI usage aggregation (UTC).
+            "cron": "5 0 * * *",
+            "args": [],
+            "kwargs": {},
+        }
+    ],
+)
+async def task_aggregate_ai_usage() -> None:
+    settings = get_settings()
+    await aggregate_daily_usage({"settings": settings})
 
 
 @broker.task(

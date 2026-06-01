@@ -1,0 +1,84 @@
+"""LLMRuntime error codes — standardized error taxonomy for AI calls.
+
+R3 audit requirement: precise error codes for grant authorization failures
+and all LLM call failure modes. Every error returned to clients carries
+a machine-readable code that callers can act on.
+"""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class LLMErrorCode(StrEnum):
+    """Machine-readable error codes for LLM call failures.
+
+    Categorised by layer:
+        AUTH* — Key/grant resolution failures
+        POLICY* — Model policy violations
+        BUDGET* — Budget/reservation failures
+        PROVIDER* — Provider-level errors (LiteLLM/upstream)
+        RATE* — Rate limiting
+        SYSTEM* — Internal errors
+    """
+
+    # -- Grant/Key authorization failures (R3 blocker #3) --
+    AUTH_NO_KEY = "AUTH_NO_KEY"
+    AUTH_GRANT_NOT_APPROVED = "AUTH_GRANT_NOT_APPROVED"
+    AUTH_GRANT_REVOKED = "AUTH_GRANT_REVOKED"
+    AUTH_GRANT_EXPIRED = "AUTH_GRANT_EXPIRED"
+    AUTH_KEY_DISABLED = "AUTH_KEY_DISABLED"
+    AUTH_NOT_WORKSPACE_MEMBER = "AUTH_NOT_WORKSPACE_MEMBER"
+
+    # -- Model policy violations --
+    POLICY_MODEL_NOT_ALLOWED = "POLICY_MODEL_NOT_ALLOWED"
+    POLICY_MAX_TOKENS_EXCEEDED = "POLICY_MAX_TOKENS_EXCEEDED"
+    POLICY_COST_LIMIT_EXCEEDED = "POLICY_COST_LIMIT_EXCEEDED"
+    POLICY_DATA_RETENTION_VIOLATION = "POLICY_DATA_RETENTION_VIOLATION"
+
+    # -- Budget failures --
+    BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
+    BUDGET_RESERVATION_FAILED = "BUDGET_RESERVATION_FAILED"
+    BUDGET_RESERVATION_EXPIRED = "BUDGET_RESERVATION_EXPIRED"
+
+    # -- Provider failures --
+    PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
+    PROVIDER_TIMEOUT = "PROVIDER_TIMEOUT"
+    PROVIDER_RATE_LIMITED = "PROVIDER_RATE_LIMITED"
+    PROVIDER_MODEL_UNAVAILABLE = "PROVIDER_MODEL_UNAVAILABLE"
+    PROVIDER_INVALID_RESPONSE = "PROVIDER_INVALID_RESPONSE"
+    PROVIDER_DATA_RETENTION_NOT_HONORED = "PROVIDER_DATA_RETENTION_NOT_HONORED"
+
+    # -- Rate limiting --
+    RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
+
+    # -- System errors --
+    SYSTEM_INTERNAL_ERROR = "SYSTEM_INTERNAL_ERROR"
+    SYSTEM_LITELLM_UNREACHABLE = "SYSTEM_LITELLM_UNREACHABLE"
+
+
+# HTTP status codes mapped to error codes.
+ERROR_CODE_STATUS: dict[LLMErrorCode, int] = {
+    LLMErrorCode.AUTH_NO_KEY: 401,
+    LLMErrorCode.AUTH_GRANT_NOT_APPROVED: 403,
+    LLMErrorCode.AUTH_GRANT_REVOKED: 403,
+    LLMErrorCode.AUTH_GRANT_EXPIRED: 403,
+    LLMErrorCode.AUTH_KEY_DISABLED: 403,
+    LLMErrorCode.AUTH_NOT_WORKSPACE_MEMBER: 403,
+    LLMErrorCode.POLICY_MODEL_NOT_ALLOWED: 403,
+    LLMErrorCode.POLICY_MAX_TOKENS_EXCEEDED: 400,
+    LLMErrorCode.POLICY_COST_LIMIT_EXCEEDED: 400,
+    LLMErrorCode.POLICY_DATA_RETENTION_VIOLATION: 400,
+    LLMErrorCode.BUDGET_EXCEEDED: 402,
+    LLMErrorCode.BUDGET_RESERVATION_FAILED: 500,
+    LLMErrorCode.BUDGET_RESERVATION_EXPIRED: 402,
+    LLMErrorCode.PROVIDER_UNAVAILABLE: 503,
+    LLMErrorCode.PROVIDER_TIMEOUT: 504,
+    LLMErrorCode.PROVIDER_RATE_LIMITED: 429,
+    LLMErrorCode.PROVIDER_MODEL_UNAVAILABLE: 400,
+    LLMErrorCode.PROVIDER_INVALID_RESPONSE: 502,
+    LLMErrorCode.PROVIDER_DATA_RETENTION_NOT_HONORED: 502,
+    LLMErrorCode.RATE_LIMIT_EXCEEDED: 429,
+    LLMErrorCode.SYSTEM_INTERNAL_ERROR: 500,
+    LLMErrorCode.SYSTEM_LITELLM_UNREACHABLE: 503,
+}

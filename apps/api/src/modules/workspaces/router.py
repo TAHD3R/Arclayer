@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from src.config import Settings, get_settings
 from src.core.http.pagination import DependsPagination, PageData, PageParams
 from src.core.http.response import ApiResponse, ResponseModel
+from src.modules.ai.usage_router import router as workspace_usage_router
 from src.modules.analytics.workspaces.router import router as workspace_activity_router
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.system.admin.router import router as workspace_admin_router
@@ -45,6 +46,7 @@ router.include_router(workspace_rbac_router)
 router.include_router(workspace_uploads_router)
 router.include_router(workspace_admin_router)
 router.include_router(workspace_activity_router)
+router.include_router(workspace_usage_router)
 
 
 @router.get(
