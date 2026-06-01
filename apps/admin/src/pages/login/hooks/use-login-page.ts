@@ -250,8 +250,9 @@ export function useLoginPage(): LoginPageState {
       : storedActiveChallenge;
   const [loginSeed, setLoginSeed] = useState<LoginPaneSeed | null>(null);
   const [loginEmailCodeSeed, setLoginEmailCodeSeed] = useState<LoginEmailCodePaneSeed | null>(null);
-  const [loginVerification, setLoginVerification] =
-    useState<LoginEmailVerificationState | null>(null);
+  const [loginVerification, setLoginVerification] = useState<LoginEmailVerificationState | null>(
+    null,
+  );
   const [registerSeed, setRegisterSeed] = useState<RegisterPaneSeed | null>(null);
   const [registerVerification, setRegisterVerification] =
     useState<RegisterEmailVerificationState | null>(null);
@@ -326,8 +327,7 @@ export function useLoginPage(): LoginPageState {
     onError: notifyError,
   });
   const registerVerificationConfirmMutation = useMutation({
-    mutationFn: async (token: string) =>
-      authApi.confirmRegistrationEmailVerification({ token }),
+    mutationFn: async (token: string) => authApi.confirmRegistrationEmailVerification({ token }),
     onError: notifyError,
   });
   const bootstrapMutation = useMutation({

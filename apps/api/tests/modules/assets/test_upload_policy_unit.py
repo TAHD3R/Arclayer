@@ -97,25 +97,26 @@ def test_configured_policy_overrides_purpose_extensions_and_size() -> None:
         max_avatar_size_bytes=10,
         max_site_logo_size_bytes=20,
         max_favicon_size_bytes=5,
-        upload_policy_settings=UploadPolicySettings.model_validate(
-            {
-                "defaults": {"max_size_mb": 100, "allowed_extensions": ["pdf"]},
-                "purposes": {
-                    "library": {"max_size_mb": 1, "allowed_extensions": ["png", "svg"]},
-                },
-            }
-        ),
+        upload_policy_settings=UploadPolicySettings.model_validate({
+            "defaults": {"max_size_mb": 100, "allowed_extensions": ["pdf"]},
+            "purposes": {
+                "library": {"max_size_mb": 1, "allowed_extensions": ["png", "svg"]},
+            },
+        }),
     )
 
     assert policy.max_size_bytes == 1024 * 1024
     assert policy.allowed_exts == frozenset({"png"})
-    assert validate_upload_metadata(
-        purpose="library",
-        filename="a.png",
-        mime="image/png",
-        size_bytes=1,
-        policy=policy,
-    ) == "png"
+    assert (
+        validate_upload_metadata(
+            purpose="library",
+            filename="a.png",
+            mime="image/png",
+            size_bytes=1,
+            policy=policy,
+        )
+        == "png"
+    )
     with pytest.raises(BadRequest) as exc:
         validate_upload_metadata(
             purpose="library",
@@ -134,12 +135,10 @@ def test_unknown_purpose_uses_configured_defaults() -> None:
         max_avatar_size_bytes=10,
         max_site_logo_size_bytes=20,
         max_favicon_size_bytes=5,
-        upload_policy_settings=UploadPolicySettings.model_validate(
-            {
-                "defaults": {"max_size_mb": 2, "allowed_extensions": ["pdf"]},
-                "purposes": {},
-            }
-        ),
+        upload_policy_settings=UploadPolicySettings.model_validate({
+            "defaults": {"max_size_mb": 2, "allowed_extensions": ["pdf"]},
+            "purposes": {},
+        }),
     )
 
     assert policy.max_size_bytes == 2 * 1024 * 1024

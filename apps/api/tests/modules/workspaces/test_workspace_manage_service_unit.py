@@ -48,13 +48,11 @@ async def test_manage_workspace_create_accepts_string_template_from_base_schema(
 
     monkeypatch.setattr(service, "_ensure_onboarding_team_organization", _ensure_org)
     monkeypatch.setattr(service.organization_workspace_service, "create_workspace", _create_workspace)
-    payload = WorkspaceManageCreateRequest.model_validate(
-        {
-            "name": "Managed Workspace",
-            "description": "Managed description",
-            "template": "blank",
-        }
-    )
+    payload = WorkspaceManageCreateRequest.model_validate({
+        "name": "Managed Workspace",
+        "description": "Managed description",
+        "template": "blank",
+    })
     assert isinstance(payload.template, str)
 
     created = await service.create_manage_workspace(user_id=owner_id, payload=payload)

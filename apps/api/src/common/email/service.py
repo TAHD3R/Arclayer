@@ -397,9 +397,7 @@ class EmailService:
         cid = uuid7().hex
         try:
             base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
-            verification_url = (
-                f"{base}/login?mode=register&verify_token={verification_token}" if base else None
-            )
+            verification_url = f"{base}/login?mode=register&verify_token={verification_token}" if base else None
             subject = t(
                 "auth",
                 "REGISTER_VERIFY_EMAIL_SUBJECT",

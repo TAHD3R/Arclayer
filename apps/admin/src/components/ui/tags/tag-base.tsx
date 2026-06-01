@@ -95,9 +95,7 @@ export function BaseTag({
     >
       <span className={mergedClassNames.content}>
         {icon ? <span className={mergedClassNames.icon}>{icon}</span> : null}
-        <span className="block min-w-0 max-w-full flex-1 truncate">
-          {children}
-        </span>
+        <span className="block min-w-0 max-w-full flex-1 truncate">{children}</span>
       </span>
       {closable ? (
         <button

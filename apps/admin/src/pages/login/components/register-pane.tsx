@@ -242,7 +242,6 @@ export function RegisterPane(props: RegisterPaneProps) {
                   t={t}
                 />
               </RegisterField>
-
             </>
           )}
 

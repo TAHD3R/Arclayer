@@ -112,10 +112,7 @@ export function UserProfilePreferencesStep(props: {
             onCheckedChange={props.onSubscribedProductUpdatesChange}
           />
           <div className="grid min-w-0 gap-1">
-            <div
-              data-testid="product-updates-title"
-              className="text-headline text-label-primary"
-            >
+            <div data-testid="product-updates-title" className="text-headline text-label-primary">
               {t("onboarding:WELCOME_PROFILE_PRODUCT_UPDATES_TITLE")}
             </div>
             <div className="text-label-secondary">

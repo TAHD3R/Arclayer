@@ -350,10 +350,7 @@ async def test_login_does_not_trigger_email_verification_for_wrong_password(monk
 
     assert exc.value.error == "INVALID_CREDENTIALS"
     assert sent == []
-    assert not any(
-        key.startswith("auth:registration_email_verification:")
-        for key in valkey._store
-    )
+    assert not any(key.startswith("auth:registration_email_verification:") for key in valkey._store)
 
 
 async def test_email_code_request_blocks_unverified_email_and_does_not_send_login_code(

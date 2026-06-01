@@ -469,7 +469,10 @@ function buildUploadPolicyInitialValues(
         readRecordValue(purposes, "library"),
         fallback.purposes.library,
       ),
-      avatar: readUploadPurposePolicy(readRecordValue(purposes, "avatar"), fallback.purposes.avatar),
+      avatar: readUploadPurposePolicy(
+        readRecordValue(purposes, "avatar"),
+        fallback.purposes.avatar,
+      ),
       workspaceIcon: readUploadPurposePolicy(
         readRecordValue(purposes, "workspace_icon"),
         fallback.purposes.workspaceIcon,
@@ -1044,9 +1047,9 @@ export function SystemSettingsStoragePage() {
   const formHasSecret = Boolean(editingProfile?.secrets?.secretAccessKey);
   const formBusy = createMutation.isPending || updateMutation.isPending;
   const pendingProfileKey = getPendingProfileKey(pendingAction);
-  const limitsDirty = STORAGE_LIMIT_FIELDS.some(
-    (field) => limitValues[field] !== limitsInitialValues[field],
-  ) || JSON.stringify(limitValues.uploadPolicy) !== JSON.stringify(limitsInitialValues.uploadPolicy);
+  const limitsDirty =
+    STORAGE_LIMIT_FIELDS.some((field) => limitValues[field] !== limitsInitialValues[field]) ||
+    JSON.stringify(limitValues.uploadPolicy) !== JSON.stringify(limitsInitialValues.uploadPolicy);
   const defaultProfileDirty =
     limitValues.defaultProfileKey !== limitsInitialValues.defaultProfileKey;
 

@@ -117,9 +117,7 @@ class AuthService(BaseService):
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
         self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
         self.email_change_store = EmailChangeStore(valkey) if valkey else None
-        self.registration_email_verification_store = (
-            RegistrationEmailVerificationStore(valkey) if valkey else None
-        )
+        self.registration_email_verification_store = RegistrationEmailVerificationStore(valkey) if valkey else None
         self.password_removal_store = PasswordRemovalCodeStore(valkey) if valkey else None
         self.email_service = EmailService(settings)
         self.invitation_service = AuthInvitationService(settings)
