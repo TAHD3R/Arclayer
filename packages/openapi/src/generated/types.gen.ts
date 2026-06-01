@@ -1799,6 +1799,32 @@ export type ChangePasswordRequest = {
 };
 
 /**
+ * ChatRequest
+ *
+ * Chat completion request body.
+ */
+export type ChatRequest = {
+    /**
+     * Maxtokens
+     */
+    maxTokens?: number | null;
+    /**
+     * Messages
+     */
+    messages: Array<{
+        [key: string]: string;
+    }>;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Temperature
+     */
+    temperature?: number | null;
+};
+
+/**
  * ConfirmMyEmailChangeRequest
  *
  * Confirm email change.
@@ -4730,6 +4756,34 @@ export type ContentWorkflowTransitionContract = {
 };
 
 /**
+ * DailyUsageRecord
+ *
+ * Single day of aggregated AI usage.
+ */
+export type DailyUsageRecord = {
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    /**
+     * Costmicros
+     */
+    costMicros: number;
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Requestcount
+     */
+    requestCount: number;
+};
+
+/**
  * DeleteMyAccountCapabilityOut
  *
  * Delete-account capabilities for the current user.
@@ -6432,6 +6486,42 @@ export type MailTestResult = {
      * Provider that accepted the test message.
      */
     provider?: string | null;
+};
+
+/**
+ * MonthlyUsageSummary
+ *
+ * Aggregated AI usage for a given month.
+ */
+export type MonthlyUsageSummary = {
+    /**
+     * Bymodel
+     */
+    byModel: Array<UsageModelBreakdown>;
+    /**
+     * Periodend
+     */
+    periodEnd: string;
+    /**
+     * Periodstart
+     */
+    periodStart: string;
+    /**
+     * Totalcompletiontokens
+     */
+    totalCompletionTokens: number;
+    /**
+     * Totalcostmicros
+     */
+    totalCostMicros: number;
+    /**
+     * Totalprompttokens
+     */
+    totalPromptTokens: number;
+    /**
+     * Totalrequests
+     */
+    totalRequests: number;
 };
 
 /**
@@ -12396,6 +12486,31 @@ export type ResponseModelMailTestResult = {
 };
 
 /**
+ * ResponseModel[MonthlyUsageSummary]
+ */
+export type ResponseModelMonthlyUsageSummary = {
+    data?: MonthlyUsageSummary | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[MySecurityCapabilityOut]
  */
 export type ResponseModelMySecurityCapabilityOut = {
@@ -15349,6 +15464,34 @@ export type ResponseModelWorkspaceTeamMemberStatusResult = {
 };
 
 /**
+ * ResponseModel[list[DailyUsageRecord]]
+ */
+export type ResponseModelListDailyUsageRecord = {
+    /**
+     * Data
+     */
+    data?: Array<DailyUsageRecord> | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[list[HierarchyNodeOut]]
  */
 export type ResponseModelListHierarchyNodeOut = {
@@ -17545,6 +17688,38 @@ export type UploadStatusOut = {
      * Count of uploaded parts.
      */
     uploadedParts: number;
+};
+
+/**
+ * UsageModelBreakdown
+ *
+ * Per-model usage breakdown within a time period.
+ */
+export type UsageModelBreakdown = {
+    /**
+     * Completiontokens
+     */
+    completionTokens: number;
+    /**
+     * Costmicros
+     */
+    costMicros: number;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Prompttokens
+     */
+    promptTokens: number;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Requestcount
+     */
+    requestCount: number;
 };
 
 /**
@@ -20878,6 +21053,36 @@ export type GlobalAuthUsernameCheckResponses = {
 };
 
 export type GlobalAuthUsernameCheckResponse = GlobalAuthUsernameCheckResponses[keyof GlobalAuthUsernameCheckResponses];
+
+export type AiChatCompletionData = {
+    body: ChatRequest;
+    path?: never;
+    query?: {
+        /**
+         * Stream
+         *
+         * Enable SSE streaming
+         */
+        stream?: boolean;
+    };
+    url: '/api/v1/chat';
+};
+
+export type AiChatCompletionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiChatCompletionError = AiChatCompletionErrors[keyof AiChatCompletionErrors];
+
+export type AiChatCompletionResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type DomainWorkspacesListPersonalApiKeysData = {
     body?: never;
@@ -30639,6 +30844,84 @@ export type DomainWorkspacesPresignUploadPartResponses = {
 };
 
 export type DomainWorkspacesPresignUploadPartResponse = DomainWorkspacesPresignUploadPartResponses[keyof DomainWorkspacesPresignUploadPartResponses];
+
+export type DomainWorkspacesGetMonthlyUsageData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query: {
+        /**
+         * Period
+         *
+         * Target month in YYYY-MM format.
+         */
+        period: string;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/usage';
+};
+
+export type DomainWorkspacesGetMonthlyUsageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetMonthlyUsageError = DomainWorkspacesGetMonthlyUsageErrors[keyof DomainWorkspacesGetMonthlyUsageErrors];
+
+export type DomainWorkspacesGetMonthlyUsageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelMonthlyUsageSummary;
+};
+
+export type DomainWorkspacesGetMonthlyUsageResponse = DomainWorkspacesGetMonthlyUsageResponses[keyof DomainWorkspacesGetMonthlyUsageResponses];
+
+export type DomainWorkspacesGetDailyUsageTrendData = {
+    body?: never;
+    path: {
+        /**
+         * Workspace Id
+         *
+         * Workspace ID.
+         */
+        workspace_id: string;
+    };
+    query?: {
+        /**
+         * Days
+         *
+         * Number of days to include in the trend.
+         */
+        days?: number;
+    };
+    url: '/api/v1/workspaces/{workspace_id}/usage/daily';
+};
+
+export type DomainWorkspacesGetDailyUsageTrendErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesGetDailyUsageTrendError = DomainWorkspacesGetDailyUsageTrendErrors[keyof DomainWorkspacesGetDailyUsageTrendErrors];
+
+export type DomainWorkspacesGetDailyUsageTrendResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelListDailyUsageRecord;
+};
+
+export type DomainWorkspacesGetDailyUsageTrendResponse = DomainWorkspacesGetDailyUsageTrendResponses[keyof DomainWorkspacesGetDailyUsageTrendResponses];
 
 export type ExternalContentApiSitesListArticleContentEntriesData = {
     body?: never;
