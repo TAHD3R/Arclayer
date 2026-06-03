@@ -141,18 +141,25 @@ class TestLiteLLMContract:
         """Verify request URL, method, headers, and payload structure."""
         client = LiteLLMClient(base_url="http://test:4000", virtual_key="test-key-abc")
         mock_client = _MockAsyncClient()
-        mock_client.add_response(_MockResponse(200, {
-            "id": "chatcmpl-xxx",
-            "object": "chat.completion",
-            "created": 1234567890,
-            "model": "gpt-4o-mini",
-            "choices": [{
-                "index": 0,
-                "message": {"role": "assistant", "content": "Hello there"},
-                "finish_reason": "stop",
-            }],
-            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-        }))
+        mock_client.add_response(
+            _MockResponse(
+                200,
+                {
+                    "id": "chatcmpl-xxx",
+                    "object": "chat.completion",
+                    "created": 1234567890,
+                    "model": "gpt-4o-mini",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {"role": "assistant", "content": "Hello there"},
+                            "finish_reason": "stop",
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+                },
+            )
+        )
 
         with patch("httpx.AsyncClient", return_value=mock_client):
             response = await client.chat(
@@ -182,18 +189,25 @@ class TestLiteLLMContract:
         """Verify response JSON is correctly parsed."""
         client = LiteLLMClient(base_url="http://test:4000", virtual_key="key")
         mock_client = _MockAsyncClient()
-        mock_client.add_response(_MockResponse(200, {
-            "id": "chatcmpl-abc",
-            "object": "chat.completion",
-            "created": 123,
-            "model": "gpt-4o",
-            "choices": [{
-                "index": 0,
-                "message": {"role": "assistant", "content": "Response text"},
-                "finish_reason": "length",
-            }],
-            "usage": {"prompt_tokens": 20, "completion_tokens": 50, "total_tokens": 70},
-        }))
+        mock_client.add_response(
+            _MockResponse(
+                200,
+                {
+                    "id": "chatcmpl-abc",
+                    "object": "chat.completion",
+                    "created": 123,
+                    "model": "gpt-4o",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {"role": "assistant", "content": "Response text"},
+                            "finish_reason": "length",
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 20, "completion_tokens": 50, "total_tokens": 70},
+                },
+            )
+        )
 
         with patch("httpx.AsyncClient", return_value=mock_client):
             response = await client.chat([{"role": "user", "content": "Hi"}], model="gpt-4o")
@@ -387,15 +401,18 @@ class TestBudgetConcurrentReservations:
         mock_execute = AsyncMock(side_effect=concurrent_execute)
 
         with (
-            patch("src.llm.budget.AIBudget.get", return_value=AIBudget(
-                id=budget_id,
-                source_type=BudgetSourceType.WORKSPACE,
-                source_id=uuid4(),
-                limit_micros=total_limit,
-                spent_micros=0,
-                reserved_micros=0,
-                period_start="2026-06-01",
-            )),
+            patch(
+                "src.llm.budget.AIBudget.get",
+                return_value=AIBudget(
+                    id=budget_id,
+                    source_type=BudgetSourceType.WORKSPACE,
+                    source_id=uuid4(),
+                    limit_micros=total_limit,
+                    spent_micros=0,
+                    reserved_micros=0,
+                    period_start="2026-06-01",
+                ),
+            ),
             patch("src.llm.budget.AIBudgetReservation.create") as mock_create,
         ):
             mock_create.return_value = AIBudgetReservation(
@@ -426,9 +443,7 @@ class TestBudgetConcurrentReservations:
         assert success_count == expected_success, (
             f"Expected {expected_success} successful reservations, got {success_count}"
         )
-        assert reserved_tracker <= total_limit, (
-            f"Reserved {reserved_tracker} exceeds limit {total_limit}"
-        )
+        assert reserved_tracker <= total_limit, f"Reserved {reserved_tracker} exceeds limit {total_limit}"
 
 
 # ── 4. SSE Disconnect/Cancel Tests ─────────────────────────────────────
@@ -549,8 +564,7 @@ class TestSchemaContracts:
             "ai_usage_daily",
         }
         assert model_tables == expected_tables, (
-            f"Mismatch: {model_tables - expected_tables} extra, "
-            f"{expected_tables - model_tables} missing"
+            f"Mismatch: {model_tables - expected_tables} extra, {expected_tables - model_tables} missing"
         )
 
     def test_all_error_codes_have_status_codes(self) -> None:

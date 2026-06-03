@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from uuid import UUID
 
-import uuid
-
 import httpx
 import structlog
 
