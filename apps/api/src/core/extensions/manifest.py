@@ -191,9 +191,7 @@ class PackageStateMachine:
     def transition_to(self, target: PackageState) -> None:
         allowed = _PACKAGE_TRANSITIONS.get(self._state, set())
         if target not in allowed:
-            raise InvalidStateTransitionError(
-                f"Illegal Package state transition: {self._state.value} → {target.value}"
-            )
+            raise InvalidStateTransitionError(f"Illegal Package state transition: {self._state.value} → {target.value}")
         self._state = target
 
 
@@ -210,9 +208,7 @@ class ProcessStateMachine:
     def transition_to(self, target: ProcessState) -> None:
         allowed = _PROCESS_TRANSITIONS.get(self._state, set())
         if target not in allowed:
-            raise InvalidStateTransitionError(
-                f"Illegal Process state transition: {self._state.value} → {target.value}"
-            )
+            raise InvalidStateTransitionError(f"Illegal Process state transition: {self._state.value} → {target.value}")
         self._state = target
 
 

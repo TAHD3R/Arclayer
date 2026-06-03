@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from tortoise.transactions import in_transaction
+
 from src.core.extensions.manifest import (
     CoordinationError,
     ExtensionManifest,
@@ -22,9 +24,20 @@ from src.core.extensions.manifest import (
 )
 from src.core.extensions.tenant_registry import TenantAwareRegistrySet
 from src.core.logging import get_logger
-from src.core.plugin.manager import PluginManager
-from src.core.plugin.loader import discover_plugins
-from src.core.registries import PluginRegistry
+from src.core.registries import (
+    ComponentRegistry,
+    ContentTypeRegistry,
+    ControllerRegistry,
+    CustomFieldRegistry,
+    MiddlewareRegistry,
+    PluginRegistry,
+    PolicyRegistry,
+    ProviderRegistry,
+    SanitizerRegistry,
+    ServiceRegistry,
+    ValidatorRegistry,
+)
+from src.models.workspaces.workspace import Workspace
 
 logger = get_logger(__name__)
 
@@ -33,6 +46,10 @@ _PLUGINS_DIR_NAME = "plugins"
 
 class ExtensionLoadError(RuntimeError):
     """Raised when an extension cannot be loaded."""
+
+
+class ExtensionRegistrationError(RuntimeError):
+    """Raised when an extension capability cannot be registered."""
 
 
 class ExtensionInstance:
@@ -71,28 +88,32 @@ class ExtensionInstance:
 
 
 class ExtensionManager:
-    """Manages Extension lifecycle, replacing the pluggy PluginManager.
+    """Manages Extension lifecycle.
 
     Coordinates three state machines (Package / Process / Workspace) per
     extension and maintains tenant-aware registries for runtime resolution.
 
-    Backward compatibility: existing pluggy-based plugins are loaded via the
-    standard discover_plugins() path and registered through the legacy
-    PluginManager.  New-style extensions use extension.json manifests and
-    the tenant-aware registries.
+    Plugins declare capabilities via `arclayer_register(registry)` during
+    the REGISTER phase.  The ExtensionManager owns both the legacy
+    PluginRegistry and the tenant-aware TenantAwareRegistrySet.
     """
 
     def __init__(self, project_root: Path | str) -> None:
         self._project_root = Path(project_root)
         self._extensions: dict[str, ExtensionInstance] = {}
         self._tenant_registries = TenantAwareRegistrySet()
-        self._legacy_pm = PluginManager()
-        self._legacy_plugins: list[tuple[str, object]] = []
-        self._legacy_registry: PluginRegistry | None = None
-        # In-memory workspace revision counters. Incremented on activate/deactivate.
-        # The workspace.extension_revision DB field exists for persistence;
-        # this counter provides the cache-invalidation value at runtime.
-        self._workspace_revisions: dict[UUID, int] = {}
+        self._registry = PluginRegistry(
+            services=ServiceRegistry(),
+            controllers=ControllerRegistry(),
+            content_types=ContentTypeRegistry(),
+            middlewares=MiddlewareRegistry(),
+            policies=PolicyRegistry(),
+            custom_fields=CustomFieldRegistry(),
+            providers=ProviderRegistry(),
+            components=ComponentRegistry(),
+            validators=ValidatorRegistry(),
+            sanitizers=SanitizerRegistry(),
+        )
 
     # ——— Properties ————————————————————————————————————————————————————
 
@@ -101,21 +122,12 @@ class ExtensionManager:
         return self._tenant_registries
 
     @property
+    def registry(self) -> PluginRegistry:
+        return self._registry
+
+    @property
     def extension_names(self) -> tuple[str, ...]:
         return tuple(self._extensions.keys())
-
-    @property
-    def legacy_plugin_manager(self) -> PluginManager:
-        return self._legacy_pm
-
-    @property
-    def legacy_registry(self) -> PluginRegistry | None:
-        if self._legacy_registry is None:
-            try:
-                self._legacy_registry = self._legacy_pm.registry
-            except Exception:
-                return None
-        return self._legacy_registry
 
     # ——— Discovery ——————————————————————————————————————————————————————
 
@@ -136,10 +148,7 @@ class ExtensionManager:
     # ——— Loading ————————————————————————————————————————————————————————
 
     async def load_extension(self, ext_dir: Path) -> ExtensionInstance:
-        """Parse manifest, import entry module, and instantiate the plugin.
-
-        Transitions Package ABSENT→INSTALLED and Process UNLOADED→LOADED.
-        """
+        """Parse manifest, import entry module, and instantiate the plugin."""
         manifest_path = ext_dir / "extension.json"
         manifest = parse_manifest(manifest_path)
 
@@ -152,7 +161,6 @@ class ExtensionManager:
         process_sm = ProcessStateMachine(ProcessState.UNLOADED)
         check_can_load(package_sm.state, process_sm.state)
 
-        # Import the entry module — resolved relative to ext_dir only.
         entry_path = (ext_dir / manifest.entry).resolve()
         ext_dir_resolved = ext_dir.resolve()
         if not str(entry_path).startswith(str(ext_dir_resolved)):
@@ -189,34 +197,20 @@ class ExtensionManager:
         return instance
 
     async def load_all(self) -> None:
-        """Discover and load all extensions + legacy plugins."""
-        # Load legacy plugins via the standard discovery path.
-        try:
-            self._legacy_plugins = discover_plugins(root_dir=self._project_root)
-            for name, plugin in self._legacy_plugins:
-                self._legacy_pm.register(plugin, name=name)
-        except Exception as exc:
-            logger.error("Failed to discover legacy plugins", error=str(exc))
+        """Discover and load all extensions from the plugins/ directory.
 
-        # Load new-style extensions from plugins/ directory.
+        Extension load failures are hard failures — the API must not start
+        with a broken extension.  Callers that want best-effort loading
+        should iterate `discover_extension_dirs()` themselves and handle
+        errors per extension.
+        """
         for ext_dir in self.discover_extension_dirs():
-            try:
-                await self.load_extension(ext_dir)
-            except (ManifestParseError, ExtensionLoadError) as exc:
-                logger.error("Failed to load extension", path=str(ext_dir), error=str(exc))
-                continue
+            await self.load_extension(ext_dir)
 
     # ——— Lifecycle phases ————————————————————————————————————————————————
 
     async def register_all(self, app: Any) -> None:
-        """Transition LOADED→REGISTERED and call arclayer_register on each plugin.
-
-        Legacy plugins register through the pluggy hook system.
-        New-style extensions register through both the legacy PluginRegistry
-        (for backward compat) and the tenant-aware registries.
-        """
-        await self._legacy_pm.run_register(app)
-
+        """Transition LOADED→REGISTERED and call arclayer_register on each plugin."""
         for instance in self._extensions.values():
             try:
                 instance.process.transition_to(ProcessState.REGISTERED)
@@ -229,64 +223,60 @@ class ExtensionManager:
                 continue
 
             plugin = instance.plugin
+            if hasattr(plugin, "arclayer_register"):
+                plugin.arclayer_register(self._registry)
 
-            # Legacy registration
-            if self.legacy_registry is not None and hasattr(plugin, "arclayer_register"):
-                plugin.arclayer_register(self.legacy_registry)
-
-            # Tenant-aware registration
             self._register_in_tenant_registries(instance)
 
             logger.info("Extension registered", name=instance.name)
 
     def _register_in_tenant_registries(self, instance: ExtensionInstance) -> None:
-        """Register extension capabilities into tenant-aware registries."""
+        """Register extension capabilities into tenant-aware registries.
+
+        After arclayer_register(registry) has populated the PluginRegistry,
+        read capability instances back from it and register them into the
+        tenant-aware registries so they can be resolved per workspace.
+        """
         manifest = instance.manifest
 
         for service_name in manifest.provides.services:
-            factory = self._make_service_factory(instance, service_name)
-            self._tenant_registries.services.register(instance.name, service_name, factory)
+            svc = self._registry.services.resolve(service_name)
+            if svc is None:
+                raise ExtensionRegistrationError(
+                    f"Service '{service_name}' declared in manifest but not registered "
+                    f"by extension '{instance.name}' in arclayer_register()"
+                )
+            self._tenant_registries.services.register(instance.name, service_name, lambda svc=svc: svc)
 
         for mw_name in manifest.provides.middlewares:
-            factory = self._make_middleware_factory(instance, mw_name)
-            self._tenant_registries.middlewares.register(instance.name, mw_name, factory)
+            mw = self._registry.middlewares.resolve(mw_name)
+            if mw is None:
+                raise ExtensionRegistrationError(
+                    f"Middleware '{mw_name}' declared in manifest but not registered "
+                    f"by extension '{instance.name}' in arclayer_register()"
+                )
+            self._tenant_registries.middlewares.register(instance.name, mw_name, lambda mw=mw: mw)
 
         for prov_name in manifest.provides.providers:
-            factory = self._make_provider_factory(instance, prov_name)
-            self._tenant_registries.providers.register(instance.name, prov_name, factory)
+            prov = self._registry.providers.resolve(prov_name)
+            if prov is None:
+                raise ExtensionRegistrationError(
+                    f"Provider '{prov_name}' declared in manifest but not registered "
+                    f"by extension '{instance.name}' in arclayer_register()"
+                )
+            self._tenant_registries.providers.register(instance.name, prov_name, lambda prov=prov: prov)
 
-        # Sync content types from legacy registry into tenant-aware.
         for ct_name in manifest.provides.content_types:
-            definition: dict[str, Any] = {}
-            if self.legacy_registry is not None:
-                definition = self.legacy_registry.content_types.resolve(ct_name) or {}
+            definition = self._registry.content_types.resolve(ct_name)
+            if definition is None:
+                raise ExtensionRegistrationError(
+                    f"Content type '{ct_name}' declared in manifest but not registered "
+                    f"by extension '{instance.name}' in arclayer_register()"
+                )
             self._tenant_registries.content_types.register(instance.name, ct_name, definition)
-
-    @staticmethod
-    def _make_service_factory(instance: ExtensionInstance, name: str) -> Any:
-        plugin = instance.plugin
-        if hasattr(plugin, name):
-            return lambda p=plugin, n=name: getattr(p, n)
-        return lambda: f"service:{instance.name}:{name}"
-
-    @staticmethod
-    def _make_middleware_factory(instance: ExtensionInstance, name: str) -> Any:
-        plugin = instance.plugin
-        if hasattr(plugin, name):
-            return lambda p=plugin, n=name: getattr(p, n)
-        return lambda: f"middleware:{instance.name}:{name}"
-
-    @staticmethod
-    def _make_provider_factory(instance: ExtensionInstance, name: str) -> Any:
-        plugin = instance.plugin
-        if hasattr(plugin, name):
-            return lambda p=plugin, n=name: getattr(p, n)
-        return lambda: f"provider:{instance.name}:{name}"
 
     async def bootstrap_all(self, app: Any) -> None:
         """Transition REGISTERED→READY and call arclayer_bootstrap on each plugin."""
-        await self._legacy_pm.run_bootstrap(app)
-
         for instance in self._extensions.values():
             try:
                 instance.process.transition_to(ProcessState.READY)
@@ -306,8 +296,6 @@ class ExtensionManager:
 
     async def ready_all(self, app: Any) -> None:
         """Call arclayer_ready on each plugin."""
-        await self._legacy_pm.run_ready(app)
-
         for instance in self._extensions.values():
             plugin = instance.plugin
             if hasattr(plugin, "arclayer_ready"):
@@ -327,47 +315,81 @@ class ExtensionManager:
             except InvalidStateTransitionError:
                 pass
 
-        await self._legacy_pm.run_destroy()
         self._extensions.clear()
 
     # ——— Tenant-aware activation ————————————————————————————————————————
 
-    def activate(self, extension_name: str, workspace_id: UUID) -> None:
+    async def activate(self, extension_name: str, workspace_id: UUID) -> int:
         instance = self._extensions.get(extension_name)
         if instance is None:
             raise CoordinationError(f"Extension '{extension_name}' is not loaded")
 
+        # 1. Validate state transition.  If invalid, this raises and nothing changes.
         instance.activate(workspace_id)
+
+        new_revision: int = 1
+        try:
+            # 2. Persist revision bump in a transaction.
+            async with in_transaction() as conn:
+                workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
+                if workspace is None:
+                    raise CoordinationError(f"Workspace {workspace_id} not found")
+                workspace.extension_revision += 1
+                await workspace.save(update_fields=["extension_revision", "updated_at"], using_db=conn)
+                new_revision = workspace.extension_revision
+        except Exception:
+            # DB failed — roll back the in-memory activation.
+            try:
+                instance.deactivate(workspace_id)
+            except Exception:
+                pass
+            raise
+
+        # 3. DB succeeded — sync tenant registry.
         self._tenant_registries.set_active(extension_name, workspace_id)
-        self._bump_revision(workspace_id)
         logger.info(
             "Extension activated for workspace",
             extension=extension_name,
             workspace_id=str(workspace_id),
-            revision=self._workspace_revisions.get(workspace_id, 1),
+            revision=new_revision,
         )
+        return new_revision
 
-    def deactivate(self, extension_name: str, workspace_id: UUID) -> None:
+    async def deactivate(self, extension_name: str, workspace_id: UUID) -> int:
         instance = self._extensions.get(extension_name)
         if instance is None:
             raise CoordinationError(f"Extension '{extension_name}' is not loaded")
 
+        # 1. Validate state transition.  If invalid, this raises and nothing changes.
         instance.deactivate(workspace_id)
+
+        new_revision: int = 1
+        try:
+            # 2. Persist revision bump in a transaction.
+            async with in_transaction() as conn:
+                workspace = await Workspace.filter(id=workspace_id).using_db(conn).select_for_update().first()
+                if workspace is None:
+                    raise CoordinationError(f"Workspace {workspace_id} not found")
+                workspace.extension_revision += 1
+                await workspace.save(update_fields=["extension_revision", "updated_at"], using_db=conn)
+                new_revision = workspace.extension_revision
+        except Exception:
+            # DB failed — roll back the in-memory deactivation.
+            try:
+                instance.activate(workspace_id)
+            except Exception:
+                pass
+            raise
+
+        # 3. DB succeeded — sync tenant registry.
         self._tenant_registries.set_inactive(extension_name, workspace_id)
-        self._bump_revision(workspace_id)
         logger.info(
             "Extension deactivated for workspace",
             extension=extension_name,
             workspace_id=str(workspace_id),
-            revision=self._workspace_revisions.get(workspace_id, 1),
+            revision=new_revision,
         )
-
-    def get_workspace_revision(self, workspace_id: UUID) -> int:
-        return self._workspace_revisions.get(workspace_id, 1)
-
-    def _bump_revision(self, workspace_id: UUID) -> None:
-        current = self._workspace_revisions.get(workspace_id, 1)
-        self._workspace_revisions[workspace_id] = current + 1
+        return new_revision
 
     def get_instance(self, name: str) -> ExtensionInstance | None:
         return self._extensions.get(name)

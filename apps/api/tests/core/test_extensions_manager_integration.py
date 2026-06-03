@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -53,7 +54,7 @@ def _write_plugin(
     return ext_dir
 
 
-_DEFAULT_PLUGIN_SOURCE = '''
+_DEFAULT_PLUGIN_SOURCE = """
 def create_plugin():
     class Plugin:
         name = "test-plugin"
@@ -66,9 +67,9 @@ def create_plugin():
         def arclayer_destroy(self):
             pass
     return Plugin()
-'''
+"""
 
-_PLUGIN_WITH_SERVICES = '''
+_PLUGIN_WITH_SERVICES = """
 from src.core.registries import PluginRegistry
 
 class TestPlugin:
@@ -88,7 +89,7 @@ class TestPlugin:
 
 def create_plugin():
     return TestPlugin()
-'''
+"""
 
 
 # ——— Discovery tests ————————————————————————————————————————————————————
@@ -168,14 +169,18 @@ class TestLoading:
         with pytest.raises(ExtensionLoadError, match="already loaded"):
             await mgr.load_extension(project_root / "plugins" / "test-ext")
 
-    async def test_load_broken_manifest_skipped(self, project_root):
+    async def test_load_broken_manifest_raises(self, project_root):
+        from src.core.extensions.manifest import ManifestParseError
+
         _write_plugin(project_root, "bad-ext", manifest={"name": "bad-ext", "version": "bad"})
         mgr = ExtensionManager(project_root)
-        await mgr.load_all()
-        assert "bad-ext" not in mgr.extension_names
+        with pytest.raises(ManifestParseError):
+            await mgr.load_all()
 
     async def test_load_missing_entry_raises(self, project_root):
-        ext_dir = _write_plugin(project_root, "no-entry", manifest={"name": "no-entry", "version": "1.0.0", "entry": "src/nonexistent.py"})
+        ext_dir = _write_plugin(
+            project_root, "no-entry", manifest={"name": "no-entry", "version": "1.0.0", "entry": "src/nonexistent.py"}
+        )
         with pytest.raises(ExtensionLoadError, match="Entry module"):
             await ExtensionManager(project_root).load_extension(ext_dir)
 
@@ -221,17 +226,52 @@ class TestLifecycle:
         inst = mgr.get_instance("test-ext")
         assert inst is None  # Not even loaded
 
-    async def test_legacy_plugin_manager_available(self, project_root):
+    async def test_registry_property(self, project_root):
         mgr = ExtensionManager(project_root)
-        assert mgr.legacy_plugin_manager is not None
-        assert mgr.legacy_plugin_manager.plugin_names == ()
+        assert mgr.registry is not None
+        assert mgr.registry.services is not None
 
 
 # ——— Activation tests ———————————————————————————————————————————————————
 
 
+class _FakeWorkspace:
+    """Minimal fake for Workspace model in activation tests."""
+    id: str
+    extension_revision: int = 1
+    updated_at: str = ""
+
+    def __init__(self, ws_id: str | None = None) -> None:
+        self.id = ws_id or str(uuid4())
+
+    async def save(self, update_fields=None, using_db=None) -> None:
+        pass
+
+
+class _FakeTransaction:
+    async def __aenter__(self):
+        return MagicMock()
+
+    async def __aexit__(self, *args):
+        pass
+
+
+@pytest.fixture
+def _mock_db():
+    """Patch in_transaction and Workspace.filter for activation tests."""
+    with (
+        patch("src.core.extensions.manager.in_transaction", return_value=_FakeTransaction()),
+        patch("src.core.extensions.manager.Workspace") as mock_ws,
+    ):
+        fake_ws = _FakeWorkspace()
+        mock_ws.filter.return_value.using_db.return_value.select_for_update.return_value.first = AsyncMock(
+            return_value=fake_ws
+        )
+        yield
+
+
 class TestActivation:
-    async def test_activate_after_ready(self, project_root):
+    async def test_activate_after_ready(self, project_root, _mock_db):
         _write_plugin(project_root, "test-ext")
         mgr = ExtensionManager(project_root)
         await mgr.load_all()
@@ -239,22 +279,21 @@ class TestActivation:
         await mgr.bootstrap_all(app=None)
 
         ws_id = uuid4()
-        mgr.activate("test-ext", ws_id)
+        await mgr.activate("test-ext", ws_id)
 
         inst = mgr.get_instance("test-ext")
         sm = inst.get_workspace_activation(ws_id)
         assert sm.state == WorkspaceActivationState.ACTIVE
 
-    async def test_activate_before_ready_raises(self, project_root):
+    async def test_activate_before_ready_raises(self, project_root, _mock_db):
         _write_plugin(project_root, "test-ext")
         mgr = ExtensionManager(project_root)
         await mgr.load_all()
-        # Not registered or bootstrapped yet
 
         with pytest.raises(CoordinationError):
-            mgr.activate("test-ext", uuid4())
+            await mgr.activate("test-ext", uuid4())
 
-    async def test_deactivate(self, project_root):
+    async def test_deactivate(self, project_root, _mock_db):
         _write_plugin(project_root, "test-ext")
         mgr = ExtensionManager(project_root)
         await mgr.load_all()
@@ -262,8 +301,8 @@ class TestActivation:
         await mgr.bootstrap_all(app=None)
 
         ws_id = uuid4()
-        mgr.activate("test-ext", ws_id)
-        mgr.deactivate("test-ext", ws_id)
+        await mgr.activate("test-ext", ws_id)
+        await mgr.deactivate("test-ext", ws_id)
 
         inst = mgr.get_instance("test-ext")
         sm = inst.get_workspace_activation(ws_id)
@@ -272,9 +311,9 @@ class TestActivation:
     async def test_activate_nonexistent_extension_raises(self, project_root):
         mgr = ExtensionManager(project_root)
         with pytest.raises(CoordinationError, match="not loaded"):
-            mgr.activate("nonexistent", uuid4())
+            await mgr.activate("nonexistent", uuid4())
 
-    async def test_cross_workspace_isolation(self, project_root):
+    async def test_cross_workspace_isolation(self, project_root, _mock_db):
         _write_plugin(project_root, "test-ext")
         mgr = ExtensionManager(project_root)
         await mgr.load_all()
@@ -284,7 +323,7 @@ class TestActivation:
         ws1 = uuid4()
         ws2 = uuid4()
 
-        mgr.activate("test-ext", ws1)
+        await mgr.activate("test-ext", ws1)
 
         inst = mgr.get_instance("test-ext")
         assert inst.get_workspace_activation(ws1).state == WorkspaceActivationState.ACTIVE
@@ -295,7 +334,7 @@ class TestActivation:
 
 
 class TestTenantRegistryIntegration:
-    async def test_activate_registers_in_tenant_registry(self, project_root):
+    async def test_activate_registers_in_tenant_registry(self, project_root, _mock_db):
         _write_plugin(project_root, "test-ext")
         mgr = ExtensionManager(project_root)
         await mgr.load_all()
@@ -304,12 +343,12 @@ class TestTenantRegistryIntegration:
 
         ws_id = uuid4()
         mgr.tenant_registries.services.register("test-ext", "my-svc", lambda: "value")
-        mgr.activate("test-ext", ws_id)
+        await mgr.activate("test-ext", ws_id)
 
         result = mgr.tenant_registries.services.resolve("my-svc", ws_id)
         assert result == "value"
 
-    async def test_deactivate_hides_from_tenant_registry(self, project_root):
+    async def test_deactivate_hides_from_tenant_registry(self, project_root, _mock_db):
         _write_plugin(project_root, "test-ext")
         mgr = ExtensionManager(project_root)
         await mgr.load_all()
@@ -318,8 +357,8 @@ class TestTenantRegistryIntegration:
 
         ws_id = uuid4()
         mgr.tenant_registries.services.register("test-ext", "my-svc", lambda: "value")
-        mgr.activate("test-ext", ws_id)
-        mgr.deactivate("test-ext", ws_id)
+        await mgr.activate("test-ext", ws_id)
+        await mgr.deactivate("test-ext", ws_id)
 
         result = mgr.tenant_registries.services.resolve("my-svc", ws_id)
         assert result is None

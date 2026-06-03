@@ -877,12 +877,12 @@
     <div>
       <h4 style="color:var(--accent2);margin-bottom:0.6rem">架构</h4>
       <p style="color:var(--text2);font-size:0.9rem">
-        基于 <code>pluggy</code> 的钩子系统。插件可以是本地目录（<code>plugins/</code>）或安装的 Python 包。
-        每个插件通过 <code>create_plugin()</code> 工厂函数暴露，使用 <code>@arclayer_hookimpl</code> 装饰器实现钩子。
+        基于 Extension 框架的 capability 系统。扩展通过 <code>extension.json</code> 声明，
+        <code>create_plugin()</code> 工厂实例化，<code>arclayer_register(registry)</code> 注册能力。
       </p>
       <p style="color:var(--text2);font-size:0.9rem;margin-top:0.5rem">
-        核心插件模块在 <code>src/core/plugin/</code>：loader（加载）、manager（管理）、runtime（运行时）、
-        lifecycle（生命周期）、extensions（扩展点）、config（配置）、specs（规范）。
+        扩展框架模块在 <code>src/core/extensions/</code>：manifest（声明）、manager（管理）、
+        tenant_registry（租户感知）、middleware_dispatcher（分发）、workspace_context_middleware（上下文）。
       </p>
     </div>
     <div>

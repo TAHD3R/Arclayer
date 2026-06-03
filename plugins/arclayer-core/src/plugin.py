@@ -1,8 +1,4 @@
-"""Arclayer Core Extension — reference implementation and built-in services.
-
-Replaces the previous CorePlugin pluggy stub.  Demonstrates the Extension
-contract: manifest → process lifecycle → tenant-aware registration.
-"""
+"""Arclayer Core Extension — reference implementation and built-in services."""
 
 from __future__ import annotations
 
@@ -42,19 +38,13 @@ class SystemInfoService:
 
 
 class CoreExtension:
-    """The Arclayer Core Extension plugin.
-
-    Implements the pluggy hook contract for backward compatibility with the
-    existing PluginManager during the transition period.
-    """
+    """Arclayer Core Extension — registers built-in services and content types."""
 
     name = "arclayer-core"
 
     def __init__(self) -> None:
         self._health_service = HealthService()
         self._system_info_service = SystemInfoService()
-
-    # ——— pluggy hook contract (backward compat) ————————————————————————
 
     def arclayer_register(self, registry: PluginRegistry) -> None:
         registry.services.register("health", self._health_service)

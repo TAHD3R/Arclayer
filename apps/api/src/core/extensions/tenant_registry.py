@@ -10,6 +10,11 @@ from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
+
+class ExtensionResourceConflictError(RuntimeError):
+    """Raised when two extensions try to register the same resource name."""
+
+
 # Cache key template: ext:{workspace_id}:r{revision}:{resource_type}:{name}
 _CACHE_KEY_PREFIX = "ext"
 
@@ -94,11 +99,14 @@ class TenantAwareServiceRegistry(_TenantAwareBase):
         self._registrations: dict[str, dict[str, ServiceRegistration]] = defaultdict(dict)
 
     def register(self, extension: str, name: str, factory: Callable[[], Any]) -> None:
+        for ext, svc_map in self._registrations.items():
+            if ext != extension and name in svc_map:
+                raise ExtensionResourceConflictError(
+                    f"resource '{name}' already registered by '{ext}'; '{extension}' cannot register it"
+                )
         if name in self._registrations[extension]:
             logger.warning("Service already registered, replacing", extension=extension, name=name)
-        self._registrations[extension][name] = ServiceRegistration(
-            extension=extension, name=name, factory=factory
-        )
+        self._registrations[extension][name] = ServiceRegistration(extension=extension, name=name, factory=factory)
 
     def unregister(self, extension: str, name: str) -> None:
         self._registrations[extension].pop(name, None)
@@ -135,11 +143,14 @@ class TenantAwareMiddlewareRegistry(_TenantAwareBase):
         self._registrations: dict[str, dict[str, MiddlewareRegistration]] = defaultdict(dict)
 
     def register(self, extension: str, name: str, factory: Callable[[], Any]) -> None:
+        for ext, mw_map in self._registrations.items():
+            if ext != extension and name in mw_map:
+                raise ExtensionResourceConflictError(
+                    f"resource '{name}' already registered by '{ext}'; '{extension}' cannot register it"
+                )
         if name in self._registrations[extension]:
             logger.warning("Middleware already registered, replacing", extension=extension, name=name)
-        self._registrations[extension][name] = MiddlewareRegistration(
-            extension=extension, name=name, factory=factory
-        )
+        self._registrations[extension][name] = MiddlewareRegistration(extension=extension, name=name, factory=factory)
 
     def unregister(self, extension: str, name: str) -> None:
         self._registrations[extension].pop(name, None)
@@ -157,9 +168,7 @@ class TenantAwareMiddlewareRegistry(_TenantAwareBase):
                 return reg.factory()
         return None
 
-    def get_active_hooks(
-        self, workspace_id: UUID, hook_type: str = "request"
-    ) -> list[Any]:
+    def get_active_hooks(self, workspace_id: UUID, hook_type: str = "request") -> list[Any]:
         """Return instantiated middleware hooks for the given workspace.
 
         Only hooks from activated extensions are returned.
@@ -183,8 +192,15 @@ class TenantAwareContentTypeRegistry(_TenantAwareBase):
     def __init__(self) -> None:
         super().__init__()
         self._registrations: dict[str, dict[str, ContentTypeRegistration]] = defaultdict(dict)
+        self._cache: dict[str, Any] = {}
 
     def register(self, extension: str, key: str, definition: dict[str, Any]) -> None:
+        for ext, ct_map in self._registrations.items():
+            if ext != extension and key in ct_map:
+                raise ExtensionResourceConflictError(
+                    f"resource '{key}' already registered by '{ext}'; '{extension}' cannot register it"
+                )
+        self._cache.clear()
         if key in self._registrations[extension]:
             logger.warning("ContentType already registered, replacing", extension=extension, key=key)
         self._registrations[extension][key] = ContentTypeRegistration(
@@ -193,26 +209,40 @@ class TenantAwareContentTypeRegistry(_TenantAwareBase):
 
     def unregister(self, extension: str, key: str) -> None:
         self._registrations[extension].pop(key, None)
+        self._cache.clear()
 
     def unregister_all(self, extension: str) -> None:
         self._registrations.pop(extension, None)
         self.unregister_activation(extension)
+        self._cache.clear()
 
-    def resolve(self, key: str, workspace_id: UUID, extension_revision: int | None = None) -> dict[str, Any] | None:
+    def resolve(self, key: str, workspace_id: UUID, extension_revision: int) -> dict[str, Any] | None:
+        cache_key = _build_cache_key(workspace_id, extension_revision, "content_type", key)
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return cached
         for ext, ct_map in self._registrations.items():
             if workspace_id not in self._activation.get(ext, set()):
                 continue
             reg = ct_map.get(key)
             if reg is not None:
+                self._cache[cache_key] = reg.definition
                 return reg.definition
+        self._cache[cache_key] = None
         return None
 
-    def list_types(self, workspace_id: UUID, extension_revision: int | None = None) -> list[str]:
+    def list_types(self, workspace_id: UUID, extension_revision: int) -> list[str]:
+        cache_key = _build_cache_key(workspace_id, extension_revision, "content_type", "*")
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return list(cached)
         keys: list[str] = []
         for ext, ct_map in self._registrations.items():
             if workspace_id in self._activation.get(ext, set()):
                 keys.extend(ct_map.keys())
-        return sorted(keys)
+        result = sorted(keys)
+        self._cache[cache_key] = result
+        return result
 
 
 class TenantAwareProviderRegistry(_TenantAwareBase):
@@ -223,11 +253,14 @@ class TenantAwareProviderRegistry(_TenantAwareBase):
         self._registrations: dict[str, dict[str, ProviderRegistration]] = defaultdict(dict)
 
     def register(self, extension: str, name: str, factory: Callable[[], Any]) -> None:
+        for ext, prov_map in self._registrations.items():
+            if ext != extension and name in prov_map:
+                raise ExtensionResourceConflictError(
+                    f"resource '{name}' already registered by '{ext}'; '{extension}' cannot register it"
+                )
         if name in self._registrations[extension]:
             logger.warning("Provider already registered, replacing", extension=extension, name=name)
-        self._registrations[extension][name] = ProviderRegistration(
-            extension=extension, name=name, factory=factory
-        )
+        self._registrations[extension][name] = ProviderRegistration(extension=extension, name=name, factory=factory)
 
     def unregister(self, extension: str, name: str) -> None:
         self._registrations[extension].pop(name, None)

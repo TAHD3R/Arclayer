@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+import pytest
+
 from src.core.extensions.tenant_registry import (
     TenantAwareContentTypeRegistry,
     TenantAwareMiddlewareRegistry,
@@ -52,18 +54,13 @@ class TestTenantAwareServiceRegistry:
         # ws2 is not activated
         assert reg.resolve("health", ws2) is None
 
-    def test_multiple_extensions_same_service_name_last_active_wins(self):
+    def test_multiple_extensions_same_service_name_raises(self):
+        from src.core.extensions.tenant_registry import ExtensionResourceConflictError
+
         reg = TenantAwareServiceRegistry()
-        ws = uuid4()
-
         reg.register("ext-a", "svc", lambda: "a")
-        reg.register("ext-b", "svc", lambda: "b")
-        reg.set_active("ext-a", ws)
-        reg.set_active("ext-b", ws)
-
-        # Both active — first match (by insertion order) wins
-        result = reg.resolve("svc", ws)
-        assert result in ("a", "b")
+        with pytest.raises(ExtensionResourceConflictError, match="already registered"):
+            reg.register("ext-b", "svc", lambda: "b")
 
     def test_unregister_removes_service(self):
         reg = TenantAwareServiceRegistry()
@@ -186,32 +183,34 @@ class TestTenantAwareContentTypeRegistry:
     def test_register_and_resolve(self):
         reg = TenantAwareContentTypeRegistry()
         ws = uuid4()
+        rev = 1
 
         definition = {"name": "Article", "fields": []}
         reg.register("core-ext", "article", definition)
         reg.set_active("core-ext", ws)
 
-        result = reg.resolve("article", ws)
+        result = reg.resolve("article", ws, extension_revision=rev)
         assert result == definition
 
     def test_list_types_sorted(self):
         reg = TenantAwareContentTypeRegistry()
         ws = uuid4()
+        rev = 1
 
         reg.register("ext-a", "zebra", {})
         reg.register("ext-b", "alpha", {})
         reg.set_active("ext-a", ws)
         reg.set_active("ext-b", ws)
 
-        assert reg.list_types(ws) == ["alpha", "zebra"]
+        assert reg.list_types(ws, extension_revision=rev) == ["alpha", "zebra"]
 
     def test_inactive_workspace_not_listed(self):
         reg = TenantAwareContentTypeRegistry()
         ws = uuid4()
+        rev = 1
 
         reg.register("ext-a", "article", {})
-        # Not activated
-        assert reg.list_types(ws) == []
+        assert reg.list_types(ws, extension_revision=rev) == []
 
 
 # ——— TenantAwareProviderRegistry ———————————————————————————————————————
@@ -255,7 +254,7 @@ class TestTenantAwareRegistrySet:
 
         assert rs.services.resolve("svc", ws) == "x"
         assert rs.middlewares.resolve("mw", ws) == "y"
-        assert rs.content_types.resolve("ct", ws) == {"key": "val"}
+        assert rs.content_types.resolve("ct", ws, extension_revision=1) == {"key": "val"}
         assert rs.providers.resolve("prov", ws) == "z"
 
     def test_composite_set_inactive_hides_all(self):
@@ -282,7 +281,7 @@ class TestTenantAwareRegistrySet:
 
         assert rs.services.resolve("svc", ws) is None
         assert rs.middlewares.resolve("mw", ws) is None
-        assert rs.content_types.resolve("ct", ws) is None
+        assert rs.content_types.resolve("ct", ws, extension_revision=1) is None
         assert rs.providers.resolve("prov", ws) is None
 
     def test_cross_workspace_isolation(self):

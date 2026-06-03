@@ -17,6 +17,10 @@ from src.core.database.orm import (
 )
 from src.core.events import events
 from src.core.exceptions import init_exception_handlers
+from src.core.extensions.manager import ExtensionManager
+from src.core.extensions.middleware_dispatcher import TenantAwareExtensionMiddlewareDispatcher
+from src.core.extensions.tenant_registry import TenantAwareMiddlewareRegistry
+from src.core.extensions.workspace_context_middleware import WorkspaceContextMiddleware
 from src.core.logging import configure_logging, get_logger
 from src.core.middleware.guard_integration import (
     ArclayerSecurityMiddleware,
@@ -24,11 +28,6 @@ from src.core.middleware.guard_integration import (
     close_guard_runtime,
     initialize_guard_runtime,
 )
-from src.core.extensions.manager import ExtensionManager
-from src.core.extensions.middleware_dispatcher import TenantAwareExtensionMiddlewareDispatcher
-from src.core.extensions.tenant_registry import TenantAwareMiddlewareRegistry
-from src.core.extensions.workspace_context_middleware import WorkspaceContextMiddleware
-from src.core.plugin.runtime import close_plugin_runtime, init_plugin_runtime
 from src.core.routes import register_routes
 from src.core.runtime_init import close_domain_runtime, init_domain_runtime
 from src.platform.cache.valkey import close_valkey, init_valkey
@@ -96,6 +95,8 @@ async def _init_extension_runtime(app: FastAPI) -> None:
     await mgr.register_all(app)
     await mgr.bootstrap_all(app)
     await mgr.ready_all(app)
+    app.state.plugin_registry = mgr.registry
+    app.state.extension_registries = mgr.tenant_registries
     logger.info("Extension runtime initialized", extensions=list(mgr.extension_names))
 
 
@@ -131,7 +132,6 @@ def _build_lifespan(settings: Settings):
             # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can
             # skip heavyweight startup steps and still exercise routers/middlewares safely.
             if settings.app_env == "test" and not settings.database.enabled and not settings.valkey.enabled:
-                await init_plugin_runtime(app)
                 await _init_extension_runtime(app)
                 yield
                 await _close_extension_runtime(app)
@@ -156,12 +156,10 @@ def _build_lifespan(settings: Settings):
             await init_domain_runtime(app, settings, event_bus=event_bus)
             await init_valkey(app, settings)
             await init_taskiq_client(app, settings)
-            await init_plugin_runtime(app)
             await _init_extension_runtime(app)
             yield
         finally:
             await _close_extension_runtime(app)
-            await close_plugin_runtime(app)
             if event_bus is not None:
                 await close_domain_runtime(app, event_bus=event_bus)
             try:
@@ -221,17 +219,34 @@ class AppFactory:
         middleware = self.settings.middleware
         security = self.settings.security
 
-        if security.enabled:
-            guard_config = build_guard_config(self.settings)
-            ArclayerSecurityMiddleware.configure_cors(self.app, guard_config)
-            self.app.add_middleware(ArclayerSecurityMiddleware, config=guard_config)
+        # Order matters: Starlette add_middleware inserts at the front, so the
+        # outermost middleware is the one added last. We add them innermost-first
+        # so Security ends up outermost.
+        self.app.add_middleware(
+            TenantAwareExtensionMiddlewareDispatcher,
+            registry=self._extension_middleware_registry,
+        )
 
-        if middleware.gzip_enabled:
-            self.app.add_middleware(
-                GZipMiddleware,
-                minimum_size=middleware.gzip_minimum_size,
-                compresslevel=middleware.gzip_compresslevel,
-            )
+        self.app.add_middleware(WorkspaceContextMiddleware)
+
+        self.app.add_middleware(CorrelationIdMiddleware)
+
+        # Place request logging inside CorrelationIdMiddleware so the summary line
+        # can reliably include `trace_id` (the correlation middleware may reset contextvars on return).
+        from src.core.middleware.request_log import RequestLogMiddleware
+
+        self.app.add_middleware(
+            RequestLogMiddleware,
+            trace_header_name=self.settings.logging.trace_header_name,
+            omit_paths=self.settings.logging.request_log_omit_paths,
+            omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
+        )
+        from src.core.middleware.locale import LocaleMiddleware
+
+        self.app.add_middleware(LocaleMiddleware)
+
+        if middleware.https_redirect_enabled and self.settings.app_env == "production":
+            self.app.add_middleware(HTTPSRedirectMiddleware)
 
         if middleware.trusted_host_enabled:
             self.app.add_middleware(
@@ -240,32 +255,17 @@ class AppFactory:
                 www_redirect=middleware.trusted_host_www_redirect,
             )
 
-        if middleware.https_redirect_enabled and self.settings.app_env == "production":
-            self.app.add_middleware(HTTPSRedirectMiddleware)
-        from src.core.middleware.locale import LocaleMiddleware
+        if middleware.gzip_enabled:
+            self.app.add_middleware(
+                GZipMiddleware,
+                minimum_size=middleware.gzip_minimum_size,
+                compresslevel=middleware.gzip_compresslevel,
+            )
 
-        self.app.add_middleware(LocaleMiddleware)
-        from src.core.middleware.request_log import RequestLogMiddleware
-
-        # Place request logging inside CorrelationIdMiddleware so the summary line
-        # can reliably include `trace_id` (the correlation middleware may reset contextvars on return).
-        self.app.add_middleware(
-            RequestLogMiddleware,
-            trace_header_name=self.settings.logging.trace_header_name,
-            omit_paths=self.settings.logging.request_log_omit_paths,
-            omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
-        )
-        self.app.add_middleware(CorrelationIdMiddleware)
-
-        # Order matters: Starlette add_middleware inserts at the front, so the
-        # outermost middleware is the one added last. WorkspaceContext sets
-        # request.state.workspace_id, so it must run before the Dispatcher.
-        self.app.add_middleware(
-            TenantAwareExtensionMiddlewareDispatcher,
-            registry=self._extension_middleware_registry,
-        )
-
-        self.app.add_middleware(WorkspaceContextMiddleware)
+        if security.enabled:
+            guard_config = build_guard_config(self.settings)
+            ArclayerSecurityMiddleware.configure_cors(self.app, guard_config)
+            self.app.add_middleware(ArclayerSecurityMiddleware, config=guard_config)
 
         return self
 

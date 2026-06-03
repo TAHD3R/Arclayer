@@ -1,31 +1,49 @@
-# Arclayer Local Plugins
+# Arclayer Extensions
 
-Local project plugins live under this directory and are loaded during API startup.
+Extensions live under this directory and are loaded during API startup.
 
 ## Directory Contract
 
-Each plugin uses one subdirectory under `plugins/`:
+Each extension uses one subdirectory under `plugins/` with an `extension.json` manifest:
 
 ```text
 plugins/
-  my_plugin/
-    __init__.py
+  arclayer-core/
+    extension.json
+    src/
+      plugin.py
 ```
 
-The `__init__.py` file must expose `create_plugin()`. The factory may return an object or class instance with Arclayer hook implementations:
+`extension.json` declares the extension name, version, entry point, and capabilities:
+
+```json
+{
+  "name": "my-extension",
+  "version": "1.0.0",
+  "entry": "src/plugin.py",
+  "provides": {
+    "services": ["my-svc"],
+    "content_types": ["my-content-type"]
+  }
+}
+```
+
+`src/plugin.py` must export `create_plugin()`. The factory returns a plugin instance
+that implements `arclayer_register(registry)` to register capabilities:
 
 ```python
-from src.core.plugin import arclayer_hookimpl
+from src.core.registries import PluginRegistry
 
 
 class MyPlugin:
-    @arclayer_hookimpl
-    def arclayer_register(self, registry):
-        registry.services.register("my-plugin.service", object())
+    def arclayer_register(self, registry: PluginRegistry) -> None:
+        registry.services.register("my-svc", MyService())
+        registry.content_types.register("my-content-type", {"key": "my-content-type", "fields": []})
 
 
 def create_plugin():
     return MyPlugin()
 ```
 
-Startup loads built-in plugins first, then entry point plugins from the `arclayer.plugins` group, then local plugins from this directory in sorted directory-name order. Plugin load or factory errors fail API startup.
+Capabilities declared in `provides` must be registered in `arclayer_register()`.
+Mismatches cause `ExtensionRegistrationError` at startup.
