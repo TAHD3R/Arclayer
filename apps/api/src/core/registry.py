@@ -24,6 +24,10 @@ from src.core.middleware.guard_integration import (
     close_guard_runtime,
     initialize_guard_runtime,
 )
+from src.core.extensions.manager import ExtensionManager
+from src.core.extensions.middleware_dispatcher import TenantAwareExtensionMiddlewareDispatcher
+from src.core.extensions.tenant_registry import TenantAwareMiddlewareRegistry
+from src.core.extensions.workspace_context_middleware import WorkspaceContextMiddleware
 from src.core.plugin.runtime import close_plugin_runtime, init_plugin_runtime
 from src.core.routes import register_routes
 from src.core.runtime_init import close_domain_runtime, init_domain_runtime
@@ -62,6 +66,49 @@ async def _test_event_loop_heartbeat() -> None:
         await asyncio.sleep(_TEST_LOOP_HEARTBEAT_INTERVAL_SECONDS)
 
 
+def _resolve_project_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "pnpm-workspace.yaml").is_file() and (parent / "apps" / "api").is_dir():
+            return parent
+    raise RuntimeError("Unable to resolve Arclayer project root")
+
+
+async def _init_extension_runtime(app: FastAPI) -> None:
+    """Load, register, bootstrap, and ready all extensions.
+
+    Uses the ExtensionManager already created by AppFactory (if available)
+    or creates a new one as a fallback.
+    """
+    mgr: ExtensionManager | None = getattr(app.state, "extension_manager", None)
+    if mgr is None:
+        try:
+            project_root = _resolve_project_root()
+            mgr = ExtensionManager(project_root)
+            # Update both dispatcher reference and app.state to use the
+            # manager's middleware registry so activation state is visible.
+            app.state.extension_middleware_registry = mgr.tenant_registries.middlewares
+            app.state.extension_manager = mgr
+        except RuntimeError:
+            logger.warning("Could not resolve project root, skipping extension init")
+            return
+
+    await mgr.load_all()
+    await mgr.register_all(app)
+    await mgr.bootstrap_all(app)
+    await mgr.ready_all(app)
+    logger.info("Extension runtime initialized", extensions=list(mgr.extension_names))
+
+
+async def _close_extension_runtime(app: FastAPI) -> None:
+    mgr: ExtensionManager | None = getattr(app.state, "extension_manager", None)
+    if mgr is None:
+        return
+    try:
+        await mgr.destroy_all()
+    finally:
+        app.state.extension_manager = None
+
+
 def _build_lifespan(settings: Settings):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -85,7 +132,9 @@ def _build_lifespan(settings: Settings):
             # skip heavyweight startup steps and still exercise routers/middlewares safely.
             if settings.app_env == "test" and not settings.database.enabled and not settings.valkey.enabled:
                 await init_plugin_runtime(app)
+                await _init_extension_runtime(app)
                 yield
+                await _close_extension_runtime(app)
                 return
 
             await init_orm(settings)
@@ -108,8 +157,10 @@ def _build_lifespan(settings: Settings):
             await init_valkey(app, settings)
             await init_taskiq_client(app, settings)
             await init_plugin_runtime(app)
+            await _init_extension_runtime(app)
             yield
         finally:
+            await _close_extension_runtime(app)
             await close_plugin_runtime(app)
             if event_bus is not None:
                 await close_domain_runtime(app, event_bus=event_bus)
@@ -136,6 +187,15 @@ def _build_lifespan(settings: Settings):
 class AppFactory:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
+        # Create ExtensionManager early so the dispatcher middleware gets the
+        # correct (same) registry reference that the lifespan will populate.
+        try:
+            project_root = _resolve_project_root()
+            self._extension_manager = ExtensionManager(project_root)
+            self._extension_middleware_registry = self._extension_manager.tenant_registries.middlewares
+        except RuntimeError:
+            self._extension_manager = None
+            self._extension_middleware_registry = TenantAwareMiddlewareRegistry()
         self.app = FastAPI(
             debug=False,
             title=self.settings.application.app_name,
@@ -146,6 +206,10 @@ class AppFactory:
             redoc_url=None,
             lifespan=_build_lifespan(self.settings),
         )
+        # Store on app.state so the lifespan can populate the registry.
+        self.app.state.extension_middleware_registry = self._extension_middleware_registry
+        if self._extension_manager is not None:
+            self.app.state.extension_manager = self._extension_manager
 
     def with_logging(self) -> "AppFactory":
         configure_logging(self.settings)
@@ -192,6 +256,16 @@ class AppFactory:
             omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
         )
         self.app.add_middleware(CorrelationIdMiddleware)
+
+        # Order matters: Starlette add_middleware inserts at the front, so the
+        # outermost middleware is the one added last. WorkspaceContext sets
+        # request.state.workspace_id, so it must run before the Dispatcher.
+        self.app.add_middleware(
+            TenantAwareExtensionMiddlewareDispatcher,
+            registry=self._extension_middleware_registry,
+        )
+
+        self.app.add_middleware(WorkspaceContextMiddleware)
 
         return self
 

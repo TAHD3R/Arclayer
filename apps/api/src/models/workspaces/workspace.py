@@ -58,6 +58,10 @@ class Workspace(BaseModel):
 
     created_by_user_id = fields.UUIDField(db_index=True)
 
+    # Extension activation revision — incremented on any activate/deactivate/config_update.
+    # Consumers use this for cache invalidation (see TenantAwareContentTypeRegistry).
+    extension_revision = fields.BigIntField(default=1)
+
     if TYPE_CHECKING:
         organization_id: UUID
 

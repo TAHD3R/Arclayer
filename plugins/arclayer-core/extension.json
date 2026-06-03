@@ -1,0 +1,17 @@
+{
+  "name": "arclayer-core",
+  "version": "1.0.0",
+  "entry": "src/plugin.py",
+  "requires": {
+    "platform": ">=1.0.0",
+    "python": ">=3.12"
+  },
+  "provides": {
+    "services": ["health", "system-info"],
+    "middlewares": [],
+    "providers": [],
+    "content_types": ["user-profile"]
+  },
+  "permissions": [],
+  "config_schema": {}
+}
