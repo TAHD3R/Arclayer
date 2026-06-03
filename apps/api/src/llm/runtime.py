@@ -122,6 +122,7 @@ class LLMRuntime:
 
             self._provider = LiteLLMClient(
                 base_url=litellm_base_url,
+                virtual_key=litellm_master_key,
                 timeout_seconds=litellm_timeout_seconds,
             )
 
