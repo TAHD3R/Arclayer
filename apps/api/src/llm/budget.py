@@ -105,7 +105,7 @@ async def reserve(
     """
     reserve_amount = estimated_cost_micros
 
-    async def _perform(executor: QueryExecutor) -> AIBudgetReservation:
+    async def _perform(executor: QueryExecutor, conn: Any) -> AIBudgetReservation:
         result = await executor(
             """
             UPDATE ai_budgets
@@ -135,16 +135,17 @@ async def reserve(
             reserved_cost_micros=reserve_amount,
             status=ReservationStatus.RESERVED,
             expires_at=expires_at,
+            using_db=conn,
         )
         return reservation
 
     if _execute is not None:
-        return await _perform(_execute)
+        return await _perform(_execute, None)
 
     from tortoise.transactions import in_transaction as _tx
 
     async with _tx() as conn:
-        return await _perform(conn.execute_query)
+        return await _perform(conn.execute_query, conn)
 
 
 async def commit(
