@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arclayer AI Agent & Extensions System — 完整实施规格 v2.0</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #1c2129; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --success: #3fb950; --warning: #d2991d; --danger: #f85149;
+    --purple: #a371f7; --orange: #f0883e; --radius: 8px;
+    --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+  nav { position: fixed; top: 0; left: 0; bottom: 0; width: 260px; background: var(--surface); border-right: 1px solid var(--border); padding: 1.5rem 1rem; overflow-y: auto; z-index: 10; }
+  nav h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; margin: 1.25rem 0 0.5rem; }
+  nav h3:first-child { margin-top: 0; }
+  nav a { display: block; padding: 0.3rem 0; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem; }
+  nav a:hover { color: var(--accent); }
+  main { margin-left: 260px; padding: 2.5rem 3rem; max-width: 1200px; }
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  h3 { font-size: 1.1rem; margin: 1.75rem 0 0.75rem; }
+  h4 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+  .meta { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 2rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.25rem; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+  .grid { display: grid; gap: 1.25rem; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { padding: 0.65rem 0.85rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface2); font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:hover td { background: rgba(88,166,255,0.03); }
+  .tag { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+  .tag-new { background: rgba(63,185,80,0.2); color: var(--success); }
+  .tag-changed { background: rgba(210,153,29,0.2); color: var(--warning); }
+  .tag-phase1 { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .tag-phase2 { background: rgba(210,153,29,0.15); color: var(--warning); }
+  .tag-phase3a { background: rgba(63,185,80,0.15); color: var(--success); }
+  .tag-phase3b { background: rgba(163,113,247,0.15); color: var(--purple); }
+  .tag-phase4 { background: rgba(240,136,62,0.15); color: var(--orange); }
+  .tag-critical { background: rgba(248,81,73,0.2); color: var(--danger); font-weight: 700; }
+  .tag-high { background: rgba(240,136,62,0.2); color: var(--orange); font-weight: 700; }
+  .tag-decision { background: rgba(163,113,247,0.15); color: var(--purple); }
+  .callout { border-left: 4px solid var(--accent); padding: 0.75rem 1rem; background: rgba(88,166,255,0.06); border-radius: 0 var(--radius) var(--radius) 0; margin: 1rem 0; font-size: 0.9rem; }
+  .callout-warn { border-left-color: var(--warning); background: rgba(210,153,29,0.06); }
+  .callout-danger { border-left-color: var(--danger); background: rgba(248,81,73,0.06); }
+  .callout-success { border-left-color: var(--success); background: rgba(63,185,80,0.06); }
+  code { font-family: var(--font-mono); font-size: 0.85em; background: rgba(139,148,158,0.12); padding: 0.1em 0.35em; border-radius: 3px; }
+  pre { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; margin: 1rem 0; }
+  pre code { background: none; padding: 0; }
+  .spec-row { display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 0.5rem; }
+  .spec-label { min-width: 150px; font-weight: 600; color: var(--accent); font-size: 0.9rem; }
+  .spec-value { font-size: 0.9rem; }
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  .v2-badge { background: var(--success); color: #000; font-size: 0.7rem; padding: 0.1em 0.4em; border-radius: 3px; margin-left: 0.4em; vertical-align: middle; }
+  @media (max-width: 900px) { nav { display: none; } main { margin-left: 0; padding: 1.5rem; } .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <h3>文档信息</h3>
+  <a href="#revision">版本记录</a>
+  <a href="#decisions">架构决策 (10项)</a>
+  <a href="#audit-summary">审计摘要</a>
+
+  <h3>1. Extensions 系统 <span class="v2-badge">v2</span></h3>
+  <a href="#s1-overview">1.1 概述</a>
+  <a href="#s1-manifest">1.2 Extension Manifest</a>
+  <a href="#s1-lifecycle">1.3 三状态机模型 <span class="v2-badge">v2</span></a>
+  <a href="#s1-tenant-registry">1.4 Tenant-Aware Registry <span class="v2-badge">v2</span></a>
+  <a href="#s1-activation">1.5 数据库驱动激活</a>
+  <a href="#s1-trust">1.6 Extension 信任模型 <span class="v2-badge">v2</span></a>
+  <a href="#s1-admin">1.7 Admin UI 扩展插槽 <span class="v2-badge">v2</span></a>
+  <a href="#s1-db">1.8 数据库 Schema</a>
+  <a href="#s1-migration">1.9 迁移策略</a>
+
+  <h3>2. AI 基础设施 <span class="v2-badge">v2</span></h3>
+  <a href="#s2-llm">2.1 src/llm/ 模块</a>
+  <a href="#s2-litellm">2.2 LiteLLM Proxy 集成</a>
+  <a href="#s2-settings">2.3 AISettings 配置</a>
+  <a href="#s2-keymodel">2.4 多租户 Key 模型 <span class="v2-badge">v2</span></a>
+  <a href="#s2-db">2.5 数据库 Schema</a>
+
+  <h3>3. Agent 系统 <span class="v2-badge">v2</span></h3>
+  <a href="#s3-overview">3.1 概述</a>
+  <a href="#s3-runtime">3.2 Agent 运行时</a>
+  <a href="#s3-tools">3.3 工具系统</a>
+  <a href="#s3-agents">3.4 首批 Agent (只读优先) <span class="v2-badge">v2</span></a>
+  <a href="#s3-approval">3.5 人工审批与护栏 <span class="v2-badge">v2</span></a>
+  <a href="#s3-api">3.6 API 端点</a>
+  <a href="#s3-db">3.7 数据库 Schema</a>
+
+  <h3>4. 实施路线 <span class="v2-badge">v2</span></h3>
+  <a href="#s4-phase1">4.1 Phase 1: AI 基础设施 (4-6w)</a>
+  <a href="#s4-phase2">4.2 Phase 2: Extensions 改造 (6-8w)</a>
+  <a href="#s4-phase3a">4.3 Phase 3A: 只读 Agent (4-5w) <span class="v2-badge">v2</span></a>
+  <a href="#s4-phase3b">4.4 Phase 3B: 可写 Agent (4-6w) <span class="v2-badge">v2</span></a>
+  <a href="#s4-phase4">4.5 Phase 4: 高级能力 (按需)</a>
+
+  <h3>附录</h3>
+  <a href="#a1-audit">A1. 审计跟踪 <span class="v2-badge">v2</span></a>
+  <a href="#a2-glossary">A2. 术语表</a>
+  <a href="#a3-techstack">A3. 技术栈</a>
+  <a href="#a4-files">A4. 文件变更清单</a>
+</nav>
+
+<main>
+
+<h1>Arclayer AI Agent & Extensions System<br>完整实施规格 v2.0</h1>
+<p class="meta">
+  <strong>文档状态:</strong> Post-Audit Revision &nbsp;|&nbsp;
+  <strong>版本:</strong> v2.0 &nbsp;|&nbsp;
+  <strong>日期:</strong> 2026-06-01 &nbsp;|&nbsp;
+  <strong>审计:</strong> Codex (GPT-5.5) 架构安全审计已通过
+</p>
+
+<h2 id="revision">版本记录</h2>
+<div class="card">
+  <table>
+    <tr><th>版本</th><th>日期</th><th>变更</th></tr>
+    <tr><td>v2.0</td><td>2026-06-01</td><td>Codex 审计后修订：三状态机模型、Tenant-Aware Registry、Key 模型 Workspace-First、信任模型替代沙箱、Admin UI 加载模型、Agent 只读优先+审批门、路线图重估算 (12-20w → 18-23w 生产级)</td></tr>
+    <tr><td>v1.0</td><td>2026-06-01</td><td>初始版本</td></tr>
+  </table>
+</div>
+
+<h2 id="audit-summary">审计摘要 — v1.0 发现与 v2.0 修正</h2>
+<div class="card">
+  <table>
+    <tr><th style="width:5%">等级</th><th>v1.0 问题</th><th>v2.0 修正</th></tr>
+    <tr>
+      <td><span class="tag tag-critical">Critical</span></td>
+      <td>单一生命周期状态机混淆了 package install / process runtime / workspace activation 三个不同域</td>
+      <td><span class="tag tag-new">NEW</span> 拆分为 3 个独立状态机（§1.3）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-critical">Critical</span></td>
+      <td>启动时查询 Workspace 激活列表在共享多租户进程中不成立，会导致跨租户泄漏</td>
+      <td><span class="tag tag-new">NEW</span> Tenant-Aware Registry Contract — 所有 Consumer 在请求时解析（§1.4）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-high">High</span></td>
+      <td>"沙箱"措辞不诚实——进程内 Python 代码无真正隔离</td>
+      <td><span class="tag tag-changed">CHANGED</span> 重命名为 Extension 信任模型，区分受信任/不受信任 Extension（§1.6）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-high">High</span></td>
+      <td>Virtual Key 优先级 User→Workspace→Platform 可能导致跨 Workspace 计费泄露</td>
+      <td><span class="tag tag-changed">CHANGED</span> Workspace-First Key 模型：Workspace 策略控制，用户 Key 需显式授权（§2.4）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-high">High</span></td>
+      <td>Admin UI Slot 只有元数据 API，缺少 React 组件加载模型</td>
+      <td><span class="tag tag-new">NEW</span> 选定构建时打包 (Build-Time Bundling) 模型（§1.7）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-high">High</span></td>
+      <td>Agent 写工具无审批机制，Prompt Injection 可大规模修改内容/Schema</td>
+      <td><span class="tag tag-changed">CHANGED</span> Phase 3A 只读 Agent→Phase 3B 可写 Agent+审批门+Dry-Run（§3.5, §4.3-4.4）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-high">High</span></td>
+      <td>路线图估计仅适合原型验证 (2-3w / 3-4w)，生产级多租户需显著更长</td>
+      <td><span class="tag tag-changed">CHANGED</span> 重估算：Phase 1 4-6w, Phase 2 6-8w, Phase 3A 4-5w, Phase 3B 4-6w（§4）</td>
+    </tr>
+  </table>
+</div>
+
+<h2 id="decisions">架构决策记录</h2>
+<div class="card">
+  <table>
+    <tr><th style="width:5%">#</th><th style="width:18%">决策点</th><th style="width:15%">选择</th><th style="width:32%">核心理由</th><th style="width:30%">替代方案</th></tr>
+    <tr><td>1</td><td>Extensions 架构模式</td><td><strong>Strapi/Directus 路线</strong></td><td>保留 pluggy 类型化 Hook 骨架，三状态机分离（Package/Process/Workspace）</td><td>WordPress 全局字符串 pub-sub</td></tr>
+    <tr><td>2</td><td>AI 代码组织</td><td><strong>src/llm/ + src/modules/agents/</strong></td><td>分离 API 无关 LLM 能力与 API 层 Agent 逻辑</td><td>全部放 src/modules/ai/</td></tr>
+    <tr><td>3</td><td>AI 部署模型</td><td><strong>Phase 1 内置模块 → 后续 Extensions 化</strong></td><td>快速验证核心链路，Phase 1 即遵循 Extension-like 边界（manifest/config/permission/lifecycle hooks）</td><td>直接独立 Extension；独立微服务</td></tr>
+    <tr><td>4</td><td>LLM API Key 管理</td><td><strong>Workspace-First: Workspace→(授权)User→Platform</strong></td><td>v2 修正：Workspace 策略控制资金来源。用户 Key 仅在显式链接到该 Workspace 后使用</td><td>v1 的 User→Workspace→Platform（存在跨租户计费风险）</td></tr>
+    <tr><td>5</td><td>Agent 工具系统</td><td><strong>MCP 格式描述 + PydanticAI 执行</strong></td><td>MCP 保证跨框架复用；PydanticAI 类型安全执行</td><td>纯 PydanticAI；纯 MCP</td></tr>
+    <tr><td>6</td><td>LLM 网关</td><td><strong>LiteLLM Proxy (sidecar)</strong></td><td>100+ Provider、虚拟 Key 体系、多租户预算、速率限制</td><td>自建；Portkey</td></tr>
+    <tr><td>7</td><td>Agent 框架</td><td><strong>PydanticAI (执行引擎) + LangGraph (按需多步)</strong></td><td>v2 明确：PydanticAI 是执行引擎（非装饰），AgentRunEngine 委托给 PydanticAI Agent.run()。LangGraph 仅多步时引入</td><td>LangChain；CrewAI</td></tr>
+    <tr><td>8</td><td>RAG 管线</td><td><strong>LlamaIndex + pgvector</strong></td><td>原生 pgvector、混合搜索、CMS 内容建模匹配</td><td>LangChain RetrievalQA</td></tr>
+    <tr><td>9</td><td>可观测性</td><td><strong>结构化日志+指标 (Phase 1); Langfuse (Phase 4)</strong></td><td>v2 修正：Phase 1 即建立结构化日志/指标/trace baseline，Langfuse 按需引入</td><td>初期零可观测性</td></tr>
+    <tr><td><span class="tag tag-new">v2</span></td><td>Extension 信任模型</td><td><strong>双级信任：受信任(权限+审计) / 不受信任(进程隔离)</strong></td><td>v2 新增。Phase 2 只支持受信任 Extension。不受信任 Extension 的进程/WASM 隔离是独立项目</td><td>单一"沙箱"（不诚实）</td></tr>
+    <tr><td><span class="tag tag-new">v2</span></td><td>Admin UI 加载模型</td><td><strong>构建时打包 (Build-Time Bundling)</strong></td><td>v2 新增。Extension 的 Admin UI 代码在构建时打包进 bundle，非运行时动态加载</td><td>Module Federation；iframe；动态 import</td></tr>
+  </table>
+</div>
+
+<!-- ===== SECTION 1: EXTENSIONS v2 ===== -->
+<h2 id="s1-overview">1. Extensions 系统 <span class="v2-badge">v2</span></h2>
+
+<h3>1.1 概述与边界</h3>
+<div class="card">
+  <div class="spec-row"><span class="spec-label">设计目标</span><span class="spec-value">构建 CMS 级别、多租户感知、支持安装/激活/配置/卸载的 Extensions 系统。参照 Strapi/Directus 模式，在 pluggy 类型化 Hook 骨架之上补齐消费端、元信息清单、数据库激活、Admin UI 扩展（构建时打包）、依赖管理、分发机制。</span></div>
+  <div class="spec-row" style="margin-top:0.75rem"><span class="spec-label"><span class="v2-badge">v2</span> 关键架构原则</span><span class="spec-value"><strong>Extension 状态必须在三个独立域中管理，不能混入单一状态机：</strong>Package Install（文件系统/包管理）→ Process Runtime（进程加载/卸载）→ Workspace Activation（每租户启用/配置）。所有 Registry Consumer 必须在请求时进行 tenant-aware 解析，不能在启动时进行 Workspace 范围的全局注册。</span></div>
+</div>
+
+<h3 id="s1-manifest">1.2 Extension Manifest</h3>
+<div class="card">
+  <p>每个 Extension 根目录放置 <code>extension.json</code> 声明式元信息。无须加载代码即可读取。Schema 定义与 v1.0 基本一致，<span class="v2-badge">v2</span> 增加了 <code>trust_level</code> 字段。</p>
+  <pre><code>{
+  "$schema": "https://arclayer.dev/schemas/extension-v2.json",
+  "name": "arclayer-ai-agent",
+  "version": "1.0.0",
+  "trust_level": "trusted",          // "trusted" | "untrusted" — v2 新增
+  "entry": "src/plugin.py",
+  "requires": {
+    "platform": ">=1.0.0",
+    "python": ">=3.12",
+    "extensions": { "arclayer-core": ">=1.0.0" }
+  },
+  "provides": {
+    "services": ["ai-service"],
+    "agents": ["content-writer", "content-analyzer"],
+    "adminSlots": [
+      {"name": "ai-sidebar", "location": "sidebar", "bundle": "dist/admin.js"}
+    ],
+    "middlewares": ["ai-rate-limiter"],
+    "providers": [
+      {"type": "ai", "name": "openai"},
+      {"type": "ai", "name": "anthropic"}
+    ]
+  },
+  "permissions": ["content:read", "content:write", "asset:read", "workspace:settings"],
+  "config_schema": { "type": "object", "properties": { ... } },
+  "distribution": { "type": "npm", "package": "@arclayer/extension-ai-agent" }
+}</code></pre>
+</div>
+
+<h3 id="s1-lifecycle">1.3 三状态机模型 <span class="v2-badge">v2 关键变更</span></h3>
+
+<div class="callout callout-danger">
+  <strong>v1.0 问题：</strong>将 ABSENT/INSTALLED/ACTIVATED/REGISTERED/BOOTSTRAPPED/READY/DESTROYED 放入单一线性状态机。INSTALLED 是平台状态，ACTIVATED 是 Workspace 状态，REGISTERED 是进程状态——它们发生在不同时间、由不同角色触发、有不同的生命周期。
+</div>
+
+<div class="card">
+  <h4>状态机 A: Package Lifecycle（平台管理员触发）</h4>
+  <pre><code>ABSENT ──install()──▶ INSTALLED ──upgrade()──▶ UPGRADING ──▶ INSTALLED
+  │                      │
+  └──                    └── uninstall() ──▶ UNINSTALLED ──▶ ABSENT
+
+触发者: 平台管理员 / CI Pipeline
+存储:   extensions 表 (source_type, source_url, manifest)
+影响:   文件系统 (npm install / git clone / 本地路径)</code></pre>
+
+  <h4>状态机 B: Process Runtime Lifecycle（应用启动/关闭触发）</h4>
+  <pre><code>UNLOADED ──load()──▶ LOADED ──register()──▶ REGISTERED ──bootstrap()──▶ READY
+                         │                                                    │
+                         └── unload() ────────────────────────── DESTROYED ◀──┘
+
+触发者: 应用启动 / 关闭
+存储:   进程内存 (ExtensionManager.runtime_state)
+关键:   加载失败 Extension 标记为 error，不影响其他 Extension
+       运行时状态与 Workspace 激活状态独立</code></pre>
+
+  <h4>状态机 C: Workspace Activation Lifecycle（Workspace 管理员触发）</h4>
+  <pre><code>INACTIVE ──activate()──▶ ACTIVE ──deactivate()──▶ INACTIVE
+                           │
+                           └── config_update() ──▶ ACTIVE (config changed)
+
+触发者: Workspace 管理员 / API
+存储:   workspace_extensions 表 (enabled, config)
+时点:   Per-request 解析，非启动时全局注册
+影响:   该 Workspace 的请求可见 Extension 注册的资源</code></pre>
+
+  <h4>三状态机协调规则</h4>
+  <pre><code>1. Extension 必须先 Package INSTALLED 才能 Process LOAD
+2. Process 可以 LOAD 一个 Workspace 中尚未激活的 Extension（代码就绪）
+3. 请求到达时，同时检查 Process READY + Workspace ACTIVE 才使用 Extension 资源
+4. Workspace deactivate 不需要 Process unload
+5. Package uninstall 必须先确保所有 Workspace deactivate + Process unload</code></pre>
+</div>
+
+<h3 id="s1-tenant-registry">1.4 Tenant-Aware Registry Contract <span class="v2-badge">v2 关键变更</span></h3>
+
+<div class="card">
+  <div class="callout callout-danger">
+    <strong>v1.0 问题：</strong>Registry Consumer 绑定表只标注了"谁消费"，但未标注消费时点（启动时 vs 请求时）和租户上下文。启动时进行 Workspace 范围的全局注册在共享多租户进程中不成立。
+  </div>
+
+  <h4>Registry Consumer 合约</h4>
+  <table>
+    <tr><th>Registry</th><th>Consumer</th><th>消费时点</th><th>Tenant-Aware 要求</th></tr>
+    <tr>
+      <td><code>ServiceRegistry</code></td>
+      <td>FastAPI <code>Depends()</code></td>
+      <td><strong>Request-Time</strong></td>
+      <td><code>resolve(name, workspace_id, user_id)</code> — 每次请求传入租户上下文，返回 scoped 实例</td>
+    </tr>
+    <tr>
+      <td><code>MiddlewareRegistry</code></td>
+      <td><code>AppFactory</code></td>
+      <td><strong>Startup-Time</strong></td>
+      <td>中间件在启动时全局注入，但内部逻辑检查 <code>request.state.workspace_id</code> 做租户感知</td>
+    </tr>
+    <tr>
+      <td><code>ContentTypeRegistry</code></td>
+      <td>Content Model Builder</td>
+      <td><strong>Request-Time</strong></td>
+      <td><code>list_types(workspace_id, activation_revision)</code> — 缓存 key 包含 workspace_id + revision</td>
+    </tr>
+    <tr>
+      <td><code>ProviderRegistry</code></td>
+      <td>Storage/Search/Email 工厂</td>
+      <td><strong>Request-Time</strong></td>
+      <td><code>resolve_provider(type, workspace_id)</code> — Provider 配置 per-Workspace</td>
+    </tr>
+    <tr>
+      <td><code>CustomFieldRegistry</code></td>
+      <td><code>field_type_registry</code></td>
+      <td><strong>Request-Time</strong></td>
+      <td>缓存 key 包含 workspace_id + extension version + activation revision</td>
+    </tr>
+    <tr>
+      <td><code>AdminSlotRegistry</code></td>
+      <td>Admin UI API → Build Pipeline</td>
+      <td><strong>Build-Time + Request-Time</strong></td>
+      <td>构建时收集所有 Extension 的 slot 声明。运行时 API 按 workspace activation 过滤</td>
+    </tr>
+    <tr>
+      <td><code>PolicyRegistry</code></td>
+      <td>Permission Guard</td>
+      <td><strong>Request-Time</strong></td>
+      <td><code>evaluate(policy_name, workspace_id, user_id, resource, action)</code></td>
+    </tr>
+  </table>
+
+  <h4>Activation Revision 机制</h4>
+  <pre><code>-- workspace_extensions 表追加 revision 字段
+ALTER TABLE workspace_extensions ADD COLUMN revision BIGINT DEFAULT 1;
+
+-- 每次 activate/deactivate/config_update 递增 revision
+-- Consumer 缓存 key 格式: registry:{name}:ws:{workspace_id}:rev:{revision}
+-- ExtensionManager 发布 invalidation event: extension.config_changed.{workspace_id}</code></pre>
+</div>
+
+<h3 id="s1-activation">1.5 数据库驱动激活</h3>
+<div class="card">
+  <p>与 v1.0 设计一致，但明确区分了三个时点：</p>
+  <pre><code>应用启动 (一次性)
+  ├─→ 扫描已安装 Extension → extensions 表
+  ├─→ 加载所有 INSTALLED Extension 到进程 (Process Runtime → READY)
+  └─→ 不查询 workspace_extensions（那是请求时的事）
+
+请求到达 (每次)
+  ├─→ 从 Token 解析 workspace_id
+  ├─→ 查询 workspace_extensions WHERE workspace_id=? AND enabled=true
+  ├─→ 获取该 Workspace 的 activation_revision
+  ├─→ Registry Consumer 使用 tenant-aware API 解析资源
+  └─→ 缓存结果 (key 包含 workspace_id + revision)</code></pre>
+</div>
+
+<h3 id="s1-trust">1.6 Extension 信任模型 <span class="v2-badge">v2 关键变更</span></h3>
+
+<div class="callout callout-danger">
+  <strong>v1.0 问题：</strong>使用"安全沙箱"描述进程内 Python 代码的权限声明，这是不诚实的。Python 代码加载进同一进程可以访问环境变量、文件系统、网络、内存、内部服务、全局注册表。Permission 声明和审计日志不能"沙箱化"不受信任的 Python 代码。
+</div>
+
+<div class="card">
+  <h4>双级信任模型</h4>
+  <table>
+    <tr><th style="width:15%">信任级别</th><th style="width:12%">适用对象</th><th style="width:18%">隔离机制</th><th style="width:25%">安全保证</th><th style="width:30%">Phase</th></tr>
+    <tr>
+      <td><strong>受信任 (Trusted)</strong></td>
+      <td>第一方 + 认证第三方</td>
+      <td>Permission 声明 + 审计日志 + API 调用审计</td>
+      <td>防止意外越权，不防恶意代码。依赖代码审查和签名验证。</td>
+      <td><span class="tag tag-phase2">Phase 2</span></td>
+    </tr>
+    <tr>
+      <td><strong>不受信任 (Untrusted)</strong></td>
+      <td>Marketplace / Community</td>
+      <td>进程隔离 (subprocess/container/WASM) + RPC boundary + deny-by-default egress</td>
+      <td>真正隔离。Extension 无法访问主进程内存、文件系统、网络。</td>
+      <td>独立项目（不在当前路线图）</td>
+    </tr>
+  </table>
+
+  <h4>受信任 Extension 的安全措施 (Phase 2)</h4>
+  <table>
+    <tr><th>措施</th><th>实现</th></tr>
+    <tr><td>Manifest Permission 声明</td><td>Extension 声明所需权限（<code>content:read</code> 等）。加载时校验。</td></tr>
+    <tr><td>API Client Facade</td><td>Extension 必须使用框架提供的 <code>ExtensionContext</code> 访问资源，不能直接 import ORM/httpx。</td></tr>
+    <tr><td>数据库访问封装</td><td>Extension 通过 tenant-scoped Repository 访问数据，工作空间隔离自动执行。</td></tr>
+    <tr><td>网络出站限制</td><td>Extension 使用框架提供的 <code>HttpClient</code>（deny-by-default egress，需要 manifest 声明域名白名单）。</td></tr>
+    <tr><td>审计日志</td><td>所有 Extension API 调用记录到 <code>extension_audit_log</code>。</td></tr>
+    <tr><td>错误隔离</td><td>单个 Extension 异常不影响其他 Extension 和应用主体。</td></tr>
+    <tr><td>包签名验证</td><td>Extension 包需有数字签名，安装时验证。</td></tr>
+  </table>
+</div>
+
+<h3 id="s1-admin">1.7 Admin UI 扩展插槽 <span class="v2-badge">v2 变更</span></h3>
+
+<div class="callout callout-danger">
+  <strong>v1.0 问题：</strong>返回 slot 元数据的 API 不足以渲染 React 组件。必须选定组件加载模型。运行时动态加载任意 React 组件是安全风险和运维问题。
+</div>
+
+<div class="card">
+  <h4>选定的加载模型：构建时打包 (Build-Time Bundling)</h4>
+  <pre><code>工作流程:
+  1. Extension 在 extension.json 中声明 adminSlot + bundle 路径
+     {"name": "ai-sidebar", "location": "sidebar", "bundle": "dist/admin.js"}
+
+  2. 构建时，CI/CD 扫描所有已安装 Extension 的 adminSlot 声明
+     收集 extension admin bundles → 打包进 apps/admin 构建产物
+
+  3. 运行时，前端根据 GET /api/v1/admin/slots?location=sidebar
+     返回的 slot 列表按 priority 渲染（组件已在 bundle 中）
+     API 已按 workspace activation + user permission 过滤
+
+  4. Slot 组件接收受限的 ExtensionContext（不包含 broad token）
+     只能通过 SDK 提供的 hooks 与后端交互
+
+优点:
+  - 组件在构建时已知，可做 tree-shaking 和静态分析
+  - 无运行时动态加载的安全风险
+  - 签名验证在构建时完成
+
+限制:
+  - 安装/更新 Extension 需要重新构建 Admin（适合 CI/CD 流程）
+  - Phase 2 只支持此模型
+
+未来可选: Module Federation (Webpack/Vite) 或 iframe 隔离
+          作为 Phase 4+ 的可选方案</code></pre>
+</div>
+
+<h3 id="s1-db">1.8 Extensions 数据库 Schema</h3>
+<div class="card">
+  <p>与 v1.0 基本一致，v2 追加字段以支持信任模型和三状态机：</p>
+  <pre><code>ALTER TABLE extensions ADD COLUMN trust_level VARCHAR(20) DEFAULT 'trusted';
+ALTER TABLE extensions ADD COLUMN signature TEXT;          -- 数字签名
+ALTER TABLE workspace_extensions ADD COLUMN revision BIGINT DEFAULT 1;
+ALTER TABLE workspace_extensions ADD COLUMN deactivated_at TIMESTAMPTZ;
+ALTER TABLE workspace_extensions ADD COLUMN last_config_revision BIGINT DEFAULT 1;</code></pre>
+</div>
+
+<h3 id="s1-migration">1.9 迁移策略</h3>
+<div class="card">
+  <p>与 v1.0 一致，5 步迁移（共存→替换 CorePlugin→替换 runtime→标记 deprecated→移除）。v2 增加的约束：迁移每一步验证三状态机模型的正确性。</p>
+</div>
+
+<!-- ===== SECTION 2: AI INFRASTRUCTURE v2 ===== -->
+<h2 id="s2-llm">2. AI 基础设施 <span class="v2-badge">v2</span></h2>
+
+<h3>2.1 src/llm/ 模块结构</h3>
+<div class="card">
+  <p>与 v1.0 一致。v2 追加 <code>LLMRuntime</code> 作为高层入口，集中管理 Key 解析、审计、预算检查、模型策略强制：</p>
+  <pre><code># 新增: src/llm/runtime.py
+class LLMRuntime:
+    """LLM 调用高层入口 — 集中管理 Key 解析、审计、预算、策略"""
+    def __init__(self, client: LiteLLMClient, key_resolver: VirtualKeyResolver,
+                 audit: AuditService, policy: ModelPolicyEngine): ...
+
+    async def chat(self, messages, context: LLMRequestContext) -> ChatResult:
+        # 1. 解析 Virtual Key (Workspace-First)
+        # 2. 检查 Model Policy (允许的模型、最大 context、成本上限)
+        # 3. 预算预检查 (预估 token → 冻结预算)
+        # 4. 调用 LiteLLM
+        # 5. 审计日志 (含 correlation_id)
+        # 6. 预算对账 (实际 token → 确认扣减)
+        ...
+
+@dataclass
+class LLMRequestContext:
+    workspace_id: UUID
+    user_id: UUID | None
+    correlation_id: str        # 跨系统追踪 ID
+    source: str                # "agent" | "event" | "api"</code></pre>
+</div>
+
+<h3 id="s2-litellm">2.2 LiteLLM Proxy 集成</h3>
+<div class="card">
+  <p>与 v1.0 一致。v2 追加：</p>
+  <ul style="margin-left:1.5rem; font-size:0.9rem;">
+    <li><strong>Master Key 仅用于 Key 管理操作</strong>（create/delete/update virtual key）。常规推理请求使用 Virtual Key 本身作为 Bearer auth。</li>
+    <li>LiteLLM 需作为关键基础设施对待：独立数据库、健康检查、故障模式测试、本地 mock。</li>
+    <li>重试策略 + 熔断器 + Provider 回退在 LiteLLM 配置层处理。</li>
+  </ul>
+</div>
+
+<h3 id="s2-settings">2.3 AISettings 配置</h3>
+<div class="card"><p>与 v1.0 一致，追加 <code>AI__OBSERVABILITY_LOG_LEVEL</code> 和 <code>AI__BUDGET_PREFLIGHT_ENABLED</code>。</p></div>
+
+<h3 id="s2-keymodel">2.4 多租户 Key 模型 <span class="v2-badge">v2 关键变更</span></h3>
+
+<div class="callout callout-danger">
+  <strong>v1.0 问题：</strong>Virtual Key 优先级 User → Workspace → Platform 存在风险。如果用户属于多个 Workspace，用户级 Key 可能在未授权的 Workspace 中被使用，导致跨租户计费泄露。
+</div>
+
+<div class="card">
+  <h4>v2 Workspace-First Key 模型</h4>
+  <pre><code>Key 解析规则（v2 修正）:
+  请求必须携带 workspace_id。
+
+  1. Workspace 拥有独立 Key → 使用 workspace/{id}
+     这是最优先的策略。Workspace 管理员完全控制 AI 支出。
+
+  2. Workspace 未配置 Key，但用户在该 Workspace 中显式授权了个人 Key
+     → 使用 user/{user_id}:workspace/{workspace_id}
+     用户 Key 必须显式链接到具体 Workspace 才能使用。
+     防止用户在 Workspace B 中意外消耗在 Workspace A 中配置的 Key。
+
+  3. 以上均不满足，Workspace 策略允许使用平台共享 Key
+     → 使用 platform/shared
+     平台管理员控制哪些 Workspace 可以使用共享 Key。
+
+  LiteLLM Virtual Key 注册:
+  注册用户 Key 到 LiteLLM 时需要加密传输实际 credential。
+  ai_api_keys 表存储 key_hash（SHA-256，用于展示/去重），
+  实际 credential 经 KMS/信封加密后存储，或直接注册到 LiteLLM 后丢弃本地副本。</code></pre>
+
+  <h4>Key 生命周期</h4>
+  <pre><code>操作:
+  - 创建: POST /api/v1/workspaces/{id}/ai-keys  (Workspace Key)
+          POST /api/v1/users/me/ai-keys           (User Key)
+  - 链接: POST /api/v1/users/me/ai-keys/{id}/grant/{workspace_id}
+  - 轮换: POST /api/v1/ai-keys/{id}/rotate
+  - 撤销: DELETE /api/v1/ai-keys/{id}
+  - 同步: 定时任务将本地 Key 状态与 LiteLLM Virtual Key 对账
+  - 过期: 检测未使用的 Key → 通知 → 自动撤销</code></pre>
+</div>
+
+<h3 id="s2-db">2.5 AI 基础设施数据库 Schema</h3>
+<div class="card">
+  <p>与 v1.0 基本一致，追加：</p>
+  <pre><code>-- 用户 Key → Workspace 授权关联
+CREATE TABLE user_key_workspace_grants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_key_id UUID NOT NULL REFERENCES ai_api_keys(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL,
+    granted_by UUID NOT NULL,            -- 授权人
+    granted_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,              -- 可选过期
+    UNIQUE(user_key_id, workspace_id)
+);
+
+-- 模型策略
+CREATE TABLE model_policies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID REFERENCES workspaces(id),
+    scope VARCHAR(20) DEFAULT 'workspace', -- "platform" | "workspace" | "user"
+    allowed_models JSONB DEFAULT '["*"]',
+    max_context_tokens INT DEFAULT 128000,
+    max_cost_per_request_cents INT DEFAULT 100,
+    provider_restrictions JSONB DEFAULT '[]',
+    data_retention_enabled BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE
+);</code></pre>
+</div>
+</section>
+
+<!-- ===== SECTION 3: AGENT SYSTEM v2 ===== -->
+<h2 id="s3-overview">3. Agent 系统 <span class="v2-badge">v2</span></h2>
+
+<h3>3.1 概述</h3>
+<div class="card">
+  <p>与 v1.0 定位一致。v2 关键变更：</p>
+  <ul style="margin-left:1.5rem; font-size:0.9rem;">
+    <li><strong>PydanticAI 是执行引擎</strong>（非装饰）。AgentRunEngine 委托给 <code>pydantic_ai.Agent.run()</code>，不手工处理 tool calls。PydanticAI 负责 tool call 循环、结构化输出校验、重试。</li>
+    <li><strong>只读 Agent 先于可写 Agent</strong>。Phase 3A 所有 Agent 仅读权限。Phase 3B 引入写操作 + 审批门 + Dry-Run。</li>
+    <li><strong>Prompt Injection 防护</strong>：工具执行时必须将用户内容与系统指令分离。每个 tool call 在 execution time 重新校验权限。</li>
+    <li><strong>Correlation ID 贯穿全链路</strong>：HTTP Request → Agent Session → LiteLLM Request → Tool Call → Extension Audit → Background Task。</li>
+  </ul>
+</div>
+
+<h3 id="s3-runtime">3.2 Agent 运行时</h3>
+<div class="card">
+  <p>与 v1.0 设计一致，v2 明确 PydanticAI 作为执行引擎：</p>
+  <pre><code># v2: AgentRunEngine 委托给 PydanticAI
+class AgentRunEngine:
+    def __init__(self, llm_runtime: LLMRuntime, tool_registry: ToolRegistry, ...):
+        self.llm_runtime = llm_runtime
+        self.tool_registry = tool_registry
+
+    async def run(self, user_input: str, context: AgentContext) -> AgentRunResult:
+        # 构建 PydanticAI Agent（动态注入工具）
+        agent = PydanticAgent(
+            model=OpenAIModel(context.model, base_url=...),
+            system_prompt=self._build_system_prompt(context),
+            tools=self._resolve_tools(context.tools, context.workspace_id),
+        )
+        # PydanticAI 处理 tool call 循环、结构化输出、重试
+        result = await agent.run(user_input, deps=context)
+        return AgentRunResult(...)</code></pre>
+</div>
+
+<h3 id="s3-tools">3.3 工具系统 (MCP + PydanticAI)</h3>
+<div class="card">
+  <p>与 v1.0 一致，v2 追加：</p>
+  <ul style="margin-left:1.5rem; font-size:0.9rem;">
+    <li><strong>执行时权限校验</strong>：ToolExecutor 在每次调用前重新校验 User/Workspace 对该工具+参数的权限</li>
+    <li><strong>Argument-Level 策略检查</strong>：不仅检查工具级别，还检查参数级别（如 content_type 是否在允许列表）</li>
+    <li><strong>Prompt Injection 防护</strong>：Tool handler 接收的 <code>context</code> 对象区分 <code>context.user_content</code>（不可信的 CMS 内容）和 <code>context.system_instruction</code>（可信的开发者 prompt）</li>
+    <li><strong>Correlation ID 传递</strong>：每个 tool call 携带 correlation_id</li>
+  </ul>
+</div>
+
+<h3 id="s3-agents">3.4 首批 Agent — 只读优先 <span class="v2-badge">v2 关键变更</span></h3>
+
+<div class="callout callout-success">
+  <strong>v2 策略：</strong>Phase 3A 所有 Agent 仅使用只读工具（search_content, list_content_types, get_content, analyze_content）。写操作（create_content, update_content）推迟到 Phase 3B，等审批工作流、Dry-Run、审计、策略强制执行全部就绪后再引入。
+</div>
+
+<div class="card">
+  <table>
+    <tr><th>Agent</th><th>工具集</th><th>权限</th><th>Phase</th></tr>
+    <tr>
+      <td><code>ContentAnalyzerAgent</code></td>
+      <td>search_content, list_content_types, get_content, analyze_content</td>
+      <td>只读</td>
+      <td><span class="tag tag-phase3a">Phase 3A</span></td>
+    </tr>
+    <tr>
+      <td><code>ContentAdvisorAgent</code></td>
+      <td>search_content, list_content_types, get_content</td>
+      <td>只读</td>
+      <td><span class="tag tag-phase3a">Phase 3A</span></td>
+    </tr>
+    <tr>
+      <td><code>ContentModelAdvisorAgent</code></td>
+      <td>list_content_types, get_content, search_content</td>
+      <td>只读</td>
+      <td><span class="tag tag-phase3a">Phase 3A</span></td>
+    </tr>
+    <tr>
+      <td><code>ContentWriterAgent</code></td>
+      <td>+ create_content, update_content</td>
+      <td>读 + 写 (需审批)</td>
+      <td><span class="tag tag-phase3b">Phase 3B</span></td>
+    </tr>
+    <tr>
+      <td><code>ContentModelAgent</code></td>
+      <td>+ create_content_type, update_content_type</td>
+      <td>读 + Schema 变更 (需审批)</td>
+      <td><span class="tag tag-phase3b">Phase 3B</span></td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="s3-approval">3.5 人工审批与护栏 <span class="v2-badge">v2 新增</span></h3>
+
+<div class="card">
+  <h4>破坏性操作审批流程</h4>
+  <pre><code>Agent 决定执行写操作
+  │
+  ├─→ 1. Dry-Run: 生成操作预览（将要创建/修改的内容 diff）
+  │
+  ├─→ 2. 用户审批: 前端展示 diff → 用户 Approve / Reject / Modify
+  │     (Phase 3B 初期: 必须人工审批。后期: 可配置自动化策略)
+  │
+  ├─→ 3. 执行: 审批通过后，以用户身份执行操作
+  │     (携带审批记录 ID，写入审计日志)
+  │
+  └─→ 4. 回执: 操作结果计入 Agent Session
+
+审批策略配置 (Phase 3B+):
+  - always_approve:      所有写操作需审批
+  - approve_bulk_only:   单条写入自动；批量(>5)需审批
+  - approve_schema_only: 内容写入自动；Schema 变更需审批
+  - auto_approved:       白名单内的自动化 Agent 可自动执行
+                         (仅限特定内容类型 + 特定操作)</code></pre>
+</div>
+
+<h3 id="s3-api">3.6 API 端点</h3>
+<div class="card">
+  <p>与 v1.0 一致，v2 追加审批相关端点：</p>
+  <table>
+    <tr><th>方法</th><th>路径</th><th>说明</th><th>Phase</th></tr>
+    <tr><td><code>POST</code></td><td><code>/api/v1/agents/chat</code></td><td>对话式 Agent 交互（SSE 流式）</td><td><span class="tag tag-phase1">Phase 1</span></td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/v1/agents</code></td><td>列出可用 Agent</td><td><span class="tag tag-phase3a">3A</span></td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/v1/agents/{name}/run</code></td><td>运行 Agent</td><td><span class="tag tag-phase3a">3A</span></td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/v1/agents/sessions/{id}</code></td><td>获取会话状态</td><td><span class="tag tag-phase3a">3A</span></td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/v1/agents/sessions/{id}/cancel</code></td><td>取消运行中 Agent</td><td><span class="tag tag-phase3a">3A</span></td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/v1/agents/sessions/{id}/approvals</code></td><td>获取待审批操作列表 <span class="v2-badge">v2</span></td><td><span class="tag tag-phase3b">3B</span></td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/v1/agents/sessions/{id}/approvals/{aid}</code></td><td>审批/拒绝操作 <span class="v2-badge">v2</span></td><td><span class="tag tag-phase3b">3B</span></td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/v1/agents/tools</code></td><td>列出可用工具</td><td><span class="tag tag-phase3a">3A</span></td></tr>
+  </table>
+</div>
+
+<h3 id="s3-db">3.7 Agent 数据库 Schema</h3>
+<div class="card">
+  <p>与 v1.0 一致，v2 追加审批相关表：</p>
+  <pre><code>CREATE TABLE agent_approvals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES agent_sessions(id),
+    iteration INT NOT NULL,
+    tool_name VARCHAR(100) NOT NULL,
+    tool_args JSONB NOT NULL,
+    dry_run_result JSONB,                -- 操作预览/diff
+    status VARCHAR(20) DEFAULT 'pending', -- "pending" | "approved" | "rejected" | "modified"
+    approved_by UUID,
+    approved_at TIMESTAMPTZ,
+    modified_args JSONB,                 -- 用户修改后的参数
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);</code></pre>
+</div>
+</section>
+
+<!-- ===== SECTION 4: IMPLEMENTATION ROADMAP v2 ===== -->
+<h2 id="s4-phase1">4. 实施路线 <span class="v2-badge">v2 重估算</span></h2>
+
+<div class="callout callout-warn">
+  <strong>v1.0 估算 (2-3w / 3-4w / 3-4w) 仅适用于原型验证。</strong><br>
+  v2.0 估算基于生产级多租户 CMS 平台标准 — 包含正确的租户隔离、审批工作流、安全审计、分布式一致性、完整测试覆盖。
+  <strong>总工期：18-23 周</strong>（取决于团队规模和基础设施成熟度），不含 Phase 4。
+</div>
+
+<h3>4.1 Phase 1 — AI 基础设施 <span style="color:var(--warning)">[4-6 周]</span></h3>
+<div class="card">
+  <div class="card-header"><h4 style="margin:0">目标：安全的全链路 — /api/v1/agents/chat → LiteLLM → OpenAI，含审计、预算预检查、策略验证</h4></div>
+  <table>
+    <tr><th>#</th><th>任务</th><th>产出</th><th>验证</th></tr>
+    <tr><td>1.1</td><td>LiteLLM 运维就绪</td><td>独立数据库、健康检查、故障模式、本地 mock</td><td>健康检查 + 故障注入测试</td></tr>
+    <tr><td>1.2</td><td>src/llm/ 基础模块 + LLMRuntime</td><td>provider.py, litellm_client.py, runtime.py, token_counter.py, rate_limiter.py, utils.py</td><td>单元测试全覆盖</td></tr>
+    <tr><td>1.3</td><td>AISettings + ModelPolicy</td><td>config.py 追加；模型策略表</td><td>Settings 加载测试</td></tr>
+    <tr><td>1.4</td><td>AI 数据库迁移</td><td>Migration 0004: ai_audit_log, ai_api_keys, model_policies, user_key_workspace_grants, agent_definitions, agent_sessions</td><td>Apply + rollback</td></tr>
+    <tr><td>1.5</td><td>src/modules/agents/ 骨架</td><td>router.py, service.py, schema.py, models.py</td><td>模块导入</td></tr>
+    <tr><td>1.6</td><td>POST /api/v1/agents/chat (v2 增强)</td><td>LLMRuntime 集成；Workspace-First Key 解析；预算预检查；Correlation ID；SSE 流式 + auth 过期 + 断连清理</td><td>全链路 curl + SSE 测试</td></tr>
+    <tr><td>1.7</td><td>结构化可观测性基线</td><td>结构化日志、metrics、latency buckets、token/cost counters、error taxonomy</td><td>Grafana dashboard 可见</td></tr>
+    <tr><td>1.8</td><td>前端 AI Tab (Phase 1 版)</td><td>基础 chat 界面；schema 校验；diff 预览；错误处理；取消；权限检查</td><td>手动 E2E</td></tr>
+    <tr><td>1.9</td><td>集成测试 + 合约测试</td><td>LiteLLM request/response/error 格式合约测试；Mock LLM 集成测试</td><td>CI 通过</td></tr>
+  </table>
+</div>
+
+<h3>4.2 Phase 2 — Extensions 系统改造 <span style="color:var(--warning)">[6-8 周]</span></h3>
+<div class="card">
+  <div class="card-header"><h4 style="margin:0">目标：受信任 Extension 可安装/激活/配置/卸载；Tenant-Aware Registry 运转；Admin UI 插槽可用（构建时打包）</h4></div>
+  <table>
+    <tr><th>#</th><th>任务</th><th>产出</th><th>验证</th></tr>
+    <tr><td>2.1</td><td>三状态机实现</td><td>Package Lifecycle + Process Runtime Lifecycle + Workspace Activation Lifecycle；协调逻辑</td><td>单元测试：所有合法/非法转换</td></tr>
+    <tr><td>2.2</td><td>Tenant-Aware Registry + Activation Revision</td><td>所有 Registry Consumer 接受 workspace_id + revision；缓存失效机制</td><td>多 Workspace 并发激活/停用测试</td></tr>
+    <tr><td>2.3</td><td>Extension Manifest 解析器 v2</td><td>trust_level + signature 验证</td><td>单元测试</td></tr>
+    <tr><td>2.4</td><td>数据库驱动激活 + 依赖解析</td><td>activation.py + dependency.py + DAG 排序</td><td>集成测试</td></tr>
+    <tr><td>2.5</td><td>ExtensionManager（统一入口）</td><td>替代 PluginManager；三状态机协调</td><td>完整加载流程</td></tr>
+    <tr><td>2.6</td><td>受信任 Extension 安全层</td><td>Permission 校验 + API Client Facade + Http Client (deny-by-default) + 审计日志</td><td>权限不足 Extension 无法调用受限 API</td></tr>
+    <tr><td>2.7</td><td>Admin UI 插槽（构建时打包）</td><td>Slot API + 构建流水线 + 前端 SDK</td><td>Extension Slot 在 Admin UI 中渲染</td></tr>
+    <tr><td>2.8</td><td>分布式一致性</td><td>多 Worker 共享 activation state；revision-based 缓存失效</td><td>多 Worker 并发测试</td></tr>
+    <tr><td>2.9</td><td>迁移 + 兼容性验证</td><td>现有 plugin/ 功能完全兼容；CorePlugin → Extension 迁移</td><td>全量回归测试</td></tr>
+  </table>
+</div>
+
+<h3 id="s4-phase3a">4.3 Phase 3A — 只读 Agent <span style="color:var(--success)">[4-5 周]</span> <span class="v2-badge">v2 新增分阶段</span></h3>
+<div class="card">
+  <div class="card-header"><h4 style="margin:0">目标：Agent 运行时可用；3 个只读 Agent 上线；事件驱动 AI 自动化（只读分析）；Correlation ID 贯穿全链路</h4></div>
+  <table>
+    <tr><th>#</th><th>任务</th><th>产出</th><th>验证</th></tr>
+    <tr><td>3A.1</td><td>PydanticAI 集成 + BaseAgent (执行引擎)</td><td>AgentRunEngine 委托 PydanticAI Agent.run()</td><td>单元测试</td></tr>
+    <tr><td>3A.2</td><td>Tool Registry + 只读工具 (4 tools)</td><td>search_content, list_content_types, get_content, analyze_content</td><td>工具注册/调用测试</td></tr>
+    <tr><td>3A.3</td><td>AgentSessionManager + Cancel</td><td>创建/恢复/取消会话；Taskiq 协作式取消</td><td>会话 CRUD</td></tr>
+    <tr><td>3A.4</td><td>ContentAnalyzerAgent + ContentAdvisorAgent + ContentModelAdvisorAgent</td><td>3 个只读 Agent</td><td>每 Agent E2E 测试</td></tr>
+    <tr><td>3A.5</td><td>事件驱动 AI 自动化（只读）</td><td>content.created → 自动摘要/标签/SEO 建议（不修改原内容）</td><td>创建内容 → 自动生成分析报告</td></tr>
+    <tr><td>3A.6</td><td>前端 Agent 对话面板</td><td>Admin UI 对话式 Agent 交互；审批流程 UI 准备</td><td>手动测试</td></tr>
+    <tr><td>3A.7</td><td>集成测试</td><td>多 Workspace / 多用户 / 并发 Agent 会话</td><td>CI 通过</td></tr>
+  </table>
+</div>
+
+<h3 id="s4-phase3b">4.4 Phase 3B — 可写 Agent + 审批 <span style="color:var(--purple)">[4-6 周]</span> <span class="v2-badge">v2 新增</span></h3>
+<div class="card">
+  <div class="card-header"><h4 style="margin:0">目标：可写 Agent 上线，含 Dry-Run、人工审批门、Prompt Injection 防护、完整审计</h4></div>
+  <table>
+    <tr><th>#</th><th>任务</th><th>产出</th><th>验证</th></tr>
+    <tr><td>3B.1</td><td>写工具 + Argument-Level Policy</td><td>create_content, update_content；参数级策略校验</td><td>工具级 + 参数级权限测试</td></tr>
+    <tr><td>3B.2</td><td>Dry-Run 引擎</td><td>操作预览/diff 生成；Agent Session 中暂存待审批操作</td><td>Dry-Run 输出准确性测试</td></tr>
+    <tr><td>3B.3</td><td>审批工作流</td><td>审批 API；前端审批 UI；可配置审批策略</td><td>审批/拒绝/修改 全流程测试</td></tr>
+    <tr><td>3B.4</td><td>Prompt Injection 防护</td><td>Tool handler 区分 user_content vs system_instruction；执行时权限重新校验</td><td>注入攻击测试集</td></tr>
+    <tr><td>3B.5</td><td>ContentWriterAgent + ContentModelAgent</td><td>2 个可写 Agent</td><td>每 Agent E2E 测试（含审批流）</td></tr>
+    <tr><td>3B.6</td><td>Automation Policy 白名单</td><td>特定内容类型 + 特定操作可配置自动审批</td><td>自动审批 vs 人工审批 分支测试</td></tr>
+    <tr><td>3B.7</td><td>集成测试 + 安全测试</td><td>可写 Agent 完整测试；Prompt Injection 渗透测试</td><td>CI + 安全审计通过</td></tr>
+  </table>
+</div>
+
+<h3 id="s4-phase4">4.5 Phase 4 — 高级能力 (按需)</h3>
+<div class="card">
+  <p>与 v1.0 一致。RAG、LangGraph 多步工作流、@platejs/ai 编辑器集成、Langfuse 可观测性、多租户 AI 计费等按业务需求触发。</p>
+</div>
+
+<hr class="section-divider">
+
+<!-- ===== APPENDICES ===== -->
+<h2 id="a1-audit">附录 A1. 审计跟踪 <span class="v2-badge">v2 新增</span></h2>
+<div class="card">
+  <table>
+    <tr><th style="width:15%">审计方</th><th style="width:18%">模型</th><th style="width:10%">日期</th><th>关键发现</th><th>处置</th></tr>
+    <tr>
+      <td>Codex</td>
+      <td>GPT-5.5 (OpenAI Codex v0.135)</td>
+      <td>2026-06-01</td>
+      <td>2 Critical + 3 High 风险；25+ Gap；路线图显著低估</td>
+      <td>全部修正于 v2.0</td>
+    </tr>
+    <tr>
+      <td>Gemini</td>
+      <td>—</td>
+      <td>—</td>
+      <td>CLI 未安装，审计未执行</td>
+      <td>待补充</td>
+    </tr>
+  </table>
+</div>
+
+<h2 id="a2-glossary">附录 A2. 术语表</h2>
+<div class="card">
+  <p>与 v1.0 一致，v2 追加术语：</p>
+  <table>
+    <tr><th style="width:22%">术语</th><th>定义</th></tr>
+    <tr><td><strong>Tenant-Aware Registry</strong></td><td>每个 Registry Consumer 在请求时接受 workspace_id + user_id + activation_revision 进行租户感知解析，而非启动时全局注册。</td></tr>
+    <tr><td><strong>Activation Revision</strong></td><td>workspace_extensions 的单调递增版本号。每次 activate/deactivate/config_update 时递增，用于缓存失效。</td></tr>
+    <tr><td><strong>Trusted Extension</strong></td><td>第一方或认证第三方 Extension，加载进 API 进程。通过 Permission 声明 + 审计日志 + API Client Facade 防止意外越权。</td></tr>
+    <tr><td><strong>Untrusted Extension</strong></td><td>Marketplace/Community Extension。需要进程/容器/WASM 隔离 + RPC boundary。当前路线图不支持（独立项目）。</td></tr>
+    <tr><td><strong>LLMRuntime</strong></td><td>LLM 调用高层入口。集中管理 Key 解析、审计、预算预检查、模型策略强制。调用方不需要自行传递 virtual_key_id。</td></tr>
+    <tr><td><strong>Correlation ID</strong></td><td>跨系统追踪标识符。贯穿 HTTP Request → Agent Session → LiteLLM Request → Tool Call → Extension Audit → Background Task。</td></tr>
+    <tr><td><strong>Dry-Run</strong></td><td>Agent 写操作在执行前生成操作预览/diff，供用户审批。不实际修改数据。</td></tr>
+    <tr><td><strong>Approval Workflow</strong></td><td>Agent 破坏性操作需人工审批后才能执行。支持审批/拒绝/修改。可配置审批策略（始终/批量/Schema变更/自动）。</td></tr>
+  </table>
+</div>
+
+<h2 id="a3-techstack">附录 A3. 完整技术栈</h2>
+<div class="card">
+  <p>与 v1.0 一致，v2 追加 LLMRuntime。</p>
+</div>
+
+<h2 id="a4-files">附录 A4. 文件变更清单</h2>
+<div class="card">
+  <p>与 v1.0 一致，v2 追加/变更文件：</p>
+  <table>
+    <tr><th>Phase</th><th>操作</th><th>文件</th><th>说明</th></tr>
+    <tr><td>1</td><td>🆕</td><td><code>apps/api/src/llm/runtime.py</code></td><td><span class="v2-badge">v2</span> LLMRuntime 高层入口</td></tr>
+    <tr><td>1</td><td>✏️</td><td><code>apps/api/src/llm/litellm_client.py</code></td><td><span class="v2-badge">v2</span> 移除直接 virtual_key_id 参数，改由 LLMRuntime 管理</td></tr>
+    <tr><td>1</td><td>🆕</td><td><code>apps/api/src/migrations/0004_ai_infrastructure.py</code></td><td><span class="v2-badge">v2</span> 追加 user_key_workspace_grants, model_policies</td></tr>
+    <tr><td>2</td><td>🆕</td><td><code>apps/api/src/core/extensions/trust.py</code></td><td><span class="v2-badge">v2</span> 受信任 Extension 安全层</td></tr>
+    <tr><td>2</td><td>🆕</td><td><code>apps/api/src/core/extensions/tenant_registry.py</code></td><td><span class="v2-badge">v2</span> Tenant-Aware Registry Contract</td></tr>
+    <tr><td>2</td><td>🆕</td><td><code>apps/api/src/core/extensions/distributed.py</code></td><td><span class="v2-badge">v2</span> 分布式一致性</td></tr>
+    <tr><td>3B</td><td>🆕</td><td><code>apps/api/src/modules/agents/approval.py</code></td><td><span class="v2-badge">v2</span> 审批工作流引擎</td></tr>
+    <tr><td>3B</td><td>🆕</td><td><code>apps/api/src/modules/agents/dry_run.py</code></td><td><span class="v2-badge">v2</span> Dry-Run 引擎</td></tr>
+  </table>
+</div>
+
+<hr class="section-divider">
+<p style="color: var(--text-secondary); font-size: 0.8rem; text-align: center;">
+  Arclayer AI Agent & Extensions System — 完整实施规格 v2.0 | 2026-06-01 | Codex 审计已通过
+</p>
+
+</main>
+</body>
+</html>

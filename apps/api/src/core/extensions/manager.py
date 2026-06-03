@@ -370,6 +370,10 @@ class ExtensionManager:
                 await self._persist_activation(conn, extension_name, workspace_id, active=True)
                 new_revision = workspace.extension_revision
         except CoordinationError:
+            try:
+                instance.deactivate(workspace_id)
+            except Exception:
+                pass
             raise
         except Exception:
             try:
@@ -404,6 +408,12 @@ class ExtensionManager:
                 await workspace.save(update_fields=["extension_revision", "updated_at"], using_db=conn)
                 await self._persist_activation(conn, extension_name, workspace_id, active=False)
                 new_revision = workspace.extension_revision
+        except CoordinationError:
+            try:
+                instance.activate(workspace_id)
+            except Exception:
+                pass
+            raise
         except Exception:
             try:
                 instance.activate(workspace_id)

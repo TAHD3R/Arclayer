@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arclayer AI Agent & Extensions System — 完整实施规格</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2129;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-secondary: #8b949e;
+    --accent: #58a6ff;
+    --success: #3fb950;
+    --warning: #d2991d;
+    --danger: #f85149;
+    --purple: #a371f7;
+    --orange: #f0883e;
+    --radius: 8px;
+    --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    font-size: 15px;
+  }
+  /* ===== NAVIGATION ===== */
+  nav {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 1rem;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  nav h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; margin: 1.25rem 0 0.5rem; }
+  nav h3:first-child { margin-top: 0; }
+  nav a { display: block; padding: 0.3rem 0; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem; }
+  nav a:hover { color: var(--accent); }
+  nav .nav-section { font-size: 0.75rem; color: var(--purple); font-weight: 700; margin-top: 1rem; }
+  /* ===== MAIN ===== */
+  main { margin-left: 260px; padding: 2.5rem 3rem; max-width: 1200px; }
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  h3 { font-size: 1.1rem; margin: 1.75rem 0 0.75rem; }
+  h4 { font-size: 1rem; margin: 1.25rem 0 0.5rem; color: var(--text); }
+  .meta { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 2rem; }
+
+  /* ===== COMPONENTS ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+  }
+  .card-header h4 { margin: 0; }
+  .grid { display: grid; gap: 1.25rem; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { padding: 0.65rem 0.85rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface2); font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:hover td { background: rgba(88,166,255,0.03); }
+
+  .tag {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 10px;
+    font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+  }
+  .tag-phase1 { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .tag-phase2 { background: rgba(210,153,29,0.15); color: var(--warning); }
+  .tag-phase3 { background: rgba(63,185,80,0.15); color: var(--success); }
+  .tag-phase4 { background: rgba(163,113,247,0.15); color: var(--purple); }
+  .tag-p0 { background: rgba(248,81,73,0.15); color: var(--danger); }
+  .tag-p1 { background: rgba(240,136,62,0.15); color: var(--orange); }
+  .tag-p2 { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .tag-decision { background: rgba(163,113,247,0.15); color: var(--purple); }
+
+  .callout {
+    border-left: 4px solid var(--accent); padding: 0.75rem 1rem;
+    background: rgba(88,166,255,0.06); border-radius: 0 var(--radius) var(--radius) 0; margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  .callout-warn { border-left-color: var(--warning); background: rgba(210,153,29,0.06); }
+  .callout-info { border-left-color: var(--purple); background: rgba(163,113,247,0.06); }
+
+  code {
+    font-family: var(--font-mono); font-size: 0.85em;
+    background: rgba(139,148,158,0.12); padding: 0.1em 0.35em; border-radius: 3px;
+  }
+  pre {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1rem 1.25rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.55;
+    margin: 1rem 0;
+  }
+  pre code { background: none; padding: 0; }
+
+  .arch-diagram {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.5rem; margin: 1rem 0; font-family: var(--font-mono); font-size: 0.8rem;
+    line-height: 1.45; white-space: pre; overflow-x: auto;
+  }
+
+  .spec-row { display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 0.5rem; }
+  .spec-label { min-width: 140px; font-weight: 600; color: var(--accent); font-size: 0.9rem; }
+  .spec-value { font-size: 0.9rem; }
+
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  .toc-link { display: flex; align-items: center; gap: 0.4rem; }
+
+  @media (max-width: 900px) {
+    nav { display: none; }
+    main { margin-left: 0; padding: 1.5rem; }
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <h3>文档元信息</h3>
+  <a href="#revision">版本记录</a>
+  <a href="#decisions">架构决策</a>
+
+  <h3>1. Extensions 系统</h3>
+  <a href="#s1-overview">1.1 概述与边界</a>
+  <a href="#s1-manifest">1.2 Extension Manifest</a>
+  <a href="#s1-lifecycle">1.3 生命周期状态机</a>
+  <a href="#s1-activation">1.4 数据库驱动激活</a>
+  <a href="#s1-registry">1.5 Registry &amp; Consumer</a>
+  <a href="#s1-admin">1.6 Admin UI 扩展插槽</a>
+  <a href="#s1-sandbox">1.7 安全沙箱</a>
+  <a href="#s1-db">1.8 数据库 Schema</a>
+  <a href="#s1-migration">1.9 迁移策略</a>
+
+  <h3>2. AI 基础设施</h3>
+  <a href="#s2-llm">2.1 src/llm/ 模块</a>
+  <a href="#s2-litellm">2.2 LiteLLM Proxy 集成</a>
+  <a href="#s2-settings">2.3 AISettings 配置</a>
+  <a href="#s2-keymodel">2.4 多租户 Key 模型</a>
+  <a href="#s2-db">2.5 数据库 Schema</a>
+
+  <h3>3. Agent 系统</h3>
+  <a href="#s3-overview">3.1 概述</a>
+  <a href="#s3-runtime">3.2 Agent 运行时</a>
+  <a href="#s3-tools">3.3 工具系统</a>
+  <a href="#s3-agents">3.4 首批 Agent</a>
+  <a href="#s3-api">3.5 API 端点</a>
+  <a href="#s3-db">3.6 数据库 Schema</a>
+
+  <h3>4. 实施路线</h3>
+  <a href="#s4-phase1">4.1 Phase 1: AI 基础设施</a>
+  <a href="#s4-phase2">4.2 Phase 2: Extensions 改造</a>
+  <a href="#s4-phase3">4.3 Phase 3: Agent 系统</a>
+  <a href="#s4-phase4">4.4 Phase 4: 高级能力</a>
+
+  <h3>附录</h3>
+  <a href="#a1-glossary">A1. 术语表</a>
+  <a href="#a2-techstack">A2. 完整技术栈</a>
+  <a href="#a3-files">A3. 文件变更清单</a>
+</nav>
+
+<main>
+
+<!-- ===== HEADER ===== -->
+<h1>Arclayer AI Agent & Extensions System<br>完整实施规格</h1>
+<p class="meta">
+  <strong>文档状态:</strong> Draft for Review &nbsp;|&nbsp;
+  <strong>版本:</strong> v1.0 &nbsp;|&nbsp;
+  <strong>日期:</strong> 2026-06-01 &nbsp;|&nbsp;
+  <strong>作者:</strong> AI Agent 分析 & 架构设计
+</p>
+
+<!-- ===== REVISION ===== -->
+<h2 id="revision">版本记录</h2>
+<div class="card">
+  <table>
+    <tr><th>版本</th><th>日期</th><th>变更</th></tr>
+    <tr><td>v1.0</td><td>2026-06-01</td><td>初始版本：完整 Extensions 系统 + AI Agent 架构规格</td></tr>
+  </table>
+</div>
+
+<!-- ===== DECISIONS ===== -->
+<h2 id="decisions">架构决策记录</h2>
+<div class="card">
+  <table>
+    <tr><th style="width:5%">#</th><th style="width:22%">决策点</th><th style="width:18%">选择</th><th style="width:30%">核心理由</th><th style="width:25%">替代方案</th></tr>
+    <tr>
+      <td><span class="tag tag-decision">1</span></td>
+      <td>Extensions 架构模式</td>
+      <td><strong>Strapi/Directus 路线</strong></td>
+      <td>保留 pluggy 类型化 Hook 骨架，补齐消费端、元信息清单、数据库激活、Admin 插槽</td>
+      <td>WordPress 全局字符串 pub-sub（太松散，不适配多租户 API-first 系统）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-decision">2</span></td>
+      <td>AI 代码组织</td>
+      <td><strong>src/llm/ + src/modules/agents/</strong></td>
+      <td>分离 API 无关的 LLM 基础能力与 API 层 Agent 逻辑</td>
+      <td>全部放 src/modules/ai/（耦合度过高）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-decision">3</span></td>
+      <td>AI 部署模型</td>
+      <td><strong>Phase 1 内置模块 → 后续 Extensions 化</strong></td>
+      <td>快速验证核心链路，成熟后解耦为独立 Extension</td>
+      <td>直接做独立 Extension（初期迭代慢）；独立微服务（运维成本高）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-decision">4</span></td>
+      <td>LLM API Key 管理</td>
+      <td><strong>平台共享 Key + 用户/工作空间独立 Key</strong></td>
+      <td>默认低成本（共享），高级用户灵活（自带 Key）</td>
+      <td>仅共享 Key（无灵活性）；仅独立 Key（管理复杂）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-decision">5</span></td>
+      <td>Agent 工具系统</td>
+      <td><strong>MCP 格式描述 + PydanticAI 执行</strong></td>
+      <td>MCP 保证工具可跨 Agent 框架复用；PydanticAI 保证类型安全和可测试性</td>
+      <td>纯 PydanticAI 装饰器（绑定框架）；纯 MCP（缺少类型安全）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-decision">6</span></td>
+      <td>LLM 网关</td>
+      <td><strong>LiteLLM Proxy (sidecar)</strong></td>
+      <td>100+ Provider 统一代理、虚拟 Key 体系、多租户预算、速率限制</td>
+      <td>自建 Provider 抽象层（重复造轮子）；Portkey（核心功能云锁定）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-decision">7</span></td>
+      <td>Agent 框架</td>
+      <td><strong>PydanticAI + LangGraph(按需)</strong></td>
+      <td>单任务用 PydanticAI（类型安全+FastAPI 天然整合），多步用 LangGraph（有向图+Checkpoint）</td>
+      <td>LangChain（过重）；CrewAI（生态小）；自建 ReAct（需更多维护）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-decision">8</span></td>
+      <td>RAG 管线</td>
+      <td><strong>LlamaIndex + pgvector</strong></td>
+      <td>原生 pgvector 集成、混合搜索、CMS 内容建模天然匹配</td>
+      <td>LangChain RetrievalQA（代码量大 30-40%）</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-decision">9</span></td>
+      <td>可观测性</td>
+      <td><strong>Langfuse（按需引入）</strong></td>
+      <td>初期用 LiteLLM 内置 spend tracking；需要深度调试时引入 Langfuse</td>
+      <td>LangSmith（非 MIT）；自建追踪（开发成本高）</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ===== SECTION 1: EXTENSIONS ===== -->
+<section id="s1-overview">
+<h2>1. Extensions 系统</h2>
+
+<h3>1.1 概述与边界</h3>
+<div class="card">
+  <div class="spec-row"><span class="spec-label">设计目标</span><span class="spec-value">构建 CMS 级别、多租户感知、支持安装/激活/配置/卸载的 Extensions 系统。参照 Strapi 和 Directus 的成熟模式，在现有 pluggy 类型化 Hook 骨架之上补齐消费端、元信息清单、数据库驱动激活、Admin UI 扩展插槽、依赖管理、分发机制。</span></div>
+  <div class="spec-row" style="margin-top:0.75rem"><span class="spec-label">与现有 pluggy 的关系</span><span class="spec-value">保留 <code>specs.py</code> 的 Hook 定义和 <code>registries/</code> 的子注册表。新建 <code>src/core/extensions/</code> 作为 Extension 系统的统一入口，将原有 <code>core/plugin/</code> 中的功能逐步整合。两套代码短期内共存，新功能优先走 <code>extensions/</code>。</span></div>
+  <div class="spec-row" style="margin-top:0.75rem"><span class="spec-label">核心新增</span><span class="spec-value">(1) Extension Manifest 元信息清单 (2) 加固版生命周期状态机 (3) 数据库驱动激活状态 (4) 依赖解析与加载排序 (5) 消费端 Registry 绑定 (6) Admin UI 扩展插槽 (7) 分发机制 (8) 安全沙箱</span></div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h4 style="margin-top:0">Extension 能力矩阵</h4>
+    <table>
+      <tr><th>能力</th><th>说明</th></tr>
+      <tr><td>生命周期 Hook</td><td>install / uninstall / activate / deactivate / register / bootstrap / ready / destroy</td></tr>
+      <tr><td>服务注册</td><td>向 ServiceRegistry 注册自定义服务</td></tr>
+      <tr><td>中间件注入</td><td>向 MiddlewareRegistry 注册请求/响应拦截器</td></tr>
+      <tr><td>内容类型扩展</td><td>向 ContentTypeRegistry 注册新内容类型或扩展已有类型字段</td></tr>
+      <tr><td>Provider 注册</td><td>向 ProviderRegistry 注册存储/搜索/AI Provider 驱动</td></tr>
+      <tr><td>Policy 注册</td><td>向 PolicyRegistry 注册权限策略</td></tr>
+      <tr><td>Custom Field</td><td>向 CustomFieldRegistry 注册自定义字段类型</td></tr>
+      <tr><td>Admin UI Slots</td><td>向 AdminSlotRegistry 注册前端组件注入点</td></tr>
+      <tr><td>REST API</td><td>自定义路由注册</td></tr>
+      <tr><td>事件订阅</td><td>订阅 Event Bus 上的领域事件</td></tr>
+      <tr><td>后台任务</td><td>注册 Taskiq 后台任务</td></tr>
+      <tr><td>CLI 命令</td><td>注册 CLI 子命令</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4 style="margin-top:0">当前 plugin/ vs 新 extensions/ 对照</h4>
+    <table>
+      <tr><th>现有 (core/plugin/)</th><th>状态</th><th>新建 (core/extensions/)</th></tr>
+      <tr><td><code>specs.py</code> (Hook 定义)</td><td>✅ 保留</td><td>复用，追加 Extension 专用 Hook</td></tr>
+      <tr><td><code>manager.py</code> (PluginManager)</td><td>🔄 扩展</td><td><code>manager.py</code> (ExtensionManager)</td></tr>
+      <tr><td><code>lifecycle.py</code> (DISCOVER→DESTROY)</td><td>🔄 加固</td><td>追加 install/activate/deactivate/uninstall</td></tr>
+      <tr><td><code>loader.py</code> (3 种发现)</td><td>🔄 扩展</td><td>追加 manifest 解析 + 分发源支持</td></tr>
+      <tr><td><code>registries/</code> (10 个子注册表)</td><td>✅ 保留</td><td>追加 AdminSlotRegistry</td></tr>
+      <tr><td><code>config.py</code> (PluginConfig)</td><td>🔄 修复</td><td>接入生命周期，支持数据库配置</td></tr>
+      <tr><td><code>extensions.py</code> (ExtensionOverlay)</td><td>🔄 修复</td><td>接入运行时，支持用户级覆盖</td></tr>
+      <tr><td>❌ 无</td><td>🆕 新增</td><td><code>manifest.py</code></td></tr>
+      <tr><td>❌ 无</td><td>🆕 新增</td><td><code>activation.py</code></td></tr>
+      <tr><td>❌ 无</td><td>🆕 新增</td><td><code>dependency.py</code></td></tr>
+      <tr><td>❌ 无</td><td>🆕 新增</td><td><code>admin_slots.py</code></td></tr>
+      <tr><td>❌ 无</td><td>🆕 新增</td><td><code>sandbox.py</code></td></tr>
+      <tr><td>❌ 无</td><td>🆕 新增</td><td><code>events.py</code> (Extension 生命周期事件)</td></tr>
+    </table>
+  </div>
+</div>
+</section>
+
+<h3 id="s1-manifest">1.2 Extension Manifest</h3>
+<div class="card">
+  <p>每个 Extension 根目录放置 <code>extension.json</code> 作为声明式元信息清单。设计受 WordPress Plugin Header 启发（不加载代码即可读取元信息），但使用结构化 JSON 格式。解析器读取此文件即可了解 Extension 的完整信息，无需执行任何 Python 代码。</p>
+
+  <h4>Schema 定义</h4>
+  <pre><code>{
+  "$schema": "https://arclayer.dev/schemas/extension-v1.json",
+  "name": "arclayer-ai-agent",              // 唯一标识符，kebab-case
+  "display_name": "AI Agent",               // 用户可读名称
+  "version": "1.0.0",                       // SemVer
+  "description": "AI-powered content management agent",
+  "author": {
+    "name": "Arclayer",
+    "email": "dev@arclayer.dev",
+    "url": "https://arclayer.dev"
+  },
+  "license": "MIT",
+  "type": "extension",                      // "extension" | "integration" | "connector"
+  "icon": "robot",                          // Tabler Icon name
+  "entry": "src/plugin.py",                 // 入口模块（相对于 Extension 根目录）
+  "requires": {
+    "platform": ">=1.0.0",                  // 最低 Arclayer 版本
+    "python": ">=3.12",
+    "extensions": {                         // 依赖的其他 Extension
+      "arclayer-core": ">=1.0.0"
+    }
+  },
+  "provides": {
+    "services": ["ai-service"],             // 注册的 Service 名称
+    "agents": ["content-writer", "content-analyzer"],
+    "adminSlots": [                         // Admin UI 插槽
+      {"name": "ai-sidebar", "location": "sidebar"},
+      {"name": "ai-inline-editor", "location": "editor-toolbar"}
+    ],
+    "middlewares": ["ai-rate-limiter"],
+    "providers": [
+      {"type": "ai", "name": "openai", "display": "OpenAI"},
+      {"type": "ai", "name": "anthropic", "display": "Anthropic"}
+    ],
+    "contentTypes": [],
+    "customFields": [],
+    "policies": [],
+    "commands": []
+  },
+  "permissions": [                          // 需要的权限
+    "content:read", "content:write",
+    "asset:read", "workspace:settings"
+  ],
+  "config_schema": {                        // JSON Schema for Extension 配置
+    "type": "object",
+    "properties": {
+      "default_model": {
+        "type": "string",
+        "default": "gpt-4o",
+        "description": "Default LLM model"
+      },
+      "max_tokens": {
+        "type": "integer",
+        "default": 4096,
+        "minimum": 1,
+        "maximum": 128000
+      },
+      "temperature": {
+        "type": "number",
+        "default": 0.7,
+        "minimum": 0,
+        "maximum": 2.0
+      }
+    },
+    "required": ["default_model"]
+  },
+  "distribution": {                         // 分发信息
+    "type": "npm",                          // "npm" | "git" | "local" | "registry"
+    "package": "@arclayer/extension-ai-agent",
+    "registry": "https://registry.npmjs.org"
+  },
+  "tags": ["ai", "content", "automation"],
+  "homepage": "https://arclayer.dev/extensions/ai-agent",
+  "repository": "https://github.com/arclayer/extension-ai-agent"
+}</code></pre>
+</div>
+
+<h3 id="s1-lifecycle">1.3 生命周期状态机</h3>
+<div class="card">
+  <p>将现有 6 阶段（DISCOVER→LOAD→REGISTER→BOOTSTRAP→READY→DESTROY）扩展为 10 阶段，增加安装/激活/停用/卸载，并强制校验阶段顺序。</p>
+
+  <h4>完整状态转移</h4>
+  <pre><code>                    ┌─────────────────────────────┐
+                    │         ABSENT              │ (文件不存在于系统)
+                    └──────────┬──────────────────┘
+                               │ install()
+                               ↓
+                    ┌─────────────────────────────┐
+                    │        INSTALLED            │ (文件存在，manifest 已验证)
+                    └──────────┬──────────────────┘
+                               │ activate()      ←── 可配置 per-Workspace
+                               ↓
+                    ┌─────────────────────────────┐
+                    │        ACTIVATED            │ (将在下次启动时加载)
+                    └──────────┬──────────────────┘
+                               │ 应用启动 → load()
+                               ↓
+                    ┌─────────────────────────────┐
+                    │        REGISTERED           │ (Hook: arclayer_register 已调用)
+                    └──────────┬──────────────────┘
+                               │ bootstrap()
+                               ↓
+                    ┌─────────────────────────────┐
+                    │        BOOTSTRAPPED         │ (Hook: arclayer_bootstrap 已调用)
+                    └──────────┬──────────────────┘
+                               │ ready()
+                               ↓
+                    ┌─────────────────────────────┐
+                    │          READY              │ (正常服务中)
+                    └──────┬───────────┬──────────┘
+                           │          │ deactivate()
+                           │          ↓
+                           │  ┌───────────────────┐
+                           │  │    DEACTIVATED    │ (下次启动不加载)
+                           │  └────────┬──────────┘
+                           │          │ uninstall()
+                           │          ↓
+                           │  ┌───────────────────┐
+                           │  │     UNINSTALLED   │ → ABSENT
+                           │  └───────────────────┘
+                           │
+                    shutdown│
+                           ↓
+                    ┌─────────────────────────────┐
+                    │        DESTROYED            │ (正常关闭)
+                    └─────────────────────────────┘</code></pre>
+
+  <h4>强制顺序校验</h4>
+  <pre><code>class ExtensionLifecycle:
+    """加固版状态机：强制校验阶段转移合法性"""
+
+    _VALID_TRANSITIONS = {
+        Phase.ABSENT:      {Phase.INSTALLED},
+        Phase.INSTALLED:   {Phase.ACTIVATED, Phase.UNINSTALLED},
+        Phase.ACTIVATED:   {Phase.REGISTERED, Phase.DEACTIVATED},
+        Phase.REGISTERED:  {Phase.BOOTSTRAPPED},
+        Phase.BOOTSTRAPPED:{Phase.READY},
+        Phase.READY:       {Phase.DESTROYED, Phase.DEACTIVATED},
+        Phase.DEACTIVATED: {Phase.ACTIVATED, Phase.UNINSTALLED},
+        Phase.UNINSTALLED: {Phase.ABSENT},
+        Phase.DESTROYED:   set(),
+    }
+
+    def transition(self, to_phase: Phase) -> None:
+        if to_phase not in self._VALID_TRANSITIONS.get(self._phase, set()):
+            raise IllegalTransitionError(
+                f"Cannot transition from {self._phase} to {to_phase}"
+            )
+        self._phase = to_phase</code></pre>
+</div>
+
+<h3 id="s1-activation">1.4 数据库驱动激活状态</h3>
+<div class="card">
+  <p>参照 WordPress Multisite 的"共享代码 + 每站点独立激活"模式。Extension 代码在文件系统（或 npm 包），激活状态存储在数据库，不同 Workspace 可独立启用/禁用/配置 Extension。</p>
+
+  <h4>激活流程</h4>
+  <pre><code>应用启动
+  │
+  ├─→ 1. 扫描已安装 Extension（文件系统 → extensions 表）
+  │
+  ├─→ 2. 查询当前 Workspace 的激活列表（workspace_extensions 表）
+  │     ├─ 平台级强制 Extension（is_required = true）→ 始终加载
+  │     ├─ Workspace 主动激活的 Extension → 加载
+  │     └─ 未激活的 Extension → 跳过
+  │
+  ├─→ 3. 依赖拓扑排序（DAG）
+  │     ├─ Extension A requires Extension B → B 先加载
+  │     └─ 循环依赖检测 → 报错并跳过
+  │
+  └─→ 4. 按序加载 Extensions
+        ├─ instantiate → register → bootstrap → ready
+        └─ 失败隔离：单个 Extension 加载失败不影响其他</code></pre>
+</div>
+
+<h3 id="s1-registry">1.5 Registry & Consumer Binding</h3>
+<div class="card">
+  <p>现有 <code>registries/</code> 的 10 个子注册表是"只写"的——Extension 可以向其中注册内容，但没有消费端读取。必须建立消费端绑定：</p>
+
+  <table>
+    <tr><th>Registry</th><th>Consumer</th><th>绑定方式</th></tr>
+    <tr>
+      <td><code>ServiceRegistry</code></td>
+      <td>FastAPI 依赖注入</td>
+      <td>Extension 注册的 Service 在 <code>Depends()</code> 中可用。通过 <code>resolve_service(name)</code> 懒加载。</td>
+    </tr>
+    <tr>
+      <td><code>MiddlewareRegistry</code></td>
+      <td><code>AppFactory.with_middlewares()</code></td>
+      <td>在中间件栈构建时从 Registry 读取并注入。</td>
+    </tr>
+    <tr>
+      <td><code>ContentTypeRegistry</code></td>
+      <td>Content Model Builder</td>
+      <td>内容类型列表 = 内置 + Registry 内容。</td>
+    </tr>
+    <tr>
+      <td><code>ProviderRegistry</code></td>
+      <td>Storage / Search / Email 工厂</td>
+      <td>Provider 工厂从 Registry 收集可用驱动。</td>
+    </tr>
+    <tr>
+      <td><code>CustomFieldRegistry</code></td>
+      <td><code>field_type_registry.py</code></td>
+      <td>已有 <code>_PLUGIN_FIELD_TYPES</code> dict 和 <code>register_custom_content_model_field_type()</code> 函数，直接对接。</td>
+    </tr>
+    <tr>
+      <td><code>AdminSlotRegistry</code></td>
+      <td>Admin UI Slot Renderer</td>
+      <td>前端通过 API 获取已注册的 Slot 列表，动态渲染。</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="s1-admin">1.6 Admin UI 扩展插槽</h3>
+<div class="card">
+  <h4>后端 API</h4>
+  <pre><code># GET /api/v1/extensions/{name}/slots
+# 返回 Extension 注册的 Admin UI 插槽列表
+{
+  "slots": [
+    {
+      "name": "ai-sidebar",
+      "location": "sidebar",
+      "component": "AiSidebar",
+      "priority": 10,
+      "props": {}
+    }
+  ]
+}
+
+# GET /api/v1/admin/slots?location=sidebar
+# 返回指定位置所有已注册插槽（按 priority 排序）
+{
+  "slots": [
+    {"extension": "arclayer-ai-agent", "name": "ai-sidebar", "priority": 10},
+    {"extension": "arclayer-seo", "name": "seo-checker", "priority": 20}
+  ]
+}</code></pre>
+
+  <h4>前端 SDK</h4>
+  <pre><code>// packages/extensions-sdk/src/index.ts
+interface AdminSlot {
+  name: string;
+  location: "sidebar" | "editor-toolbar" | "content-actions"
+           | "settings-page" | "dashboard-widget" | "header-action";
+  component: React.ComponentType&lt;SlotProps&gt;;
+  priority: number;
+  permissions?: string[];
+}
+
+// Extension 入口 register.tsx
+import { registerSlot } from '@arclayer/extensions-sdk';
+
+registerSlot({
+  name: "ai-content-actions",
+  location: "content-actions",
+  component: AiContentActions,
+  priority: 10
+});</code></pre>
+</div>
+
+<h3 id="s1-sandbox">1.7 安全沙箱</h3>
+<div class="card">
+  <table>
+    <tr><th>安全层级</th><th>措施</th></tr>
+    <tr>
+      <td>Permission 声明</td>
+      <td>Extension 在 manifest 中声明所需权限（<code>content:read</code>, <code>workspace:settings</code> 等）。加载时校验。</td>
+    </tr>
+    <tr>
+      <td>API 调用审计</td>
+      <td>Extension 所有 API 调用记录到 <code>extension_audit_log</code> 表。</td>
+    </tr>
+    <tr>
+      <td>错误隔离</td>
+      <td>单个 Extension 的异常不影响其他 Extension 和应用主体。加载失败 Extension 被标记为 <code>error</code> 状态。</td>
+    </tr>
+    <tr>
+      <td>资源限制</td>
+      <td>Extension 可使用的数据库连接数、内存上限、执行超时（Taskiq 任务级）。</td>
+    </tr>
+    <tr>
+      <td>网络限制</td>
+      <td>Extension 出站请求白名单（通过 manifest 声明外部域名）。</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="s1-db">1.8 Extensions 数据库 Schema</h3>
+<div class="card">
+  <pre><code>-- 平台级：已安装的 Extension
+CREATE TABLE extensions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) UNIQUE NOT NULL,       -- 标识符: "arclayer-ai-agent"
+    display_name VARCHAR(255),               -- 显示名: "AI Agent"
+    version VARCHAR(50) NOT NULL,            -- SemVer: "1.0.0"
+    manifest JSONB NOT NULL,                 -- 完整 extension.json 内容
+    source_type VARCHAR(20) DEFAULT 'local', -- "npm" | "git" | "local" | "registry"
+    source_url VARCHAR(500),                 -- npm 包名 / git 仓库 / 本地路径
+    status VARCHAR(20) DEFAULT 'installed',  -- "installed" | "error" | "upgrading"
+    error_message TEXT,                      -- 上次加载失败原因
+    installed_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 工作空间级：激活状态 & 独立配置
+CREATE TABLE workspace_extensions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL,
+    extension_id UUID NOT NULL REFERENCES extensions(id) ON DELETE CASCADE,
+    enabled BOOLEAN DEFAULT TRUE,
+    config JSONB DEFAULT '{}',               -- 工作空间级覆盖配置
+    is_required BOOLEAN DEFAULT FALSE,       -- 平台强制启用（不可被 Workspace 停用）
+    activated_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(workspace_id, extension_id)
+);
+
+-- Extension API 调用审计日志
+CREATE TABLE extension_audit_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL,
+    extension_id UUID REFERENCES extensions(id),
+    action VARCHAR(100) NOT NULL,            -- "api_call" | "db_query" | "http_request"
+    resource VARCHAR(255),                   -- 调用的资源路径
+    status VARCHAR(20),                      -- "success" | "error"
+    duration_ms INT,
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 索引
+CREATE INDEX idx_workspace_extensions_ws ON workspace_extensions(workspace_id, enabled);
+CREATE INDEX idx_extensions_name ON extensions(name);
+CREATE INDEX idx_extension_audit_ws ON extension_audit_log(workspace_id, created_at);</code></pre>
+</div>
+
+<h3 id="s1-migration">1.9 迁移策略</h3>
+<div class="card">
+  <table>
+    <tr><th>阶段</th><th>操作</th><th>风险</th></tr>
+    <tr>
+      <td>Phase 2A</td>
+      <td>新建 <code>core/extensions/</code>，与 <code>core/plugin/</code> 共存。现有代码不受影响。</td>
+      <td>低 — 新代码独立运行</td>
+    </tr>
+    <tr>
+      <td>Phase 2B</td>
+      <td>将 <code>CorePlugin</code> 的 stub 替换为真正的核心 Extension 实现。</td>
+      <td>低 — CorePlugin 当前是空实现</td>
+    </tr>
+    <tr>
+      <td>Phase 2C</td>
+      <td>将应用启动流程中的 <code>init_plugin_runtime</code> 替换为 <code>ExtensionManager.initialize()</code>。现有 Hook 契约保持不变。</td>
+      <td>中 — 需完整回归测试</td>
+    </tr>
+    <tr>
+      <td>Phase 2D</td>
+      <td>标记 <code>core/plugin/</code> 为 deprecated，添加迁移文档。</td>
+      <td>低</td>
+    </tr>
+    <tr>
+      <td>Phase 3+</td>
+      <td>移除 <code>core/plugin/</code>，完成迁移。</td>
+      <td>中 — 需确保所有功能已迁移</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ===== SECTION 2: AI INFRASTRUCTURE ===== -->
+<section id="s2-llm">
+<h2>2. AI 基础设施</h2>
+
+<h3>2.1 src/llm/ 模块</h3>
+<div class="card">
+  <div class="spec-row"><span class="spec-label">定位</span><span class="spec-value"><strong>零 FastAPI 依赖</strong>的纯 Python LLM 基础能力层。可被 <code>src/modules/agents/</code>、Taskiq 任务、Event Bus 订阅者、其他 Extension 等任何消费者调用。</span></div>
+  <div class="spec-row" style="margin-top:0.75rem"><span class="spec-label">不做什么</span><span class="spec-value">不处理 HTTP 路由、不处理认证/授权、不处理多租户上下文（租户信息由调用方传入）。</span></div>
+
+  <h4>模块结构</h4>
+  <table>
+    <tr><th>模块</th><th>类/函数</th><th>职责</th><th>Phase</th></tr>
+    <tr>
+      <td><code>provider.py</code></td>
+      <td><code>BaseLLMProvider</code>, <code>LLMProviderFactory</code>, <code>ProviderType</code></td>
+      <td>LLM Provider 抽象 + 工厂（当前直接调用 LiteLLM Proxy 的 OpenAI 兼容接口）</td>
+      <td><span class="tag tag-phase1">Phase 1</span></td>
+    </tr>
+    <tr>
+      <td><code>litellm_client.py</code></td>
+      <td><code>LiteLLMClient</code>, <code>VirtualKeyResolver</code></td>
+      <td>LiteLLM Proxy HTTP 客户端封装，Virtual Key 解析</td>
+      <td><span class="tag tag-phase1">Phase 1</span></td>
+    </tr>
+    <tr>
+      <td><code>embedding.py</code></td>
+      <td><code>EmbeddingService</code></td>
+      <td>文本/图片 Embedding 生成（调用 LiteLLM Proxy 的 /embeddings 端点）</td>
+      <td><span class="tag tag-phase2">Phase 2</span></td>
+    </tr>
+    <tr>
+      <td><code>prompt_registry.py</code></td>
+      <td><code>PromptRegistry</code>, <code>PromptTemplate</code></td>
+      <td>Prompt 模板管理、变量插值、版本控制</td>
+      <td><span class="tag tag-phase2">Phase 2</span></td>
+    </tr>
+    <tr>
+      <td><code>token_counter.py</code></td>
+      <td><code>TokenCounter</code></td>
+      <td>Token 计数（tiktoken for OpenAI, Anthropic tokenizer）</td>
+      <td><span class="tag tag-phase1">Phase 1</span></td>
+    </tr>
+    <tr>
+      <td><code>rate_limiter.py</code></td>
+      <td><code>RateLimiter</code>, <code>TokenBucket</code></td>
+      <td>令牌桶速率限制（本地 + Valkey 分布式）</td>
+      <td><span class="tag tag-phase1">Phase 1</span></td>
+    </tr>
+    <tr>
+      <td><code>utils.py</code></td>
+      <td><code>chunk_content()</code>, <code>truncate_context()</code>, <code>estimate_cost()</code></td>
+      <td>通用工具函数</td>
+      <td><span class="tag tag-phase1">Phase 1</span></td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="s2-litellm">2.2 LiteLLM Proxy 集成</h3>
+<div class="card">
+  <h4>部署模式</h4>
+  <pre><code># docker-compose.yml (追加)
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      REDIS_URL: redis://valkey:6379
+      OPENAI_API_KEY: ${LLM_OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${LLM_ANTHROPIC_API_KEY}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY}
+    volumes:
+      - ./docker/litellm/config.yaml:/app/config.yaml
+    depends_on:
+      - postgres
+      - valkey</code></pre>
+
+  <h4>客户端封装</h4>
+  <pre><code># src/llm/litellm_client.py
+import httpx
+from typing import AsyncIterator
+
+class LiteLLMClient:
+    """LiteLLM Proxy 的 Python 客户端封装
+
+    使用 OpenAI 兼容接口格式（/chat/completions, /embeddings）。
+    Virtual Key 解析器根据租户上下文选择正确的 API Key。
+    """
+
+    def __init__(self, base_url: str, settings: AISettings):
+        self.base_url = base_url
+        self.settings = settings
+        self._client = httpx.AsyncClient(timeout=settings.request_timeout)
+
+    async def chat(
+        self,
+        messages: list[dict],
+        model: str | None = None,
+        virtual_key_id: str | None = None,
+        stream: bool = False,
+        **kwargs
+    ) -> dict:
+        """发送 Chat Completion 请求"""
+        headers = self._build_headers(virtual_key_id)
+        payload = {
+            "model": model or self.settings.default_model,
+            "messages": messages,
+            "stream": stream,
+            **kwargs
+        }
+        response = await self._client.post(
+            f"{self.base_url}/chat/completions",
+            json=payload,
+            headers=headers
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def chat_stream(
+        self, messages, model=None, virtual_key_id=None, **kwargs
+    ) -> AsyncIterator[dict]:
+        """流式 Chat Completion"""
+        ...
+
+    async def embed(self, texts: list[str], model=None, virtual_key_id=None) -> list[list[float]]:
+        """生成 Embeddings"""
+        ...
+
+    def _build_headers(self, virtual_key_id: str | None) -> dict:
+        headers = {"Authorization": f"Bearer {self.settings.master_key}"}
+        if virtual_key_id:
+            headers["x-litellm-virtual-key"] = virtual_key_id
+        return headers</code></pre>
+</div>
+
+<h3 id="s2-settings">2.3 AISettings 配置</h3>
+<div class="card">
+  <pre><code># src/config.py (追加)
+class AISettings(BaseSettings):
+    """AI 配置 — 环境变量前缀 AI__"""
+
+    # LiteLLM
+    litellm_base_url: str = "http://localhost:4000"
+    litellm_master_key: str = ""
+    litellm_salt_key: str = ""
+
+    # Defaults
+    default_model: str = "gpt-4o"
+    default_embedding_model: str = "text-embedding-3-small"
+    max_tokens: int = 4096
+    temperature: float = 0.7
+    request_timeout: int = 60  # seconds
+
+    # Rate Limiting
+    rate_limit_enabled: bool = True
+    default_rate_limit_per_minute: int = 100
+    default_monthly_token_budget: int = 10_000_000
+
+    # Feature Flags
+    ai_enabled: bool = False
+    agent_enabled: bool = False
+    rag_enabled: bool = False
+
+    # Cost Control
+    max_cost_per_request_cents: int = 10
+    alert_cost_threshold_cents: int = 5000  # Alert when monthly spend > $50
+
+    model_config = SettingsConfigDict(
+        env_prefix="AI__",
+        env_file=".env",
+        extra="ignore"
+    )</code></pre>
+</div>
+
+<h3 id="s2-keymodel">2.4 多租户 Key 模型</h3>
+<div class="card">
+  <h4>Key 解析层级</h4>
+  <pre><code>class VirtualKeyResolver:
+    """解析当前请求应使用的 LiteLLM Virtual Key。
+
+    优先级（由高到低）：
+      1. 用户配置了自有 LLM API Key → virtual_key: user/{user_id}
+      2. 工作空间配置了独立 Key → virtual_key: workspace/{workspace_id}
+      3. 回退到平台共享 Key → virtual_key: platform/shared
+    """
+
+    async def resolve(
+        self,
+        user_id: UUID | None = None,
+        workspace_id: UUID | None = None
+    ) -> tuple[str, str]:  # (virtual_key_id, virtual_key_name)
+        # 1. 检查用户级 Key
+        if user_id:
+            user_key = await self._get_user_api_key(user_id)
+            if user_key:
+                return (f"user/{user_id}", user_key.name)
+
+        # 2. 检查工作空间级 Key
+        if workspace_id:
+            ws_key = await self._get_workspace_api_key(workspace_id)
+            if ws_key:
+                return (f"workspace/{workspace_id}", ws_key.name)
+
+        # 3. 平台共享 Key
+        return ("platform/shared", "Platform Default")
+
+# LiteLLM 中的 Virtual Key 结构
+# Platform Master Key
+#   ├── Virtual Key: platform/shared
+#   │   ├── Budget: $1000/month
+#   │   ├── Rate Limit: 1000 req/min
+#   │   └── Models: ["gpt-4o", "gpt-4o-mini", "claude-sonnet-4-6"]
+#   ├── Virtual Key: workspace/{id}
+#   │   ├── Budget: $200/month (workspace 自定义)
+#   │   ├── Rate Limit: 200 req/min
+#   │   └── Models: ["gpt-4o-mini"]  (workspace 可选模型受限)
+#   └── Virtual Key: user/{id}
+#       ├── Budget: $50/month (用户自带)
+#       ├── Rate Limit: 50 req/min
+#       └── Models: ["gpt-4o"]</code></pre>
+</div>
+
+<h3 id="s2-db">2.5 AI 基础设施数据库 Schema</h3>
+<div class="card">
+  <pre><code>-- AI 请求审计日志（所有 LLM 调用记录）
+CREATE TABLE ai_audit_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL,
+    user_id UUID,
+    provider VARCHAR(50) NOT NULL,           -- "openai" | "anthropic" | ...
+    model VARCHAR(100) NOT NULL,             -- "gpt-4o" | "claude-sonnet-4-6" | ...
+    endpoint VARCHAR(255) NOT NULL,          -- "/chat/completions" | "/embeddings"
+    virtual_key_id VARCHAR(255),
+    request_id VARCHAR(255),                 -- LiteLLM 返回的 request_id
+    prompt_tokens INT DEFAULT 0,
+    completion_tokens INT DEFAULT 0,
+    total_tokens INT DEFAULT 0,
+    latency_ms INT,
+    cost_micros BIGINT DEFAULT 0,            -- 花费（微美元，1e6 = $1）
+    status VARCHAR(20) NOT NULL,            -- "success" | "error"
+    error_message TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_ai_audit_ws ON ai_audit_log(workspace_id, created_at);
+CREATE INDEX idx_ai_audit_user ON ai_audit_log(user_id, created_at);
+CREATE INDEX idx_ai_audit_key ON ai_audit_log(virtual_key_id, created_at);
+
+-- AI API Key 管理（用户/工作空间自带 Key）
+CREATE TABLE ai_api_keys (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_type VARCHAR(20) NOT NULL,         -- "workspace" | "user"
+    owner_id UUID NOT NULL,
+    provider VARCHAR(50) NOT NULL,           -- "openai" | "anthropic"
+    key_hash VARCHAR(255) NOT NULL,          -- SHA-256 hash of the actual key
+    key_prefix VARCHAR(8),                   -- First 8 chars for display (sk-...)
+    name VARCHAR(255),                       -- User-given name
+    models JSONB DEFAULT '[]',               -- Allowed models
+    budget_cents INT,                        -- Monthly budget in cents
+    is_active BOOLEAN DEFAULT TRUE,
+    last_used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_ai_keys_owner ON ai_api_keys(owner_type, owner_id);
+CREATE UNIQUE INDEX idx_ai_keys_unique ON ai_api_keys(owner_type, owner_id, provider, name);
+</code></pre>
+</div>
+</section>
+
+<!-- ===== SECTION 3: AGENT SYSTEM ===== -->
+<section id="s3-overview">
+<h2>3. Agent 系统</h2>
+
+<h3>3.1 概述</h3>
+<div class="card">
+  <div class="spec-row"><span class="spec-label">定位</span><span class="spec-value"><code>src/modules/agents/</code> 是 API 感知的 Agent 层，依赖 <code>src/llm/</code> 提供基础 LLM 能力。提供 REST API 端点、Agent 运行时（ReAct 循环）、工具系统（MCP + PydanticAI）、会话管理。</span></div>
+  <div class="spec-row" style="margin-top:0.75rem"><span class="spec-label">设计原则</span><span class="spec-value">(1) 单任务用 PydanticAI — 类型安全的输入/输出，FastAPI 天然整合 (2) 多步工作流按需引入 LangGraph — 有向图状态机 + PostgreSQL Checkpoint (3) 工具用 MCP 格式描述 — 跨 Agent 框架可复用 (4) 所有 Agent 执行走 Taskiq 后台任务 — 避免阻塞 HTTP 请求</span></div>
+</div>
+
+<h3 id="s3-runtime">3.2 Agent 运行时</h3>
+<div class="card">
+  <h4>ReAct 循环</h4>
+  <pre><code># src/modules/agents/runtime/engine.py
+class AgentRunEngine:
+    """Agent 运行时引擎 — ReAct (Reasoning + Acting) 循环
+
+    ┌──────────────────────────────────────────────┐
+    │                 ReAct Loop                    │
+    │                                               │
+    │  ┌─────────┐     ┌──────────┐     ┌────────┐ │
+    │  │  THINK  │────→│   ACT    │────→│OBSERVE │ │
+    │  │ (LLM)   │     │(Tool Use)│     │(Result)│ │
+    │  └─────────┘     └──────────┘     └────────┘ │
+    │       ↑                                  │   │
+    │       └──────────── repeat ──────────────┘   │
+    │                                               │
+    │  Exit conditions:                             │
+    │    - Agent 返回 final_response                 │
+    │    - 达到 max_iterations (默认 15)              │
+    │    - 累计 cost 超过 budget                     │
+    │    - 用户手动取消                              │
+    └──────────────────────────────────────────────┘
+    """
+
+    def __init__(
+        self,
+        llm_client: LiteLLMClient,
+        tool_registry: ToolRegistry,
+        session_manager: AgentSessionManager,
+        settings: AISettings,
+    ): ...
+
+    async def run(
+        self,
+        user_input: str,
+        context: AgentContext,        # workspace_id, user_id, permissions
+        tools: list[str] | None = None,  # 限定的工具集
+        max_iterations: int = 15,
+        budget_cents: int | None = None,
+    ) -> AgentRunResult:
+        """执行 Agent 运行"""
+
+        session = await self.session_manager.create(context, user_input)
+
+        # 构建初始消息
+        messages = [
+            {"role": "system", "content": self._build_system_prompt(context, tools)},
+            {"role": "user", "content": user_input}
+        ]
+
+        for iteration in range(max_iterations):
+            # [THINK] 调用 LLM
+            response = await self.llm_client.chat(
+                messages=messages,
+                virtual_key_id=context.virtual_key_id,
+                tools=self.tool_registry.to_openai_format(tools),
+            )
+
+            # 记录审计日志
+            await self._audit(response, context)
+
+            # 检查预算
+            self._check_budget(session, budget_cents)
+
+            # 检查是否有 tool_calls
+            choice = response["choices"][0]
+            if choice["finish_reason"] == "stop":
+                # [FINAL] Agent 完成
+                session.final_response = choice["message"]["content"]
+                await self.session_manager.complete(session)
+                return AgentRunResult(
+                    output=session.final_response,
+                    iterations=iteration + 1,
+                    tool_calls=session.tool_calls,
+                    cost=session.total_cost,
+                )
+
+            # [ACT] 执行工具调用
+            tool_results = []
+            for tool_call in choice["message"].get("tool_calls", []):
+                result = await self.tool_executor.execute(
+                    tool_call, context
+                )
+                tool_results.append(result)
+
+            # [OBSERVE] 将结果加入消息
+            messages.append(choice["message"])
+            for result in tool_results:
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": result.call_id,
+                    "content": result.content,
+                })
+
+            session.add_iteration(choice, tool_results)
+
+        # 达到最大迭代次数
+        raise MaxIterationsExceededError(
+            f"Agent reached max iterations ({max_iterations})"
+        )</code></pre>
+
+  <h4>会话管理</h4>
+  <pre><code># src/modules/agents/runtime/session.py
+class AgentSessionManager:
+    """Agent 会话管理器 — 处理会话生命周期、上下文窗口裁剪、记忆检索"""
+
+    async def create(self, context: AgentContext, user_input: str) -> AgentSession: ...
+
+    async def get(self, session_id: UUID) -> AgentSession | None: ...
+
+    async def complete(self, session: AgentSession) -> None: ...
+
+    async def cancel(self, session_id: UUID) -> None: ...
+
+    def trim_context(self, messages: list[dict], max_tokens: int) -> list[dict]:
+        """上下文窗口裁剪：保留 system prompt + 最近 N 条消息"""
+        ...</code></pre>
+</div>
+
+<h3 id="s3-tools">3.3 工具系统（MCP + PydanticAI）</h3>
+<div class="card">
+  <h4>MCP 格式定义</h4>
+  <pre><code># src/modules/agents/tools/registry.py
+class ToolRegistry:
+    """工具注册表 — 用 MCP 格式存储工具描述，PydanticAI 执行"""
+
+    def __init__(self):
+        self._tools: dict[str, ToolDefinition] = {}
+
+    def register(self, tool: ToolDefinition) -> None:
+        """注册工具"""
+        self._tools[tool.name] = tool
+
+    def get(self, name: str) -> ToolDefinition | None:
+        return self._tools.get(name)
+
+    def list_all(self) -> list[ToolDefinition]:
+        return list(self._tools.values())
+
+    def to_openai_format(self, names: list[str] | None = None) -> list[dict]:
+        """将工具转换为 OpenAI Function Calling 格式"""
+        tools = [self._tools[n] for n in names] if names else self.list_all()
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": t.name,
+                    "description": t.description,
+                    "parameters": t.input_schema,
+                }
+            }
+            for t in tools
+        ]
+
+@dataclass
+class ToolDefinition:
+    """MCP 格式的工具定义"""
+    name: str
+    description: str
+    input_schema: dict        # JSON Schema
+    handler: Callable          # PydanticAI @tool 装饰的函数
+    permissions: list[str]     # 所需权限
+    is_destructive: bool = False  # 是否为破坏性操作（写/删）</code></pre>
+
+  <h4>首批工具定义</h4>
+  <pre><code># src/modules/agents/tools/content_tools.py
+search_content_tool = ToolDefinition(
+    name="search_content",
+    description="搜索当前工作空间中的内容条目。支持关键词和内容类型过滤。使用 pgvector 做语义搜索。",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "搜索关键词或自然语言查询"},
+            "content_type": {"type": "string", "description": "内容类型 slug"},
+            "limit": {"type": "integer", "default": 10, "minimum": 1, "maximum": 50},
+            "language": {"type": "string", "description": "语言代码 (zh/en/...)"},
+        },
+        "required": ["query"]
+    },
+    handler=search_content_handler,
+    permissions=["content:read"],
+    is_destructive=False,
+)
+
+create_content_tool = ToolDefinition(
+    name="create_content",
+    description="在当前工作空间中创建新内容条目。",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "content_type": {"type": "string", "description": "内容类型 slug"},
+            "data": {"type": "object", "description": "内容数据（符合内容类型的 schema）"},
+        },
+        "required": ["content_type", "data"]
+    },
+    handler=create_content_handler,
+    permissions=["content:write"],
+    is_destructive=True,
+)
+
+list_content_types_tool = ToolDefinition(
+    name="list_content_types",
+    description="列出当前工作空间中所有可用的内容类型及其字段定义。",
+    input_schema={"type": "object", "properties": {}},
+    handler=list_content_types_handler,
+    permissions=["content:read"],
+    is_destructive=False,
+)
+
+# 共 Phase 3 首批 6 个工具
+#   读: search_content, list_content_types, get_content, analyze_content
+#   写: create_content, update_content</code></pre>
+</div>
+
+<h3 id="s3-agents">3.4 首批 Agent</h3>
+<div class="card">
+  <table>
+    <tr><th>Agent</th><th>工具集</th><th>功能</th><th>Phase</th></tr>
+    <tr>
+      <td><code>ContentWriterAgent</code></td>
+      <td>search_content, list_content_types, get_content, create_content, update_content</td>
+      <td>根据用户描述生成内容、改写已有内容、批量创建内容条目</td>
+      <td><span class="tag tag-phase3">Phase 3</span></td>
+    </tr>
+    <tr>
+      <td><code>ContentAnalyzerAgent</code></td>
+      <td>search_content, list_content_types, get_content, analyze_content</td>
+      <td>分析内容质量、提取关键词和标签、检测内容重复、生成 SEO 建议</td>
+      <td><span class="tag tag-phase3">Phase 3</span></td>
+    </tr>
+    <tr>
+      <td><code>ContentModelAgent</code></td>
+      <td>list_content_types, create_content, search_content</td>
+      <td>根据描述自动生成内容类型定义（字段、关系、视图）</td>
+      <td><span class="tag tag-phase3">Phase 3</span></td>
+    </tr>
+  </table>
+
+  <h4>BaseAgent 设计</h4>
+  <pre><code># src/modules/agents/agents/base.py
+from pydantic_ai import Agent as PydanticAgent
+
+class BaseAgent:
+    """Arclayer Agent 基类 — 封装 PydanticAI Agent"""
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        tools: list[str],                # 工具名列表
+        system_prompt: str,
+        engine: AgentRunEngine,
+    ):
+        self.name = name
+        self.description = description
+        self.tools = tools
+        self.system_prompt = system_prompt
+        self.engine = engine
+
+    async def run(
+        self,
+        user_input: str,
+        context: AgentContext,
+        **kwargs
+    ) -> AgentRunResult:
+        return await self.engine.run(
+            user_input=user_input,
+            context=context,
+            tools=self.tools,
+            **kwargs
+        )
+
+    @classmethod
+    def from_definition(cls, definition: AgentDefinition, engine: AgentRunEngine) -> "BaseAgent":
+        """从 AgentDefinition 创建实例"""
+        return cls(
+            name=definition.name,
+            description=definition.description,
+            tools=definition.tools,
+            system_prompt=definition.system_prompt,
+            engine=engine,
+        )</code></pre>
+</div>
+
+<h3 id="s3-api">3.5 API 端点</h3>
+<div class="card">
+  <h4>REST API 定义</h4>
+  <table>
+    <tr><th>方法</th><th>路径</th><th>说明</th><th>Phase</th></tr>
+    <tr><td><code>POST</code></td><td><code>/api/v1/agents/chat</code></td><td>对话式 Agent 交互（SSE 流式响应）</td><td><span class="tag tag-phase1">Phase 1</span></td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/v1/agents</code></td><td>列出可用 Agent</td><td><span class="tag tag-phase3">Phase 3</span></td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/v1/agents/{name}/run</code></td><td>运行指定 Agent</td><td><span class="tag tag-phase3">Phase 3</span></td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/v1/agents/sessions/{id}</code></td><td>获取会话状态和结果</td><td><span class="tag tag-phase3">Phase 3</span></td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/v1/agents/sessions/{id}/cancel</code></td><td>取消运行中的 Agent</td><td><span class="tag tag-phase3">Phase 3</span></td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/v1/agents/tools</code></td><td>列出可用工具</td><td><span class="tag tag-phase3">Phase 3</span></td></tr>
+  </table>
+
+  <h4>Phase 1 最小端点：/api/v1/agents/chat</h4>
+  <pre><code># POST /api/v1/agents/chat
+# 请求
+{
+  "messages": [
+    {"role": "user", "content": "帮我生成一篇关于机器学习的博客文章大纲"}
+  ],
+  "model": "gpt-4o",           // 可选，覆盖默认
+  "stream": true               // 是否 SSE 流式
+}
+
+# 响应 (非流式)
+{
+  "id": "chatcmpl-xxx",
+  "message": {
+    "role": "assistant",
+    "content": "当然可以！以下是机器学习博客大纲：\n\n1. 引言..."
+  },
+  "usage": {
+    "prompt_tokens": 45,
+    "completion_tokens": 320,
+    "total_tokens": 365
+  }
+}
+
+# 响应 (流式 SSE)
+event: delta
+data: {"content": "当然"}
+
+event: delta
+data: {"content": "可以！"}
+
+event: done
+data: {"usage": {"total_tokens": 365}}</code></pre>
+
+  <h4>认证与多租户</h4>
+  <pre><code># 所有 /api/v1/agents/* 端点需要认证
+# 租户上下文从认证 Token 中解析
+# Virtual Key 由 VirtualKeyResolver 根据 workspace/user 自动选择
+
+@router.post("/chat")
+async def agent_chat(
+    request: ChatRequest,
+    context: TenantContext = Depends(get_tenant_context),  # Auth → Workspace → User
+    llm_client: LiteLLMClient = Depends(get_llm_client),
+):
+    virtual_key_id = await virtual_key_resolver.resolve(
+        user_id=context.user_id,
+        workspace_id=context.workspace_id
+    )
+
+    if request.stream:
+        return StreamingResponse(
+            llm_client.chat_stream(
+                messages=request.messages,
+                virtual_key_id=virtual_key_id,
+                model=request.model,
+            ),
+            media_type="text/event-stream"
+        )
+    else:
+        response = await llm_client.chat(
+            messages=request.messages,
+            virtual_key_id=virtual_key_id,
+            model=request.model,
+        )
+        # 记录审计日志
+        await audit_log_service.create(...)
+        return response</code></pre>
+</div>
+
+<h3 id="s3-db">3.6 Agent 数据库 Schema</h3>
+<div class="card">
+  <pre><code>-- Agent 定义表（可用 Agent 列表）
+CREATE TABLE agent_definitions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,       -- "content-writer"
+    display_name VARCHAR(255),               -- "Content Writer"
+    description TEXT,
+    system_prompt TEXT NOT NULL,
+    tools JSONB DEFAULT '[]',                -- ["search_content", "create_content"]
+    model_override VARCHAR(100),             -- 覆盖默认模型
+    max_iterations INT DEFAULT 15,
+    is_builtin BOOLEAN DEFAULT FALSE,        -- 内置 Agent 不可删除
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Agent 会话表
+CREATE TABLE agent_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    agent_name VARCHAR(100),
+    title VARCHAR(500),                      -- 会话标题（自动生成）
+    status VARCHAR(30) DEFAULT 'running',    -- "running" | "completed" | "failed" | "cancelled"
+    messages JSONB DEFAULT '[]',             -- 完整对话历史
+    tool_calls JSONB DEFAULT '[]',           -- 工具调用记录
+    result JSONB,                            -- 结构化结果
+    error_message TEXT,
+    iterations INT DEFAULT 0,
+    prompt_tokens INT DEFAULT 0,
+    completion_tokens INT DEFAULT 0,
+    total_cost_micros BIGINT DEFAULT 0,
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_agent_sessions_ws ON agent_sessions(workspace_id, created_at DESC);
+CREATE INDEX idx_agent_sessions_user ON agent_sessions(user_id, created_at DESC);
+CREATE INDEX idx_agent_sessions_status ON agent_sessions(status, created_at);
+
+-- Prompt 模板表
+CREATE TABLE prompts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,              -- 模板名称: "content-summary"
+    version INT DEFAULT 1,                   -- 版本号
+    template TEXT NOT NULL,                  -- 模板文本，支持 {{variable}} 语法
+    variables JSONB DEFAULT '{}',            -- {"content": {"type": "string", "required": true}}
+    engine VARCHAR(50) DEFAULT 'jinja2',     -- 模板引擎: "jinja2" | "fstring"
+    metadata JSONB DEFAULT '{}',             -- 额外元数据
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(name, version)
+);</code></pre>
+</div>
+</section>
+
+<!-- ===== SECTION 4: IMPLEMENTATION ROADMAP ===== -->
+<section id="s4-phase1">
+<h2>4. 实施路线</h2>
+
+<h3>4.1 Phase 1 — AI 基础设施 (预计 2-3 周)</h3>
+<div class="card">
+  <div class="card-header"><h4 style="margin:0">目标：打通全链路 — curl /api/v1/agents/chat → LiteLLM → OpenAI → 返回结果</h4><span class="tag tag-phase1">Phase 1</span></div>
+
+  <table>
+    <tr><th style="width:4%">#</th><th style="width:30%">任务</th><th style="width:46%">产出</th><th style="width:20%">验证方式</th></tr>
+    <tr>
+      <td>1.1</td>
+      <td>部署 LiteLLM Proxy</td>
+      <td>docker-compose.yml 追加 litellm 服务；LiteLLM 配置文件；环境变量模板</td>
+      <td><code>curl localhost:4000/health</code> 返回 OK</td>
+    </tr>
+    <tr>
+      <td>1.2</td>
+      <td>实现 src/llm/ 基础模块</td>
+      <td><code>provider.py</code>, <code>litellm_client.py</code>, <code>token_counter.py</code>, <code>rate_limiter.py</code>, <code>utils.py</code></td>
+      <td>单元测试覆盖每个模块</td>
+    </tr>
+    <tr>
+      <td>1.3</td>
+      <td>新增 AISettings</td>
+      <td><code>config.py</code> 追加 AISettings 类；<code>.env.example</code> 追加 AI__ 环境变量</td>
+      <td>Settings 加载测试</td>
+    </tr>
+    <tr>
+      <td>1.4</td>
+      <td>创建 AI 数据库迁移</td>
+      <td>Migration 0004: ai_audit_log, ai_api_keys, prompts, agent_definitions, agent_sessions</td>
+      <td>Migration apply + rollback</td>
+    </tr>
+    <tr>
+      <td>1.5</td>
+      <td>创建 src/modules/agents/ 骨架</td>
+      <td><code>router.py</code>, <code>service.py</code>, <code>schema.py</code>, <code>models.py</code></td>
+      <td>模块导入无错误</td>
+    </tr>
+    <tr>
+      <td>1.6</td>
+      <td>实现 POST /api/v1/agents/chat</td>
+      <td>支持非流式和 SSE 流式；Virtual Key 解析；审计日志记录</td>
+      <td>curl 测试全链路；SSE 流式测试</td>
+    </tr>
+    <tr>
+      <td>1.7</td>
+      <td>实现前端 AI Tab 激活</td>
+      <td>将 create-content-type-dialog 的 AI 占位 UI 替换为真实 API 调用</td>
+      <td>Admin UI 手动测试：输入需求 → 返回内容类型定义</td>
+    </tr>
+    <tr>
+      <td>1.8</td>
+      <td>Phase 1 集成测试</td>
+      <td>全链路集成测试：Auth → AI Chat → LiteLLM → Mock LLM → 响应</td>
+      <td><code>pnpm api:check && pnpm admin:check</code> 通过</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="s4-phase2">4.2 Phase 2 — Extensions 系统改造 (预计 3-4 周)</h3>
+<div class="card">
+  <div class="card-header"><h4 style="margin:0">目标：Extensions 系统可安装/激活/配置/卸载，后端注册表被消费端读取，Admin UI 插槽可用</h4><span class="tag tag-phase2">Phase 2</span></div>
+
+  <table>
+    <tr><th style="width:4%">#</th><th style="width:30%">任务</th><th style="width:46%">产出</th><th style="width:20%">验证方式</th></tr>
+    <tr>
+      <td>2.1</td>
+      <td>实现 Extension Manifest 解析器</td>
+      <td><code>manifest.py</code> — 读取 extension.json，验证 Schema，返回 Manifest 对象</td>
+      <td>单元测试：有效/无效/缺失 manifest</td>
+    </tr>
+    <tr>
+      <td>2.2</td>
+      <td>加固生命周期状态机</td>
+      <td><code>lifecycle.py</code> — 10 阶段模型 + 强制顺序校验</td>
+      <td>单元测试：合法/非法转换</td>
+    </tr>
+    <tr>
+      <td>2.3</td>
+      <td>实现数据库驱动激活</td>
+      <td><code>activation.py</code> + extensions/workspace_extensions 表操作</td>
+      <td>集成测试：多 Workspace 独立激活</td>
+    </tr>
+    <tr>
+      <td>2.4</td>
+      <td>实现依赖解析</td>
+      <td><code>dependency.py</code> — DAG 拓扑排序 + 循环检测</td>
+      <td>单元测试：正常/循环/缺失依赖</td>
+    </tr>
+    <tr>
+      <td>2.5</td>
+      <td>实现 ExtensionManager</td>
+      <td><code>manager.py</code> — 统一入口，替代现有 PluginManager</td>
+      <td>集成测试：完整加载流程</td>
+    </tr>
+    <tr>
+      <td>2.6</td>
+      <td>实现消费端 Registry 绑定</td>
+      <td>Middleware、Service DI、ContentType、Provider、CustomField 的 Consumer</td>
+      <td>Extension 注册的中间件实际生效</td>
+    </tr>
+    <tr>
+      <td>2.7</td>
+      <td>实现 Admin UI 插槽 API</td>
+      <td><code>GET /api/v1/admin/slots</code> + <code>admin_slots.py</code></td>
+      <td>API 返回已注册 Slot 列表</td>
+    </tr>
+    <tr>
+      <td>2.8</td>
+      <td>实现 Extension 安全沙箱</td>
+      <td><code>sandbox.py</code> — Permission 校验 + API 调用审计</td>
+      <td>权限不足 Extension 无法调用受限 API</td>
+    </tr>
+    <tr>
+      <td>2.9</td>
+      <td>前端 Extensions SDK</td>
+      <td><code>packages/extensions-sdk/</code> — registerSlot, useExtensionConfig 等</td>
+      <td>测试 Extension 注册并渲染 Slot 组件</td>
+    </tr>
+    <tr>
+      <td>2.10</td>
+      <td>Phase 2 集成测试 + 迁移</td>
+      <td>现有 plugin/ 功能完全兼容；CorePlugin 替换为 Extension 实现</td>
+      <td>全量回归测试通过</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="s4-phase3">4.3 Phase 3 — Agent 系统 (预计 3-4 周)</h3>
+<div class="card">
+  <div class="card-header"><h4 style="margin:0">目标：Agent 运行时可用，3 个 Agent 上线，工具系统运转，事件驱动 AI 自动化运行</h4><span class="tag tag-phase3">Phase 3</span></div>
+
+  <table>
+    <tr><th style="width:4%">#</th><th style="width:30%">任务</th><th style="width:46%">产出</th><th style="width:20%">验证方式</th></tr>
+    <tr>
+      <td>3.1</td>
+      <td>引入 PydanticAI + 实现 BaseAgent</td>
+      <td>依赖安装 + <code>agents/base.py</code></td>
+      <td>单元测试：Agent 创建和基础调用</td>
+    </tr>
+    <tr>
+      <td>3.2</td>
+      <td>实现 AgentRunEngine (ReAct)</td>
+      <td><code>runtime/engine.py</code> — 完整 ReAct 循环、预算控制、超时</td>
+      <td>集成测试：单步/多步 Agent 运行</td>
+    </tr>
+    <tr>
+      <td>3.3</td>
+      <td>实现 Tool Registry + 首批 6 个工具</td>
+      <td><code>tools/registry.py</code> + <code>content_tools.py</code></td>
+      <td>工具注册/列表/调用测试</td>
+    </tr>
+    <tr>
+      <td>3.4</td>
+      <td>实现 AgentSessionManager</td>
+      <td><code>runtime/session.py</code> — 创建/恢复/取消会话</td>
+      <td>会话 CRUD 测试</td>
+    </tr>
+    <tr>
+      <td>3.5</td>
+      <td>实现 ContentWriter + ContentAnalyzer + ContentModel Agent</td>
+      <td><code>agents/content_writer.py</code> 等 3 个 Agent</td>
+      <td>每个 Agent 的端到端测试</td>
+    </tr>
+    <tr>
+      <td>3.6</td>
+      <td>实现事件驱动 AI 自动化</td>
+      <td>订阅 Event Bus → content.created → 自动摘要/标签</td>
+      <td>创建内容 → 自动生成摘要</td>
+    </tr>
+    <tr>
+      <td>3.7</td>
+      <td>实现前端 Agent 对话面板</td>
+      <td>Admin UI 中可对话式使用 Agent</td>
+      <td>手动测试完整对话流程</td>
+    </tr>
+    <tr>
+      <td>3.8</td>
+      <td>Phase 3 集成测试</td>
+      <td>全 Agent 功能测试</td>
+      <td>完整回归通过</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="s4-phase4">4.4 Phase 4 — 高级能力 (按需)</h3>
+<div class="card">
+  <div class="card-header"><h4 style="margin:0">目标：RAG、多步工作流、编辑器集成、可观测性 — 根据业务需求排期</h4><span class="tag tag-phase4">Phase 4</span></div>
+  <table>
+    <tr><th style="width:4%">#</th><th style="width:40%">能力</th><th style="width:36%">技术方案</th><th style="width:20%">触发条件</th></tr>
+    <tr><td>4.1</td><td>RAG 内容问答</td><td>LlamaIndex + pgvector embedding 管线 + 混合搜索</td><td>需要基于项目内容的智能问答</td></tr>
+    <tr><td>4.2</td><td>LangGraph 多步工作流</td><td>有向图状态机；PostgreSQL Checkpoint；人工审批门</td><td>需要内容审核→修改→发布多步管线</td></tr>
+    <tr><td>4.3</td><td>@platejs/ai 编辑器集成</td><td>Plate.js AI 插件 + 后端 AI API</td><td>需要编辑器内 AI 辅助写作</td></tr>
+    <tr><td>4.4</td><td>Langfuse 可观测性</td><td>OpenTelemetry 追踪 + Prompt 管理 + 评估管线</td><td>需要调试 Agent 行为、Prompt A/B 测试</td></tr>
+    <tr><td>4.5</td><td>LlamaIndex RAG 管线</td><td>文档摄取 + 分块 + HNSW 索引 + 混合搜索</td><td>需要跨内容类型语义搜索</td></tr>
+    <tr><td>4.6</td><td>多租户 AI 计费</td><td>按 Workspace 汇总 ai_audit_log，生成账单</td><td>需要按租户收费</td></tr>
+  </table>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ===== APPENDICES ===== -->
+<h2 id="a1-glossary">附录 A1. 术语表</h2>
+<div class="card">
+  <table>
+    <tr><th style="width:18%">术语</th><th>定义</th></tr>
+    <tr><td><strong>Extension</strong></td><td>扩展 Arclayer 功能的可安装包。包含后端（Python）和前端（React）代码。通过 Extension Manager 管理生命周期。</td></tr>
+    <tr><td><strong>Integration</strong></td><td>Extension 的一种，专门连接外部服务（AI Provider、第三方 API、存储后端等）。</td></tr>
+    <tr><td><strong>Connector</strong></td><td>Extension 的一种，专门实现数据导入/导出或与其他 CMS 同步。</td></tr>
+    <tr><td><strong>Manifest</strong></td><td>Extension 根目录的 <code>extension.json</code> 文件。声明式元信息清单，不需要加载代码即可读取。</td></tr>
+    <tr><td><strong>Registry</strong></td><td>类型化的子注册表。Extension 通过 Hook 向 Registry 注册资源（Service、Middleware、ContentType 等）。消费端从 Registry 读取。</td></tr>
+    <tr><td><strong>LiteLLM Proxy</strong></td><td>OpenAI 兼容的 LLM 代理服务。作为 sidecar 运行，统一管理 100+ Provider 的路由、虚拟 Key、速率限制和成本追踪。</td></tr>
+    <tr><td><strong>Virtual Key</strong></td><td>LiteLLM 中的虚拟 API Key。支持层级化管理（Platform → Workspace → User），各自有独立的预算、速率限制和模型访问控制。</td></tr>
+    <tr><td><strong>ReAct Loop</strong></td><td>Reasoning + Acting 循环。Agent 的运行时模型：Think（分析）→ Act（调用工具）→ Observe（观察结果）→ 循环，直到任务完成或达到上限。</td></tr>
+    <tr><td><strong>PydanticAI</strong></td><td>基于 Pydantic 的 AI Agent 框架。提供类型安全的输入/输出、依赖注入、内置测试支持。用于实现单任务 Agent。</td></tr>
+    <tr><td><strong>LangGraph</strong></td><td>基于有向图的多步 Agent 工作流框架。提供 PostgreSQL Checkpoint、人工审批门、子图组合。用于复杂多步 Agent 管线（按需引入）。</td></tr>
+    <tr><td><strong>MCP</strong></td><td>Model Context Protocol。标准化的工具描述格式，使工具定义可跨 Agent 框架复用。本项目用 MCP 格式描述工具，用 PydanticAI 执行。</td></tr>
+    <tr><td><strong>LlamaIndex</strong></td><td>数据驱动的 RAG 框架。用于内容语义搜索、文档摄取、分块策略、混合检索（BM25 + Vector）。原生支持 pgvector。</td></tr>
+    <tr><td><strong>Langfuse</strong></td><td>LLM 可观测性平台。用于追踪 LLM 调用链、管理 Prompt 版本、评估 Agent 输出质量。按需引入。</td></tr>
+    <tr><td><strong>Admin Slot</strong></td><td>Admin UI 中预定义的组件注入位置（Sidebar、Editor Toolbar、Content Actions 等）。Extension 可注册 React 组件到指定 Slot。</td></tr>
+  </table>
+</div>
+
+<h2 id="a2-techstack">附录 A2. 完整技术栈</h2>
+<div class="card">
+  <table>
+    <tr><th>层</th><th>技术</th><th>许可</th><th>Phase</th></tr>
+    <tr><td>LLM 网关</td><td>LiteLLM Proxy (sidecar)</td><td>MIT</td><td>1</td></tr>
+    <tr><td>LLM Client</td><td>httpx + LiteLLM OpenAI 兼容接口</td><td>BSD / MIT</td><td>1</td></tr>
+    <tr><td>AI 配置</td><td>Pydantic Settings (AISettings)</td><td>MIT</td><td>1</td></tr>
+    <tr><td>Token 计数</td><td>tiktoken</td><td>MIT</td><td>1</td></tr>
+    <tr><td>速率限制</td><td>Token Bucket (Valkey + 本地)</td><td>—</td><td>1</td></tr>
+    <tr><td>Agent 框架</td><td>PydanticAI</td><td>MIT</td><td>3</td></tr>
+    <tr><td>多步工作流</td><td>LangGraph (按需)</td><td>MIT</td><td>4</td></tr>
+    <tr><td>RAG</td><td>LlamaIndex + pgvector</td><td>MIT</td><td>4</td></tr>
+    <tr><td>可观测性</td><td>Langfuse (按需)</td><td>MIT</td><td>4</td></tr>
+    <tr><td>Extensions 生命周期</td><td>pluggy (保留) + 自定义状态机</td><td>MIT</td><td>2</td></tr>
+    <tr><td>Admin UI</td><td>React + TanStack Router + Radix UI</td><td>MIT</td><td>2</td></tr>
+    <tr><td>前端 SDK</td><td>TypeScript (packages/extensions-sdk)</td><td>—</td><td>2</td></tr>
+    <tr><td>数据库</td><td>PostgreSQL 16 + pgvector</td><td>PostgreSQL</td><td>已有</td></tr>
+    <tr><td>缓存/队列</td><td>Valkey 8.0</td><td>BSD</td><td>已有</td></tr>
+    <tr><td>后台任务</td><td>Taskiq</td><td>MIT</td><td>已有</td></tr>
+    <tr><td>ORM</td><td>Tortoise ORM</td><td>Apache-2.0</td><td>已有</td></tr>
+  </table>
+</div>
+
+<h2 id="a3-files">附录 A3. 文件变更清单</h2>
+<div class="card">
+  <table>
+    <tr><th>Phase</th><th>操作</th><th>文件路径</th></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/llm/__init__.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/llm/provider.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/llm/litellm_client.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/llm/token_counter.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/llm/rate_limiter.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/llm/utils.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/modules/agents/__init__.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/modules/agents/router.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/modules/agents/service.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/modules/agents/schema.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/modules/agents/models.py</code></td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>apps/api/src/migrations/0004_ai_infrastructure.py</code></td></tr>
+    <tr><td>1</td><td>✏️ 修改</td><td><code>apps/api/src/config.py</code> (追加 AISettings)</td></tr>
+    <tr><td>1</td><td>✏️ 修改</td><td><code>apps/api/src/core/routes.py</code> (注册 agents 路由)</td></tr>
+    <tr><td>1</td><td>✏️ 修改</td><td><code>apps/api/.env.example</code> (追加 AI__ 环境变量)</td></tr>
+    <tr><td>1</td><td>✏️ 修改</td><td><code>docker-compose.yml</code> (追加 litellm 服务)</td></tr>
+    <tr><td>1</td><td>🆕 新建</td><td><code>docker/litellm/config.yaml</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/__init__.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/manifest.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/lifecycle.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/activation.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/dependency.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/manager.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/admin_slots.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/registry.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/config.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/events.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/core/extensions/sandbox.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>apps/api/src/migrations/0005_extensions.py</code></td></tr>
+    <tr><td>2</td><td>🆕 新建</td><td><code>packages/extensions-sdk/</code></td></tr>
+    <tr><td>2</td><td>✏️ 修改</td><td><code>apps/api/src/core/registry.py</code> (ExtensionManager 替代 PluginManager)</td></tr>
+    <tr><td>3</td><td>🆕 新建</td><td><code>apps/api/src/modules/agents/runtime/</code></td></tr>
+    <tr><td>3</td><td>🆕 新建</td><td><code>apps/api/src/modules/agents/tools/</code></td></tr>
+    <tr><td>3</td><td>🆕 新建</td><td><code>apps/api/src/modules/agents/agents/</code></td></tr>
+    <tr><td>3</td><td>✏️ 修改</td><td><code>apps/api/pyproject.toml</code> (追加 pydantic-ai 依赖)</td></tr>
+  </table>
+</div>
+
+<hr class="section-divider">
+<p style="color: var(--text-secondary); font-size: 0.8rem; text-align: center;">
+  Arclayer AI Agent & Extensions System — 完整实施规格 v1.0 | 2026-06-01
+</p>
+
+</main>
+</body>
+</html>
